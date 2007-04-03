@@ -1,0 +1,265 @@
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// Template for a dictionary class (holds numbers, strings, objects. Key must be a string).
+
+// Andrew P. Davison, UNIC, CNRS, August 2005-February 2006.
+// $Id: odict.hoc 14 2007-01-30 13:09:03Z apdavison $
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+load_file("stdlib.hoc", "String")
+
+strdef tmpstr, tmpstr2
+objref strFunc
+strFunc = new StringFunctions()
+
+proc parseStringList() { local pos
+  // parses a comma-separated list contained in a string into either a
+  // Vector (if the first argument is 0) or a List (if the first argument is 1)
+  // of String objects.
+  // The second argument is the string to be parsed
+  // The third argument is the List or Vector
+  if ($1 == 0) {
+    $o3.resize(0)
+  }
+  tmpstr2 = $s2
+  pos = 1
+  while (pos > 0) {
+    pos = 1+strFunc.head(tmpstr2, ",", tmpstr)
+    strFunc.right(tmpstr2,pos)
+    if (pos > 0) {
+      if ($1 == 0) {
+        $o3.append(str2num(tmpstr))
+      } else {
+        $o3.append(new String(tmpstr))
+      }
+    }
+  }
+  if (strFunc.len(tmpstr2)>0) {
+    if ($1 == 0) {
+      $o3.append(str2num(tmpstr2))
+    } else {
+      $o3.append(new String(tmpstr2))
+    }
+  }
+}
+
+
+begintemplate Dict
+
+public get, oget, set, size, list, keys, has_key, values
+
+objref keyList, valueVec, valueList, typeVec, this, sf, s
+strdef fmtstr
+
+external parseStringList
+
+proc init() { local i, j
+  DEBUG = 0
+  keyList = new List()
+  typeVec = new Vector(0)
+  valueVec = new Vector(0)
+  valueList = new List()
+  sf = new StringFunctions()
+  
+  if (numarg()==2) {
+    if (argtype(1)==2 && argtype(2)==2) { // both args are strings
+      if (DEBUG) { print "Creating dictionary from two strings" }
+      // we assume the second string contains only numbers
+      parseStringList(1,$s1,keyList)
+      parseStringList(0,$s2,valueVec)
+      for i = 0,valueVec.size()-1 {
+	typeVec.append(0)
+	valueList.append(new String("")) // dummy values
+      }
+      checklength()
+    } else if (argtype(1)==1 && argtype(2)==1) { // both args are objects (List of Strings,Vector)
+      if (DEBUG) { print "Creating dictionary from a List of Strings and a Vector" }
+      // need to allow for the case that the second arg is a List
+      for i = 0,$o1.count()-1 {
+	keyList.append(new String($o1.object(i).s))
+	typeVec.append(0)
+	valueList.append(new String("")) // dummy values
+      }
+      valueVec.copy($o2)
+      checklength()
+    } else { // single string,value pair
+      if (DEBUG) { print "Creating dictionary from a single string,value pair" }
+      keyList.append(new String($s1))
+      typeVec.append(argtype(2))
+      if (argtype(2) == 0) {              // Number
+	valueVec.append($2)
+	valueList.append(new String(""))  //  (dummy value)
+      } else if (argtype(2) == 2) {
+	valueList.append(new String($s2)) // String
+	valueVec.append(0)
+      } else {
+	valueList.append($o2)             // Object
+	valueVec.append(0)
+      }
+    }
+  } else { // multiple string,value pairs
+    if (DEBUG) { print "Creating dictionary from multiple string,value pairs" }
+    i = 1
+    while (i <= numarg()) {
+      keyList.append(new String($si))
+      i += 1
+      typeVec.append(argtype(i))
+      if (i <= numarg()) {
+	if (argtype(i) == 0) {              // Number
+	  valueVec.append($i)
+	  valueList.append(new String(""))
+	} else if (argtype(i) == 2) {
+	  valueList.append(new String($si)) // String
+	  valueVec.append(0)
+	} else {
+	  valueList.append($oi)             // Object
+	  valueVec.append(0)
+	}
+	i += 1
+      }
+    }
+    checklength()
+  }
+  
+}
+
+proc checklength() {
+  if (keyList.count() != size()) {
+    printf("Error: number of keys (%d) does not match number of values (%d). Dictionary is empty.\n",keyList.count(),size())
+    printf("Keys: ")
+    keys()
+    printf("Values: ")
+    values()
+    keyList.remove_all()
+    valueVec.resize(0)
+    valueList.remove_all()
+    typeVec.resize(0)
+  }
+}
+  
+func get() { local i
+  i = index($s1)
+  if (i >= 0) {
+    if (typeVec.x[i] == 0) {        // Number
+      return valueVec.x[i]
+    } else {
+      print "The element is an object or a string. Use \"oget()\""
+      return -1e12
+    }
+  } else {
+    printf("Error: key \"%s\" not found in dictionary\n",$s1)
+    return -1e12
+  }
+}
+
+obfunc oget() { local i
+  i = index($s1)
+  if (i >= 0) {
+    if (typeVec.x[i] == 1) {        // Object
+      return valueList.object(i)
+    } else if (typeVec.x[i] == 2) { // String
+      return valueList.object(i)
+    } else {
+      print "The element is a number. Use \"get()\""
+      return new String("Error")
+    }
+  }
+}
+
+proc set() { local i
+  i = index($s1)
+  if (i >= 0) {
+    if (typeVec.x[i] == 0) {  
+      valueVec.x[i] = $2
+    } else if (typeVec.x[i] == 2) {
+      valueList.remove(i)
+      valueList.insrt(new String($s2))
+    } else {
+      valueList.remove(i)
+      valueList.insrt($o2)
+    }
+  } else {
+    keyList.append(new String($s1))
+    typeVec.append(argtype(2))
+    if (argtype(2) == 0) {              // Number
+      valueVec.append($2)
+      valueList.append(new String(""))  //  (dummy value)
+    } else if (argtype(2) == 2) {
+      valueList.append(new String($s2)) // String
+      valueVec.append(0)
+    } else {
+      valueList.append($o2)             // Object
+      valueVec.append(0)
+    }
+  }
+  checklength()
+}
+
+func index() { local i
+  for i = 0, keyList.count()-1 {
+    if (strcmp($s1,keyList.object(i).s)==0) {
+      return i
+    }
+  }
+  return -1
+}
+
+func size() {
+  return (valueVec.size() + valueList.count())/2
+}
+
+proc list() { local i, maxkeylength, l
+  maxkeylength = 0
+  for i = 0,keyList.count()-1 {
+    l = sf.len(keyList.object(i).s)
+    if ( l > maxkeylength ) {
+      maxkeylength = l
+    }
+  }
+  for i = 0, size()-1 {
+    if (typeVec.x[i] == 0) {
+      sprint(fmtstr,"%s%d%s","%-",maxkeylength,"s => %g\n")
+      printf(fmtstr,keyList.object(i).s,valueVec.x[i])
+    } else if (typeVec.x[i] == 2) {
+      sprint(fmtstr,"%s%d%s","%-",maxkeylength,"s => \"%s\"\n")
+      printf(fmtstr,keyList.object(i).s,valueList.object[i].s)
+    } else {
+      sprint(fmtstr,"%s%d%s","%-",maxkeylength,"s => Object\n")
+      printf(fmtstr,keyList.object(i).s)
+    }
+  }
+}
+
+proc print_keys() {
+  printf("[")
+  for i = 0, keyList.count()-2 {
+    printf("%s, ",keyList.object(i).s)
+  }
+  printf("%s]\n",keyList.object(i).s)
+}
+
+obfunc keys() {
+  return keyList
+}
+
+proc values() {
+  valueVec.printf()
+  for i = 0,valueList.count()-1 {
+    print valueList.object(i)
+  }
+}
+
+func has_key() {
+  found = 0
+  for i = 0, keyList.count()-1 {
+    if (strcmp($s1,keyList.object(i).s) == 0) {
+      found = 1
+      break
+    }
+  }
+  return found
+}
+
+endtemplate Dict

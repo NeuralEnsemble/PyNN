@@ -1,0 +1,4 @@
+#!/bin/bash
+# $1 is the number of processors
+# $2 is the filename
+mpirun -np $1 /usr/local/nrn-5.9mpi/i686/bin/nrniv -dll /home/andrew/Apps/pyNN/hoc/i686/.libs/libnrnmech.so -python $2 neuron2
