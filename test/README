@@ -1,0 +1,6 @@
+* Unit tests:
+$ python nesttests.py > /dev/null
+$ ./nrnpython neurontests.py
+
+* Regression tests:
+$ ./runtests.py

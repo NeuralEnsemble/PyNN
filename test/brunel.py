@@ -1,0 +1,212 @@
+"""
+
+Conversion of the Brunel network implemented in nest-1.0.13/examples/brunel.sli
+to use PyNN
+
+Andrew Davison, UNIC, CNRS
+May 2006
+
+$Id: brunel.py 279 2007-01-04 09:35:35Z pierre $
+
+"""
+
+import sys
+
+if hasattr(sys,"argv"):     # run using python
+    simulator = sys.argv[-1]
+else:
+    simulator = "neuron"    # run using nrngui -python
+exec("from pyNN.%s import *" % simulator)
+
+#from NeuroTools.stgen import StGen
+import numpy.random
+
+# === Define parameters ========================================================
+
+downscale   = 50      # scale number of neurons down by this factor
+                      # scale synaptic weights up by this factor to
+                      # obtain similar dynamics independent of size
+order       = 12500   # determines size of network:
+                      # 4*order excitatory neurons
+                      # 1*order inhibitory neurons
+Nrec        = 50      # number of neurons to record from, per population
+epsilon     = 0.1     # connectivity: proportion of neurons each neuron projects to
+    
+# Parameters determining model dynamics, cf Brunel (2000), Figs 7, 8 and Table 1
+# here: Case C, asynchronous irregular firing, ~35 Hz
+eta         = 2.0     # rel rate of external input
+g           = 5.0     # rel strength of inhibitory synapses
+J           = 0.1     # synaptic weight [mV]
+delay       = 1.5     # synaptic delay, all connections [ms]  
+
+# single neuron parameters
+tauMem      = 20.0    # neuron membrane time constant [ms]
+tauSyn      = 0.5     # synaptic time constant [ms]
+tauRef      = 2.0     # refractory time [ms]
+U0          = 0.0     # resting potential [mV]
+theta       = 20.0    # threshold 
+
+# simulation-related parameters  
+simtime     = 100.0  # simulation time [ms] 
+dt          = 0.1     # simulation step length [ms]   
+
+# seed for random generator used when building connections
+connectseed = 12345789   
+use_RandomArray = True # use Python rng rather than NEST rng
+
+# seed for random generator(s) used during simulation
+kernelseed  = 43210987      
+
+exfilename  = "brunel_ex_%s.ras" % simulator # output file for excit. population  
+infilename  = "brunel_in_%s.ras" % simulator # output file for inhib. population  
+vexfilename = "brunel_ex_%s.v" % simulator # output file for membrane potential traces
+vinfilename = "brunel_in_%s.v" % simulator # output file for membrane potential traces
+  
+# === Calculate derived parameters =============================================
+
+# scaling: compute effective order and synaptic strength
+order_eff = int(float(order)/downscale)
+J_eff     = J*downscale
+  
+# compute neuron numbers
+NE = int(4*order_eff)  # number of excitatory neurons
+NI = int(1*order_eff)  # number of inhibitory neurons
+N  = NI + NE           # total number of neurons
+
+# compute synapse numbers
+CE   = int(epsilon*NE)  # number of excitatory synapses on neuron
+CI   = int(epsilon*NI)  # number of inhibitory synapses on neuron
+C    = CE + CI          # total number of internal synapses per n.   
+Cext = CE               # number of external synapses on neuron  
+
+# synaptic weights, scaled for alpha functions, such that
+# for constant membrane potential, charge J would be deposited
+fudge = 0.00041363506632638 # ensures dV = J at V=0  
+  
+# excitatory weight: JE = J_eff / tauSyn * fudge
+JE = (J_eff/tauSyn)*fudge 
+  
+# inhibitory weight: JI = - g * JE
+JI = -g*JE  
+  
+# threshold, external, and Poisson generator rates:
+nu_thresh = theta/(J_eff*CE*tauMem)
+nu_ext    = eta*nu_thresh     # external rate per synapse
+p_rate    = 1000*nu_ext*Cext  # external input rate per neuron (Hz)
+                                    
+# number of synapses---just so we know
+Nsyn = (C+1)*N + 2*Nrec  # number of neurons * (internal synapses + 1 synapse from PoissonGenerator) + 2synapses" to spike detectors
+
+# put cell parameters into a dict
+cell_params = {'tau_m'      : tauMem,
+               'tau_syn'    : tauSyn,
+               'tau_refrac' : tauRef,
+               'v_rest'     : U0,
+               'v_reset'    : U0,
+               'v_thresh'   : theta,
+               'cm'         : 0.001}     # (nF)
+
+# === Build the network ========================================================
+
+# clear all existing network elements and set resolution and limits on delays.
+# For NEST, limits must be set BEFORE connecting any elements
+myid = setup(timestep=dt,max_delay=delay)
+
+# Small function to display information only on node 1
+def nprint(s):
+    if (myid == 0):
+        print s
+
+Timer.start() # start timer on construction    
+
+print "Setting up random number generator"
+rng = numpy.random.RandomState()
+rng.seed(kernelseed+myid)
+
+print "Creating excitatory population."
+E_net = Population((NE,),IF_curr_alpha,cell_params,"E_net")
+
+print "Creating inhibitory population."
+I_net = Population((NI,),IF_curr_alpha,cell_params,"I_net")
+
+print "Creating excitatory Poisson generator."
+#expoisson = Population((NE,), SpikeSourceArray, {'spike_times': [float(t) for t in range(5,105,2)]})
+expoisson = Population((NE,), SpikeSourcePoisson,{'rate': p_rate},"expoisson")
+
+print "Creating inhibitory Poisson generator."
+#inpoisson = Population((NI,), SpikeSourceArray, {'spike_times': [float(t) for t in range(5,105,2)]})
+inpoisson = Population((NI,), SpikeSourcePoisson,{'rate': p_rate},"inpoisson")
+
+# Record spikes
+print "Setting up recording in excitatory population."
+E_net.record(Nrec)
+E_net.record_v([E_net[0],E_net[1]])
+
+print "Setting up recording in inhibitory population."
+I_net.record(Nrec)
+I_net.record_v([I_net[0],I_net[1]])
+
+print "Connecting excitatory population." 
+E_to_E = Projection(E_net,E_net,'fixedProbability',epsilon,rng=rng)
+E_to_E.setWeights(JE)
+E_to_E.setDelays(delay)
+print "E --> E\t\t", len(E_to_E), "connections"
+I_to_E = Projection(I_net,E_net,'fixedProbability',epsilon,rng=rng)
+I_to_E.setWeights(JI)
+I_to_E.setDelays(delay)
+print "I --> E\t\t", len(I_to_E), "connections"
+input_to_E = Projection(expoisson,E_net,'oneToOne')
+input_to_E.setWeights(JE)
+input_to_E.setDelays(dt) # min_delay = dt ??
+print "input --> E\t", len(input_to_E), "connections"
+
+print "Connecting inhibitory population."
+E_to_I = Projection(E_net,I_net,'fixedProbability',epsilon,rng=rng)
+E_to_I.setWeights(JE)
+E_to_I.setDelays(delay)
+print "E --> I\t\t", len(E_to_I), "connections"
+I_to_I = Projection(I_net,I_net,'fixedProbability',epsilon,rng=rng)
+I_to_I.setWeights(JI)
+I_to_I.setDelays(delay)
+print "I --> I\t\t", len(I_to_I), "connections"
+input_to_I = Projection(inpoisson,I_net,'oneToOne')
+input_to_I.setWeights(JE)
+input_to_I.setDelays(dt) # min_delay = dt ??
+print "input --> I\t", len(input_to_I), "connections"
+
+# read out time used for building
+buildCPUTime = Timer.elapsedTime()
+
+# === Run simulation ===========================================================
+
+# run, measure computer time
+Timer.start() # start timer on construction
+print "Running simulation."
+run(simtime)
+simCPUTime = Timer.elapsedTime()
+
+# write data to file
+E_net.printSpikes(exfilename)
+I_net.printSpikes(infilename)
+E_net.print_v(vexfilename)
+I_net.print_v(vinfilename)
+
+E_rate = E_net.meanSpikeCount()*1000.0/simtime
+I_rate = I_net.meanSpikeCount()*1000.0/simtime
+
+# write a short report
+nprint("\nBrunel Network Simulation")
+nprint("Number of Neurons  : %d" %N)
+nprint("Number of Synapses : %d" %Nsyn)
+nprint("Input firing rate  : %f" %p_rate)
+nprint("Excitatory weight  : %f" %JE)
+nprint("Inhibitory weight  : %f" %JI)
+nprint("Excitatory rate    : %f Hz" %E_rate)
+nprint("Inhibitory rate    : %f Hz" %I_rate)
+nprint("Build time         : %f s" %buildCPUTime)   
+nprint("Simulation time    : %f s" %simCPUTime)    
+  
+# === Clean up and quit ========================================================
+
+end()
+

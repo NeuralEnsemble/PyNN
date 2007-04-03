@@ -1,0 +1,15 @@
+create a numpy array of size n (n very large) where the array holds either
+(i) objects of class Conn (see below) [memtest2]
+(ii) dicts {'weight': w, 'delay' : d} [memtest3]
+(iii) tuples (w,d) [memtest4]
+
+how do the memory requirements of these three programs compare to a program with a 2xn numpy array? [memtest1]
+
+what if we just use lists instead of arrays?
+
+
+class Conn:
+
+    def __init__(self,w,d):
+        self.w = float(w)
+        self.d = float(d)
