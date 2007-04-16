@@ -13,15 +13,15 @@ $Id$
 
 import re, string, types, getopt, sys, shutil, os
 shutil.copy('dummy_hoc.py','hoc.py')
-import common, neuron, nest, neuron2
+import common, neuron, nest, neuron2, pcsim
 os.remove('hoc.py'); os.remove('hoc.pyc')
 
 
+red     = 0010; green  = 0020; yellow = 0030; blue = 0040;
+magenta = 0050; cyan   = 0060; bright = 0100
 try:
     import ll.ansistyle
     coloured = True
-    red     = 0010; green  = 0020; yellow = 0030; blue = 0040;
-    magenta = 0050; cyan   = 0060; bright = 0100
 except ImportError:
     coloured = False
 
@@ -46,7 +46,7 @@ exclude_list = ['__module__','__doc__','__builtins__','__file__','__class__',
                 'StandardCellType',
                 ]
 
-module_list = [neuron, nest, neuron2]
+module_list = [neuron, nest, neuron2, pcsim]
 
 if coloured:
     def colour(col,text):
@@ -78,8 +78,8 @@ def checkDoc(str1,str2):
     can be added at the end."""
     global inconsistency
     if str1 and str2:
-        str1 = str1.strip()
-        str2 = str2.strip()
+        str1 = ' '.join(str1.strip().split()) # ignore differences in white space
+        str2 = ' '.join(str2.strip().split())
         nchar1 = len(str1)
         if nchar1 <= len(str2) and str2[0:nchar1] == str1:
             retstr = ok

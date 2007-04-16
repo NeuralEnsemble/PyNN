@@ -14,7 +14,7 @@ from pyNN import __path__, common
 import os.path
 import types
 import sys
-from numpy import import *
+from numpy import *
 from pypcsim import *
 from tables import *
 import exceptions
@@ -53,6 +53,9 @@ def checkParams(param, val=None):
     else:
         raise common.InvalidParameterValueError
     return paramDict
+
+class ID(common.ID):
+    pass
 
 # Implementation of the NativeRNG
 class NativeRNG(pyNN.random.NativeRNG):
@@ -237,8 +240,8 @@ class IF_curr_alpha(common.IF_curr_alpha):
 
 class IF_curr_exp(common.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
-       decaying-exponential post-synaptic current. (Separate synaptic currents for
-       excitatory and inhibitory synapses."""
+    decaying-exponential post-synaptic current. (Separate synaptic currents for
+    excitatory and inhibitory synapses."""
     
     translations = {
         'tau_m'     : ('taum'   , "parameters['tau_m']"), 
@@ -505,535 +508,494 @@ def record_v(source, filename):
 # ==============================================================================
 
 class Population(common.Population):
-     """
-     An array of neurons all of the same type. `Population' is used as a generic
-     term intended to include layers, columns, nuclei, etc., of cells.
-     All cells have both an address (a tuple) and an id (an integer). If p is a
-     Population object, the address and id can be inter-converted using :
-     id = p[address]
-     address = p.locate(id)
-     """
-     nPop = 0
+    """
+    An array of neurons all of the same type. `Population' is used as a generic
+    term intended to include layers, columns, nuclei, etc., of cells.
+    All cells have both an address (a tuple) and an id (an integer). If p is a
+    Population object, the address and id can be inter-converted using :
+    id = p[address]
+    address = p.locate(id)
+    """
+    nPop = 0
+    
+    def __init__(self, dims, cellclass, cellparams=None, label=None):
+        """
+        dims should be a tuple containing the population dimensions, or a single
+          integer, for a one-dimensional population.
+          e.g., (10,10) will create a two-dimensional population of size 10x10.
+        cellclass should either be a standardized cell class (a class inheriting
+        from common.StandardCellType) or a string giving the name of the
+        simulator-specific model that makes up the population.
+        cellparams should be a dict which is passed to the neuron model
+          constructor
+        label is an optional name for the population.
+        """
+        global gid, myid, nhost
+        
+        if len(dims) > 3:
+            raise exceptions.AttributeError('PCSIM does not support populations with more than 3 dimensions')
+        
+        self.actual_ndim = len(dims)
+        
+        while len(dims) < 3:
+            dims += (1,)
+        
+        common.Population.__init__(self, dims, cellclass, cellparams, label)
+        
+        
+                 
+        # set the steps list, used by the __getitem__() method.
+        self.steps = [1]*self.ndim
+        for i in range(self.ndim-1):
+            for j in range(i+1, self.ndim):
+                self.steps[i] *= self.dim[j]
+        
+        if isinstance(cellclass, str):
+            if not cellclass in globals():
+                raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
+            cellclass = eval(cellclass)
+        self.celltype = cellclass
+        if issubclass(cellclass, common.StandardCellType):
+            self.cellfactory = cellclass(cellparams).simObjFactory
+        else:
+            if issubclass(cellclass, SimObject):
+                self.cellfactory = apply(cellclass, (), cellparams)
+            else:
+                raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
+        
+            
+        # CuboidGridPopulation(SimNetwork &net, GridPoint3D origin, Volume3DSize dims, SimObjectFactory &objFactory)
+        self.pcsim_population = CuboidGridObjectPopulation(pcsim_globals.net, GridPoint3D(0,0,0), Volume3DSize(dims[0], dims[1], dims[2]), self.cellfactory)
+        
+        if not self.label:
+            self.label = 'population%d' % Population.nPop         
+        self.record_from = { 'spiketimes': [], 'vtrace': [] }        
+        Population.nPop += 1
+         
+         
+    def __getitem__(self, addr):
+        """Returns a representation of the cell with coordinates given by addr,
+           suitable for being passed to other methods that require a cell id.
+           Note that __getitem__ is called when using [] access, e.g.
+             p = Population(...)
+             p[2,3] is equivalent to p.__getitem__((2,3)).
+        """
+        # What we actually pass around are gids.
+        orig_addr = addr;
+        if isinstance(addr, int):
+            addr = (addr,)
+        while len(addr) < 3:
+            addr += (0,)                  
+        assert len(addr) == len(self.dim)
+        
+        index = 0
+        for i, s in zip(addr, self.steps):
+            index += i*s
+        id = index 
+        pcsim_index = self.pcsim_population.getIndex(addr[0],addr[1],addr[2])
+        assert id == pcsim_index, " id = %s, pcsim_index = %s" % (id, pcsim_index)
+        assert orig_addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, orig_addr, id, self.locate(id))
+        return id
+         
+         
+    def locate(self, id):
+        """Given an element id in a Population, return the coordinates.
+               e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
+                         7 9
+        """
+        # id should be a gid
+        assert isinstance(id, int)         
+        if self.ndim == 3:
+            rows = self.dim[0]; cols = self.dim[1]
+            i = id/(rows*cols); remainder = id%(rows*cols)
+            j = remainder/cols; k = remainder%cols
+            coords = (k, j, i)
+        elif self.ndim == 2:
+            cols = self.dim[1]
+            i = id/cols; j = id%cols
+            coords = (i, j)
+        elif self.ndim == 1:
+            coords = (id,)
+        else:
+            raise common.InvalidDimensionsError
+        if self.actual_ndim == 1:
+            coords = (coords[0],)
+        elif self.actual_ndim == 2:
+            coords = (coords[0],coords[1],)
+        pcsim_coords = self.pcsim_population.getLocation(id)
+        pcsim_coords = (pcsim_coords.x(), pcsim_coords.y(), pcsim_coords.z())
+        if self.actual_ndim == 1:
+            pcsim_coords = (pcsim_coords[0],)
+        elif self.actual_ndim == 2:
+            pcsim_coords = (pcsim_coords[0],pcsim_coords[1],)    
+        # assert coords == pcsim_coords, " coords = %s, pcsim_coords = %s " % (coords, pcsim_coords)
+        return pcsim_coords
      
-     def __init__(self, dims, cellclass, cellparams=None, label=None):
-         """
-         dims should be a tuple containing the population dimensions, or a single
-           integer, for a one-dimensional population.
-           e.g., (10,10) will create a two-dimensional population of size 10x10.
-         cellclass should either be a standardized cell class (a class inheriting
-         from common.StandardCellType) or a string giving the name of the
-         simulator-specific model that makes up the population.
-         cellparams should be a dict which is passed to the neuron model
-           constructor
-         label is an optional name for the population.
-         """
-         global gid, myid, nhost
-         
-         if len(dims) > 3:
-             raise exceptions.AttributeError('PCSIM does not support populations with more than 3 dimensions')
-         
-         self.actual_ndim = len(dims)
-         
-         while len(dims) < 3:
-             dims += (1,)
-         
-         common.Population.__init__(self, dims, cellclass, cellparams, label)
-         
-         
-                  
-         # set the steps list, used by the __getitem__() method.
-         self.steps = [1]*self.ndim
-         for i in range(self.ndim-1):
-             for j in range(i+1, self.ndim):
-                 self.steps[i] *= self.dim[j]
-         
-         if isinstance(cellclass, str):
-             if not cellclass in globals():
-                 raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
-             cellclass = eval(cellclass)
-         self.celltype = cellclass
-         if issubclass(cellclass, common.StandardCellType):
-             self.cellfactory = cellclass(cellparams).simObjFactory
-         else:
-             if issubclass(cellclass, SimObject):
-                 self.cellfactory = apply(cellclass, (), cellparams)
-             else:
-                 raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
-         
-             
-         # CuboidGridPopulation(SimNetwork &net, GridPoint3D origin, Volume3DSize dims, SimObjectFactory &objFactory)
-         self.pcsim_population = CuboidGridObjectPopulation(pcsim_globals.net, GridPoint3D(0,0,0), Volume3DSize(dims[0], dims[1], dims[2]), self.cellfactory)
-         
-         if not self.label:
-             self.label = 'population%d' % Population.nPop         
-         self.record_from = { 'spiketimes': [], 'vtrace': [] }        
-         Population.nPop += 1
+    def getObjectID(self, index):
+        return self.pcsim_population[index]
+    
+    def __len__(self):
+        """Returns the total number of cells in the population."""
+        return self.pcsim_population.size()
+        
+    def set(self, param, val=None):
+        """
+        Set one or more parameters for every cell in the population. param
+        can be a dict, in which case val should not be supplied, or a string
+        giving the parameter name, in which case val is the parameter value.
+        val can be a numeric value, or list of such.
+        e.g. p.set("tau_m",20.0).
+             p.set({'tau_m':20,'v_rest':-65})
+        """
+        """PCSIM: iteration through all elements """
+        paramDict = checkParams(param, val)
+        if issubclass(self.celltype, common.StandardCellType):
+            paramDict = self.celltype({}).translate(paramDict)
+                 
+        for index in range(0,len(self)):
+            obj = pcsim_globals.net.object(self.pcsim_population[index])
+            if obj:
+                for param,value in paramDict.items():
+                    setattr( obj, param, value )
          
          
-     def __getitem__(self, addr):
-         """Returns a representation of the cell with coordinates given by addr,
-            suitable for being passed to other methods that require a cell id.
-            Note that __getitem__ is called when using [] access, e.g.
-              p = Population(...)
-              p[2,3] is equivalent to p.__getitem__((2,3)).
-         """
-         # What we actually pass around are gids.
-         orig_addr = addr;
-         if isinstance(addr, int):
-             addr = (addr,)
-         while len(addr) < 3:
-             addr += (0,)                  
-         assert len(addr) == len(self.dim)
+    def tset(self, parametername, valueArray):
+        """
+        'Topographic' set. Sets the value of parametername to the values in
+        valueArray, which must have the same dimensions as the Population.
+        """
+        """PCSIM: iteration and set """
+        if self.dim[0:self.actual_ndim] == valueArray.shape:
+            values = numpy.reshape(valueArray, valueArray.size)                          
+            if issubclass(self.celltype, common.StandardCellType):
+                parametername = self.celltype({}).translate({parametername: values[0]}).keys()[0]             
+            for i, val in enumerate(values):
+                try:
+                    obj = pcsim_globals.net.object(self.pcsim_population[i])                 
+                    if obj: setattr(obj, parametername, val)
+                except TypeError:
+                    raise common.InvalidParameterValueError, "%s is not a numeric value" % str(val)             
+        else:
+            raise common.InvalidDimensionsError
          
-         index = 0
-         for i, s in zip(addr, self.steps):
-             index += i*s
-         id = index 
-         pcsim_index = self.pcsim_population.getIndex(addr[0],addr[1],addr[2])
-         assert id == pcsim_index, " id = %s, pcsim_index = %s" % (id, pcsim_index)
-         assert orig_addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, orig_addr, id, self.locate(id))
-         return id
-         
-         
-     def locate(self, id):
-         """Given an element id in a Population, return the coordinates.
-                e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
-                          7 9
-         """
-         # id should be a gid
-         assert isinstance(id, int)         
-         if self.ndim == 3:
-             rows = self.dim[0]; cols = self.dim[1]
-             i = id/(rows*cols); remainder = id%(rows*cols)
-             j = remainder/cols; k = remainder%cols
-             coords = (k, j, i)
-         elif self.ndim == 2:
-             cols = self.dim[1]
-             i = id/cols; j = id%cols
-             coords = (i, j)
-         elif self.ndim == 1:
-             coords = (id,)
-         else:
-             raise common.InvalidDimensionsError
-         if self.actual_ndim == 1:
-             coords = (coords[0],)
-         elif self.actual_ndim == 2:
-             coords = (coords[0],coords[1],)
-         pcsim_coords = self.pcsim_population.getLocation(id)
-         pcsim_coords = (pcsim_coords.x(), pcsim_coords.y(), pcsim_coords.z())
-         if self.actual_ndim == 1:
-             pcsim_coords = (pcsim_coords[0],)
-         elif self.actual_ndim == 2:
-             pcsim_coords = (pcsim_coords[0],pcsim_coords[1],)    
-         # assert coords == pcsim_coords, " coords = %s, pcsim_coords = %s " % (coords, pcsim_coords)
-         return pcsim_coords
+    def rset(self, parametername, rand_distr):
+        """
+        'Random' set. Sets the value of parametername to a value taken from
+        rand_distr, which should be a RandomDistribution object.
+        """
+        """
+            Will be implemented in the future more efficiently for 
+            NativeRNGs.
+        """         
+        rarr = numpy.array(rand_distr.next(n=self.size))
+        rarr = rarr.reshape(self.dim[0:self.actual_ndim])         
+        self.tset(parametername, rarr)
      
-     def getObjectID(self, index):
-         return self.pcsim_population[index]
-     
-     def __len__(self):
-         """Returns the total number of cells in the population."""
-         return self.pcsim_population.size()
-         
-     def set(self, param, val=None):
-         """PCSIM: iteration through all elements """
-         """
-         Set one or more parameters for every cell in the population. param
-         can be a dict, in which case val should not be supplied, or a string
-         giving the parameter name, in which case val is the parameter value.
-         e.g. p.set("tau_m",20.0).
-              p.set({'tau_m':20,'v_rest':-65})
-         """
-         paramDict = checkParams(param, val)
-         if issubclass(self.celltype, common.StandardCellType):
-             paramDict = self.celltype({}).translate(paramDict)
-                  
-         for index in range(0,len(self)):
-             obj = pcsim_globals.net.object(self.pcsim_population[index])
-             if obj:
-                 for param,value in paramDict.items():
-                     setattr( obj, param, value )
-         
-         
-     def tset(self, parametername, valueArray):
-         """PCSIM: iteration and set """
-         """
-         'Topographic' set. Sets the value of parametername to the values in
-         valueArray, which must have the same dimensions as the Population.
-         """
-         if self.dim[0:self.actual_ndim] == valueArray.shape:
-             values = numpy.reshape(valueArray, valueArray.size)                          
-             if issubclass(self.celltype, common.StandardCellType):
-                 parametername = self.celltype({}).translate({parametername: values[0]}).keys()[0]             
-             for i, val in enumerate(values):
-                 try:
-                     obj = pcsim_globals.net.object(self.pcsim_population[i])                 
-                     if obj: setattr(obj, parametername, val)
-                 except TypeError:
-                     raise common.InvalidParameterValueError, "%s is not a numeric value" % str(val)             
-         else:
-             raise common.InvalidDimensionsError
-         
-     def rset(self, parametername, rand_distr):
-         """
-         'Random' set. Sets the value of parametername to a value taken from
-         rand_distr, which should be a RandomDistribution object.
-         """
-         """
-             Will be implemented in the future more efficiently for 
-             NativeRNGs.
-         """         
-         rarr = numpy.array(rand_distr.next(n=self.size))
-         rarr = rarr.reshape(self.dim[0:self.actual_ndim])         
-         self.tset(parametername, rarr)
-     
-     def _call(self, methodname, arguments):
-         """
-         Calls the method methodname(arguments) for every cell in the population.
-         e.g. p.call("set_background","0.1") if the cell class has a method
-         set_background().
-         """
-         """ This works nicely for PCSIM for simulator specific cells, 
-             because cells (SimObject classes) are directly wrapped in python """
-         for i in xrange(0,len(self)):
-             obj = pcsim_globals.net.object(self.pcsim_population[i])
-             if obj: apply( obj, methodname, (), arguments)
+    def _call(self, methodname, arguments):
+        """
+        Calls the method methodname(arguments) for every cell in the population.
+        e.g. p.call("set_background","0.1") if the cell class has a method
+        set_background().
+        """
+        """ This works nicely for PCSIM for simulator specific cells, 
+            because cells (SimObject classes) are directly wrapped in python """
+        for i in xrange(0,len(self)):
+            obj = pcsim_globals.net.object(self.pcsim_population[i])
+            if obj: apply( obj, methodname, (), arguments)
          
          
      
-     def _tcall(self, methodname, objarr):
-         """ PCSIM: iteration at the python level and apply"""
-         """
-         `Topographic' call. Calls the method methodname() for every cell in the 
-         population. The argument to the method depends on the coordinates of the
-         cell. objarr is an array with the same dimensions as the Population.
-         e.g. p.tcall("memb_init",vinitArray) calls
-         p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
-         """
-         for i in xrange(0,len(self)):
-             obj = pcsim_globals.net.object(self.pcsim_population[i])
-             if obj: apply( obj, methodname, (), arguments)
+    def _tcall(self, methodname, objarr):
+        """
+        `Topographic' call. Calls the method methodname() for every cell in the 
+        population. The argument to the method depends on the coordinates of the
+        cell. objarr is an array with the same dimensions as the Population.
+        e.g. p.tcall("memb_init",vinitArray) calls
+        p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
+        """
+        """ PCSIM: iteration at the python level and apply"""
+        for i in xrange(0,len(self)):
+            obj = pcsim_globals.net.object(self.pcsim_population[i])
+            if obj: apply( obj, methodname, (), arguments)
          
 
-     def record(self, record_from=None, rng=None):
-         """ PCSIM: IMPLEMENTED by an array of recorders at python level"""
-         """
-         If record_from is not given, record spikes from all cells in the Population.
-         record_from can be an integer - the number of cells to record from, chosen
-         at random (in this case a random number generator can also be supplied)
-         - or a list containing the ids (e.g., (i,j,k) tuple for a 3D population)
-         of the cells to record.
-         """         
-         """
-           The current implementation allows only one invocation of this method per population
-         """
-         if isinstance(record_from, int):
-             if not rng:   rng = pyNN.random.RandomDistribution(NativeRNG(seed = datetime.today().microsecond), 'UniformInteger', (0,len(self)-1))             
-             src_indices = [ int(i) for i in rng.next(record_from) ]            
-         elif record_from:
-             src_indices = record_from
-         else:
-             src_indices  = range(self.pcsim_population.size())
-         sources = [ self.pcsim_population[i] for i in src_indices ]
-         self.spike_rec = SpikesMultiChannelRecorder(sources, None, src_indices)
+    def record(self, record_from=None, rng=None):
+        """
+        If record_from is not given, record spikes from all cells in the Population.
+        record_from can be an integer - the number of cells to record from, chosen
+        at random (in this case a random number generator can also be supplied)
+        - or a list containing the ids (e.g., (i,j,k) tuple for a 3D population)
+        of the cells to record.
+        """
+        """ PCSIM: IMPLEMENTED by an array of recorders at python level"""
+        """
+          The current implementation allows only one invocation of this method per population
+        """
+        if isinstance(record_from, int):
+            if not rng:   rng = pyNN.random.RandomDistribution(NativeRNG(seed = datetime.today().microsecond), 'UniformInteger', (0,len(self)-1))             
+            src_indices = [ int(i) for i in rng.next(record_from) ]            
+        elif record_from:
+            src_indices = record_from
+        else:
+            src_indices  = range(self.pcsim_population.size())
+        sources = [ self.pcsim_population[i] for i in src_indices ]
+        self.spike_rec = SpikesMultiChannelRecorder(sources, None, src_indices)
          
-     def record_v(self, record_from=None, rng=None):
-         """ PCSIM: IMPLEMENTED by an array of recorders """
-         """
-         If record_from is not given, record the membrane potential for all cells in
-         the Population.
-         record_from can be an integer - the number of cells to record from, chosen
-         at random (in this case a random number generator can also be supplied)
-         - or a list containing the ids of the cells to record.         
-         """
-         if isinstance(record_from, int):             
-             if not rng:   rng = pyNN.random.RandomDistribution(NativeRNG(seed = datetime.today().microsecond), 'UniformInteger', (0,len(self)-1))            
-             src_indices = [ int(i) for i in rng.next(record_from) ]             
-         elif record_from:
-             src_indices = record_from
-         else:
-             src_indices = range(self.pcsim_population.size())
-         sources = [ self.pcsim_population[i] for i in src_indices ]
-         self.vm_rec = FieldMultiChannelRecorder(sources, None, src_indices)
+    def record_v(self, record_from=None, rng=None):
+        """
+        If record_from is not given, record the membrane potential for all cells in
+        the Population.
+        record_from can be an integer - the number of cells to record from, chosen
+        at random (in this case a random number generator can also be supplied)
+        - or a list containing the ids of the cells to record.         
+        """
+        """ PCSIM: IMPLEMENTED by an array of recorders """
+        if isinstance(record_from, int):             
+            if not rng:   rng = pyNN.random.RandomDistribution(NativeRNG(seed = datetime.today().microsecond), 'UniformInteger', (0,len(self)-1))            
+            src_indices = [ int(i) for i in rng.next(record_from) ]             
+        elif record_from:
+            src_indices = record_from
+        else:
+            src_indices = range(self.pcsim_population.size())
+        sources = [ self.pcsim_population[i] for i in src_indices ]
+        self.vm_rec = FieldMultiChannelRecorder(sources, None, src_indices)
+    
+    def printSpikes(self, filename, gather=True):
+        """
+        Prints spike times to file in the two-column format
+        "spiketime cell_id" where cell_id is the index of the cell counting
+        along rows and down columns (and the extension of that for 3-D).
+        This allows easy plotting of a `raster' plot of spiketimes, with one
+        line for each cell. This method requires that the cell class records
+        spikes in a vector spiketimes.
+        If gather is True, the file will only be created on the master node,
+        otherwise, a file will be written on each node.
+        """
+        """PCSIM: implemented by corresponding recorders at python level """
+        self.spike_rec.saveSpikesText(filename)
+         
+         
+    def print_v(self, filename, gather=True):
+        """
+        Write membrane potential traces to file.
+        """
+        """PCSIM: will be implemented by corresponding analog recorders at python level object  """
+        self.spike_rec.saveValuesText(filename)
+         
      
-     def printSpikes(self, filename, gather=True):
-         """PCSIM: implemented by corresponding recorders at python level """
-         """
-         Prints spike times to file in the two-column format
-         "spiketime cell_id" where cell_id is the index of the cell counting
-         along rows and down columns (and the extension of that for 3-D).
-         This allows easy plotting of a `raster' plot of spiketimes, with one
-         line for each cell. This method requires that the cell class records
-         spikes in a vector spiketimes.
-         If gather is True, the file will only be created on the master node,
-         otherwise, a file will be written on each node.
-         """
-         self.spike_rec.saveSpikesText(filename)
-         
-         
-     def print_v(self, filename, gather=True):
-         """PCSIM: will be implemented by corresponding analog recorders at python level object  """
-         """
-         Write membrane potential traces to file.
-         """
-         self.spike_rec.saveValuesText(filename)
-         
-     
-     def meanSpikeCount(self, gather=True):         
-         """
-             Returns the mean number of spikes per neuron.
-             NOTE: This method works in PCSIM only if you invoke the record
-                   during setup of the population. And the mean spike count
-                   takes into account only the neurons that are recorded, not all neurons.
-                   Implemented in this way because cells in PCSIM don't have
-                   actual internal recording mechanisms. All recordings are done with 
-                   SpikeTimeRecorder SimObjects and spike messages between cells and 
-                   recorders. 
-         """
-         if self.spike_rec:
-             return self.spike_rec.meanSpikeCount()
-         return 0;
+    def meanSpikeCount(self, gather=True):         
+        """
+            Returns the mean number of spikes per neuron.
+            NOTE: This method works in PCSIM only if you invoke the record
+                  during setup of the population. And the mean spike count
+                  takes into account only the neurons that are recorded, not all neurons.
+                  Implemented in this way because cells in PCSIM don't have
+                  actual internal recording mechanisms. All recordings are done with 
+                  SpikeTimeRecorder SimObjects and spike messages between cells and 
+                  recorders. 
+        """
+        if self.spike_rec:
+            return self.spike_rec.meanSpikeCount()
+        return 0;
 
-     def randomInit(self, rand_distr):
-         """ PCSIM: can be reduced to rset() where parameterName is Vinit"""
-         """
-         Sets initial membrane potentials for all the cells in the population to
-         random values.
-         """         
-         self.rset("v_init", rand_distr)
+    def randomInit(self, rand_distr):
+        """
+        Sets initial membrane potentials for all the cells in the population to
+        random values.
+        """
+        """ PCSIM: can be reduced to rset() where parameterName is Vinit"""
+        self.rset("v_init", rand_distr)
      
 
 
 class Projection(common.Projection):
-     """
-     A container for all the connections between two populations, together with
-     methods to set parameters of those connections, including of plasticity
-     mechanisms.
-     """
-     
-     nProj = 0
-     
-     #class ConnectionDict:
-     #        
-     #    def __init__(self,parent):
-     #        self.parent = parent
-     #
-     #    def __getitem__(self,id):
-     #        """Returns a connection id.
-     #        Suppose we have a 2D Population (5x3) projecting to a 3D Population (4x5x7).
-     #        Total number of possible connections is 5x3x4x5x7 = 2100.
-     #        Therefore valid calls are:
-     #        connection[2099] - 2099th possible connection (may not exist)
-     #        connection[14,139] - connection between 14th pre- and 139th postsynaptic neuron (may not exist)
-     #        connection[(4,2),(3,4,6)] - connection between presynaptic neuron with address (4,2)
-     #        and post-synaptic neuron with address (3,4,6) (may not exist).
-     #        """
-     #        if isinstance(id, int): # linear mapping
-     #            preID = id/self.parent.post.size; postID = id%self.parent.post.size
-     #            return self.__getitem__((preID,postID))
-     #        elif isinstance(id, tuple): # (pre,post)
-     #            if len(id) == 2:
-     #                pre = id[0]
-     #                post = id[1]
-     #                if isinstance(pre,int) and isinstance(post,int):
-     #                    pre_coords = self.parent.pre.locate(pre)
-     #                    post_coords = self.parent.post.locate(post)
-     #                    return self.__getitem__((pre_coords,post_coords))
-     #                elif isinstance(pre,tuple) and isinstance(post,tuple): # should also allow lists
-     #                    if len(pre) == self.parent.pre.ndim and len(post) == self.parent.post.ndim:
-     #                        fmt = "[%d]"*(len(pre)+len(post))
-     #                        address = fmt % (pre+post)
-     #                    else:
-     #                        raise common.InvalidDimensionsError
-     #                else:
-     #                    raise KeyError
-     #            else:
-     #                raise common.InvalidDimensionsError
-     #        else:
-     #            raise KeyError #most appropriate?
-     #        
-     #        return address
-     #
-     
-     def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', methodParameters=None, source=None, target=None, label=None, rng=None):
-         """
-         presynaptic_population and postsynaptic_population - Population objects.
-         
-         source - string specifying which attribute of the presynaptic cell signals action potentials
-         
-         target - string specifying which synapse on the postsynaptic cell to connect to
-         If source and/or target are not given, default values are used.
-         
-         method - string indicating which algorithm to use in determining connections.
-         Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
-         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-         'fromFile', 'fromList'
-         
-         methodParameters - dict containing parameters needed by the connection method,
-         although we should allow this to be a number or string if there is only
-         one parameter.
-         
-         rng - since most of the connection methods need uniform random numbers,
-         it is probably more convenient to specify a RNG object here rather
-         than within methodParameters, particularly since some methods also use
-         random numbers to give variability in the number of connections per cell.
-         """
-         """
-            PCSIM implementation specific comments:
-                - source parameter does not have any meaning in context of PyPCSIM interface. Action potential
-                signals are predefined by the neuron model and each cell has only one source, 
-                so there is no need to name a source since is implicitly known. 
-                - rng parameter is also not currently not applicable. For connection making only internal
-                random number generators can be used.
-                - The semantics of the target parameter is slightly changed:
-                    If it is a string then it represents a pcsim synapse class.
-                    If it is an integer then it represents which target(synapse) on the postsynaptic cell
-                    to connect to.
-                    It can be also a pcsim SimObjectFactory object which will be used for creation 
-                    of the synapse objects associated to the created connections.
-                    
-         """
-         global pcsim_globals
-         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, methodParameters, source, target, label, rng)
-         
-         # Determine connection decider
-         if method == 'allToAll':
-             decider = RandomConnections(1)
-             wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
-         elif method == 'fixedProbability':
-             decider = RandomConnections(float(methodParameters))
-             wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
-         elif method == 'distanceDependentProbability':
-             decider = EuclideanDistanceRandomConnections(methodParameters[0], methodParameters[1])
-             wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
-         elif method == 'fixedNumberPre':
-             decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.incoming)
-             wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
-         elif method == 'fixedNumberPost':
-             decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.outgoing)
-             wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
-         elif method == 'oneToOne':
-             decider = RandomConnections(1)
-             wiring_method = OneToOneWiringMethod(pcsim_globals.net) 
-         else:
-             raise Exception("METHOD NOT YET IMPLEMENTED")
-             
-         if not target:
-             self.syn_factory = SimpleScalingSpikingSynapse(1, 1, pcsim_globals.minDelay/1000)
-         elif isinstance(target, int):
-             self.syn_factory = SimpleScalingSpikingSynapse(target, 1, pcsim_globals.minDelay/1000)
-         else:
-             if isinstance(target, str):
-                 target = eval(target)
-                 self.syn_factory = target({})
-             else:
-                 self.syn_factory = target
-             
-         self.pcsim_projection = ConnectionsProjection(self.pre.pcsim_population, self.post.pcsim_population, 
-                                                       self.syn_factory, decider, wiring_method, collectIDs = True)
+    """
+    A container for all the connections between two populations, together with
+    methods to set parameters of those connections, including of plasticity
+    mechanisms.
+    """
+    
+    nProj = 0
+    
+    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', methodParameters=None, source=None, target=None, label=None, rng=None):
+        """
+        presynaptic_population and postsynaptic_population - Population objects.
+        
+        source - string specifying which attribute of the presynaptic cell signals action potentials
+        
+        target - string specifying which synapse on the postsynaptic cell to connect to
+        If source and/or target are not given, default values are used.
+        
+        method - string indicating which algorithm to use in determining connections.
+        Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
+        'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
+        'fromFile', 'fromList'
+        
+        methodParameters - dict containing parameters needed by the connection method,
+        although we should allow this to be a number or string if there is only
+        one parameter.
+        
+        rng - since most of the connection methods need uniform random numbers,
+        it is probably more convenient to specify a RNG object here rather
+        than within methodParameters, particularly since some methods also use
+        random numbers to give variability in the number of connections per cell.
+        """
+        """
+           PCSIM implementation specific comments:
+               - source parameter does not have any meaning in context of PyPCSIM interface. Action potential
+               signals are predefined by the neuron model and each cell has only one source, 
+               so there is no need to name a source since is implicitly known. 
+               - rng parameter is also not currently not applicable. For connection making only internal
+               random number generators can be used.
+               - The semantics of the target parameter is slightly changed:
+                   If it is a string then it represents a pcsim synapse class.
+                   If it is an integer then it represents which target(synapse) on the postsynaptic cell
+                   to connect to.
+                   It can be also a pcsim SimObjectFactory object which will be used for creation 
+                   of the synapse objects associated to the created connections.
+                   
+        """
+        global pcsim_globals
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, methodParameters, source, target, label, rng)
+        
+        # Determine connection decider
+        if method == 'allToAll':
+            decider = RandomConnections(1)
+            wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+        elif method == 'fixedProbability':
+            decider = RandomConnections(float(methodParameters))
+            wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+        elif method == 'distanceDependentProbability':
+            decider = EuclideanDistanceRandomConnections(methodParameters[0], methodParameters[1])
+            wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+        elif method == 'fixedNumberPre':
+            decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.incoming)
+            wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
+        elif method == 'fixedNumberPost':
+            decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.outgoing)
+            wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
+        elif method == 'oneToOne':
+            decider = RandomConnections(1)
+            wiring_method = OneToOneWiringMethod(pcsim_globals.net) 
+        else:
+            raise Exception("METHOD NOT YET IMPLEMENTED")
+            
+        if not target:
+            self.syn_factory = SimpleScalingSpikingSynapse(1, 1, pcsim_globals.minDelay/1000)
+        elif isinstance(target, int):
+            self.syn_factory = SimpleScalingSpikingSynapse(target, 1, pcsim_globals.minDelay/1000)
+        else:
+            if isinstance(target, str):
+                target = eval(target)
+                self.syn_factory = target({})
+            else:
+                self.syn_factory = target
+            
+        self.pcsim_projection = ConnectionsProjection(self.pre.pcsim_population, self.post.pcsim_population, 
+                                                      self.syn_factory, decider, wiring_method, collectIDs = True)
 
-         if not label:
-             self.label = 'projection%d' % Projection.nProj
-         if not rng:
-             self.rng = numpy.random.RandomState()
-         Projection.nProj += 1
+        if not label:
+            self.label = 'projection%d' % Projection.nProj
+        if not rng:
+            self.rng = numpy.random.RandomState()
+        Projection.nProj += 1
 
-     def __len__(self):
-         """Return the total number of connections."""
-         return self.pcsim_projection.size()
-     
-     def __getitem__(self, n):
-         return self.pcsim_projection[n]
+    def __len__(self):
+        """Return the total number of connections."""
+        return self.pcsim_projection.size()
+    
+    def __getitem__(self, n):
+        return self.pcsim_projection[n]
 
-     
-     # --- Methods for setting connection parameters ----------------------------
-     
-     def setWeights(self, w):
-         """
-         w can be a single number, in which case all weights are set to this
-         value, or an array with the same dimensions as the Projection array.
-         """
-         if isinstance(w, float) or isinstance(w, int):
-             for i in range(len(self)):
-                 pcsim_globals.net.object(self.pcsim_projection[i]).W = w
-         else:
-             for i in range(len(self)):
-                 pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]
-     
-     def randomizeWeights(self, rng):
-         """
-         Set weights to random values taken from rng.
-         """
-         # Arguably, we could merge this with set_weights just by detecting the
-         # argument type. It could make for easier-to-read simulation code to
-         # give it a separate name, though. Comments?
-         weights = rng.next(len(self))
-         self.setWeights(weights)
-     
-     def setDelays(self, d):
-         """
-         d can be a single number, in which case all delays are set to this
-         value, or an array with the same dimensions as the Projection array.
-         """
-         raise Exception("METHOD NOT YET IMPLEMENTED!")
-     
-     def randomizeDelays(self, rng):
-         """
-         Set delays to random values taken from rng.
-         """
-         raise Exception("Method not yet implemented!")
-     
-     def setThreshold(self, threshold):
-         """
-         Where the emission of a spike is determined by watching for a
-         threshold crossing, set the value of this threshold.
-         """
-         # This is a bit tricky, because in NEST and PCSIM the spike threshold is a
-         # property of the cell model, whereas in NEURON it is a property of the
-         # connection (NetCon).
-         raise Exception("Method not applicable to PCSIM")
-     
-     
-     # --- Methods relating to synaptic plasticity ------------------------------
-     
-     def setupSTDP(self, stdp_model, parameterDict):
-         """Set-up STDP."""
-         raise Exception("Method not yet implemented")
-     
-     def toggleSTDP(self, onoff):
-         """Turn plasticity on or off."""
-         raise Exception("Method not yet implemented")
-     
-     def setMaxWeight(self, wmax):
-         """Note that not all STDP models have maximum or minimum weights."""
-         raise Exception("Method not yet implemented")
-     
-     def setMinWeight(self, wmin):
-         """Note that not all STDP models have maximum or minimum weights."""
-         raise Exception("Method not yet implemented")
-     
-     # --- Methods for writing/reading information to/from file. ----------------
-     
-     def saveConnections(self, filename):
-         """Save connections to file in a format suitable for reading in with the
-         'fromFile' method."""
-         # should think about adding a 'gather' option.
-         raise Exception("Method not yet implemented")
-         
-     
-     def printWeights(self, filename, format=None):
-         """Print synaptic weights to file."""
-         raise Exception("Method not yet implemented")
-     
-     def weightHistogram(self, min=None, max=None, nbins=10):
-         """
-         Return a histogram of synaptic weights.
-         If min and max are not given, the minimum and maximum weights are
-         calculated automatically.
-         """
-         # it is arguable whether functions operating on the set of weights
-         # should be put here or in an external module.
-         raise Exception("Method not yet implemented")
+    
+    # --- Methods for setting connection parameters ----------------------------
+    
+    def setWeights(self, w):
+        """
+        w can be a single number, in which case all weights are set to this
+        value, or an array with the same dimensions as the Projection array.
+        """
+        if isinstance(w, float) or isinstance(w, int):
+            for i in range(len(self)):
+                pcsim_globals.net.object(self.pcsim_projection[i]).W = w
+        else:
+            for i in range(len(self)):
+                pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]
+    
+    def randomizeWeights(self, rand_distr):
+        """
+        Set weights to random values taken from rand_distr.
+        """
+        # Arguably, we could merge this with set_weights just by detecting the
+        # argument type. It could make for easier-to-read simulation code to
+        # give it a separate name, though. Comments?
+        weights = rng.next(len(self))
+        self.setWeights(weights)
+    
+    def setDelays(self, d):
+        """
+        d can be a single number, in which case all delays are set to this
+        value, or an array with the same dimensions as the Projection array.
+        """
+        raise Exception("METHOD NOT YET IMPLEMENTED!")
+    
+    def randomizeDelays(self, rand_distr):
+        """
+        Set delays to random values taken from rand_distr.
+        """
+        raise Exception("Method not yet implemented!")
+    
+    def setThreshold(self, threshold):
+        """
+        Where the emission of a spike is determined by watching for a
+        threshold crossing, set the value of this threshold.
+        """
+        # This is a bit tricky, because in NEST and PCSIM the spike threshold is a
+        # property of the cell model, whereas in NEURON it is a property of the
+        # connection (NetCon).
+        raise Exception("Method not applicable to PCSIM")
+    
+    
+    # --- Methods relating to synaptic plasticity ------------------------------
+    
+    def setupSTDP(self, stdp_model, parameterDict):
+        """Set-up STDP."""
+        raise Exception("Method not yet implemented")
+    
+    def toggleSTDP(self, onoff):
+        """Turn plasticity on or off."""
+        raise Exception("Method not yet implemented")
+    
+    def setMaxWeight(self, wmax):
+        """Note that not all STDP models have maximum or minimum weights."""
+        raise Exception("Method not yet implemented")
+    
+    def setMinWeight(self, wmin):
+        """Note that not all STDP models have maximum or minimum weights."""
+        raise Exception("Method not yet implemented")
+    
+    # --- Methods for writing/reading information to/from file. ----------------
+    
+    def saveConnections(self, filename, gather=False):
+        """Save connections to file in a format suitable for reading in with the
+        'fromFile' method."""
+        # should think about adding a 'gather' option.
+        raise Exception("Method not yet implemented")
+        
+    
+    def printWeights(self, filename, format=None, gather=True):
+        """Print synaptic weights to file."""
+        raise Exception("Method not yet implemented")
+    
+    def weightHistogram(self, min=None, max=None, nbins=10):
+        """
+        Return a histogram of synaptic weights.
+        If min and max are not given, the minimum and maximum weights are
+        calculated automatically.
+        """
+        # it is arguable whether functions operating on the set of weights
+        # should be put here or in an external module.
+        raise Exception("Method not yet implemented")
      
 
 
