@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """ Master script for running tests.
-$Id: runtests.py 78 2007-01-25 10:36:59Z apdavison $
+$Id$
 """
 
 import subprocess, sys, glob

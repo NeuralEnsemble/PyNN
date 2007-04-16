@@ -1,8 +1,8 @@
 """
 nrnpy implementation of the PyNN API.
-$Id: neuron.py 78 2007-01-25 10:36:59Z apdavison $
+$Id$
 """
-__version__ = "$Revision: 273 $"
+__version__ = "$Revision$"
 
 import hoc
 from pyNN.random import *

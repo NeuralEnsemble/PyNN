@@ -1,6 +1,6 @@
 """
 Unit tests for pyNN/random.py.
-$Id: rngtests.py 197 2006-11-01 10:30:25Z andrew $
+$Id$
 """
 
 import pyNN.random as random

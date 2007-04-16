@@ -5,7 +5,7 @@ common interface so that they can be used interchangeably in PyNN.
 Note however that we have so far made no effort to implement parameter translation,
 and parameter names/order may be different for the different RNGs.
 
-$Id: random.py 197 2006-11-01 10:30:25Z andrew $
+$Id$
 """
 
 import sys

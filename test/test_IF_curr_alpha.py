@@ -4,7 +4,7 @@ Simple test to compare iaf_neuron in NEST with IFAlphaI in NEURON.
 Andrew Davison, UNIC, CNRS
 May 2006
 
-$Id: test_IF_curr_alpha.py 21 2006-09-28 12:17:50Z apdavison $
+$Id$
 """
 
 import sys

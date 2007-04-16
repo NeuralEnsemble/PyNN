@@ -1,5 +1,5 @@
 // Template for NetLayer class.
-// $Id: netLayer.hoc 29 2006-10-31 14:07:41Z apdavison $
+// $Id$
 // Intended to be used together with the LayerConn and ObjectArray classes.
 // A NetLayer is an array of cells (either artificial cells such as the built-in
 // IntFire4, or compartmental models encapsulated in a template) all of the same

@@ -1,5 +1,5 @@
 // Template for LayerConn class.
-// $Id: layerConn.hoc 21 2006-09-28 12:17:50Z apdavison $
+// $Id$
 // Intended to be used together with the NetLayer and ObjectArray
 // classes. A LayerConn is a container for NetCons, and connects
 // together two NetLayers/ObjectArrays with connections determined

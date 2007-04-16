@@ -1,7 +1,7 @@
 : Insert in a passive compartment to get an integrate-and-fire neuron
 : (no refractory period).
 : Andrew P. Davison. UNIC, CNRS, May 2006.
-: $Id: reset.mod 43 2006-12-08 10:17:30Z apdavison $
+: $Id$
 
 NEURON {	
 	POINT_PROCESS Reset

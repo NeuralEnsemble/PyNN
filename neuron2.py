@@ -2,9 +2,9 @@
 nrnpython implementation of the PyNN API.
 
 This is an attempt at a parallel-enabled implementation.                                                                
-$Id: neuron2.py 283 2007-01-23 12:53:44Z pierre $
+$Id$
 """
-__version__ = "$Revision: 283 $"
+__version__ = "$Revision$"
 
 import hoc
 from pyNN.random import *

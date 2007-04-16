@@ -6,7 +6,7 @@
 : voltage with a huge conductance.
 :
 : Andrew P. Davison. UNIC, CNRS, May 2006.
-: $Id: refrac.mod 78 2007-01-25 10:36:59Z apdavison $
+: $Id$
 
 NEURON {	
 	POINT_PROCESS ResetRefrac

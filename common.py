@@ -2,9 +2,9 @@
 Defines the PyNN classes and functions, and hence the FACETS API.
 The simulator-specific classes should inherit from these and have the same
 arguments.
-$Id: common.py 146 2007-04-03 16:19:16Z Pierre $
+$Id$
 """
-__version__ = "$Revision: 284 $"
+__version__ = "$Revision$"
 
 import types, time, copy
 

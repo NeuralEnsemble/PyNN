@@ -1,6 +1,6 @@
 """
 Unit tests for pyNN/neuron.py.
-$Id: neuron2tests.py 283 2007-01-23 12:53:44Z pierre $
+$Id$
 """
 
 import pyNN.neuron2 as neuron

@@ -1,6 +1,6 @@
 """
 Unit tests for pyNN/nest.py.
-$Id: nesttests.py 146 2007-04-03 16:19:16Z Pierre $
+$Id$
 """
 
 import pyNN.nest as nest

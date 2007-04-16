@@ -6,7 +6,7 @@ to use PyNN
 Andrew Davison, UNIC, CNRS
 May 2006
 
-$Id: brunel.py 279 2007-01-04 09:35:35Z pierre $
+$Id$
 
 """
 

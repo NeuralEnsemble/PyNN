@@ -20,7 +20,7 @@ same time constant.
 Andrew Davison, UNIC, CNRS
 August 2006
 
-$Id: VAbenchmark2.py 159 2006-08-17 11:03:46Z andrew $
+$Id$
 """
 
 import sys

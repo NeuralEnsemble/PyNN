@@ -1,6 +1,6 @@
 """
 FACETS-ML implementation of the PyNN API.
-$Id: facetsml.py 43 2006-12-08 10:17:30Z apdavison $
+$Id$
 """
 
 import common
