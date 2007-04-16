@@ -898,12 +898,14 @@ class Population(common.Population):
                             'tmp = fileobj.wopen("%s")' % filename,
                             'strdef fmt']
             if header:
-                hoc_commands += ['tmp = fileobj.printf("%s")' % header]   
+                hoc_commands += ['tmp = fileobj.printf("%s\\n")' % header]   
             if gather:
                 hoc_commands += ['objref gatheredvec']
+	    padding = self.fullgidlist[0]
             for id in self.record_from[print_what]:
                 addr = self.locate(id)
-                hoc_commands += ['fmt = "%s\\t%s\\n"' % (num_format, "\\t".join([str(j) for j in addr]))]
+                #hoc_commands += ['fmt = "%s\\t%s\\n"' % (num_format, "\\t".join([str(j) for j in addr]))]
+		hoc_commands += ['fmt = "%s\\t%d\\n"' % (num_format, id-padding)]
                 if id in self.gidlist:
                     hoc_commands += ['tmp = %s.object(%d).%s.printf(fileobj,fmt)' % (self.label,self.gidlist.index(id),print_what)]
                 elif gather: 
@@ -913,7 +915,7 @@ class Population(common.Population):
             hoc_commands += ['tmp = fileobj.close()']
             hoc_execute(hoc_commands,"--- Population[%s].__print()__ ---" %self.label)
 
-    def printSpikes(self,filename,gather=True):
+    def printSpikes(self,filename,gather=True, compatible_output=True):
         """
         Prints spike times to file in the two-column format
         "spiketime cell_id" where cell_id is the index of the cell counting
@@ -925,14 +927,20 @@ class Population(common.Population):
         otherwise, a file will be written on each node.
         """
         hoc_comment("--- Population[%s].__printSpikes()__ ---" %self.label)
-        self.__print('spiketimes',filename,"%.2f",gather)
+	header = "# %d" %self.dim[0]
+	for dimension in list(self.dim)[1:]:
+	        header = "%s\t%d" %(header,dimension)
+        self.__print('spiketimes',filename,"%.2f",gather, header)
 
-    def print_v(self,filename,gather=True):
+    def print_v(self,filename,gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
         """
         tstop = HocToPy.get('tstop','float')
         header = "# dt = %f\\n# n = %d\\n" % (dt,int(tstop/dt))
+        header = "%s # %d" %(header,self.dim[0])
+        for dimension in list(self.dim)[1:]:
+	        header = "%s\t%d" %(header,dimension)
         hoc_comment("--- Population[%s].__print_v()__ ---" %self.label)
         self.__print('vtrace',filename,"%.4g",gather,header)
 

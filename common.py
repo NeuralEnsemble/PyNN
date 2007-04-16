@@ -2,7 +2,7 @@
 Defines the PyNN classes and functions, and hence the FACETS API.
 The simulator-specific classes should inherit from these and have the same
 arguments.
-$Id: common.py 78 2007-01-25 10:36:59Z apdavison $
+$Id: common.py 146 2007-04-03 16:19:16Z Pierre $
 """
 __version__ = "$Revision: 284 $"
 
@@ -359,17 +359,22 @@ class Population:
         """
         pass
 
-    def printSpikes(self,filename,gather=True):
+    def printSpikes(self,filename,gather=True, compatible_output=True):
         """
         Prints spike times to file in the two-column format
         "spiketime cell_id" where cell_id is the index of the cell counting
         along rows and down columns (and the extension of that for 3-D).
         This allows easy plotting of a `raster' plot of spiketimes, with one
         line for each cell.
+        On the first line, we have the dimension of the populations
+	By defaut, we should use a common format for that could be provided independent
+	of the simulator used to run the simulation. This will include post processing
+	of the raw file provided by the simulator, so for speed up increase one can
+	prefer to use avoid this step and use the format proposed by the different simulators
         """
         pass
     
-    def print_v(self,filename,gather=True):
+    def print_v(self,filename,gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
         """

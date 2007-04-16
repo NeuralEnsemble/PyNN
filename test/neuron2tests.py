@@ -329,24 +329,52 @@ class PopulationRecordTest(unittest.TestCase): # to write later
        meanSpikeCount() methods of the Population class."""
     
     def setUp(self):
-        neuron.Population.nPop = 0
-        self.net = neuron.Population((3,3),neuron.IF_curr_alpha)
-        
+	self.pop1 = neuron.Population((3,3), neuron.SpikeSourcePoisson,{'rate': 20})
+	self.pop2 = neuron.Population((3,3), neuron.IF_curr_alpha)
+
     def testRecordAll(self):
         """Population.record(): not a full test, just checking there are no Exceptions raised."""
-        self.net.record()
+	self.pop1.record()
         
     def testRecordInt(self):
         """Population.record(n): not a full test, just checking there are no Exceptions raised."""
-        self.net.record(5)
-        
+        # Partial record	
+	self.pop1.record(5)
+	
     def testRecordWithRNG(self):
         """Population.record(n,rng): not a full test, just checking there are no Exceptions raised."""
-        self.net.record(5,random.NumpyRNG())
+	self.pop1.record(5,random.NumpyRNG())
         
     def testRecordList(self):
         """Population.record(list): not a full test, just checking there are no Exceptions raised."""
-        self.net.record([self.net[(2,2)],self.net[(1,2)],self.net[(0,0)]])
+	# Selected list record
+	record_list = []
+	for i in range(0,2):
+	    record_list.append(self.pop1[i,1])
+	self.pop1.record(record_list)
+
+    def testSpikeRecording(self):
+	# We test the mean spike count by checking if the rate of the poissonian sources are
+	# close to 20 Hz. Then we also test how the spikes are saved
+	self.pop1.record()
+	simtime = 1000.0
+	neuron.run(simtime)
+	self.pop1.printSpikes("temp_neuron2.ras")
+	rate = self.pop1.meanSpikeCount()*1000/simtime
+	assert (20*0.8 < rate) and (rate < 20*1.2)
+
+    def testPotentialRecording(self):
+	"""Population.record_v() and Population.print_v(): not a full test, just checking 
+	# there are no Exceptions raised."""
+	rng = NumpyRNG(123)
+	v_reset  = -65.0
+	v_thresh = -50.0
+	uniformDistr = RandomDistribution(rng,'uniform',[v_reset,v_thresh])
+	self.pop2.randomInit(uniformDistr)
+	self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
+	simtime = 10.0
+        neuron.run(simtime)
+	self.pop2.print_v("temp_neuron2.v")
 
 # ==============================================================================
 class PopulationOtherTest(unittest.TestCase): # to write later

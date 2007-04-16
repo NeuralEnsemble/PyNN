@@ -1,6 +1,6 @@
 """
 Unit tests for pyNN/nest.py.
-$Id: nesttests.py 78 2007-01-25 10:36:59Z apdavison $
+$Id: nesttests.py 146 2007-04-03 16:19:16Z Pierre $
 """
 
 import pyNN.nest as nest
@@ -279,12 +279,55 @@ class PopulationCallTest(unittest.TestCase): # to write later
 class PopulationRecordTest(unittest.TestCase): # to write later
     """Tests of the record(), record_v(), printSpikes(), print_v() and
        meanSpikeCount() methods of the Population class."""
-    pass
+    def setUp(self):
+	nest.setup()
+        nest.Population.nPop = 0
+	self.pop1 = nest.Population((3,3), nest.SpikeSourcePoisson,{'rate': 20})
+	self.pop2 = nest.Population((3,3), nest.IF_curr_alpha)
 
-# ==============================================================================
-class PopulationOtherTest(unittest.TestCase): # to write later
-    """Tests of the randomInit() method of the Population class."""
-    pass
+    def testRecordAll(self):
+        """Population.record(): not a full test, just checking there are no Exceptions raised."""
+	self.pop1.record()
+        
+    def testRecordInt(self):
+        """Population.record(n): not a full test, just checking there are no Exceptions raised."""
+        # Partial record	
+	self.pop1.record(5)
+	
+    def testRecordWithRNG(self):
+        """Population.record(n,rng): not a full test, just checking there are no Exceptions raised."""
+	self.pop1.record(5,random.NumpyRNG())
+        
+    def testRecordList(self):
+        """Population.record(list): not a full test, just checking there are no Exceptions raised."""
+	# Selected list record
+	record_list = []
+	for i in range(0,2):
+	    record_list.append(self.pop1[i,1])
+	self.pop1.record(record_list)	
+   
+    def testSpikeRecording(self):
+	# We test the mean spike count by checking if the rate of the poissonian sources are
+	# close to 20 Hz. Then we also test how the spikes are saved
+	self.pop1.record()
+	simtime = 1000
+	nest.run(simtime)
+	self.pop1.printSpikes("temp_nest.ras")
+	rate = self.pop1.meanSpikeCount()*1000/simtime
+	assert (20*0.8 < rate) and (rate < 20*1.2)
+	
+    def testPotentialRecording(self):
+	"""Population.record_v() and Population.print_v(): not a full test, just checking 
+	# there are no Exceptions raised."""
+	rng = random.NumpyRNG(123)
+	v_reset  = -65.0
+	v_thresh = -50.0
+	uniformDistr = random.RandomDistribution(rng,'uniform',[v_reset,v_thresh])
+	self.pop2.randomInit(uniformDistr)
+	self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
+	simtime = 10
+        nest.run(simtime)
+	self.pop2.print_v("temp_nest.v")
 
 # ==============================================================================
 class ProjectionInitTest(unittest.TestCase):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 PyNEST implementation of the PyNN API.
-$Id: nest.py 78 2007-01-25 10:36:59Z apdavison $
+$Id: nest.py 152 2007-04-04 15:43:10Z Pierre $
 """
 __version__ = "$Revision: 284 $"
 
@@ -151,8 +151,10 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
 
 def end():
     """Do any necessary cleaning up before exiting."""
-    for file in spike_files + v_files:
+    for file in spike_files:
         pynest.sr('%s close' % file)
+    for couples in v_files:
+        pynest.sr('%s close' % couples[1])
     pynest.end()
 
 def run(simtime):
@@ -315,7 +317,6 @@ class Population(common.Population):
             id.setCellClass(cellclass)
             id.setPosition(self.locate(id))
             
-        
         if self.cellparams:
             pynest.setDict(self.cell, self.cellparams)
             
@@ -458,9 +459,13 @@ class Population(common.Population):
         self.spike_detector = pynest.create('spike_detector')
         pynest.setDict(self.spike_detector,{'withtime':True,  # record time of spikes
                                             'withpath':True}) # record which neuron spiked
+	
+	fixed_list = False
+	
         if record_from:
             if type(record_from) == types.ListType:
-                n_rec = len(record_from)
+		fixed_list = True
+		n_rec = len(record_from)
             elif type(record_from) == types.IntType:
                 n_rec = record_from
             else:
@@ -468,11 +473,15 @@ class Population(common.Population):
         else:
             n_rec = self.size
         pynest.resCons(self.spike_detector[0],n_rec)
-        
-        for neuron in numpy.reshape(self.cell,(self.cell.size,))[0:n_rec]: # should change this to pick randomly
-            pynest.connect(pynest.getAddress(neuron),self.spike_detector[0])
 
-        # Open temporary output file & register file with detectors
+	if (fixed_list == True):
+	    for neuron in record_from:
+                pynest.connect(pynest.getAddress(neuron),self.spike_detector[0])
+        else:
+	    for neuron in numpy.reshape(self.cell,(self.cell.size,))[0:n_rec]: # should change this to pick randomly
+                pynest.connect(pynest.getAddress(neuron),self.spike_detector[0])
+		
+	# Open temporary output file & register file with detectors
         # This should be redone now that Eilif has implemented the pythondatum datum type
         pynest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label,self.label))
         pynest.sr('%s << /output_stream tmpfile_%s >> SetStatus' % (pynest.getGID(self.spike_detector[0]),self.label))
@@ -488,9 +497,12 @@ class Population(common.Population):
         - or a list containing the ids of the cells to record.
         """
         global v_files
+	
+	fixed_list = False
         
         if record_from:
             if type(record_from) == types.ListType:
+		fixed_list = True
                 n_rec = len(record_from)
             elif type(record_from) == types.IntType:
                 n_rec = record_from
@@ -498,14 +510,20 @@ class Population(common.Population):
                 raise "record_from must be a list or an integer"
         else:
             n_rec = self.size
-            
-        for neuron in numpy.reshape(self.cell,(self.cell.size,))[0:n_rec]: # should change this to pick randomly
-            filename = 'tmpfile_%s_%d.v' % (self.label, neuron)
-            v_files.append(filename)
-            pynest.record_v(pynest.getAddress(neuron),filename)
+
+	if (fixed_list == True):
+	    for neuron in record_from:
+		filename = 'tmpfile_%s_%d.v' % (self.label, neuron)
+            	v_files.append([neuron, filename])
+            	pynest.record_v(pynest.getAddress(neuron),filename)
+	else:
+            for neuron in numpy.reshape(self.cell,(self.cell.size,))[0:n_rec]: # should change this to pick randomly
+                filename = 'tmpfile_%s_%d.v' % (self.label, neuron)
+            	v_files.append([neuron, filename])
+            	pynest.record_v(pynest.getAddress(neuron),filename)
     
     
-    def printSpikes(self,filename,gather=True):
+    def printSpikes(self,filename,gather=True, compatible_output=True):
         """
         Prints spike times to file in the two-column format
         "spiketime cell_id" where cell_id is the index of the cell counting
@@ -519,6 +537,34 @@ class Population(common.Population):
             pynest.sr('%s close' % tempfilename)
             spike_files.remove(tempfilename)
         shutil.move(tempfilename,filename)
+	if (compatible_output):
+	    # Here we postprocess the file to have effectively the
+            # desired format :
+	    # First line: dimensions of the population
+	    # Then spiketime cell_id-min(cell_id)
+            f = open(filename,'r',1)
+            g = open("temp",'w',1)
+	    # Writing dimensions of the population:
+	    g.write("# ")
+	    for dimension in self.dim:
+	        g.write("%d\t" %dimension)
+	    g.write("\n")
+	
+	    # Writing spiketimes, cell_id-min(cell_id)
+            padding = numpy.reshape(self.cell,self.cell.size)[0]
+            lines = f.readlines()
+            f.close()
+            for line in lines:
+                single_line = line.split("\t", 1)
+                neuron = int(single_line[0][1:len(single_line[0])]) - padding
+                spike_time = dt*float(single_line[1])
+	        g.write("%g\t%d" %(spike_time, neuron))
+	    #    for i in range(0,len(self.locate(neuron))):	
+            #   	g.write("%d\t" %self.locate(neuron)[i])
+	        g.write("\n")
+            g.close()
+            os.system("mv temp %s" %filename)
+	
 
     def meanSpikeCount(self,gather=True):
         """
@@ -535,27 +581,47 @@ class Population(common.Population):
         random values.
         """
         cells = numpy.reshape(self.cell,self.cell.size)
-        rvals = rand_distr.next(n=self.dim)
+        rvals = rand_distr.next(n=self.cell.size)
         for node, v_init in zip(cells,rvals):
             pynest.setDict([node],{'u': v_init})
     
-    def print_v(self,filename,gather=True):
+    def print_v(self,filename,gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
         """
         global v_files
-        for tempfile in v_files:
-            pynest.sr('%s close' % tempfile)
         #os.system("paste %s > %s" % (" ".join(v_files), filename))
-        f = open('temp','w')
+        result = open(filename,'w',1)
         dt = pynest.getNESTStatus()['resolution']
         n = int(pynest.getNESTStatus()['time']/dt)
-        f.write("# dt = %f\n# n = %d\n" % (dt,n))
-        f.close()
-        os.system("cat temp %s > %s" % (" ".join(v_files), filename))
-        for tempfile in v_files:
-            v_files.remove(tempfile)
-        #shutil.move(tempfile,filename)
+        result.write("# dt = %f\n# n = %d\n" % (dt,n))
+        if (compatible_output):
+            result.write("# ")
+	    for dimension in self.dim:
+	       result.write("%d\t" %dimension)
+	    result.write("\n")
+            padding = numpy.reshape(self.cell,self.cell.size)[0]
+	for couples in v_files:
+            if couples[0] in self.cell:
+		pynest.sr('%s close' % couples[1])
+		if (compatible_output):
+		    # We add the cell number to the recorded potential:
+                    f = open(couples[1],'r',1)
+                    lines = f.readlines()
+                    input_tuples = []
+                    for line in lines:
+                        single_line = line.rstrip()
+		        neuron = couples[0]
+		        result.write("%s\t%d\t\n" %(single_line, neuron-padding))
+                    f.close()
+                    os.system("rm %s" %couples[1])
+                else:
+                    os.system("cat %s > %s" %(couples[1], filename))
+                    os.system("rm %s" %couples[1])
+        for couples in v_files:
+            if couples[0] in self.cell:
+                v_files.remove(couples)
+        
         
     
 class Projection(common.Projection):
