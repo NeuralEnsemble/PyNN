@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 PyNEST implementation of the PyNN API.
-$Id$
+$Id:nest.py 5 2007-04-16 15:01:24Z davison $
 """
-__version__ = "$Revision$"
+__version__ = "$Revision:5 $"
 
 import pynest
 from pyNN import common
@@ -312,6 +312,7 @@ class Population(common.Population):
             self.cell = pynest.create(cellclass, self.size)
             
         self.cell = numpy.array([ ID(pynest.getGID(addr)) for addr in self.cell ], ID)
+        self.id_start = self.cell.reshape(self.size,)[0]
         
         for id in self.cell:
             id.setCellClass(cellclass)
@@ -352,9 +353,30 @@ class Population(common.Population):
                e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
                          7 9
         """
-        # needs testing
-        assert isinstance(id,int)
-        return tuple([a.tolist()[0] for a in numpy.where(self.cell == id)])
+        # The top two lines (commented out) are the original implementation,
+        # which does not scale well when the population size gets large.
+        # The next lines are the neuron2 implementation of the same method. This
+        # assumes that the id values in self.cell are consecutive. This should
+        # always be the case, I think? A unit test is needed to check this.
+    
+        ###assert isinstance(id,int)
+        ###return tuple([a.tolist()[0] for a in numpy.where(self.cell == id)])
+        
+        id -= self.id_start
+        if self.ndim == 3:
+            rows = self.dim[0]; cols = self.dim[1]
+            i = id/(rows*cols); remainder = id%(rows*cols)
+            j = remainder/cols; k = remainder%cols
+            coords = (i,j,k)
+        elif self.ndim == 2:
+            cols = self.dim[1]
+            i = id/cols; j = id%cols
+            coords = (i,j)
+        elif self.ndim == 1:
+            coords = (id,)
+        else:
+            raise common.InvalidDimensionsError
+        return coords
     
     def set(self,param,val=None):
         """
