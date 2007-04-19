@@ -1,2 +1,23 @@
-Installation instructions:
+
+Installation instructions
+*************************
+
 python setup.py install
+
+
+SVN instructions
+****************
+
+Fetching the source:
+
+svn co https://neuralensemble.kip.uni-heidelberg.de/svn/PyNN/trunk pyNN  
+
+** Anonymous checkout is allowed
+
+Commiting Changes:
+
+In the svn dir:
+svn commit
+
+** svn commit requires a neuralensemble.org account, or a FACETS
+account with SVN access.
