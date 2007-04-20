@@ -1,5 +1,5 @@
 """
-Unit tests for pyNN/random.py.
+Unit tests for pyNN/random.py. 
 $Id$
 """
 
