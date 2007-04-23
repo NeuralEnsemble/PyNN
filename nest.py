@@ -552,6 +552,7 @@ class Population(common.Population):
         along rows and down columns (and the extension of that for 3-D).
         This allows easy plotting of a `raster' plot of spiketimes, with one
         line for each cell.
+        TODO : return a numpy array?
         """
         global spike_files
         tempfilename = 'tmpfile_%s' % self.label
