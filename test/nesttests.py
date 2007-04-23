@@ -1,6 +1,6 @@
 """
 Unit tests for pyNN/nest.py.
-$Id$
+$Id:nesttests.py 5 2007-04-16 15:01:24Z davison $
 """
 
 import pyNN.nest as nest
@@ -8,7 +8,7 @@ import pyNN.common as common
 import pyNN.random as random
 import unittest
 import numpy
-
+import os
 
 # ==============================================================================
 class CreationTest(unittest.TestCase):
@@ -127,8 +127,20 @@ class ConnectionTest(unittest.TestCase):
 class SetValueTest(unittest.TestCase): pass # to write later
 
 # ==============================================================================
-class RecordSpikesTest(unittest.TestCase): pass # to write later
-
+class RecordSpikesTest(unittest.TestCase):
+    
+    def setUp(self):
+        nest.setup()
+        self.ifcell = nest.create(nest.IF_curr_alpha,{'i_offset':1.0})
+    
+    def tearDown(self):
+        os.remove("test_record.tmp")
+    
+    def testRecordSpikes(self):
+        """record(): Just check no errors are raised."""
+        nest.record(self.ifcell, 'test_record.tmp')
+        nest.run(100.0)
+        
 # ==============================================================================
 class RecordVTest(unittest.TestCase): pass # to write later
 

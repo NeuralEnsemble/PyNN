@@ -256,7 +256,7 @@ def record(source,filename):
     else:
         source = [pynest.getAddress(source)]
     for src in source:
-        pynest.connect(pynest.getAddress(src),spike_detector[0])
+        pynest.connect(src,spike_detector[0])
         pynest.sr('/%s (%s) (w) file def' % (filename,filename))
         pynest.sr('%s << /output_stream %s >> SetStatus' % (pynest.getGID(spike_detector[0]),filename))
     
