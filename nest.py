@@ -11,10 +11,14 @@ from pyNN.random import *
 import numpy, types, sys, shutil, os
 import logging, copy
 from math import *
-        
+import tempfile
+
+
 spike_files = []
 v_files     = []
 dt          = 0.1
+tempdirs = []
+
 
 # ==============================================================================
 #   Utility classes
@@ -129,7 +133,12 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
     if min_delay > max_delay:
         raise Exception("min_delay has to be less than or equal to max_delay.")
     global dt
+    global tempdir
     dt = timestep
+    
+    tempdir = tempfile.mkdtemp()
+    tempdirs.append(tempdir) # append tempdir to tempdirs list
+    
     pynest.destroy()
     pynest.setDict([0],{'resolution': dt, 'min_delay' : min_delay, 'max_delay' : max_delay})
     
@@ -151,10 +160,13 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
 
 def end():
     """Do any necessary cleaning up before exiting."""
-    for file in spike_files:
+    for files in spike_files:
         pynest.sr('%s close' % file)
     for couples in v_files:
-        pynest.sr('%s close' % couples[1])
+        pynest.sr('%s close' % couples[1].replace('/','_'))
+    for tempdir in tempdirs:
+        os.rmdir(tempdir)
+    
     pynest.end()
 
 def run(simtime):
@@ -505,9 +517,11 @@ class Population(common.Population):
 		
 	# Open temporary output file & register file with detectors
         # This should be redone now that Eilif has implemented the pythondatum datum type
-        pynest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label,self.label))
-        pynest.sr('%s << /output_stream tmpfile_%s >> SetStatus' % (pynest.getGID(self.spike_detector[0]),self.label))
-        spike_files.append('tmpfile_%s' % self.label)
+        # pynest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label,self.label)) # old
+        pynest.sr('/%s.spikes (%s/%s.spikes) (w) file def' %  (self.label, tempdir, self.label))
+        pynest.sr('%s << /output_stream %s.spikes >> SetStatus' % (pynest.getGID(self.spike_detector[0]),self.label))
+        spike_files.append('%s.spikes' % self.label)
+        
         self.n_rec = n_rec
 
     def record_v(self,record_from=None,rng=None):
@@ -535,14 +549,15 @@ class Population(common.Population):
 
 	if (fixed_list == True):
 	    for neuron in record_from:
-		filename = 'tmpfile_%s_%d.v' % (self.label, neuron)
-            	v_files.append([neuron, filename])
+                filename = tempdir+'/'+'%s_%d.v' % (self.label, neuron)
+                v_files.append([neuron, filename])
             	pynest.record_v(pynest.getAddress(neuron),filename)
 	else:
             for neuron in numpy.reshape(self.cell,(self.cell.size,))[0:n_rec]: # should change this to pick randomly
-                filename = 'tmpfile_%s_%d.v' % (self.label, neuron)
-            	v_files.append([neuron, filename])
-            	pynest.record_v(pynest.getAddress(neuron),filename)
+                filename = tempdir+'/'+'%s_%d.v' % (self.label, neuron)
+                v_files.append([neuron, filename])
+                pynest.record_v(pynest.getAddress(neuron),filename)
+                
     
     
     def printSpikes(self,filename,gather=True, compatible_output=True):
@@ -555,11 +570,14 @@ class Population(common.Population):
         TODO : return a numpy array?
         """
         global spike_files
-        tempfilename = 'tmpfile_%s' % self.label
+        
+        tempfilename = '%s.spikes' % self.label
+        
         if spike_files.__contains__(tempfilename):
             pynest.sr('%s close' % tempfilename)
             spike_files.remove(tempfilename)
-        shutil.move(tempfilename,filename)
+            
+        shutil.move(tempdir+'/'+tempfilename,filename)
 	if (compatible_output):
 	    # Here we postprocess the file to have effectively the
             # desired format :
@@ -624,11 +642,12 @@ class Population(common.Population):
 	       result.write("%d\t" %dimension)
 	    result.write("\n")
             padding = numpy.reshape(self.cell,self.cell.size)[0]
+        
+                
 	for couples in v_files:
             if couples[0] in self.cell:
-		pynest.sr('%s close' % couples[1])
+		pynest.sr('%s close' % couples[1].replace('/','_'))
 		if (compatible_output):
-		    # We add the cell number to the recorded potential:
                     f = open(couples[1],'r',1)
                     lines = f.readlines()
                     input_tuples = []
@@ -953,6 +972,111 @@ class Projection(common.Projection):
             self._sources.append(src)
             self._targets.append(tgt)        
             self._targetPorts.append(pynest.connectWD(pre_addr,post_addr, 1000*weight, delay))
+
+    def _2D_Gauss(self,parameters,synapse_type=None):
+        """
+        
+        """
+        def rcf_2D(parameters):
+            rng = parameters['rng']
+            pre_id = parameters['pre_id']
+            pre_position = parameters['pre_position']
+            n = parameters['n']
+            sigma = parameters['sigma']
+            weight = parameters['weight']
+            delay = parameters['delay']
+            
+            phi = rng.uniform(size=n)*(2.0*pi)
+            r = rng.normal(scale=sigma,size=n)
+            target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi))
+            target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi))
+            target_id = []
+            for syn_nr in range(len(target_position_x)):
+                #print syn_nr
+                try:
+                    # print target_position_x[syn_nr]
+                    target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr])])
+                    # print target_id
+                except IndexError:
+                    target_id.append(False)
+            
+            pynest.divConnect(pre_id,target_id,[weight],[delay])
+        
+        
+        n = parameters['n']
+                
+        if n > 0:
+            ratio_dim_pre_post = ((1.*self.pre.dim[0])/(1.*self.post.dim[0]))
+            print 'ratio_dim_pre_post',ratio_dim_pre_post
+            run_id = 0
+
+            for pre in numpy.reshape(self.pre.cell,(self.pre.cell.size)):
+                #print 'pre',pre
+                run_id +=1
+                #print 'run_id',run_id
+                if numpy.mod(run_id,500) == 0:
+                    print 'run_id',run_id
+                
+                pre_position_tmp = self.pre.locate(pre)
+                parameters['pre_position'] = numpy.divide(pre_position_tmp,ratio_dim_pre_post)
+                parameters['pre_id'] = pre
+                #a=Projection(self.pre,self.post,'rcf_2D',parameters)
+                rcf_2D(parameters)
+        
+    def _rcf_2D(self,parameters,synapse_type=None):
+        """
+        Source neuron is connected to a 2D targetd population with a spatial profile (Gauss).
+        parameters should have:
+        rng:
+        source_position: x,y of source neuron mapped to target populatio.
+        source_id: source id
+        n: number of synpases
+        sigma: sigma of the Gauss
+        """
+        rng = parameters['rng']
+        pre_id = parameters['pre_id']
+        pre_position = parameters['pre_position']
+        n = parameters['n']
+        sigma = parameters['sigma']
+        weight = parameters['weight']
+        delay = parameters['delay']
+
+        phi = rng.uniform(size=n)*(2.0*pi)
+        r = rng.normal(scale=sigma,size=n)
+        #print 'phi',phi
+        #print 'r',r
+        #print 'n',n
+        #print 'sigma',sigma
+        
+        #print 'source_id',source_id
+        #print 'source_position',source_position
+        #print 'pre.dim',self.pre.dim
+        #print 'post.dim',self.post.dim
+        
+        target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi))
+        target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi))
+        #print 'target_position_x',target_position_x
+        #print 'target_position_y',target_position_y
+        
+        target_id = []
+        for syn_nr in range(len(target_position_x)):
+            print syn_nr
+            try:
+                #print target_position_x[syn_nr]
+                target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr])])
+                #print target_id
+            except IndexError:
+                target_id.append(False)
+                #print syn_nr*2.
+                # here the target Id's are calculated, I assume that, if the x,y does not exist in the target population and IndexError is raised
+            #target_id.append(self.post.locate((target_position_x[syn_nr],target_position_y[syn_nr]))
+            #except IndexError:
+                # if the x,y is outside and the index error was raised, a False is put into the array/list. NEST then does not make a connection to False
+             #   target_id.append(False)
+        
+        pynest.divConnect(pre_id,target_id,[weight],[delay])
+        
+
     
     # --- Methods for setting connection parameters ----------------------------
     
