@@ -117,10 +117,22 @@ class RandomDistribution:
        numbers from a given distribution."""
        
     def __init__(self,rng=None,distribution='uniform',parameters=[]):
+        """
+        If present, rng should be a NumpyRNG or GSLRNG object.
+        distribution should be the name of a method supported by the underlying
+            random number generator object.
+        parameters should be a list or tuple containing the arguments expected
+            by the underlying method in the correct order. named arguments are
+            not yet supported.
+        Note that NumpyRNG and GSLRNG distributions may not have the same names,
+            e.g., 'normal' for NumpyRNG and 'gaussian' for GSLRNG, and the
+            arguments may also differ.
+        """ 
         self.name = distribution
+        assert isinstance(parameters,(list,tuple)), "The parameters argument must be a list or tuple"
         self.parameters = parameters
         if rng:
-            assert isinstance(rng,AbstractRNG)
+            assert isinstance(rng,AbstractRNG), "rng must be a pyNN.random RNG object"
             self.rng = rng
         else: # use numpy.random.RandomState() by default
             self.rng = NumpyRNG()
