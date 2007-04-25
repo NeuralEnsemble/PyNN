@@ -92,7 +92,7 @@ def _hoc_arglist(paramlist):
             hoc_commands += ['objref argvec%d' % nvec,
                              'argvec%d = new Vector(%d)' % (nvec,len(item))]
             argstr += 'argvec%d, ' % nvec
-            for i in range(len(item)):
+            for i in xrange(len(item)):
                 hoc_commands.append('argvec%d.x[%d] = %g' % (nvec,i,item[i])) # assume only numerical values
             nvec += 1
         elif type(item) == types.StringType:
@@ -109,7 +109,7 @@ def _hoc_arglist(paramlist):
                     hoc_commands += ['objref argvec%d' % nvec,
                                      'argvec%d = new Vector(%d)' % (nvec,len(v))]
                     dict_init_list += ['"%s", argvec%d' % (k,nvec)]
-                    for i in range(len(v)):
+                    for i in xrange(len(v)):
                         hoc_commands.append('argvec%d.x[%d] = %g' % (nvec,i,v[i])) # assume only numerical values
                     nvec += 1
                 else: # assume number
@@ -128,8 +128,8 @@ def _hoc_arglist(paramlist):
                 argstr += 'argmat%s,' % nmat
                 hoc_commands += ['objref argmat%d' % nmat,
                                  'argmat%d = new Matrix(%d,%d)' % (nmat,item.shape[0],item.shape[1])]
-                for i in range(item.shape[0]):
-                    for j in range(item.shape[1]):
+                for i in xrange(item.shape[0]):
+                    for j in xrange(item.shape[1]):
                         try:
                           hoc_commands += ['argmat%d.x[%d][%d] = %g' % (nmat,i,j,item[i,j])]
                         except TypeError:
@@ -259,6 +259,33 @@ class IF_curr_exp(common.IF_curr_exp):
         self.parameters['syn_shape'] = 'exp'
 
 
+class IF_cond_alpha(common.IF_cond_alpha):
+    """Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic current."""
+    
+    translations = {
+        'tau_m'     : ('tau_m'    , "parameters['tau_m']"),
+        'cm'        : ('CM'       , "parameters['cm']"),
+        'v_rest'    : ('v_rest'   , "parameters['v_rest']"),
+        'v_thresh'  : ('v_thresh' , "parameters['v_thresh']"),
+        'v_reset'   : ('v_reset'  , "parameters['v_reset']"),
+        'tau_refrac': ('t_refrac' , "parameters['tau_refrac']"),
+        'i_offset'  : ('i_offset' , "parameters['i_offset']"),
+        'tau_syn_E' : ('tau_e'    , "parameters['tau_syn_E']"),
+        'tau_syn_I' : ('tau_i'    , "parameters['tau_syn_I']"),
+        'v_init'    : ('v_init'   , "parameters['v_init']"),
+        'e_rev_E'   : ('e_e'      , "parameters['e_rev_E']"),
+        'e_rev_I'   : ('e_i'      , "parameters['e_rev_I']")
+    }
+    hoc_name = "StandardIF"
+    
+    def __init__(self,parameters):
+        common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
+                                                       # values for not-specified parameters.
+        self.parameters = self.translate(self.parameters)
+        self.parameters['syn_type']  = 'conductance'
+        self.parameters['syn_shape'] = 'alpha'
+
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
@@ -331,16 +358,14 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
         'access dummy_section',
         'objref netconlist, nil',
         'netconlist = new List()', 
-        'strdef cmd', 
+        'strdef cmd',
+        'strdef fmt', 
         'objref nc', 
         'objref rng',
         'objref cell']
         
     #---Experimental--- Optimize the simulation time ? / Reduce inter-processors exchanges ?
     hoc_commands += [
-        'objref cvode',
-        'cvode = new CVode()',
-        'mode  = cvode.queue_mode(1,0)',
         'tmp   = pc.spike_compress(1,0)']
         
     hoc_execute(hoc_commands,"--- setup() ---")
@@ -353,7 +378,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
     
     return int(myid)
 
-def end():
+def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     global logfile, myid #, vfilelist, spikefilelist
     hoc_commands = []
@@ -362,9 +387,12 @@ def end():
                         'fileobj = new File()']
         for filename,cell_list in vfilelist.items():
             hoc_commands += ['tmp = fileobj.wopen("%s")' % filename]
+            tstop = HocToPy.get('tstop','float')
+            header = "# dt = %f\\n# n = %d\\n" % (dt,int(tstop/dt))
             for cell in cell_list:
-                hoc_commands += ['tmp = fileobj.printf("# cell%d\\n")' % cell,
-                                 'cell%d.vtrace.printf(fileobj)' % cell]
+                hoc_commands += ['fmt = "%s\\t%d\\n"' % ("%.6g",cell),
+                                 'tmp = fileobj.printf("%s")' % header,
+                                 'tmp = cell%d.vtrace.printf(fileobj,fmt)' % cell]
             hoc_commands += ['tmp = fileobj.close()']
     if len(spikefilelist) > 0:
         hoc_commands += ['objref fileobj',
@@ -372,8 +400,9 @@ def end():
         for filename,cell_list in spikefilelist.items():
             hoc_commands += ['tmp = fileobj.wopen("%s")' % filename]
             for cell in cell_list:
-                hoc_commands += ['tmp = fileobj.printf("# cell%d\\n")' % cell,
-                                 'pc.cell%d.spiketimes.printf(fileobj)' % cell]
+                hoc_commands += ['fmt = "%s\\t%d\\n"' % ("%.2f",cell),
+                                 #'tmp = fileobj.printf("# cell%d\\n")' % cell,
+                                 'pc.cell%d.spiketimes.printf(fileobj,fmt)' % cell]
             hoc_commands += ['tmp = fileobj.close()']
     hoc_commands += ['tmp = pc.runworker()',
                      'tmp = pc.done()']
@@ -520,7 +549,7 @@ def set(cells,cellclass,param,val=None,hocname=None):
                                      'tmp = cell%d.param_update()' %cell]
     hoc_execute(hoc_commands, "--- set() ---")
 
-def record(source,filename):
+def record(source,filename, compatible_output=True):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     # would actually like to be able to record to an array and choose later
@@ -537,7 +566,7 @@ def record(source,filename):
             spikefilelist[filename] += [src] # writing to file is done in end()
     hoc_execute(hoc_commands, "---record() ---")
 
-def record_v(source,filename):
+def record_v(source,filename, compatible_output=True):
     """
     Record membrane potential to a file. source can be an individual cell or
     a list of cells."""
@@ -593,7 +622,7 @@ class Population(common.Population):
 
         # set the steps list, used by the __getitem__() method.
         self.steps = [1]*self.ndim
-        for i in range(self.ndim-1):
+        for i in xrange(self.ndim-1):
             for j in range(i+1,self.ndim):
                 self.steps[i] *= self.dim[j]
 
@@ -854,7 +883,7 @@ class Population(common.Population):
                     hoc_commands = ['record_from = new Vector()']
                     hoc_commands += ['tmp = pc.take("%s.record_from[%s].node[%d]", record_from)' %(self.label, record_what, id)]
                     hoc_execute(hoc_commands)
-                    for j in range(0,HocToPy.get('record_from.size()', 'int')):
+                    for j in xrange(HocToPy.get('record_from.size()', 'int')):
                         self.record_from[record_what] += [HocToPy.get('record_from.x[%d]' %j, 'int')]
 
     def record(self,record_from=None,rng=None):
@@ -895,10 +924,9 @@ class Population(common.Population):
         if myid==0 or not gather:
             hoc_commands = ['objref fileobj',
                             'fileobj = new File()',
-                            'tmp = fileobj.wopen("%s")' % filename,
-                            'strdef fmt']
+                            'tmp = fileobj.wopen("%s")' % filename]
             if header:
-                hoc_commands += ['tmp = fileobj.printf("%s\\n")' % header]   
+                hoc_commands += ['tmp = fileobj.printf("%s\\n")' % header]
             if gather:
                 hoc_commands += ['objref gatheredvec']
 	    padding = self.fullgidlist[0]
@@ -938,7 +966,7 @@ class Population(common.Population):
         """
         tstop = HocToPy.get('tstop','float')
         header = "# dt = %f\\n# n = %d\\n" % (dt,int(tstop/dt))
-        header = "%s # %d" %(header,self.dim[0])
+        header = "%s# %d" %(header,self.dim[0])
         for dimension in list(self.dim)[1:]:
 	        header = "%s\t%d" %(header,dimension)
         hoc_comment("--- Population[%s].__print_v()__ ---" %self.label)
@@ -1056,7 +1084,7 @@ class Projection(common.Projection):
         src_position = src.getPosition()
         tgt_position = tgt.getPosition()
         if (len(src_position) == len(tgt_position)):
-            for i in range(0,len(src_position)):
+            for i in xrange(len(src_position)):
                 # We normalize the positions in each population and calculate the
                 # Euclidian distance :
                 #scaling = float(presynaptic_population.dim[i])/float(postsynaptic_population.dim[i])
@@ -1155,7 +1183,7 @@ class Projection(common.Projection):
         else: # use Python RNG
             for tgt in self.post.gidlist:
                 rarr = self.rng.uniform(0, 1, self.pre.size)
-                for j in range(0, self.pre.size):
+                for j in xrange(self.pre.size):
                     src = j + self.pre.gid_start
                     if rarr[j] < p_connect:
                         if allow_self_connections or tgt != src:
@@ -1189,7 +1217,7 @@ class Projection(common.Projection):
         # like >,<, = the connectivity rule is by itself a test.
         alphanum = True
         operators = ['<', '>', '=']
-        for i in range(0,len(operators)):
+        for i in xrange(len(operators)):
             if not d_expression.find(operators[i])==-1:
                 alphanum = False
         
@@ -1226,7 +1254,7 @@ class Projection(common.Projection):
         else: # use a python RNG
             for tgt in self.post.gidlist:
                 rarr = self.rng.uniform(0,1,self.pre.size)
-                for j in range(0,self.pre.size):
+                for j in xrange(self.pre.size):
                     # Again, we should have an ID (stored in the global gidlist) instead
                     # of a simple int.
                     src = self.pre.fullgidlist[j]
@@ -1322,7 +1350,7 @@ class Projection(common.Projection):
         syn_objref = _translate_synapse_type(synapse_type)
         
         # Then we go through those tuple and extract the fields
-        for i in range(len(conn_list)):
+        for i in xrange(len(conn_list)):
             src    = conn_list[i][0]
             tgt    = conn_list[i][1]
             weight = eval(conn_list[i][2])
@@ -1379,7 +1407,7 @@ class Projection(common.Projection):
                              'success = execute1(cmd)']
         else:       
             hoc_commands = []
-            for i in range(len(self)):
+            for i in xrange(len(self)):
                 hoc_commands += ['%s.object(%d).weight = %f' % (self.label, i, float(rand_distr.next()))]  
         hoc_execute(hoc_commands, "--- Projection[%s].__randomizeWeights__() ---" %self.label)
         
@@ -1418,7 +1446,7 @@ class Projection(common.Projection):
                              'success = execute1(cmd)']    
         else:
             hoc_commands = [] 
-            for i in range(len(self)):
+            for i in xrange(len(self)):
                 hoc_commands += ['%s.object(%d).delay = %f' % (self.label, i, float(rand_distr.next()))]
         hoc_execute(hoc_commands, "--- Projection[%s].__randomizeDelays__() ---" %self.label)
         
@@ -1432,7 +1460,7 @@ class Projection(common.Projection):
         hoc_commands = []
         
         if rand_distr==None:
-            for i in range(len(self)):
+            for i in xrange(len(self)):
                 src = self.connections[i][0]
                 tgt = self.connections[i][1]
                 # calculate the distance between the two cells
@@ -1448,7 +1476,7 @@ class Projection(common.Projection):
                 distr_params = paramfmt % tuple(rand_distr.parameters)
                 hoc_commands += ['rng = new Random(%d)' % 0 or distribution.rng.seed,
                             'tmp = rng.%s(%s)' % (rand_distr.name,distr_params)]
-                for i in range(len(self)):
+                for i in xrange(len(self)):
                     src = self.connections[i][0]
                     tgt = self.connections[i][1]
                     # calculate the distance between the two cells
@@ -1460,7 +1488,7 @@ class Projection(common.Projection):
                     delay = eval(delay.replace('rng', '%f' % HocToPy.get('rng.repick()', 'float')))
                     hoc_commands += ['%s.object(%d).delay = %f' % (self.label, i, float(delay))]   
             else:
-                for i in range(len(self)):
+                for i in xrange(len(self)):
                     src = self.connections[i][0]
                     tgt = self.connections[i][1]    
                     # calculate the distance between the 2 cells :
@@ -1495,7 +1523,7 @@ class Projection(common.Projection):
                          'objref %s_pre2wa[%d]'  %(self.label,len(self)),
                          'objref %s_post2wa[%d]' %(self.label,len(self))]
         # For each connection
-        for i in range(len(self)):
+        for i in xrange(len(self)):
             src = self.connections[i][0]
             tgt = self.connections[i][1]
             # we reproduce the structure of STDP that can be found in layerConn.hoc
@@ -1556,10 +1584,10 @@ class Projection(common.Projection):
         'fromFile' method."""
         hoc_comment("--- Projection[%s].__saveConnections__() ---" %self.label)  
         f = open(filename,'w')
-        for i in range(len(self)):
+        for i in xrange(len(self)):
             src = self.connections[i][0]
             tgt = self.connections[i][1]
-            line = "%s%s\t%s%s\t%f\t%f\n" % (self.pre.label,
+            line = "%s%s\t%s%s\t%g\t%g\n" % (self.pre.label,
                                      self.pre.locate(src),
                                      self.post.label,
                                      self.post.locate(tgt),
@@ -1581,7 +1609,7 @@ class Projection(common.Projection):
         # slave node posts its list of weights to the master node.
         if gather and myid !=0:
             hoc_commands += ['weight_list = new Vector()']
-            for i in range(len(self)):
+            for i in xrange(len(self)):
                 weight = HocToPy.get('%s.object(%d).weight' % (self.label,i),'float')
                 hoc_commands += ['weight_list = weight_list.append(%f)' %float(weight)]
             hoc_commands += ['tmp = pc.post("%s.weight_list.node[%d]", weight_list)' %(self.label, myid)]
@@ -1589,7 +1617,7 @@ class Projection(common.Projection):
 
         if not gather or myid == 0:
             f = open(filename,'w')
-            for i in range(len(self)):
+            for i in xrange(len(self)):
                 weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.label,i),'float')
                 f.write(weight)
             if gather:
@@ -1597,7 +1625,7 @@ class Projection(common.Projection):
                     hoc_commands = ['weight_list = new Vector()']       
                     hoc_commands += ['tmp = pc.take("%s.weight_list.node[%d]", weight_list)' %(self.label, id)]
                     hoc_execute(hoc_commands)                
-                    for j in range(0,HocToPy.get('weight_list.size()', 'int')):
+                    for j in xrange(HocToPy.get('weight_list.size()', 'int')):
                         weight = "%f\n" %HocToPy.get('weight_list.x[%d]' %j, 'float')
                         f.write(weight)
             f.close()

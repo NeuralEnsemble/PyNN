@@ -19,9 +19,9 @@ def run(cmd,engine):
     if engine == 'nest':
         cmd = 'python ' + cmd + '.py nest'
     elif engine[:6] == 'neuron':
-        cmd = '../hoc/i686/special -python ' + cmd + '.py neuron'
+        cmd = '../hoc/i686/special -python ' + cmd + '.py neuron2'
     else:
-        print 'Invalid simulation engine "%s". Valid values are "nest" and "neuron"' % engine
+        print 'Invalid simulation engine "%s". Valid values are "nest" and "neuron2"' % engine
         
     p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
     p.wait()
@@ -34,6 +34,22 @@ def run(cmd,engine):
         print "  " + errorMsg.replace("\n","\n   ")
         print "========================================"
         sys.exit(2)
+
+def sortTracesByCells(traces, gids):
+    # First, we see what are the gid present in the recorded file:
+    cells_id = []
+    for gid in gids:
+        if not gid in cells_id:
+            cells_id.append(gid)
+    # Then we return a list of tuples containing the Vm traces sorted
+    # by the cell_ids:
+    cells_id = N.sort(cells_id)
+    result = N.array([])
+    for id in cells_id:
+        idx = N.where(gids == id)
+        result = N.concatenate((result, traces[idx]))
+    return result
+
 
 def compare_traces(script,mse_threshold,engines):
     """For scripts that write a voltage trace to file."""
@@ -51,7 +67,9 @@ def compare_traces(script,mse_threshold,engines):
                 f = open(filename,'r')
                 trace = [line.strip() for line in f.readlines() if line[0] != "#"]
                 f.close()
-                trace = N.array([float(line.split()[0])  for line in trace if line]) # only take first column and ignore blank lines
+                position = N.array([int(line.split()[1]) for line in trace if line]) # take second column and ignore blank lines
+                trace = N.array([float(line.split()[0]) for line in trace if line]) # take first column and ignore blank lines
+                trace = sortTracesByCells(trace, position)
                 traces[engine].append(trace)
         else:
             fail = True; fail_message = "No files match glob pattern"
@@ -86,12 +104,13 @@ if __name__ == "__main__":
     
     engine_list = ("nest", "neuron")
     
-    thresholds = {"IF_curr_alpha"  : 0.5,
+    thresholds = {"IF_curr_alpha" : 0.5,
                   "IF_curr_alpha2" : 5.0,
-                  "IF_curr_exp"    : 0.1,
+                  "IF_curr_exp" : 0.1, 
+                  "IF_cond_alpha" : 0.5,
                   "simpleNetworkL" : 0.5,
-                  "simpleNetwork"  : 0.5,
-                  "small_network"  : 5.0}
+                  "simpleNetwork" : 0.5,
+                  "small_network" : 5.0}
     if len(sys.argv) > 1:
         scripts = sys.argv[1:]
     else:

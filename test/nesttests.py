@@ -133,9 +133,6 @@ class RecordSpikesTest(unittest.TestCase):
         nest.setup()
         self.ifcell = nest.create(nest.IF_curr_alpha,{'i_offset':1.0})
     
-    def tearDown(self):
-        os.remove("test_record.tmp")
-    
     def testRecordSpikes(self):
         """record(): Just check no errors are raised."""
         nest.record(self.ifcell, 'test_record.tmp')
