@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name = "PyNN",
-    version = "0.3.0",
+    version = "0.3.0alpha",
     package_dir={'pyNN': ''},
     packages = ['pyNN'],
     author = "The NeuralEnsemble Community",

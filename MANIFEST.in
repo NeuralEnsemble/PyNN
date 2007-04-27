@@ -1,0 +1,10 @@
+include hoc/*.mod
+include hoc/*.hoc
+include test/*tests.py
+include test/brunel.py
+include test/*Pcsim*.py
+include test/simpleNetwork*.py
+include test/VAbenchmarks.py
+include test/IF_curr_*.py
+include test/small_network.py
+
