@@ -1,12 +1,12 @@
 """
-Unit tests for pyNN/neuron.py.
+Unit tests for pyNN/oldneuron.py.
 $Id$
 """
 
-import pyNN.neuron as neuron
+import pyNN.oldneuron as neuron
 import pyNN.common as common
 import pyNN.random as random
-from pyNN.neuron import HocToPy
+from pyNN.oldneuron import HocToPy
 import unittest, sys, numpy
 
 # ==============================================================================

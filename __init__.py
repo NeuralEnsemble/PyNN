@@ -1,2 +1,2 @@
-__version__ = '0.3'
-__all__ = ["common", "random", "nest", "neuron","neuron2"]
+__version__ = '0.3alpha'
+__all__ = ["common", "random", "nest", "oldneuron","neuron2"]

@@ -18,10 +18,10 @@ def run(cmd,engine):
     logfile = open("%s_%s.log" % (cmd,engine), 'w')
     if engine == 'nest':
         cmd = 'python ' + cmd + '.py nest'
-    elif engine[:6] == 'neuron':
-        cmd = '../hoc/i686/special -python ' + cmd + '.py neuron2'
+    elif 'neuron' in engine:
+        cmd = '../hoc/i686/special -python ' + cmd + '.py %s' % engine
     else:
-        print 'Invalid simulation engine "%s". Valid values are "nest" and "neuron2"' % engine
+        print 'Invalid simulation engine "%s". Valid values are "nest", "oldneuron" and "neuron2"' % engine
         
     p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
     p.wait()
@@ -67,8 +67,12 @@ def compare_traces(script,mse_threshold,engines):
                 f = open(filename,'r')
                 trace = [line.strip() for line in f.readlines() if line[0] != "#"]
                 f.close()
-                position = N.array([int(line.split()[1]) for line in trace if line]) # take second column and ignore blank lines
-                trace = N.array([float(line.split()[0]) for line in trace if line]) # take first column and ignore blank lines
+                trace = [line for line in trace if line] # ignore blank lines                
+                if engine == 'oldneuron':
+                    position = N.zeros(len(trace))
+                else:
+                    position = N.array([int(line.split()[1]) for line in trace]) # take second column
+                trace = N.array([float(line.split()[0]) for line in trace]) # take first column 
                 trace = sortTracesByCells(trace, position)
                 traces[engine].append(trace)
         else:
@@ -102,7 +106,7 @@ def compare_traces(script,mse_threshold,engines):
 
 if __name__ == "__main__":
     
-    engine_list = ("nest", "neuron")
+    engine_list = ("nest", "oldneuron", "neuron2")
     
     thresholds = {"IF_curr_alpha" : 0.5,
                   "IF_curr_alpha2" : 5.0,
