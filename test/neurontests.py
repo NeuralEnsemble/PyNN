@@ -3,10 +3,10 @@ Unit tests for pyNN/neuron.py.
 $Id$
 """
 
-import pyNN.neuron2 as neuron
+import pyNN.neuron as neuron
 import pyNN.common as common
 import pyNN.random as random
-from pyNN.neuron2 import *
+from pyNN.neuron import *
 import unittest, sys, numpy
 import numpy.random
 
@@ -359,7 +359,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
 	self.pop1.record()
 	simtime = 1000.0
 	neuron.run(simtime)
-	self.pop1.printSpikes("temp_neuron2.ras")
+	self.pop1.printSpikes("temp_neuron.ras")
 	rate = self.pop1.meanSpikeCount()*1000/simtime
 	assert (20*0.8 < rate) and (rate < 20*1.2)
 
@@ -374,7 +374,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
 	self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
 	simtime = 10.0
         neuron.run(simtime)
-	self.pop2.print_v("temp_neuron2.v")
+	self.pop2.print_v("temp_neuron.v")
 
 # ==============================================================================
 class PopulationOtherTest(unittest.TestCase): # to write later

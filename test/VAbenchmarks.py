@@ -14,7 +14,7 @@ this has not been implemented (not necessary for sustained firing).
 Andrew Davison, UNIC, CNRS
 August 2006
 
-$Id$
+$Id:VAbenchmarks.py 5 2007-04-16 15:01:24Z davison $
 """
 
 import sys
@@ -25,7 +25,7 @@ from pyNN.random import NumpyRNG, RandomDistribution
 if hasattr(sys,"argv"):     # run using python
     simulator = sys.argv[-1]
 else:
-    simulator = "neuron"    # run using nrngui -python
+    simulator = "oldneuron"    # run using nrngui -python
 exec("from pyNN.%s import *" % simulator)
 
 # === Define parameters ========================================================
@@ -33,13 +33,13 @@ exec("from pyNN.%s import *" % simulator)
 benchmark = "CUBA"
 rngseed  = 98765
 
-n        = 1000  # number of cells
+n        = 4000  # number of cells
 r_ei     = 4.0   # number of excitatory cells:number of inhibitory cells
 pconn    = 0.02  # connection probability
 stim_dur = 50    # (ms) duration of random stimulation
 
 dt       = 0.01  # (ms) simulation timestep
-tstop    = 1000  # (ms) simulaton duration
+tstop    = 4000  # (ms) simulaton duration
 
 # Cell parameters
 area     = 20000 # (µm²)

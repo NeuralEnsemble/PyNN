@@ -467,7 +467,7 @@ class Population(common.Population):
         """
         # The top two lines (commented out) are the original implementation,
         # which does not scale well when the population size gets large.
-        # The next lines are the neuron2 implementation of the same method. This
+        # The next lines are the neuron implementation of the same method. This
         # assumes that the id values in self.cell are consecutive. This should
         # always be the case, I think? A unit test is needed to check this.
     

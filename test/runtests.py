@@ -21,7 +21,7 @@ def run(cmd,engine):
     elif 'neuron' in engine:
         cmd = '../hoc/i686/special -python ' + cmd + '.py %s' % engine
     else:
-        print 'Invalid simulation engine "%s". Valid values are "nest", "oldneuron" and "neuron2"' % engine
+        print 'Invalid simulation engine "%s". Valid values are "nest", "oldneuron" and "neuron"' % engine
         
     p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
     p.wait()
@@ -106,7 +106,7 @@ def compare_traces(script,mse_threshold,engines):
 
 if __name__ == "__main__":
     
-    engine_list = ("nest", "oldneuron", "neuron2")
+    engine_list = ("nest", "oldneuron", "neuron")
     
     thresholds = {"IF_curr_alpha" : 0.5,
                   "IF_curr_alpha2" : 5.0,

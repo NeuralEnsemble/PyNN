@@ -13,7 +13,7 @@ $Id$
 
 import re, string, types, getopt, sys, shutil, os
 shutil.copy('dummy_hoc.py','hoc.py')
-import common, oldneuron, nest, neuron2, pcsim
+import common, oldneuron, nest, neuron, pcsim
 os.remove('hoc.py'); os.remove('hoc.pyc')
 
 
@@ -46,7 +46,7 @@ exclude_list = ['__module__','__doc__','__builtins__','__file__','__class__',
                 'StandardCellType',
                 ]
 
-module_list = [neuron, nest, neuron2, pcsim]
+module_list = [oldneuron, nest, neuron, pcsim]
 
 if coloured:
     def colour(col,text):

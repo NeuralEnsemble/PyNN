@@ -58,7 +58,7 @@ class ID(common.ID):
         if self._hocname != None:
             return HocToPy.get('%s.%s' %(self._hocname, param),'float')
     
-    # Fonctions used only by the neuron2 version of pyNN, to optimize the
+    # Fonctions used only by the neuron version of pyNN, to optimize the
     # creation of networks
     def setHocName(self, name):
     	self._hocname = name
@@ -343,12 +343,12 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
     if debug:
         logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s',
-                    filename='neuron2.log',
+                    filename='neuron.log',
                     filemode='w')
     else:
         logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s',
-                    filename='neuron2.log',
+                    filename='neuron.log',
                     filemode='w')
         
     logging.info("Initialization of NEURON (use setup(..,debug=True) to see a full logfile)")

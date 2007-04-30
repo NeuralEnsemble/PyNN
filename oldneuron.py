@@ -50,7 +50,7 @@ class ID(common.ID):
         if self._hocname != None:
             return HocToPy.get('%s.%s' %(self._hocname, param),'float')
     
-    # Fonctions used only by the neuron2 version of pyNN, to optimize the
+    # Functions used only by the neuron module of pyNN, to optimize the
     # creation of networks
     def setHocName(self, name):
     	self._hocname = name
