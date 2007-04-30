@@ -61,17 +61,24 @@ def compare_traces(script,mse_threshold,engines):
     for engine in engines:
         traces[engine] = []
         run(script, engine)
-        filenames = glob.glob('%s_*%s*.v' % (script, engine))
+        filenames = glob.glob('%s_*_%s.v' % (script, engine))
+        if len(filenames) == 0:
+            filenames = glob.glob('%s_%s.v' % (script, engine))
         if filenames:
             for filename in filenames:
                 f = open(filename,'r')
                 trace = [line.strip() for line in f.readlines() if line[0] != "#"]
                 f.close()
-                trace = [line for line in trace if line] # ignore blank lines                
-                if engine == 'oldneuron':
-                    position = N.zeros(len(trace))
-                else:
-                    position = N.array([int(line.split()[1]) for line in trace]) # take second column
+                trace = [line for line in trace if line] # ignore blank lines
+                try:
+                    if engine == 'oldneuron':
+                        position = N.zeros(len(trace))
+                    else:
+                        position = N.array([int(line.split()[1]) for line in trace]) # take second column
+                except IndexError:
+                    print engine
+                    print line
+                    raise
                 trace = N.array([float(line.split()[0]) for line in trace]) # take first column 
                 trace = sortTracesByCells(trace, position)
                 traces[engine].append(trace)
@@ -113,8 +120,8 @@ if __name__ == "__main__":
                   "IF_curr_exp" : 0.1, 
                   "IF_cond_alpha" : 0.5,
                   "simpleNetworkL" : 0.5,
-                  "simpleNetwork" : 0.5,
-                  "small_network" : 5.0}
+                  "simpleNetwork" : 0.6,
+                  "small_network" : 6.0}
     if len(sys.argv) > 1:
         scripts = sys.argv[1:]
     else:
