@@ -175,15 +175,19 @@ class RecordTest(unittest.TestCase):
     
     def setUp(self):
         setup()
+        
+    def tearDown(self):
+        end()
   
     
     def testRecordSpikesTextFormat(self):
+        setup()
         spiking_nrn = create(SpikingInputNeuron, {}, 10)
         for i,n in enumerate(spiking_nrn):
-            pcsim_globals.net.object(n).setSpikes( [ (i+1) * 0.001 + t for t in arange(0,1,0.01) ] )
-        record( spiking_nrn, "recordTestSpikeFile1.txt")
+            pcsim_globals.net.object(n).setSpikes( [ (i+1) * 0.001 + t for t in arange(0,1,0.01) ] )                    
+        record( spiking_nrn, "recordTestSpikeFile1.txt")                
         run(1000)
-        end()
+	end() 
         # Now check the contents of the file
         f = file('recordTestSpikeFile1.txt', 'r')
         expected_id = 0;
@@ -193,9 +197,9 @@ class RecordTest(unittest.TestCase):
             self.assertEqual( expected_id, int(id))
             self.assertAlmostEqual( expected_spike_time, float(spike_time), places = 7 )
             expected_id = (expected_id + 1)  % 10
-            expected_spike_time += 0.001
+            expected_spike_time += 0.001        
             
-    def testRecordVmTextFormat(self):
+    def testRecordVmTextFormat(self):        
         analog_nrns = create(AnalogInputNeuron, {}, 10)
         for i, n in enumerate(analog_nrns):
             pcsim_globals.net.object(n).setAnalogValues( [ (k + i) % 10 for k in xrange(1000)])
@@ -210,6 +214,7 @@ class RecordTest(unittest.TestCase):
             self.assertEqual( expected_id, int(values[0]) )            
             self.assertEqual( [ float((expected_id + k) % 10) for k in xrange(1000)], values[1:] )
             expected_id += 1
+        
         
         
         

@@ -186,6 +186,9 @@ class PopulationRecordTest(unittest.TestCase): # to write later
          Population.nPop = 0
          self.popul = Population((3,3),IF_curr_alpha)
          
+     def tearDown(self):         
+         end()
+         
      def testRecordAll(self):
          """Population.record(): not a full test, just checking there are no Exceptions raised."""
          self.popul.record()
