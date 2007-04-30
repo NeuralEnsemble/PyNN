@@ -185,7 +185,7 @@ class RecordTest(unittest.TestCase):
         run(1000)
         end()
         # Now check the contents of the file
-        f = file('recordTestSpikeFile1', 'r')
+        f = file('recordTestSpikeFile1.txt', 'r')
         expected_id = 0;
         expected_spike_time = 0.001;
         for line in f:
