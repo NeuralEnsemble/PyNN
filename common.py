@@ -8,8 +8,10 @@ __version__ = "$Revision$"
 
 import types, time, copy
 
-from pypcsim import Time
-
+try:
+    from pypcsim import Time
+except:
+    pass
 
 class InvalidParameterValueError(Exception): pass
 class NonExistentParameterError(Exception): pass
