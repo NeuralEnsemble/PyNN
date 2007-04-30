@@ -10,7 +10,7 @@ public spiketimes, memb_init, record, source, vtrace
 public syn_type, syn_shape, record_v, stim, v_init
 public tau_m, CM, v_rest, v_thresh, v_reset, t_refrac, i_offset
 public tau_e, tau_i, e_e, e_i
-public param_update
+public param_update, connect2target
 create cell
 objref spike_reset, threshold_watch, esyn, isyn, source
 objref spiketimes, rec, nil, fih, fih2, this, vtrace, stim
@@ -135,7 +135,11 @@ proc memb_init() {
   }
   cell.v(0.5) = v_init
 }
- 
+
+proc connect2target() {
+  $o2 = new NetCon(source, $o1)
+}
+
 endtemplate StandardIF
 
 // Network spike source
@@ -162,7 +166,7 @@ endtemplate StandardIF
 
 
 begintemplate SpikeSource
-  public spiketimes, source, record, set, stim_type, param_update
+  public spiketimes, source, record, set, stim_type, param_update, connect2target
   
   objref spiketimes, rec, source, nil, this, keys
   strdef command, stim_type, key
@@ -220,5 +224,9 @@ begintemplate SpikeSource
       do_not_record = 0
     }
   }
-  
+
+  proc connect2target() {
+    $o2 = new NetCon(source, $o1)
+  }
+
 endtemplate SpikeSource

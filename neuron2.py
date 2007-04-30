@@ -47,8 +47,9 @@ class ID(common.ID):
             #several nodes. Then a call like cell[i,j].set() should be performed only on the
             #node who owns the cell. To do that, if the node doesn't have the cell, a call to set()
             #do nothing...
-            if self._hocname != None:
-                set(self,self._cellclass,param,val, self._hocname)
+            ##if self._hocname != None:
+            ##    set(self,self._cellclass,param,val, self._hocname)
+            set(self,self._cellclass,param,val)
     
     def get(self,param):
         #This function should be improved, with some test to translate
@@ -70,13 +71,17 @@ class ID(common.ID):
 #   Module-specific functions and classes (not part of the common API)
 # ==============================================================================
 
+class HocError(Exception): pass
+
 def hoc_execute(hoc_commands, comment=None):
     assert isinstance(hoc_commands,list)
     if comment:
         logging.debug(comment)
     for cmd in hoc_commands:
         logging.debug(cmd)
-        hoc.execute(cmd)
+        success = hoc.execute(cmd)
+        if not success:
+            raise HocError('Error produced by hoc command "%s"' % cmd)
 
 def hoc_comment(comment):
     logging.debug(comment)
@@ -152,7 +157,8 @@ def _translate_synapse_type(synapse_type):
         else:
             # More sophisticated treatment needed once we have more sophisticated synapse
             # models, e.g. NMDA...
-            raise common.InvalidParameterValueError, synapse_type, "valid types are 'excitatory' or 'inhibitory'"
+            #raise common.InvalidParameterValueError, synapse_type, "valid types are 'excitatory' or 'inhibitory'"
+            syn_objref = synapse_type
     else:
         syn_objref = "esyn"
     return syn_objref
@@ -174,7 +180,7 @@ def checkParams(param,val=None):
         raise common.InvalidParameterValueError
     return paramDict
 
-class HocError(Exception): pass
+
 
 class HocToPy:
     """Static class to simplify getting variables from hoc."""
@@ -347,7 +353,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
         
     logging.info("Initialization of NEURON (use setup(..,debug=True) to see a full logfile)")
     
-    # All the object that will be often used in the hoc code are declared in the setup
+    # All the objects that will be used frequently in the hoc code are declared in the setup
     hoc_commands = [
         'tmp = xopen("%s")' % os.path.join(__path__[0],'hoc','standardCells.hoc'),
         'tmp = xopen("%s")' % os.path.join(__path__[0],'hoc','odict.hoc'),
@@ -453,7 +459,8 @@ def create(cellclass,paramDict=None,n=1):
         hoc_commands += ['tmp = pc.set_gid2node(%d,%d)' % (cell_id,myid),
                          'objref cell%d' % cell_id,
                          'cell%d = new %s(%s)' % (cell_id,hoc_name,argstr),
-                         'nc = new NetCon(cell%d.source,nil)' % cell_id,
+                         'tmp = cell%d.connect2target(nil,nc)' % cell_id,
+                         #'nc = new NetCon(cell%d.source,nil)' % cell_id,
                          'tmp = pc.cell(%d,nc)' % cell_id]
     hoc_execute(hoc_commands, "--- create() ---")
 
@@ -494,7 +501,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
                         raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src)
                     else:
                         if p >= 1.0 or rarr[j] < p: # might be more efficient to vectorise the latter comparison
-                            hoc_commands += ['nc = pc.gid_connect(%d,cell%d.%s)' % (src,tgt,syn_objref),
+                            hoc_commands += ['nc = pc.gid_connect(%d,pc.gid2cell(%d).%s)' % (src,tgt,syn_objref),
                                              'nc.delay = %g' % delay,
                                              'nc.weight = %g' % weight,
                                              'tmp = netconlist.append(nc)']
@@ -502,7 +509,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     hoc_execute(hoc_commands, "--- connect(%s,%s) ---" % (str(source),str(target)))
     return range(nc_start,ncid)
 
-def set(cells,cellclass,param,val=None,hocname=None):
+def set(cells,cellclass,param,val=None): #,hocname=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
@@ -511,42 +518,47 @@ def set(cells,cellclass,param,val=None,hocname=None):
     
     paramDict = checkParams(param,val)
 
-    if issubclass(cellclass, common.StandardCellType):
+    if type(cellclass) == type and issubclass(cellclass, common.StandardCellType):
         paramDict = cellclass({}).translate(paramDict)
     if not isinstance(cells,list):
         cells = [cells]    
     hoc_commands = []
     for param,val in paramDict.items():
         if isinstance(val,str):
-            # If we know the hoc name of the object (set() applied to a population object), we use it
-            if (hocname != None):
-                fmt = '%s.%s = "%s"'
-            else:
-                fmt = 'cell%d.%s = "%s"'
+            ## If we know the hoc name of the object (set() applied to a population object), we use it
+            #if (hocname != None):
+            #    fmt = '%s.%s = "%s"'
+            #else:
+            #    fmt = 'cell%d.%s = "%s"'
+            fmt = 'pc.gid2cell(%d).%s = "%s"'
         elif isinstance(val,list):
             cmds,argstr = _hoc_arglist([val])
             hoc_commands += cmds
-            # If we know the hoc name of the object (set() applied to a population object), we use it
-            if (hocname != None):
-                fmt = '%s.%s = %s'
-            else:
-                fmt = 'cell%d.%s = %s'
+            ## If we know the hoc name of the object (set() applied to a population object), we use it
+            #if (hocname != None):
+            #    fmt = '%s.%s = %s'
+            #else:
+            #    fmt = 'cell%d.%s = %s'
+            fmt = 'pc.gid2cell(%d).%s = %s'
             val = argstr
         else:
-            # If we know the hoc name of the object (set() applied to a population object), we use it
-            if (hocname != None):
-                fmt = '%s.%s = %g'
-            else:
-                fmt = 'cell%d.%s = %g'
+            ## If we know the hoc name of the object (set() applied to a population object), we use it
+            #if (hocname != None):
+            #    fmt = '%s.%s = %g'
+            #else:
+            #    fmt = 'cell%d.%s = %g'
+            fmt = 'pc.gid2cell(%d).%s = %g'
         for cell in cells:
             if cell in gidlist:
-                # If we know the hoc name of the object (set() applied to a population object), we use it
-                if (hocname != None):
-                    hoc_commands += [fmt % (hocname,param,val),
-                                     'tmp = %s.param_update()' %hocname]
-                else:
-                    hoc_commands += [fmt % (cell,param,val),
-                                     'tmp = cell%d.param_update()' %cell]
+                ## If we know the hoc name of the object (set() applied to a population object), we use it
+                #if (hocname != None):
+                #    hoc_commands += [fmt % (hocname,param,val),
+                #                     'tmp = %s.param_update()' %hocname]
+                #else:
+                #    hoc_commands += [fmt % (cell,param,val),
+                #                     'tmp = cell%d.param_update()' %cell]
+                hoc_commands += [fmt % (cell,param,val),
+                                 'tmp = pc.gid2cell(%d).param_update()' % cell]
     hoc_execute(hoc_commands, "--- set() ---")
 
 def record(source,filename, compatible_output=True):
@@ -633,8 +645,12 @@ class Population(common.Population):
         elif isinstance(cellclass, str): # not a standard model
             hoc_name = cellclass
         
-        hoc_commands, argstr = _hoc_arglist([self.cellparams])
-        argstr = argstr.strip().strip(',')
+        if self.cellparams is not None:
+            hoc_commands, argstr = _hoc_arglist([self.cellparams])
+            argstr = argstr.strip().strip(',')
+        else:
+            hoc_commands = []
+            argstr = ''
     
         if not self.label:
             self.label = 'population%d' % Population.nPop
@@ -660,8 +676,9 @@ class Population(common.Population):
         for cell_id in self.gidlist:
             hoc_commands += ['tmp = pc.set_gid2node(%d,%d)' % (cell_id,myid),
                              'cell = new %s(%s)' % (hoc_name,argstr),
-                             'nc = new NetCon(cell.source,nil)',
-                             'tmp = pc.cell(%d,nc)' %cell_id,
+                             #'nc = new NetCon(cell.source,nil)',
+                             'tmp = cell.connect2target(nil,nc)',
+                             'tmp = pc.cell(%d,nc)' % cell_id,
                              'tmp = %s.append(cell)' %(self.label)]       
         hoc_execute(hoc_commands, "--- Population[%s].__init__() ---" %self.label)
         Population.nPop += 1
@@ -713,7 +730,7 @@ class Population(common.Population):
                          7 9
         """
         # id should be a gid
-        assert isinstance(id,int)
+        assert isinstance(id,int), "id is %s, not int" % type(id)
         id -= self.gid_start
         if self.ndim == 3:
             rows = self.dim[0]; cols = self.dim[1]
@@ -856,6 +873,8 @@ class Population(common.Population):
             # Taken as random in self.gidlist
             record_from = record_from[0:nrec]
             record_from = numpy.array(record_from) # is this line necessary?
+        else:
+            raise Exception("record_from must be either a list of cells or the number of cells to record from")
         # record_from is now a list or numpy array
 
         suffix = ''*(record_what=='spiketimes') + '_v'*(record_what=='vtrace')
