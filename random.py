@@ -129,7 +129,7 @@ class RandomDistribution:
             arguments may also differ.
         """ 
         self.name = distribution
-        assert isinstance(parameters,(list,tuple)), "The parameters argument must be a list or tuple"
+        assert isinstance(parameters,(list,tuple,dict)), "The parameters argument must be a list or tuple or dict"
         self.parameters = parameters
         if rng:
             assert isinstance(rng,AbstractRNG), "rng must be a pyNN.random RNG object"

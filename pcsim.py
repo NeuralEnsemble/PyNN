@@ -22,6 +22,7 @@ from datetime import datetime
 import operator
 
 
+
 # global pypcsim objects used throughout simulation
 class PyPCSIM_GLOBALS:    
     net = None
@@ -200,7 +201,7 @@ class FieldMultiChannelRecorder:
 
 
 # ==============================================================================
-#   Standard cells
+#   Standard cells   
 # ==============================================================================
 class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
@@ -995,7 +996,7 @@ class Projection(common.Projection):
          # This is a bit tricky, because in NEST and PCSIM the spike threshold is a
          # property of the cell model, whereas in NEURON it is a property of the
          # connection (NetCon).
-         raise Exception("Method not applicable to PCSIM")
+         raise Exception("Method  not applicable to PCSIM")
      
      
      # --- Methods relating to synaptic plasticity ------------------------------
@@ -1039,7 +1040,7 @@ class Projection(common.Projection):
          # should be put here or in an external module.
          raise Exception("Method not yet implemented")
      
-
+# END
 
 # ==============================================================================
 #   Utility classes
