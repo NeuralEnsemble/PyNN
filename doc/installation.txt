@@ -1,0 +1,41 @@
+============
+Installation
+============
+
+Installing Python
+=================
+
+We assume this is installed on your machine already. If not, we suggest you install it via the package manager of your Linux distribution [OS X instructions?]. If this is not possible, go to `<http://www.python.org>`_ and follow the instructions you find there.
+
+Installing NEURON
+=================
+
+Download the sources for the latest release of NEURON, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/install/install.html>`_. Also download Interviews from the same location.
+
+Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/install/compile_unix.html#fullinstall>`_ [what about OS X?], except that when you run ``configure``, add the options ``--with-nrnpython`` and ``--with-mpi`` (the latter assumes you have the MPICH library installed on your machine [should we give instructions?]), i.e.::
+
+    $ ./configure --prefix=`pwd` --with-nrnpython --with-mpi
+    $ make
+    $ make install
+
+Make sure that you add the Interviews and NEURON bin directories to your path. Test that the Python support has been enabled by running::
+
+    $ nrniv -python
+    insert NEURON output here
+    >>> import hoc
+    >>> import nrn   
+
+Installing NEST and PyNEST
+==========================
+
+Installing PyNN
+===============
+
+A link to download PyNN can be found on the `PyNN homepage`_.
+
+
+
+enter the ``hoc`` directory and run ``nrnivmodl``
+
+.. _`PyNN homepage`: http://neuralensemble.kip.uni-heidelberg.de/trac/PyNN
+
