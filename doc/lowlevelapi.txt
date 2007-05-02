@@ -1,3 +1,111 @@
 =======================
 Neurons and Connections
 =======================
+
+Creating neurons
+================
+
+Neurons are created with the ``create()`` function. To create a single integrate-and-fire neuron, type::
+
+    >>> create(IF_curr_alpha)
+    
+Here, ``IF_curr_alpha`` is a particular class of IF neuron with alpha-function shaped synaptic currents, that will work with any PyNN simulation engine, whether NEURON, NEST or PCSIM.
+``IF_curr_alpha`` is a so-called 'standard cell', implemented as a Python class.
+For more information, see the section StandardCells.
+
+You don't have to use standard cells.
+You can also use any neuron model that is available in an individual simulator, although of course your simulation will then only run with that simulator, for example::
+
+    >>> create('iaf_neuron')
+    
+``iaf_neuron`` is a neuron model available in the NEST simulator.
+Note that the model name has to be given as a string for simulator-specific models.
+
+To create many neurons at once, add the ``n`` argument, e.g.::
+
+    >>> create(IF_curr_alpha, n=10)
+    
+The neurons we have created so far have all had default parameter values.
+[How can we find out what these defaults are?]
+To use different parameter values, use the ``paramDict`` argument, e.g.::
+
+    >>> create(IF_curr_alpha, paramDict={'tau_m': 15.0, 'cm': 0.9}, n=10)
+
+If you try to set a non-existent parameter, or pass an invalid value, PyNN will raise an Exception, e.g.::
+
+    >>> create(IF_curr_alpha, paramDict={'foo': 15.0})
+    [output to go here]
+    >>> create(IF_curr_alpha, paramDict={'tau_m': 'bar'})
+    [output to go here].
+    
+If you wish to do something with the cell after creating it: record from it, change a parameter, connect it to another cell, you should assign the return value of the function to a variable, e.g.::
+
+    >>> cell = create(IF_curr_alpha)
+    >>> cell_list = create(IF_curr_alpha, n=10)
+
+The ``create()`` function returns either a cell id object or a list of id objects.
+
+Connecting neurons
+==================
+
+Any neuron that emits spikes can be connected to any neuron with at least one synapse using the ``connect()`` function, e.g.::
+
+    >>> spike_source = create(SpikeSourceArray, paramDict={'spiketimes': [10.0, 20.0, 30.0]})
+    >>> cells = create(IF_curr_alpha, n=10)
+    >>> connect(spike_source, cells)
+    
+In this case we connect a spike-generating mechanism (``SpikeSourceArray`` is a 'standard cell' model that emits spikes at times specified by the ``spiketimes`` parameter) to each cell in the list ``cells`, i.e. we create 10 connections at once.
+For clarity, we could also have specified the argument names::
+
+    >>> connect(source=spike_source, target=cells)
+    
+Either ``source``, or ``target``, or both may be individual cell ids or lists of ids.
+In the latter case, each source (presynaptic) cell is connected to every target (postsynaptic) cell with probability given by the optional argument `p`, which defaults to 1, e.g.::
+
+    >>> connect(source_list, target_list, p=0.5)
+    
+When specifying connections as above, default values are given to the synaptic weight and delay.
+[These default values may be different for different simulators?]
+These values are seldom very useful, and it is better to specify the ``weight`` and ``delay`` arguments of ``connect()``, e.g.::
+
+    >>> connect(source_list, target_list, weight=1.5, delay=0.5)
+    
+At the moment, in fact, this is the only way to specify synaptic weights and connections in PyNN without using simulator-specific code. This deficiency will be addressed in a future release.
+
+Weights are specified in nA for 'current-based' synapses or µS for 'conductance-based' synapses.
+Delays are in ms.
+For current-based synapses, weights should be negative for inhibitory synapses.
+For conductance-based synapses, weights should always be positive, since the effect of a synapse is determined by its reversal potential.
+
+If the neuron model has more than one synapse mechanism, or more than one synaptic location, the particular synapse to which the connection should be made is specified with the ``synapse_type`` argument, e.g.::
+
+    >>> connect(source_list, target_list, weight=1.5, delay=0.5, synapse_type='inhibitory')
+
+[How to find out what synapse types a standard cell has?]
+
+Setting neuron parameters
+=========================
+
+The parameters for individual neurons and post-synaptic mechanisms may be changed after creation of the neuron using the ``set()`` function, e.g.::
+
+    >>> cells = create(IF_curr_exp, cellParams={'i_offset': 0.0}, n=10)
+    >>> set(cells[0:5], IF_curr_exp, param='i_offset', val=0.1)
+    >>> print cells[0].i_offset
+    0.1
+    >>> print cells[5].i_offset
+    0.0
+    
+[actually, the above print statements don't work. More work on ID class needed].    
+
+It is unfortunately necessary to specify the neuron type as the second argument, since cell ids do not (currently, at least) hold information about the neuron type.
+Individual parameters can be set using the ``param`` and ``val`` arguments, as above, or multiple parameters can be set at once by passing a dictionary of name:value pairs as the ``param`` argument, with ``val`` empty, e.g.::
+
+    >>> set(cells, IF_curr_exp, param={'tau_refrac': 2.0, 'tau_syn': 5.0})
+    
+An alternative way to set parameter values is to call the ``set()`` method of the cell ID objects, e.g.::
+
+    >>> cells[0].set('v_reset', -70.0)
+    >>> cells[1].set({'tau_refrac': 2.0, 'tau_syn': 5.0})
+
+Recording spikes and membrane potential
+=======================================
