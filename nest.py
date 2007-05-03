@@ -1101,7 +1101,13 @@ class Projection(common.Projection):
 
     def _2D_Gauss(self,parameters,synapse_type=None):
         """
-        
+        Source neuron is connected to a 2D targetd population with a spatial profile (Gauss).
+        parameters should have:
+        rng:
+        source_position: x,y of source neuron mapped to target populatio.
+        source_id: source id
+        n: number of synpases
+        sigma: sigma of the Gauss
         """
         def rcf_2D(parameters):
             rng = parameters['rng']
@@ -1149,9 +1155,9 @@ class Projection(common.Projection):
                 #a=Projection(self.pre,self.post,'rcf_2D',parameters)
                 rcf_2D(parameters)
         
-    def _rcf_2D(self,parameters,synapse_type=None):
+    def _3D_Gauss(self,parameters,synapse_type=None):
         """
-        Source neuron is connected to a 2D targetd population with a spatial profile (Gauss).
+        Source neuron is connected to a 3D targetd population with a spatial profile (Gauss).
         parameters should have:
         rng:
         source_position: x,y of source neuron mapped to target populatio.
@@ -1159,48 +1165,56 @@ class Projection(common.Projection):
         n: number of synpases
         sigma: sigma of the Gauss
         """
-        rng = parameters['rng']
-        pre_id = parameters['pre_id']
-        pre_position = parameters['pre_position']
+        
+        def rcf_3D(parameters):
+            rng = parameters['rng']
+            pre_id = parameters['pre_id']
+            pre_position = parameters['pre_position']
+            n = parameters['n']
+            sigma = parameters['sigma']
+            weight = parameters['weight']
+            delay = parameters['delay']
+            post_dim = parameters['post_dim']
+            
+            phi = rng.uniform(size=n)*(2.0*pi)
+            r = rng.normal(scale=sigma,size=n)
+            # for z 
+            h = rng.uniform(size=n)*post_dim[2]
+            
+            target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi))
+            target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi))
+            target_position_z = numpy.floor(h).astype('int')
+            
+            target_id = []
+            for syn_nr in range(len(target_position_x)):
+                try:
+                    target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
+                except IndexError:
+                    target_id.append(False)
+            
+            pynest.divConnect(pre_id,target_id,[weight],[delay])
+        
+        
         n = parameters['n']
-        sigma = parameters['sigma']
-        weight = parameters['weight']
-        delay = parameters['delay']
+                
+        if n > 0:
+            ratio_dim_pre_post = ((1.*self.pre.dim[0])/(1.*self.post.dim[0]))
+            print 'ratio_dim_pre_post',ratio_dim_pre_post
+            run_id = 0
 
-        phi = rng.uniform(size=n)*(2.0*pi)
-        r = rng.normal(scale=sigma,size=n)
-        #print 'phi',phi
-        #print 'r',r
-        #print 'n',n
-        #print 'sigma',sigma
-        
-        #print 'source_id',source_id
-        #print 'source_position',source_position
-        #print 'pre.dim',self.pre.dim
-        #print 'post.dim',self.post.dim
-        
-        target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi))
-        target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi))
-        #print 'target_position_x',target_position_x
-        #print 'target_position_y',target_position_y
-        
-        target_id = []
-        for syn_nr in range(len(target_position_x)):
-            print syn_nr
-            try:
-                #print target_position_x[syn_nr]
-                target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr])])
-                #print target_id
-            except IndexError:
-                target_id.append(False)
-                #print syn_nr*2.
-                # here the target Id's are calculated, I assume that, if the x,y does not exist in the target population and IndexError is raised
-            #target_id.append(self.post.locate((target_position_x[syn_nr],target_position_y[syn_nr]))
-            #except IndexError:
-                # if the x,y is outside and the index error was raised, a False is put into the array/list. NEST then does not make a connection to False
-             #   target_id.append(False)
-        
-        pynest.divConnect(pre_id,target_id,[weight],[delay])
+            for pre in numpy.reshape(self.pre.cell,(self.pre.cell.size)):
+                #print 'pre',pre
+                run_id +=1
+                #print 'run_id',run_id
+                if numpy.mod(run_id,500) == 0:
+                    print 'run_id',run_id
+                
+                pre_position_tmp = self.pre.locate(pre)
+                parameters['pre_position'] = numpy.divide(pre_position_tmp,ratio_dim_pre_post)
+                parameters['pre_id'] = pre
+                parameters['post_dim'] = self.post.dim
+                #a=Projection(self.pre,self.post,'rcf_2D',parameters)
+                rcf_3D(parameters)  
         
 
     
