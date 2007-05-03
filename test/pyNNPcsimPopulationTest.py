@@ -46,12 +46,6 @@ class PopulationInitTest(unittest.TestCase):
 #    def testInvalidCellType(self):
 #        """Population.__init__(): Trying to create a cell type which is not a method of StandardCells should raise an AttributeError."""
 #        self.assertRaises(AttributeError, neuron.Population, (3,3), 'qwerty', {})
-        
-    def testNonSquareDimensions(self):
-        """Population.__init__(): At present all dimensions must be the same size."""
-        """ PCSIM ALLOWS NON SQUARE DIMENSIONS """        
-        #self.assertRaises(common.InvalidDimensionsError, neuron.Population, (3,2), neuron.IF_curr_alpha)
-        pass
 
     def testInitWithNonStandardModel(self):
         """Population.__init__(): the cell list in hoc should have the same length as the population size."""
@@ -59,6 +53,44 @@ class PopulationInitTest(unittest.TestCase):
         popul2 = Population((3,3),LifNeuron,{'Rm':5e6,'Vthresh':-0.055}) # pcsim allows also specification of non-standard models as types
         self.assertEqual(len(popul), 9)
         self.assertEqual(len(popul2), 9)
+
+# ==============================================================================
+class PopulationIndexTest(unittest.TestCase):
+    """Tests of the Population class indexing."""
+    
+    def setUp(self):
+        setup()
+        Population.nPop = 0
+        self.net1 = Population((10,),IF_curr_alpha)
+        self.net2 = Population((2,4,3),IF_curr_exp)
+        self.net3 = Population((2,2,1),SpikeSourceArray)
+        self.net4 = Population((1,2,1),SpikeSourceArray)
+        self.net5 = Population((3,3),IF_cond_alpha)
+    
+    def testValidIndices(self):
+        for i in range(10):
+            self.assertEqual((i,),self.net1.locate(self.net1[i]))
+
+    def testValidAddresses(self):
+        for addr in ( (0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1), (0,1,2), (0,2,0), (0,2,1), (0,2,2), (0,3,0), (0,3,1), (0,3,2),
+                      (1,0,0), (1,0,1), (1,0,2), (1,1,0), (1,1,1), (1,1,2), (1,2,0), (1,2,1), (1,2,2), (1,3,0), (1,3,1), (1,3,2) ):
+            id = self.net2[addr]
+            self.assertEqual(addr, self.net2.locate(id))
+        for addr in ( (0,0,0), (0,1,0), (1,0,0), (1,1,0) ):
+            id = self.net3[addr]
+            self.assertEqual(addr, self.net3.locate(id))
+        for addr in ( (0,0,0), (0,1,0) ):
+            id = self.net4[addr]
+            self.assertEqual(addr, self.net4.locate(id))
+        for addr in ( (0,0), (0,1), (0,2), (1,0), (1,1), (1,2), (2,0), (2,1), (2,2) ):
+            id = self.net5[addr]
+            self.assertEqual(addr, self.net5.locate(id))
+
+    def testInvalidIndices(self):
+        self.assertRaises(IndexError, self.net1.__getitem__, (11,))
+        
+    def testInvalidIndexDimension(self):
+        self.assertRaises(common.InvalidDimensionsError, self.net1.__getitem__, (10,2))
 
  # ==============================================================================
 class PopulationSetTest(unittest.TestCase):

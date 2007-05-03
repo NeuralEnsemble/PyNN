@@ -588,8 +588,8 @@ class Population(common.Population):
              addr = (addr,)
          while len(addr) < 3:
              addr += (0,)                  
-         assert len(addr) == len(self.dim)
-         
+         if len(addr) != len(self.dim):
+            raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addr))
          index = 0
          for i, s in zip(addr, self.steps):
              index += i*s
@@ -608,7 +608,7 @@ class Population(common.Population):
          # id should be a gid
          assert isinstance(id, int)         
          if self.ndim == 3:
-             rows = self.dim[0]; cols = self.dim[1]
+             rows = self.dim[1]; cols = self.dim[2]
              i = id/(rows*cols); remainder = id%(rows*cols)
              j = remainder/cols; k = remainder%cols
              coords = (k, j, i)

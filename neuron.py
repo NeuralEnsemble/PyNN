@@ -627,10 +627,10 @@ class Population(common.Population):
         global gid, myid, nhost, gidlist, fullgidlist
         
         common.Population.__init__(self,dims,cellclass,cellparams,label)
-        if self.ndim > 1:
-            for i in range(1,self.ndim):
-                if self.dim[i] != self.dim[0]:
-                    raise common.InvalidDimensionsError, "All dimensions must be the same size (temporary restriction)."
+        #if self.ndim > 1:
+        #    for i in range(1,self.ndim):
+        #        if self.dim[i] != self.dim[0]:
+        #            raise common.InvalidDimensionsError, "All dimensions must be the same size (temporary restriction)."
 
         # set the steps list, used by the __getitem__() method.
         self.steps = [1]*self.ndim
@@ -712,7 +712,8 @@ class Population(common.Population):
         # What we actually pass around are gids.
         if isinstance(addr,int):
             addr = (addr,)
-        assert len(addr) == len(self.dim)
+        if len(addr) != len(self.dim):
+            raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addr))
         index = 0
         for i,s in zip(addr,self.steps):
             index += i*s
@@ -733,7 +734,7 @@ class Population(common.Population):
         assert isinstance(id,int), "id is %s, not int" % type(id)
         id -= self.gid_start
         if self.ndim == 3:
-            rows = self.dim[0]; cols = self.dim[1]
+            rows = self.dim[1]; cols = self.dim[2]
             i = id/(rows*cols); remainder = id%(rows*cols)
             j = remainder/cols; k = remainder%cols
             coords = (i,j,k)

@@ -476,7 +476,7 @@ class Population(common.Population):
         
         id -= self.id_start
         if self.ndim == 3:
-            rows = self.dim[0]; cols = self.dim[1]
+            rows = self.dim[1]; cols = self.dim[2]
             i = id/(rows*cols); remainder = id%(rows*cols)
             j = remainder/cols; k = remainder%cols
             coords = (i,j,k)

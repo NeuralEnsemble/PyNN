@@ -187,17 +187,36 @@ class PopulationIndexTest(unittest.TestCase):
     def setUp(self):
         nest.setup()
         nest.Population.nPop = 0
-        self.net = nest.Population((10,),nest.IF_curr_alpha)
+        self.net1 = nest.Population((10,),nest.IF_curr_alpha)
+        self.net2 = nest.Population((2,4,3),nest.IF_curr_exp)
+        self.net3 = nest.Population((2,2,1),nest.SpikeSourceArray)
+        self.net4 = nest.Population((1,2,1),nest.SpikeSourceArray)
+        self.net5 = nest.Population((3,3),nest.IF_cond_alpha)
     
     def testValidIndices(self):
         for i in range(10):
-            self.assertEqual((i,),self.net.locate(self.net[i]))
+            self.assertEqual((i,),self.net1.locate(self.net1[i]))
+
+    def testValidAddresses(self):
+        for addr in ( (0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1), (0,1,2), (0,2,0), (0,2,1), (0,2,2), (0,3,0), (0,3,1), (0,3,2),
+                      (1,0,0), (1,0,1), (1,0,2), (1,1,0), (1,1,1), (1,1,2), (1,2,0), (1,2,1), (1,2,2), (1,3,0), (1,3,1), (1,3,2) ):
+            id = self.net2[addr]
+            self.assertEqual(addr, self.net2.locate(id))
+        for addr in ( (0,0,0), (0,1,0), (1,0,0), (1,1,0) ):
+            id = self.net3[addr]
+            self.assertEqual(addr, self.net3.locate(id))
+        for addr in ( (0,0,0), (0,1,0) ):
+            id = self.net4[addr]
+            self.assertEqual(addr, self.net4.locate(id))
+        for addr in ( (0,0), (0,1), (0,2), (1,0), (1,1), (1,2), (2,0), (2,1), (2,2) ):
+            id = self.net5[addr]
+            self.assertEqual(addr, self.net5.locate(id))
 
     def testInvalidIndices(self):
-        self.assertRaises(IndexError, self.net.__getitem__, (11,))
+        self.assertRaises(IndexError, self.net1.__getitem__, (11,))
         
     def testInvalidIndexDimension(self):
-        self.assertRaises(common.InvalidDimensionsError, self.net.__getitem__, (10,2))
+        self.assertRaises(common.InvalidDimensionsError, self.net1.__getitem__, (10,2))
 
 # ==============================================================================
 class PopulationSetTest(unittest.TestCase):
