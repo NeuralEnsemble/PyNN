@@ -13,8 +13,8 @@ $Id$
 
 import re, string, types, getopt, sys, shutil, os
 shutil.copy('dummy_hoc.py','hoc.py')
-import common, oldneuron, nest, neuron, pcsim
-os.remove('hoc.py'); os.remove('hoc.pyc')
+from pyNN import common, oldneuron, nest, neuron, pcsim
+os.remove('hoc.py') #; os.remove('hoc.pyc')
 
 
 red     = 0010; green  = 0020; yellow = 0030; blue = 0040;
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         print "Usage: python testAPI.py [options]\n\nValid options: -v  : verbose output"
         sys.exit(2)
 
-    header = "   ".join(m.__name__.upper() for m in module_list)
+    header = "   ".join(m.__name__.strip('pyNN.') for m in module_list)
     print "\n%s%s" % (" "*(indent+3),header)
     exclude_pattern = re.compile('^' + '$|^'.join(exclude_list) + '$')
     for item in dir(common):
