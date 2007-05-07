@@ -5,9 +5,9 @@ pypcsim implementation of the PyNN API.
     Thomas Natschlaeger   thomas.natschlaeger@scch.at
         
     December 2006
-
+    $Id$
 """
-__version__ = "$Revision:5 $"
+__version__ = "$Revision$"
 
 import sys
 
@@ -283,9 +283,9 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
     translations = {
-        'start'    : ('start'  , "Time.sec(parameters['start'])"), 
+        'start'    : ('start'  , "parameters['start']"), 
         'rate'     : ('rate' , "parameters['rate']"), 
-        'duration' : ('duration' , "Time.sec(parameters['duration'])")
+        'duration' : ('duration' , "parameters['duration']")
     }
     
     pcsim_name = 'PoissonSpikeTrainGenerator'    
@@ -300,6 +300,11 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
                                                         start = self.parameters["start"], 
                                                         duration = self.parameters["duration"])
     
+    def translate(self,parameters):
+        translated_parameters = common.SpikeSourcePoisson.translate(self,parameters)
+        translated_parameters['start'] = Time.sec(translated_parameters['start'])
+        translated_parameters['duration'] = Time.sec(translated_parameters['duration'])
+        return translated_parameters
     
     
 """ Implemented but not tested """
