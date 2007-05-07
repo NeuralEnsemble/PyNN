@@ -7,6 +7,8 @@ pypcsim implementation of the PyNN API.
     December 2006
 
 """
+__version__ = "$Revision:5 $"
+
 import sys
 
 import pyNN.random
@@ -36,7 +38,7 @@ class PyPCSIM_GLOBALS:
     pass
 
 pcsim_globals = PyPCSIM_GLOBALS()
-
+dt = PyPCSIM_GLOBALS.dt
 
 def checkParams(param, val=None):
     """Check parameters are of valid types, normalise the different ways of
@@ -323,8 +325,9 @@ class SpikeSourceArray(common.SpikeSourceArray):
 
 def setup(timestep=0.1, min_delay=0.1, max_delay=10, construct_rng_seed = None, simulation_rng_seed = None):
     """Should be called at the very beginning of a script."""
-    global pcsim_globals
+    global pcsim_globals, dt
     pcsim_globals.dt = timestep
+    dt = timestep
     pcsim_globals.minDelay = min_delay
     pcsim_globals.maxDelay = max_delay
     if pcsim_globals.constructRNGSeed is None:
@@ -641,14 +644,15 @@ class Population(common.Population):
         return self.pcsim_population.size()
         
     def set(self, param, val=None):
-        """PCSIM: iteration through all elements """
         """
         Set one or more parameters for every cell in the population. param
         can be a dict, in which case val should not be supplied, or a string
         giving the parameter name, in which case val is the parameter value.
+        val can be a numeric value, or list of such (e.g. for setting spike times).
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
+        """PCSIM: iteration through all elements """
         paramDict = checkParams(param, val)
         if issubclass(self.celltype, common.StandardCellType):
             paramDict = self.celltype({}).translate(paramDict)
@@ -661,11 +665,11 @@ class Population(common.Population):
         
         
     def tset(self, parametername, valueArray):
-        """PCSIM: iteration and set """
         """
         'Topographic' set. Sets the value of parametername to the values in
         valueArray, which must have the same dimensions as the Population.
         """
+        """PCSIM: iteration and set """
         if self.dim[0:self.actual_ndim] == valueArray.shape:
             values = numpy.reshape(valueArray, valueArray.size)                          
             if issubclass(self.celltype, common.StandardCellType):
@@ -707,7 +711,6 @@ class Population(common.Population):
         
     
     def _tcall(self, methodname, objarr):
-        """ PCSIM: iteration at the python level and apply"""
         """
         `Topographic' call. Calls the method methodname() for every cell in the 
         population. The argument to the method depends on the coordinates of the
@@ -715,13 +718,13 @@ class Population(common.Population):
         e.g. p.tcall("memb_init",vinitArray) calls
         p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
         """
+        """ PCSIM: iteration at the python level and apply"""
         for i in xrange(0,len(self)):
             obj = pcsim_globals.net.object(self.pcsim_population[i])
             if obj: apply( obj, methodname, (), arguments)
         
 
     def record(self, record_from=None, rng=None):
-        """ PCSIM: IMPLEMENTED by an array of recorders at python level"""
         """
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
@@ -732,6 +735,7 @@ class Population(common.Population):
         """
           The current implementation allows only one invocation of this method per population
         """
+        """ PCSIM: IMPLEMENTED by an array of recorders at python level"""
         if isinstance(record_from, int):
             if not rng:   rng = pyNN.random.RandomDistribution(NativeRNG(seed = datetime.today().microsecond), 'UniformInteger', (0,len(self)-1))             
             src_indices = [ int(i) for i in rng.next(record_from) ]            
@@ -743,7 +747,6 @@ class Population(common.Population):
         self.spike_rec = SpikesMultiChannelRecorder(sources, None, src_indices)
         
     def record_v(self, record_from=None, rng=None):
-        """ PCSIM: IMPLEMENTED by an array of recorders """
         """
         If record_from is not given, record the membrane potential for all cells in
         the Population.
@@ -751,6 +754,7 @@ class Population(common.Population):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.         
         """
+        """ PCSIM: IMPLEMENTED by an array of recorders """
         if isinstance(record_from, int):             
             if not rng:   rng = pyNN.random.RandomDistribution(NativeRNG(seed = datetime.today().microsecond), 'UniformInteger', (0,len(self)-1))            
             src_indices = [ int(i) for i in rng.next(record_from) ]             
@@ -800,11 +804,11 @@ class Population(common.Population):
         return 0;
 
     def randomInit(self, rand_distr):
-        """ PCSIM: can be reduced to rset() where parameterName is Vinit"""
         """
         Sets initial membrane potentials for all the cells in the population to
         random values.
-        """         
+        """
+        """ PCSIM: can be reduced to rset() where parameterName is Vinit"""
         self.rset("v_init", rand_distr)
      
 
@@ -965,14 +969,14 @@ class Projection(common.Projection):
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]
     
-    def randomizeWeights(self, rng):
+    def randomizeWeights(self, rand_distr):
         """
-        Set weights to random values taken from rng.
+        Set weights to random values taken from rand_distr.
         """
         # Arguably, we could merge this with set_weights just by detecting the
         # argument type. It could make for easier-to-read simulation code to
         # give it a separate name, though. Comments?
-        weights = rng.next(len(self))
+        weights = rand_distr.next(len(self))
         self.setWeights(weights)
      
     def setDelays(self, d):
@@ -982,9 +986,9 @@ class Projection(common.Projection):
         """
         raise Exception("METHOD NOT YET IMPLEMENTED!")
     
-    def randomizeDelays(self, rng):
+    def randomizeDelays(self, rand_distr):
         """
-        Set delays to random values taken from rng.
+        Set delays to random values taken from rand_distr.
         """
         raise Exception("Method not yet implemented!")
     
@@ -1049,4 +1053,4 @@ class Projection(common.Projection):
 Timer = common.Timer
      
 # ==============================================================================
-     
+

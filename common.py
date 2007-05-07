@@ -218,7 +218,7 @@ def create(cellclass,paramDict=None,n=1):
     """
     pass
 
-def connect(source,target,weight=1,delay=0,synapse_type=None,p=1,rng=None):
+def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
@@ -301,7 +301,7 @@ class Population:
         Set one or more parameters for every cell in the population. param
         can be a dict, in which case val should not be supplied, or a string
         giving the parameter name, in which case val is the parameter value.
-        val can be a numeric value, or list of such.
+        val can be a numeric value, or list of such (e.g. for setting spike times).
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
