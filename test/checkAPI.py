@@ -11,7 +11,7 @@ Andrew P. Davison, CNRS, UNIC, May 2006
 $Id$
 """
 
-import re, string, types, getopt, sys, shutil, os
+import re, string, types, getopt, sys, shutil, os, inspect
 shutil.copy('dummy_hoc.py','hoc.py')
 from pyNN import common, oldneuron, nest, neuron, pcsim
 os.remove('hoc.py') #; os.remove('hoc.pyc')
@@ -28,10 +28,11 @@ except ImportError:
 # Define some constants
 verbose = False
 indent = 32
-ok = "    ok  "
-notfound = "    --  "
-inconsistent_args  = "    XX  "
-inconsistent_doc   = "   ~ok  "
+ok = "     ok  "
+notfound = "     --  "
+inconsistent_args  = "     XX  "
+inconsistent_doc   = "    ~ok  "
+missing_doc = "    ~ok  "
 inconsistency = ""
 
 # Note that we exclude built-ins, modules imported from the standard library,
@@ -53,8 +54,9 @@ if coloured:
         return str(ll.ansistyle.Text(col,text))
     ok = colour(green,ok)
     inconsistent_args = colour(red,inconsistent_args)
-    notfound = colour(yellow+bright,inconsistent_args)
+    notfound = colour(yellow+bright,notfound)
     inconsistent_doc = colour(bright+green,inconsistent_doc)
+    missing_doc = colour(bright+magenta,missing_doc)
 else:
     def colour(col,text):
         return text
@@ -65,12 +67,11 @@ def funcArgs(func):
     if hasattr(func,'func_code'):
         code = func.func_code
         fname = code.co_name
-        callargs = code.co_argcount
-        args = code.co_varnames[:callargs]
+        args = inspect.getargspec(func)
     else:
-        args = []
+        args = ()
         fname = func.__name__
-    return "%s(%s)" % (fname, string.join(args,','))
+    return "%s(%s)" % (fname, inspect.formatargspec(*args))
 
 def checkDoc(str1,str2):
     """The __doc__ string for the simulator specific classes/functions/methods
@@ -87,14 +88,15 @@ def checkDoc(str1,str2):
             retstr = inconsistent_doc
             inconsistency += "    [" + str1.replace("\n","") + "]\n" + colour(magenta,"    [" + str2.replace("\n","") + "]") + "\n"
     else:
-        retstr = inconsistent_doc
-        inconsistency += colour(bright+magenta,'    [Missing]') + "\n"
+        retstr = missing_doc
+        #inconsistency += colour(bright+magenta,'    [Missing]') + "\n"
     return retstr
 
 def checkFunction(func):
     """Checks that the functions have the same names, argument names, and
     __doc__ strings."""
     str = ""
+    differences = ""
     common_args = funcArgs(func)
     common_doc  = func.__doc__
     for module in module_list:
@@ -106,10 +108,10 @@ def checkFunction(func):
                 str += checkDoc(common_doc,module_doc)
             else:
                 str += inconsistent_args
-                if verbose: str += common_args + "!=" + module_args
+                differences += common_args + " != " + module_args + "\n           "
         else:
             str += notfound
-    return str
+    return str, differences
 
 def checkClass(classname):
     """Checks that the classes have the same method names and the same
@@ -128,20 +130,22 @@ def checkMethod(meth,classname):
     """Checks that the methods have the same names, argument names, and
     __doc__ strings."""
     str = ""
+    differences = ""
     common_args = funcArgs(meth.im_func)
     common_doc  = meth.im_func.__doc__
-    for cls in [getattr(m,classname) for m in module_list]:
-        if dir(cls).__contains__(meth.im_func.func_name):
+    for cls in [getattr(m,classname) for m in module_list if hasattr(m,classname)]:
+        if hasattr(cls, meth.im_func.func_name): #dir(cls).__contains__(meth.im_func.func_name):
             modulemeth = getattr(cls,meth.im_func.func_name)
             module_args = funcArgs(modulemeth)
             module_doc  = modulemeth.im_func.__doc__
             if common_args == module_args:
                 str += checkDoc(common_doc,module_doc)
             else:
-                str += inconsistent_args + common_args + "!=" + module_args
+                str += inconsistent_args
+                differences += common_args + " != " + module_args + "\n           "
         else:
             str += notfound
-    return str
+    return str, differences
 
 def checkStaticMethod(meth,classname):
     """Checks that the methods have the same names, argument names, and
@@ -184,20 +188,23 @@ if __name__ == "__main__":
             if opt == "-v":
                 verbose = True
     except getopt.GetoptError:
-        print "Usage: python testAPI.py [options]\n\nValid options: -v  : verbose output"
+        print "Usage: python checkAPI.py [options]\n\nValid options: -v  : verbose output"
         sys.exit(2)
 
-    header = "   ".join(m.__name__.strip('pyNN.') for m in module_list)
+    header = "   ".join(m.__name__.replace('pyNN.','') for m in module_list)
     print "\n%s%s" % (" "*(indent+3),header)
     exclude_pattern = re.compile('^' + '$|^'.join(exclude_list) + '$')
     for item in dir(common):
         if not exclude_pattern.match(item):
             fmt = "%s-%ds " % ("%",indent)
             line = ""
+            difference = ""
             fm = getattr(common,item)
             if type(fm) == types.FunctionType:
                 line += colour(yellow,fmt % item) #+ '(function)    '
-                line += checkFunction(fm)
+                result, diff = checkFunction(fm)
+                line += result
+                if diff: difference += " " + diff
             elif type(fm) == types.ClassType or type(fm) == types.TypeType:
                 line += colour(cyan,fmt % item) #+ '(class)       '
                 line += checkClass(item)
@@ -207,24 +214,32 @@ if __name__ == "__main__":
                     inconsistency = ""
                 for subitem in dir(fm):
                     if not exclude_pattern.match(subitem):
-                        line = ""
+                        line = ""; difference = ""
                         fmt = "  %s-%ds " % ("%",(indent-2))
                         fm1 = getattr(fm,subitem)
                         if type(fm1) == types.MethodType:
                             line += colour(yellow,fmt % subitem) #+ '(method)      '
-                            line += checkMethod(fm1,item)
+                            result, diff = checkMethod(fm1,item)
+                            line += result
+                            if diff: difference += " " + diff
                         elif type(fm1) == types.FunctionType:
                             line += colour(yellow+bright,fmt % subitem) #+ '(staticmethod)'
                             line += checkStaticMethod(fm1,item)
                         #else: # class data, should add check
-                        if line: print line
+                        if line:
+                            print line
+                            if difference:
+                                print " "*10 + difference
                         if verbose:
                             if inconsistency: print inconsistency.strip("\n")
                             inconsistency = ""
             else: # data
                 line = colour(bright+red,fmt % item) #+ '(data)        '
                 line += checkData(item)
-            if line: print line
+            if line:
+                print line
+                if difference:
+                    print " "*10 + difference
             if verbose:
                 if inconsistency: print inconsistency.strip("\n")
                 inconsistency = ""
