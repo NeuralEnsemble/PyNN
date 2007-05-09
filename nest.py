@@ -264,7 +264,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
                 src = pynest.getAddress(src)
                 if p < 1:
                     if rng: # use the supplied RNG
-                        rarr = self.rng.uniform(0,1,len(target))
+                        rarr = rng.rng.uniform(0,1,len(target))
                     else:   # use the default RNG
                         rarr = numpy.random.uniform(0,1,len(target))
                 for j,tgt in enumerate(target):
@@ -455,6 +455,31 @@ class Population(common.Population):
         if addr != self.locate(id):
             raise IndexError, 'Invalid cell address %s' % str(addr)
         return id
+    
+    def __getitems__(self,addrs):
+        """Returns the ids of neurons. Input should have format:
+        n = number of synapses; nd = number of dimensions
+        shape(addrs) == (n,nd)
+        """
+        #if isinstance(addr,int):
+        #    addr = (addr,)
+        ids = []
+        if len(addrs[0]) == self.ndim:
+            for addr in range(len(addrs)):
+                try:
+                    ids.append(self.cell[tuple(addrs[addr,:])])
+                except IndexError:
+                    pass                
+        else:
+            raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(len(addrs)))
+        return ids
+
+         #   for syn_nr in range(len(target_position_x)):
+         #       try:
+         #           target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
+         #       except IndexError:
+         #           target_id.append(False)
+
     
     def __len__(self):
         """Returns the total number of cells in the population."""
@@ -1165,6 +1190,20 @@ class Projection(common.Projection):
         n: number of synpases
         sigma: sigma of the Gauss
         """
+
+        #def get_ids(self,parameters):
+            #ids = []
+            #if len(addrs) == self.ndim:
+        #
+        #for addr in range(len(parameters['x'])):
+        #    try:
+        #        ids = numpy.append(ids,post.cell[addr])
+        #    except IndexError:
+        #        pass
+        #else:
+        #    raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addrs))
+        #return ids.astype('int')
+
         
         def rcf_3D(parameters):
             rng = parameters['rng']
@@ -1179,18 +1218,22 @@ class Projection(common.Projection):
             phi = rng.uniform(size=n)*(2.0*pi)
             r = rng.normal(scale=sigma,size=n)
             # for z 
-            h = rng.uniform(size=n)*post_dim[2]
+            h = rng.uniform(size=n)*post_dim[2] # here post dim because it does not metter where it comes from in pre dim
             
-            target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi))
-            target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi))
+            target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi)).astype('int')
+            target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi)).astype('int')
             target_position_z = numpy.floor(h).astype('int')
             
             target_id = []
+            # __getitems__ version
+            
+            
             for syn_nr in range(len(target_position_x)):
                 try:
-                    target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
+                    target_id.append(self.post.cell[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
                 except IndexError:
-                    target_id.append(False)
+                    pass
+                    #target_id.append(False)
             
             pynest.divConnect(pre_id,target_id,[weight],[delay])
         
