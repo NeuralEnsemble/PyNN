@@ -1,3 +1,114 @@
 ===============
 Standard models
 ===============
+
+Standard models are neuron models that are available in at least two of the simulation engines supported by PyNN.
+PyNN performs automatic translation of parameter names, types and units.
+Only a handful of models are currently available, but the list will be expanded in future releases.
+
+Integrate-and-fire neurons
+==========================
+
+IF_curr_alpha
+-------------
+
+Leaky integrate and fire model with fixed threshold and alpha-function-shaped post-synaptic current.
+
+Availability: NEST, NEURON, PCSIM
+
+==============  =============  =====  ========================================
+Name            Default value  Units  Description
+==============  =============  =====  ========================================
+``v_rest``      -65.0          mV     Resting membrane potential 
+``cm``            1.0          nF     Capacity of the membrane
+``tau_m``        20.0          ms     Membrane time constant
+``tau_refrac``    0.0          ms     Duration of refractory period
+``tau_syn``       5.0          ms     Rise time of the synaptic alpha function
+``i_offset``      0.0          nA     Offset current
+``v_reset``     -65.0          mV     Reset potential after a spike
+``v_thresh``    -50.0          mV     Spike threshold
+``v_init``      -65.0          mV     Membrane potential at ``t`` = 0
+==============  =============  =====  ========================================
+
+
+IF_curr_exp
+-----------
+
+Leaky integrate and fire model with fixed threshold and decaying-exponential post-synaptic current.
+(Separate synaptic currents for excitatory and inhibitory synapses.
+    
+Availability: NEST, NEURON, PCSIM
+    
+==============  =============  =====  =========================================
+Name            Default value  Units  Description
+==============  =============  =====  =========================================
+``v_rest``      -65.0          mV     Resting membrane potential
+``cm``            1.0          nF     Capacity of the membrane
+``tau_m``        20.0          ms     Membrane time constant
+``tau_refrac``    0.0          ms     Duration of refractory period
+``tau_syn_E``     5.0          ms     Decay time of excitatory synaptic current
+``tau_syn_I``     5.0          ms     Decay time of inhibitory synaptic current
+``i_offset``      0.0          nA     Offset current
+``v_reset``     -65.0          mV     Reset potential after a spike
+``v_thresh``    -50.0          mV     Spike threshold
+``v_init``      -65.0          mV     Membrane potential ``t`` = 0
+==============  =============  =====  =========================================
+
+
+IF_cond_alpha
+_____________
+
+Leaky integrate and fire model with fixed threshold and alpha-function-shaped post-synaptic conductance.
+
+Availability: NEST, NEURON, PCSIM
+
+==============  =============  =====  ===================================================
+Name            Default value  Units  Description
+==============  =============  =====  ===================================================
+``v_rest``      -65.0          mV     Resting membrane potential 
+``cm``            1.0          nF     Capacity of the membrane
+``tau_m``        20.0          ms     Membrane time constant
+``tau_refrac``    0.0          ms     Duration of refractory period
+``tau_syn_E``     5.0          ms     Rise time of the excitatory synaptic alpha function
+``tau_syn_I``     5.0          ms     Rise time of the inhibitory synaptic alpha function
+``e_rev_E``       0.0          mV     Reversal potential for excitatory input
+``e_rev_I``     -70.0          mV     Reversal potential for inhibitory input
+``v_thresh``    -50.0          mV     Spike threshold
+``v_reset``     -65.0          mV     Reset potential after a spike
+``i_offset``      0.0          nA     Offset current
+``v_init``      -65.0          mV     Membrane potential at ``t`` = 0
+==============  =============  =====  ===================================================
+
+
+
+Spike sources
+=============
+
+SpikeSourcePoisson
+------------------
+
+Spike source, generating spikes according to a Poisson process.
+
+Availability: NEST, NEURON, PCSIM
+[note problems with this in NEST]
+
+============  =============  ======  ==========================
+Name          Default value  Units   Description
+============  =============  ======  ==========================
+``rate`       0.0            s^`-1`  Mean spike frequency
+``start``     0.0            ms      Start time
+``duration``  10^9           ms      Duration of spike sequence
+============  =============  ======  ==========================
+
+
+SpikeSourceArray
+----------------
+Spike source generating spikes at the times given in the ``spike_times`` array.
+
+Availability: NEST, NEURON, PCSIM
+
+===============  =============  ======  ==========================
+Name             Default value  Units   Description
+===============  =============  ======  ==========================
+``spike_times``  ``[]``         ms      list or numpy array containing spike times
+===============  =============  ======  ==========================
