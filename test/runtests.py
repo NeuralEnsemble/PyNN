@@ -16,12 +16,12 @@ Additional mechanisms from files
 def run(cmd,engine):
     #print 'Running "', cmd, '" with', engine.upper()
     logfile = open("%s_%s.log" % (cmd,engine), 'w')
-    if engine == 'nest':
-        cmd = 'python ' + cmd + '.py nest'
+    if engine in ('nest', 'pcsim'):
+        cmd = 'python ' + cmd + '.py ' + engine
     elif 'neuron' in engine:
         cmd = '../hoc/i686/special -python ' + cmd + '.py %s' % engine
     else:
-        print 'Invalid simulation engine "%s". Valid values are "nest", "oldneuron" and "neuron"' % engine
+        print 'Invalid simulation engine "%s". Valid values are "nest", "pcsim", "oldneuron" and "neuron"' % engine
         
     p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
     p.wait()
@@ -113,7 +113,7 @@ def compare_traces(script,mse_threshold,engines):
 
 if __name__ == "__main__":
     
-    engine_list = ("nest", "oldneuron", "neuron")
+    engine_list = ("nest", "oldneuron", "neuron", "pcsim")
     
     thresholds = {"IF_curr_alpha" : 0.5,
                   "IF_curr_alpha2" : 5.0,
