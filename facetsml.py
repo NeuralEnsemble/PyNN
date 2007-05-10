@@ -4,7 +4,7 @@ $Id$
 """
 
 import common
-import numpy, types, sys, shutil
+#import numpy, types, sys, shutil
 import RandomArray
 from xml.dom import *
 from xml.dom.minidom import *
@@ -18,40 +18,40 @@ xmldoc = Document()
 
 """
 warning :
-	in order to write xml in a format which respects the namespaces, you must use xml.dom.ext.PrettyPrint
+    in order to write xml in a format which respects the namespaces, you must use xml.dom.ext.PrettyPrint
 namespaces allowed are :
-		neuromlNode.setAttribute('xmlns:net','http://morphml.org/networkml/schema')
-		neuromlNode.setAttribute('xmlns:mml','http://morphml.org/morphml/schema')
-		neuromlNode.setAttribute('xmlns:meta','http://morphml.org/metadata/schema')
-		neuromlNode.setAttribute('xmlns:bio','http://morphml.org/biophysics/schema')
-		neuromlNode.setAttribute('xmlns:cml','http://morphml.org/channelml/schema')
+        neuromlNode.setAttribute('xmlns:net','http://morphml.org/networkml/schema')
+        neuromlNode.setAttribute('xmlns:mml','http://morphml.org/morphml/schema')
+        neuromlNode.setAttribute('xmlns:meta','http://morphml.org/metadata/schema')
+        neuromlNode.setAttribute('xmlns:bio','http://morphml.org/biophysics/schema')
+        neuromlNode.setAttribute('xmlns:cml','http://morphml.org/channelml/schema')
 
 """
 
 def initDocument(parentElementNS,parentElementName,prefix=''):
-	"""
-	create the root element <neuroml> if doesn't exist
-	and the specified parentElement just below <neuroml> if doesn't exist
-	returns the parentElement node
-	"""
-	neuromlNodes = xmldoc.getElementsByTagNameNS('http://morphml.org/neuroml/schema','neuroml')
-	#if the <neuroml> markup is not yet created
-	if(neuromlNodes.length == 0):
-		#seems createElementNS doesn't create the xmlns attribute
-		neuromlNode = xmldoc.createElementNS('http://morphml.org/neuroml/schema','neuroml')
-		xmldoc.appendChild(neuromlNode)
-	else:
-		neuromlNode = neuromlNodes[0]
-	parentElementNodes = neuromlNode.getElementsByTagNameNS(parentElementNS,parentElementName)
-	if(parentElementNodes.length == 0):
-		if(prefix == ''):
-			parentElementNode = xmldoc.createElementNS(parentElementNS,parentElementName)
-		else:
-			parentElementNode = xmldoc.createElementNS(parentElementNS,prefix + ":" + parentElementName)
-		neuromlNode.appendChild(parentElementNode)
-	else:
-		parentElementNode = parentElementNodes[0]
-	return parentElementNode
+    """
+    create the root element <neuroml> if doesn't exist
+    and the specified parentElement just below <neuroml> if doesn't exist
+    returns the parentElement node
+    """
+    neuromlNodes = xmldoc.getElementsByTagNameNS('http://morphml.org/neuroml/schema','neuroml')
+    #if the <neuroml> markup is not yet created
+    if(neuromlNodes.length == 0):
+        #seems createElementNS doesn't create the xmlns attribute
+        neuromlNode = xmldoc.createElementNS('http://morphml.org/neuroml/schema','neuroml')
+        xmldoc.appendChild(neuromlNode)
+    else:
+        neuromlNode = neuromlNodes[0]
+    parentElementNodes = neuromlNode.getElementsByTagNameNS(parentElementNS,parentElementName)
+    if(parentElementNodes.length == 0):
+        if(prefix == ''):
+            parentElementNode = xmldoc.createElementNS(parentElementNS,parentElementName)
+        else:
+            parentElementNode = xmldoc.createElementNS(parentElementNS,prefix + ":" + parentElementName)
+        neuromlNode.appendChild(parentElementNode)
+    else:
+        parentElementNode = parentElementNodes[0]
+    return parentElementNode
 
 
 # ==============================================================================
@@ -273,40 +273,40 @@ class Population(common.Population):
         cellparams should be a dict which is passed to the neuron model
           constructor
         label is an optional name for the population.
-	
-	example of NeuroML (completeNetwork.xml with CellGroupC example added) :
-	<net:populations>
-		<net:population name="CellGroupA">
-			<net:cell_type>CellA</net:cell_type>
-			<net:instances>
-				<net:instance id="0"><net:location x="0" y="0" z="0"/></net:instance>
-				<net:instance id="1"><net:location x="0" y="10" z="0"/></net:instance>
-				<net:instance id="2"><net:location x="0" y="20" z="0"/></net:instance>
-			</net:instances>
-		</net:population>
-		<net:population name="CellGroupB">
-			<net:cell_type>CellA</net:cell_type>
-			<net:instances>
-				<net:instance id="0"><net:location x="0" y="100" z="0"/></net:instance>
-				<net:instance id="1"><net:location x="20" y="100" z="0"/></net:instance>
-			</net:instances>
-		</net:population>
-		<net:population name="CellGroupC">
-			<net:cell_type>CellC</net:cell_type>
-			<net:pop_location reference="aeag">
-				<net:grid_arrangement>
-					<net:rectangular_location name="aefku">
-						<meta:corner x="0" y="0" z="0"/>
-						<meta:size depth="10" height="100" width="100"/>
-					</net:rectangular_location>
-					<net:spacing x="10" y="10" z="10"/>
-				</net:grid_arrangement>
-			</net:pop_location>
-		</net:population>
-	</net:populations>
-	
-	
-	
+    
+    example of NeuroML (completeNetwork.xml with CellGroupC example added) :
+    <net:populations>
+        <net:population name="CellGroupA">
+            <net:cell_type>CellA</net:cell_type>
+            <net:instances>
+                <net:instance id="0"><net:location x="0" y="0" z="0"/></net:instance>
+                <net:instance id="1"><net:location x="0" y="10" z="0"/></net:instance>
+                <net:instance id="2"><net:location x="0" y="20" z="0"/></net:instance>
+            </net:instances>
+        </net:population>
+        <net:population name="CellGroupB">
+            <net:cell_type>CellA</net:cell_type>
+            <net:instances>
+                <net:instance id="0"><net:location x="0" y="100" z="0"/></net:instance>
+                <net:instance id="1"><net:location x="20" y="100" z="0"/></net:instance>
+            </net:instances>
+        </net:population>
+        <net:population name="CellGroupC">
+            <net:cell_type>CellC</net:cell_type>
+            <net:pop_location reference="aeag">
+                <net:grid_arrangement>
+                    <net:rectangular_location name="aefku">
+                        <meta:corner x="0" y="0" z="0"/>
+                        <meta:size depth="10" height="100" width="100"/>
+                    </net:rectangular_location>
+                    <net:spacing x="10" y="10" z="10"/>
+                </net:grid_arrangement>
+            </net:pop_location>
+        </net:population>
+    </net:populations>
+    
+    
+    
         """
         
         common.Population.__init__(self,dims,cellclass,cellparams,label)
@@ -314,30 +314,30 @@ class Population(common.Population):
         
         if not self.label:
             self.label = 'population%d' % Population.nPop
-	
-	
-	populationsNode = initDocument('http://morphml.org/networkml/schema','populations','net')
-	
-	populationNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:population')
-	populationNode.setAttribute('name',label)
-	populationsNode.appendChild(populationNode)
-	
-	cell_typeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:cell_type')
-	#coming from neuron.py
-	if isinstance(cellclass, type):
+    
+    
+    populationsNode = initDocument('http://morphml.org/networkml/schema','populations','net')
+    
+    populationNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:population')
+    populationNode.setAttribute('name',label)
+    populationsNode.appendChild(populationNode)
+    
+    cell_typeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:cell_type')
+    #coming from neuron.py
+    if isinstance(cellclass, type):
             self.celltype = cellclass(cellparams)
             self.cellparams = self.celltype.parameters
             hoc_name = self.celltype.hoc_name
         elif isinstance(cellclass, str): # not a standard model
             hoc_name = cellclass
         #end of coming
-	
-	cell_typeTextNode = xmldoc.createTextNode(hoc_name)
-	cell_typeNode.appendChild(cell_typeTextNode)
-	populationNode.appendChild(cell_typeNode)
-	"""
-	the minimal neuroml to add there is :
-	   <net:pop_location reference="aReference">
+    
+    cell_typeTextNode = xmldoc.createTextNode(hoc_name)
+    cell_typeNode.appendChild(cell_typeTextNode)
+    populationNode.appendChild(cell_typeNode)
+    """
+    the minimal neuroml to add there is :
+       <net:pop_location reference="aReference">
                 <net:grid_arrangement>
                     <net:rectangular_location name="aName">
                         <meta:corner x="0" y="0" z="0"/>
@@ -347,50 +347,50 @@ class Population(common.Population):
                 </net:grid_arrangement>
                 
             </net:pop_location>
-	"""
-	pop_locationNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:pop_location')
-	pop_locationNode.setAttribute('reference','aReference')
-	populationNode.appendChild(pop_locationNode)
-	
-	grid_arrangementNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:grid_arrangement')
-	pop_locationNode.appendChild(grid_arrangementNode)
-	
-	rectangular_locationNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:rectangular_location')
-	rectangular_locationNode.setAttribute('name','aName')
-	grid_arrangementNode.appendChild(rectangular_locationNode)
-	
-	cornerNode = xmldoc.createElementNS('http://morphml.org/metadata/schema','meta:corner')
-	cornerNode.setAttribute('x','0')
-	cornerNode.setAttribute('y','0')
-	cornerNode.setAttribute('z','0')
-	rectangular_locationNode.appendChild(cornerNode)
-	
-	sizeNode = xmldoc.createElementNS('http://morphml.org/metadata/schema','meta:size')
-	#neuroml is always in 3D adding 0 for non covered dimensions
-	sizeNode.setAttribute('depth',str(10*dims[0]))
-	sizeNode.setAttribute('height',str(10*dims[1]))
-	if(dims.__len__() > 2):
-		sizeNode.setAttribute('width',str(10*dims[2]))
-	else:
-		sizeNode.setAttribute('width','0')
-	rectangular_locationNode.appendChild(sizeNode)
-	
-	spacingNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:spacing')
-	spacingNode.setAttribute('x','10')
-	spacingNode.setAttribute('y','10')
-	spacingNode.setAttribute('z','10')
-	grid_arrangementNode.appendChild(spacingNode)
-	
-	
-	#cellparams would be defined in a <cell> markup which would define precisely the neuron model
-	
-	
+    """
+    pop_locationNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:pop_location')
+    pop_locationNode.setAttribute('reference','aReference')
+    populationNode.appendChild(pop_locationNode)
+    
+    grid_arrangementNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:grid_arrangement')
+    pop_locationNode.appendChild(grid_arrangementNode)
+    
+    rectangular_locationNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:rectangular_location')
+    rectangular_locationNode.setAttribute('name','aName')
+    grid_arrangementNode.appendChild(rectangular_locationNode)
+    
+    cornerNode = xmldoc.createElementNS('http://morphml.org/metadata/schema','meta:corner')
+    cornerNode.setAttribute('x','0')
+    cornerNode.setAttribute('y','0')
+    cornerNode.setAttribute('z','0')
+    rectangular_locationNode.appendChild(cornerNode)
+    
+    sizeNode = xmldoc.createElementNS('http://morphml.org/metadata/schema','meta:size')
+    #neuroml is always in 3D adding 0 for non covered dimensions
+    sizeNode.setAttribute('depth',str(10*dims[0]))
+    sizeNode.setAttribute('height',str(10*dims[1]))
+    if(dims.__len__() > 2):
+        sizeNode.setAttribute('width',str(10*dims[2]))
+    else:
+        sizeNode.setAttribute('width','0')
+    rectangular_locationNode.appendChild(sizeNode)
+    
+    spacingNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:spacing')
+    spacingNode.setAttribute('x','10')
+    spacingNode.setAttribute('y','10')
+    spacingNode.setAttribute('z','10')
+    grid_arrangementNode.appendChild(spacingNode)
+    
+    
+    #cellparams would be defined in a <cell> markup which would define precisely the neuron model
+    
+    
         #raise "Not yet implemented."
         
         
         Population.nPop += 1
-	PrettyPrint(xmldoc)
-	
+    PrettyPrint(xmldoc)
+    
         
     def set(self,param,val):
         """
