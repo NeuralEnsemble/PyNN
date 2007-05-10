@@ -135,7 +135,14 @@ def _hoc_arglist(paramlist):
             nvar += 1
     return hoc_commands, argstr.strip().strip(',')
 
-def _translate_synapse_type(synapse_type):
+def _translate_synapse_type(synapse_type,weight=None):
+    """
+    If synapse_type is given (not None), it is used to determine whether the
+    synapse is excitatory or inhibitory.
+    Otherwise, the synapse type is inferred from the sign of the weight.
+    Much testing needed to check if this behaviour matches nest and pcsim.
+    """
+    
     if synapse_type:
         if synapse_type == 'excitatory':
             syn_objref = "esyn"
@@ -144,9 +151,14 @@ def _translate_synapse_type(synapse_type):
         else:
             # More sophisticated treatment needed once we have more sophisticated synapse
             # models, e.g. NMDA...
-            raise common.InvalidParameterValueError, synapse_type, "valid types are 'excitatory' or 'inhibitory'"
+            #raise common.InvalidParameterValueError, synapse_type, "valid types are 'excitatory' or 'inhibitory'"
+            syn_objref = synapse_type
     else:
-        syn_objref = "esyn"
+        if weight is not None:
+            if weight >= 0.0:
+                syn_objref = "esyn"
+            else:
+                syn_objref = "isyn"
     return syn_objref
 
 def log(logstr):
@@ -424,7 +436,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
         target = [target]
     if weight is None:  weight = 0.0
     if delay  is None:  delay = _min_delay
-    syn_objref = _translate_synapse_type(synapse_type)
+    syn_objref = _translate_synapse_type(synapse_type, weight)
     nc_start = hoc_netcons
     hoc_commands = []
     for src in source:
