@@ -84,7 +84,7 @@ class NativeRNG(pyNN.random.NativeRNG):
         
         
 class SpikesMultiChannelRecorder(object):
-    recordings = []  
+    #recordings = []  
     
     def __init__(self, source, filename = None, source_indices = None, gather = False):        
         self.filename = filename
@@ -97,7 +97,9 @@ class SpikesMultiChannelRecorder(object):
         """
             Add celllist list to the list of the cells for which spikes 
             are recorded by this spikes multi recorder
-        """        
+        """
+        if type(sources) != types.ListType:
+            sources = [sources]
         if not src_indices:
             src_indices = range(len(self.recordings), len(self.recordings) + len(sources))
         global pcsim_globals
@@ -148,12 +150,13 @@ class SpikesMultiChannelRecorder(object):
     
 
 class FieldMultiChannelRecorder:
-    recordings = []  
+    #recordings = []  
     
     def __init__(self,sources,filename = None,src_indices = None, gather = False, fieldname = "Vm"):        
         self.filename = filename
         self.fieldname = fieldname
-        self.gather = gather        
+        self.gather = gather
+        self.recordings = []
         self.record(sources, src_indices)
         
                 
@@ -161,19 +164,18 @@ class FieldMultiChannelRecorder:
         """
             Add celllist to the list of the cells for which field values
             are recorded by this field multi recorder
-        """        
+        """
+        if type(sources) != types.ListType:
+            sources = [sources]
         if not src_indices:
             src_indices = range(len(self.recordings), len(self.recordings) + len(sources))
         global pcsim_globals
-        if type(sources) != types.ListType:
-            sources = [sources]        
         for i,src in zip(src_indices, sources):
             src_id = SimObject.ID(src)
             rec = pcsim_globals.net.create(AnalogRecorder(), SimEngine.ID(src_id.node, src_id.eng))
             pcsim_globals.net.connect(src, self.fieldname, rec, 0, Time.sec(0))
             if (src_id.node == pcsim_globals.net.mpi_rank()):
                 self.recordings += [ (i, rec, src) ]
-        
                 
     def saveValuesH5(self, filename = None):
         if filename:
@@ -187,18 +189,27 @@ class FieldMultiChannelRecorder:
             h5file.flush()
         h5file.close()
         
-    def saveValuesText(self, filename = None):
+    def saveValuesText(self, filename = None, compatible_output=True):
         if filename:
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):
             self.filename += ".node." + net.mpi_rank()
         f = file(self.filename, "w")
         all_spikes = []
-        for i, rec, src in self.recordings:
-            analog_values =  [i] +  pcsim_globals.net.object(rec).getRecordedValues()            
-            for v in analog_values:
-                f.write("%s " % v)                
-            f.write("\n")
+        if compatible_output:
+            f.write("# dt = %g\n" % pcsim_globals.dt)
+            f.write("# n = %d\n" % len(pcsim_globals.net.object(self.recordings[0][1]).getRecordedValues()))
+            for i, rec, src in self.recordings:
+                analog_values =  pcsim_globals.net.object(rec).getRecordedValues()
+                for v in analog_values:
+                    f.write("%g %d\n" % (float(v)*1000.0,i)) # convert from mV to V
+            
+        else:
+            for i, rec, src in self.recordings:
+                analog_values =  [i] +  pcsim_globals.net.object(rec).getRecordedValues()
+                for v in analog_values:
+                    f.write("%s " % v)                
+                f.write("\n")
         f.close()
 
 
@@ -231,7 +242,8 @@ class IF_curr_alpha(common.IF_curr_alpha):
         self.simObjFactory = LIFCurrAlphaNeuron(taum     = self.parameters['taum'], 
                                                 Cm       = self.parameters['Cm'], 
                                                 Vresting = self.parameters['Vresting'], 
-                                                Vthresh  = self.parameters['Vthresh'], 
+                                                Vthresh  = self.parameters['Vthresh'],
+                                                Vreset   = self.parameters['Vreset'],
                                                 Trefract = self.parameters['Trefract'], 
                                                 Iinject  = self.parameters['Iinject'], 
                                                 Vinit    = self.parameters['Vinit'], 
@@ -246,16 +258,16 @@ class IF_curr_exp(common.IF_curr_exp):
        excitatory and inhibitory synapses."""
     
     translations = {
-        'tau_m'     : ('taum'   , "parameters['tau_m']"), 
-        'cm'        : ('Cm'      , "parameters['cm']"),
-        'v_rest'    : ('Vresting', "parameters['v_rest']"), 
-        'v_thresh'  : ('Vthresh' , "parameters['v_thresh']"), 
-        'v_reset'   : ('Vreset'  , "parameters['v_reset']"), 
-        'tau_refrac': ('Trefract', "parameters['tau_refrac']"), 
-        'i_offset'  : ('Iinject' , "parameters['i_offset']"), 
-        'v_init'    : ('Vinit'   , "parameters['v_init']"), 
-        'tau_syn_E' : ('TauSynExc', "parameters['tau_syn_E']"), 
-        'tau_syn_I' : ('TauSynInh', "parameters['tau_syn_I']"), 
+        'tau_m'     : ('taum'   , "parameters['tau_m']*1e-3"), 
+        'cm'        : ('Cm'      , "parameters['cm']*1e-9"),
+        'v_rest'    : ('Vresting', "parameters['v_rest']*1e-3"), 
+        'v_thresh'  : ('Vthresh' , "parameters['v_thresh']*1e-3"), 
+        'v_reset'   : ('Vreset'  , "parameters['v_reset']*1e-3"), 
+        'tau_refrac': ('Trefract', "parameters['tau_refrac']*1e-3"), 
+        'i_offset'  : ('Iinject' , "parameters['i_offset']*1e-9"), # i_offset in nA, Iinject in A 
+        'v_init'    : ('Vinit'   , "parameters['v_init']*1e-3"), 
+        'tau_syn_E' : ('TauSynExc', "parameters['tau_syn_E']*1e-3"), 
+        'tau_syn_I' : ('TauSynInh', "parameters['tau_syn_I']*1e-3"), 
     }
     
     pcsim_name = "LIFCurrExpNeuron"    
@@ -268,7 +280,8 @@ class IF_curr_exp(common.IF_curr_exp):
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = LIFCurrExpNeuron(taum     = self.parameters['taum'], 
                                               Cm       = self.parameters['Cm'], 
-                                              Vresting = self.parameters['Vresting'], 
+                                              Vresting = self.parameters['Vresting'],
+                                              Vreset   = self.parameters['Vreset'],
                                               Vthresh  = self.parameters['Vthresh'], 
                                               Trefract = self.parameters['Trefract'], 
                                               Iinject  = self.parameters['Iinject'], 
@@ -322,13 +335,22 @@ class SpikeSourceArray(common.SpikeSourceArray):
         self.parameters = self.translate(self.parameters)
         self.setterMethods = {'spikeTimes':'setSpikeTimes' }  
         self.pcsim_object_handle = SpikingInputNeuron(spikeTimes = self.parameters['spikeTimes'])
-        
+        self.simObjFactory  = SpikingInputNeuron(spikeTimes = self.parameters['spikeTimes'])
+     
+    def translate(self,parameters):
+        translated_parameters = common.SpikeSourceArray.translate(self,parameters)
+        # convert from ms to s
+        if isinstance(translated_parameters['spikeTimes'],list):
+            translated_parameters['spikeTimes'] = [t*0.001 for t in translated_parameters['spikeTimes']]
+        elif isinstance(translated_parameters['spikeTimes'],numpy.array):
+            translated_parameters['spikeTimes'] *= 0.001 
+        return translated_parameters
                         
 # ==============================================================================
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10, construct_rng_seed = None, simulation_rng_seed = None):
+def setup(timestep=0.1, min_delay=0.1, max_delay=10, construct_rng_seed = None, simulation_rng_seed = None, debug=False):
     """Should be called at the very beginning of a script."""
     global pcsim_globals, dt
     pcsim_globals.dt = timestep
@@ -349,15 +371,15 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10, construct_rng_seed = None, 
     pcsim_globals.vm_multi_rec = {}
     return pcsim_globals.net.mpi_rank()
 
-def end():
-     """Do any necessary cleaning up before exiting."""
-     global pcsim_globals
-     for filename, rec in pcsim_globals.vm_multi_rec.items():
-         rec.saveValuesText()
-     for filename, rec in pcsim_globals.spikes_multi_rec.items():
-         rec.saveSpikesText()    
-     pcsim_globals.vm_multi_rec = {}     
-     pcsim_globals.spikes_multi_rec = {}
+def end(compatible_output=True):
+    """Do any necessary cleaning up before exiting."""
+    global pcsim_globals
+    for filename, rec in pcsim_globals.vm_multi_rec.items():
+        rec.saveValuesText(compatible_output=compatible_output)
+    for filename, rec in pcsim_globals.spikes_multi_rec.items():
+        rec.saveSpikesText()    
+    pcsim_globals.vm_multi_rec = {}     
+    pcsim_globals.spikes_multi_rec = {}
      
 
 def run(simtime):
@@ -433,6 +455,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     if weight is None:  weight = 0.0
     if delay  is None:  delay = pcsim_globals.minDelay
     delay = delay / 1000 # Delays in pcsim are specified in seconds
+    weight = 1e-9 * weight # Convert from nA to A # !!likely problem with conductance-based synapses
     syn_factory = 0
     if synapse_type is None:
         if weight >= 0:  # decide whether to connect to the excitatory or inhibitory response 
@@ -542,14 +565,15 @@ class Population(common.Population):
         """
         global gid, myid, nhost
         
-        if len(dims) > 3:
+        if isinstance(dims, int): # also allow a single integer, for a 1D population
+            print "Converting integer dims to tuple"
+            dims = (dims,)
+        elif len(dims) > 3:
             raise exceptions.AttributeError('PCSIM does not support populations with more than 3 dimensions')
-        
-        self.actual_ndim = len(dims)
-        
+    
+        self.actual_ndim = len(dims)       
         while len(dims) < 3:
             dims += (1,)
-        
         common.Population.__init__(self, dims, cellclass, cellparams, label)
         
         
@@ -771,7 +795,6 @@ class Population(common.Population):
         self.vm_rec = FieldMultiChannelRecorder(sources, None, src_indices)
      
     def printSpikes(self, filename, gather=True):
-        """PCSIM: implemented by corresponding recorders at python level """
         """
         Prints spike times to file in the two-column format
         "spiketime cell_id" where cell_id is the index of the cell counting
@@ -782,15 +805,16 @@ class Population(common.Population):
         If gather is True, the file will only be created on the master node,
         otherwise, a file will be written on each node.
         """
+        """PCSIM: implemented by corresponding recorders at python level """
         self.spike_rec.saveSpikesText(filename)
         
         
     def print_v(self, filename, gather=True):
-        """PCSIM: will be implemented by corresponding analog recorders at python level object  """
         """
         Write membrane potential traces to file.
         """
-        self.spike_rec.saveValuesText(filename)
+        """PCSIM: will be implemented by corresponding analog recorders at python level object  """
+        self.vm_rec.saveValuesText(filename)
         
     
     def meanSpikeCount(self, gather=True):         
