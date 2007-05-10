@@ -118,7 +118,7 @@ if __name__ == "__main__":
     thresholds = {"IF_curr_alpha" : 0.5,
                   "IF_curr_alpha2" : 5.0,
                   "IF_curr_exp" : 0.1, 
-                  "IF_cond_alpha" : 0.5,
+                  "IF_cond_alpha" : 0.1,
                   "simpleNetworkL" : 0.5,
                   "simpleNetwork" : 0.6,
                   "small_network" : 6.0}

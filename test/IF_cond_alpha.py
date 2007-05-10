@@ -27,11 +27,14 @@ ifcell = create(IF_cond_alpha, {'i_offset' : 0.,     'tau_refrac' : 5.0,
 spike_source1 = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(5,105,10)]})
 spike_source2 = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(10,110,10)]})
 
-connect(spike_source1,ifcell,weight=0.006,synapse_type='excitatory')
-connect(spike_source2,ifcell,weight=0.02,synapse_type='inhibitory')
+G_exc = 0.006
+G_inh = 0.02
+# For the moment, inhibitory synapses, in NEST, can be adress only with negative weights
+if (simulator == "nest"):
+    G_inh = -G_inh
 
-### Inhibitory synapses not taken into account in NEST ??
-#connect(spike_source,ifcell,weight=0.067,synapse_type='inhibitory')
+connect(spike_source1,ifcell,weight=G_exc,synapse_type='excitatory')
+connect(spike_source2,ifcell,weight=G_inh,synapse_type='inhibitory')
     
 record_v(ifcell,"IF_cond_alpha_%s.v" % simulator)
 run(100.0)

@@ -108,9 +108,9 @@ class IF_cond_alpha(common.IF_cond_alpha):
             'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
             'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
             'i_offset'  : ('I0'          , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'v_init'    : ('u'           , "parameters['v_init']"),
 	    'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
             'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
+            'v_init'    : ('u'           , "parameters['v_init']"),
     }
     nest_name = "iaf_cond_neuron"
     
@@ -375,7 +375,7 @@ def _print_v(filename, compatible_output=True):
             single_line = line.split("\t", 2)
             if (len(single_line) > 1) and (single_line[1] != '-'):
                neuron = int(single_line[0])
-	       result.write("%g\t%d\n" %(float(single_line[1]), neuron))
+	       result.write("%s\t%d\n" %(single_line[1], neuron))
     else:
         f = open(tempfilename.replace('/','_'),'r',100)
 	lines = f.readlines()
@@ -750,10 +750,11 @@ class Population(common.Population):
         Sets initial membrane potentials for all the cells in the population to
         random values.
         """
-        cells = numpy.reshape(self.cell,self.cell.size)
-        rvals = rand_distr.next(n=self.cell.size)
-        for node, v_init in zip(cells,rvals):
-            pynest.setDict([node],{'u': v_init})
+        self.rset('v_init',rand_distr)
+        #cells = numpy.reshape(self.cell,self.cell.size)
+        #rvals = rand_distr.next(n=self.cell.size)
+        #for node, v_init in zip(cells,rvals):
+        #    pynest.setDict([node],{'u': v_init})
     
     def print_v(self,filename,gather=True, compatible_output=True):
         """
@@ -805,8 +806,9 @@ class Population(common.Population):
             for line in lines:
                 line = line.rstrip()
                 single_line = line.split("\t", 2)
-                neuron = int(single_line[0]) - padding
-	        result.write("%s\t%d\n" %(single_line[1], neuron))
+                if (len(single_line) > 1) and (single_line[1] != '-'):
+                    neuron = int(single_line[0]) - padding
+	            result.write("%s\t%d\n" %(single_line[1], neuron))
 	else:
             f = open(tempfilename.replace('/','_'),'r',1)
 	    lines = f.readlines()
