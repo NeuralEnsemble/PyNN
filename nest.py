@@ -108,7 +108,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
             'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
             'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
             'i_offset'  : ('I0'          , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-	    'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
+            'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
             'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
             'v_init'    : ('u'           , "parameters['v_init']"),
     }
@@ -336,10 +336,10 @@ def _printSpikes(filename, compatible_output=True):
     tempfilename = "%s/%s" %(tempdir, filename)
     pynest.sr('%s close' %tempfilename) 
     if (compatible_output):
-	# Here we postprocess the file to have effectively the
+        # Here we postprocess the file to have effectively the
         # desired format :
-	# First line: # dimensions of the population
-	# Then spiketime (in ms) cell_id-min(cell_id)
+        # First line: # dimensions of the population
+        # Then spiketime (in ms) cell_id-min(cell_id)
         result = open(filename,'w',100)
         g = open(tempfilename,'r',100)
         lines = g.readlines()
@@ -348,7 +348,7 @@ def _printSpikes(filename, compatible_output=True):
             single_line = line.split("\t", 1)
             neuron = int(single_line[0][1:len(single_line[0])])
             spike_time = dt*float(single_line[1])
-	    result.write("%g\t%d\n" %(spike_time, neuron))
+            result.write("%g\t%d\n" %(spike_time, neuron))
         result.close()
     else:
         shutil.move(tempfilename, filename)
@@ -368,22 +368,22 @@ def _print_v(filename, compatible_output=True):
     result.write("# dt = %f\n# n = %d\n" % (dt,n))
     if (compatible_output):
         f = open(tempfilename.replace('/','_'),'r',100)
-	lines = f.readlines()
+        lines = f.readlines()
         f.close()
 
-	# Here we postprocess the file to have effectively the
+        # Here we postprocess the file to have effectively the
         # desired format :
-	# First line: dimensions of the population
-	# Then spiketime cell_id-min(cell_id)
+        # First line: dimensions of the population
+        # Then spiketime cell_id-min(cell_id)
         for line in lines:
             line = line.rstrip()
             single_line = line.split("\t", 2)
             if (len(single_line) > 1) and (single_line[1] != '-'):
                neuron = int(single_line[0])
-	       result.write("%s\t%d\n" %(single_line[1], neuron))
+               result.write("%s\t%d\n" %(single_line[1], neuron))
     else:
         f = open(tempfilename.replace('/','_'),'r',100)
-	lines = f.readlines()
+        lines = f.readlines()
         f.close()
         for line in lines:
             result.write(line)
@@ -624,12 +624,12 @@ class Population(common.Population):
         pynest.setDict(self.spike_detector,{'withtime':True,  # record time of spikes
                                             'withpath':True}) # record which neuron spiked
         
-	fixed_list = False
+        fixed_list = False
 
         if record_from:
             if type(record_from) == types.ListType:
-		fixed_list = True
-		n_rec = len(record_from)
+                fixed_list = True
+                n_rec = len(record_from)
             elif type(record_from) == types.IntType:
                 n_rec = record_from
             else:
@@ -638,14 +638,14 @@ class Population(common.Population):
             n_rec = self.size
         pynest.resCons(self.spike_detector[0],n_rec)
 
-	if (fixed_list == True):
-	    for neuron in record_from:
+        if (fixed_list == True):
+            for neuron in record_from:
                 pynest.connect(pynest.getAddress(neuron),self.spike_detector[0])
         else:
-	    for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
+            for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
                 pynest.connect(pynest.getAddress(neuron),self.spike_detector[0])
-		
-	# Open temporary output file & register file with detectors
+                
+        # Open temporary output file & register file with detectors
         # This should be redone now that Eilif has implemented the pythondatum datum type
         # pynest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label,self.label)) # old
         pynest.sr('/%s.spikes (%s/%s.spikes) (w) file def' %  (self.label, tempdir, self.label))
@@ -662,13 +662,13 @@ class Population(common.Population):
         - or a list containing the ids of the cells to record.
         """
         global hl_v_files
-	
-	fixed_list = False
         
-	fixed_list = False
+        fixed_list = False
+        
+        fixed_list = False
         if record_from:
             if type(record_from) == types.ListType:
-		fixed_list = True
+                fixed_list = True
                 n_rec = len(record_from)
             elif type(record_from) == types.IntType:
                 n_rec = record_from
@@ -677,14 +677,14 @@ class Population(common.Population):
         else:
             n_rec = self.size
 
-	tmp_list = []
+        tmp_list = []
         filename    = '%s.v' % self.label
         record_file = tempdir+'/'+filename
-	if (fixed_list == True):
-	    tmp_list = [pynest.getAddress(neuron) for neuron in record_from]
-	else:
-	    for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
-		tmp_list.append(pynest.getAddress(neuron))
+        if (fixed_list == True):
+            tmp_list = [pynest.getAddress(neuron) for neuron in record_from]
+        else:
+            for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
+                tmp_list.append(pynest.getAddress(neuron))
         hl_v_files.append(filename)
         pynest.record_v(tmp_list, record_file.replace('/','_'))
     
@@ -713,20 +713,15 @@ class Population(common.Population):
         if hl_spike_files.__contains__(tempfilename):
             pynest.sr('%s close' % tempfilename)
             hl_spike_files.remove(tempfilename)
-	if (compatible_output):
-	    # Here we postprocess the file to have effectively the
-            # desired format :
-	    # First line: # dimensions of the population
-	    # Then spiketime (in ms) cell_id-min(cell_id)
+        if (compatible_output):
+            # Here we postprocess the file to have effectively the
+            # desired format: spiketime (in ms) cell_id-min(cell_id)
             result = open(filename,'w',1)
             g = open("%s/%s" %(tempdir, tempfilename),'r',1)
-	    # Writing dimensions of the population:
-	    result.write("# ")
-	    for dimension in self.dim:
-	        result.write("%d\t" %dimension)
-	    result.write("\n")
-	
-	    # Writing spiketimes, cell_id-min(cell_id)
+            # Writing dimensions of the population:
+            result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
+        
+            # Writing spiketimes, cell_id-min(cell_id)
             padding = numpy.reshape(self.cell,self.cell.size)[0]
             lines = g.readlines()
             g.close()
@@ -734,11 +729,11 @@ class Population(common.Population):
                 single_line = line.split("\t", 1)
                 neuron = int(single_line[0][1:len(single_line[0])]) - padding
                 spike_time = dt*float(single_line[1])
-	        result.write("%g\t%d\n" %(spike_time, neuron))
+                result.write("%g\t%d\n" %(spike_time, neuron))
             result.close()
         else:
             shutil.move(tempdir+'/'+tempfilename,filename)
-	
+        
 
     def meanSpikeCount(self,gather=True):
         """
@@ -776,40 +771,37 @@ class Population(common.Population):
         voltage files.
         """
         global hl_v_files
-	
-	tempfilename = tempdir+'/'+'%s.v' % self.label
+        
+        tempfilename = tempdir+'/'+'%s.v' % self.label
         if hl_v_files.__contains__(tempfilename):
             pynest.sr('%s close' % tempfilename.replace('/','_'))
             hl_v_files.remove(tempfilename)
-		
-	result = open(filename,'w',1)
+                
+        result = open(filename,'w',1)
         dt = pynest.getNESTStatus()['resolution']
         n = int(pynest.getNESTStatus()['time']/dt)
         result.write("# dt = %f\n# n = %d\n" % (dt,n))
 
-	if (compatible_output):
-	    f = open(tempfilename.replace('/','_'),'r',1)
-	    lines = f.readlines()
+        if (compatible_output):
+            f = open(tempfilename.replace('/','_'),'r',1)
+            lines = f.readlines()
             f.close()
-            result.write("# ")
-	    for dimension in self.dim:
-	       result.write("%d\t" %dimension)
-	    result.write("\n")
+            result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
             padding = numpy.reshape(self.cell,self.cell.size)[0]
 
-	    # Here we postprocess the file to have effectively the
+            # Here we postprocess the file to have effectively the
             # desired format :
-	    # First line: dimensions of the population
-	    # Then spiketime cell_id-min(cell_id)
+            # First line: dimensions of the population
+            # Then spiketime cell_id-min(cell_id)
             for line in lines:
                 line = line.rstrip()
                 single_line = line.split("\t", 2)
                 if (len(single_line) > 1) and (single_line[1] != '-'):
                     neuron = int(single_line[0]) - padding
-	            result.write("%s\t%d\n" %(single_line[1], neuron))
-	else:
+                    result.write("%s\t%d\n" %(single_line[1], neuron))
+        else:
             f = open(tempfilename.replace('/','_'),'r',1)
-	    lines = f.readlines()
+            lines = f.readlines()
             f.close()
             for line in lines:
                 result.write(line)

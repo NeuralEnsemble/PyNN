@@ -187,7 +187,7 @@ class RecordTest(unittest.TestCase):
             pcsim_globals.net.object(n).setSpikes( [ (i+1) * 0.001 + t for t in arange(0,1,0.01) ] )                    
         record( spiking_nrn, "recordTestSpikeFile1.txt")                
         run(1000)
-	end() 
+	end(compatible_output=False) 
         # Now check the contents of the file
         f = file('recordTestSpikeFile1.txt', 'r')
         expected_id = 0;

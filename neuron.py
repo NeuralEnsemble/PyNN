@@ -61,10 +61,10 @@ class ID(common.ID):
     # Fonctions used only by the neuron version of pyNN, to optimize the
     # creation of networks
     def setHocName(self, name):
-    	self._hocname = name
+        self._hocname = name
 
     def getHocName(self):
-    	return self._hocname
+        return self._hocname
     
 
 # ==============================================================================
@@ -207,7 +207,7 @@ class HocToPy:
         # We execute some commands here to avoid too much outputs in the log file
         errorstr = '"raise HocError(\'caused by HocToPy.get(%s,return_type=\\"%s\\")\')"' % (name,return_type)
         hoc_commands = ['success = sprint(cmd,"HocToPy.hocvar = %s",%s)' % (HocToPy.fmt_dict[return_type],name),
-        		'if (success) { nrnpython(cmd) } else { nrnpython(%s) }' % errorstr ]
+                        'if (success) { nrnpython(cmd) } else { nrnpython(%s) }' % errorstr ]
         hoc_execute(hoc_commands)
         return HocToPy.hocvar
     
@@ -964,11 +964,11 @@ class Population(common.Population):
                 hoc_commands += ['tmp = fileobj.printf("%s\\n")' % header]
             if gather:
                 hoc_commands += ['objref gatheredvec']
-	    padding = self.fullgidlist[0]
+            padding = self.fullgidlist[0]
             for id in self.record_from[print_what]:
                 addr = self.locate(id)
                 #hoc_commands += ['fmt = "%s\\t%s\\n"' % (num_format, "\\t".join([str(j) for j in addr]))]
-		hoc_commands += ['fmt = "%s\\t%d\\n"' % (num_format, id-padding)]
+                hoc_commands += ['fmt = "%s\\t%d\\n"' % (num_format, id-padding)]
                 if id in self.gidlist:
                     hoc_commands += ['tmp = %s.object(%d).%s.printf(fileobj,fmt)' % (self.label,self.gidlist.index(id),print_what)]
                 elif gather: 
@@ -997,9 +997,9 @@ class Population(common.Population):
         otherwise, a file will be written on each node.
         """        
         hoc_comment("--- Population[%s].__printSpikes()__ ---" %self.label)
-	header = "# %d" %self.dim[0]
-	for dimension in list(self.dim)[1:]:
-	        header = "%s\t%d" %(header,dimension)
+        header = "# %d" %self.dim[0]
+        for dimension in list(self.dim)[1:]:
+                header = "%s\t%d" %(header,dimension)
         self.__print('spiketimes',filename,"%.2f",gather, header)
 
     def print_v(self,filename,gather=True, compatible_output=True):
@@ -1021,7 +1021,7 @@ class Population(common.Population):
         header = "# dt = %f\\n# n = %d\\n" % (dt,int(tstop/dt))
         header = "%s# %d" %(header,self.dim[0])
         for dimension in list(self.dim)[1:]:
-	        header = "%s\t%d" %(header,dimension)
+                header = "%s\t%d" %(header,dimension)
         hoc_comment("--- Population[%s].__print_v()__ ---" %self.label)
         self.__print('vtrace',filename,"%.4g",gather,header)
 

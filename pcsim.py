@@ -20,9 +20,8 @@ import numpy
 from pypcsim import *
 try:
     import tables
-    have_hdf5 = True
 except ImportError:
-    have_hdf5 = False
+    pass
 import exceptions
 from datetime import datetime
 import operator
@@ -131,16 +130,21 @@ class SpikesMultiChannelRecorder(object):
             h5file.flush()
         h5file.close()
         
-    def saveSpikesText(self, filename = None):
+    def saveSpikesText(self, filename = None, compatible_output=True):
         if filename:
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):    
             self.filename += ".node." + net.mpi_rank()
         f = file(self.filename, "w")
-        all_spikes = []        
-        for i, rec, src in self.recordings:            
-            spikes =  pcsim_globals.net.object(rec).getSpikeTimes()
-            all_spikes += zip( [ i for k in xrange(len(spikes)) ], spikes)
+        all_spikes = []
+        if compatible_output:
+            for i, rec, src in self.recordings:            
+                spikes =  1000.0*numpy.array(pcsim_globals.net.object(rec).getSpikeTimes())
+                all_spikes += zip(spikes, [ i for k in xrange(len(spikes)) ])
+        else:
+            for i, rec, src in self.recordings:            
+                spikes =  pcsim_globals.net.object(rec).getSpikeTimes()
+                all_spikes += zip( [ i for k in xrange(len(spikes)) ], spikes)
         all_spikes = sorted(all_spikes, key=operator.itemgetter(1))
         for spike in all_spikes:
             f.write("%s %s\n" % spike )                
@@ -435,7 +439,7 @@ def end(compatible_output=True):
     for filename, rec in pcsim_globals.vm_multi_rec.items():
         rec.saveValuesText(compatible_output=compatible_output)
     for filename, rec in pcsim_globals.spikes_multi_rec.items():
-        rec.saveSpikesText()    
+        rec.saveSpikesText(compatible_output=compatible_output)    
     pcsim_globals.vm_multi_rec = {}     
     pcsim_globals.spikes_multi_rec = {}
      
@@ -872,7 +876,7 @@ class Population(common.Population):
         otherwise, a file will be written on each node.
         """        
         """PCSIM: implemented by corresponding recorders at python level """
-        self.spike_rec.saveSpikesText(filename)
+        self.spike_rec.saveSpikesText(filename,compatible_output=compatible_output)
         
         
     def print_v(self, filename, gather=True,compatible_output=True):
