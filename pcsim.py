@@ -18,7 +18,11 @@ import types
 import sys
 import numpy
 from pypcsim import *
-from tables import *
+try:
+    import tables
+    have_hdf5 = True
+except ImportError:
+    have_hdf5 = False
 import exceptions
 from datetime import datetime
 import operator
@@ -111,15 +115,16 @@ class SpikesMultiChannelRecorder(object):
             pcsim_globals.net.connect(src, rec, Time.sec(0))            
             if (src_id.node == pcsim_globals.net.mpi_rank()):                
                 self.recordings += [ (i, rec, src) ]
-            
-        
-                
+                            
     def saveSpikesH5(self, filename = None):
         if filename:
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):
             self.filename += ".node." + net.mpi_rank()
-        h5file = openFile(self.filename, mode = "w", title = "spike recordings")
+        try:
+            h5file = tables.openFile(self.filename, mode = "w", title = "spike recordings")
+        except NameError:
+            raise Exception("Use of this function requires PyTables.")
         for rec_info in self.recordings:
             spikes = array([rec_ids[1]] + pcsim_globals.net.object(rec_ids[0]).getSpikeTimes())
             h5file.createArray(h5file.root, "spikes_" + str(rec_ids[1]), spikes, "")
@@ -158,8 +163,7 @@ class FieldMultiChannelRecorder:
         self.gather = gather
         self.recordings = []
         self.record(sources, src_indices)
-        
-                
+                        
     def record(self, sources, src_indices = None):
         """
             Add celllist to the list of the cells for which field values
@@ -182,7 +186,10 @@ class FieldMultiChannelRecorder:
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):
             self.filename += ".node." + net.mpi_rank()
-        h5file = openFile(filename, mode = "w", title = self.fielname + " recordings")
+        try:
+            h5file = tables.openFile(filename, mode = "w", title = self.filename + " recordings")
+        except NameError:
+            raise Exception("Use of this function requires PyTables.")
         for i, rec, src in self.recordings:
             analog_values = array([i] + pcsim_globals.net.object(rec).getRecordedValues())
             h5file.createArray(h5file.root, self.fieldname + "_" + str(src), analog_values, "")
@@ -1033,13 +1040,13 @@ class Projection(common.Projection):
         w can be a single number, in which case all weights are set to this
         value, or an array with the same dimensions as the Projection array.
         """
-        w = w*1e-9 # Convert from nA to A # !!likely problem with conductance-based synapses
         if isinstance(w, float) or isinstance(w, int):
+            w = w*1e-9 # Convert from nA to A # !!likely problem with conductance-based synapses
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).W = w
         else:
             for i in range(len(self)):
-                pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]
+                pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]*1e-9
     
     def randomizeWeights(self, rand_distr):
         """
