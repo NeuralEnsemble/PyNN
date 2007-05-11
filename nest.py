@@ -96,7 +96,7 @@ class IF_curr_exp(common.IF_curr_exp):
 
 class IF_cond_alpha(common.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
+    shaped post-synaptic conductance."""
     
     translations = {
             'v_rest'    : ('U0'          , "parameters['v_rest']"),
@@ -108,9 +108,9 @@ class IF_cond_alpha(common.IF_cond_alpha):
             'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
             'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
             'i_offset'  : ('I0'          , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'v_init'    : ('u'           , "parameters['v_init']"),
 	    'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
             'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
+            'v_init'    : ('u'           , "parameters['v_init']"),
     }
     nest_name = "iaf_cond_neuron"
     
@@ -264,7 +264,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
                 src = pynest.getAddress(src)
                 if p < 1:
                     if rng: # use the supplied RNG
-                        rarr = self.rng.uniform(0,1,len(target))
+                        rarr = rng.rng.uniform(0,1,len(target))
                     else:   # use the default RNG
                         rarr = numpy.random.uniform(0,1,len(target))
                 for j,tgt in enumerate(target):
@@ -375,7 +375,7 @@ def _print_v(filename, compatible_output=True):
             single_line = line.split("\t", 2)
             if (len(single_line) > 1) and (single_line[1] != '-'):
                neuron = int(single_line[0])
-	       result.write("%g\t%d\n" %(float(single_line[1]), neuron))
+	       result.write("%s\t%d\n" %(single_line[1], neuron))
     else:
         f = open(tempfilename.replace('/','_'),'r',100)
 	lines = f.readlines()
@@ -455,6 +455,31 @@ class Population(common.Population):
         if addr != self.locate(id):
             raise IndexError, 'Invalid cell address %s' % str(addr)
         return id
+    
+    def __getitems__(self,addrs):
+        """Returns the ids of neurons. Input should have format:
+        n = number of synapses; nd = number of dimensions
+        shape(addrs) == (n,nd)
+        """
+        #if isinstance(addr,int):
+        #    addr = (addr,)
+        ids = []
+        if len(addrs[0]) == self.ndim:
+            for addr in range(len(addrs)):
+                try:
+                    ids.append(self.cell[tuple(addrs[addr,:])])
+                except IndexError:
+                    pass                
+        else:
+            raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(len(addrs)))
+        return ids
+
+         #   for syn_nr in range(len(target_position_x)):
+         #       try:
+         #           target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
+         #       except IndexError:
+         #           target_id.append(False)
+
     
     def __len__(self):
         """Returns the total number of cells in the population."""
@@ -725,10 +750,11 @@ class Population(common.Population):
         Sets initial membrane potentials for all the cells in the population to
         random values.
         """
-        cells = numpy.reshape(self.cell,self.cell.size)
-        rvals = rand_distr.next(n=self.cell.size)
-        for node, v_init in zip(cells,rvals):
-            pynest.setDict([node],{'u': v_init})
+        self.rset('v_init',rand_distr)
+        #cells = numpy.reshape(self.cell,self.cell.size)
+        #rvals = rand_distr.next(n=self.cell.size)
+        #for node, v_init in zip(cells,rvals):
+        #    pynest.setDict([node],{'u': v_init})
     
     def print_v(self,filename,gather=True, compatible_output=True):
         """
@@ -780,8 +806,9 @@ class Population(common.Population):
             for line in lines:
                 line = line.rstrip()
                 single_line = line.split("\t", 2)
-                neuron = int(single_line[0]) - padding
-	        result.write("%s\t%d\n" %(single_line[1], neuron))
+                if (len(single_line) > 1) and (single_line[1] != '-'):
+                    neuron = int(single_line[0]) - padding
+	            result.write("%s\t%d\n" %(single_line[1], neuron))
 	else:
             f = open(tempfilename.replace('/','_'),'r',1)
 	    lines = f.readlines()
@@ -1165,6 +1192,20 @@ class Projection(common.Projection):
         n: number of synpases
         sigma: sigma of the Gauss
         """
+
+        #def get_ids(self,parameters):
+            #ids = []
+            #if len(addrs) == self.ndim:
+        #
+        #for addr in range(len(parameters['x'])):
+        #    try:
+        #        ids = numpy.append(ids,post.cell[addr])
+        #    except IndexError:
+        #        pass
+        #else:
+        #    raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addrs))
+        #return ids.astype('int')
+
         
         def rcf_3D(parameters):
             rng = parameters['rng']
@@ -1179,18 +1220,22 @@ class Projection(common.Projection):
             phi = rng.uniform(size=n)*(2.0*pi)
             r = rng.normal(scale=sigma,size=n)
             # for z 
-            h = rng.uniform(size=n)*post_dim[2]
+            h = rng.uniform(size=n)*post_dim[2] # here post dim because it does not metter where it comes from in pre dim
             
-            target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi))
-            target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi))
+            target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi)).astype('int')
+            target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi)).astype('int')
             target_position_z = numpy.floor(h).astype('int')
             
             target_id = []
+            # __getitems__ version
+            
+            
             for syn_nr in range(len(target_position_x)):
                 try:
-                    target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
+                    target_id.append(self.post.cell[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
                 except IndexError:
-                    target_id.append(False)
+                    pass
+                    #target_id.append(False)
             
             pynest.divConnect(pre_id,target_id,[weight],[delay])
         

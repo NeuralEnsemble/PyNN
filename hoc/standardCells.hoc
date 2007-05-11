@@ -31,6 +31,7 @@ proc init() {
   if ($o1.has_key("v_reset"))  { v_reset  = $o1.get("v_reset") }  else { v_reset  = v_rest } // (mV) 
   if ($o1.has_key("t_refrac")) { t_refrac = $o1.get("t_refrac") } else { t_refrac = 2 }      // (ms)
   if ($o1.has_key("i_offset")) { i_offset = $o1.get("i_offset") } else { i_offset = 0 }      // (nA)
+  if ($o1.has_key("v_init"))   { v_init   = $o1.get("v_init") }   else { v_init   = v_rest } // (mV)
   if ($o1.has_key("tau_syn"))  {
     tau_e = $o1.get("tau_syn")
     tau_i = $o1.get("tau_syn")
@@ -45,7 +46,6 @@ proc init() {
     if ($o1.has_key("e_e"))    { e_e      = $o1.get("e_e") }      else { e_e      = 0 }      // (mV)
     if ($o1.has_key("e_i"))    { e_i      = $o1.get("e_i") }      else { e_i      = -70 }    // (mV)
   }
-  v_init   = v_rest
   fih = new FInitializeHandler("memb_init()",this)
   fih2 = new FInitializeHandler("param_update()", this)
   cell {

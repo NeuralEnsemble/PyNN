@@ -2,6 +2,19 @@
 Neurons and Connections
 =======================
 
+Initialising the simulator
+==========================
+
+Before using any other functions or classes from PyNN, the user must call the ``setup()`` function::
+
+    >>> setup()
+    
+``setup()`` takes various optional arguments: setting the simulation timestep (there is currently no support in the API for variable timestep methods although native simulator code can be used to select this option where the simulator supports it), setting the minimum and maximum synaptic delays, and turning debugging output on and off, e.g.::
+
+    >>> setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False)
+    
+Debugging information is written to a log file in the working directory.
+
 Creating neurons
 ================
 
@@ -54,7 +67,7 @@ Any neuron that emits spikes can be connected to any neuron with at least one sy
     >>> cells = create(IF_curr_alpha, n=10)
     >>> connect(spike_source, cells)
     
-In this case we connect a spike-generating mechanism (``SpikeSourceArray`` is a 'standard cell' model that emits spikes at times specified by the ``spiketimes`` parameter) to each cell in the list ``cells`, i.e. we create 10 connections at once.
+In this case we connect a spike-generating mechanism (``SpikeSourceArray`` is a 'standard cell' model that emits spikes at times specified by the ``spiketimes`` parameter) to each cell in the list ``cells``, i.e. we create 10 connections at once.
 For clarity, we could also have specified the argument names::
 
     >>> connect(source=spike_source, target=cells)
@@ -109,3 +122,72 @@ An alternative way to set parameter values is to call the ``set()`` method of th
 
 Recording spikes and membrane potential
 =======================================
+
+To record action potentials use the ``record()`` function and to record membrane potential use the ``record_v()`` function.
+The arguments for both functions are a cell id or list of ids, and a filename, e.g.::
+
+    >>> record(cell, "spikes.dat")
+    >>> record_v(cell_list, "allspikes.dat")
+    
+By default, all simulators write data files in the same format.
+
+The beginning of a typical spike file looks like::
+
+    # dt = 0.1
+    # n = 1000
+    0.0     2
+    0.3     5
+    0.4     3
+    0.9     2
+    1.0     1
+    . . .
+    
+The beginning of a typical membrane potential file looks like::
+
+    # dt = 0.1
+    # n = 1000
+    -65.0   0
+    -64.9   0
+    -64.7   0
+    -64.5   0
+    . . .
+
+Both file types begin with header lines giving the timestep (there is currently no support for variable-time step recording) and the number of data points [per cell or total?] in the file.
+Each line of the spike file then gives the occurence time of a spike (in ms) and the id of the neuron in which it was recorded.
+Each line of the membrane potential file gives the membrane potential (in mV) followed by the id of the neuron in which it was recorded.
+In both cases, whether the file is sorted by cell id or by time depends on the simulator: it is not standardised.
+
+In some cases it is more efficient to write files in the simulator's native format, rather than the standard PyNN format.
+In this case, use the ``compatible_output=False`` argument to the ``end()`` function.
+
+Considerable enhancements to file formats are planned for future releases of PyNN, including recording to binary (HDF5) rather than text files, support for variable time-step recording, and user-specified output formats.
+
+Running a simulation
+====================
+
+The ``run()`` function runs the simulation for a given number of milliseconds, e.g.::
+
+    >>> run(1000.0)
+    
+Finishing up
+============
+
+Just as a simulation must be begun with a call to ``setup()``, it must be ended with a call to ``end()``.
+
+Example
+=======
+
+We now give a full example of a PyNN simulation script::
+
+    from pyNN.nest import *
+    
+    <insert IF_curr_alpha.py here (with line numbers?)>
+    
+To run the script with NEURON, replace the first line with::
+
+    from pyNN.neuron import *
+    
+and to run the script with PCSIM::
+
+    from pyNN.pcsim import *
+    

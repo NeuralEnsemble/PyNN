@@ -148,7 +148,14 @@ def _hoc_arglist(paramlist):
             nvar += 1
     return hoc_commands, argstr.strip().strip(',')
 
-def _translate_synapse_type(synapse_type):
+def _translate_synapse_type(synapse_type,weight=None):
+    """
+    If synapse_type is given (not None), it is used to determine whether the
+    synapse is excitatory or inhibitory.
+    Otherwise, the synapse type is inferred from the sign of the weight.
+    Much testing needed to check if this behaviour matches nest and pcsim.
+    """
+    
     if synapse_type:
         if synapse_type == 'excitatory':
             syn_objref = "esyn"
@@ -160,7 +167,10 @@ def _translate_synapse_type(synapse_type):
             #raise common.InvalidParameterValueError, synapse_type, "valid types are 'excitatory' or 'inhibitory'"
             syn_objref = synapse_type
     else:
-        syn_objref = "esyn"
+        if weight is None or weight >= 0.0:
+            syn_objref = "esyn"
+        else:
+            syn_objref = "isyn"
     return syn_objref
 
 def checkParams(param,val=None):
@@ -267,7 +277,7 @@ class IF_curr_exp(common.IF_curr_exp):
 
 class IF_cond_alpha(common.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
+    shaped post-synaptic conductance."""
     
     translations = {
         'tau_m'     : ('tau_m'    , "parameters['tau_m']"),
@@ -483,7 +493,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
         target = [target]
     if weight is None:  weight = 0.0
     if delay  is None:  delay = _min_delay
-    syn_objref = _translate_synapse_type(synapse_type)
+    syn_objref = _translate_synapse_type(synapse_type,weight)
     nc_start = ncid
     hoc_commands = []
     for tgt in target:
@@ -561,7 +571,7 @@ def set(cells,cellclass,param,val=None): #,hocname=None):
                                  'tmp = pc.gid2cell(%d).param_update()' % cell]
     hoc_execute(hoc_commands, "--- set() ---")
 
-def record(source,filename, compatible_output=True):
+def record(source,filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     # would actually like to be able to record to an array and choose later
@@ -578,7 +588,7 @@ def record(source,filename, compatible_output=True):
             spikefilelist[filename] += [src] # writing to file is done in end()
     hoc_execute(hoc_commands, "---record() ---")
 
-def record_v(source,filename, compatible_output=True):
+def record_v(source,filename):
     """
     Record membrane potential to a file. source can be an individual cell or
     a list of cells."""

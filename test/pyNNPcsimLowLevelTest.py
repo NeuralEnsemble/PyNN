@@ -90,14 +90,14 @@ class ConnectionTest(unittest.TestCase):
         global pcsim_globals
         conn_id = connect(self.precells[0],self.postcells[0],weight=0.1234)
         weight = pcsim_globals.net.object(conn_id).W
-        self.assertAlmostEqual( weight , 0.1234 , places = 8, msg = "Weight set (0.1234) does not match weight retrieved (%s)" % weight )
+        self.assertAlmostEqual( weight*1e9 , 0.1234 , places = 8, msg = "Weight set (0.1234) does not match weight retrieved (%s)" % (weight*1e9,) )
     
     def testConnectTwoCellsWithDelay(self):
         """connect(): Delay set should match delay retrieved."""
         global pcsim_globals
         conn_id = connect(self.precells[0],self.postcells[0],delay=4.321)
         delay = pcsim_globals.net.object(conn_id).delay
-        self.assertAlmostEqual( delay, 0.004321, places = 8, msg = "Delay set (0.004321 ms) does not match delay retrieved (%s)." % delay )
+        self.assertAlmostEqual( delay, 0.004321, places = 8, msg = "Delay set (0.004321 s) does not match delay retrieved (%s s)." % delay )
         
     
     def testConnectManyToOne(self):
@@ -149,7 +149,7 @@ class SetValueTest(unittest.TestCase):
         global pcsim_globals        
         set(self.cells,IF_curr_exp,'tau_m',35.7)
         for cell in self.cells:
-            self.assertAlmostEqual( pcsim_globals.net.object(cell).taum , 35.7, places = 5 )
+            self.assertAlmostEqual( pcsim_globals.net.object(cell).taum*1000.0 , 35.7, places = 5 )
             
     #def testSetString(self):
     #    set(self.cells,IF_curr_exp,'param_name','string_value')
@@ -162,8 +162,8 @@ class SetValueTest(unittest.TestCase):
         global pcsim_globals
         set(self.cells, IF_curr_exp,{'tau_m':35.7,'tau_syn_E':5.432})
         for cell in self.cells:
-            self.assertAlmostEqual( pcsim_globals.net.object(cell).taum, 35.7, places = 5     )
-            self.assertAlmostEqual( pcsim_globals.net.object(cell).TauSynExc, 5.432, places = 6 )
+            self.assertAlmostEqual( pcsim_globals.net.object(cell).taum*1000.0, 35.7, places = 5     )
+            self.assertAlmostEqual( pcsim_globals.net.object(cell).TauSynExc*1000.0, 5.432, places = 6 )
 
     def testSetNonExistentParameter(self):
         # note that although syn_shape is added to the parameter dict when creating
@@ -205,7 +205,7 @@ class RecordTest(unittest.TestCase):
             pcsim_globals.net.object(n).setAnalogValues( [ (k + i) % 10 for k in xrange(1000)])
         record_v(analog_nrns, "recordTestVmFile1.txt")
         run(100)
-        end()
+        end(compatible_output=False)
         f = file('recordTestVmFile1.txt', 'r')
         expected_id = 0
         for line in f:

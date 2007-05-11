@@ -148,9 +148,9 @@ class IF_curr_exp(StandardCellType):
     }
 
 class IF_cond_alpha(StandardCellType):
-#    """Leaky integrate and fire model with fixed threshold and alpha-function-
-#    shaped post-synaptic conductance."""
-#    
+    """Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic conductance."""
+    
     default_parameters = {
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
         'cm'         : 1.0,     # Capacity of the membrane in nF
@@ -217,7 +217,8 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
-    generator supplied, or the default rng otherwise."""
+    generator supplied, or the default rng otherwise.
+    Weights should be in nA or uS."""
     pass
 
 def set(cells,cellclass,param,val=None):
