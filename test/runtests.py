@@ -30,9 +30,9 @@ def run(cmd,engine):
     errorMsg = errorMsg.strip(nrnheader)
     
     if len(errorMsg) > 0:
-        print "=== %s Error =======================" % engine.upper()
+        print "\n=== %s Error =======================" % engine.upper()
         print "  " + errorMsg.replace("\n","\n   ")
-        print "========================================"
+        print "======================================="
         sys.exit(2)
 
 def sortTracesByCells(traces, gids):
@@ -57,49 +57,55 @@ def compare_traces(script,mse_threshold,engines):
     print script, ": ",
     traces = {}
     fail = False
+    fail_message = ""
     
     for engine in engines:
         traces[engine] = []
-        run(script, engine)
-        filenames = glob.glob('%s_*_%s.v' % (script, engine))
-        if len(filenames) == 0:
-            filenames = glob.glob('%s_%s.v' % (script, engine))
-        if filenames:
-            for filename in filenames:
-                f = open(filename,'r')
-                trace = [line.strip() for line in f.readlines() if line[0] != "#"]
-                f.close()
-                trace = [line for line in trace if line] # ignore blank lines
-                try:
-                    if engine == 'oldneuron':
-                        position = N.zeros(len(trace))
-                    else:
-                        position = N.array([int(line.split()[1]) for line in trace]) # take second column
-                except IndexError:
-                    print engine
-                    print line
-                    raise
-                trace = N.array([float(line.split()[0]) for line in trace]) # take first column 
-                trace = sortTracesByCells(trace, position)
-                traces[engine].append(trace)
-        else:
-            fail = True; fail_message = "No files match glob pattern"
-
-    mse = 0.0
-    engine1 = engines[0] # compare all against the first engine in the list.
-    for engine2 in engines[1:]:
-        for trace1,trace2 in zip(traces[engine1],traces[engine2]):
-            l1 = len(trace1); l2 = len(trace2)
-            if l1 > 0 and l2 > 0 :
-                if l1 > l2:
-                    trace1 = trace1[:l2]
-                elif l2 > l1:
-                    trace2 = trace2[:l1]
-                
-                diff = trace1 - trace2
-                mse += N.sqrt(N.mean(N.square(diff)))
+        try:
+            run(script, engine)
+            filenames = glob.glob('%s_*_%s.v' % (script, engine))
+            if len(filenames) == 0:
+                filenames = glob.glob('%s_%s.v' % (script, engine))
+            if filenames:
+                for filename in filenames:
+                    f = open(filename,'r')
+                    trace = [line.strip() for line in f.readlines() if line[0] != "#"]
+                    f.close()
+                    trace = [line for line in trace if line] # ignore blank lines
+                    try:
+                        if engine == 'oldneuron':
+                            position = N.zeros(len(trace))
+                        else:
+                            position = N.array([int(line.split()[1]) for line in trace]) # take second column
+                    except IndexError:
+                        print engine
+                        print line
+                        raise
+                    trace = N.array([float(line.split()[0]) for line in trace]) # take first column 
+                    trace = sortTracesByCells(trace, position)
+                    traces[engine].append(trace)
             else:
-                fail = True; fail_message = "empty file"
+                fail = True; fail_message += "No files match glob pattern. "
+        except Exception:
+            fail = True
+            fail_message += "Exception raised in %s. " % engine.upper()
+
+    if not fail:
+        mse = 0.0
+        engine1 = engines[0] # compare all against the first engine in the list.
+        for engine2 in engines[1:]:
+            for trace1,trace2 in zip(traces[engine1],traces[engine2]):
+                l1 = len(trace1); l2 = len(trace2)
+                if l1 > 0 and l2 > 0 :
+                    if l1 > l2:
+                        trace1 = trace1[:l2]
+                    elif l2 > l1:
+                        trace2 = trace2[:l1]
+                    
+                    diff = trace1 - trace2
+                    mse += N.sqrt(N.mean(N.square(diff)))
+                else:
+                    fail = True; fail_message = "empty file"
     
     if not fail:
         if mse < mse_threshold:

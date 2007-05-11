@@ -221,15 +221,15 @@ class IF_curr_alpha(common.IF_curr_alpha):
     shaped post-synaptic current."""
     
     translations = {        
-        'tau_m'     : ('taum'    , "parameters['tau_m']" ) ,
-        'cm'        : ('Cm'      , "parameters['cm']"), 
-        'v_rest'    : ('Vresting', "parameters['v_rest']"), 
-        'v_thresh'  : ('Vthresh' , "parameters['v_thresh']"), 
-        'v_reset'   : ('Vreset'  , "parameters['v_reset']"), 
-        'tau_refrac': ('Trefract', "parameters['tau_refrac']"), 
-        'i_offset'  : ('Iinject' , "parameters['i_offset']"),         
-        'tau_syn'   : ('TauSyn'  , "parameters['tau_syn']"), 
-        'v_init'    : ('Vinit'   , "parameters['v_init']") 
+        'tau_m'     : ('taum'    , "parameters['tau_m']*1e-3" ) ,
+        'cm'        : ('Cm'      , "parameters['cm']*1e-9"), 
+        'v_rest'    : ('Vresting', "parameters['v_rest']*1e-3"), 
+        'v_thresh'  : ('Vthresh' , "parameters['v_thresh']*1e-3"), 
+        'v_reset'   : ('Vreset'  , "parameters['v_reset']*1e-3"), 
+        'tau_refrac': ('Trefract', "parameters['tau_refrac']*1e-3"), 
+        'i_offset'  : ('Iinject' , "parameters['i_offset']*1e-9"),         
+        'tau_syn'   : ('TauSyn'  , "parameters['tau_syn']*1e-3"), 
+        'v_init'    : ('Vinit'   , "parameters['v_init']*1e-3") 
     }
     pcsim_name = "LIFCurrAlphaNeuron"    
     simObjFactory = None
@@ -290,6 +290,48 @@ class IF_curr_exp(common.IF_curr_exp):
                                               TauSynExc = self.parameters['TauSynExc'], 
                                               TauSynInh = self.parameters['TauSynInh'])
 
+
+#class IF_cond_alpha(common.IF_cond_alpha):
+#    """Leaky integrate and fire model with fixed threshold and alpha-function-
+#    shaped post-synaptic conductance."""
+#    
+#    translations = {        
+#        'tau_m'     : ('taum',      "parameters['tau_m']*1e-3" ) ,
+#        'cm'        : ('Cm',        "parameters['cm']*1e-9"), 
+#        'v_rest'    : ('Vresting',  "parameters['v_rest']*1e-3"), 
+#        'v_thresh'  : ('Vthresh',   "parameters['v_thresh']*1e-3"), 
+#        'v_reset'   : ('Vreset',    "parameters['v_reset']*1e-3"), 
+#        'tau_refrac': ('Trefract',  "parameters['tau_refrac']*1e-3"), 
+#        'i_offset'  : ('Iinject',   "parameters['i_offset']*1e-9"),         
+#        'tau_syn_E' : ('TauSynExc', "parameters['tau_syn_E']*1e-3"),
+#        'tau_syn_I' : ('TauSynInh', "parameters['tau_syn_I']*1e-3"),
+#        'e_rev_E'   : ('ErevExc',   "parameters['e_rev_E']*1e-3"),
+#        'e_rev_I'   : ('ErevInh',   "parameters['e_rev_I']*1e-3"),
+#        'v_init'    : ('Vinit',     "parameters['v_init']*1e-3"), 
+#    }
+#    
+#    pcsim_name = "LIFCondAlphaNeuron"    
+#    simObjFactory = None
+#    
+#        
+#    def __init__(self, parameters):
+#        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
+#        self.parameters = self.translate(self.parameters)                
+#        self.parameters['Inoise'] = 0.0
+#        self.simObjFactory = LIFCondAlphaNeuron(taum      = self.parameters['taum'], 
+#                                                Cm        = self.parameters['Cm'], 
+#                                                Vresting  = self.parameters['Vresting'], 
+#                                                Vthresh   = self.parameters['Vthresh'],
+#                                                Vreset    = self.parameters['Vreset'],
+#                                                Trefract  = self.parameters['Trefract'], 
+#                                                Iinject   = self.parameters['Iinject'], 
+#                                                Vinit     = self.parameters['Vinit'], 
+#                                                Inoise    = self.parameters['Inoise'], 
+#                                                TauSynExc = self.parameters['TauSynExc' ],
+#                                                TauSynInh = self.parameters['TauSynInh' ],
+#                                                ErevExc   = self.parameters['ErevExc' ],
+#                                                ErevInh   = self.parameters['ErevInh' ],
+#                                                )
 
 """ Implemented not tested """
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
@@ -991,6 +1033,7 @@ class Projection(common.Projection):
         w can be a single number, in which case all weights are set to this
         value, or an array with the same dimensions as the Projection array.
         """
+        w = w*1e-9 # Convert from nA to A # !!likely problem with conductance-based synapses
         if isinstance(w, float) or isinstance(w, int):
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).W = w
@@ -1013,7 +1056,13 @@ class Projection(common.Projection):
         d can be a single number, in which case all delays are set to this
         value, or an array with the same dimensions as the Projection array.
         """
-        raise Exception("METHOD NOT YET IMPLEMENTED!")
+        d = d/1000.0 # Delays in pcsim are specified in seconds
+        if isinstance(d, float) or isinstance(d, int):
+            for i in range(len(self)):
+                pcsim_globals.net.object(self.pcsim_projection[i]).delay = d
+        else:
+            for i in range(len(self)):
+                pcsim_globals.net.object(self.pcsim_projection[i]).delay = d[i]
     
     def randomizeDelays(self, rand_distr):
         """

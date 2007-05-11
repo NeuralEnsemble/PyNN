@@ -167,11 +167,10 @@ def _translate_synapse_type(synapse_type,weight=None):
             #raise common.InvalidParameterValueError, synapse_type, "valid types are 'excitatory' or 'inhibitory'"
             syn_objref = synapse_type
     else:
-        if weight is not None:
-            if weight >= 0.0:
-                syn_objref = "esyn"
-            else:
-                syn_objref = "isyn"
+        if weight is None or weight >= 0.0:
+            syn_objref = "esyn"
+        else:
+            syn_objref = "isyn"
     return syn_objref
 
 def checkParams(param,val=None):
@@ -278,7 +277,7 @@ class IF_curr_exp(common.IF_curr_exp):
 
 class IF_cond_alpha(common.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
+    shaped post-synaptic conductance."""
     
     translations = {
         'tau_m'     : ('tau_m'    , "parameters['tau_m']"),

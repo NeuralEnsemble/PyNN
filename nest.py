@@ -96,7 +96,7 @@ class IF_curr_exp(common.IF_curr_exp):
 
 class IF_cond_alpha(common.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
+    shaped post-synaptic conductance."""
     
     translations = {
             'v_rest'    : ('U0'          , "parameters['v_rest']"),
