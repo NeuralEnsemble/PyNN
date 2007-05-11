@@ -36,7 +36,7 @@ class PopulationInitTest(unittest.TestCase):
         """Population.__init__(): Parameters set on creation should be the same as retrieved with HocToPy.get()"""
         popul = Population((3,3),IF_curr_alpha,{'tau_syn':3.141592654})
         tau_syn = pcsim_globals.net.object(popul.getObjectID(popul[2,2])).TauSyn 
-        self.assertAlmostEqual(tau_syn, 3.141592654, places=5)
+        self.assertAlmostEqual(tau_syn, 0.003141592654, places=5)
     
     def testInitWithLabel(self):
         """Population.__init__(): A label set on initialisation should be retrievable with the Population.label attribute."""
@@ -65,7 +65,7 @@ class PopulationIndexTest(unittest.TestCase):
         self.net2 = Population((2,4,3),IF_curr_exp)
         self.net3 = Population((2,2,1),SpikeSourceArray)
         self.net4 = Population((1,2,1),SpikeSourceArray)
-        self.net5 = Population((3,3),IF_cond_alpha)
+        self.net5 = Population((3,3),IF_curr_exp)
     
     def testValidIndices(self):
         for i in range(10):
@@ -104,12 +104,12 @@ class PopulationSetTest(unittest.TestCase):
      def testSetFromDict(self):
          """Population.set(): Parameters set in a dict should all be retrievable from PyPCSIM directly"""
          self.popul1.set({'tau_m':43.21})
-         self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(8)).taum, 43.21, places = 5)
+         self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(8)).taum, 0.04321, places = 5)
 #     
      def testSetFromPair(self):
         """Population.set(): A parameter set as a string,value pair should be retrievable using PyPCSIM directly"""
         self.popul1.set('tau_m',12.34)
-        self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).taum, 12.34, places = 5)
+        self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).taum, 0.01234, places = 5)
      
      def testSetInvalidFromPair(self):
          """Population.set(): Trying to set an invalid value for a parameter should raise an exception."""
@@ -266,7 +266,7 @@ class ProjectionInitTest(unittest.TestCase):
                  for i in range(len(prj1)):
                      weights.append(pcsim_globals.net.object(prj1.pcsim_projection[i]).W)
                  for w in weights:
-                     self.assertAlmostEqual(w,1.234, places = 7)
+                     self.assertAlmostEqual(w,1.234*1e-9, places = 7)
          
      def testFixedProbability(self):
          """For all connections created with "fixedProbability" it should be possible to obtain the weight using pyneuron.getWeight()"""
@@ -327,7 +327,7 @@ class ProjectionSetTest(unittest.TestCase):
          for i in range(len(prj1)):
              weights.append(pcsim_globals.net.object(prj1[i]).W)
          for w in weights:
-             self.assertAlmostEqual(w, 2.345)
+             self.assertAlmostEqual(w, 2.345*1e-9)
          
          
      def testrandomizeWeights(self):
@@ -400,4 +400,3 @@ class ProjectionSetTest(unittest.TestCase):
 
 if __name__ == "__main__":
      unittest.main()
-    

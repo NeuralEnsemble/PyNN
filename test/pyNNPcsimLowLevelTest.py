@@ -47,8 +47,8 @@ class CreationTest(unittest.TestCase):
     def testCreateStandardCellWithParams(self):
         """create(): Parameters set on creation should be the same as retrieved with pypcsim"""        
         global pcsim_globals
-        cellid = create(IF_curr_alpha,{'tau_syn':3.141592654})
-        self.assertAlmostEqual(pcsim_globals.net.object(cellid).TauSyn, 3.141592654, places = 6)
+        cellid = create(IF_curr_alpha,{'tau_syn':3.141592654}) # ms
+        self.assertAlmostEqual(pcsim_globals.net.object(cellid).TauSyn, 0.003141592654, places = 6) #s
     
     def testCreatePCSIMCell(self):
         """create(): First cell created should have index 0."""        
@@ -72,7 +72,7 @@ class ConnectionTest(unittest.TestCase):
     """Tests of the connect() function."""
     
     def setUp(self):
-        setup()
+        setup(max_delay=5.0)
         self.postcells = create(IF_curr_alpha,n=3)
         self.precells = create(SpikeSourcePoisson,n=5)
         
@@ -187,7 +187,7 @@ class RecordTest(unittest.TestCase):
             pcsim_globals.net.object(n).setSpikes( [ (i+1) * 0.001 + t for t in arange(0,1,0.01) ] )                    
         record( spiking_nrn, "recordTestSpikeFile1.txt")                
         run(1000)
-	end() 
+	end(compatible_output=False) 
         # Now check the contents of the file
         f = file('recordTestSpikeFile1.txt', 'r')
         expected_id = 0;
