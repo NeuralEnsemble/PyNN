@@ -153,8 +153,12 @@ class SpikeSourceArray(common.SpikeSourceArray):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
-    """Should be called at the very beginning of a script."""
+def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
+    """
+    Should be called at the very beginning of a script.
+    extra_params contains any keyword arguments that are required by a given
+    simulator but not by others.
+    """
     if min_delay > max_delay:
         raise Exception("min_delay has to be less than or equal to max_delay.")
     global dt
@@ -243,7 +247,8 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
-    generator supplied, or the default rng otherwise."""
+    generator supplied, or the default rng otherwise.
+    Weights should be in nA or uS."""
     global dt
     if weight is None:
         weight = 0.0
@@ -686,23 +691,22 @@ class Population(common.Population):
     
     def printSpikes(self,filename,gather=True, compatible_output=True):
         """
-        Prints spike times to file in the two-column format
-	On the first line the dimensions of the population are saved as
-	# x y z
-	And then, we writes "spiketime cell_id" where cell_id is the relative gid
-	of the cell (starting from 0 to the number of cells in the population,
-	because we have substract the starting gid of the population)
+        Writes spike times to file.
+        If compatible_output is True, the format is "spiketime cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
         This allows easy plotting of a `raster' plot of spiketimes, with one
         line for each cell.
-	This "compatible output" is the same than pyNN.neuron, and imply a 
-	small postprocesing of the files produced by nest. To avoid that, the option
-	compatible_output can be set to False and then the results are the results given
-	by nest, i.e:
-	spikes_time (in dt unit) and gid (global gid)
-
-        TODO : return a numpy array?
-
-        """
+        The timestep and number of data points per cell is written as a header,
+        indicated by a '#' at the beginning of the line.
+        
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        spike files.
+        
+        If gather is True, the file will only be created on the master node,
+        otherwise, a file will be written on each node.
+        """        
         global hl_spike_files
         tempfilename = '%s.spikes' % self.label
 
@@ -759,23 +763,17 @@ class Population(common.Population):
     def print_v(self,filename,gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
-	On the first lines informations ar saved as
-	# dt = ... (dt in ms)
-	# n = ...  (number of recorded values)
-	# x y z (dimensions of the population)
-	
-	And then, we writes "Vm cell_id" where cell_id is the relative gid
-	of the cell (starting from 0 to the number of cells in the population,
-	because we have substract the starting gid of the population)
-	
-	This "compatible output" is the same than pyNN.neuron, and imply a 
-	small postprocesing of the files produced by nest. To avoid that, the option
-	compatible_output can be set to False and then the results are the results given
-	by nest, i.e:
-	# dt = ...
-	# n = ...
-	Vm and gid (global gid)
-	
+        If compatible_output is True, the format is "v cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
+        This allows easy plotting of a `raster' plot of spiketimes, with one
+        line for each cell.
+        The timestep and number of data points per cell is written as a header,
+        indicated by a '#' at the beginning of the line.
+        
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        voltage files.
         """
         global hl_v_files
 	

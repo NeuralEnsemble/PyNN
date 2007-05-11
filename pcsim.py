@@ -399,19 +399,28 @@ class SpikeSourceArray(common.SpikeSourceArray):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10, construct_rng_seed = None, simulation_rng_seed = None, debug=False):
-    """Should be called at the very beginning of a script."""
+def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False, **extra_params):
+    """
+    Should be called at the very beginning of a script.
+    extra_params contains any keyword arguments that are required by a given
+    simulator but not by others.
+    For pcsim, the possible arguments are 'construct_rng_seed' and 'simulation_rng_seed'.
+    """
     global pcsim_globals, dt
     pcsim_globals.dt = timestep
     dt = timestep
     pcsim_globals.minDelay = min_delay
     pcsim_globals.maxDelay = max_delay
     if pcsim_globals.constructRNGSeed is None:
-        if construct_rng_seed is None:
+        if extra_params.has_key('construct_rng_seed'):
+            construct_rng_seed = extra_params['construct_rng_seed']
+        else:
             construct_rng_seed = datetime.today().microsecond
         pcsim_globals.constructRNGSeed = construct_rng_seed
     if pcsim_globals.simulationRNGSeed is None:
-        if simulation_rng_seed is None:
+        if extra_params.has_key('simulation_rng_seed'):
+            simulation_rng_seed = extra_params['simulation_rng_seed']
+        else:
             simulation_rng_seed = datetime.today().microsecond
         pcsim_globals.simulationRNGSeed = simulation_rng_seed    
     pcsim_globals.net = DistributedSingleThreadNetwork(SimParameter( Time.ms(timestep), Time.ms(min_delay), Time.ms(max_delay), 
@@ -499,7 +508,8 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
-    generator supplied, or the default rng otherwise."""
+    generator supplied, or the default rng otherwise.
+    Weights should be in nA or uS."""
     global pcsim_globals
     if weight is None:  weight = 0.0
     if delay  is None:  delay = pcsim_globals.minDelay
@@ -843,24 +853,42 @@ class Population(common.Population):
         sources = [ self.pcsim_population[i] for i in src_indices ]
         self.vm_rec = FieldMultiChannelRecorder(sources, None, src_indices)
      
-    def printSpikes(self, filename, gather=True):
+    def printSpikes(self, filename, gather=True,compatible_output=True):
         """
-        Prints spike times to file in the two-column format
-        "spiketime cell_id" where cell_id is the index of the cell counting
-        along rows and down columns (and the extension of that for 3-D).
+        Writes spike times to file.
+        If compatible_output is True, the format is "spiketime cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
         This allows easy plotting of a `raster' plot of spiketimes, with one
-        line for each cell. This method requires that the cell class records
-        spikes in a vector spiketimes.
+        line for each cell.
+        The timestep and number of data points per cell is written as a header,
+        indicated by a '#' at the beginning of the line.
+        
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        spike files.
+        
         If gather is True, the file will only be created on the master node,
         otherwise, a file will be written on each node.
-        """
+        """        
         """PCSIM: implemented by corresponding recorders at python level """
         self.spike_rec.saveSpikesText(filename)
         
         
-    def print_v(self, filename, gather=True):
+    def print_v(self, filename, gather=True,compatible_output=True):
         """
         Write membrane potential traces to file.
+        If compatible_output is True, the format is "v cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
+        This allows easy plotting of a `raster' plot of spiketimes, with one
+        line for each cell.
+        The timestep and number of data points per cell is written as a header,
+        indicated by a '#' at the beginning of the line.
+        
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        voltage files.
         """
         """PCSIM: will be implemented by corresponding analog recorders at python level object  """
         self.vm_rec.saveValuesText(filename)
@@ -1108,14 +1136,14 @@ class Projection(common.Projection):
     
     # --- Methods for writing/reading information to/from file. ----------------
     
-    def saveConnections(self, filename):
+    def saveConnections(self, filename,gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
         # should think about adding a 'gather' option.
         raise Exception("Method not yet implemented")
         
     
-    def printWeights(self, filename, format=None):
+    def printWeights(self, filename, format=None, gather=True):
         """Print synaptic weights to file."""
         raise Exception("Method not yet implemented")
     

@@ -342,8 +342,12 @@ class SpikeSourceArray(common.SpikeSourceArray):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
-    """Should be called at the very beginning of a script."""
+def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
+    """
+    Should be called at the very beginning of a script.
+    extra_params contains any keyword arguments that are required by a given
+    simulator but not by others.
+    """
     global dt, nhost, myid, _min_delay, logger
     dt = timestep
     _min_delay = min_delay
@@ -485,7 +489,8 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
-    generator supplied, or the default rng otherwise."""
+    generator supplied, or the default rng otherwise.
+    Weights should be in nA or uS."""
     global ncid, gid, gidlist, _min_delay
     if type(source) != types.ListType:
         source = [source]
@@ -975,15 +980,22 @@ class Population(common.Population):
 
     def printSpikes(self,filename,gather=True, compatible_output=True):
         """
-        Prints spike times to file in the two-column format
-        "spiketime cell_id" where cell_id is the index of the cell counting
-        along rows and down columns (and the extension of that for 3-D).
+        Writes spike times to file.
+        If compatible_output is True, the format is "spiketime cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
         This allows easy plotting of a `raster' plot of spiketimes, with one
-        line for each cell. This method requires that the cell class records
-        spikes in a vector spiketimes.
+        line for each cell.
+        The timestep and number of data points per cell is written as a header,
+        indicated by a '#' at the beginning of the line.
+        
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        spike files.
+        
         If gather is True, the file will only be created on the master node,
         otherwise, a file will be written on each node.
-        """
+        """        
         hoc_comment("--- Population[%s].__printSpikes()__ ---" %self.label)
 	header = "# %d" %self.dim[0]
 	for dimension in list(self.dim)[1:]:
@@ -993,6 +1005,17 @@ class Population(common.Population):
     def print_v(self,filename,gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
+        If compatible_output is True, the format is "v cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
+        This allows easy plotting of a `raster' plot of spiketimes, with one
+        line for each cell.
+        The timestep and number of data points per cell is written as a header,
+        indicated by a '#' at the beginning of the line.
+        
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        voltage files.
         """
         tstop = HocToPy.get('tstop','float')
         header = "# dt = %f\\n# n = %d\\n" % (dt,int(tstop/dt))

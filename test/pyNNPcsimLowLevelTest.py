@@ -72,7 +72,7 @@ class ConnectionTest(unittest.TestCase):
     """Tests of the connect() function."""
     
     def setUp(self):
-        setup()
+        setup(max_delay=5.0)
         self.postcells = create(IF_curr_alpha,n=3)
         self.precells = create(SpikeSourcePoisson,n=5)
         

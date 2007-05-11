@@ -334,8 +334,12 @@ class SpikeSourceArray(common.SpikeSourceArray):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
-    """Should be called at the very beginning of a script."""
+def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
+    """
+    Should be called at the very beginning of a script.
+    extra_params contains any keyword arguments that are required by a given
+    simulator but not by others.
+    """
     global logfile, dt, _min_delay
     dt = timestep
     _min_delay = min_delay
@@ -354,7 +358,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False):
     hoc_execute(hoc_commands,"--- setup() ---")
     return 0
 
-def end():
+def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     global logfile, vfilelist, spikefilelist
     hoc_commands = []
@@ -427,7 +431,8 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
-    generator supplied, or the default rng otherwise."""
+    generator supplied, or the default rng otherwise.
+    Weights should be in nA or uS."""
     global hoc_netcons, _min_delay
     if type(source) != types.ListType:
         source = [source]
@@ -740,15 +745,26 @@ class Population(common.Population):
         """
         self.__record('_v',record_from,rng)
         
-    def printSpikes(self,filename,gather=True):
+    def printSpikes(self,filename,gather=True,compatible_output=True):
         """
-        Prints spike times to file in the two-column format
-        "spiketime cell_id" where cell_id is the index of the cell counting
-        along rows and down columns (and the extension of that for 3-D).
+        Writes spike times to file.
+        If compatible_output is True, the format is "spiketime cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
         This allows easy plotting of a `raster' plot of spiketimes, with one
-        line for each cell. This method requires that the cell class records
-        spikes in a vector spiketimes.
+        line for each cell.
+        The timestep and number of data points per cell is written as a header,
+        indicated by a '#' at the beginning of the line.
+        
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        spike files.
+        
+        If gather is True, the file will only be created on the master node,
+        otherwise, a file will be written on each node.
         """
+        # Note that 'gather' has no effect, since this module is not
+        # parallelised.
         hoc_commands = ['objref spikefile',
                         'spikefile = new File()',
                         'spikefile.wopen("%s")' % filename,
@@ -775,9 +791,20 @@ class Population(common.Population):
         rvals = rand_distr.next(self.dim)
         self._tcall('memb_init',rvals)
         
-    def print_v(self,filename,gather=True):
+    def print_v(self,filename,gather=True,compatible_output=True):
         """
         Write membrane potential traces to file.
+        If compatible_output is True, the format is "v cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
+        This allows easy plotting of a `raster' plot of spiketimes, with one
+        line for each cell.
+        The timestep and number of data points per cell is written as a header,
+        indicated by a '#' at the beginning of the line.
+        
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        voltage files.
         """
         hoc_commands = ['objref vfile',
                         'vfile = new File()',
@@ -1159,4 +1186,3 @@ class Projection(common.Projection):
 Timer = common.Timer
     
 # ==============================================================================
-    
