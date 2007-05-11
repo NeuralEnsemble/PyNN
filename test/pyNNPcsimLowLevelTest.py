@@ -47,8 +47,8 @@ class CreationTest(unittest.TestCase):
     def testCreateStandardCellWithParams(self):
         """create(): Parameters set on creation should be the same as retrieved with pypcsim"""        
         global pcsim_globals
-        cellid = create(IF_curr_alpha,{'tau_syn':3.141592654})
-        self.assertAlmostEqual(pcsim_globals.net.object(cellid).TauSyn, 3.141592654, places = 6)
+        cellid = create(IF_curr_alpha,{'tau_syn':3.141592654}) # ms
+        self.assertAlmostEqual(pcsim_globals.net.object(cellid).TauSyn, 0.003141592654, places = 6) #s
     
     def testCreatePCSIMCell(self):
         """create(): First cell created should have index 0."""        
