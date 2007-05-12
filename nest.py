@@ -1149,6 +1149,22 @@ class Projection(common.Projection):
                 parameters['pre_id'] = pre
                 #a=Projection(self.pre,self.post,'rcf_2D',parameters)
                 rcf_2D(parameters)
+
+    def _test_delay(self,params,synapse_type=None):
+        # debug get delays from outside
+        #delay_array = parameters['delays_array']
+        #weight_array = parameters['weights_array']
+        #target_id = parameters['target_id']
+        #pre_id = parameters['pre_id']
+        print 'inside test_delay'
+        print 'delays ',params['delays_array']
+        print 'weights ',params['weights_array']
+        print 'pre_id ',params['pre_id']
+        print 'target_id ',params['target_id']
+        eval(params['eval_string'])
+        #cons=pynest.divConnect(params['pre_id'],params['target_id'],params['weights_array'].tolist(),params['delays_array'].tolist())
+        #pynest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
+        print 'leaving test_delay'
         
     def _3D_Gauss(self,parameters,synapse_type=None):
         """
@@ -1197,7 +1213,7 @@ class Projection(common.Projection):
             phi = rng.uniform(size=n)*(2.0*pi)
             r = rng.normal(scale=sigma,size=n)
             # for z 
-            h = rng.uniform(size=n)*post_dim[2] # here post dim because it does not metter where it comes from in pre dim
+            #h = rng.uniform(size=n)*post_dim[2] # here post dim because it does not metter where it comes from in pre dim
             
             target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi)).astype('int')
             target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi)).astype('int')
@@ -1276,6 +1292,12 @@ class Projection(common.Projection):
             #weight_array=weight_array.round(decimals=2)
                 #delay_list = rng_params.normal(loc=delay,scale=delay/params_dist,size=n_syn)
             #delay_list = r_syn/transmission_speed
+
+            
+            # debug get delays from outside
+            #delay_array = parameters['delays_array']
+            #weight_array = parameters['weights_array']
+            #target_id = parameters['target_id']
             if pre_id==100:
                 print '#############################################'
                 print 'This is the data in 3D Gauss'
@@ -1301,7 +1323,12 @@ class Projection(common.Projection):
                 #print 'len weigth ', len(weight_array.tolist())
                 #print 'delay list: ',type(delay_array.tolist())
 
+            #pynest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
+            #delays_array = rng.normal(loc=pynest.getDict([0])[0]['max_delay']/2.,scale=abs(pynest.getDict([0])[0]['max_delay']/2.*params_dist),size=n)
+            #weights_array = delays_array
+            
             pynest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
+            
             #return delay_array
             #else:
                 #print 'no dist'
