@@ -96,7 +96,7 @@ class StandardCellType(object):
                     else:
                         raise InvalidParameterValueError, (type(supplied_parameters[k]), type(default_parameters[k]))
                 else:
-                    raise NonExistentParameterError
+                    raise NonExistentParameterError(k)
         return parameters
 
     def translate(self,parameters):

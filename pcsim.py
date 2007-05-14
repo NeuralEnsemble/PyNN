@@ -637,6 +637,10 @@ class Population(common.Population):
         self.actual_ndim = len(dims)       
         while len(dims) < 3:
             dims += (1,)
+        # There is a problem here, since self.dim should hold the nominal dimensions of the
+        # population, while in PCSIM the population is always really 3D, even if some of the
+        # dimensions have size 1. We should add a variable self._dims to hold the PCSIM dimensions,
+        # and make self.dims be the nominal dimensions.
         common.Population.__init__(self, dims, cellclass, cellparams, label)
         
         
@@ -678,20 +682,22 @@ class Population(common.Population):
              p[2,3] is equivalent to p.__getitem__((2,3)).
         """
         # What we actually pass around are gids.
-        orig_addr = addr;
         if isinstance(addr, int):
             addr = (addr,)
+        if len(addr) != self.actual_ndim:
+           raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addr))
+        orig_addr = addr;
         while len(addr) < 3:
             addr += (0,)                  
-        if len(addr) != len(self.dim):
-           raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addr))
         index = 0
         for i, s in zip(addr, self.steps):
             index += i*s
         id = index 
         pcsim_index = self.pcsim_population.getIndex(addr[0],addr[1],addr[2])
         assert id == pcsim_index, " id = %s, pcsim_index = %s" % (id, pcsim_index)
-        assert orig_addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, orig_addr, id, self.locate(id))
+        if orig_addr != self.locate(id):
+            raise IndexError, 'Invalid cell address %s' % str(addr)
+        #assert orig_addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, orig_addr, id, self.locate(id))
         return id
         
         
@@ -706,7 +712,7 @@ class Population(common.Population):
             rows = self.dim[1]; cols = self.dim[2]
             i = id/(rows*cols); remainder = id%(rows*cols)
             j = remainder/cols; k = remainder%cols
-            coords = (k, j, i)
+            coords = (i, j, k)
         elif self.ndim == 2:
             cols = self.dim[1]
             i = id/cols; j = id%cols
@@ -716,7 +722,10 @@ class Population(common.Population):
         else:
             raise common.InvalidDimensionsError
         if self.actual_ndim == 1:
-            coords = (coords[0],)
+            if coords[0] > self.dim[0]:
+                coords = None # should probably raise an Exception here rather than hope one will be raised down the line
+            else:
+                coords = (coords[0],)
         elif self.actual_ndim == 2:
             coords = (coords[0],coords[1],)
         pcsim_coords = self.pcsim_population.getLocation(id)
@@ -724,9 +733,10 @@ class Population(common.Population):
         if self.actual_ndim == 1:
             pcsim_coords = (pcsim_coords[0],)
         elif self.actual_ndim == 2:
-            pcsim_coords = (pcsim_coords[0],pcsim_coords[1],)    
-        # assert coords == pcsim_coords, " coords = %s, pcsim_coords = %s " % (coords, pcsim_coords)
-        return pcsim_coords
+            pcsim_coords = (pcsim_coords[0],pcsim_coords[1],)
+        if coords:
+            assert coords == pcsim_coords, " coords = %s, pcsim_coords = %s " % (coords, pcsim_coords)
+        return coords
     
     def getObjectID(self, index):
         return self.pcsim_population[index]
@@ -763,9 +773,15 @@ class Population(common.Population):
         """
         """PCSIM: iteration and set """
         if self.dim[0:self.actual_ndim] == valueArray.shape:
-            values = numpy.reshape(valueArray, valueArray.size)                          
+            values = numpy.copy(valueArray) # we do not wish to change the original valueArray in case it needs to be reused in user code
+            values = numpy.reshape(values, values.size)                          
             if issubclass(self.celltype, common.StandardCellType):
-                parametername = self.celltype({}).translate({parametername: values[0]}).keys()[0]             
+                try:
+                    unit_scale_factor = self.celltype({}).translate({parametername: values[0]}).values()[0]/values[0]
+                except TypeError:
+                    raise common.InvalidParameterValueError(values[0])
+                parametername = self.celltype({}).translate({parametername: values[0]}).keys()[0]
+                values *= unit_scale_factor
             for i, val in enumerate(values):
                 try:
                     obj = pcsim_globals.net.object(self.pcsim_population[i])                 
@@ -895,7 +911,7 @@ class Population(common.Population):
         voltage files.
         """
         """PCSIM: will be implemented by corresponding analog recorders at python level object  """
-        self.vm_rec.saveValuesText(filename)
+        self.vm_rec.saveValuesText(filename,compatible_output=compatible_output)
         
     
     def meanSpikeCount(self, gather=True):         
@@ -920,7 +936,6 @@ class Population(common.Population):
         """
         """ PCSIM: can be reduced to rset() where parameterName is Vinit"""
         self.rset("v_init", rand_distr)
-     
 
 
 class Projection(common.Projection):
@@ -1043,8 +1058,13 @@ class Projection(common.Projection):
             self.syn_factory = SimpleScalingSpikingSynapse(target, 1, pcsim_globals.minDelay/1000)
         else:
             if isinstance(target, str):
-                target = eval(target)
-                self.syn_factory = target({})
+                if target == 'excitatory':
+                    self.syn_factory = SimpleScalingSpikingSynapse(1, 1, pcsim_globals.minDelay/1000)
+                elif target == 'inhibitory':
+                    self.syn_factory = SimpleScalingSpikingSynapse(2, 1, pcsim_globals.minDelay/1000)
+                else:
+                    target = eval(target)
+                    self.syn_factory = target({})
             else:
                 self.syn_factory = target
             

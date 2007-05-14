@@ -233,8 +233,9 @@ class PopulationSetTest(unittest.TestCase):
     
     def testSetFromDict(self):
         """Parameters set in a dict should all be retrievable using pynest.getDict()"""
-        self.net.set({'tau_m':43.21})
+        self.net.set({'tau_m':43.21, 'cm':0.987})
         assert nest.pynest.getDict([self.net.cell[0,0]])[0]['Tau'] == 43.21
+        assert nest.pynest.getDict([self.net.cell[0,0]])[0]['C'] == 987.0 # pF
     
     def testSetFromPair(self):
         """A parameter set as a string,value pair should be retrievable using pynest.getDict()"""
@@ -267,11 +268,18 @@ class PopulationSetTest(unittest.TestCase):
     def testTSet(self):
         """The valueArray passed should be retrievable using pynest.getDict() on all nodes."""
         array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
-        self.net.tset('i_offset', array_in)
+        self.net.tset('cm', array_in)
         tmp = nest.pynest.getDict(list(self.net.cell.reshape((9,))))
-        tmp = [d['I0'] for d in tmp]
+        tmp = [d['C'] for d in tmp]
         array_out = numpy.array(tmp).reshape((3,3))
         assert numpy.equal(array_in, array_out).all()
+    
+    def testTSetArrayUnchanged(self):
+        array_in1 = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
+        array_in2 = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
+        self.assert_((array_in1==array_in2).all())
+        self.net.tset('cm', array_in1)
+        self.assert_((array_in1==array_in2).all())
     
     def testTSetInvalidDimensions(self):
         """If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
