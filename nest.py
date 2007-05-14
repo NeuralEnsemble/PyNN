@@ -256,6 +256,8 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
         delay = pynest.getLimits()['min_delay']
     weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                          # Using convention in this way is not ideal. We should be able to look up the units used by each model somewhere.
+    if synapse_type == 'inhibitory' and weight > 0:
+        weight *= -1
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
             connect_id = pynest.connectWD(pynest.getAddress(source),pynest.getAddress(target),weight,delay)
@@ -885,7 +887,7 @@ class Projection(common.Projection):
                                       # is a cell allowed to connect to itself?
         if parameters and parameters.has_key('allow_self_connections'):
             allow_self_connections = parameters['allow_self_connections']
-            
+        self.synapse_type = synapse_type
         postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
         for post in postsynaptic_neurons:
@@ -908,6 +910,7 @@ class Projection(common.Projection):
         cell i in a 1D pre population of size n should connect to all cells
         in row i of a 2D post population of size (n,m).
         """
+        self.synapse_type = synapse_type
         if self.pre.dim == self.post.dim:
             self._sources = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
             self._targets = numpy.reshape(self.post.cell,(self.post.cell.size,))
@@ -923,6 +926,7 @@ class Projection(common.Projection):
         """
         For each pair of pre-post cells, the connection probability is constant.
         """
+        self.synapse_type = synapse_type
         allow_self_connections = True
         try:
             p_connect = float(parameters)
@@ -951,6 +955,7 @@ class Projection(common.Projection):
         d_expression should be the right-hand side of a valid python expression
         for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
         """
+        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.StringType:
             d_expression = parameters
@@ -1003,6 +1008,7 @@ class Projection(common.Projection):
     
     def _fixedNumberPre(self,parameters,synapse_type=None):
         """Each presynaptic cell makes a fixed number of connections."""
+        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -1019,6 +1025,7 @@ class Projection(common.Projection):
     
     def _fixedNumberPost(self,parameters,synapse_type=None): #CHEAT CHEAT CHEAT
         """Each postsynaptic cell receives a fixed number of connections."""
+        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -1047,7 +1054,8 @@ class Projection(common.Projection):
     def _fromFile(self,parameters,synapse_type=None):
         """
         Load connections from a file.
-        """    
+        """
+        self.synapse_type = synapse_type
         if type(parameters) == types.FileType:
             fileobj = parameters
             # should check here that fileobj is already open for reading
@@ -1077,6 +1085,7 @@ class Projection(common.Projection):
         Read connections from a list of tuples,
         containing ['src[x,y]', 'tgt[x,y]', 'weight', 'delay']
         """
+        self.synapse_type = synapse_type
         # We go through those tuple and extract the fields
         for i in xrange(len(conn_list)):
             src    = conn_list[i][0]
@@ -1104,6 +1113,7 @@ class Projection(common.Projection):
         n: number of synpases
         sigma: sigma of the Gauss
         """
+        self.synapse_type = synapse_type
         def rcf_2D(parameters):
             rng = parameters['rng']
             pre_id = parameters['pre_id']
@@ -1151,6 +1161,7 @@ class Projection(common.Projection):
                 rcf_2D(parameters)
 
     def _test_delay(self,params,synapse_type=None):
+        self.synapse_type = synapse_type
         # debug get delays from outside
         #delay_array = parameters['delays_array']
         #weight_array = parameters['weights_array']
@@ -1176,7 +1187,6 @@ class Projection(common.Projection):
         n: number of synpases
         sigma: sigma of the Gauss
         """
-
         #def get_ids(self,parameters):
             #ids = []
             #if len(addrs) == self.ndim:
@@ -1373,10 +1383,12 @@ class Projection(common.Projection):
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
+        w = w*1000 # weights should be in nA or µS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+                   # Using convention in this way is not ideal. We should be able to look up the units used by each model somewhere.
+        if self.synapse_type == 'inhibitory' and w > 0:
+            w *= -1
         if type(w) == types.FloatType or type(w) == types.IntType or type(w) == numpy.float64 :
-            w = w*1000 # weights should be in nA or µS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
-                       # Using convention in this way is not ideal. We should be able to look up the units used by each model somewhere.
-            # set all the weights from a given node at once
+           # set all the weights from a given node at once
             for src in numpy.reshape(self.pre.cell,self.pre.cell.size):
                 assert isinstance(src,int), "GIDs should be integers"
                 src_addr = pynest.getAddress(src)
