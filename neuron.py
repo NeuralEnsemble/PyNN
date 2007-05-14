@@ -22,6 +22,7 @@ gidlist       = []
 vfilelist     = {}
 spikefilelist = {}
 dt            = 0.1
+running       = False
 
 # ==============================================================================
 #   Utility classes
@@ -433,12 +434,17 @@ def end(compatible_output=True):
 
 def run(simtime):
     """Run the simulation for simtime ms."""
-    hoc_commands = ['tstop = %f' %simtime,
-                    'print "dt        = %f"' %dt,
-                    'print "tstop     = %f"' % simtime,
-                    'print "min delay = ", pc.set_maxstep(100)',
-                    'tmp = finitialize()',
-                    'tmp = pc.psolve(%f)' %simtime]
+    global running
+    hoc_commands = []
+    if not running:
+        running = True
+        hoc_commands += ['tstop = 0',
+                         'print "dt        = %f"' % dt,
+                         'print "min delay = ", pc.set_maxstep(100)',
+                         'tmp = finitialize()',]
+    hoc_commands += ['tstop += %f' %simtime,
+                     'print "tstop     = ", tstop',
+                     'tmp = pc.psolve(tstop)']
     hoc_execute(hoc_commands,"--- run() ---")
 
 def setRNGseeds(seedList):
