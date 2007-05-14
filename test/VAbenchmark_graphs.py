@@ -6,14 +6,14 @@ if len(sys.argv) < 2:
     sys.exit(1)
 benchmark = sys.argv[1]
 
-simulator = 'nest'
+simulators = ('neuron','nest','pcsim')
 v_thresh = -50.0
 #pylab.rcParams['backend'] = 'PS'
 CM=1/2.54
-pylab.rcParams['figure.figsize'] = [40*CM,40*CM] # inches
+pylab.rcParams['figure.figsize'] = [60*CM,40*CM] # inches
 
 ny = 4
-dy = 1.0/ny; dx = 0.5;
+dy = 1.0/ny; dx = 1.0/len(simulators);
 h = 0.8*dy; w = 0.8*dx
 y0 = (1-ny*h)/(ny+1);
 x0 = 0.05
@@ -60,46 +60,52 @@ def plot_hist(axes,hist,bins,width,xlabel=None,ylabel="n in bin",
 
 
 x = x0; 
-for simulator in 'nest','neuron':
+for simulator in simulators:
 
     col = 1
+    pylab.axes([x,y0+2.9*dy,w,h])
+    pylab.title(simulator[:6].upper(),fontsize='x-large')
+    pylab.ylabel("Membrane potential (mV)")
     
     # Get info about dataset from header of .v file
     exec(get_header("VAbenchmark_%s_exc_%s.v" % (benchmark,simulator)))
-    tdata = pylab.arange(0,n*dt,dt)
     
     # Plot membrane potential trace
-    vdata = pylab.load("VAbenchmark_%s_exc_%s.v" % (benchmark,simulator), comments='#')
-    if len(pylab.shape(vdata)) > 1: # take just the first column
-        vdata = vdata[:,0]  
-    vdata = pylab.where(vdata>=v_thresh-0.05,0.0,vdata) # add fake APs for plotting
-    
-    pylab.axes([x,y0+2.9*dy,w,h])
-    pylab.title(simulator.upper())
-    pylab.ylabel("Membrane potential (mV)")
+    allvdata = pylab.load("VAbenchmark_%s_exc_%s.v" % (benchmark,simulator), comments='#')
+    cell_ids = allvdata[:,1].astype(pylab.Int)
+    allvdata = allvdata[:,0]
+    sortmap = pylab.argsort(cell_ids, kind='mergesort')
+    cell_ids = pylab.take(cell_ids,sortmap)
+    allvdata = pylab.take(allvdata,sortmap)
     for i in 0,1:
-        pylab.plot(tdata,vdata[i*n:(i+1)*n])
-    pylab.axis(ymin=-70,ymax=0.0)
+        tdata = pylab.arange(0,(n+1)*dt,dt)
+        vdata = allvdata.compress(cell_ids==i)
+        vdata = pylab.where(vdata>=v_thresh-0.05,0.0,vdata) # add fake APs for plotting
+        if len(tdata) > len(vdata):
+            print "Warning. Shortening tdata from %d to %d elements (%s)" % (len(tdata),len(vdata),simulator)
+            tdata = tdata[0:len(vdata)]
+        assert len(tdata)==len(vdata), "%d != %d (%s)" % (len(tdata),len(vdata),simulator)
+    
+        #for i in 0,1:
+        #    pylab.plot(tdata,vdata[i*n:(i+1)*n])
+        pylab.plot(tdata,vdata)
+        #pylab.axis(ymin=-70,ymax=0.0)
     
     # Plot spike rasters
     exc_spikedata = pylab.load("VAbenchmark_%s_exc_%s.ras" % (benchmark,simulator))
     inh_spikedata = pylab.load("VAbenchmark_%s_inh_%s.ras" % (benchmark,simulator))
-    
+
     exc_spikeids   = exc_spikedata[:,1].astype(pylab.Int)
     inh_spikeids   = inh_spikedata[:,1].astype(pylab.Int)
-    if simulator == 'nest':
-        exc_spiketimes = exc_spikedata[:,2]*dt
-        inh_spiketimes = inh_spikedata[:,2]*dt
-    elif simulator == 'neuron':
-        exc_spiketimes = exc_spikedata[:,0]
-        inh_spiketimes = inh_spikedata[:,0]
-    
+    exc_spiketimes = exc_spikedata[:,0]
+    inh_spiketimes = inh_spikedata[:,0]
+
     pylab.axes([x,y0+2*dy,w,h])
     pylab.xlabel("Time (ms)")
     pylab.ylabel("cell #")
-    pylab.plot(exc_spiketimes,exc_spikeids, markersize=1, marker='.', linestyle=None)
+    pylab.plot(exc_spiketimes,exc_spikeids, markersize=1, marker='.', linestyle='')
     pylab.axis([0, n*dt, 0, 320])
-    
+
     # Inter-spike-interval histograms
     bins = pylab.exp(pylab.arange(0,8,0.2))
     exc_pop_isis = population_isis(exc_spiketimes,exc_spikeids)
@@ -108,16 +114,16 @@ for simulator in 'nest','neuron':
         xlabel="Inter-spike interval (ms)",xticks=pylab.log([3,10,30,100,1000]),
         xticklabels=['3','10','30','100','1000'],xmin=pylab.log(2),ymax=1.0e4)
     pylab.title('Exc')
-    
+
     inh_pop_isis = population_isis(inh_spiketimes,inh_spikeids)
     isihist = isi_hist(inh_pop_isis,bins)
     plot_hist([x+0.45*dx,y0+dy,0.4*w,h],isihist,pylab.arange(0,8,0.2),0.2,
         xlabel="Inter-spike interval (ms)",xticks=pylab.log([3,10,30,100,1000]),
         xticklabels=['3','10','30','100','1000'],xmin=pylab.log(2),ymax=0.2e4)
     pylab.title('Inh')
-    
+
     # Histograms of coefficients of variation of ISI
-    for pop_isis,xoffset,ymax in zip([exc_pop_isis, inh_pop_isis],[0.0,0.45*dx],[800,150]):
+    for pop_isis,xoffset,ymax in zip([exc_pop_isis, inh_pop_isis],[0.0,0.45*dx],[800,200]):
         cvs = []
         for isi in pop_isis:
             if len(isi) > 1:        # need at least two spikes to have a CV
@@ -127,7 +133,7 @@ for simulator in 'nest','neuron':
         cvhist = nstats.histc(cvs,bins)
         plot_hist([x+xoffset,y0,0.4*w,h], cvhist, bins, 0.1, xlabel="ISI CV", ymax=ymax)
     
-    x += 0.5
+    x += dx
     
 pylab.savefig("VAbenchmark_%s_exc.png" % benchmark)
 pylab.show()

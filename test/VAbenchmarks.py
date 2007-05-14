@@ -20,13 +20,14 @@ $Id:VAbenchmarks.py 5 2007-04-16 15:01:24Z davison $
 import sys
 from copy import copy
 from NeuroTools.stgen import StGen
-from pyNN.random import NumpyRNG, RandomDistribution
-
 if hasattr(sys,"argv"):     # run using python
     simulator = sys.argv[-1]
 else:
     simulator = "oldneuron"    # run using nrngui -python
 exec("from pyNN.%s import *" % simulator)
+
+from pyNN.random import NumpyRNG, RandomDistribution
+import pyNN.utility
 
 # === Define parameters ========================================================
 
@@ -90,8 +91,8 @@ elif benchmark == "CUBA":
 # === Build the network ========================================================
 
 node_id = setup(timestep=dt,min_delay=0.1,max_delay=0.1)
-if simulator=='nest':
-    pynest.showNESTStatus()
+#if simulator=='nest':
+#    pynest.showNESTStatus()
 
 cell_params = {
     'tau_m'      : tau_m,    'tau_syn_E'  : tau_exc,  'tau_syn_I'  : tau_inh,
@@ -141,7 +142,8 @@ exc_cells.record_v(vrecord_list)
 
 print "%d Running..." % node_id
 Timer.reset()
-run(tstop)
+for i in range(10):
+    run(i/10.0*tstop)
 print "Run time:", int(Timer.elapsedTime()), "seconds"
 
 print "Mean firing rates (spikes/s): (exc) %4.1f (inh) %4.1f" % \
@@ -153,10 +155,12 @@ print "%d Writing data to file..." % node_id
 Timer.reset()
 exc_cells.printSpikes("VAbenchmark_%s_exc_%s.ras" % (benchmark,simulator))
 inh_cells.printSpikes("VAbenchmark_%s_inh_%s.ras" % (benchmark,simulator))
-exc_cells.print_v("VAbenchmark_%s_exc_%s.v" % (benchmark,simulator))
+exc_cells.print_v("VAbenchmark_%s_exc_%s.v" % (benchmark,simulator),compatible_output=True)
 print "Time to print spikes:", int(Timer.elapsedTime()), "seconds"
 
-if simulator=='nest':
-    pynest.showNESTStatus()
+
 # === Finished with simulator ==================================================
+
+if "neuron" in simulator: # send e-mail when simulation finished, since it takes ages.
+    pyNN.utility.notify("Simulation of Vogels-Abbott %s benchmark with pyNN.%s finished." % (benchmark,simulator))
 end()
