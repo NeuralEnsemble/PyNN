@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 pypcsim implementation of the PyNN API. 
 
@@ -87,7 +88,6 @@ class NativeRNG(pyNN.random.NativeRNG):
         
         
 class SpikesMultiChannelRecorder(object):
-    #recordings = []  
     
     def __init__(self, source, filename = None, source_indices = None, gather = False):        
         self.filename = filename
@@ -159,7 +159,6 @@ class SpikesMultiChannelRecorder(object):
     
 
 class FieldMultiChannelRecorder:
-    #recordings = []  
     
     def __init__(self,sources,filename = None,src_indices = None, gather = False, fieldname = "Vm"):        
         self.filename = filename
@@ -302,47 +301,47 @@ class IF_curr_exp(common.IF_curr_exp):
                                               TauSynInh = self.parameters['TauSynInh'])
 
 
-#class IF_cond_alpha(common.IF_cond_alpha):
-#    """Leaky integrate and fire model with fixed threshold and alpha-function-
-#    shaped post-synaptic conductance."""
-#    
-#    translations = {        
-#        'tau_m'     : ('taum',      "parameters['tau_m']*1e-3" ) ,
-#        'cm'        : ('Cm',        "parameters['cm']*1e-9"), 
-#        'v_rest'    : ('Vresting',  "parameters['v_rest']*1e-3"), 
-#        'v_thresh'  : ('Vthresh',   "parameters['v_thresh']*1e-3"), 
-#        'v_reset'   : ('Vreset',    "parameters['v_reset']*1e-3"), 
-#        'tau_refrac': ('Trefract',  "parameters['tau_refrac']*1e-3"), 
-#        'i_offset'  : ('Iinject',   "parameters['i_offset']*1e-9"),         
-#        'tau_syn_E' : ('TauSynExc', "parameters['tau_syn_E']*1e-3"),
-#        'tau_syn_I' : ('TauSynInh', "parameters['tau_syn_I']*1e-3"),
-#        'e_rev_E'   : ('ErevExc',   "parameters['e_rev_E']*1e-3"),
-#        'e_rev_I'   : ('ErevInh',   "parameters['e_rev_I']*1e-3"),
-#        'v_init'    : ('Vinit',     "parameters['v_init']*1e-3"), 
-#    }
-#    
-#    pcsim_name = "LIFCondAlphaNeuron"    
-#    simObjFactory = None
-#    
-#        
-#    def __init__(self, parameters):
-#        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
-#        self.parameters = self.translate(self.parameters)                
-#        self.parameters['Inoise'] = 0.0
-#        self.simObjFactory = LIFCondAlphaNeuron(taum      = self.parameters['taum'], 
-#                                                Cm        = self.parameters['Cm'], 
-#                                                Vresting  = self.parameters['Vresting'], 
-#                                                Vthresh   = self.parameters['Vthresh'],
-#                                                Vreset    = self.parameters['Vreset'],
-#                                                Trefract  = self.parameters['Trefract'], 
-#                                                Iinject   = self.parameters['Iinject'], 
-#                                                Vinit     = self.parameters['Vinit'], 
-#                                                Inoise    = self.parameters['Inoise'], 
-#                                                TauSynExc = self.parameters['TauSynExc' ],
-#                                                TauSynInh = self.parameters['TauSynInh' ],
-#                                                ErevExc   = self.parameters['ErevExc' ],
-#                                                ErevInh   = self.parameters['ErevInh' ],
-#                                                )
+class IF_cond_alpha(common.IF_cond_alpha):
+    """Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic conductance."""
+    
+    translations = {        
+        'tau_m'     : ('taum',      "parameters['tau_m']*1e-3" ) ,
+        'cm'        : ('Cm',        "parameters['cm']*1e-9"), 
+        'v_rest'    : ('Vresting',  "parameters['v_rest']*1e-3"), 
+        'v_thresh'  : ('Vthresh',   "parameters['v_thresh']*1e-3"), 
+        'v_reset'   : ('Vreset',    "parameters['v_reset']*1e-3"), 
+        'tau_refrac': ('Trefract',  "parameters['tau_refrac']*1e-3"), 
+        'i_offset'  : ('Iinject',   "parameters['i_offset']*1e-9"),         
+        'tau_syn_E' : ('TauSynExc', "parameters['tau_syn_E']*1e-3"),
+        'tau_syn_I' : ('TauSynInh', "parameters['tau_syn_I']*1e-3"),
+        'e_rev_E'   : ('ErevExc',   "parameters['e_rev_E']*1e-3"),
+        'e_rev_I'   : ('ErevInh',   "parameters['e_rev_I']*1e-3"),
+        'v_init'    : ('Vinit',     "parameters['v_init']*1e-3"), 
+    }
+    
+    pcsim_name = "LIFCondAlphaNeuron"    
+    simObjFactory = None
+    
+        
+    def __init__(self, parameters):
+        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
+        self.parameters = self.translate(self.parameters)                
+        self.parameters['Inoise'] = 0.0
+        self.simObjFactory = LIFCondAlphaNeuron(taum      = self.parameters['taum'], 
+                                                Cm        = self.parameters['Cm'], 
+                                                Vresting  = self.parameters['Vresting'], 
+                                                Vthresh   = self.parameters['Vthresh'],
+                                                Vreset    = self.parameters['Vreset'],
+                                                Trefract  = self.parameters['Trefract'], 
+                                                Iinject   = self.parameters['Iinject'], 
+                                                Vinit     = self.parameters['Vinit'], 
+                                                Inoise    = self.parameters['Inoise'], 
+                                                TauSynExc = self.parameters['TauSynExc' ],
+                                                TauSynInh = self.parameters['TauSynInh' ],
+                                                ErevExc   = self.parameters['ErevExc' ],
+                                                ErevInh   = self.parameters['ErevInh' ],
+                                                )
 
 """ Implemented not tested """
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
@@ -517,8 +516,20 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     global pcsim_globals
     if weight is None:  weight = 0.0
     if delay  is None:  delay = pcsim_globals.minDelay
+    # Convert units
     delay = delay / 1000 # Delays in pcsim are specified in seconds
-    weight = 1e-9 * weight # Convert from nA to A # !!likely problem with conductance-based synapses
+    if isinstance(target,list):
+        firsttarget = target[0]
+    else:
+        firsttarget = target
+    try:
+        if hasattr(pcsim_globals.net.object(firsttarget),'ErevExc'):
+            weight = 1e-6 * weight # Convert from µS to S    
+        else:
+            weight = 1e-9 * weight # Convert from nA to A
+    except exceptions.Exception, e: # non-existent connection
+        raise common.ConnectionError(e)
+    # Create synapse factory
     syn_factory = 0
     if synapse_type is None:
         if weight >= 0:  # decide whether to connect to the excitatory or inhibitory response 
@@ -530,9 +541,15 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         if isinstance(synapse_type, type):
             syn_factory = synapse_type
         elif isinstance(synapse_type, str):
-            eval('syn_factory = ' + synapse_type + '()')
+            if synapse_type == 'excitatory':
+                syn_factory = SimpleScalingSpikingSynapse(1, 1, pcsim_globals.minDelay/1000)
+            elif synapse_type == 'inhibitory':
+                syn_factory = SimpleScalingSpikingSynapse(2, 1, pcsim_globals.minDelay/1000)
+            else:
+                eval('syn_factory = ' + synapse_type + '()')
             syn_factory.W = weight;
             syn_factory.delay = delay;
+    # Create connections
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
             connections = pcsim_globals.net.connect(source, target, syn_factory)
@@ -1092,13 +1109,17 @@ class Projection(common.Projection):
         w can be a single number, in which case all weights are set to this
         value, or an array with the same dimensions as the Projection array.
         """
+        if hasattr(self.post.pcsim_population.object(0),'ErevExc'):
+            weight_factor = 1e-6 # Convert from µS to S
+        else:
+            weight_factor = 1e-9 # Convert from nA to A
         if isinstance(w, float) or isinstance(w, int):
-            w = w*1e-9 # Convert from nA to A # !!likely problem with conductance-based synapses
+            w = w*weight_factor
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).W = w
         else:
             for i in range(len(self)):
-                pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]*1e-9
+                pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]*weight_factor
     
     def randomizeWeights(self, rand_distr):
         """
