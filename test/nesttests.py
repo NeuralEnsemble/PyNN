@@ -484,6 +484,21 @@ class ProjectionSetTest(unittest.TestCase):
             d2.append(nest.pynest.getDelay(src,tgt)) 
         self.assertNotEqual(d1,d2)
 
+class IDTest(unittest.TestCase):
+    """Tests of the ID class."""
+    
+    def setUp(self):
+        nest.setup(max_delay=0.5)
+        nest.Population.nPop = 0
+        self.pop = nest.Population((5,),nest.IF_curr_alpha,{'tau_m':10.0})
+    
+    def testIDSet(self):
+        self.pop[3].set('tau_m',20.0)
+        ifcell_params = nest.pynest.getDict([self.pop[3]])[0]
+        self.assertEqual(20.0, ifcell_params['Tau'])
+        ifcell_params = nest.pynest.getDict([self.pop[1]])[0]
+        self.assertEqual(10.0, ifcell_params['Tau'])
+
 if __name__ == "__main__":
     unittest.main()
     

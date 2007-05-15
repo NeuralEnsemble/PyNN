@@ -61,6 +61,10 @@ def checkParams(param, val=None):
         raise common.InvalidParameterValueError
     return paramDict
 
+# ==============================================================================
+#   Utility classes
+# ==============================================================================
+
 # Implementation of the NativeRNG
 class NativeRNG(pyNN.random.NativeRNG):
     def __init__(self,seed=None,type='MersenneTwister19937'):
@@ -222,7 +226,24 @@ class FieldMultiChannelRecorder:
                 f.write("\n")
         f.close()
 
+class ID(common.ID):
+    """
+    This class is experimental. The idea is that instead of storing ids as
+    integers, we store them as ID objects, which allows a syntax like:
+      p[3,4].set('tau_m',20.0)
+    where p is a Population object. The question is, how big a memory/performance
+    hit is it to replace integers with ID objects?
+    """ 
 
+    def set(self,param,val=None):
+        raise Exception("Not yet implemented")
+    
+    def get(self,param):
+        raise Exception("Not yet implemented")
+
+    def setCellClass(self, cellclass):
+        self._cellclass = cellclass    
+    
 # ==============================================================================
 #   Standard cells   
 # ==============================================================================
@@ -243,7 +264,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
     }
     pcsim_name = "LIFCurrAlphaNeuron"    
     simObjFactory = None
-    
+    setterMethods = {}
         
     def __init__(self, parameters):
         common.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
@@ -322,7 +343,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
     
     pcsim_name = "LIFCondAlphaNeuron"    
     simObjFactory = None
-    
+    setterMethods = {}
         
     def __init__(self, parameters):
         common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
@@ -578,6 +599,8 @@ def set(cells, cellclass, param, val=None):
     paramDict = checkParams(param, val)
     if issubclass(cellclass, common.StandardCellType):        
         paramDict = cellclass({}).translate(paramDict)
+    if isinstance(cells,ID) or isinstance(cells,int):
+        cells = [cells]
     for param, value in paramDict.items():
         if param in cellclass.setterMethods:
            setterMethod = cellclass.setterMethods[param]
@@ -698,7 +721,6 @@ class Population(common.Population):
              p = Population(...)
              p[2,3] is equivalent to p.__getitem__((2,3)).
         """
-        # What we actually pass around are gids.
         if isinstance(addr, int):
             addr = (addr,)
         if len(addr) != self.actual_ndim:
@@ -708,13 +730,14 @@ class Population(common.Population):
             addr += (0,)                  
         index = 0
         for i, s in zip(addr, self.steps):
-            index += i*s
-        id = index 
+            index += i*s 
         pcsim_index = self.pcsim_population.getIndex(addr[0],addr[1],addr[2])
-        assert id == pcsim_index, " id = %s, pcsim_index = %s" % (id, pcsim_index)
+        assert index == pcsim_index, " index = %s, pcsim_index = %s" % (index, pcsim_index)
+        id = ID(pcsim_index)
+        id.setCellClass(self.celltype)
         if orig_addr != self.locate(id):
             raise IndexError, 'Invalid cell address %s' % str(addr)
-        #assert orig_addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, orig_addr, id, self.locate(id))
+        assert orig_addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, orig_addr, id, self.locate(id))
         return id
         
         
@@ -723,8 +746,7 @@ class Population(common.Population):
                e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
                          7 9
         """
-        # id should be a gid
-        assert isinstance(id, int)         
+        assert isinstance(id, ID)
         if self.ndim == 3:
             rows = self.dim[1]; cols = self.dim[2]
             i = id/(rows*cols); remainder = id%(rows*cols)
