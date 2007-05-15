@@ -408,18 +408,17 @@ class ProjectionSetTest(unittest.TestCase):
 # #        assert self.prj11.connection[0] == "[0][0]"
 
 
-#class IDTest(unittest.TestCase):
-#    """Tests of the ID class."""
-#    
-#    def setUp(self):
-#        setup(max_delay=0.5)
-#        self.pop = Population((5,), IF_curr_alpha,{'tau_m':10.0})
-#    
-#    def testIDSet(self):
-#        self.pop[3].set('tau_m',20.0)
-#        ifcell_params = nest.pynest.getDict([self.pop[3]])[0]
-#        self.assertAlmostEqual( pcsim_globals.net.object(self.pop[3]).taum, 0.02, places = 5) 
-
+class IDTest(unittest.TestCase):
+    """Tests of the ID class."""
+    
+    def setUp(self):
+        setup(max_delay=0.5)
+        self.pop = Population((5,), IF_curr_alpha,{'tau_m':10.0})
+    
+    def testIDSet(self):
+        self.pop[3].set('tau_m',20.0)
+        self.assertAlmostEqual( self.pop.pcsim_population.object(self.pop[3]).taum, 0.02, places = 5) 
+        self.assertAlmostEqual( self.pop.pcsim_population.object(self.pop[1]).taum, 0.01, places = 5) 
 
 # ==============================================================================
 if __name__ == "__main__":

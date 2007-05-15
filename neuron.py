@@ -55,7 +55,7 @@ class ID(common.ID):
     def get(self,param):
         #This function should be improved, with some test to translate
         #the parameter according to the cellclass
-        #We have here the same problem that with set() in the parallel framework
+        #We have here the same problem as with set() in the parallel framework
         if self._hocname != None:
             return HocToPy.get('%s.%s' %(self._hocname, param),'float')
     

@@ -42,10 +42,10 @@ class ID(int):
         # or get() : p[2,3].set(SpikeSourceArray, {'spike_train' : {}}).
 
     def set(self,param,val=None):
-        pass
+        raise Exception("Not yet implemented")
     
     def get(self,param):
-        pass
+        raise Exception("Not yet implemented")
 
     def setCellClass(self, cellclass):
         self._cellclass = cellclass    

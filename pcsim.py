@@ -236,10 +236,18 @@ class ID(common.ID):
     """ 
 
     def set(self,param,val=None):
-        raise Exception("Not yet implemented")
+        if hasattr(self,'in_population'):
+            set(self.in_population.pcsim_population[self],self._cellclass,param,val)
+        else:
+            set(self,self._cellclass,param,val)
     
     def get(self,param):
-        raise Exception("Not yet implemented")
+        raise Exception("Not yet implemented.")
+        # The following does no translation of names, units
+        #if hasattr(self,'in_population'):
+        #    return getattr(self.in_population.pcsim_population.object(self),param) # translation?
+        #else:
+        #    raise getattr(pcsim_globals.net.object(self),param)
 
     def setCellClass(self, cellclass):
         self._cellclass = cellclass    
@@ -599,7 +607,7 @@ def set(cells, cellclass, param, val=None):
     paramDict = checkParams(param, val)
     if issubclass(cellclass, common.StandardCellType):        
         paramDict = cellclass({}).translate(paramDict)
-    if isinstance(cells,ID) or isinstance(cells,int):
+    if isinstance(cells,ID) or isinstance(cells,long) or isinstance(cells,int):
         cells = [cells]
     for param, value in paramDict.items():
         if param in cellclass.setterMethods:
@@ -724,7 +732,7 @@ class Population(common.Population):
         if isinstance(addr, int):
             addr = (addr,)
         if len(addr) != self.actual_ndim:
-           raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addr))
+           raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.actual_ndim,str(addr))
         orig_addr = addr;
         while len(addr) < 3:
             addr += (0,)                  
@@ -735,6 +743,7 @@ class Population(common.Population):
         assert index == pcsim_index, " index = %s, pcsim_index = %s" % (index, pcsim_index)
         id = ID(pcsim_index)
         id.setCellClass(self.celltype)
+        id.in_population = self
         if orig_addr != self.locate(id):
             raise IndexError, 'Invalid cell address %s' % str(addr)
         assert orig_addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, orig_addr, id, self.locate(id))

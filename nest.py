@@ -42,8 +42,6 @@ class ID(common.ID):
             # We use the one given by the user
             set(self,self._cellclass,param,val)
 
-    #def get(self,param):
-    #    pynest.getDict(self)[param]
 
 # ==============================================================================
 #   Standard cells
