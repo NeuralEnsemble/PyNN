@@ -272,7 +272,7 @@ class Population:
         
         self.dim      = dims
         if isinstance(dims, int): # also allow a single integer, for a 1D population
-            print "Converting integer dims to tuple"
+            #print "Converting integer dims to tuple"
             self.dim = (self.dim,)
         self.label    = label
         self.celltype = cellclass
@@ -366,7 +366,7 @@ class Population:
         """
         pass
 
-    def printSpikes(self,filename,gather=True, compatible_output=True):
+    def printSpikes(self,filename,gather=True,compatible_output=True):
         """
         Writes spike times to file.
         If compatible_output is True, the format is "spiketime cell_id",

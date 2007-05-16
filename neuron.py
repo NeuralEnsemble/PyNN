@@ -675,6 +675,8 @@ class Population(common.Population):
     
         if not self.label:
             self.label = 'population%d' % Population.nPop
+        self.hoc_label = self.label.replace(" ","_")
+        
         self.record_from = { 'spiketimes': [], 'vtrace': [] }
         
         
@@ -691,8 +693,8 @@ class Population(common.Population):
         self.gid_start   = gid
 
         # Write hoc commands
-        hoc_commands += ['objref %s' % self.label,
-                         '%s = new List()' % self.label]
+        hoc_commands += ['objref %s' % self.hoc_label,
+                         '%s = new List()' % self.hoc_label]
 
         for cell_id in self.gidlist:
             hoc_commands += ['tmp = pc.set_gid2node(%d,%d)' % (cell_id,myid),
@@ -700,7 +702,7 @@ class Population(common.Population):
                              #'nc = new NetCon(cell.source,nil)',
                              'tmp = cell.connect2target(nil,nc)',
                              'tmp = pc.cell(%d,nc)' % cell_id,
-                             'tmp = %s.append(cell)' %(self.label)]       
+                             'tmp = %s.append(cell)' %(self.hoc_label)]       
         hoc_execute(hoc_commands, "--- Population[%s].__init__() ---" %self.label)
         Population.nPop += 1
         gid = gid+self.size
@@ -718,7 +720,7 @@ class Population(common.Population):
         # On the opposite, each node has to know only the precise hocname of its cells, if we
         # want to be able to use the low level set() function
         for cell_id in self.gidlist:
-            cell_id.setHocName("%s.o(%d)" %(self.label, self.gidlist.index(cell_id)))
+            cell_id.setHocName("%s.o(%d)" %(self.hoc_label, self.gidlist.index(cell_id)))
 
     def __getitem__(self,addr):
         """Returns a representation of the cell with coordinates given by addr,
@@ -786,9 +788,9 @@ class Population(common.Population):
         if isinstance(self.celltype, common.StandardCellType):
             paramDict = self.celltype.translate(paramDict)
 
-        strfmt  = '%s.object(tmp).%s = "%s"' % (self.label,"%s","%s")
-        numfmt  = '%s.object(tmp).%s = %s' % (self.label,"%s","%g")
-        listfmt = '%s.object(tmp).%s = %s' % (self.label,"%s","%s")
+        strfmt  = '%s.object(tmp).%s = "%s"' % (self.hoc_label,"%s","%s")
+        numfmt  = '%s.object(tmp).%s = %s' % (self.hoc_label,"%s","%g")
+        listfmt = '%s.object(tmp).%s = %s' % (self.hoc_label,"%s","%s")
         for param,val in paramDict.items():
             if isinstance(val,str):
                 fmt = strfmt
@@ -802,7 +804,7 @@ class Population(common.Population):
             # We do the loop in hoc, to speed up the code
             loop = "for tmp = 0, %d" %(len(self.gidlist)-1)
             cmd  = fmt % (param,val)
-            hoc_commands = ['cmd="%s { %s success = %s.object(tmp).param_update()}"' %(loop, cmd, self.label),
+            hoc_commands = ['cmd="%s { %s success = %s.object(tmp).param_update()}"' %(loop, cmd, self.hoc_label),
                             'success = execute1(cmd)']
         hoc_execute(hoc_commands, "--- Population[%s].__set()__ ---" %self.label)
 
@@ -818,11 +820,11 @@ class Population(common.Population):
             if isinstance(self.celltype, common.StandardCellType):
                 parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
             hoc_commands = []
-            fmt = '%s.object(%s).%s = %s' % (self.label, "%d", parametername, "%g")
+            fmt = '%s.object(%s).%s = %s' % (self.hoc_label, "%d", parametername, "%g")
             for i,val in enumerate(values):
                 try:
                     hoc_commands += [fmt % (i,val),
-                                     'success = %s.object(%d).param_update()' % (self.label, i)]
+                                     'success = %s.object(%d).param_update()' % (self.hoc_label, i)]
                 except TypeError:
                     raise common.InvalidParameterValueError, "%s is not a numeric value" % str(val)
             hoc_execute(hoc_commands, "--- Population[%s].__tset()__ ---" %self.label)
@@ -843,8 +845,8 @@ class Population(common.Population):
                             'tmp = rng.%s(%s)' % (rand_distr.name,distr_params)]
             # We do the loop in hoc, to speed up the code
             loop = "for tmp = 0, %d" %(len(self.gidlist)-1)
-            cmd = '%s.object(tmp).%s = rng.repick()' % (self.label, parametername)
-            hoc_commands += ['cmd="%s { %s success = %s.object(tmp).param_update()}"' %(loop, cmd, self.label),
+            cmd = '%s.object(tmp).%s = rng.repick()' % (self.hoc_label, parametername)
+            hoc_commands += ['cmd="%s { %s success = %s.object(tmp).param_update()}"' %(loop, cmd, self.hoc_label),
                              'success = execute1(cmd)']
             hoc_execute(hoc_commands, "--- Population[%s].__rset()__ ---" %self.label)   
         else:
@@ -902,7 +904,7 @@ class Population(common.Population):
         suffix = ''*(record_what=='spiketimes') + '_v'*(record_what=='vtrace')
         for id in record_from:
             if id in self.gidlist:
-                hoc_commands += ['tmp = %s.object(%d).record%s(1)' % (self.label,self.gidlist.index(id),suffix)]
+                hoc_commands += ['tmp = %s.object(%d).record%s(1)' % (self.hoc_label,self.gidlist.index(id),suffix)]
 
         # note that self.record_from is not the same on all nodes, like self.gidlist, for example.
         self.record_from[record_what] += list(record_from)
@@ -917,12 +919,12 @@ class Population(common.Population):
                 for id in self.record_from[record_what]:
                     if id in self.gidlist:
                         hoc_commands += ['record_from = record_from.append(%d)' %id]
-                hoc_commands += ['tmp = pc.post("%s.record_from[%s].node[%d]", record_from)' %(self.label, record_what, myid)]
+                hoc_commands += ['tmp = pc.post("%s.record_from[%s].node[%d]", record_from)' %(self.hoc_label, record_what, myid)]
                 hoc_execute(hoc_commands, "   (Posting recorded cells)")
             else:          # on the master node
                 for id in range (1, nhost):
                     hoc_commands = ['record_from = new Vector()']
-                    hoc_commands += ['tmp = pc.take("%s.record_from[%s].node[%d]", record_from)' %(self.label, record_what, id)]
+                    hoc_commands += ['tmp = pc.take("%s.record_from[%s].node[%d]", record_from)' %(self.hoc_label, record_what, id)]
                     hoc_execute(hoc_commands)
                     for j in xrange(HocToPy.get('record_from.size()', 'int')):
                         self.record_from[record_what] += [HocToPy.get('record_from.x[%d]' %j, 'int')]
@@ -956,8 +958,8 @@ class Population(common.Population):
             hoc_commands = []
             for id in self.record_from[print_what]:
                 if id in self.gidlist:
-                    hoc_commands += ['tmp = pc.post("%s[%d].%s",%s.object(%d).%s)' % (self.label,id,print_what,
-                                                                                      self.label,
+                    hoc_commands += ['tmp = pc.post("%s[%d].%s",%s.object(%d).%s)' % (self.hoc_label,id,print_what,
+                                                                                      self.hoc_label,
                                                                                       self.gidlist.index(id),
                                                                                       print_what)]
             hoc_execute(hoc_commands,"--- Population[%s].__print()__ --- [Post objects to master]" %self.label)
@@ -976,10 +978,10 @@ class Population(common.Population):
                 #hoc_commands += ['fmt = "%s\\t%s\\n"' % (num_format, "\\t".join([str(j) for j in addr]))]
                 hoc_commands += ['fmt = "%s\\t%d\\n"' % (num_format, id-padding)]
                 if id in self.gidlist:
-                    hoc_commands += ['tmp = %s.object(%d).%s.printf(fileobj,fmt)' % (self.label,self.gidlist.index(id),print_what)]
+                    hoc_commands += ['tmp = %s.object(%d).%s.printf(fileobj,fmt)' % (self.hoc_label,self.gidlist.index(id),print_what)]
                 elif gather: 
                     hoc_commands += ['gatheredvec = new Vector()']
-                    hoc_commands += ['tmp = pc.take("%s[%d].%s",gatheredvec)' %(self.label,id,print_what),
+                    hoc_commands += ['tmp = pc.take("%s[%d].%s",gatheredvec)' %(self.hoc_label,id,print_what),
                                      'tmp = gatheredvec.printf(fileobj,fmt)']
             hoc_commands += ['tmp = fileobj.close()']
             hoc_execute(hoc_commands,"--- Population[%s].__print()__ ---" %self.label)
@@ -1043,10 +1045,10 @@ class Population(common.Population):
             nspikes = 0;ncells  = 0
             for id in self.record_from['spiketimes']:
                 if id in self.gidlist:
-                    nspikes += HocToPy.get('%s.object(%d).spiketimes.size()' %(self.label, self.gidlist.index(id)),'int')
+                    nspikes += HocToPy.get('%s.object(%d).spiketimes.size()' %(self.hoc_label, self.gidlist.index(id)),'int')
                     ncells  += 1
-            hoc_commands += ['tmp = pc.post("%s.node[%d].nspikes",%d)' % (self.label,myid,nspikes)]
-            hoc_commands += ['tmp = pc.post("%s.node[%d].ncells",%d)' % (self.label,myid,ncells)]    
+            hoc_commands += ['tmp = pc.post("%s.node[%d].nspikes",%d)' % (self.hoc_label,myid,nspikes)]
+            hoc_commands += ['tmp = pc.post("%s.node[%d].ncells",%d)' % (self.hoc_label,myid,ncells)]    
             hoc_execute(hoc_commands,"--- Population[%s].__meanSpikeCount()__ --- [Post spike count to master]" %self.label)
             return 0
 
@@ -1055,13 +1057,13 @@ class Population(common.Population):
             hoc_execute(["nspikes = 0", "ncells = 0"])
             for id in self.record_from['spiketimes']:
                 if id in self.gidlist:
-                    nspikes += HocToPy.get('%s.object(%d).spiketimes.size()' % (self.label, self.gidlist.index(id)),'int')
+                    nspikes += HocToPy.get('%s.object(%d).spiketimes.size()' % (self.hoc_label, self.gidlist.index(id)),'int')
                     ncells  += 1
             if gather:
                 for id in range(1,nhost):
-                    hoc_execute(['tmp = pc.take("%s.node[%d].nspikes",&nspikes)' % (self.label,id)])
+                    hoc_execute(['tmp = pc.take("%s.node[%d].nspikes",&nspikes)' % (self.hoc_label,id)])
                     nspikes += HocToPy.get('nspikes','int')
-                    hoc_execute(['tmp = pc.take("%s.node[%d].ncells",&ncells)' % (self.label,id)])
+                    hoc_execute(['tmp = pc.take("%s.node[%d].ncells",&ncells)' % (self.hoc_label,id)])
                     ncells  += HocToPy.get('ncells','int')
             return float(nspikes/ncells)
 
@@ -1345,9 +1347,9 @@ class Projection(common.Projection):
         if type(parameters) == types.IntType:
             n = parameters
         elif type(parameters) == types.DictType:
-            if parameters.has_key['n']: # all cells have same number of connections
+            if parameters.has_key('n'): # all cells have same number of connections
                 n = parameters['n']
-            elif parameters.has_key['rng']: # number of connections per cell follows a distribution
+            elif parameters.has_key('rng'): # number of connections per cell follows a distribution
                 rng = parameters['rng']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
@@ -1361,9 +1363,9 @@ class Projection(common.Projection):
         if type(parameters) == types.IntType:
             n = parameters
         elif type(parameters) == types.DictType:
-            if parameters.has_key['n']: # all cells have same number of connections
+            if parameters.has_key('n'): # all cells have same number of connections
                 n = parameters['n']
-            elif parameters.has_key['rng']: # number of connections per cell follows a distribution
+            elif parameters.has_key('rng'): # number of connections per cell follows a distribution
                 rng = parameters['rng']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']

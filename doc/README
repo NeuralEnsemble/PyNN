@@ -1,0 +1,19 @@
+===========================
+Notes on PyNN documentation
+===========================
+
+The text files in this directory (including this one) are in reStructuredText_ format, which can easily be processed into HTML or LaTeX formats using Docutils_.
+
+API documentation is generated using the ``wikidoc.py`` script, which can produce MediaWiki, Trac Wiki, or LaTeX formats (but not, currently, reStructuredText).
+
+Many of the files contain examples of interactive python sessions. The validity of this code can be tested by running::
+
+    $ python testdocs.py nest
+    $ python testdocs.py pcsim
+    $ nrnpython testdocs.py neuron
+    
+Error messages due to differences in neuron id numbers between simulators can be ignored.
+
+
+.. _reStructuredText: http://docutils.sourceforge.net/rst.html
+.. _Docutils: http://docutils.sourceforge.net/

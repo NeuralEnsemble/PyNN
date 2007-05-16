@@ -592,7 +592,7 @@ class Population(common.Population):
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids (e.g., (i,j,k) tuple for a 3D population)
+        - or a list containing the ids
         of the cells to record.
         """
         global hl_spike_files
@@ -890,13 +890,12 @@ class Projection(common.Projection):
         presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
         for post in postsynaptic_neurons:
             source_list = presynaptic_neurons.tolist()
-            # if self connections are not allowed, check whether pre and post are the sam
-            if not allow_self_connections and post in source_list:
-                target_list.remove(post)
-            self._targets += [post]*len(source_list)
-            self._sources += source_list
-            self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
-        return len(presynaptic_neurons) * len(postsynaptic_neurons)
+            # if self connections are not allowed, check whether pre and post are the same
+            if allow_self_connections or post not in source_list:
+                self._targets += [post]*len(source_list)
+                self._sources += source_list
+                self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
+        return len(self._targets)
     
     def _oneToOne(self,synapse_type=None):
         """
@@ -918,7 +917,7 @@ class Projection(common.Projection):
                 self._targetPorts.append(pynest.connect(pre_addr,post_addr))
             return self.pre.size
         else:
-            raise "Method 'oneToOne' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes."
+            raise Exception("Method 'oneToOne' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
     
     def _fixedProbability(self,parameters,synapse_type=None):
         """
@@ -1011,9 +1010,9 @@ class Projection(common.Projection):
         if type(parameters) == types.IntType:
             n = parameters
         elif type(parameters) == types.DictType:
-            if parameters.has_key['n']: # all cells have same number of connections
+            if parameters.has_key('n'): # all cells have same number of connections
                 n = parameters['n']
-            elif parameters.has_key['rng']: # number of connections per cell follows a distribution
+            elif parameters.has_key('rng'): # number of connections per cell follows a distribution
                 rng = parameters['rng']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
@@ -1028,9 +1027,9 @@ class Projection(common.Projection):
         if type(parameters) == types.IntType:
             n = parameters
         elif type(parameters) == types.DictType:
-            if parameters.has_key['n']: # all cells have same number of connections
+            if parameters.has_key('n'): # all cells have same number of connections
                 n = parameters['n']
-            elif parameters.has_key['rng']: # number of connections per cell follows a distribution
+            elif parameters.has_key('rng'): # number of connections per cell follows a distribution
                 rng = parameters['rng']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']

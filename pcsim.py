@@ -677,7 +677,7 @@ class Population(common.Population):
         global gid, myid, nhost
         
         if isinstance(dims, int): # also allow a single integer, for a 1D population
-            print "Converting integer dims to tuple"
+            #print "Converting integer dims to tuple"
             dims = (dims,)
         elif len(dims) > 3:
             raise exceptions.AttributeError('PCSIM does not support populations with more than 3 dimensions')

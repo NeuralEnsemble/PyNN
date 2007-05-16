@@ -85,7 +85,7 @@ These values are seldom very useful, and it is better to specify the ``weight`` 
     
 At the moment, in fact, this is the only way to specify synaptic weights and connections in PyNN without using simulator-specific code. This deficiency will be addressed in a future release.
 
-Weights are specified in nA for 'current-based' synapses or µS for 'conductance-based' synapses.
+Weights are specified in nA for 'current-based' synapses or ÂµS for 'conductance-based' synapses.
 Delays are in ms.
 For current-based synapses, weights should be negative for inhibitory synapses.
 For conductance-based synapses, weights should always be positive, since the effect of a synapse is determined by its reversal potential.
