@@ -328,13 +328,13 @@ def record_v(source,filename):
     pynest.record_v(source,record_file.replace('/','_'))
 
 
-def _printSpikes(filename, compatible_output=True):
+def printSpikes(filename, compatible_output=True):
     """ Print spikes into a file, and postprocessed them if
     needed and asked to produce a compatible output for all the simulator
     Should actually work with record() and allow to dissociate the recording of the
     writing process, which is not the case for the moment"""
     tempfilename = "%s/%s" %(tempdir, filename)
-    pynest.sr('%s close' %tempfilename) 
+    pynest.sr('%s close' %filename) 
     if (compatible_output):
         # Here we postprocess the file to have effectively the
         # desired format :
@@ -342,6 +342,8 @@ def _printSpikes(filename, compatible_output=True):
         # Then spiketime (in ms) cell_id-min(cell_id)
         result = open(filename,'w',100)
         g = open(tempfilename,'r',100)
+        # Writing # such that Population.printSpikes and this have same output format
+        result.write("# "+"\n")
         lines = g.readlines()
         g.close()
         for line in lines:
@@ -355,7 +357,7 @@ def _printSpikes(filename, compatible_output=True):
     os.system("rm %s" %tempfilename)
 
 
-def _print_v(filename, compatible_output=True):
+def print_v(filename, compatible_output=True):
     """ Print membrane potentials in a file, and postprocessed them if
     needed and asked to produce a compatible output for all the simulator
     Should actually work with record_v() and allow to dissociate the recording of the
@@ -686,7 +688,6 @@ class Population(common.Population):
         """        
         global hl_spike_files
         tempfilename = '%s.spikes' % self.label
-
         if hl_spike_files.__contains__(tempfilename):
             pynest.sr('%s close' % tempfilename)
             hl_spike_files.remove(tempfilename)
@@ -1287,6 +1288,7 @@ class Projection(common.Projection):
             for syn_nr in range(len(target_position_x)):
                 try:
                     target_id.append(self.post.cell[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
+                    #target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
                     target_id_bool = numpy.append(target_id_bool,True)
                     #target_id_bool.append(True)
                 except IndexError:
@@ -1344,21 +1346,21 @@ class Projection(common.Projection):
             #delay_array = parameters['delays_array']
             #weight_array = parameters['weights_array']
             #target_id = parameters['target_id']
-            if pre_id==100:
-                print '#############################################'
-                print 'This is the data in 3D Gauss'
-                print '#############################################'
-                print 'preneuron id',pre_id
+            #if pre_id==100:
+            #    print '#############################################'
+            #    print 'This is the data in 3D Gauss'
+            #    print '#############################################'
+            #    print 'preneuron id',pre_id
                 #print 'r_syn: ',r_syn
                 #print 'r_syn2',r_syn2
                 #print 'min_delay_offset_array ',min_delay_offset_array
-                print 'delay_array ',delay_array
-                print 'type first element of delay ',type(delay_array[0])
-                print 'weight ',weight_array
-                print 'type first element of weight ',type(weight_array[0])
-                print 'now we dive into pynest.hl_api.... yeah'
-                print '#############################################'
-                print '\n'
+            #    print 'delay_array ',delay_array
+            #    print 'type first element of delay ',type(delay_array[0])
+            #    print 'weight ',weight_array
+            #    print 'type first element of weight ',type(weight_array[0])
+            #    print 'now we dive into pynest.hl_api.... yeah'
+            #    print '#############################################'
+            #    print '\n'
                 #print 'size_in_mm: ',size_in_mm
                 #print 'post_dim[0]: ',post_dim[0]
                 #print 'conduction_speed: ',conduction_speed
