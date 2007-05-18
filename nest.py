@@ -1009,43 +1009,84 @@ class Projection(common.Projection):
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
+            assert n > 0
+            fixed = True
         elif type(parameters) == types.DictType:
             if parameters.has_key('n'): # all cells have same number of connections
-                n = parameters['n']
-            elif parameters.has_key('rng'): # number of connections per cell follows a distribution
-                rng = parameters['rng']
+                n = int(parameters['n'])
+                assert n > 0
+                fixed = True
+            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
+                rand_distr = parameters['rand_distr']
+                assert isinstance(rand_distr,RandomDistribution)
+                fixed = False
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-        else : # assume parameters is a rng
-            rng = parameters
-        raise Exception("Method not yet implemented")
+        elif isinstance(parameters, RandomDistribution):
+            rand_distr = parameters
+            fixed = False
+        else:
+            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
+         
+        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
+        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
+        if self.rng:
+            rng = self.rng
+        else:
+            rng = numpy.random
+        for pre in presynaptic_neurons:
+            pre_addr = pynest.getAddress(pre)
+            # Reserve space for connections
+            if not fixed:
+                n = rand_distr.next()
+            pynest.resCons(pre_addr,n)                
+            # pick n neurons at random
+            for post in rng.permutation(postsynaptic_neurons)[0:n]:
+                self._sources.append(pre)
+                self._targets.append(post)
+                self._targetPorts.append(pynest.connect(pre_addr,pynest.getAddress(post)))
     
-    def _fixedNumberPost(self,parameters,synapse_type=None): #CHEAT CHEAT CHEAT
+    def _fixedNumberPost(self,parameters,synapse_type=None):
         """Each postsynaptic cell receives a fixed number of connections."""
         self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
+            assert n > 0
+            fixed = True
         elif type(parameters) == types.DictType:
             if parameters.has_key('n'): # all cells have same number of connections
-                n = parameters['n']
-            elif parameters.has_key('rng'): # number of connections per cell follows a distribution
-                rng = parameters['rng']
+                n = int(parameters['n'])
+                assert n > 0
+                fixed = True
+            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
+                rand_distr = parameters['rand_distr']
+                assert isinstance(rand_distr,RandomDistribution)
+                fixed = False
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-        else : # assume parameters is a rng
-            rng = parameters
-        
-        # For now, I've just written the code for n constant        
+        elif isinstance(parameters, RandomDistribution):
+            rand_distr = parameters
+            fixed = False
+        else:
+            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
+         
         postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
+        if self.rng:
+            rng = self.rng
+        else:
+            rng = numpy.random
         for post in postsynaptic_neurons:
             post_addr = pynest.getAddress(post)
             # Reserve space for connections
-            pynest.resCons(post_addr,n)
-            # Make connections (I'm cheating for now, just connect the first n, rather than choosing randomly)
-            for pre in presynaptic_neurons[0:n]:
+            if not fixed:
+                n = rand_distr.next()
+            pynest.resCons(post_addr,n)                
+            # pick n neurons at random
+            for pre in rng.permutation(presynaptic_neurons)[0:n]:
                 self._sources.append(pre)
+                self._targets.append(post)
                 self._targetPorts.append(pynest.connect(pynest.getAddress(pre),post_addr))
     
     def _fromFile(self,parameters,synapse_type=None):
@@ -1071,8 +1112,10 @@ class Projection(common.Projection):
         input_tuples = []
         for line in lines:
             single_line = line.rstrip()
-            single_line = single_line.split("\t", 4)
-            input_tuples.append(single_line)    
+            src, tgt, w, d = single_line.split("\t", 4)
+            src = "[%s" % src.split("[",1)[1]
+            tgt = "[%s" % tgt.split("[",1)[1]
+            input_tuples.append((eval(src),eval(tgt),float(w),float(d)))
         f.close()
         
         self._fromList(input_tuples, synapse_type)
@@ -1080,19 +1123,15 @@ class Projection(common.Projection):
     def _fromList(self,conn_list,synapse_type=None):
         """
         Read connections from a list of tuples,
-        containing ['src[x,y]', 'tgt[x,y]', 'weight', 'delay']
+        containing [pre_addr, post_addr, weight, delay]
+        where pre_addr and post_addr are both neuron addresses, i.e. tuples or
+        lists containing the neuron array coordinates.
         """
         self.synapse_type = synapse_type
-        # We go through those tuple and extract the fields
         for i in xrange(len(conn_list)):
-            src    = conn_list[i][0]
-            tgt    = conn_list[i][1]
-            weight = eval(conn_list[i][2])
-            delay  = eval(conn_list[i][3])
-            src = "[%s" %src.split("[",1)[1]
-            tgt = "[%s" %tgt.split("[",1)[1]
-            src  = eval("self.pre%s" % src)
-            tgt  = eval("self.post%s" % tgt)
+            src, tgt, weight, delay = conn_list[i][:]
+            src = self.pre[tuple(src)]
+            tgt = self.post[tuple(tgt)]
                         
             pre_addr = pynest.getAddress(src)
             post_addr = pynest.getAddress(tgt)
@@ -1376,7 +1415,8 @@ class Projection(common.Projection):
     def setWeights(self,w):
         """
         w can be a single number, in which case all weights are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
@@ -1391,8 +1431,11 @@ class Projection(common.Projection):
                 src_addr = pynest.getAddress(src)
                 n = len(pynest.getDict([src_addr])[0]['weights'])
                 pynest.setDict([src_addr], {'weights' : [w]*n})
+        elif isinstance(w,list) or isinstance(w,numpy.ndarray):
+            for src, port, weight in zip(self._sources,self._targetPorts,w):
+                pynest.setWeight(pynest.getAddress(src),port,weight)
         else:
-            raise Exception("Method needs changing to reflect the new API") # (w can be an array)
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
     
     def randomizeWeights(self,rand_distr):
         """
@@ -1404,7 +1447,8 @@ class Projection(common.Projection):
     def setDelays(self,d):
         """
         d can be a single number, in which case all delays are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
         """
         if type(d) == types.FloatType or type(d) == types.IntType:
             # Set all the delays from a given node at once.
@@ -1413,8 +1457,11 @@ class Projection(common.Projection):
                 src_addr = pynest.getAddress(src)
                 n = len(pynest.getDict([src_addr])[0]['delays'])
                 pynest.setDict([src_addr], {'delays' : [d]*n})
+        elif isinstance(d,list) or isinstance(d,numpy.ndarray):
+            for src, port, delay in zip(self._sources,self._targetPorts,d):
+                pynest.setDelay(pynest.getAddress(src),port,delay)
         else:
-            raise Exception("Method needs changing to reflect the new API") # (d can be an array)
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
     
     def randomizeDelays(self,rand_distr):
         """

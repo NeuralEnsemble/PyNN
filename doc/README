@@ -2,7 +2,9 @@
 Notes on PyNN documentation
 ===========================
 
-The text files in this directory (including this one) are in reStructuredText_ format, which can easily be processed into HTML or LaTeX formats using Docutils_.
+The text files in this directory (including this one) are in reStructuredText_ format, which can easily be processed into HTML or LaTeX formats using Docutils_, e.g.::
+
+    $ rst2html.py --initial-header-level=2 highlevelapi.txt > highlevelapi.html
 
 API documentation is generated using the ``wikidoc.py`` script, which can produce MediaWiki, Trac Wiki, or LaTeX formats (but not, currently, reStructuredText).
 
