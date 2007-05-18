@@ -429,7 +429,7 @@ class Population(common.Population):
         elif isinstance(cellclass, str):
             self.cell = pynest.create(cellclass, self.size)
             
-        self.cell = numpy.array([ ID(pynest.getGID(addr)) for addr in self.cell ], ID)
+        self.cell = numpy.array([ ID(addr) for addr in self.cell ], ID)
         self.id_start = self.cell.reshape(self.size,)[0]
         
         for id in self.cell:
