@@ -346,8 +346,10 @@ Setting delays works similarly::
 Synaptic plasticity
 ===================
 
-Statistics
-==========
+The PyNN API supports setting parameters of spike-timing-dependent plasticity (STDP) models, but
+this has currently only been implemented for NEURON.
 
 Example
 =======
+
+There are several examples of networks built with the high-level API in the ``test`` directory.

@@ -33,6 +33,11 @@ class ID(common.ID):
     hit is it to replace integers with ID objects?
     """
     
+    def __getattr__(self,name):
+        """Note that this currently does not translate units."""
+        translated_name = self._cellclass.translations[name][0]
+        return pynest.getDict([int(self)])[0][translated_name]
+    
     def set(self,param,val=None):
         # We perform a call to the low-level function set() of the API.
         # If the cellclass is not defined in the ID object :
@@ -227,15 +232,17 @@ def create(cellclass,paramDict=None,n=1):
     if isinstance(cellclass, type):
         celltype = cellclass(paramDict)
         cell_gids = pynest.create(celltype.nest_name,n)
-        cell_gids = [pynest.getGID(gid) for gid in cell_gids]
+        cell_gids = [ID(pynest.getGID(gid)) for gid in cell_gids]
         pynest.setDict(cell_gids,celltype.parameters)
     elif isinstance(cellclass, str):  # celltype is not a standard cell
         cell_gids = pynest.create(cellclass,n)
-        cell_gids = [pynest.getGID(gid) for gid in cell_gids]
+        cell_gids = [ID(pynest.getGID(gid)) for gid in cell_gids]
         if paramDict:
             pynest.setDict(cell_gids,paramDict)
     else:
         raise "Invalid cell type"
+    for id in cell_gids:
+        id.setCellClass(cellclass)
     if n == 1:
         return cell_gids[0]
     else:
@@ -328,7 +335,7 @@ def record_v(source,filename):
     pynest.record_v(source,record_file.replace('/','_'))
 
 
-def printSpikes(filename, compatible_output=True):
+def _printSpikes(filename, compatible_output=True):
     """ Print spikes into a file, and postprocessed them if
     needed and asked to produce a compatible output for all the simulator
     Should actually work with record() and allow to dissociate the recording of the
@@ -357,7 +364,7 @@ def printSpikes(filename, compatible_output=True):
     os.system("rm %s" %tempfilename)
 
 
-def print_v(filename, compatible_output=True):
+def _print_v(filename, compatible_output=True):
     """ Print membrane potentials in a file, and postprocessed them if
     needed and asked to produce a compatible output for all the simulator
     Should actually work with record_v() and allow to dissociate the recording of the

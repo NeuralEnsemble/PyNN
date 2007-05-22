@@ -11,7 +11,7 @@ Before using any other functions or classes from PyNN, the user must call the ``
     
 ``setup()`` takes various optional arguments: setting the simulation timestep (there is currently no support in the API for variable timestep methods although native simulator code can be used to select this option where the simulator supports it), setting the minimum and maximum synaptic delays, and turning debugging output on and off, e.g.::
 
-    >>> setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False)
+    >>> setup(timestep=0.1, min_delay=0.1, max_delay=0.5, debug=False)
     
 Debugging information is written to a log file in the working directory.
 
@@ -38,8 +38,13 @@ To create many neurons at once, add the ``n`` argument, e.g.::
 
     >>> create(IF_curr_alpha, n=10)
     
-The neurons we have created so far have all had default parameter values.
-[How can we find out what these defaults are?]
+The neurons we have created so far have all had default parameter values, 
+stored in the ``default_values`` of the standard cell class, e.g.::
+
+    >>> IF_curr_alpha.default_parameters
+    {'tau_refrac': 0.0, 'tau_m': 20.0, 'i_offset': 0.0, 'cm': 1.0, 'v_init': -65.0,
+     'v_thresh': -50.0, 'v_rest': -65.0, 'tau_syn': 5.0, 'v_reset': -65.0}
+
 To use different parameter values, use the ``paramDict`` argument, e.g.::
 
     >>> create(IF_curr_alpha, paramDict={'tau_m': 15.0, 'cm': 0.9}, n=10)
@@ -47,9 +52,29 @@ To use different parameter values, use the ``paramDict`` argument, e.g.::
 If you try to set a non-existent parameter, or pass an invalid value, PyNN will raise an Exception, e.g.::
 
     >>> create(IF_curr_alpha, paramDict={'foo': 15.0})
-    [output to go here]
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in ?
+      File "/usr/lib/python/site-packages/pyNN/nest.py", line 228, in create
+        celltype = cellclass(paramDict)
+      File "/usr/lib/python/site-packages/pyNN/nest.py", line 68, in __init__
+        common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 113, in __init__
+        self.parameters = self.checkParameters(parameters, with_defaults=True)
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 99, in checkParameters
+        raise NonExistentParameterError(k)
+    NonExistentParameterError: foo
     >>> create(IF_curr_alpha, paramDict={'tau_m': 'bar'})
-    [output to go here].
+    Traceback (most recent call last):
+      File "/usr/lib/python/site-packages/pyNN/nest.py", line 228, in create
+        celltype = cellclass(paramDict)
+      File "/usr/lib/python/site-packages/pyNN/nest.py", line 68, in __init__
+        common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 113, in __init__
+        self.parameters = self.checkParameters(parameters, with_defaults=True)
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 90, in checkParameters
+        raise InvalidParameterValueError, (type(supplied_parameters[k]), type(default_parameters[k]))
+    InvalidParameterValueError: (<type 'str'>, <type 'float'>)
+
     
 If you wish to do something with the cell after creating it: record from it, change a parameter, connect it to another cell, you should assign the return value of the function to a variable, e.g.::
 
@@ -63,22 +88,23 @@ Connecting neurons
 
 Any neuron that emits spikes can be connected to any neuron with at least one synapse using the ``connect()`` function, e.g.::
 
-    >>> spike_source = create(SpikeSourceArray, paramDict={'spiketimes': [10.0, 20.0, 30.0]})
-    >>> cells = create(IF_curr_alpha, n=10)
-    >>> connect(spike_source, cells)
+    >>> spike_source = create(SpikeSourceArray, paramDict={'spike_times': [10.0, 20.0, 30.0]})
+    >>> cell_list2 = create(IF_curr_exp, n=10)
+    >>> connect(spike_source, cell_list2)
     
 In this case we connect a spike-generating mechanism (``SpikeSourceArray`` is a 'standard cell' model that emits spikes at times specified by the ``spiketimes`` parameter) to each cell in the list ``cells``, i.e. we create 10 connections at once.
 For clarity, we could also have specified the argument names::
 
-    >>> connect(source=spike_source, target=cells)
+    >>> connect(source=spike_source, target=cell_list2)
     
 Either ``source``, or ``target``, or both may be individual cell ids or lists of ids.
 In the latter case, each source (presynaptic) cell is connected to every target (postsynaptic) cell with probability given by the optional argument `p`, which defaults to 1, e.g.::
 
+    >>> source_list = cell_list
+    >>> target_list = cell_list2
     >>> connect(source_list, target_list, p=0.5)
     
 When specifying connections as above, default values are given to the synaptic weight and delay.
-[These default values may be different for different simulators?]
 These values are seldom very useful, and it is better to specify the ``weight`` and ``delay`` arguments of ``connect()``, e.g.::
 
     >>> connect(source_list, target_list, weight=1.5, delay=0.5)
@@ -101,24 +127,22 @@ Setting neuron parameters
 
 The parameters for individual neurons and post-synaptic mechanisms may be changed after creation of the neuron using the ``set()`` function, e.g.::
 
-    >>> cells = create(IF_curr_exp, cellParams={'i_offset': 0.0}, n=10)
-    >>> set(cells[0:5], IF_curr_exp, param='i_offset', val=0.1)
-    >>> print cells[0].i_offset
-    0.1
-    >>> print cells[5].i_offset
-    0.0
+    >>> cells = create(IF_curr_exp, paramDict={'v_init': -70.0}, n=10)
+    >>> set(cells[0:5], IF_curr_exp, param='v_init', val=-65.0)
+    >>> print cells[0].v_init
+    -65.0
+    >>> print cells[5].v_init
+    -70.0
     
-[actually, the above print statements don't work. More work on ID class needed].    
-
 It is unfortunately necessary to specify the neuron type as the second argument, since cell ids do not (currently, at least) hold information about the neuron type.
 Individual parameters can be set using the ``param`` and ``val`` arguments, as above, or multiple parameters can be set at once by passing a dictionary of name:value pairs as the ``param`` argument, with ``val`` empty, e.g.::
 
-    >>> set(cells, IF_curr_exp, param={'tau_refrac': 2.0, 'tau_syn': 5.0})
+    >>> set(cells, IF_curr_exp, param={'tau_refrac': 2.0, 'tau_syn_E': 5.0})
     
 An alternative way to set parameter values is to call the ``set()`` method of the cell ID objects, e.g.::
 
     >>> cells[0].set('v_reset', -70.0)
-    >>> cells[1].set({'tau_refrac': 2.0, 'tau_syn': 5.0})
+    >>> cells[1].set({'tau_refrac': 2.0, 'tau_syn_E': 5.0})
 
 Recording spikes and membrane potential
 =======================================
