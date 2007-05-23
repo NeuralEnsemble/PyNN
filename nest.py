@@ -295,10 +295,15 @@ def set(cells,cellclass,param,val=None):
         
     if val:
         param = {param:val}
-    if type(cells) != types.ListType:
+    try:
+        i = cells[0]
+    except TypeError:
         cells = [cells]
-    if issubclass(cellclass, common.StandardCellType):
-        param = cellclass({}).translate(param)
+    if not isinstance(cellclass,str):
+        if issubclass(cellclass, common.StandardCellType):
+            param = cellclass({}).translate(param)
+        else:
+            raise TypeError, "cellclass must be a string or derived from commonStandardCellType"
     pynest.setDict(cells,param)
 
 def record(source,filename):
