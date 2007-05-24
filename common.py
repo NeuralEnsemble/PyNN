@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 Defines the PyNN classes and functions, and hence the FACETS API.
 The simulator-specific classes should inherit from these and have the same
