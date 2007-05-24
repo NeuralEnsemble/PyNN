@@ -95,7 +95,7 @@ Availability: NEST, NEURON, PCSIM
 ============  =============  ======  ==========================
 Name          Default value  Units   Description
 ============  =============  ======  ==========================
-``rate`       0.0            s^`-1`  Mean spike frequency
+``rate``      0.0            s^`-1`  Mean spike frequency
 ``start``     0.0            ms      Start time
 ``duration``  10^9           ms      Duration of spike sequence
 ============  =============  ======  ==========================

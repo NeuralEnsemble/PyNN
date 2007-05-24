@@ -201,17 +201,5 @@ Just as a simulation must be begun with a call to ``setup()``, it must be ended 
 Example
 =======
 
-We now give a full example of a PyNN simulation script::
-
-    from pyNN.nest import *
-    
-    <insert IF_curr_alpha.py here (with line numbers?)>
-    
-To run the script with NEURON, replace the first line with::
-
-    from pyNN.neuron import *
-    
-and to run the script with PCSIM::
-
-    from pyNN.pcsim import *
+There are several example scripts in the ``test`` directory of the source distribution.
     

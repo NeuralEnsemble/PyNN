@@ -352,4 +352,4 @@ this has currently only been implemented for NEURON.
 Example
 =======
 
-There are several examples of networks built with the high-level API in the ``test`` directory.
+There are several examples of networks built with the high-level API in the ``test`` directory of the source distribution.
