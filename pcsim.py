@@ -885,9 +885,8 @@ class Population(common.Population):
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids (e.g., (i,j,k) tuple for a 3D population)
-        of the cells to record.
-        """         
+        - or a list containing the ids of the cells to record.
+        """
         """
           The current implementation allows only one invocation of this method per population
         """
@@ -1138,7 +1137,10 @@ class Projection(common.Projection):
     def setWeights(self, w):
         """
         w can be a single number, in which case all weights are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
+        Weights should be in nA for current-based and µS for conductance-based
+        synapses.
         """
         if hasattr(self.post.pcsim_population.object(0),'ErevExc'):
             weight_factor = 1e-6 # Convert from µS to S
@@ -1165,7 +1167,8 @@ class Projection(common.Projection):
     def setDelays(self, d):
         """
         d can be a single number, in which case all delays are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
         """
         d = d/1000.0 # Delays in pcsim are specified in seconds
         if isinstance(d, float) or isinstance(d, int):

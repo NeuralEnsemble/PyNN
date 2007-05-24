@@ -947,8 +947,7 @@ class Population(common.Population):
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids (e.g., (i,j,k) tuple for a 3D population)
-        of the cells to record.
+        - or a list containing the ids of the cells to record.
         """
         hoc_comment("--- Population[%s].__record()__ ---" %self.label)
         self.__record('spiketimes',record_from,rng)
@@ -1552,7 +1551,8 @@ class Projection(common.Projection):
     def setDelays(self,d):
         """
         d can be a single number, in which case all delays are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
         """
         if isinstance(d,float) or isinstance(d,int):
             loop = ['for tmp = 0, %d {' %(len(self)-1), 
