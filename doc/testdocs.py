@@ -28,7 +28,11 @@ class MyOutputChecker(doctest.OutputChecker):
             if want == '':
                 return True
             else:
-                return doctest.OutputChecker.check_output(self, want, got, optionflags)
+                try:
+                    int(want) and int(got)
+                    return True
+                except ValueError:
+                    return doctest.OutputChecker.check_output(self, want, got, optionflags)
 
 def mytestfile(filename,globs,optionflags,strict=False):
     parser = doctest.DocTestParser()
@@ -69,7 +73,7 @@ if __name__ == "__main__":
     
     # Run test
     exec("from pyNN.%s import *" % options.simulator)
-    setup(max_delay=1.0)
+    setup(max_delay=1.0,debug=True)
     mytestfile(docfile, globs=globals(), optionflags=optionflags, strict=options.strict)
 
     sys.exit(0)

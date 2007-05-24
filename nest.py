@@ -1055,9 +1055,10 @@ class Projection(common.Projection):
             pynest.resCons(pre_addr,n)                
             # pick n neurons at random
             for post in rng.permutation(postsynaptic_neurons)[0:n]:
-                self._sources.append(pre)
-                self._targets.append(post)
-                self._targetPorts.append(pynest.connect(pre_addr,pynest.getAddress(post)))
+                if allow_self_connections or (pre != post):
+                    self._sources.append(pre)
+                    self._targets.append(post)
+                    self._targetPorts.append(pynest.connect(pre_addr,pynest.getAddress(post)))
     
     def _fixedNumberPost(self,parameters,synapse_type=None):
         """Each postsynaptic cell receives a fixed number of connections."""
@@ -1098,9 +1099,10 @@ class Projection(common.Projection):
             pynest.resCons(post_addr,n)                
             # pick n neurons at random
             for pre in rng.permutation(presynaptic_neurons)[0:n]:
-                self._sources.append(pre)
-                self._targets.append(post)
-                self._targetPorts.append(pynest.connect(pynest.getAddress(pre),post_addr))
+                if allow_self_connections or (pre != post):
+                    self._sources.append(pre)
+                    self._targets.append(post)
+                    self._targetPorts.append(pynest.connect(pynest.getAddress(pre),post_addr))
     
     def _fromFile(self,parameters,synapse_type=None):
         """

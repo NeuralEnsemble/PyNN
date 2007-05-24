@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 nrnpython implementation of the PyNN API.
 
@@ -23,6 +24,7 @@ vfilelist     = {}
 spikefilelist = {}
 dt            = 0.1
 running       = False
+initialised   = False
 
 # ==============================================================================
 #   Utility classes
@@ -36,6 +38,14 @@ class ID(common.ID):
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
     """
+    
+    def __getattr__(self,name):
+        """Note that this currently does not translate units."""
+        translated_name = self._cellclass.translations[name][0]
+        if self._hocname:
+            return HocToPy.get('%s.%s' % (self._hocname, translated_name),'float')
+        else:
+            return HocToPy.get('cell%d.%s' % (int(self), translated_name),'float')
     
     def set(self,param,val=None):
         # We perform a call to the low-level function set() of the API.
@@ -53,11 +63,7 @@ class ID(common.ID):
             set(self,self._cellclass,param,val)
     
     def get(self,param):
-        #This function should be improved, with some test to translate
-        #the parameter according to the cellclass
-        #We have here the same problem as with set() in the parallel framework
-        if self._hocname != None:
-            return HocToPy.get('%s.%s' %(self._hocname, param),'float')
+        return self.__getattr__(param)
     
     # Fonctions used only by the neuron version of pyNN, to optimize the
     # creation of networks
@@ -143,6 +149,8 @@ def _hoc_arglist(paramlist):
                 nmat += 1
             else:
                 raise common.InvalidDimensionsError, 'number of dimensions must be 1 or 2'
+        elif item is None:
+            pass
         else:
             hoc_commands += ['argvar%d = %f' % (nvar,item)]
             argstr += 'argvar%d, ' % nvar
@@ -349,7 +357,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global dt, nhost, myid, _min_delay, logger
+    global dt, nhost, myid, _min_delay, logger, initialised
     dt = timestep
     _min_delay = min_delay
     
@@ -369,25 +377,27 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     logging.info("Initialization of NEURON (use setup(..,debug=True) to see a full logfile)")
     
     # All the objects that will be used frequently in the hoc code are declared in the setup
-    hoc_commands = [
-        'tmp = xopen("%s")' % os.path.join(__path__[0],'hoc','standardCells.hoc'),
-        'tmp = xopen("%s")' % os.path.join(__path__[0],'hoc','odict.hoc'),
-        'objref pc',
-        'pc = new ParallelContext()',
-        'dt = %f' % dt,
-        'create dummy_section',
-        'access dummy_section',
-        'objref netconlist, nil',
-        'netconlist = new List()', 
-        'strdef cmd',
-        'strdef fmt', 
-        'objref nc', 
-        'objref rng',
-        'objref cell']
-        
-    #---Experimental--- Optimize the simulation time ? / Reduce inter-processors exchanges ?
-    hoc_commands += [
-        'tmp   = pc.spike_compress(1,0)']
+    if initialised:
+        hoc_commands = ['dt = %f' % dt]    
+    else:
+        hoc_commands = [
+            'tmp = xopen("%s")' % os.path.join(__path__[0],'hoc','standardCells.hoc'),
+            'tmp = xopen("%s")' % os.path.join(__path__[0],'hoc','odict.hoc'),
+            'objref pc',
+            'pc = new ParallelContext()',
+            'dt = %f' % dt,
+            'create dummy_section',
+            'access dummy_section',
+            'objref netconlist, nil',
+            'netconlist = new List()', 
+            'strdef cmd',
+            'strdef fmt', 
+            'objref nc', 
+            'objref rng',
+            'objref cell']    
+        #---Experimental--- Optimize the simulation time ? / Reduce inter-processors exchanges ?
+        hoc_commands += [
+            'tmp   = pc.spike_compress(1,0)']
         
     hoc_execute(hoc_commands,"--- setup() ---")
     nhost = HocToPy.get('pc.nhost()','int')
@@ -397,6 +407,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
         myid = HocToPy.get('pc.id()','int')
     print "\nHost #%d of %d" % (myid+1, nhost)
     
+    initialised = True
     return int(myid)
 
 def end(compatible_output=True):
@@ -485,7 +496,9 @@ def create(cellclass,paramDict=None,n=1):
     hoc_execute(hoc_commands, "--- create() ---")
 
     gidlist.extend(newgidlist)
-    cell_list = range(gid,gid+n)
+    cell_list = [ID(i) for i in range(gid,gid+n)]
+    for id in cell_list:
+        id.setCellClass(cellclass)
     gid = gid+n
     if n == 1:
         cell_list = cell_list[0]
@@ -1113,10 +1126,11 @@ class Projection(common.Projection):
         self.connections = []
         if not label:
             self.label = 'projection%d' % Projection.nProj
+        self.hoc_label = self.label.replace(" ","_")
         if not rng:
             self.rng = numpy.random.RandomState()
-        hoc_commands = ['objref %s' % self.label,
-                        '%s = new List()' % self.label]
+        hoc_commands = ['objref %s' % self.hoc_label,
+                        '%s = new List()' % self.hoc_label]
         connection_method = getattr(self,'_%s' % method)
         
         if target:
@@ -1173,13 +1187,13 @@ class Projection(common.Projection):
         hoc_commands = []
         for tgt in self.post.gidlist:
             for src in self.pre.fullgidlist:
-                if allow_self_connections or tgt != src:
+                if allow_self_connections or self.pre != self.post or tgt != src:
                     hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                   self.post.label,
+                                                                                   self.post.hoc_label,
                                                                                    self.post.gidlist.index(tgt),
                                                                                    syn_objref),
-                                     'tmp = %s.append(nc)' % self.label]
-                self.connections.append((src,tgt))
+                                     'tmp = %s.append(nc)' % self.hoc_label]
+                    self.connections.append((src,tgt))
         return hoc_commands
         
     def _oneToOne(self,synapse_type=None):
@@ -1198,14 +1212,13 @@ class Projection(common.Projection):
             for tgt in self.post.gidlist:
                 src = tgt - self.post.gid_start + self.pre.gid_start
                 hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                self.post.label,
+                                                                                self.post.hoc_label,
                                                                                 self.post.gidlist.index(tgt),
                                                                                 syn_objref),
-                                 'tmp = %s.append(nc)' % self.label]
+                                 'tmp = %s.append(nc)' % self.hoc_label]
                 self.connections.append((src,tgt))
         else:
-            raise "Method '%s' not yet implemented for the case where presynaptic \
-                    and postsynaptic Populations have different sizes." % sys._getframe().f_code.co_name
+            raise Exception("Method '%s' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes." % sys._getframe().f_code.co_name)
         return hoc_commands
     
     def _fixedProbability(self,parameters,synapse_type=None):
@@ -1233,12 +1246,12 @@ class Projection(common.Projection):
             for tgt in self.post.gidlist:
                 for src in self.pre.fullgidlist:
                     if HocToPy.get('rng.repick()','float') < p_connect:
-                        if allow_self_connections or tgt != src:
+                        if allow_self_connections or self.pre != self.post or tgt != src:
                             hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                           self.post.label,
+                                                                                           self.post.hoc_label,
                                                                                            self.post.gidlist.index(tgt),
                                                                                            syn_objref),
-                                             'tmp = %s.append(nc)' % self.label]
+                                             'tmp = %s.append(nc)' % self.hoc_label]
                             self.connections.append((src,tgt))
             return hoc_commands
         else: # use Python RNG
@@ -1247,12 +1260,12 @@ class Projection(common.Projection):
                 for j in xrange(self.pre.size):
                     src = j + self.pre.gid_start
                     if rarr[j] < p_connect:
-                        if allow_self_connections or tgt != src:
+                        if allow_self_connections or self.pre != self.post or tgt != src:
                             hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                       self.post.label,
+                                                                                       self.post.hoc_label,
                                                                                        self.post.gidlist.index(tgt),
                                                                                        syn_objref),
-                                         'tmp = %s.append(nc)' % self.label]
+                                         'tmp = %s.append(nc)' % self.hoc_label]
                             self.connections.append((src,tgt))
         return hoc_commands
 
@@ -1292,24 +1305,24 @@ class Projection(common.Projection):
             # We need to use the gid stored as ID, so we should modify the loop to scan the global gidlist (containing ID)
             for tgt in self.post.gidlist:
                 for src in self.pre.fullgidlist:
-                    if allow_self_connections or tgt != src: 
+                    if allow_self_connections or self.pre != self.post or tgt != src: 
                         # calculate the distance between the two cells :
                         dist = self._distance(self.pre, self.post, src, tgt)
                         distance_expression = d_expression.replace('d', '%f' %dist)
                         if alphanum:
                             if HocToPy('rng.repick()','float') < eval(distance_expression):
                                 hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                          self.post.label,
+                                                                                          self.post.hoc_label,
                                                                                           self.post.gidlist.index(tgt),
                                                                                           syn_objref),
-                                             'tmp = %s.append(nc)' % self.label]
+                                             'tmp = %s.append(nc)' % self.hoc_label]
                                 self.connections.append((src,tgt))
                         elif eval(distance_expression):
                             hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                          self.post.label,
+                                                                                          self.post.hoc_label,
                                                                                           self.post.gidlist.index(tgt),
                                                                                           syn_objref),
-                                             'tmp = %s.append(nc)' % self.label]
+                                             'tmp = %s.append(nc)' % self.hoc_label]
                             self.connections.append((src,tgt))
             return hoc_commands
         else: # use a python RNG
@@ -1319,59 +1332,116 @@ class Projection(common.Projection):
                     # Again, we should have an ID (stored in the global gidlist) instead
                     # of a simple int.
                     src = self.pre.fullgidlist[j]
-                    if allow_self_connections or tgt != src:
+                    if allow_self_connections or self.pre != self.post or tgt != src:
                         # calculate the distance between the two cells :
                         dist = self._distance(self.pre, self.post, src, tgt)
                         distance_expression = d_expression.replace('d', '%f' %dist)                      
                         if alphanum:
                             if rarr[j] < eval(distance_expression):
                                 hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                          self.post.label,
+                                                                                          self.post.hoc_label,
                                                                                           self.post.gidlist.index(tgt),
                                                                                           syn_objref),
-                                             'tmp = %s.append(nc)' % self.label]
+                                             'tmp = %s.append(nc)' % self.hoc_label]
                                 self.connections.append((src,tgt))
                         elif eval(distance_expression):
                             hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                          self.post.label,
+                                                                                          self.post.hoc_label,
                                                                                           self.post.gidlist.index(tgt),
                                                                                           syn_objref),
-                                             'tmp = %s.append(nc)' % self.label]
+                                             'tmp = %s.append(nc)' % self.hoc_label]
                             self.connections.append((src,tgt))
         return hoc_commands
     
     def _fixedNumberPre(self,parameters,synapse_type=None):
         """Each presynaptic cell makes a fixed number of connections."""
-        raise Exception("Method not yet implemented")
+        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
+            assert n > 0
+            fixed = True
         elif type(parameters) == types.DictType:
             if parameters.has_key('n'): # all cells have same number of connections
-                n = parameters['n']
-            elif parameters.has_key('rng'): # number of connections per cell follows a distribution
-                rng = parameters['rng']
+                n = int(parameters['n'])
+                assert n > 0
+                fixed = True
+            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
+                rand_distr = parameters['rand_distr']
+                assert isinstance(rand_distr,RandomDistribution)
+                fixed = False
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-        else : # assume parameters is a rng
-            rng = parameters
+        elif isinstance(parameters, RandomDistribution):
+            rand_distr = parameters
+            fixed = False
+        else:
+            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
+        syn_objref = _translate_synapse_type(synapse_type)
+        hoc_commands = []
+        
+        if self.rng:
+            rng = self.rng
+        else:
+            rng = numpy.random
+        for src in self.pre.gidlist:            
+            # pick n neurons at random
+            if not fixed:
+                n = rand_distr.next()
+            for tgt in rng.permutation(self.post.gidlist)[0:n]:
+                if allow_self_connections or (src != tgt):
+                    hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
+                                                                                   self.post.hoc_label,
+                                                                                   self.post.gidlist.index(tgt),
+                                                                                   syn_objref),
+                                     'tmp = %s.append(nc)' % self.hoc_label]
+                    self.connections.append((src,tgt))
+        return hoc_commands
             
     def _fixedNumberPost(self,parameters,synapse_type=None):
         """Each postsynaptic cell receives a fixed number of connections."""
-        raise Exception("Method not yet implemented")
+        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
+            assert n > 0
+            fixed = True
         elif type(parameters) == types.DictType:
             if parameters.has_key('n'): # all cells have same number of connections
-                n = parameters['n']
-            elif parameters.has_key('rng'): # number of connections per cell follows a distribution
-                rng = parameters['rng']
+                n = int(parameters['n'])
+                assert n > 0
+                fixed = True
+            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
+                rand_distr = parameters['rand_distr']
+                assert isinstance(rand_distr,RandomDistribution)
+                fixed = False
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-        else : # assume parameters is a rng
-            rng = parameters
+        elif isinstance(parameters, RandomDistribution):
+            rand_distr = parameters
+            fixed = False
+        else:
+            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
         syn_objref = _translate_synapse_type(synapse_type)
+        hoc_commands = []
+        
+        if self.rng:
+            rng = self.rng
+        else:
+            rng = numpy.random
+        for tgt in self.post.gidlist:            
+            # pick n neurons at random
+            if not fixed:
+                n = rand_distr.next()
+            for src in rng.permutation(self.pre.gidlist)[0:n]:
+                if allow_self_connections or (src != tgt):
+                    hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
+                                                                                   self.post.hoc_label,
+                                                                                   self.post.gidlist.index(tgt),
+                                                                                   syn_objref),
+                                     'tmp = %s.append(nc)' % self.hoc_label]
+                    self.connections.append((src,tgt))
+        return hoc_commands
     
     def _fromFile(self,parameters,synapse_type=None):
         """
@@ -1396,37 +1466,36 @@ class Projection(common.Projection):
         input_tuples = []
         for line in lines:
             single_line = line.rstrip()
-            single_line = single_line.split("\t", 4)
-            input_tuples.append(single_line)    
+            src, tgt, w, d = single_line.split("\t", 4)
+            src = "[%s" % src.split("[",1)[1]
+            tgt = "[%s" % tgt.split("[",1)[1]
+            input_tuples.append((eval(src),eval(tgt),float(w),float(d)))
         f.close()
-        
         return self._fromList(input_tuples, synapse_type)
     
     def _fromList(self,conn_list,synapse_type=None):
         """
         Read connections from a list of tuples,
-        containing ['src[x,y]', 'tgt[x,y]', 'weight', 'delay']
+        containing [pre_addr, post_addr, weight, delay]
+        where pre_addr and post_addr are both neuron addresses, i.e. tuples or
+        lists containing the neuron array coordinates.
         """
         hoc_commands = []
         syn_objref = _translate_synapse_type(synapse_type)
         
         # Then we go through those tuple and extract the fields
+        self.synapse_type = synapse_type
         for i in xrange(len(conn_list)):
-            src    = conn_list[i][0]
-            tgt    = conn_list[i][1]
-            weight = eval(conn_list[i][2])
-            delay  = eval(conn_list[i][3])
-            src = "[%s" %src.split("[",1)[1]
-            tgt = "[%s" %tgt.split("[",1)[1]
-            src  = eval("self.pre%s" % src)
-            tgt  = eval("self.post%s" % tgt)
+            src, tgt, weight, delay = conn_list[i][:]
+            src = self.pre[tuple(src)]
+            tgt = self.post[tuple(tgt)]
             hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                           self.post.label,
+                                                                           self.post.hoc_label,
                                                                            self.post.gidlist.index(tgt),
                                                                            syn_objref),
-                             'tmp = %s.append(nc)' % self.label]
-            hoc_commands += ['%s.object(%d).weight = %f' % (self.label, i, float(weight)), 
-                             '%s.object(%d).delay = %f'  % (self.label, i, float(delay))]
+                             'tmp = %s.append(nc)' % self.hoc_label]
+            hoc_commands += ['%s.object(%d).weight = %f' % (self.hoc_label, i, float(weight)), 
+                             '%s.object(%d).delay = %f'  % (self.hoc_label, i, float(delay))]
             self.connections.append((src,tgt))
         return hoc_commands
     
@@ -1435,18 +1504,26 @@ class Projection(common.Projection):
     def setWeights(self,w):
         """
         w can be a single number, in which case all weights are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
+        Weights should be in nA for current-based and µS for conductance-based
+        synapses.
         """
         if isinstance(w,float) or isinstance(w,int):
-            loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                        '%s.object(tmp).weight = %f ' %(self.label, float(w)),
+            loop = ['for tmp = 0, %d {' % (len(self)-1), 
+                        '%s.object(tmp).weight = %f ' % (self.hoc_label, float(w)),
                     '}']
             hoc_code = "".join(loop)
-            hoc_commands = [ 'cmd = "%s"' %hoc_code,
+            hoc_commands = [ 'cmd = "%s"' % hoc_code,
                              'success = execute1(cmd)']
+        elif isinstance(w,list) or isinstance(w,numpy.ndarray):
+            hoc_commands = []
+            assert len(w) == len(self), "List of weights has length %d, Projection %s has length %d" % (len(w),self.label,len(self))
+            for i,weight in enumerate(w):
+                hoc_commands += ['%s.object(tmp).weight = %f' % (self.hoc_label, weight)]
         else:
-            raise Exception("Population.setWeights() not yet implemented for weight arrays.")
-        hoc_execute(hoc_commands, "--- Projection[%s].__setWeights__() ---" %self.label)
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+        hoc_execute(hoc_commands, "--- Projection[%s].__setWeights__() ---" % self.label)
         
     def randomizeWeights(self,rand_distr):
         """
@@ -1461,7 +1538,7 @@ class Projection(common.Projection):
                             'tmp = rng.%s(%s)' % (rand_distr.name,distr_params)]
                             
             loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                        '%s.object(tmp).weight = rng.repick() ' %(self.label),
+                        '%s.object(tmp).weight = rng.repick() ' %(self.hoc_label),
                     '}']
             hoc_code = "".join(loop)
             hoc_commands += ['cmd = "%s"' %hoc_code,
@@ -1469,7 +1546,7 @@ class Projection(common.Projection):
         else:       
             hoc_commands = []
             for i in xrange(len(self)):
-                hoc_commands += ['%s.object(%d).weight = %f' % (self.label, i, float(rand_distr.next()))]  
+                hoc_commands += ['%s.object(%d).weight = %f' % (self.hoc_label, i, float(rand_distr.next()))]  
         hoc_execute(hoc_commands, "--- Projection[%s].__randomizeWeights__() ---" %self.label)
         
     def setDelays(self,d):
@@ -1479,13 +1556,18 @@ class Projection(common.Projection):
         """
         if isinstance(d,float) or isinstance(d,int):
             loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                        '%s.object(tmp).delay = %f ' %(self.label, float(d)),
+                        '%s.object(tmp).delay = %f ' %(self.hoc_label, float(d)),
                     '}']
             hoc_code = "".join(loop)
             hoc_commands = [ 'cmd = "%s"' %hoc_code,
                              'success = execute1(cmd)']
+        elif isinstance(d,list) or isinstance(d,numpy.ndarray):
+            hoc_commands = []
+            assert len(d) == len(self), "List of delays has length %d, Projection %s has length %d" % (len(d),self.label,len(self))
+            for i,delay in enumerate(d):
+                hoc_commands += ['%s.object(tmp).delay = %f' % (self.hoc_label,delay)]
         else:
-            raise Exception("Population.setDelays() not yet implemented for delay arrays.")
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
         hoc_execute(hoc_commands, "--- Projection[%s].__setDelays__() ---" %self.label)
         
     def randomizeDelays(self,rand_distr):
@@ -1500,7 +1582,7 @@ class Projection(common.Projection):
             hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
                             'tmp = rng.%s(%s)' % (rand_distr.name,distr_params)]
             loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                        '%s.object(tmp).delay = rng.repick() ' %(self.label),
+                        '%s.object(tmp).delay = rng.repick() ' %(self.hoc_label),
                     '}']
             hoc_code = "".join(loop)
             hoc_commands += ['cmd = "%s"' %hoc_code,
@@ -1508,7 +1590,7 @@ class Projection(common.Projection):
         else:
             hoc_commands = [] 
             for i in xrange(len(self)):
-                hoc_commands += ['%s.object(%d).delay = %f' % (self.label, i, float(rand_distr.next()))]
+                hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(rand_distr.next()))]
         hoc_execute(hoc_commands, "--- Projection[%s].__randomizeDelays__() ---" %self.label)
         
     def setTopographicDelays(self,delay_rule,rand_distr=None):
@@ -1530,7 +1612,7 @@ class Projection(common.Projection):
                 dist = self._distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
                 # then evaluate the delay according to the delay rule
                 delay = eval(delay_rule.replace('d', '%f' %dist))
-                hoc_commands += ['%s.object(%d).delay = %f' % (self.label, i, float(delay))]
+                hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(delay))]
         else:
             if isinstance(rand_distr.rng, NativeRNG):
                 paramfmt = "%f,"*len(rand_distr.parameters); paramfmt = paramfmt.strip(',')
@@ -1547,7 +1629,7 @@ class Projection(common.Projection):
                     # then evaluate the delay according to the delay rule
                     delay = delay_rule.replace('d', '%f' % dist)
                     delay = eval(delay.replace('rng', '%f' % HocToPy.get('rng.repick()', 'float')))
-                    hoc_commands += ['%s.object(%d).delay = %f' % (self.label, i, float(delay))]   
+                    hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(delay))]   
             else:
                 for i in xrange(len(self)):
                     src = self.connections[i][0]
@@ -1559,7 +1641,7 @@ class Projection(common.Projection):
                     # then evaluate the delay according to the delay rule :
                     delay = delay_rule.replace('d', '%f' %dist)
                     delay = eval(delay.replace('rng', '%f' %rand_distr.next()))
-                    hoc_commands += ['%s.object(%d).delay = %f' % (self.label, i, float(delay))]        
+                    hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(delay))]        
         
         hoc_execute(hoc_commands, "--- Projection[%s].__setTopographicDelays__() ---" %self.label)
         
@@ -1580,27 +1662,27 @@ class Projection(common.Projection):
         """Set-up STDP."""
         
         # Define the objref to handle plasticity
-        hoc_commands =  ['objref %s_wa[%d]'      %(self.label,len(self)),
-                         'objref %s_pre2wa[%d]'  %(self.label,len(self)),
-                         'objref %s_post2wa[%d]' %(self.label,len(self))]
+        hoc_commands =  ['objref %s_wa[%d]'      %(self.hoc_label,len(self)),
+                         'objref %s_pre2wa[%d]'  %(self.hoc_label,len(self)),
+                         'objref %s_post2wa[%d]' %(self.hoc_label,len(self))]
         # For each connection
         for i in xrange(len(self)):
             src = self.connections[i][0]
             tgt = self.connections[i][1]
             # we reproduce the structure of STDP that can be found in layerConn.hoc
-            hoc_commands += ['%s_wa[%d]     = new %s(0.5)' %(self.label, i, stdp_model),
-                             '%s_pre2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' % (self.label, i, src, self.label, i),  
-                             '%s_pre2wa[%d].threshold = %s.object(%d).threshold' %(self.label, i, self.label, i),
-                             '%s_pre2wa[%d].delay = %s.object(%d).delay' % (self.label, i, self.label, i),
-                             '%s_pre2wa[%d].weight = 1' %(self.label, i),
-                             '%s_post2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' %(self.label, i, tgt, self.label, i),
-                             '%s_post2wa[%d].threshold = 1' %(self.label, i),
-                             '%s_post2wa[%d].delay = 0' % (self.label, i),
-                             '%s_post2wa[%d].weight = -1' % (self.label, i),
-                             'setpointer %s_wa[%d].wsyn, %s.object(%d).weight' %(self.label, i,self.label,i)]
+            hoc_commands += ['%s_wa[%d]     = new %s(0.5)' %(self.hoc_label, i, stdp_model),
+                             '%s_pre2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' % (self.hoc_label, i, src, self.hoc_label, i),  
+                             '%s_pre2wa[%d].threshold = %s.object(%d).threshold' %(self.hoc_label, i, self.hoc_label, i),
+                             '%s_pre2wa[%d].delay = %s.object(%d).delay' % (self.hoc_label, i, self.hoc_label, i),
+                             '%s_pre2wa[%d].weight = 1' %(self.hoc_label, i),
+                             '%s_post2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' %(self.hoc_label, i, tgt, self.hoc_label, i),
+                             '%s_post2wa[%d].threshold = 1' %(self.hoc_label, i),
+                             '%s_post2wa[%d].delay = 0' % (self.hoc_label, i),
+                             '%s_post2wa[%d].weight = -1' % (self.hoc_label, i),
+                             'setpointer %s_wa[%d].wsyn, %s.object(%d).weight' %(self.hoc_label, i,self.hoc_label,i)]
             # then update the parameters
             for param,val in parameterDict.items():
-                hoc_commands += ['%s_wa[%d].%s = %f' % (self.label, i, param, val)]
+                hoc_commands += ['%s_wa[%d].%s = %f' % (self.hoc_label, i, param, val)]
             
         hoc_execute(hoc_commands, "--- Projection[%s].__setupSTDP__() ---" %self.label)  
     
@@ -1609,7 +1691,7 @@ class Projection(common.Projection):
         onoff = True => ON  and onoff = False => OFF. By defaut, it is on."""
         # We do the loop in hoc, to speed up the code
         loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                    '{ %s_wa[tmp].on = %d ' %(loop, self.label, onoff),
+                    '{ %s_wa[tmp].on = %d ' %(loop, self.hoc_label, onoff),
                 '}']
         hoc_code = "".join(loop)      
         hoc_commands = [ 'cmd="%s"' %hoc_code,
@@ -1620,7 +1702,7 @@ class Projection(common.Projection):
         """Note that not all STDP models have maximum or minimum weights."""
         # We do the loop in hoc, to speed up the code
         loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                    '{ %s_wa[tmp].wmax = %d ' %(loop, self.label, wmax),
+                    '{ %s_wa[tmp].wmax = %d ' %(loop, self.hoc_label, wmax),
                 '}']
         hoc_code = "".join(loop)        
         hoc_commands = [ 'cmd="%s"' %hoc_code,
@@ -1631,7 +1713,7 @@ class Projection(common.Projection):
         """Note that not all STDP models have maximum or minimum weights."""
         # We do the loop in hoc, to speed up the code
         loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                    '{ %s_wa[tmp].wmin = %d ' %(loop, self.label, wmin),
+                    '{ %s_wa[tmp].wmin = %d ' %(loop, self.hoc_label, wmin),
                 '}']
         hoc_code = "".join(loop)
         hoc_commands = [ 'cmd="%s"' %hoc_code,
@@ -1648,12 +1730,12 @@ class Projection(common.Projection):
         for i in xrange(len(self)):
             src = self.connections[i][0]
             tgt = self.connections[i][1]
-            line = "%s%s\t%s%s\t%g\t%g\n" % (self.pre.label,
+            line = "%s%s\t%s%s\t%g\t%g\n" % (self.pre.hoc_label,
                                      self.pre.locate(src),
-                                     self.post.label,
+                                     self.post.hoc_label,
                                      self.post.locate(tgt),
-                                     HocToPy.get('%s.object(%d).weight' % (self.label,i),'float'),
-                                     HocToPy.get('%s.object(%d).delay' % (self.label,i),'float'))
+                                     HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float'),
+                                     HocToPy.get('%s.object(%d).delay' % (self.hoc_label,i),'float'))
             line = line.replace('(','[').replace(')',']')
             f.write(line)
         f.close()
@@ -1671,20 +1753,20 @@ class Projection(common.Projection):
         if gather and myid !=0:
             hoc_commands += ['weight_list = new Vector()']
             for i in xrange(len(self)):
-                weight = HocToPy.get('%s.object(%d).weight' % (self.label,i),'float')
+                weight = HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
                 hoc_commands += ['weight_list = weight_list.append(%f)' %float(weight)]
-            hoc_commands += ['tmp = pc.post("%s.weight_list.node[%d]", weight_list)' %(self.label, myid)]
+            hoc_commands += ['tmp = pc.post("%s.weight_list.node[%d]", weight_list)' %(self.hoc_label, myid)]
             hoc_execute(hoc_commands, "--- [Posting weights list to master] ---")
 
         if not gather or myid == 0:
             f = open(filename,'w')
             for i in xrange(len(self)):
-                weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.label,i),'float')
+                weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
                 f.write(weight)
             if gather:
                 for id in range (1, nhost):
                     hoc_commands = ['weight_list = new Vector()']       
-                    hoc_commands += ['tmp = pc.take("%s.weight_list.node[%d]", weight_list)' %(self.label, id)]
+                    hoc_commands += ['tmp = pc.take("%s.weight_list.node[%d]", weight_list)' %(self.hoc_label, id)]
                     hoc_execute(hoc_commands)                
                     for j in xrange(HocToPy.get('weight_list.size()', 'int')):
                         weight = "%f\n" %HocToPy.get('weight_list.x[%d]' %j, 'float')
