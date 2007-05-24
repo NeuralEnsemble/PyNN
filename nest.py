@@ -904,10 +904,11 @@ class Projection(common.Projection):
         for post in postsynaptic_neurons:
             source_list = presynaptic_neurons.tolist()
             # if self connections are not allowed, check whether pre and post are the same
-            if allow_self_connections or post not in source_list:
-                self._targets += [post]*len(source_list)
-                self._sources += source_list
-                self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
+            if not allow_self_connections and post in source_list:
+                source_list.remove(post)
+            self._targets += [post]*len(source_list)
+            self._sources += source_list
+            self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
         return len(self._targets)
     
     def _oneToOne(self,synapse_type=None):
