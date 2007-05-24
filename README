@@ -10,11 +10,11 @@ SVN instructions
 
 Fetching the source:
 
-svn co https://neuralensemble.kip.uni-heidelberg.de/svn/PyNN/trunk pyNN  
+svn co https://neuralensemble.kip.uni-heidelberg.de/svn/PyNN/branches/0.3 pyNN  
 
 ** Anonymous checkout is allowed
 
-Commiting Changes:
+Committing Changes:
 
 In the svn dir:
 svn commit

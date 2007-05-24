@@ -559,38 +559,16 @@ def set(cells,cellclass,param,val=None): #,hocname=None):
     hoc_commands = []
     for param,val in paramDict.items():
         if isinstance(val,str):
-            ## If we know the hoc name of the object (set() applied to a population object), we use it
-            #if (hocname != None):
-            #    fmt = '%s.%s = "%s"'
-            #else:
-            #    fmt = 'cell%d.%s = "%s"'
             fmt = 'pc.gid2cell(%d).%s = "%s"'
         elif isinstance(val,list):
             cmds,argstr = _hoc_arglist([val])
             hoc_commands += cmds
-            ## If we know the hoc name of the object (set() applied to a population object), we use it
-            #if (hocname != None):
-            #    fmt = '%s.%s = %s'
-            #else:
-            #    fmt = 'cell%d.%s = %s'
             fmt = 'pc.gid2cell(%d).%s = %s'
             val = argstr
         else:
-            ## If we know the hoc name of the object (set() applied to a population object), we use it
-            #if (hocname != None):
-            #    fmt = '%s.%s = %g'
-            #else:
-            #    fmt = 'cell%d.%s = %g'
             fmt = 'pc.gid2cell(%d).%s = %g'
         for cell in cells:
             if cell in gidlist:
-                ## If we know the hoc name of the object (set() applied to a population object), we use it
-                #if (hocname != None):
-                #    hoc_commands += [fmt % (hocname,param,val),
-                #                     'tmp = %s.param_update()' %hocname]
-                #else:
-                #    hoc_commands += [fmt % (cell,param,val),
-                #                     'tmp = cell%d.param_update()' %cell]
                 hoc_commands += [fmt % (cell,param,val),
                                  'tmp = pc.gid2cell(%d).param_update()' % cell]
     hoc_execute(hoc_commands, "--- set() ---")
@@ -661,11 +639,7 @@ class Population(common.Population):
         global gid, myid, nhost, gidlist, fullgidlist
         
         common.Population.__init__(self,dims,cellclass,cellparams,label)
-        #if self.ndim > 1:
-        #    for i in range(1,self.ndim):
-        #        if self.dim[i] != self.dim[0]:
-        #            raise common.InvalidDimensionsError, "All dimensions must be the same size (temporary restriction)."
-
+        
         # set the steps list, used by the __getitem__() method.
         self.steps = [1]*self.ndim
         for i in xrange(self.ndim-1):

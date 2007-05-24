@@ -994,48 +994,6 @@ class Projection(common.Projection):
     
     nProj = 0
     
-    #class ConnectionDict:
-    #        
-    #    def __init__(self,parent):
-    #        self.parent = parent
-    #
-    #    def __getitem__(self,id):
-    #        """Returns a connection id.
-    #        Suppose we have a 2D Population (5x3) projecting to a 3D Population (4x5x7).
-    #        Total number of possible connections is 5x3x4x5x7 = 2100.
-    #        Therefore valid calls are:
-    #        connection[2099] - 2099th possible connection (may not exist)
-    #        connection[14,139] - connection between 14th pre- and 139th postsynaptic neuron (may not exist)
-    #        connection[(4,2),(3,4,6)] - connection between presynaptic neuron with address (4,2)
-    #        and post-synaptic neuron with address (3,4,6) (may not exist).
-    #        """
-    #        if isinstance(id, int): # linear mapping
-    #            preID = id/self.parent.post.size; postID = id%self.parent.post.size
-    #            return self.__getitem__((preID,postID))
-    #        elif isinstance(id, tuple): # (pre,post)
-    #            if len(id) == 2:
-    #                pre = id[0]
-    #                post = id[1]
-    #                if isinstance(pre,int) and isinstance(post,int):
-    #                    pre_coords = self.parent.pre.locate(pre)
-    #                    post_coords = self.parent.post.locate(post)
-    #                    return self.__getitem__((pre_coords,post_coords))
-    #                elif isinstance(pre,tuple) and isinstance(post,tuple): # should also allow lists
-    #                    if len(pre) == self.parent.pre.ndim and len(post) == self.parent.post.ndim:
-    #                        fmt = "[%d]"*(len(pre)+len(post))
-    #                        address = fmt % (pre+post)
-    #                    else:
-    #                        raise common.InvalidDimensionsError
-    #                else:
-    #                    raise KeyError
-    #            else:
-    #                raise common.InvalidDimensionsError
-    #        else:
-    #            raise KeyError #most appropriate?
-    #        
-    #        return address
-    #
-    
     def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', methodParameters=None, source=None, target=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
