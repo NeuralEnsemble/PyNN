@@ -391,6 +391,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
 	# close to 20 Hz. Then we also test how the spikes are saved
 	self.pop1.record()
 	simtime = 1000.0
+        neuron.running = False
 	neuron.run(simtime)
 	self.pop1.printSpikes("temp_neuron.ras")
 	rate = self.pop1.meanSpikeCount()*1000/simtime
@@ -406,6 +407,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
 	self.pop2.randomInit(uniformDistr)
 	self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
 	simtime = 10.0
+        neuron.running = False
         neuron.run(simtime)
 	self.pop2.print_v("temp_neuron.v")
 
@@ -558,6 +560,7 @@ class ProjectionSetTest(unittest.TestCase):
             mean_weight_before += HocToPy.get('%s.object(%d).weight' % (prj1.label,prj1.connections.index(connection_id)), 'float')        
         mean_weight_before = float(mean_weight_before/len(prj1.connections))  
         simtime = 100
+        neuron.running = False
         run(simtime)
         mean_weight_after = 0
         for connection_id in prj1.connections:
@@ -626,6 +629,17 @@ class ProjectionSetTest(unittest.TestCase):
 #        
 #        assert self.prj11.connection[0] == "[0][0]"
 
+class IDTest(unittest.TestCase):
+    """Tests of the ID class."""
+    
+    def setUp(self):
+        neuron.Population.nPop = 0
+        self.pop = neuron.Population((5,),neuron.IF_curr_alpha,{'tau_m':10.0})
+    
+    def testIDSet(self):
+        self.pop[3].set('tau_m',20.0)
+        self.assertEqual(HocToPy.get('%s.object(3).tau_m' % self.pop.label, 'float'), 20.0)
+        self.assertEqual(HocToPy.get('%s.object(1).tau_m' % self.pop.label, 'float'), 10.0)
 
 if __name__ == "__main__":
     sys.argv = ['./nrnpython']

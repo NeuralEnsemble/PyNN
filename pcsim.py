@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 pypcsim implementation of the PyNN API. 
 
@@ -60,6 +61,10 @@ def checkParams(param, val=None):
         raise common.InvalidParameterValueError
     return paramDict
 
+# ==============================================================================
+#   Utility classes
+# ==============================================================================
+
 # Implementation of the NativeRNG
 class NativeRNG(pyNN.random.NativeRNG):
     def __init__(self,seed=None,type='MersenneTwister19937'):
@@ -87,7 +92,6 @@ class NativeRNG(pyNN.random.NativeRNG):
         
         
 class SpikesMultiChannelRecorder(object):
-    #recordings = []  
     
     def __init__(self, source, filename = None, source_indices = None, gather = False):        
         self.filename = filename
@@ -159,7 +163,6 @@ class SpikesMultiChannelRecorder(object):
     
 
 class FieldMultiChannelRecorder:
-    #recordings = []  
     
     def __init__(self,sources,filename = None,src_indices = None, gather = False, fieldname = "Vm"):        
         self.filename = filename
@@ -223,7 +226,32 @@ class FieldMultiChannelRecorder:
                 f.write("\n")
         f.close()
 
+class ID(common.ID):
+    """
+    This class is experimental. The idea is that instead of storing ids as
+    integers, we store them as ID objects, which allows a syntax like:
+      p[3,4].set('tau_m',20.0)
+    where p is a Population object. The question is, how big a memory/performance
+    hit is it to replace integers with ID objects?
+    """ 
 
+    def set(self,param,val=None):
+        if hasattr(self,'in_population'):
+            set(self.in_population.pcsim_population[self],self._cellclass,param,val)
+        else:
+            set(self,self._cellclass,param,val)
+    
+    def get(self,param):
+        raise Exception("Not yet implemented.")
+        # The following does no translation of names, units
+        #if hasattr(self,'in_population'):
+        #    return getattr(self.in_population.pcsim_population.object(self),param) # translation?
+        #else:
+        #    raise getattr(pcsim_globals.net.object(self),param)
+
+    def setCellClass(self, cellclass):
+        self._cellclass = cellclass    
+    
 # ==============================================================================
 #   Standard cells   
 # ==============================================================================
@@ -244,7 +272,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
     }
     pcsim_name = "LIFCurrAlphaNeuron"    
     simObjFactory = None
-    
+    setterMethods = {}
         
     def __init__(self, parameters):
         common.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
@@ -302,47 +330,47 @@ class IF_curr_exp(common.IF_curr_exp):
                                               TauSynInh = self.parameters['TauSynInh'])
 
 
-#class IF_cond_alpha(common.IF_cond_alpha):
-#    """Leaky integrate and fire model with fixed threshold and alpha-function-
-#    shaped post-synaptic conductance."""
-#    
-#    translations = {        
-#        'tau_m'     : ('taum',      "parameters['tau_m']*1e-3" ) ,
-#        'cm'        : ('Cm',        "parameters['cm']*1e-9"), 
-#        'v_rest'    : ('Vresting',  "parameters['v_rest']*1e-3"), 
-#        'v_thresh'  : ('Vthresh',   "parameters['v_thresh']*1e-3"), 
-#        'v_reset'   : ('Vreset',    "parameters['v_reset']*1e-3"), 
-#        'tau_refrac': ('Trefract',  "parameters['tau_refrac']*1e-3"), 
-#        'i_offset'  : ('Iinject',   "parameters['i_offset']*1e-9"),         
-#        'tau_syn_E' : ('TauSynExc', "parameters['tau_syn_E']*1e-3"),
-#        'tau_syn_I' : ('TauSynInh', "parameters['tau_syn_I']*1e-3"),
-#        'e_rev_E'   : ('ErevExc',   "parameters['e_rev_E']*1e-3"),
-#        'e_rev_I'   : ('ErevInh',   "parameters['e_rev_I']*1e-3"),
-#        'v_init'    : ('Vinit',     "parameters['v_init']*1e-3"), 
-#    }
-#    
-#    pcsim_name = "LIFCondAlphaNeuron"    
-#    simObjFactory = None
-#    
-#        
-#    def __init__(self, parameters):
-#        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
-#        self.parameters = self.translate(self.parameters)                
-#        self.parameters['Inoise'] = 0.0
-#        self.simObjFactory = LIFCondAlphaNeuron(taum      = self.parameters['taum'], 
-#                                                Cm        = self.parameters['Cm'], 
-#                                                Vresting  = self.parameters['Vresting'], 
-#                                                Vthresh   = self.parameters['Vthresh'],
-#                                                Vreset    = self.parameters['Vreset'],
-#                                                Trefract  = self.parameters['Trefract'], 
-#                                                Iinject   = self.parameters['Iinject'], 
-#                                                Vinit     = self.parameters['Vinit'], 
-#                                                Inoise    = self.parameters['Inoise'], 
-#                                                TauSynExc = self.parameters['TauSynExc' ],
-#                                                TauSynInh = self.parameters['TauSynInh' ],
-#                                                ErevExc   = self.parameters['ErevExc' ],
-#                                                ErevInh   = self.parameters['ErevInh' ],
-#                                                )
+class IF_cond_alpha(common.IF_cond_alpha):
+    """Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic conductance."""
+    
+    translations = {        
+        'tau_m'     : ('taum',      "parameters['tau_m']*1e-3" ) ,
+        'cm'        : ('Cm',        "parameters['cm']*1e-9"), 
+        'v_rest'    : ('Vresting',  "parameters['v_rest']*1e-3"), 
+        'v_thresh'  : ('Vthresh',   "parameters['v_thresh']*1e-3"), 
+        'v_reset'   : ('Vreset',    "parameters['v_reset']*1e-3"), 
+        'tau_refrac': ('Trefract',  "parameters['tau_refrac']*1e-3"), 
+        'i_offset'  : ('Iinject',   "parameters['i_offset']*1e-9"),         
+        'tau_syn_E' : ('TauSynExc', "parameters['tau_syn_E']*1e-3"),
+        'tau_syn_I' : ('TauSynInh', "parameters['tau_syn_I']*1e-3"),
+        'e_rev_E'   : ('ErevExc',   "parameters['e_rev_E']*1e-3"),
+        'e_rev_I'   : ('ErevInh',   "parameters['e_rev_I']*1e-3"),
+        'v_init'    : ('Vinit',     "parameters['v_init']*1e-3"), 
+    }
+    
+    pcsim_name = "LIFCondAlphaNeuron"    
+    simObjFactory = None
+    setterMethods = {}
+        
+    def __init__(self, parameters):
+        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
+        self.parameters = self.translate(self.parameters)                
+        self.parameters['Inoise'] = 0.0
+        self.simObjFactory = LIFCondAlphaNeuron(taum      = self.parameters['taum'], 
+                                                Cm        = self.parameters['Cm'], 
+                                                Vresting  = self.parameters['Vresting'], 
+                                                Vthresh   = self.parameters['Vthresh'],
+                                                Vreset    = self.parameters['Vreset'],
+                                                Trefract  = self.parameters['Trefract'], 
+                                                Iinject   = self.parameters['Iinject'], 
+                                                Vinit     = self.parameters['Vinit'], 
+                                                Inoise    = self.parameters['Inoise'], 
+                                                TauSynExc = self.parameters['TauSynExc' ],
+                                                TauSynInh = self.parameters['TauSynInh' ],
+                                                ErevExc   = self.parameters['ErevExc' ],
+                                                ErevInh   = self.parameters['ErevInh' ],
+                                                )
 
 """ Implemented not tested """
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
@@ -517,8 +545,20 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     global pcsim_globals
     if weight is None:  weight = 0.0
     if delay  is None:  delay = pcsim_globals.minDelay
+    # Convert units
     delay = delay / 1000 # Delays in pcsim are specified in seconds
-    weight = 1e-9 * weight # Convert from nA to A # !!likely problem with conductance-based synapses
+    if isinstance(target,list):
+        firsttarget = target[0]
+    else:
+        firsttarget = target
+    try:
+        if hasattr(pcsim_globals.net.object(firsttarget),'ErevExc'):
+            weight = 1e-6 * weight # Convert from µS to S    
+        else:
+            weight = 1e-9 * weight # Convert from nA to A
+    except exceptions.Exception, e: # non-existent connection
+        raise common.ConnectionError(e)
+    # Create synapse factory
     syn_factory = 0
     if synapse_type is None:
         if weight >= 0:  # decide whether to connect to the excitatory or inhibitory response 
@@ -530,9 +570,15 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         if isinstance(synapse_type, type):
             syn_factory = synapse_type
         elif isinstance(synapse_type, str):
-            eval('syn_factory = ' + synapse_type + '()')
+            if synapse_type == 'excitatory':
+                syn_factory = SimpleScalingSpikingSynapse(1, 1, pcsim_globals.minDelay/1000)
+            elif synapse_type == 'inhibitory':
+                syn_factory = SimpleScalingSpikingSynapse(2, 1, pcsim_globals.minDelay/1000)
+            else:
+                eval('syn_factory = ' + synapse_type + '()')
             syn_factory.W = weight;
             syn_factory.delay = delay;
+    # Create connections
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
             connections = pcsim_globals.net.connect(source, target, syn_factory)
@@ -561,6 +607,8 @@ def set(cells, cellclass, param, val=None):
     paramDict = checkParams(param, val)
     if issubclass(cellclass, common.StandardCellType):        
         paramDict = cellclass({}).translate(paramDict)
+    if isinstance(cells,ID) or isinstance(cells,long) or isinstance(cells,int):
+        cells = [cells]
     for param, value in paramDict.items():
         if param in cellclass.setterMethods:
            setterMethod = cellclass.setterMethods[param]
@@ -629,7 +677,7 @@ class Population(common.Population):
         global gid, myid, nhost
         
         if isinstance(dims, int): # also allow a single integer, for a 1D population
-            print "Converting integer dims to tuple"
+            #print "Converting integer dims to tuple"
             dims = (dims,)
         elif len(dims) > 3:
             raise exceptions.AttributeError('PCSIM does not support populations with more than 3 dimensions')
@@ -637,6 +685,10 @@ class Population(common.Population):
         self.actual_ndim = len(dims)       
         while len(dims) < 3:
             dims += (1,)
+        # There is a problem here, since self.dim should hold the nominal dimensions of the
+        # population, while in PCSIM the population is always really 3D, even if some of the
+        # dimensions have size 1. We should add a variable self._dims to hold the PCSIM dimensions,
+        # and make self.dims be the nominal dimensions.
         common.Population.__init__(self, dims, cellclass, cellparams, label)
         
         
@@ -677,20 +729,23 @@ class Population(common.Population):
              p = Population(...)
              p[2,3] is equivalent to p.__getitem__((2,3)).
         """
-        # What we actually pass around are gids.
-        orig_addr = addr;
         if isinstance(addr, int):
             addr = (addr,)
+        if len(addr) != self.actual_ndim:
+           raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.actual_ndim,str(addr))
+        orig_addr = addr;
         while len(addr) < 3:
             addr += (0,)                  
-        if len(addr) != len(self.dim):
-           raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addr))
         index = 0
         for i, s in zip(addr, self.steps):
-            index += i*s
-        id = index 
+            index += i*s 
         pcsim_index = self.pcsim_population.getIndex(addr[0],addr[1],addr[2])
-        assert id == pcsim_index, " id = %s, pcsim_index = %s" % (id, pcsim_index)
+        assert index == pcsim_index, " index = %s, pcsim_index = %s" % (index, pcsim_index)
+        id = ID(pcsim_index)
+        id.setCellClass(self.celltype)
+        id.in_population = self
+        if orig_addr != self.locate(id):
+            raise IndexError, 'Invalid cell address %s' % str(addr)
         assert orig_addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, orig_addr, id, self.locate(id))
         return id
         
@@ -700,13 +755,12 @@ class Population(common.Population):
                e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
                          7 9
         """
-        # id should be a gid
-        assert isinstance(id, int)         
+        assert isinstance(id, ID)
         if self.ndim == 3:
             rows = self.dim[1]; cols = self.dim[2]
             i = id/(rows*cols); remainder = id%(rows*cols)
             j = remainder/cols; k = remainder%cols
-            coords = (k, j, i)
+            coords = (i, j, k)
         elif self.ndim == 2:
             cols = self.dim[1]
             i = id/cols; j = id%cols
@@ -716,7 +770,10 @@ class Population(common.Population):
         else:
             raise common.InvalidDimensionsError
         if self.actual_ndim == 1:
-            coords = (coords[0],)
+            if coords[0] > self.dim[0]:
+                coords = None # should probably raise an Exception here rather than hope one will be raised down the line
+            else:
+                coords = (coords[0],)
         elif self.actual_ndim == 2:
             coords = (coords[0],coords[1],)
         pcsim_coords = self.pcsim_population.getLocation(id)
@@ -724,9 +781,10 @@ class Population(common.Population):
         if self.actual_ndim == 1:
             pcsim_coords = (pcsim_coords[0],)
         elif self.actual_ndim == 2:
-            pcsim_coords = (pcsim_coords[0],pcsim_coords[1],)    
-        # assert coords == pcsim_coords, " coords = %s, pcsim_coords = %s " % (coords, pcsim_coords)
-        return pcsim_coords
+            pcsim_coords = (pcsim_coords[0],pcsim_coords[1],)
+        if coords:
+            assert coords == pcsim_coords, " coords = %s, pcsim_coords = %s " % (coords, pcsim_coords)
+        return coords
     
     def getObjectID(self, index):
         return self.pcsim_population[index]
@@ -763,9 +821,15 @@ class Population(common.Population):
         """
         """PCSIM: iteration and set """
         if self.dim[0:self.actual_ndim] == valueArray.shape:
-            values = numpy.reshape(valueArray, valueArray.size)                          
+            values = numpy.copy(valueArray) # we do not wish to change the original valueArray in case it needs to be reused in user code
+            values = numpy.reshape(values, values.size)                          
             if issubclass(self.celltype, common.StandardCellType):
-                parametername = self.celltype({}).translate({parametername: values[0]}).keys()[0]             
+                try:
+                    unit_scale_factor = self.celltype({}).translate({parametername: values[0]}).values()[0]/values[0]
+                except TypeError:
+                    raise common.InvalidParameterValueError(values[0])
+                parametername = self.celltype({}).translate({parametername: values[0]}).keys()[0]
+                values *= unit_scale_factor
             for i, val in enumerate(values):
                 try:
                     obj = pcsim_globals.net.object(self.pcsim_population[i])                 
@@ -821,9 +885,8 @@ class Population(common.Population):
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids (e.g., (i,j,k) tuple for a 3D population)
-        of the cells to record.
-        """         
+        - or a list containing the ids of the cells to record.
+        """
         """
           The current implementation allows only one invocation of this method per population
         """
@@ -895,7 +958,7 @@ class Population(common.Population):
         voltage files.
         """
         """PCSIM: will be implemented by corresponding analog recorders at python level object  """
-        self.vm_rec.saveValuesText(filename)
+        self.vm_rec.saveValuesText(filename,compatible_output=compatible_output)
         
     
     def meanSpikeCount(self, gather=True):         
@@ -920,7 +983,6 @@ class Population(common.Population):
         """
         """ PCSIM: can be reduced to rset() where parameterName is Vinit"""
         self.rset("v_init", rand_distr)
-     
 
 
 class Projection(common.Projection):
@@ -1043,8 +1105,13 @@ class Projection(common.Projection):
             self.syn_factory = SimpleScalingSpikingSynapse(target, 1, pcsim_globals.minDelay/1000)
         else:
             if isinstance(target, str):
-                target = eval(target)
-                self.syn_factory = target({})
+                if target == 'excitatory':
+                    self.syn_factory = SimpleScalingSpikingSynapse(1, 1, pcsim_globals.minDelay/1000)
+                elif target == 'inhibitory':
+                    self.syn_factory = SimpleScalingSpikingSynapse(2, 1, pcsim_globals.minDelay/1000)
+                else:
+                    target = eval(target)
+                    self.syn_factory = target({})
             else:
                 self.syn_factory = target
             
@@ -1070,15 +1137,22 @@ class Projection(common.Projection):
     def setWeights(self, w):
         """
         w can be a single number, in which case all weights are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
+        Weights should be in nA for current-based and µS for conductance-based
+        synapses.
         """
+        if hasattr(self.post.pcsim_population.object(0),'ErevExc'):
+            weight_factor = 1e-6 # Convert from µS to S
+        else:
+            weight_factor = 1e-9 # Convert from nA to A
         if isinstance(w, float) or isinstance(w, int):
-            w = w*1e-9 # Convert from nA to A # !!likely problem with conductance-based synapses
+            w = w*weight_factor
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).W = w
         else:
             for i in range(len(self)):
-                pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]*1e-9
+                pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]*weight_factor
     
     def randomizeWeights(self, rand_distr):
         """
@@ -1093,7 +1167,8 @@ class Projection(common.Projection):
     def setDelays(self, d):
         """
         d can be a single number, in which case all delays are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
         """
         d = d/1000.0 # Delays in pcsim are specified in seconds
         if isinstance(d, float) or isinstance(d, int):

@@ -1,3 +1,4 @@
+# encoding=utf-8
 """
 nrnpy implementation of the PyNN API.
 $Id$
@@ -730,8 +731,7 @@ class Population(common.Population):
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids (e.g., (i,j,k) tuple for a 3D population)
-        of the cells to record.
+        - or a list containing the ids of the cells to record.
         """
         self.__record('',record_from,rng)
         
@@ -1089,7 +1089,9 @@ class Projection(common.Projection):
     def _fromList(self,conn_list,synapse_type=None):
         """
         Read connections from a list of tuples,
-        containing ['src[x,y]', 'tgt[x,y]', 'weight', 'delay']
+        containing [pre_addr, post_addr, weight, delay]
+        where pre_addr and post_addr are both neuron addresses, i.e. tuples or
+        lists containing the neuron array coordinates.
         """
         # Need to implement parameter parsing here...
         raise Exception("Method not yet implemented")
@@ -1099,7 +1101,10 @@ class Projection(common.Projection):
     def setWeights(self,w):
         """
         w can be a single number, in which case all weights are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
+        Weights should be in nA for current-based and µS for conductance-based
+        synapses.
         """
         cmd = "%s.set_weights(%f)" % (self.label,float(w))
         hoc_execute([cmd], "--- Projection.__setWeights__() ---")
@@ -1116,7 +1121,8 @@ class Projection(common.Projection):
     def setDelays(self,d):
         """
         d can be a single number, in which case all delays are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
         """
         cmd = "%s.set_delays(%f)" % (self.label,float(d))
         hoc_execute([cmd], "--- Projection.__setDelays__() ---")

@@ -29,9 +29,6 @@ spike_source2 = create(SpikeSourceArray, {'spike_times': [float(i) for i in rang
 
 G_exc = 0.006
 G_inh = 0.02
-# For the moment, inhibitory synapses, in NEST, can be adress only with negative weights
-if (simulator == "nest"):
-    G_inh = -G_inh
 
 connect(spike_source1,ifcell,weight=G_exc,synapse_type='excitatory')
 connect(spike_source2,ifcell,weight=G_inh,synapse_type='inhibitory')

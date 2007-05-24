@@ -109,7 +109,10 @@ class PopulationSetTest(unittest.TestCase):
      def testSetFromPair(self):
         """Population.set(): A parameter set as a string,value pair should be retrievable using PyPCSIM directly"""
         self.popul1.set('tau_m',12.34)
-        self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).taum, 0.01234, places = 5)
+        self.popul1.set('v_init',-65.0)
+        self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).taum, 0.01234, places=5)
+        self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).Vinit, -0.065, places=5)
+       
      
      def testSetInvalidFromPair(self):
          """Population.set(): Trying to set an invalid value for a parameter should raise an exception."""
@@ -140,7 +143,14 @@ class PopulationSetTest(unittest.TestCase):
          self.popul1.tset('i_offset', array_in)
          for i in 0,1,2:
              for j in 0,1,2:
-                 self.assertAlmostEqual( array_in[i,j], pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Iinject , places = 7 )
+                 self.assertAlmostEqual( array_in[i,j], pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Iinject*1e9 , places = 7 )
+     
+     def testTSetArrayUnchanged(self):
+        array_in1 = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
+        array_in2 = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
+        self.assert_((array_in1==array_in2).all())
+        self.popul1.tset('i_offset', array_in1)
+        self.assert_((array_in1==array_in2).all())
      
      def testTSetInvalidDimensions(self):
          """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
@@ -173,7 +183,7 @@ class PopulationSetTest(unittest.TestCase):
           output_values = numpy.zeros((3,3),numpy.float)
           for i in 0,1,2:
               for j in 0,1,2:    
-                  output_values[i,j] = pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
+                  output_values[i,j] = 1e9*pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
           input_values = rd2.next(9)
           output_values = output_values.reshape((9,))
           for i in range(9):
@@ -398,5 +408,18 @@ class ProjectionSetTest(unittest.TestCase):
 # #        assert self.prj11.connection[0] == "[0][0]"
 
 
+class IDTest(unittest.TestCase):
+    """Tests of the ID class."""
+    
+    def setUp(self):
+        setup(max_delay=0.5)
+        self.pop = Population((5,), IF_curr_alpha,{'tau_m':10.0})
+    
+    def testIDSet(self):
+        self.pop[3].set('tau_m',20.0)
+        self.assertAlmostEqual( self.pop.pcsim_population.object(self.pop[3]).taum, 0.02, places = 5) 
+        self.assertAlmostEqual( self.pop.pcsim_population.object(self.pop[1]).taum, 0.01, places = 5) 
+
+# ==============================================================================
 if __name__ == "__main__":
      unittest.main()

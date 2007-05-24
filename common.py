@@ -42,10 +42,10 @@ class ID(int):
         # or get() : p[2,3].set(SpikeSourceArray, {'spike_train' : {}}).
 
     def set(self,param,val=None):
-        pass
+        raise Exception("Not yet implemented")
     
     def get(self,param):
-        pass
+        raise Exception("Not yet implemented")
 
     def setCellClass(self, cellclass):
         self._cellclass = cellclass    
@@ -96,7 +96,7 @@ class StandardCellType(object):
                     else:
                         raise InvalidParameterValueError, (type(supplied_parameters[k]), type(default_parameters[k]))
                 else:
-                    raise NonExistentParameterError
+                    raise NonExistentParameterError(k)
         return parameters
 
     def translate(self,parameters):
@@ -272,7 +272,7 @@ class Population:
         
         self.dim      = dims
         if isinstance(dims, int): # also allow a single integer, for a 1D population
-            print "Converting integer dims to tuple"
+            #print "Converting integer dims to tuple"
             self.dim = (self.dim,)
         self.label    = label
         self.celltype = cellclass
@@ -351,8 +351,7 @@ class Population:
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids (e.g., (i,j,k) tuple for a 3D population)
-        of the cells to record.
+        - or a list containing the ids of the cells to record.
         """
         pass
 
@@ -366,7 +365,7 @@ class Population:
         """
         pass
 
-    def printSpikes(self,filename,gather=True, compatible_output=True):
+    def printSpikes(self,filename,gather=True,compatible_output=True):
         """
         Writes spike times to file.
         If compatible_output is True, the format is "spiketime cell_id",
@@ -555,7 +554,9 @@ class Projection:
     def _fromList(self,conn_list,synapse_type=None):
         """
         Read connections from a list of tuples,
-        containing ['src[x,y]', 'tgt[x,y]', 'weight', 'delay']
+        containing [pre_addr, post_addr, weight, delay]
+        where pre_addr and post_addr are both neuron addresses, i.e. tuples or
+        lists containing the neuron array coordinates.
         """
         # Need to implement parameter parsing here...
         pass
@@ -565,7 +566,10 @@ class Projection:
     def setWeights(self,w):
         """
         w can be a single number, in which case all weights are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
+        Weights should be in nA for current-based and µS for conductance-based
+        synapses.
         """
         pass
     
@@ -581,7 +585,8 @@ class Projection:
     def setDelays(self,d):
         """
         d can be a single number, in which case all delays are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
         """
         pass
     

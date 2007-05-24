@@ -52,11 +52,11 @@ module_list = [oldneuron, nest, neuron, pcsim]
 if coloured:
     def colour(col,text):
         return str(ll.ansistyle.Text(col,text))
-    ok = colour(green,ok)
+    ok = colour(bright+green,ok)
     inconsistent_args = colour(red,inconsistent_args)
     notfound = colour(yellow+bright,notfound)
-    inconsistent_doc = colour(bright+green,inconsistent_doc)
-    missing_doc = colour(bright+magenta,missing_doc)
+    inconsistent_doc = colour(bright+magenta,inconsistent_doc)
+    missing_doc = colour(green,missing_doc)
 else:
     def colour(col,text):
         return text
@@ -244,4 +244,3 @@ if __name__ == "__main__":
                 if inconsistency: print inconsistency.strip("\n")
                 inconsistency = ""
     print "\n%s%s" % (" "*(indent+3),header)
-        

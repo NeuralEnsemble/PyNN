@@ -23,47 +23,21 @@ logging.getLogger('').addHandler(console)
 
 #-- Define global data ---------------------------------------------------------
 
-exclude = ['__module__','__doc__','__builtins__','__file__','__class__',
-                '__delattr__', '__dict__', '__getattribute__', '__hash__',
-                '__new__','__reduce__','__reduce_ex__','__repr__','__setattr__',
-                '__str__','__weakref__',]
+exclude = set(['__module__','__doc__','__builtins__','__file__','__class__',
+               '__delattr__', '__dict__', '__getattribute__', '__hash__',
+               '__new__','__reduce__','__reduce_ex__','__repr__','__setattr__',
+               '__str__','__weakref__',] + dir(int)
+             )
 #               'time','types','copy',]
+exclude.remove('__init__')
 
 leftquote = re.compile(r"'\b")
 leftdblquote = re.compile(r'"\b')
+camelcase = re.compile(r'(\b([A-Z][a-z]+){2,99})')
 
 classes = {}
 functions = []
 data = []
-
-default_arg_fmt  = {'wiki'  : '%s<span style="color:grey;">=%s</span>',
-                    'latex' : '%s{\\color{grey}=%s}'}
-func_sig_fmt     = {'wiki'  : '%s(<span style="font-weight:normal;">%s</span>)',
-                    'latex' : '%s(\\mdseries %s)'}
-function_fmt     = {'wiki'  : '\n====<span style="color:#0066ff;">%s</span>====\n',
-                    'latex' : '\n\\paragraph*{\\color{brightblue}{%s}}\n'}
-method_fmt       = {'wiki'  : '\n====<span style="color:#8888ff;">%s</span>====\n',
-                    'latex' : '\n\\paragraph*{\\color{brightblue}{%s}}\n'}
-staticmethod_fmt = {'wiki'  : '\n====<span style="color:#0066ff;">%s</span> (static)====\n',
-                    'latex' : '\n\\paragraph*{\\color{brightblue}{%s} (static)}\n'}
-dict_fmt         = {'wiki'  : "\n\n'''%s''' = {\n",
-                    'latex' : '\n\\textbf{%s} = $\\lbrace$\n\n'}
-dict_fmt_end     = {'wiki'  : '}\n',
-                    'latex' : '$\\rbrace$\n'}
-data_element_fmt = {'wiki'  : "\n'''%s''' = %s\n",
-                    'latex' : "\n\\textbf{%s} = %s\n"}
-table_begin      = {'wiki'  : "{|\n",
-                    'latex' : "\\begin{tabular}{lll}\n"}
-table_end        = {'wiki'  : "|}\n",
-                    'latex' : "\\end{tabular}\n"}
-table_row_fmt    = {'wiki'  : "| &nbsp;&nbsp;&nbsp; || %s ||: %s\n|-\n",
-                    'latex' : '& %s & :%s\\\\\n'}
-category_fmt     = {'wiki'  : '\n==%s==\n',
-                    'latex' : '\n\\subsection{%s}\n'}
-class_fmt        = {'wiki'  : '\n===<span style="color:green">%s</span>===\n',
-                    'latex' : '\n\\subsubsection*{%s}\n'}
-horiz_line       = {'wiki'  : '\n----\n',
-                    'latex' : ''}
 
 #-- Process command line parameters --------------------------------------------
 if len(sys.argv) > 1:
@@ -71,6 +45,53 @@ if len(sys.argv) > 1:
 else:
     output = 'wiki'
 logging.info('Generating API documentation in %s format' % output)
+
+#-- Define templates -----------------------------------------------------------
+if output == 'wiki':
+    default_arg_fmt  = '%s<span style="color:grey;">=%s</span>'
+    func_sig_fmt     = '%s(<span style="font-weight:normal;">%s</span>)'
+    function_fmt     = '\n====<span style="color:#0066ff;">%s</span>====\n'
+    method_fmt       = '\n====<span style="color:#8888ff;">%s</span>====\n'
+    staticmethod_fmt = '\n====<span style="color:#0066ff;">%s</span> (static)====\n'
+    dict_fmt         = "\n\n'''%s''' = {\n"
+    dict_fmt_end     = '}\n'
+    data_element_fmt = "\n'''%s''' = %s\n"
+    table_begin      = "{|\n"
+    table_end        = "|}\n"
+    table_row_fmt    = "| &nbsp;&nbsp;&nbsp; || %s ||: %s\n|-\n"
+    category_fmt     = '\n==%s==\n'
+    class_fmt        = '\n===<span style="color:green">%s</span>===\n'
+    horiz_line       = '\n----\n'
+elif output == 'trac':
+    default_arg_fmt  = '%s=%s'
+    func_sig_fmt     = '%s(%s)'
+    function_fmt     = '\n=== %s ===\n'
+    method_fmt       = '\n=== %s ===\n'
+    staticmethod_fmt = '\n=== %s ===\n'
+    dict_fmt         = "\n\n'''%s''' = {\n"
+    dict_fmt_end     = '}\n'
+    data_element_fmt = "\n'''%s''' = %s\n"
+    table_begin      = "\n"
+    table_end        = "\n"
+    table_row_fmt    = "|| %s ||: %s ||\n"
+    category_fmt     = '\n= %s =\n'
+    class_fmt        = '\n== %s ==\n'
+    horiz_line       = '\n----\n'
+elif output == 'latex':
+    default_arg_fmt  = '%s{\\color{grey}=%s}'
+    func_sig_fmt     = '%s(\\mdseries %s)'
+    function_fmt     = '\n\\paragraph*{\\color{brightblue}{%s}}\n'
+    method_fmt       = '\n\\paragraph*{\\color{brightblue}{%s}}\n'
+    staticmethod_fmt = '\n\\paragraph*{\\color{brightblue}{%s} (static)}\n'
+    dict_fmt         = '\n\\textbf{%s} = $\\lbrace$\n\n'
+    dict_fmt_end     = '$\\rbrace$\n'
+    data_element_fmt = "\n\\textbf{%s} = %s\n"
+    table_begin      = "\\begin{tabular}{lll}\n"
+    table_end        = "\\end{tabular}\n"
+    table_row_fmt    = '& %s & :%s\\\\\n'
+    category_fmt     = '\n\\subsection{%s}\n'
+    class_fmt        = '\n\\subsubsection*{%s}\n'
+    horiz_line       = ''
              
 #-- Define functions -----------------------------------------------------------
 
@@ -121,7 +142,7 @@ def func_sig(func):
                 if arg[0] == '.':
                     # anonymous arguments
                     arg = '(...)'
-                args[i] = default_arg_fmt[output] % (arg,r)
+                args[i] = default_arg_fmt % (arg,r)
                 i = i + 1
         if code.co_flags & 0x0004: # CO_VARARGS
             args.append('*'+code.co_varnames[callargs])
@@ -129,7 +150,7 @@ def func_sig(func):
         if code.co_flags & 0x0008: # CO_VARKEYWORDS
             args.append('**'+code.co_varnames[callargs])
             callargs = callargs + 1
-        return func_sig_fmt[output] % (fname,string.join(args,', '))
+        return func_sig_fmt % (fname,string.join(args,', '))
     except AttributeError:
         logging.warning("%s has no attribute 'func_code'" % func)
         return None
@@ -146,7 +167,7 @@ for entry in dir(pyNN.common):
         if entry_type in [types.ClassType, types.TypeType]:
             classes[entry] = { 'methods': [], 'data': [], 'staticmethods': [] }
             for classentry in dir(instance):
-                if classentry not in exclude:
+                if classentry not in exclude and (classentry[0] != '_' or classentry[0:2] == '__'): # don't include private methods
                     classentry_type = type(eval('pyNN.common.%s.%s' % (entry,classentry)))
                     logging.info('    %-28s %s' % (classentry,classentry_type))
                     if classentry_type == types.MethodType:
@@ -174,26 +195,26 @@ if output == 'latex':
     outputStr += '\definecolor{grey}{rgb}{0.5,0.5,0.5}\n'
 
 logging.info("==== DATA ====")
-outputStr += category_fmt[output] % "Data"
+outputStr += category_fmt % "Data"
 for element in data:
     instance = eval('pyNN.common.%s' % element)
     if type(instance) == types.DictType:
-        outputStr += dict_fmt[output] % element
-        outputStr += table_begin[output]
+        outputStr += dict_fmt % element
+        outputStr += table_begin
         for k,v in instance.items():
             if output == 'latex':
                 v = str(v).replace('{',' $\\lbrace$').replace('}',' $\\rbrace$')
-            outputStr += table_row_fmt[output] % (k,v)
-        outputStr += table_end[output]
-        outputStr += dict_fmt_end[output]
+            outputStr += table_row_fmt % (k,v)
+        outputStr += table_end
+        outputStr += dict_fmt_end
     else:
-        outputStr +=  data_element_fmt[output] % (element, instance)
+        outputStr +=  data_element_fmt % (element, instance)
     
 logging.info("==== FUNCTIONS ====")
-outputStr += category_fmt[output] % "Functions"
+outputStr += category_fmt % "Functions"
 for funcname in functions:
     funcinst = eval('pyNN.common.%s' % funcname)
-    outputStr += function_fmt[output] % func_sig(funcinst)
+    outputStr += function_fmt % func_sig(funcinst)
     if funcinst.__doc__:
         outputStr += _(funcinst.__doc__.strip())
    
@@ -216,12 +237,12 @@ logging.info('Celltype classes: %s' % ', '.join(celltype_classes.keys()))
 logging.info('Other classes:    %s' % ', '.join(other_classes.keys()))
 
 # Now iterate through the classes
-outputStr += category_fmt[output] % "Classes"
+outputStr += category_fmt % "Classes"
 for classes in [celltype_classes, other_classes, error_classes]:
     classlist = classes.keys()
     classlist.sort()
     for classname in classlist:
-        outputStr += class_fmt[output] % classname
+        outputStr += class_fmt % classname
         docstr = eval('pyNN.common.%s.__doc__' % classname)
         if docstr:
             outputStr += _(docstr)
@@ -229,34 +250,36 @@ for classes in [celltype_classes, other_classes, error_classes]:
             methodinst = eval('pyNN.common.%s.%s' % (classname,methodname))
             fs = func_sig(methodinst)
             if fs:
-                outputStr += method_fmt[output] % fs
+                outputStr += method_fmt % fs
                 if methodinst.__doc__:
                     outputStr += _(methodinst.__doc__.strip())
         for methodname in classes[classname]['staticmethods']:
             methodinst = eval('pyNN.common.%s.%s' % (classname,methodname))
             fs = func_sig(methodinst)
             if fs:
-                outputStr += staticmethod_fmt[output] % fs
+                outputStr += staticmethod_fmt % fs
                 if methodinst.__doc__:
                     outputStr += _(methodinst.__doc__.strip())
         for element in classes[classname]['data']:
             instance = eval('pyNN.common.%s.%s' % (classname,element))
             if type(instance) == types.DictType:
-                outputStr += dict_fmt[output] % element
+                outputStr += dict_fmt % element
                 if len(instance) > 0:
-                    outputStr += table_begin[output]
+                    outputStr += table_begin
                     for k,v in instance.items():
                         if output == 'latex':
                             v = str(v).replace('{',' $\\lbrace$').replace('}',' $\\rbrace$')
-                            outputStr += table_row_fmt[output] % (k,v)
+                            outputStr += table_row_fmt % (k,v)
                         elif output == 'wiki':
-                            outputStr += table_row_fmt[output] % ('&quot;%s&quot;' % k,v)
-                    outputStr += table_end[output]
-                outputStr += dict_fmt_end[output]
+                            outputStr += table_row_fmt % ('&quot;%s&quot;' % k,v)
+                        elif output == 'trac':
+                            outputStr += table_row_fmt % ("'%s'" % k,v)
+                    outputStr += table_end
+                outputStr += dict_fmt_end
             else:
-                outputStr +=  data_element_fmt[output] % (element, instance)
+                outputStr +=  data_element_fmt % (element, instance)
                 
-        outputStr += horiz_line[output]
+        outputStr += horiz_line
     
 if output == 'latex':
     outputStr = outputStr.replace('_','\_')
@@ -264,5 +287,8 @@ if output == 'latex':
     outputStr = outputStr.replace('<','$<$')
     outputStr = leftquote.sub('`',outputStr)
     outputStr = leftdblquote.sub('``',outputStr)
+if output == 'trac':
+    outputStr = outputStr.replace('__','!__')
+    outputStr = camelcase.sub(r'!\1',outputStr)
 
 print outputStr

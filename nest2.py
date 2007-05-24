@@ -33,11 +33,6 @@ class ID(common.ID):
     hit is it to replace integers with ID objects?
     """
     
-    def __getattr__(self,name):
-        """Note that this currently does not translate units."""
-        translated_name = self._cellclass.translations[name][0]
-        return pynest.getDict([int(self)])[0][translated_name]
-    
     def set(self,param,val=None):
         # We perform a call to the low-level function set() of the API.
         # If the cellclass is not defined in the ID object :
@@ -174,20 +169,21 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     pynest.destroy()
     pynest.setDict([0],{'resolution': dt, 'min_delay' : min_delay, 'max_delay' : max_delay})
     
+    # TODO : this gave error 
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
-    if debug:
-        logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    filename='nest.log',
-                    filemode='w')
-    else:
-        logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    filename='nest.log',
-                    filemode='w')
+    #if debug:
+    #    logging.basicConfig(level=logging.DEBUG,
+    #                format='%(asctime)s %(levelname)s %(message)s',
+    #                filename='nest.log',
+    #                filemode='w')
+    #else:
+    #    logging.basicConfig(level=logging.INFO,
+    #                format='%(asctime)s %(levelname)s %(message)s',
+    #                filename='nest.log',
+    #                filemode='w')
                        
-    logging.info("Initialization of Nest")    
+    #logging.info("Initialization of Nest")    
     return 0
 
 def end(compatible_output=True):
@@ -232,17 +228,15 @@ def create(cellclass,paramDict=None,n=1):
     if isinstance(cellclass, type):
         celltype = cellclass(paramDict)
         cell_gids = pynest.create(celltype.nest_name,n)
-        cell_gids = [ID(pynest.getGID(gid)) for gid in cell_gids]
+        cell_gids = [pynest.getGID(gid) for gid in cell_gids]
         pynest.setDict(cell_gids,celltype.parameters)
     elif isinstance(cellclass, str):  # celltype is not a standard cell
         cell_gids = pynest.create(cellclass,n)
-        cell_gids = [ID(pynest.getGID(gid)) for gid in cell_gids]
+        cell_gids = [pynest.getGID(gid) for gid in cell_gids]
         if paramDict:
             pynest.setDict(cell_gids,paramDict)
     else:
         raise "Invalid cell type"
-    for id in cell_gids:
-        id.setCellClass(cellclass)
     if n == 1:
         return cell_gids[0]
     else:
@@ -295,15 +289,10 @@ def set(cells,cellclass,param,val=None):
         
     if val:
         param = {param:val}
-    try:
-        i = cells[0]
-    except TypeError:
+    if type(cells) != types.ListType:
         cells = [cells]
-    if not isinstance(cellclass,str):
-        if issubclass(cellclass, common.StandardCellType):
-            param = cellclass({}).translate(param)
-        else:
-            raise TypeError, "cellclass must be a string or derived from commonStandardCellType"
+    if issubclass(cellclass, common.StandardCellType):
+        param = cellclass({}).translate(param)
     pynest.setDict(cells,param)
 
 def record(source,filename):
@@ -346,7 +335,7 @@ def _printSpikes(filename, compatible_output=True):
     Should actually work with record() and allow to dissociate the recording of the
     writing process, which is not the case for the moment"""
     tempfilename = "%s/%s" %(tempdir, filename)
-    pynest.sr('%s close' %filename) 
+    pynest.sr('%s close' %tempfilename) 
     if (compatible_output):
         # Here we postprocess the file to have effectively the
         # desired format :
@@ -354,8 +343,6 @@ def _printSpikes(filename, compatible_output=True):
         # Then spiketime (in ms) cell_id-min(cell_id)
         result = open(filename,'w',100)
         g = open(tempfilename,'r',100)
-        # Writing # such that Population.printSpikes and this have same output format
-        result.write("# "+"\n")
         lines = g.readlines()
         g.close()
         for line in lines:
@@ -442,7 +429,7 @@ class Population(common.Population):
         elif isinstance(cellclass, str):
             self.cell = pynest.create(cellclass, self.size)
             
-        self.cell = numpy.array([ ID(pynest.getGID(addr)) for addr in self.cell ], ID)
+        self.cell = numpy.array([ ID(addr) for addr in self.cell ], ID)
         self.id_start = self.cell.reshape(self.size,)[0]
         
         for id in self.cell:
@@ -700,6 +687,7 @@ class Population(common.Population):
         """        
         global hl_spike_files
         tempfilename = '%s.spikes' % self.label
+
         if hl_spike_files.__contains__(tempfilename):
             pynest.sr('%s close' % tempfilename)
             hl_spike_files.remove(tempfilename)
@@ -1055,10 +1043,9 @@ class Projection(common.Projection):
             pynest.resCons(pre_addr,n)                
             # pick n neurons at random
             for post in rng.permutation(postsynaptic_neurons)[0:n]:
-                if allow_self_connections or (pre != post):
-                    self._sources.append(pre)
-                    self._targets.append(post)
-                    self._targetPorts.append(pynest.connect(pre_addr,pynest.getAddress(post)))
+                self._sources.append(pre)
+                self._targets.append(post)
+                self._targetPorts.append(pynest.connect(pre_addr,pynest.getAddress(post)))
     
     def _fixedNumberPost(self,parameters,synapse_type=None):
         """Each postsynaptic cell receives a fixed number of connections."""
@@ -1099,10 +1086,9 @@ class Projection(common.Projection):
             pynest.resCons(post_addr,n)                
             # pick n neurons at random
             for pre in rng.permutation(presynaptic_neurons)[0:n]:
-                if allow_self_connections or (pre != post):
-                    self._sources.append(pre)
-                    self._targets.append(post)
-                    self._targetPorts.append(pynest.connect(pynest.getAddress(pre),post_addr))
+                self._sources.append(pre)
+                self._targets.append(post)
+                self._targetPorts.append(pynest.connect(pynest.getAddress(pre),post_addr))
     
     def _fromFile(self,parameters,synapse_type=None):
         """
@@ -1302,7 +1288,6 @@ class Projection(common.Projection):
             for syn_nr in range(len(target_position_x)):
                 try:
                     target_id.append(self.post.cell[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
-                    #target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
                     target_id_bool = numpy.append(target_id_bool,True)
                     #target_id_bool.append(True)
                 except IndexError:
@@ -1360,21 +1345,21 @@ class Projection(common.Projection):
             #delay_array = parameters['delays_array']
             #weight_array = parameters['weights_array']
             #target_id = parameters['target_id']
-            #if pre_id==100:
-            #    print '#############################################'
-            #    print 'This is the data in 3D Gauss'
-            #    print '#############################################'
-            #    print 'preneuron id',pre_id
+            if pre_id==100:
+                print '#############################################'
+                print 'This is the data in 3D Gauss'
+                print '#############################################'
+                print 'preneuron id',pre_id
                 #print 'r_syn: ',r_syn
                 #print 'r_syn2',r_syn2
                 #print 'min_delay_offset_array ',min_delay_offset_array
-            #    print 'delay_array ',delay_array
-            #    print 'type first element of delay ',type(delay_array[0])
-            #    print 'weight ',weight_array
-            #    print 'type first element of weight ',type(weight_array[0])
-            #    print 'now we dive into pynest.hl_api.... yeah'
-            #    print '#############################################'
-            #    print '\n'
+                print 'delay_array ',delay_array
+                print 'type first element of delay ',type(delay_array[0])
+                print 'weight ',weight_array
+                print 'type first element of weight ',type(weight_array[0])
+                print 'now we dive into pynest.hl_api.... yeah'
+                print '#############################################'
+                print '\n'
                 #print 'size_in_mm: ',size_in_mm
                 #print 'post_dim[0]: ',post_dim[0]
                 #print 'conduction_speed: ',conduction_speed

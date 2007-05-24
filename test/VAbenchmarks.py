@@ -20,25 +20,32 @@ $Id:VAbenchmarks.py 5 2007-04-16 15:01:24Z davison $
 import sys
 from copy import copy
 from NeuroTools.stgen import StGen
-from pyNN.random import NumpyRNG, RandomDistribution
 
 if hasattr(sys,"argv"):     # run using python
-    simulator = sys.argv[-1]
+    if len(sys.argv) < 2:
+        print "Usage: python VAbenchmarks.py <simulator> <benchmark>\n\n<simulator> is either neuron, nest or pcsim\n<benchmark> is either CUBA or COBA."
+        sys.exit(1)
+    simulator = sys.argv[-2]
+    benchmark = sys.argv[-1]
 else:
+    benchmark = "CUBA"
     simulator = "oldneuron"    # run using nrngui -python
 exec("from pyNN.%s import *" % simulator)
 
+from pyNN.random import NumpyRNG, RandomDistribution
+import pyNN.utility
+
 # === Define parameters ========================================================
 
-benchmark = "CUBA"
 rngseed  = 98765
 
 n        = 4000  # number of cells
 r_ei     = 4.0   # number of excitatory cells:number of inhibitory cells
 pconn    = 0.02  # connection probability
 stim_dur = 50    # (ms) duration of random stimulation
+rate     = 20    # (Hz) frequency of the random stimulation
 
-dt       = 0.01  # (ms) simulation timestep
+dt       = 0.1  # (ms) simulation timestep
 tstop    = 4000  # (ms) simulaton duration
 
 # Cell parameters
@@ -57,8 +64,8 @@ v_mean   = -60   # (mV) 'mean' membrane potential, for calculating CUBA weights
 
 # Synapse parameters
 if benchmark == "COBA":
-    Gexc = 6.0   # (nS)
-    Ginh = 27.0  # (nS)
+    Gexc = 0.003  # (nS)
+    Ginh = 0.055  # (nS)
 elif benchmark == "CUBA":
     Gexc = 0.27  # (nS)
     Ginh = 4.5   # (nS)
@@ -78,7 +85,7 @@ assert tau_m == cm*Rm                 # just to check
 n_exc = int(round((n*r_ei/(1+r_ei)))) # number of excitatory cells   
 n_inh = n - n_exc                     # number of inhibitory cells
 if benchmark == "COBA":
-    celltype = IF_cond_exp
+    celltype = IF_cond_alpha          # Since for the moment no IF_cond_exp model is available for nest 
     w_exc = Gexc
     w_inh = Ginh
 elif benchmark == "CUBA":
@@ -90,19 +97,30 @@ elif benchmark == "CUBA":
 # === Build the network ========================================================
 
 node_id = setup(timestep=dt,min_delay=0.1,max_delay=0.1)
-if simulator=='nest':
-    pynest.showNESTStatus()
+#if simulator=='nest':
+#    pynest.showNESTStatus()
 
-cell_params = {
+if (benchmark == "CUBA"):
+    cell_params = {
     'tau_m'      : tau_m,    'tau_syn_E'  : tau_exc,  'tau_syn_I'  : tau_inh,
     'v_rest'     : E_leak,   'v_reset'    : v_reset,  'v_thresh'   : v_thresh,
     'cm'         : cm,       'tau_refrac' : t_refrac}
-
+    
+if (benchmark == "COBA"):
+    cell_params = {
+    'tau_m'      : tau_m,    'tau_syn_E'  : tau_exc,  'tau_syn_I'  : tau_inh,
+    'v_rest'     : E_leak,   'v_reset'    : v_reset,  'v_thresh'   : v_thresh,
+    'cm'         : cm,       'tau_refrac' : t_refrac,
+    'e_rev_E'    : Erev_exc, 'e_rev_I'    : Erev_inh}
+    
 Timer.start()
 
 print "%d Creating cell populations..." % node_id
 exc_cells = Population((n_exc,), celltype, cell_params, "Excitatory_Cells")
 inh_cells = Population((n_inh,), celltype, cell_params, "Inhibitory_Cells")
+
+if benchmark == "COBA":
+    ext_stim = Population((10,), SpikeSourcePoisson,{'rate': rate, 'duration' : stim_dur},"expoisson")
 
 print "%d Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(rngseed+node_id)
@@ -115,12 +133,19 @@ connections = {'e2e' : Projection(exc_cells, exc_cells,'fixedProbability', pconn
                'e2i' : Projection(exc_cells, inh_cells,'fixedProbability', pconn, target='excitatory',rng=rng),
                'i2e' : Projection(inh_cells, exc_cells,'fixedProbability', pconn, target='inhibitory',rng=rng),
                'i2i' : Projection(inh_cells, inh_cells,'fixedProbability', pconn, target='inhibitory',rng=rng)}
+if (benchmark == "COBA"):
+    connections['ext2e'] = Projection(ext_stim, exc_cells,'fixedProbability', 0.001, target='excitatory')
+    connections['ext2i'] = Projection(ext_stim, inh_cells,'fixedProbability', 0.001, target='excitatory')
+
 
 print "%d Setting weights..." % node_id
 connections['e2e'].setWeights(w_exc)
 connections['e2i'].setWeights(w_exc)
 connections['i2e'].setWeights(w_inh)
 connections['i2i'].setWeights(w_inh)
+if (benchmark == "COBA"):
+    connections['ext2e'].setWeights(1.)
+    connections['ext2i'].setWeights(1.)
 
 #for prj in connections.keys():
 #    connections[prj].saveConnections('VAbenchmark_%s_%s_%s.conn' % (benchmark,prj,simulator))
@@ -141,7 +166,8 @@ exc_cells.record_v(vrecord_list)
 
 print "%d Running..." % node_id
 Timer.reset()
-run(tstop)
+for i in range(10):
+    run(i/10.0*tstop)
 print "Run time:", int(Timer.elapsedTime()), "seconds"
 
 print "Mean firing rates (spikes/s): (exc) %4.1f (inh) %4.1f" % \
@@ -153,10 +179,12 @@ print "%d Writing data to file..." % node_id
 Timer.reset()
 exc_cells.printSpikes("VAbenchmark_%s_exc_%s.ras" % (benchmark,simulator))
 inh_cells.printSpikes("VAbenchmark_%s_inh_%s.ras" % (benchmark,simulator))
-exc_cells.print_v("VAbenchmark_%s_exc_%s.v" % (benchmark,simulator))
+exc_cells.print_v("VAbenchmark_%s_exc_%s.v" % (benchmark,simulator),compatible_output=True)
 print "Time to print spikes:", int(Timer.elapsedTime()), "seconds"
 
-if simulator=='nest':
-    pynest.showNESTStatus()
+
 # === Finished with simulator ==================================================
+
+if "neuron" in simulator: # send e-mail when simulation finished, since it takes ages.
+    pyNN.utility.notify("Simulation of Vogels-Abbott %s benchmark with pyNN.%s finished." % (benchmark,simulator))
 end()
