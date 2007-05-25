@@ -1173,6 +1173,19 @@ class Projection(common.Projection):
 
     # --- Connection methods ---------------------------------------------------
     
+    def __connect(self,src,tgt,synapse_type):
+        """
+        Write hoc commands to connect a single pair of neurons.
+        """
+        syn_objref = _translate_synapse_type(synapse_type)
+        cmdlist = ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
+                                                                 self.post.hoc_label,
+                                                                 self.post.gidlist.index(tgt),
+                                                                 syn_objref),
+                'tmp = %s.append(nc)' % self.hoc_label]
+        self.connections.append((src,tgt))
+        return cmdlist
+    
     def _allToAll(self,parameters=None,synapse_type=None):
         """
         Connect all cells in the presynaptic population to all cells in the
@@ -1182,17 +1195,11 @@ class Projection(common.Projection):
                                       # is a cell allowed to connect to itself?
         if parameters and parameters.has_key('allow_self_connections'):
             allow_self_connections = parameters['allow_self_connections']
-        syn_objref = _translate_synapse_type(synapse_type)
         hoc_commands = []
         for tgt in self.post.gidlist:
             for src in self.pre.fullgidlist:
                 if allow_self_connections or self.pre != self.post or tgt != src:
-                    hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                   self.post.hoc_label,
-                                                                                   self.post.gidlist.index(tgt),
-                                                                                   syn_objref),
-                                     'tmp = %s.append(nc)' % self.hoc_label]
-                    self.connections.append((src,tgt))
+                    hoc_commands += self.__connect(src,tgt,synapse_type)
         return hoc_commands
         
     def _oneToOne(self,synapse_type=None):
@@ -1206,16 +1213,10 @@ class Projection(common.Projection):
         in row i of a 2D post population of size (n,m).
         """   
         if self.pre.dim == self.post.dim:
-            syn_objref = _translate_synapse_type(synapse_type)
             hoc_commands = []
             for tgt in self.post.gidlist:
                 src = tgt - self.post.gid_start + self.pre.gid_start
-                hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                self.post.hoc_label,
-                                                                                self.post.gidlist.index(tgt),
-                                                                                syn_objref),
-                                 'tmp = %s.append(nc)' % self.hoc_label]
-                self.connections.append((src,tgt))
+                hoc_commands += self.__connect(src,tgt,synapse_type)
         else:
             raise Exception("Method '%s' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes." % sys._getframe().f_code.co_name)
         return hoc_commands
@@ -1232,7 +1233,6 @@ class Projection(common.Projection):
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
             
-        syn_objref = _translate_synapse_type(synapse_type)
         hoc_commands = []
         if isinstance(self.rng, NativeRNG): # use hoc Random object
             hoc_commands = ['rng = new Random(%d)' % 0 or self.rng.seed,
@@ -1246,12 +1246,7 @@ class Projection(common.Projection):
                 for src in self.pre.fullgidlist:
                     if HocToPy.get('rng.repick()','float') < p_connect:
                         if allow_self_connections or self.pre != self.post or tgt != src:
-                            hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                           self.post.hoc_label,
-                                                                                           self.post.gidlist.index(tgt),
-                                                                                           syn_objref),
-                                             'tmp = %s.append(nc)' % self.hoc_label]
-                            self.connections.append((src,tgt))
+                            self.__connect(src,tgt,synapse_type)
             return hoc_commands
         else: # use Python RNG
             for tgt in self.post.gidlist:
@@ -1260,12 +1255,7 @@ class Projection(common.Projection):
                     src = j + self.pre.gid_start
                     if rarr[j] < p_connect:
                         if allow_self_connections or self.pre != self.post or tgt != src:
-                            hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                       self.post.hoc_label,
-                                                                                       self.post.gidlist.index(tgt),
-                                                                                       syn_objref),
-                                         'tmp = %s.append(nc)' % self.hoc_label]
-                            self.connections.append((src,tgt))
+                            hoc_commands += self.__connect(src,tgt,synapse_type)
         return hoc_commands
 
     def _distanceDependentProbability(self,parameters,synapse_type=None):
@@ -1281,7 +1271,6 @@ class Projection(common.Projection):
             d_expression = parameters['d_expression']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-        syn_objref = _translate_synapse_type(synapse_type)
         hoc_commands = []
         
         # Here we observe the connectivity rule: if it is a probability function
@@ -1310,19 +1299,9 @@ class Projection(common.Projection):
                         distance_expression = d_expression.replace('d', '%f' %dist)
                         if alphanum:
                             if HocToPy('rng.repick()','float') < eval(distance_expression):
-                                hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                          self.post.hoc_label,
-                                                                                          self.post.gidlist.index(tgt),
-                                                                                          syn_objref),
-                                             'tmp = %s.append(nc)' % self.hoc_label]
-                                self.connections.append((src,tgt))
+                                hoc_commands += self.__connect()
                         elif eval(distance_expression):
-                            hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                          self.post.hoc_label,
-                                                                                          self.post.gidlist.index(tgt),
-                                                                                          syn_objref),
-                                             'tmp = %s.append(nc)' % self.hoc_label]
-                            self.connections.append((src,tgt))
+                            hoc_commands += self.__connect()
             return hoc_commands
         else: # use a python RNG
             for tgt in self.post.gidlist:
@@ -1337,19 +1316,9 @@ class Projection(common.Projection):
                         distance_expression = d_expression.replace('d', '%f' %dist)                      
                         if alphanum:
                             if rarr[j] < eval(distance_expression):
-                                hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                          self.post.hoc_label,
-                                                                                          self.post.gidlist.index(tgt),
-                                                                                          syn_objref),
-                                             'tmp = %s.append(nc)' % self.hoc_label]
-                                self.connections.append((src,tgt))
+                                hoc_commands += self.__connect(src,tgt,synapse_type)
                         elif eval(distance_expression):
-                            hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                          self.post.hoc_label,
-                                                                                          self.post.gidlist.index(tgt),
-                                                                                          syn_objref),
-                                             'tmp = %s.append(nc)' % self.hoc_label]
-                            self.connections.append((src,tgt))
+                            hoc_commands += self.__connect(src,tgt,synapse_type)
         return hoc_commands
     
     def _fixedNumberPre(self,parameters,synapse_type=None):
@@ -1376,7 +1345,6 @@ class Projection(common.Projection):
             fixed = False
         else:
             raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-        syn_objref = _translate_synapse_type(synapse_type)
         hoc_commands = []
         
         if self.rng:
@@ -1389,12 +1357,7 @@ class Projection(common.Projection):
                 n = rand_distr.next()
             for tgt in rng.permutation(self.post.gidlist)[0:n]:
                 if allow_self_connections or (src != tgt):
-                    hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                   self.post.hoc_label,
-                                                                                   self.post.gidlist.index(tgt),
-                                                                                   syn_objref),
-                                     'tmp = %s.append(nc)' % self.hoc_label]
-                    self.connections.append((src,tgt))
+                    hoc_commands += self.__connect(src,tgt,synapse_type)
         return hoc_commands
             
     def _fixedNumberPost(self,parameters,synapse_type=None):
@@ -1421,7 +1384,6 @@ class Projection(common.Projection):
             fixed = False
         else:
             raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-        syn_objref = _translate_synapse_type(synapse_type)
         hoc_commands = []
         
         if self.rng:
@@ -1434,12 +1396,7 @@ class Projection(common.Projection):
                 n = rand_distr.next()
             for src in rng.permutation(self.pre.gidlist)[0:n]:
                 if allow_self_connections or (src != tgt):
-                    hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                                   self.post.hoc_label,
-                                                                                   self.post.gidlist.index(tgt),
-                                                                                   syn_objref),
-                                     'tmp = %s.append(nc)' % self.hoc_label]
-                    self.connections.append((src,tgt))
+                    hoc_commands += self.__connect(src,tgt,synapse_type)
         return hoc_commands
     
     def _fromFile(self,parameters,synapse_type=None):
@@ -1480,7 +1437,6 @@ class Projection(common.Projection):
         lists containing the neuron array coordinates.
         """
         hoc_commands = []
-        syn_objref = _translate_synapse_type(synapse_type)
         
         # Then we go through those tuple and extract the fields
         self.synapse_type = synapse_type
@@ -1488,14 +1444,9 @@ class Projection(common.Projection):
             src, tgt, weight, delay = conn_list[i][:]
             src = self.pre[tuple(src)]
             tgt = self.post[tuple(tgt)]
-            hoc_commands += ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                           self.post.hoc_label,
-                                                                           self.post.gidlist.index(tgt),
-                                                                           syn_objref),
-                             'tmp = %s.append(nc)' % self.hoc_label]
+            hoc_commands += self.__connect(src,tgt,synapse_type)
             hoc_commands += ['%s.object(%d).weight = %f' % (self.hoc_label, i, float(weight)), 
                              '%s.object(%d).delay = %f'  % (self.hoc_label, i, float(delay))]
-            self.connections.append((src,tgt))
         return hoc_commands
     
     # --- Methods for setting connection parameters ----------------------------
