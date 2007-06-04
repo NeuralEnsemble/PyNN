@@ -475,11 +475,26 @@ class Population(common.Population):
             raise IndexError, 'Invalid cell address %s' % str(addr)
         return id
     
-
-    
     def __len__(self):
         """Returns the total number of cells in the population."""
         return self.size
+    
+    def __iter__(self):
+        return self.cell.flat
+
+    def __address_gen(self):
+        """
+        Generator to produce an iterator over all cells on this node,
+        returning addresses.
+        """
+        for i in self.__iter__():
+            yield self.locate(i)
+        
+    def addresses(self):
+        return self.__address_gen()
+    
+    def ids(self):
+        return self.__iter__()
     
     def locate(self, id):
         """Given an element id in a Population, return the coordinates.

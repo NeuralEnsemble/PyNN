@@ -237,7 +237,33 @@ class PopulationIndexTest(unittest.TestCase):
         
     def testInvalidIndexDimension(self):
         self.assertRaises(common.InvalidDimensionsError, self.net1.__getitem__, (10,2))
+     
+# ==============================================================================
+class PopulationIteratorTest(unittest.TestCase):
+    """Tests of the Population class iterators."""
+    
+    def setUp(self):
+        neuron.Population.nPop = 0
+        self.net1 = neuron.Population((10,),neuron.IF_curr_alpha)
+        self.net2 = neuron.Population((2,4,3),neuron.IF_curr_exp)
+        self.net3 = neuron.Population((2,2,1),neuron.SpikeSourceArray)
+        self.net4 = neuron.Population((1,2,1),neuron.SpikeSourceArray)
+        self.net5 = neuron.Population((3,3),neuron.IF_cond_alpha)
         
+    def testIter(self):
+        """This needs more thought for the distributed case."""
+        for net in self.net1, self.net2:
+            ids = [i for i in net]
+            self.assertEqual(ids, net.gidlist)
+            self.assert_(isinstance(ids[0], neuron.ID))
+            
+    def testAddressIter(self):
+        for net in self.net1, self.net2:
+            for id,addr in zip(net.ids(),net.addresses()):
+                self.assertEqual(id, net[addr])
+                self.assertEqual(addr, net.locate(id))
+            
+    
 # ==============================================================================
 class PopulationSetTest(unittest.TestCase):
         

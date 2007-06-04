@@ -748,7 +748,32 @@ class Population(common.Population):
             raise IndexError, 'Invalid cell address %s' % str(addr)
         assert orig_addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, orig_addr, id, self.locate(id))
         return id
-        
+    
+    def __iter__(self):
+        return self.__gid_gen()
+
+    def __address_gen(self):
+        """
+        Generator to produce an iterator over all cells on this node,
+        returning addresses.
+        """
+        for i in self.__iter__():
+            yield self.locate(i)
+    
+    def __gid_gen(self):
+        """
+        Generator to produce an iterator over all cells on this node,
+        returning gids.
+        """
+        ids = self.pcsim_population.idVector()
+        for i in ids:
+            yield ID(i-ids[0])
+            
+    def addresses(self):
+        return self.__address_gen()
+    
+    def ids(self):
+        return self.__iter__()
         
     def locate(self, id):
         """Given an element id in a Population, return the coordinates.

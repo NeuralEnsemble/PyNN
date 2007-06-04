@@ -760,6 +760,30 @@ class Population(common.Population):
         # and common to all the node (not the case of global gidlist, or self.gidlist)
         return self.fullgidlist[index]
 
+    def __iter__(self):
+        return self.__gid_gen()
+
+    def __address_gen(self):
+        """
+        Generator to produce an iterator over all cells on this node,
+        returning addresses.
+        """
+        for i in self.gidlist:
+            yield self.locate(i)
+    
+    def __gid_gen(self):
+        """
+        Generator to produce an iterator over all cells on this node,
+        returning gids.
+        """
+        for i in self.gidlist:
+            yield i
+        
+    def addresses(self):
+        return self.__address_gen()
+    
+    def ids(self):
+        return self.__gid_gen()
         
     def locate(self,id):
         """Given an element id in a Population, return the coordinates.
