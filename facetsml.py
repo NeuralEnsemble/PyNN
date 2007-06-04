@@ -10,10 +10,19 @@ from xml.dom import *
 from xml.dom.minidom import *
 from xml.dom.ext import *
 
-        
-open_files = []
+gid           = 0
+ncid          = 0
+gidlist       = []
+vfilelist     = {}
+spikefilelist = {}
+dt            = 0.1
+running       = False
 
-dt = 0.1
+# ==============================================================================
+#   Module-specific functions and classes (not part of the common API)
+# ==============================================================================
+
+
 xmldoc = Document()
 
 """
@@ -67,99 +76,154 @@ def writeDocument(url):
 
 
 # ==============================================================================
-#   Module-specific functions and classes (not part of the common API)
+#   Utility classes
 # ==============================================================================
 
-class StandardCells: # do we need this? The FACETS-ML names and the PyNN names should be the same
+class ID(common.ID):
     """
-    This is a static class which which contains one method for each of the
-    standard FACETS cell models. Each method:
-      (i) has a .nest_name attribute which is the NEST-specific name for the model
-      (ii) takes a dictionary whose keys are the standard parameter names
-      (iii) returns a dictionary whose keys are the NEST-specific parameter
-         names. This dictionary also contains any extra, NEST-only parameters.
+    This class is experimental. The idea is that instead of storing ids as
+    integers, we store them as ID objects, which allows a syntax like:
+      p[3,4].set('tau_m',20.0)
+    where p is a Population object. The question is, how big a memory/performance
+    hit is it to replace integers with ID objects?
     """
     
-    def IF_curr_alpha(parameterDict):
-        """
-        Integrate-and-fire cell with alpha-shaped post-synaptic current.
-        
-        The keys in parameterDict must come from this list:
-          'vrest', 'cm', 'tau_m', 'tau_refrac', 'tau_syn', 'v_thresh'
-        Units: v* (mV), cm (nF), tau* (ms)
-        Any required parameters not in parameterDict will be given default values.
-        
-        Returns a parameter dictionary with NEST-specific parameter names.
-        """
-        global dt
-        
-        parameters = common.default_values['IF_curr_alpha']
-        if parameterDict:
-            for k in parameters.keys():
-                if parameterDict.has_key(k):
-                    parameters[k] = parameterDict[k]
-        if parameters['v_reset'] != parameters['v_rest']:
-            raise "It is not possible to make v_reset different from v_rest in iaf_neuron."
-        translated_parameters = {
-            'U0'         : parameters['v_rest'],
-            'C'          : parameters['cm']*1000.0, # C is in pF, cm in nF
-            'Tau'        : parameters['tau_m'],
-            'TauR'       : max(dt,parameters['tau_refrac']),
-            'TauSyn'     : parameters['tau_syn'],
-            'Theta'      : parameters['v_thresh'],
-            'I0'         : parameters['i_offset']*1000.0, # I0 is in pA, i_offset in nA
-            'LowerBound' : -1000.0 }
-        return translated_parameters
-     
-    def SpikeSourcePoisson(parameterDict):
-        """
-        Spike source, generating spikes according to a Poisson process.
-        
-        The keys in parameterDict must come from this list:
-          'rate', 'start', 'duration'
-        Units: rate (Hz), start (ms), duration (ms)
-        Any required parameters not in parameterDict will be given default values.
-        
-        Returns a parameter dictionary with NEST-specific parameter names
-        """
-        
-        parameters = common.default_values['SpikeSourcePoisson']
-        if parameterDict:
-            for k in parameters.keys():
-                if parameterDict.has_key(k):
-                    parameters[k] = parameterDict[k]
-        translated_parameters = {
-            'rate'     : parameters['rate'],
-            'start'    : parameters['start'],
-            'duration' : parameters['duration'],
-            'origin'   : 1.0 }
-        return translated_parameters   
+    def set(self,param,val=None):
+        # We perform a call to the low-level function set() of the API.
+        # If the cellclass is not defined in the ID object, we have an error (?) :
+        if (self._cellclass == None):
+            raise Exception("Unknown cellclass")
+        else:
+            #Otherwise we use the ID one. Nevertheless, here we have a small problem in the
+            #parallel framework. Suppose a population is created, distributed among
+            #several nodes. Then a call like cell[i,j].set() should be performed only on the
+            #node who owns the cell. To do that, if the node doesn't have the cell, a call to set()
+            #do nothing...
+            ##if self._hocname != None:
+            ##    set(self,self._cellclass,param,val, self._hocname)
+            set(self,self._cellclass,param,val)
     
-    def SpikeSourceArray(parameterDict):
-        """
-        Spike source generating spikes at the times given in the spike_times array.
-        
-        parameterDict must contain this key: spike_times, whose value should be
-        a list or numpy array containing spike times in milliseconds.
+    def get(self,param):
+        #This function should be improved, with some test to translate
+        #the parameter according to the cellclass
+        #We have here the same problem as with set() in the parallel framework
+        if self._hocname != None:
+            return HocToPy.get('%s.%s' %(self._hocname, param),'float')
+    
+    # Fonctions used only by the neuron version of pyNN, to optimize the
+    # creation of networks
+    def setHocName(self, name):
+        self._hocname = name
 
-        Returns a parameter dictionary with NEST-specific parameter names
-        """
-        parameters = common.default_values['SpikeSourceArray']
-        for k in parameters.keys():
-            if parameterDict.has_key(k):
-                parameters[k] = parameterDict[k]
-        translated_parameters = {
-            'spike_times' : parameters['spike_times']
-        }
-        return translated_parameters
-            
+    def getHocName(self):
+        return self._hocname
+
+
+def checkParams(param,val=None):
+    """Check parameters are of valid types, normalise the different ways of
+       specifying parameters and values by putting everything in a dict.
+       Called by set() and Population.set()."""
+    if isinstance(param,str):
+        if isinstance(val,float) or isinstance(val,int):
+            paramDict = {param:float(val)}
+        elif isinstance(val,(str, list)):
+            paramDict = {param:val}
+        else:
+            raise common.InvalidParameterValueError
+    elif isinstance(param,dict):
+        paramDict = param
+    else:
+        raise common.InvalidParameterValueError
+    return paramDict
+
+
+# ==============================================================================
+#   Standard cells
+# ==============================================================================
+
+"""
+As I don't really care about which CellClass is it, as I will dump its parameters
+"as it" in XML, all my CellType are a wrapper around a FacetsmlCellType
+The creation of default parameters is done in the common constructors
+"""
+
+class FacetsmlCellType(object):
+    """Base class for facetsMLCellType"""
     
-    setattr(IF_curr_alpha,'nest_name','iaf_neuron')
-    setattr(SpikeSourcePoisson,'nest_name','poisson_generator')
-    setattr(SpikeSourceArray,'nest_name','spike_generator')
-    IF_curr_alpha = staticmethod(IF_curr_alpha)
-    SpikeSourcePoisson = staticmethod(SpikeSourcePoisson)
-    SpikeSourceArray = staticmethod(SpikeSourceArray)
+    def __init__(self,facetsml_name,parameters):
+        cellsNode = initDocument('http://morphml.org/neuroml/schema','cells')
+        cellNode = xmldoc.createElementNS('http://morphml.org/neuroml/schema','cell')
+        self.domNode = cellNode
+        cellsNode.appendChild(cellNode)
+        facetsml_nameNode = xmldoc.createElementNS('http://morphml.org/neuroml/schema',facetsml_name)
+        # just dump "as it" the given parameters
+        for k in self.parameters.keys:
+            facetsml_nameNode.setAttribute(k,self.parameters[k])
+        cellNode.appendChild(facetsml_nameNode)
+
+
+class StandardCellType(common.StandardCellType):
+    """Base class for standardized cell model classes."""
+    
+    facetsml_name = "StandardCellType"
+
+    def __init__(self,parameters):
+        common.StandardCellType.__init__(self,parameters)
+        self.facetsmlCellType = FacetsmlCellType(facetsml_name,self.parameters)
+
+    
+class IF_curr_alpha(common.IF_curr_alpha):
+    """Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic current."""
+
+    facetsml_name = "IF_curr_alpha"
+
+    def __init__(self,parameters):
+        common.IF_curr_alpha.__init__(self,parameters)
+        self.facetsmlCellType = FacetsmlCellType(facetsml_name,self.parameters)
+    
+
+class IF_curr_exp(common.IF_curr_exp):
+    """Leaky integrate and fire model with fixed threshold and
+    decaying-exponential post-synaptic current. (Separate synaptic currents for
+    excitatory and inhibitory synapses"""
+    
+    facetsml_name = "IF_curr_exp"
+
+    def __init__(self,parameters):
+        common.IF_curr_exp.__init__(self,parameters)
+        self.facetsmlCellType = FacetsmlCellType(facetsml_name,self.parameters)
+    
+
+class IF_cond_alpha(common.IF_cond_alpha):
+    """Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic conductance."""
+    
+    facetsml_name = "IF_cond_alpha"
+
+    def __init__(self,parameters):
+        common.IF_cond_alpha.__init__(self,parameters)
+        self.facetsmlCellType = FacetsmlCellType(facetsml_name,self.parameters)
+
+class SpikeSourcePoisson(common.SpikeSourcePoisson):
+    """Spike source, generating spikes according to a Poisson process."""
+
+    facetsml_name = "SpikeSourcePoisson"
+
+    def __init__(self,parameters):
+        common.SpikeSourcePoisson.__init__(self,parameters)
+        self.facetsmlCellType = FacetsmlCellType(facetsml_name,self.parameters)
+
+class SpikeSourceArray(common.SpikeSourceArray):
+    """Spike source generating spikes at the times given in the spike_times array."""
+
+    facetsml_name = "SpikeSourceArray"
+
+    def __init__(self,parameters):
+        common.SpikeSourceArray.__init__(self,parameters)
+        self.facetsmlCellType = FacetsmlCellType(facetsml_name,self.parameters)
+
+
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -172,12 +236,10 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1):
     raise "Not yet implemented"
 
 def end():
-    """Do any necessary cleaning up before exiting."""
-    raise "Not yet implemented"
+    PrettyPrint(xmldoc)
 
 def run(simtime):
-    """Run the simulation for simtime ms."""
-    raise "Not yet implemented"
+    PrettyPrint(xmldoc)
 
 def setRNGseeds(seedList):
     """Globally set rng seeds."""
@@ -194,74 +256,45 @@ def create(celltype,paramDict=None,n=1):
     If n > 1, return a list of cell ids/references.
     If n==1, return just the single id.
     """
+    global gid, gidlist, nhost, myid
+    
     assert n > 0, 'n must be a positive integer'
-    translate = getattr(StandardCells,celltype)    
-    cell_ids = None
-    raise "Not yet implemented"
+    #must look if the cellclass is not already defined
+    
+    if isinstance(cellclass, type):
+        celltype = cellclass(paramDict)
+    elif isinstance(cellclass,str):
+        #define a new cellType
+        celltype = FacetsmlCellType(cellclass,paramDict)
+ 
+    # round-robin partitioning
+    newgidlist = [i+myid for i in range(gid,gid+n,nhost) if i < gid+n-myid]
+    for cell_id in newgidlist:
+        celltype.domNode.setAttribute("name",'cell%d' % cell_id)
+    
+    gidlist.extend(newgidlist)
+    cell_list = range(gid,gid+n)
+    gid = gid+n
     if n == 1:
-        return cell_ids[0]
-    else:
-        return cell_ids
+        cell_list = cell_list[0]
+    return cell_list
 
-def connect(source,target,weight=None,delay=None,p=1):
+def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
-    connections are made with probability p."""
-    global dt
-    if weight is None:
-        weight = 0.0
-    if delay is None:
-        delay = dt
-    if type(source) != types.ListType and type(target) != types.ListType:
-        connect_id = None
-    else:
-        connect_id = []
-        if type(source) != types.ListType:
-            source = [source]
-        if type(target) != types.ListType:
-            target = [target]
-        for src in source:
-            src = pynest.getAddress(src)
-            for tgt in target:
-                tgt = pynest.getAddress(tgt)
-                if int(p) == 1 or RandomArray.uniform(0,1)<p:
-                    connect_id += [None]
-    raise "Not yet implemented"
-    return connect_id
+    connections are made with probability p, using either the random number
+    generator supplied, or the default rng otherwise.
+    Weights should be in nA or uS."""
+    raise Exception("Method not yet implemented")
 
-def set(cells,celltype,param,val=None):
+
+def set(cells,cellclass,param,val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
-    celltype must be supplied for doing translation of parameter names."""
-    translate = getattr(StandardCells,celltype) 
-    if val:
-        param = {param:val}
-    if type(cells) != types.ListType:
-        cells = [cells]
-    raise "Not yet implemented"
+    cellclass must be supplied for doing translation of parameter names."""
+    raise Exception("Method not yet implemented")
 
-def record(src,filename):
-    """Record spikes to a file. src can be an individual cell or a list of
-    cells."""
-    # would actually like to be able to record to an array and choose later
-    # whether to write to a file.
-    raise "Function not yet implemented."
-
-def record_v(source,filename):
-    """
-    Record membrane potential to a file. source can be an individual cell or
-    a list of cells."""
-    # would actually like to be able to record to an array and
-    # choose later whether to write to a file.
-    if type(source) == types.ListType:
-        source = [pynest.getAddress(src) for src in source]
-    else:
-        source = [pynest.getAddress(source)]
-    for src in source:
-        None
-    raise "Function not yet implemented."
-    
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -272,6 +305,10 @@ class Population(common.Population):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
+    All cells have both an address (a tuple) and an id (an integer). If p is a
+    Population object, the address and id can be inter-converted using :
+    id = p[address]
+    address = p.locate(id)
     """
     nPop = 0
     
@@ -280,72 +317,77 @@ class Population(common.Population):
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
           e.g., (10,10) will create a two-dimensional population of size 10x10.
-        celltype should be a string - the name of the neuron model class that
-          makes up the population.
+        cellclass should either be a standardized cell class (a class inheriting
+        from common.StandardCellType) or a string giving the name of the
+        simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
           constructor
         label is an optional name for the population.
-    
-    example of NeuroML (completeNetwork.xml with CellGroupC example added) :
-    <net:populations>
-        <net:population name="CellGroupA">
-            <net:cell_type>CellA</net:cell_type>
-            <net:instances>
-                <net:instance id="0"><net:location x="0" y="0" z="0"/></net:instance>
-                <net:instance id="1"><net:location x="0" y="10" z="0"/></net:instance>
-                <net:instance id="2"><net:location x="0" y="20" z="0"/></net:instance>
-            </net:instances>
-        </net:population>
-        <net:population name="CellGroupB">
-            <net:cell_type>CellA</net:cell_type>
-            <net:instances>
-                <net:instance id="0"><net:location x="0" y="100" z="0"/></net:instance>
-                <net:instance id="1"><net:location x="20" y="100" z="0"/></net:instance>
-            </net:instances>
-        </net:population>
-        <net:population name="CellGroupC">
-            <net:cell_type>CellC</net:cell_type>
-            <net:pop_location reference="aeag">
-                <net:grid_arrangement>
-                    <net:rectangular_location name="aefku">
-                        <meta:corner x="0" y="0" z="0"/>
-                        <meta:size depth="10" height="100" width="100"/>
-                    </net:rectangular_location>
-                    <net:spacing x="10" y="10" z="10"/>
-                </net:grid_arrangement>
-            </net:pop_location>
-        </net:population>
-    </net:populations>
-    
         """
+        global gid, myid, nhost, gidlist, fullgidlist
         
         common.Population.__init__(self,dims,cellclass,cellparams,label)
-                     
+        #if self.ndim > 1:
+        #    for i in range(1,self.ndim):
+        #        if self.dim[i] != self.dim[0]:
+        #            raise common.InvalidDimensionsError, "All dimensions must be the same size (temporary restriction)."
+
+        # set the steps list, used by the __getitem__() method.
+        self.steps = [1]*self.ndim
+        for i in xrange(self.ndim-1):
+            for j in range(i+1,self.ndim):
+                self.steps[i] *= self.dim[j]
+
+        if isinstance(cellclass, type):
+            #maybe we should look if the cellclass is not already defined
+            self.celltype = cellclass(cellparams)
+            self.cellparams = self.celltype.parameters
+	    #not used ?
+            facetsml_name = self.celltype.facetsml_name
+        elif isinstance(cellclass, str): # not a standard model
+            #define a new cellType
+            self.celltype = FacetsmlCellType(cellclass,paramDict)
         
-        if not self.label:
+	
+	if not self.label:
             self.label = 'population%d' % Population.nPop
-    
-    
+        
+	
+	#the <population> markup is linked, in NeuroML, to a <cell> markup, which defines the type of cells of the population
+	# the cell_type name which makes the link is here the concatenation of 'cell_type_' and population label
+	cell_type_label = 'cell_type_%s' % label
+	self.celltype.domNode. = setAttribute("name",'cell_type_%s' % label)
+	
+	
+        # Now the gid and cellclass are stored as instance of the ID class, which will allow a syntax like
+        # p[i,j].set(param, val). But we have also to deal with positions : a population needs to know ALL the positions
+        # of its cells, and not only those of the cells located on a particular node (i.e in self.gidlist). So
+        # each population should store what we call a "fullgidlist" with the ID of all the cells in the populations 
+        # (and therefore their positions)
+        self.fullgidlist = [ID(i) for i in range(gid, gid+self.size) if i < gid+self.size]
+        
+        # self.gidlist is now derived from self.fullgidlist since it contains only the cells of the population located on
+        # the node
+        self.gidlist     = [self.fullgidlist[i+myid] for i in range(0, len(self.fullgidlist),nhost) if i < len(self.fullgidlist)-myid]
+        self.gid_start   = gid
+
+	
+            
         populationsNode = initDocument('http://morphml.org/networkml/schema','populations','net')
     
         populationNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:population')
         populationNode.setAttribute('name',label)
         populationsNode.appendChild(populationNode)
+	self.dom_node = populationNode
     
         cell_typeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:cell_type')
-        #coming from neuron.py
-        if isinstance(cellclass, type):
-            self.celltype = cellclass(cellparams)
-            self.cellparams = self.celltype.parameters
-            hoc_name = self.celltype.hoc_name
-        elif isinstance(cellclass, str): # not a standard model
-            hoc_name = cellclass
-        #end of coming
-        
-        cell_typeTextNode = xmldoc.createTextNode(hoc_name)
+	cell_typeTextNode = xmldoc.createTextNode(cell_type_label)
         cell_typeNode.appendChild(cell_typeTextNode)
         populationNode.appendChild(cell_typeNode)
-        """
+        
+        
+            
+         """
         the minimal neuroml to add there is :
         <net:pop_location reference="aReference">
             <net:grid_arrangement>
@@ -390,109 +432,118 @@ class Population(common.Population):
         spacingNode.setAttribute('z','10')
         grid_arrangementNode.appendChild(spacingNode)
         
-        
-        #cellparams would be defined in a <cell> markup which would define precisely the neuron model
-        
-        
-        #raise "Not yet implemented."
-        
-        
-        Population.nPop += 1
-        PrettyPrint(xmldoc)
     
+        Population.nPop += 1
+        gid = gid+self.size
+
+        # We add the gidlist of the population to the global gidlist
+        gidlist += self.gidlist
         
-    def set(self,param,val):
+        # By default, the positions of the cells are their coordinates, given by the locate()
+        # method. Note that each node needs to know all the positions of all the cells 
+        # in the population
+        for cell_id in self.fullgidlist:
+            cell_id.setCellClass(cellclass)
+            cell_id.setPosition(self.locate(cell_id))
+                    
+        
+        PrettyPrint(xmldoc)
+
+        
+    def __getitem__(self,addr):
+        """Returns a representation of the cell with coordinates given by addr,
+           suitable for being passed to other methods that require a cell id.
+           Note that __getitem__ is called when using [] access, e.g.
+             p = Population(...)
+             p[2,3] is equivalent to p.__getitem__((2,3)).
+        """
+
+        global gidlist
+
+        # What we actually pass around are gids.
+        if isinstance(addr,int):
+            addr = (addr,)
+        if len(addr) != len(self.dim):
+            raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addr))
+        index = 0
+        for i,s in zip(addr,self.steps):
+            index += i*s
+        id = index + self.gid_start
+        assert addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, addr, id, self.locate(id))
+        # We return the gid as an ID object. Note that each instance of Populations
+        # distributed on several node can give the ID object, because fullgidlist is duplicated
+        # and common to all the node (not the case of global gidlist, or self.gidlist)
+        return self.fullgidlist[index]
+
+        
+    def locate(self,id):
+        """Given an element id in a Population, return the coordinates.
+               e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
+                         7 9
+        """
+        # id should be a gid
+        assert isinstance(id,int), "id is %s, not int" % type(id)
+        id -= self.gid_start
+        if self.ndim == 3:
+            rows = self.dim[1]; cols = self.dim[2]
+            i = id/(rows*cols); remainder = id%(rows*cols)
+            j = remainder/cols; k = remainder%cols
+            coords = (i,j,k)
+        elif self.ndim == 2:
+            cols = self.dim[1]
+            i = id/cols; j = id%cols
+            coords = (i,j)
+        elif self.ndim == 1:
+            coords = (id,)
+        else:
+            raise common.InvalidDimensionsError
+        return coords
+        
+        
+    def set(self,param,val=None):
         """
         Set one or more parameters for every cell in the population. param
         can be a dict, in which case val should not be supplied, or a string
         giving the parameter name, in which case val is the parameter value.
-        e.g. p.set("tau",20.0).
-             p.set({'tau':20,'v_rest':-65})
+        val can be a numeric value, or list of such (e.g. for setting spike times).
+        e.g. p.set("tau_m",20.0).
+             p.set({'tau_m':20,'v_rest':-65})
         """
-        raise "Method not yet implemented."
+        paramDict = checkParams(param,val)
+
+        for param,val in paramDict.items():
+            if isinstance(val,str):
+		#I have to retrieve the <cell> markup which defines the type of cells of that population
+		# self.cellType is the cellType class, which contains the corresponding domNode
+		# self.cellType.facetsml_name, for example "IF_curr_alpha" is the name of the markup under <cell>
+		cellTypeNode = self.cellType.domNode.getElementsByTagNameNS('http://morphml.org/neuroml/schema',self.celltype.facetsml_name)
+		cellTypeNode.setAttribute(param,val)
+
+
         
     def tset(self,parametername,valueArray):
         """
         'Topographic' set. Sets the value of parametername to the values in
         valueArray, which must have the same dimensions as the Population.
         """
-        raise "Method not yet implemented"
+	raise Exception("not yet implemented")
     
-    def rset(self,parametername,randomobj):
+    def rset(self,parametername,rand_distr):
         """
         'Random' set. Sets the value of parametername to a value taken from
-        the randomobj Random object.
+        rand_distr, which should be a RandomDistribution object.
         """
-        raise "Method not yet implemented"
-    
-    def call(self,methodname,arguments):
-        """
-        Calls the method methodname(arguments) for every cell in the population.
-        e.g. p.call("set_background","0.1") if the cell class has a method
-        set_background().
-        """
-        raise "Method not yet implemented"
-    
-    def tcall(self,methodname,objarr):
-        """
-        `Topographic' call. Calls the method methodname() for every cell in the 
-        population. The argument to the method depends on the coordinates of the
-        cell. objarr is an array with the same dimensions as the Population.
-        e.g. p.tcall("memb_init",vinitArray) calls
-        p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
-        """
-        raise "Method not yet implemented"
+	raise Exception("not yet implemented")
 
-    def record(self,record_from=None):
-        """
-        If record_from is not given, record spikes from all cells in the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random - or a list containing the ids (e.g., (i,j,k) tuple for a 3D
-        population) of the cells to record.
-        """
-        raise "Method not yet implemented"
 
-    def record_v(self,record_from=None):
-        """
-        If record_from is not given, record the membrane potential for all cells in
-        the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random - or a list containing the ids (e.g., (i,j,k) tuple for a 3D
-        population) of the cells to record.
-        """
-        raise "Method not yet implemented"
-    
-    
-    def printSpikes(self,filename):
-        """
-        Prints spike times to file in the two-column format
-        "spiketime cell_id" where cell_id is the index of the cell counting
-        along rows and down columns (and the extension of that for 3-D).
-        This allows easy plotting of a `raster' plot of spiketimes, with one
-        line for each cell.
-        """
-        raise "Method not yet implemented"
-
-    def meanSpikeCount(self):
-        """
-        Returns the mean number of spikes per neuron.
-        """
-        raise "Method not yet implemented"
-
-    def randomInit(self,randobj):
+    def randomInit(self,rand_distr):
         """
         Sets initial membrane potentials for all the cells in the population to
         random values.
         """
-        raise "Method not yet implemented"
+	raise Exception("not yet implemented")
     
-    def print_v(self,filename):
-        """
-        Write membrane potential traces to file. Assumes that the cell class
-        defines an array vrecord that is used to record membrane potential.
-        """
-        raise "Method not yet implemented"
-        
+
     
 class Projection(common.Projection):
     """
@@ -569,13 +620,6 @@ class Projection(common.Projection):
         self.connection = []
         self._targets = []
         self._sources = []
-        #connection_method = getattr(self,'_%s' % method)
-        #self.nconn = connection_method(methodParameters)
-        
-        
-        
-        
-        
         
         projectionsNode = initDocument('http://morphml.org/networkml/schema','projections')
         projectionsNode.setAttribute('units','Physiological Units')
@@ -583,6 +627,7 @@ class Projection(common.Projection):
         projectionNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','projection')
         projectionNode.setAttribute('name',label)
         projectionsNode.appendChild(projectionNode)
+	self.domNode = projectionNode
         
         sourceNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','source')
         
@@ -605,64 +650,75 @@ class Projection(common.Projection):
         elif isinstance(postsynaptic_population, str):
             postsynaptic_populationName = postsynaptic_population
         
-        
         targetTextNode = xmldoc.createTextNode(postsynaptic_populationName)
         targetNode.appendChild(targetTextNode)
         projectionNode.appendChild(targetNode)
         
-        synapse_propsNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','synapse_props')
+	connection_method = getattr(self,'_%s' % method)
+	
+	projectionNode.appendChild(connection_method(methodParameters))
+	
+        PrettyPrint(xmldoc)
         
-        #I don't know how to deal with that
-        projectionNode.appendChild(synapse_propsNode)
-        
+    
+    
+    # --- Connection methods ---------------------------------------------------
+    
+    
+    def __connect(self,synapse_type,):
+        """
+        Here this function doesn't have the same meaning than in neuron.py, it just creates the
+	neuroML template around the connectivity_pattern
+        """
+	"""
+	 <projection name="2">
+            <source>CellGroupA</source>
+            <target>CellGroupB</target>
+            <synapse_props>
+                <synapse_type>DoubExpSynA</synapse_type>
+                <default_values/>
+            </synapse_props>
+            <connectivity_pattern>
+                <all_to_all/>
+            </connectivity_pattern>
+        </projection>
+	"""
+	
+	synapse_propsNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','synapse_props')
+        projectionNode = self.domNode
+	
         synapse_typeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','synapse_type')
-        #false values to make it valid
-        synapse_typeTextNode = xmldoc.createTextNode("DoubExpSynA")
+        synapse_typeTextNode = xmldoc.createTextNode(synapse_type)
         synapse_typeNode.appendChild(synapse_typeTextNode)
         synapse_propsNode.appendChild(synapse_typeNode)
         
         default_valuesNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','default_values')
         synapse_propsNode.appendChild(default_valuesNode)
-        
+        projectionNode.appendChild(synapse_propsNode)
+    
+    
+    def _allToAll(self,parameters=None,synapse_type=None):
         """
-        example of connectivity_pattern to add, must be generic
-            
-            <connectivity_pattern>
-                <fixed_probability probability="0.5"></fixed_probability>
-            </connectivity_pattern>
-        
-        
+        Connect all cells in the presynaptic population to all cells in the
+        postsynaptic population.
         """
-        
+	"""
+	<connectivity_pattern>
+            <all_to_all/>
+	</connectivity_pattern>
+	"""
+	
+        #still have to create the connectivity_pattern node which will be created by its corresponding method
+	__connect(self,parameters,synapse_type)
         connectivity_patternNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connectivity_pattern')
-        projectionNode.appendChild(connectivity_patternNode)
-        
-        methodNode = xmldoc.createElementNS('http://morphml.org/networkml/schema',method)
-        for key in methodParameters:
-            methodNode.setAttribute(key,methodParameters[key])
-        
-        connectivity_patternNode.appendChild(methodNode)
-        
-        
-        PrettyPrint(xmldoc)
-        
-        
-        
-        
-    # --- Connection methods ---------------------------------------------------
+	
+	connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','all_to_all')
+	connectivity_patternNode.appendChild(connectivity_patternTypeNode)
+	
+        return connectivity_patternNode
     
-    def _allToAll(self,parameters=None):
-        """
-        Connect all cells in the presynaptic population to all cells in the postsynaptic population.
-        """
-        allow_self_connections = True # when pre- and post- are the same population,
-                                      # is a cell allowed to connect to itself?
-        if parameters and parameters.has_key('allow_self_connections'):
-            allow_self_connections = parameters['allow_self_connections']
-        raise "Method not yet implemented"
-        return len(presynaptic_neurons) * len(postsynaptic_neurons)
-    
-    def _oneToOne(self):
+        
+    def _oneToOne(self,synapse_type=None):
         """
         Where the pre- and postsynaptic populations have the same size, connect
         cell i in the presynaptic population to cell i in the postsynaptic
@@ -672,9 +728,16 @@ class Projection(common.Projection):
         cell i in a 1D pre population of size n should connect to all cells
         in row i of a 2D post population of size (n,m).
         """
-        raise "Method not yet implemented"
+	__connect(self,parameters,synapse_type)
+        connectivity_patternNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connectivity_pattern')
+	
+	connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','one_to_one')
+	connectivity_patternNode.appendChild(connectivity_patternTypeNode)
+	
+        return connectivity_patternNode
+
     
-    def _fixedProbability(self,parameters):
+    def _fixedProbability(self,parameters,synapse_type=None):
         """
         For each pair of pre-post cells, the connection probability is constant.
         """
@@ -685,159 +748,296 @@ class Projection(common.Projection):
             p_connect = parameters['p_connect']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-         
-        raise "Method not yet implemented"
-    
-    def _distanceDependentProbability(self,parameters):
+
+	__connect(self,parameters,synapse_type)
+        connectivity_patternNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connectivity_pattern')
+	
+	connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','fixed_probability')
+	connectivity_patternTypeNode.setAttribute('probability',p_connect)
+	connectivity_patternNode.appendChild(connectivity_patternTypeNode)
+	
+        return connectivity_patternNode
+
+
+    def _distanceDependentProbability(self,parameters,synapse_type=None):
         """
         For each pair of pre-post cells, the connection probability depends on distance.
         d_expression should be the right-hand side of a valid python expression
         for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
         """
-        allow_self_connections = True
-        if type(parameters) == types.StringType:
-            d_expression = parameters
-        else:
-            d_expression = parameters['d_expression']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        raise "Method not yet implemented"
-    
-    def _fixedNumberPre(self,parameters):
-        """Each presynaptic cell makes a fixed number of connections."""
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-        elif type(parameters) == types.DictType:
-            if parameters.has_key['n']: # all cells have same number of connections
-                n = parameters['n']
-            elif parameters.has_key['rng']: # number of connections per cell follows a distribution
-                rng = parameters['rng']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        else : # assume parameters is a rng
-            rng = parameters
-        raise "Method not yet implemented"
-    
-    def _fixedNumberPost(self,parameters): #CHEAT CHEAT CHEAT
-        """Each postsynaptic cell receives a fixed number of connections."""
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-        elif type(parameters) == types.DictType:
-            if parameters.has_key['n']: # all cells have same number of connections
-                n = parameters['n']
-            elif parameters.has_key['rng']: # number of connections per cell follows a distribution
-                rng = parameters['rng']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        else : # assume parameters is a rng
-            rng = parameters
+	raise Exception("Method not yet implemented")
         
-        raise "Method not yet implemented"
+
+    def _fixedNumberPre(self,parameters,synapse_type=None):
+        """Each presynaptic cell makes a fixed number of connections."""
+	"""
+	<connectivity_pattern>
+           <per_cell_connection num_per_source="1.2" max_per_target="2.3" direction="PreToPost"/>
+        </connectivity_pattern>
+	"""
+	self.synapse_type = synapse_type
+        allow_self_connections = True
+        if type(parameters) == types.IntType:
+            n = parameters
+            assert n > 0
+            fixed = True
+        elif type(parameters) == types.DictType:
+            if parameters.has_key('n'): # all cells have same number of connections
+                n = int(parameters['n'])
+                assert n > 0
+                fixed = True
+            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
+                rand_distr = parameters['rand_distr']
+                assert isinstance(rand_distr,RandomDistribution)
+                fixed = False
+            if parameters.has_key('allow_self_connections'):
+                allow_self_connections = parameters['allow_self_connections']
+        elif isinstance(parameters, RandomDistribution):
+            rand_distr = parameters
+            fixed = False
+        else:
+            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
+		
+	__connect(self,parameters,synapse_type)
+        connectivity_patternNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connectivity_pattern')
+	
+	connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','per_cell_connection')
+	connectivity_patternTypeNode.setAttribute('num_per_source',n)
+	connectivity_patternTypeNode.setAttribute('max_per_target',n)
+	connectivity_patternTypeNode.setAttribute('direction','PreToPost')
+	connectivity_patternNode.appendChild(connectivity_patternTypeNode)
+	
+        return connectivity_patternNode
     
-    def _fromFile(self,parameters):
+            
+    def _fixedNumberPost(self,parameters,synapse_type=None):
+        """Each postsynaptic cell receives a fixed number of connections."""
+	"""
+	<connectivity_pattern>
+           <per_cell_connection num_per_source="1.2" max_per_target="2.3" direction="PostToPre"/>
+        </connectivity_pattern>
+	"""
+	self.synapse_type = synapse_type
+        allow_self_connections = True
+        if type(parameters) == types.IntType:
+            n = parameters
+            assert n > 0
+            fixed = True
+        elif type(parameters) == types.DictType:
+            if parameters.has_key('n'): # all cells have same number of connections
+                n = int(parameters['n'])
+                assert n > 0
+                fixed = True
+            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
+                rand_distr = parameters['rand_distr']
+                assert isinstance(rand_distr,RandomDistribution)
+                fixed = False
+            if parameters.has_key('allow_self_connections'):
+                allow_self_connections = parameters['allow_self_connections']
+        elif isinstance(parameters, RandomDistribution):
+            rand_distr = parameters
+            fixed = False
+        else:
+            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
+		
+	__connect(self,parameters,synapse_type)
+        connectivity_patternNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connectivity_pattern')
+	
+	connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','per_cell_connection')
+	connectivity_patternTypeNode.setAttribute('num_per_source',n)
+	connectivity_patternTypeNode.setAttribute('max_per_target',n)
+	connectivity_patternTypeNode.setAttribute('direction','PostToPre')
+	connectivity_patternNode.appendChild(connectivity_patternTypeNode)
+	
+        return connectivity_patternNode
+
+
+
+   def _fromFile(self,parameters,synapse_type=None):
         """
         Load connections from a file.
         """
+        lines =[]
         if type(parameters) == types.FileType:
             fileobj = parameters
-            # check fileobj is already open for reading
+            # should check here that fileobj is already open for reading
+            lines = fileobj.readlines()
         elif type(parameters) == types.StringType:
             filename = parameters
             # now open the file...
+            f = open(filename,'r')
+            lines = f.readlines()
         elif type(parameters) == types.DictType:
             # dict could have 'filename' key or 'file' key
             # implement this...
-            pass
-        raise "Method not yet implemented"
+            raise "Argument type not yet implemented"
         
-    def _fromList(self,parameters):
+        # We read the file and gather all the data in a list of tuples (one per line)
+        input_tuples = []
+        for line in lines:
+            single_line = line.rstrip()
+            single_line = single_line.split("\t", 4)
+            input_tuples.append(single_line)    
+        f.close()
+        
+        return self._fromList(input_tuples, synapse_type)
+    
+    def _fromList(self,conn_list,synapse_type=None):
         """
-        Read connections from a list of lists, or somesuch...
+        Read connections from a list of tuples,
+        containing ['src[x,y]', 'tgt[x,y]', 'weight', 'delay']
         """
-        # Need to implement parameter parsing here...
-        raise "Method not yet implemented"
+        """
+	<projection name="NetworkConnection">
+            <source>CellGroupA</source>
+            <target>CellGroupB</target>
+            <synapse_props>
+                <synapse_type>DoubExpSynA</synapse_type>
+                <default_values internal_delay="5" weight="1" threshold="-20"/>
+            </synapse_props>
+            <connections>
+                <connection id="1">
+                    <pre cell_id="3" segment_id = "0"/>
+                    <post cell_id="1" segment_id = "1"/>
+                    <properties internal_delay="10" weight="0.5"/>                    <!-- adjusted value -->
+                </connection>
+            </connections>
+        </projection>
+	"""
+	__connect(self,synapse_type)
+	projectionNode = self.domNode
+	connectionsNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connections')
+	projectionNode.appendChild(connectionsNode)
+	
+        # Then we go through those tuple and extract the fields
+        for i in xrange(len(conn_list)):
+            src    = conn_list[i][0]
+            tgt    = conn_list[i][1]
+            weight = eval(conn_list[i][2])
+            delay  = eval(conn_list[i][3])
+            src = "[%s" %src.split("[",1)[1]
+            tgt = "[%s" %tgt.split("[",1)[1]
+            src  = eval("self.pre%s" % src)
+            tgt  = eval("self.post%s" % tgt)
+	    
+	    connectionNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connection')
+	    connectionNode.setAttribute('id',i)
+	    preNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','pre')
+	    preNode.setAttribute('cell_id',src)
+	    connectionNode.appendChild(preNode)
+	    
+	    postNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','post')
+	    postNode.setAttribute('cell_id',tgt)
+	    connectionNode.appendChild(postNode)
+	    
+	    propertiesNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','properties')
+	    propertiesNode.setAttribute('internal_delay',delay)
+	    propertiesNode.setAttribute('weight',weight)
+	    connectionNode.appendChild(propertiesNode)
+	    connectionsNode.appendChild(connectionNode)
+	    
+	
+        return connectivity_patternNode
+        
     
     # --- Methods for setting connection parameters ----------------------------
     
     def setWeights(self,w):
         """
         w can be a single number, in which case all weights are set to this
-        value, or an array with the same dimensions as the Projection array.
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
+        Weights should be in nA for current-based and µS for conductance-based
+        synapses.
         """
-        if type(w) == types.FloatType or type(w) == types.IntType:
-            w = w*1000
-        for src,tgt in zip(self._sources,self._targets):
-            # set weight
-            raise "Method not yet implemented"
-        else:
-            raise "Method needs changing to reflect the new API" # (w can be an array)
-    
-    def randomizeWeights(self,rng):
+	raise Exception("Method not yet implemented")
+
+
+    def randomizeWeights(self,rand_distr):
         """
-        Set weights to random values taken from rng.
+        Set weights to random values taken from rand_distr.
         """
-        # Arguably, we could merge this with set_weights just by detecting the
-        # argument type. It could make for easier-to-read simulation code to
-        # give it a separate name, though. Comments?
-        raise "Method not yet implemented"
+        # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
+        # Python
+	raise Exception("Method not yet implemented")
+        
+        
     
     def setDelays(self,d):
         """
         d can be a single number, in which case all delays are set to this
         value, or an array with the same dimensions as the Projection array.
         """
-        if type(d) == types.FloatType or type(d) == types.IntType:
-            for src,tgt in zip(self._sources,self._targets):
-                # set delays
-                raise "Method not yet implemented"
-        else:
-            raise "Method needs changing to reflect the new API" # (d can be an array)
-    
-    def randomizeDelays(self,rng):
+	raise Exception("Method not yet implemented")
+
+        
+    def randomizeDelays(self,rand_distr):
         """
-        Set delays to random values taken from rng.
+        Set delays to random values taken from rand_distr.
+        """   
+        # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
+        # Python  
+	raise Exception("Method not yet implemented")
+
+        
+    def setTopographicDelays(self,delay_rule,rand_distr=None):
         """
-        raise "Method not yet implemented"
-    
+        Set delays according to a connection rule expressed in delay_rule, based
+        on the delay distance 'd' and an (optional) rng 'rng'. For example,
+        the rule can be "rng*d + 0.5", with "a" extracted from the rng and
+        d being the distance.
+        """
+	raise Exception("Method not yet implemented")
+        
     def setThreshold(self,threshold):
         """
         Where the emission of a spike is determined by watching for a
         threshold crossing, set the value of this threshold.
         """
-        raise "Method not yet implemented"
-    
+        # This is a bit tricky, because in NEST the spike threshold is a
+        # property of the cell model, whereas in NEURON it is a property of the
+        # connection (NetCon).
+	raise Exception("Method not yet implemented")
     
     # --- Methods relating to synaptic plasticity ------------------------------
     
     def setupSTDP(self,stdp_model,parameterDict):
         """Set-up STDP."""
-        raise "Method not yet implemented"
+        
+        # Define the objref to handle plasticity
+        raise Exception("Method not yet implemented")
     
     def toggleSTDP(self,onoff):
-        """Turn plasticity on or off."""
-        raise "Method not yet implemented"
+        """Turn plasticity on or off. 
+        onoff = True => ON  and onoff = False => OFF. By defaut, it is on."""
+        # We do the loop in hoc, to speed up the code
+        raise Exception("Method not yet implemented")
+        
     
     def setMaxWeight(self,wmax):
         """Note that not all STDP models have maximum or minimum weights."""
-        raise "Method not yet implemented"
+        # We do the loop in hoc, to speed up the code
+        raise Exception("Method not yet implemented")
+
     
     def setMinWeight(self,wmin):
         """Note that not all STDP models have maximum or minimum weights."""
-        raise "Method not yet implemented"
+        # We do the loop in hoc, to speed up the code
+        raise Exception("Method not yet implemented")
+    
     
     # --- Methods for writing/reading information to/from file. ----------------
     
-    def saveConnections(self,filename):
+    def saveConnections(self,filename,gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        raise "Method not yet implemented"
+        raise Exception("Method not yet implemented")
     
-    def printWeights(self,filename,format=None):
+    def printWeights(self,filename,format=None,gather=True):
         """Print synaptic weights to file."""
-        raise "Method not yet implemented"
-    
+        raise Exception("Method not yet implemented")
+
+
     def weightHistogram(self,min=None,max=None,nbins=10):
         """
         Return a histogram of synaptic weights.
@@ -846,7 +1046,8 @@ class Projection(common.Projection):
         """
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
-        raise "Method not yet implemented"
+        raise Exception("Method not yet implemented")
+
  
 # ==============================================================================
 #   Utility classes
@@ -856,20 +1057,3 @@ Timer = common.Timer  # not really relevant here except for timing how long it t
                       # to write the XML file. Needed for API consistency.
 
 # ==============================================================================
-
-class Random:
-    """Wrapper class for random number generators. The idea is to be able to use
-    either simulator-native rngs, which may be more efficient, or a standard
-    python rng, e.g. numpy.Random, which would allow the same random numbers to
-    be used across different simulators, or simply to read externally-generated
-    numbers from files."""
-    
-    nRand = 0
-    
-    def __init__(self,type='default',distribution='uniform',label=None,seed=123456789):
-        """ """
-        raise "Not yet implemented."
-        
-    def next(self,n):
-        """Return n random numbers from the distribution."""
-        raise "Not yet implemented."
