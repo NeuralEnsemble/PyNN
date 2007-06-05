@@ -1155,6 +1155,8 @@ class Projection(common.Projection):
         hoc_commands = ['objref %s' % self.hoc_label,
                         '%s = new List()' % self.hoc_label]
         connection_method = getattr(self,'_%s' % method)
+        self.synapse_type = target
+        self._syn_objref = _translate_synapse_type(self.synapse_type)
         
         if target:
             hoc_commands += connection_method(methodParameters,synapse_type=target)
@@ -1197,20 +1199,19 @@ class Projection(common.Projection):
 
     # --- Connection methods ---------------------------------------------------
     
-    def __connect(self,src,tgt,synapse_type):
+    def __connect(self,src,tgt):
         """
         Write hoc commands to connect a single pair of neurons.
         """
-        syn_objref = _translate_synapse_type(synapse_type)
         cmdlist = ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
                                                                  self.post.hoc_label,
                                                                  self.post.gidlist.index(tgt),
-                                                                 syn_objref),
+                                                                 self._syn_objref),
                 'tmp = %s.append(nc)' % self.hoc_label]
         self.connections.append((src,tgt))
         return cmdlist
     
-    def _allToAll(self,parameters=None,synapse_type=None):
+    def _allToAll(self,parameters=None):
         """
         Connect all cells in the presynaptic population to all cells in the
         postsynaptic population.
@@ -1223,10 +1224,10 @@ class Projection(common.Projection):
         for tgt in self.post.gidlist:
             for src in self.pre.fullgidlist:
                 if allow_self_connections or self.pre != self.post or tgt != src:
-                    hoc_commands += self.__connect(src,tgt,synapse_type)
+                    hoc_commands += self.__connect(src,tgt)
         return hoc_commands
         
-    def _oneToOne(self,synapse_type=None):
+    def _oneToOne(self,parameters=None):
         """
         Where the pre- and postsynaptic populations have the same size, connect
         cell i in the presynaptic population to cell i in the postsynaptic
@@ -1240,12 +1241,12 @@ class Projection(common.Projection):
             hoc_commands = []
             for tgt in self.post.gidlist:
                 src = tgt - self.post.gid_start + self.pre.gid_start
-                hoc_commands += self.__connect(src,tgt,synapse_type)
+                hoc_commands += self.__connect(src,tgt)
         else:
             raise Exception("Method '%s' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes." % sys._getframe().f_code.co_name)
         return hoc_commands
     
-    def _fixedProbability(self,parameters,synapse_type=None):
+    def _fixedProbability(self,parameters):
         """
         For each pair of pre-post cells, the connection probability is constant.
         """
@@ -1270,7 +1271,7 @@ class Projection(common.Projection):
                 for src in self.pre.fullgidlist:
                     if HocToPy.get('rng.repick()','float') < p_connect:
                         if allow_self_connections or self.pre != self.post or tgt != src:
-                            self.__connect(src,tgt,synapse_type)
+                            self.__connect(src,tgt)
             return hoc_commands
         else: # use Python RNG
             for tgt in self.post.gidlist:
@@ -1279,10 +1280,10 @@ class Projection(common.Projection):
                     src = j + self.pre.gid_start
                     if rarr[j] < p_connect:
                         if allow_self_connections or self.pre != self.post or tgt != src:
-                            hoc_commands += self.__connect(src,tgt,synapse_type)
+                            hoc_commands += self.__connect(src,tgt)
         return hoc_commands
 
-    def _distanceDependentProbability(self,parameters,synapse_type=None):
+    def _distanceDependentProbability(self,parameters):
         """
         For each pair of pre-post cells, the connection probability depends on distance.
         d_expression should be the right-hand side of a valid python expression
@@ -1340,14 +1341,13 @@ class Projection(common.Projection):
                         distance_expression = d_expression.replace('d', '%f' %dist)                      
                         if alphanum:
                             if rarr[j] < eval(distance_expression):
-                                hoc_commands += self.__connect(src,tgt,synapse_type)
+                                hoc_commands += self.__connect(src,tgt)
                         elif eval(distance_expression):
-                            hoc_commands += self.__connect(src,tgt,synapse_type)
+                            hoc_commands += self.__connect(src,tgt)
         return hoc_commands
     
-    def _fixedNumberPre(self,parameters,synapse_type=None):
+    def _fixedNumberPre(self,parameters):
         """Each presynaptic cell makes a fixed number of connections."""
-        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -1381,12 +1381,11 @@ class Projection(common.Projection):
                 n = rand_distr.next()
             for tgt in rng.permutation(self.post.gidlist)[0:n]:
                 if allow_self_connections or (src != tgt):
-                    hoc_commands += self.__connect(src,tgt,synapse_type)
+                    hoc_commands += self.__connect(src,tgt)
         return hoc_commands
             
-    def _fixedNumberPost(self,parameters,synapse_type=None):
+    def _fixedNumberPost(self,parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
-        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -1420,10 +1419,10 @@ class Projection(common.Projection):
                 n = rand_distr.next()
             for src in rng.permutation(self.pre.gidlist)[0:n]:
                 if allow_self_connections or (src != tgt):
-                    hoc_commands += self.__connect(src,tgt,synapse_type)
+                    hoc_commands += self.__connect(src,tgt)
         return hoc_commands
     
-    def _fromFile(self,parameters,synapse_type=None):
+    def _fromFile(self,parameters):
         """
         Load connections from a file.
         """
@@ -1451,9 +1450,9 @@ class Projection(common.Projection):
             tgt = "[%s" % tgt.split("[",1)[1]
             input_tuples.append((eval(src),eval(tgt),float(w),float(d)))
         f.close()
-        return self._fromList(input_tuples, synapse_type)
+        return self._fromList(input_tuples)
     
-    def _fromList(self,conn_list,synapse_type=None):
+    def _fromList(self,conn_list):
         """
         Read connections from a list of tuples,
         containing [pre_addr, post_addr, weight, delay]
@@ -1463,12 +1462,11 @@ class Projection(common.Projection):
         hoc_commands = []
         
         # Then we go through those tuple and extract the fields
-        self.synapse_type = synapse_type
         for i in xrange(len(conn_list)):
             src, tgt, weight, delay = conn_list[i][:]
             src = self.pre[tuple(src)]
             tgt = self.post[tuple(tgt)]
-            hoc_commands += self.__connect(src,tgt,synapse_type)
+            hoc_commands += self.__connect(src,tgt)
             hoc_commands += ['%s.object(%d).weight = %f' % (self.hoc_label, i, float(weight)), 
                              '%s.object(%d).delay = %f'  % (self.hoc_label, i, float(delay))]
         return hoc_commands
