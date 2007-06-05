@@ -169,21 +169,20 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     pynest.destroy()
     pynest.setDict([0],{'resolution': dt, 'min_delay' : min_delay, 'max_delay' : max_delay})
     
-    # TODO : this gave error 
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
-    #if debug:
-    #    logging.basicConfig(level=logging.DEBUG,
-    #                format='%(asctime)s %(levelname)s %(message)s',
-    #                filename='nest.log',
-    #                filemode='w')
-    #else:
-    #    logging.basicConfig(level=logging.INFO,
-    #                format='%(asctime)s %(levelname)s %(message)s',
-    #                filename='nest.log',
-    #                filemode='w')
+    if debug:
+        logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s',
+                    filename='nest.log',
+                    filemode='w')
+    else:
+        logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(message)s',
+                    filename='nest.log',
+                    filemode='w')
                        
-    #logging.info("Initialization of Nest")    
+    logging.info("Initialization of Nest")    
     return 0
 
 def end(compatible_output=True):
