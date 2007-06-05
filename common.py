@@ -568,7 +568,7 @@ class Projection:
         w can be a single number, in which case all weights are set to this
         value, or a list/1D array of length equal to the number of connections
         in the population.
-        Weights should be in nA for current-based and µS for conductance-based
+        Weights should be in nA for current-based and uS for conductance-based
         synapses.
         """
         pass
