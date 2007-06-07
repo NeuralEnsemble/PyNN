@@ -34,8 +34,8 @@ class PopulationInitTest(unittest.TestCase):
     
     def testInitWithParams(self):
         """Population.__init__(): Parameters set on creation should be the same as retrieved with HocToPy.get()"""
-        popul = Population((3,3),IF_curr_alpha,{'tau_syn':3.141592654})
-        tau_syn = pcsim_globals.net.object(popul.getObjectID(popul[2,2])).TauSyn 
+        popul = Population((3,3),IF_curr_alpha,{'tau_syn_E':3.141592654})
+        tau_syn = pcsim_globals.net.object(popul.getObjectID(popul[2,2])).TauSynExc 
         self.assertAlmostEqual(tau_syn, 0.003141592654, places=5)
     
     def testInitWithLabel(self):

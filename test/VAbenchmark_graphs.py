@@ -6,7 +6,7 @@ if len(sys.argv) < 2:
     sys.exit(1)
 benchmark = sys.argv[1]
 
-simulators = ('neuron','nest','pcsim')
+simulators = ('pcsim','nest','neuron')
 v_thresh = -50.0
 #pylab.rcParams['backend'] = 'PS'
 CM=1/2.54

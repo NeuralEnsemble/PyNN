@@ -36,9 +36,9 @@ class CreationTest(unittest.TestCase):
        
     def testCreateStandardCellWithParams(self):
         """create(): Parameters set on creation should be the same as retrieved with getDict()"""
-        ifcell = nest.create(nest.IF_curr_alpha,{'tau_syn':3.141592654})
+        ifcell = nest.create(nest.IF_curr_alpha,{'tau_syn_E':3.141592654})
         ifcell_params = nest.pynest.getDict([ifcell])
-        assert ifcell_params[0]['TauSyn'] == 3.141592654
+        assert ifcell_params[0]['TauSynE'] == 3.141592654
  
     def testCreateNESTCell(self):
         """create(): First cell created should have GID==1"""
@@ -158,9 +158,9 @@ class PopulationInitTest(unittest.TestCase):
         
     def testInitWithParams(self):
         """Population.__init__(): Parameters set on creation should be the same as retrieved with getDict()"""
-        net = nest.Population((3,3),nest.IF_curr_alpha,{'tau_syn':3.141592654})
+        net = nest.Population((3,3),nest.IF_curr_alpha,{'tau_syn_E':3.141592654})
         ifcell_params = nest.pynest.getDict([net.cell[0,0]])
-        assert ifcell_params[0]['TauSyn'] == 3.141592654
+        assert ifcell_params[0]['TauSynE'] == 3.141592654
     
     def testInitWithLabel(self):
         """Population.__init__(): A label set on initialisation should be retrievable with the Population.label attribute."""

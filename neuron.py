@@ -246,7 +246,8 @@ class IF_curr_alpha(common.IF_curr_alpha):
         'v_reset'   : ('v_reset'  , "parameters['v_reset']"),
         'tau_refrac': ('t_refrac' , "parameters['tau_refrac']"),
         'i_offset'  : ('i_offset' , "parameters['i_offset']"),
-        'tau_syn'   : ('tau_syn'  , "parameters['tau_syn']"),
+        'tau_syn_E' : ('tau_e'    , "parameters['tau_syn_E']"),
+        'tau_syn_I' : ('tau_i'    , "parameters['tau_syn_I']"),
         'v_init'    : ('v_init'   , "parameters['v_init']"),
     }
     hoc_name = "StandardIF"
@@ -310,6 +311,34 @@ class IF_cond_alpha(common.IF_cond_alpha):
         self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
+
+
+class IF_cond_exp(common.IF_cond_exp):
+    """Leaky integrate and fire model with fixed threshold and 
+    decaying-exponential post-synaptic conductance."""
+    
+    translations = {
+        'tau_m'     : ('tau_m'    , "parameters['tau_m']"),
+        'cm'        : ('CM'       , "parameters['cm']"),
+        'v_rest'    : ('v_rest'   , "parameters['v_rest']"),
+        'v_thresh'  : ('v_thresh' , "parameters['v_thresh']"),
+        'v_reset'   : ('v_reset'  , "parameters['v_reset']"),
+        'tau_refrac': ('t_refrac' , "parameters['tau_refrac']"),
+        'i_offset'  : ('i_offset' , "parameters['i_offset']"),
+        'tau_syn_E' : ('tau_e'    , "parameters['tau_syn_E']"),
+        'tau_syn_I' : ('tau_i'    , "parameters['tau_syn_I']"),
+        'v_init'    : ('v_init'   , "parameters['v_init']"),
+        'e_rev_E'   : ('e_e'      , "parameters['e_rev_E']"),
+        'e_rev_I'   : ('e_i'      , "parameters['e_rev_I']")
+    }
+    hoc_name = "StandardIF"
+    
+    def __init__(self,parameters):
+        common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
+                                                       # values for not-specified parameters.
+        self.parameters = self.translate(self.parameters)
+        self.parameters['syn_type']  = 'conductance'
+        self.parameters['syn_shape'] = 'exp'
 
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
@@ -434,7 +463,7 @@ def end(compatible_output=True):
             for cell in cell_list:
                 hoc_commands += ['fmt = "%s\\t%d\\n"' % ("%.2f",cell),
                                  #'tmp = fileobj.printf("# cell%d\\n")' % cell,
-                                 'pc.cell%d.spiketimes.printf(fileobj,fmt)' % cell]
+                                 'tmp = cell%d.spiketimes.printf(fileobj,fmt)' % cell]
             hoc_commands += ['tmp = fileobj.close()']
     hoc_commands += ['tmp = pc.runworker()',
                      'tmp = pc.done()']
@@ -1434,7 +1463,7 @@ class Projection(common.Projection):
         elif type(parameters) == types.StringType:
             filename = parameters
             # now open the file...
-            f = open(filename,'r')
+            f = open(filename,'r',1000)
             lines = f.readlines()
         elif type(parameters) == types.DictType:
             # dict could have 'filename' key or 'file' key
@@ -1699,7 +1728,7 @@ class Projection(common.Projection):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
         hoc_comment("--- Projection[%s].__saveConnections__() ---" %self.label)  
-        f = open(filename,'w')
+        f = open(filename,'w',1000)
         for i in xrange(len(self)):
             src = self.connections[i][0]
             tgt = self.connections[i][1]
@@ -1732,7 +1761,7 @@ class Projection(common.Projection):
             hoc_execute(hoc_commands, "--- [Posting weights list to master] ---")
 
         if not gather or myid == 0:
-            f = open(filename,'w')
+            f = open(filename,'w',1000)
             for i in xrange(len(self)):
                 weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
                 f.write(weight)

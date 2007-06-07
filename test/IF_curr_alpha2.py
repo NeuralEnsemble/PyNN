@@ -18,9 +18,9 @@ else:
 exec("from pyNN.%s import *" % simulator)
 
 
-id = setup(timestep=0.025,min_delay=0.1)
+id = setup(timestep=0.01,min_delay=0.1)
 
-ifcells = create(IF_curr_alpha, {'i_offset':0.1,'tau_refrac':0.1,'v_thresh':-51.0,'tau_syn':2.0},n=5)
+ifcells = create(IF_curr_alpha, {'i_offset' : 0.1, 'tau_refrac' : 0.1, 'v_thresh' : -52.2},n=5)
 
 spike_source = create(SpikeSourceArray, {'spike_times': [0.1*float(i) for i in range(1,1001,1)]})
 

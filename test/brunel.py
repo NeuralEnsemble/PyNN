@@ -11,6 +11,7 @@ $Id$
 """
 
 import sys
+from NeuroTools.stgen import StGen
 
 if hasattr(sys,"argv"):     # run using python
     simulator = sys.argv[-1]
@@ -18,15 +19,14 @@ else:
     simulator = "oldneuron"    # run using nrngui -python
 exec("from pyNN.%s import *" % simulator)
 
-#from NeuroTools.stgen import StGen
-import numpy.random
+from pyNN.random import NumpyRNG, RandomDistribution
 
 # === Define parameters ========================================================
 
 downscale   = 50      # scale number of neurons down by this factor
                       # scale synaptic weights up by this factor to
                       # obtain similar dynamics independent of size
-order       = 12500   # determines size of network:
+order       = 10000   # determines size of network:
                       # 4*order excitatory neurons
                       # 1*order inhibitory neurons
 Nrec        = 50      # number of neurons to record from, per population
@@ -41,7 +41,7 @@ delay       = 1.5     # synaptic delay, all connections [ms]
 
 # single neuron parameters
 tauMem      = 20.0    # neuron membrane time constant [ms]
-tauSyn      = 0.5     # synaptic time constant [ms]
+tauSyn      = 0.1     # synaptic time constant [ms]
 tauRef      = 2.0     # refractory time [ms]
 U0          = 0.0     # resting potential [mV]
 theta       = 20.0    # threshold 
@@ -99,7 +99,8 @@ Nsyn = (C+1)*N + 2*Nrec  # number of neurons * (internal synapses + 1 synapse fr
 
 # put cell parameters into a dict
 cell_params = {'tau_m'      : tauMem,
-               'tau_syn'    : tauSyn,
+               'tau_syn_E'  : tauSyn,
+               'tau_syn_I'  : tauSyn,
                'tau_refrac' : tauRef,
                'v_rest'     : U0,
                'v_reset'    : U0,
@@ -110,7 +111,15 @@ cell_params = {'tau_m'      : tauMem,
 
 # clear all existing network elements and set resolution and limits on delays.
 # For NEST, limits must be set BEFORE connecting any elements
-myid = setup(timestep=dt,max_delay=delay)
+
+extra = {'threads' : 2}
+
+myid = setup(timestep=dt, max_delay=delay, **extra)
+
+if extra.has_key('threads'):
+    print "%d Initialising the simulator with %d threads..." %(myid, extra['threads'])
+else:
+    print "%d Initialising the simulator with single thread..." %(node_id)
 
 # Small function to display information only on node 1
 def nprint(s):
@@ -119,34 +128,38 @@ def nprint(s):
 
 Timer.start() # start timer on construction    
 
-print "Setting up random number generator"
+print "%d Setting up random number generator" %myid
 rng = numpy.random.RandomState()
 rng.seed(kernelseed+myid)
 
-print "Creating excitatory population."
+print "%d Creating excitatory population." %myid
 E_net = Population((NE,),IF_curr_alpha,cell_params,"E_net")
 
-print "Creating inhibitory population."
+print "%d Creating inhibitory population." %myid
 I_net = Population((NI,),IF_curr_alpha,cell_params,"I_net")
 
-print "Creating excitatory Poisson generator."
-#expoisson = Population((NE,), SpikeSourceArray, {'spike_times': [float(t) for t in range(5,105,2)]})
+print "%d Initialising membrane potential to random values." %myid
+rng2 = NumpyRNG(kernelseed+myid)
+uniformDistr = RandomDistribution(rng2,'uniform',[U0,theta])
+E_net.randomInit(uniformDistr)
+I_net.randomInit(uniformDistr)
+
+print "%d Creating excitatory Poisson generator." %myid
 expoisson = Population((NE,), SpikeSourcePoisson,{'rate': p_rate},"expoisson")
 
-print "Creating inhibitory Poisson generator."
-#inpoisson = Population((NI,), SpikeSourceArray, {'spike_times': [float(t) for t in range(5,105,2)]})
+print "%d Creating inhibitory Poisson generator." %myid
 inpoisson = Population((NI,), SpikeSourcePoisson,{'rate': p_rate},"inpoisson")
 
 # Record spikes
-print "Setting up recording in excitatory population."
+print "%d Setting up recording in excitatory population." %myid
 E_net.record(Nrec)
 E_net.record_v([E_net[0],E_net[1]])
 
-print "Setting up recording in inhibitory population."
+print "%d Setting up recording in inhibitory population." %myid
 I_net.record(Nrec)
 I_net.record_v([I_net[0],I_net[1]])
 
-print "Connecting excitatory population." 
+print "%d Connecting excitatory population."  %myid
 E_to_E = Projection(E_net,E_net,'fixedProbability',epsilon,rng=rng)
 E_to_E.setWeights(JE)
 E_to_E.setDelays(delay)
@@ -160,7 +173,7 @@ input_to_E.setWeights(JE)
 input_to_E.setDelays(dt) # min_delay = dt ??
 print "input --> E\t", len(input_to_E), "connections"
 
-print "Connecting inhibitory population."
+print "%d Connecting inhibitory population." %myid
 E_to_I = Projection(E_net,I_net,'fixedProbability',epsilon,rng=rng)
 E_to_I.setWeights(JE)
 E_to_I.setDelays(delay)
@@ -181,7 +194,7 @@ buildCPUTime = Timer.elapsedTime()
 
 # run, measure computer time
 Timer.start() # start timer on construction
-print "Running simulation."
+print "%d Running simulation." %myid
 run(simtime)
 simCPUTime = Timer.elapsedTime()
 
@@ -195,16 +208,16 @@ E_rate = E_net.meanSpikeCount()*1000.0/simtime
 I_rate = I_net.meanSpikeCount()*1000.0/simtime
 
 # write a short report
-nprint("\nBrunel Network Simulation")
+nprint("\n--- Brunel Network Simulation ---")
 nprint("Number of Neurons  : %d" %N)
 nprint("Number of Synapses : %d" %Nsyn)
-nprint("Input firing rate  : %f" %p_rate)
-nprint("Excitatory weight  : %f" %JE)
-nprint("Inhibitory weight  : %f" %JI)
-nprint("Excitatory rate    : %f Hz" %E_rate)
-nprint("Inhibitory rate    : %f Hz" %I_rate)
-nprint("Build time         : %f s" %buildCPUTime)   
-nprint("Simulation time    : %f s" %simCPUTime)    
+nprint("Input firing rate  : %g" %p_rate)
+nprint("Excitatory weight  : %g" %JE)
+nprint("Inhibitory weight  : %g" %JI)
+nprint("Excitatory rate    : %g Hz" %E_rate)
+nprint("Inhibitory rate    : %g Hz" %I_rate)
+nprint("Build time         : %g s" %buildCPUTime)   
+nprint("Simulation time    : %g s" %simCPUTime)    
   
 # === Clean up and quit ========================================================
 

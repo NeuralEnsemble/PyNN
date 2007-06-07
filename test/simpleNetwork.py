@@ -22,7 +22,7 @@ tstop = 1000.0
 
 setup(timestep=0.025,min_delay=1.0,max_delay=1.0)
     
-cell_params = {'tau_refrac':2.0,'v_thresh':-50.0,'tau_syn':2.0}
+cell_params = {'tau_refrac':2.0,'v_thresh':-50.0,'tau_syn_E':2.0, 'tau_syn_I':2.0}
 output_population = Population(2, IF_curr_alpha, cell_params, "output")
 
 spikeGenerator = StGen()

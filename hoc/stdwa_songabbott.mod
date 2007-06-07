@@ -7,7 +7,7 @@ ENDCOMMENT
 NEURON {
 	POINT_PROCESS StdwaSA
 	RANGE interval, tlast_pre, tlast_post, M, P
-	RANGE deltaw, wmax, aLTP, aLTD, tauLTP, tauLTD, on
+	RANGE deltaw, wmax, wmin, aLTP, aLTD, tauLTP, tauLTD, on
 	POINTER wsyn
 }
 
@@ -34,6 +34,7 @@ PARAMETER {
 	tauLTP  = 20	(ms)    : decay time for LTP part ( values from           )
 	tauLTD  = 20	(ms)    : decay time for LTD part ( Song and Abbott, 2001 )
 	wmax    = 1	        : min and max values of synaptic weight
+        wmin    = 0             : 
 	aLTP    = 0.001		: amplitude of LTP steps
 	aLTD    = 0.00106	: amplitude of LTD steps
 	on      = 1		: allows learning to be turned on and off globally
@@ -56,8 +57,8 @@ NET_RECEIVE (w) {
 		if (wsyn > wmax) {
 			wsyn = wmax
 		}
-		if (wsyn < 0) {
-			wsyn = 0
+		if (wsyn < wmin) {
+			wsyn = wmin
 		}
 	}
 }

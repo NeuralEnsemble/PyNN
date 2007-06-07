@@ -57,15 +57,16 @@ class IF_curr_alpha(common.IF_curr_alpha):
     shaped post-synaptic current."""
     
     translations = {
-            'v_rest'    : ('U0'    , "parameters['v_rest']"),
-            'v_reset'   : ('Vreset', "parameters['v_reset']"),
-            'cm'        : ('C'     , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-            'tau_m'     : ('Tau'   , "parameters['tau_m']"),
-            'tau_refrac': ('TauR'  , "max(dt,parameters['tau_refrac'])"),
-            'tau_syn'   : ('TauSyn', "parameters['tau_syn']"),
-            'v_thresh'  : ('Theta' , "parameters['v_thresh']"),
-            'i_offset'  : ('I0'    , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'v_init'    : ('u'     , "parameters['v_init']"),
+            'v_rest'    : ('U0'    ,  "parameters['v_rest']"),
+            'v_reset'   : ('Vreset',  "parameters['v_reset']"),
+            'cm'        : ('C'     ,  "parameters['cm']*1000.0"), # C is in pF, cm in nF
+            'tau_m'     : ('Tau'   ,  "parameters['tau_m']"),
+            'tau_refrac': ('TauR'  ,  "max(dt,parameters['tau_refrac'])"),
+            'tau_syn_E' : ('TauSynE', "parameters['tau_syn_E']"),
+            'tau_syn_I' : ('TauSynI', "parameters['tau_syn_I']"),
+            'v_thresh'  : ('Theta' ,  "parameters['v_thresh']"),
+            'i_offset'  : ('I0'    ,  "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
+            'v_init'    : ('u'     ,  "parameters['v_init']"),
     }
     nest_name = "iaf_neuron2"
     
@@ -110,7 +111,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
             'tau_syn_E' : ('TauSyn_E'    , "parameters['tau_syn_E']"),
             'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
             'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
-            'i_offset'  : ('I0'          , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
+            'i_offset'  : ('Istim'       , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
             'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
             'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
             'v_init'    : ('u'           , "parameters['v_init']"),
@@ -123,13 +124,40 @@ class IF_cond_alpha(common.IF_cond_alpha):
         self.parameters = self.translate(self.parameters)
         self.parameters['gL'] = -self.parameters['Theta'] # Trick to fix the leak conductance of the NEST model.
 
+
+class IF_cond_exp(common.IF_cond_exp):
+    """Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic conductance."""
+    
+    translations = {
+            'v_rest'    : ('U0'          , "parameters['v_rest']"),
+            'v_reset'   : ('Vreset'      , "parameters['v_reset']"),
+            'cm'        : ('C'           , "parameters['cm']*1000.0"), # C is in pF, cm in nF
+            'tau_m'     : ('Tau'         , "parameters['tau_m']"),
+            'tau_refrac': ('TauR'        , "max(dt,parameters['tau_refrac'])"),
+            'tau_syn_E' : ('TauSyn_E'    , "parameters['tau_syn_E']"),
+            'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
+            'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
+            'i_offset'  : ('Istim'       , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
+            'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
+            'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
+            'v_init'    : ('u'           , "parameters['v_init']"),
+    }
+    nest_name = "iaf_cond_exp"
+    
+    def __init__(self,parameters):
+        common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
+                                                       # values for not-specified parameters.
+        self.parameters = self.translate(self.parameters)
+        self.parameters['gL'] = -self.parameters['Theta'] # Trick to fix the leak conductance of the NEST model.
+
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
     translations = {
         'rate' : ('rate', "parameters['rate']"),
         'start' : ('start'    , "parameters['start']"),
-        'duration' : ('duration' , "parameters['duration']")
+        'duration' : ('stop' , "parameters['duration']+parameters['start']")
     }
     nest_name = 'poisson_generator'
     
@@ -173,6 +201,16 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     
     pynest.destroy()
     pynest.setDict([0],{'resolution': dt, 'min_delay' : min_delay, 'max_delay' : max_delay})
+    if extra_params.has_key('threads'):
+        update_modes = {'fixed':1, 'serial':3, 'dynamic':0}
+        # number of nodes to give to each thread at a time
+        # some small fraction of your total nodes to be simulated
+        batchsize   = 10
+        kernelseeds = [11,22,33,44,55,66,77,88,99]
+        pynest.setDict([0],{'threads'     : extra_params['threads'],
+                            'update_mode' : update_modes['fixed'],
+                            'rng_seeds'   : kernelseeds[0:extra_params['threads']],
+                            'buffsize'    : batchsize})
     
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
@@ -186,7 +224,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
                     format='%(asctime)s %(levelname)s %(message)s',
                     filename='nest.log',
                     filemode='w')
-                       
+
     logging.info("Initialization of Nest")    
     return 0
 
@@ -352,17 +390,20 @@ def _printSpikes(filename, compatible_output=True):
         # desired format :
         # First line: # dimensions of the population
         # Then spiketime (in ms) cell_id-min(cell_id)
-        result = open(filename,'w',100)
-        g = open(tempfilename,'r',100)
+        result = open(filename,'w',1000)
         # Writing # such that Population.printSpikes and this have same output format
         result.write("# "+"\n")
-        lines = g.readlines()
-        g.close()
-        for line in lines:
-            single_line = line.split("\t", 1)
-            neuron = int(single_line[0][1:len(single_line[0])])
-            spike_time = dt*float(single_line[1])
-            result.write("%g\t%d\n" %(spike_time, neuron))
+        # Writing spiketimes, cell_id-min(cell_id)
+        raster = numpy.fromfile(tempfilename,sep=" ")
+        #Sometimes, nest doesn't write the last line entirely, so we need
+        #to trunk it to avoid errors
+        raster = raster[0:3*(len(raster)/3)]
+        raster = raster.reshape(len(raster)/3,3)
+        raster = raster[0:len(raster)][:,1:3]
+        raster[:][:,0] = raster[:][:,0]
+        raster[:][:,1] = raster[:][:,1]*dt
+        for idx in xrange(len(raster)):
+            result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
         result.close()
     else:
         shutil.move(tempfilename, filename)
@@ -376,27 +417,26 @@ def _print_v(filename, compatible_output=True):
     writing process, which is not the case for the moment"""
     tempfilename = tempdir+'/'+filename
     pynest.sr('%s close' %tempfilename.replace('/','_')) 
-    result = open(filename,'w',100)
+    result = open(filename,'w',1000)
     dt = pynest.getNESTStatus()['resolution']
     n = int(pynest.getNESTStatus()['time']/dt)
     result.write("# dt = %f\n# n = %d\n" % (dt,n))
     if (compatible_output):
-        f = open(tempfilename.replace('/','_'),'r',100)
-        lines = f.readlines()
-        f.close()
-
         # Here we postprocess the file to have effectively the
         # desired format :
         # First line: dimensions of the population
         # Then spiketime cell_id-min(cell_id)
-        for line in lines:
-            line = line.rstrip()
-            single_line = line.split("\t", 2)
-            if (len(single_line) > 1) and (single_line[1] != '-'):
-               neuron = int(single_line[0])
-               result.write("%s\t%d\n" %(single_line[1], neuron))
+        raster = numpy.fromfile(tempfilename.replace('/','_'),sep=" ")
+        #Sometimes, nest doesn't write the last line entirely, so we need
+        #to trunk it to avoid errors
+        raster = raster[0:2*(len(raster)/2)]
+        raster = raster.reshape(len(raster)/2,2)
+        raster[:][:,1] = raster[:][:,1]
+        raster[:][:,0] = raster[:][:,0]
+        for idx in xrange(len(raster)):
+            result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
     else:
-        f = open(tempfilename.replace('/','_'),'r',100)
+        f = open(tempfilename.replace('/','_'),'r',1000)
         lines = f.readlines()
         f.close()
         for line in lines:
@@ -707,9 +747,7 @@ class Population(common.Population):
         indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        spike files.
-        
+        is used. This may be faster, sinc# Writing spiketimes, cell_id-min(cell_id)
         If gather is True, the file will only be created on the master node,
         otherwise, a file will be written on each node.
         """        
@@ -718,23 +756,26 @@ class Population(common.Population):
         if hl_spike_files.__contains__(tempfilename):
             pynest.sr('%s close' % tempfilename)
             hl_spike_files.remove(tempfilename)
+
         if (compatible_output):
             # Here we postprocess the file to have effectively the
             # desired format: spiketime (in ms) cell_id-min(cell_id)
-            result = open(filename,'w',1)
-            g = open("%s/%s" %(tempdir, tempfilename),'r',1)
+            result = open(filename,'w',1000)
             # Writing dimensions of the population:
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
         
             # Writing spiketimes, cell_id-min(cell_id)
             padding = numpy.reshape(self.cell,self.cell.size)[0]
-            lines = g.readlines()
-            g.close()
-            for line in lines:
-                single_line = line.split("\t", 1)
-                neuron = int(single_line[0][1:len(single_line[0])]) - padding
-                spike_time = dt*float(single_line[1])
-                result.write("%g\t%d\n" %(spike_time, neuron))
+            raster = numpy.fromfile("%s/%s" %(tempdir, tempfilename),sep=" ")
+            #Sometimes, nest doesn't write the last line entirely, so we need
+            #to trunk it to avoid errors
+            raster = raster[0:3*(len(raster)/3)]
+            raster = raster.reshape(len(raster)/3,3)
+            raster = raster[0:len(raster)][:,1:3]
+            raster[:][:,0] = raster[:][:,0] - padding
+            raster[:][:,1] = raster[:][:,1]*dt
+            for idx in xrange(len(raster)):
+                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
             result.close()
         else:
             print 'didt go into the compatible output stuff'
@@ -777,21 +818,17 @@ class Population(common.Population):
         voltage files.
         """
         global hl_v_files
-        
         tempfilename = tempdir+'/'+'%s.v' % self.label
         if hl_v_files.__contains__(tempfilename):
             pynest.sr('%s close' % tempfilename.replace('/','_'))
             hl_v_files.remove(tempfilename)
-                
-        result = open(filename,'w',1)
+
+        result = open(filename,'w',1000)
         dt = pynest.getNESTStatus()['resolution']
         n = int(pynest.getNESTStatus()['time']/dt)
         result.write("# dt = %f\n# n = %d\n" % (dt,n))
 
         if (compatible_output):
-            f = open(tempfilename.replace('/','_'),'r',1)
-            lines = f.readlines()
-            f.close()
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
             padding = numpy.reshape(self.cell,self.cell.size)[0]
 
@@ -799,14 +836,17 @@ class Population(common.Population):
             # desired format :
             # First line: dimensions of the population
             # Then spiketime cell_id-min(cell_id)
-            for line in lines:
-                line = line.rstrip()
-                single_line = line.split("\t", 2)
-                if (len(single_line) > 1) and (single_line[1] != '-'):
-                    neuron = int(single_line[0]) - padding
-                    result.write("%s\t%d\n" %(single_line[1], neuron))
+            raster = numpy.fromfile(tempfilename.replace('/','_'),sep=" ")
+            #Sometimes, nest doesn't write the last line entirely, so we need
+            #to trunk it to avoid errors
+            raster = raster[0:2*(len(raster)/2)]
+            raster = raster.reshape(len(raster)/2,2)
+            raster[:][:,1] = raster[:][:,1]
+            raster[:][:,0] = raster[:][:,0] - padding
+            for idx in xrange(len(raster)):
+                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
         else:
-            f = open(tempfilename.replace('/','_'),'r',1)
+            f = open(tempfilename.replace('/','_'),'r',1000)
             lines = f.readlines()
             f.close()
             for line in lines:
@@ -1132,7 +1172,7 @@ class Projection(common.Projection):
         elif type(parameters) == types.StringType:
             filename = parameters
             # now open the file...
-            f = open(filename,'r')
+            f = open(filename,'r',1000)
             lines = f.readlines()
         elif type(parameters) == types.DictType:
             # dict could have 'filename' key or 'file' key
@@ -1163,11 +1203,10 @@ class Projection(common.Projection):
             src, tgt, weight, delay = conn_list[i][:]
             src = self.pre[tuple(src)]
             tgt = self.post[tuple(tgt)]
-                        
             pre_addr = pynest.getAddress(src)
             post_addr = pynest.getAddress(tgt)
             self._sources.append(src)
-            self._targets.append(tgt)        
+            self._targets.append(tgt)
             self._targetPorts.append(pynest.connectWD(pre_addr,post_addr, 1000*weight, delay))
 
     def _2D_Gauss(self,parameters,synapse_type=None):
@@ -1536,7 +1575,7 @@ class Projection(common.Projection):
     def saveConnections(self,filename,gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        f = open(filename,'w')
+        f = open(filename,'w',1000)
         # Note unit change from pA to nA or nS to uS, depending on synapse type
         weights = [0.001*pynest.getWeight(src,port) for (src,port) in self.connections()]
         delays = [pynest.getDelay(src,port) for (src,port) in self.connections()] 
@@ -1552,7 +1591,7 @@ class Projection(common.Projection):
     
     def printWeights(self,filename,format=None,gather=True):
         """Print synaptic weights to file."""
-        file = open(filename,'w')
+        file = open(filename,'w',1000)
         postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,)).tolist()
         presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,)).tolist()
         weightArray = numpy.zeros((self.pre.size,self.post.size),dtype=float)

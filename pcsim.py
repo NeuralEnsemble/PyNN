@@ -139,7 +139,7 @@ class SpikesMultiChannelRecorder(object):
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):    
             self.filename += ".node." + net.mpi_rank()
-        f = file(self.filename, "w")
+        f = file(self.filename, "w",1000)
         all_spikes = []
         if compatible_output:
             for i, rec, src in self.recordings:            
@@ -208,7 +208,7 @@ class FieldMultiChannelRecorder:
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):
             self.filename += ".node." + net.mpi_rank()
-        f = file(self.filename, "w")
+        f = file(self.filename, "w",1000)
         all_spikes = []
         if compatible_output:
             f.write("# dt = %g\n" % pcsim_globals.dt)
@@ -267,7 +267,8 @@ class IF_curr_alpha(common.IF_curr_alpha):
         'v_reset'   : ('Vreset'  , "parameters['v_reset']*1e-3"), 
         'tau_refrac': ('Trefract', "parameters['tau_refrac']*1e-3"), 
         'i_offset'  : ('Iinject' , "parameters['i_offset']*1e-9"),         
-        'tau_syn'   : ('TauSyn'  , "parameters['tau_syn']*1e-3"), 
+        'tau_syn_E' : ('TauSynExc',"parameters['tau_syn_E']*1e-3"),
+        'tau_syn_I' : ('TauSynInh',"parameters['tau_syn_I']*1e-3"),
         'v_init'    : ('Vinit'   , "parameters['v_init']*1e-3") 
     }
     pcsim_name = "LIFCurrAlphaNeuron"    
@@ -287,7 +288,8 @@ class IF_curr_alpha(common.IF_curr_alpha):
                                                 Iinject  = self.parameters['Iinject'], 
                                                 Vinit    = self.parameters['Vinit'], 
                                                 Inoise   = self.parameters['Inoise'], 
-                                                TauSyn   = self.parameters['TauSyn' ])
+                                                TauSynExc = self.parameters['TauSynExc'],
+                                                TauSynInh = self.parameters['TauSynInh'])
 
 
 
@@ -358,6 +360,48 @@ class IF_cond_alpha(common.IF_cond_alpha):
         self.parameters = self.translate(self.parameters)                
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = LIFCondAlphaNeuron(taum      = self.parameters['taum'], 
+                                                Cm        = self.parameters['Cm'], 
+                                                Vresting  = self.parameters['Vresting'], 
+                                                Vthresh   = self.parameters['Vthresh'],
+                                                Vreset    = self.parameters['Vreset'],
+                                                Trefract  = self.parameters['Trefract'], 
+                                                Iinject   = self.parameters['Iinject'], 
+                                                Vinit     = self.parameters['Vinit'], 
+                                                Inoise    = self.parameters['Inoise'], 
+                                                TauSynExc = self.parameters['TauSynExc' ],
+                                                TauSynInh = self.parameters['TauSynInh' ],
+                                                ErevExc   = self.parameters['ErevExc' ],
+                                                ErevInh   = self.parameters['ErevInh' ],
+                                                )
+
+class IF_cond_exp(common.IF_cond_alpha):
+    """Leaky integrate and fire model with fixed threshold and 
+    exponential-decaying post-synaptic conductance."""
+    
+    translations = {        
+        'tau_m'     : ('taum',      "parameters['tau_m']*1e-3" ) ,
+        'cm'        : ('Cm',        "parameters['cm']*1e-9"), 
+        'v_rest'    : ('Vresting',  "parameters['v_rest']*1e-3"), 
+        'v_thresh'  : ('Vthresh',   "parameters['v_thresh']*1e-3"), 
+        'v_reset'   : ('Vreset',    "parameters['v_reset']*1e-3"), 
+        'tau_refrac': ('Trefract',  "parameters['tau_refrac']*1e-3"), 
+        'i_offset'  : ('Iinject',   "parameters['i_offset']*1e-9"),         
+        'tau_syn_E' : ('TauSynExc', "parameters['tau_syn_E']*1e-3"),
+        'tau_syn_I' : ('TauSynInh', "parameters['tau_syn_I']*1e-3"),
+        'e_rev_E'   : ('ErevExc',   "parameters['e_rev_E']*1e-3"),
+        'e_rev_I'   : ('ErevInh',   "parameters['e_rev_I']*1e-3"),
+        'v_init'    : ('Vinit',     "parameters['v_init']*1e-3"), 
+    }
+    
+    pcsim_name = "LIFCondExpNeuron"    
+    simObjFactory = None
+    setterMethods = {}
+        
+    def __init__(self, parameters):
+        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
+        self.parameters = self.translate(self.parameters)                
+        self.parameters['Inoise'] = 0.0
+        self.simObjFactory = LIFCondExpNeuron(taum      = self.parameters['taum'], 
                                                 Cm        = self.parameters['Cm'], 
                                                 Vresting  = self.parameters['Vresting'], 
                                                 Vthresh   = self.parameters['Vthresh'],
@@ -454,9 +498,11 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False, **extra_param
             simulation_rng_seed = extra_params['simulation_rng_seed']
         else:
             simulation_rng_seed = datetime.today().microsecond
-        pcsim_globals.simulationRNGSeed = simulation_rng_seed    
-    pcsim_globals.net = DistributedSingleThreadNetwork(SimParameter( Time.ms(timestep), Time.ms(min_delay), Time.ms(max_delay), 
-                                        pcsim_globals.constructRNGSeed, pcsim_globals.simulationRNGSeed))
+        pcsim_globals.simulationRNGSeed = simulation_rng_seed
+    if extra_params.has_key('threads'):
+        pcsim_globals.net = DistributedMultiThreadNetwork(extra_params['threads'], SimParameter( Time.ms(timestep), Time.ms(min_delay), Time.ms(max_delay), pcsim_globals.constructRNGSeed, pcsim_globals.simulationRNGSeed))
+    else:
+        pcsim_globals.net = DistributedSingleThreadNetwork(SimParameter( Time.ms(timestep), Time.ms(min_delay), Time.ms(max_delay), pcsim_globals.constructRNGSeed, pcsim_globals.simulationRNGSeed))
     pcsim_globals.spikes_multi_rec = {}
     pcsim_globals.vm_multi_rec = {}
     return pcsim_globals.net.mpi_rank()

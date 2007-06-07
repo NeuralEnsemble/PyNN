@@ -24,7 +24,8 @@ n = 10    # Number of cells
 w = 0.2   # synaptic weight (nA)
 cell_params = {
     'tau_m'      : 20.0, # (ms)
-    'tau_syn'    : 2.0,  # (ms)
+    'tau_syn_E'  : 2.0,  # (ms)
+    'tau_syn_I'  : 4.0,  # (ms)
     'tau_refrac' : 2.0,  # (ms)
     'v_rest'     : 0.0,  # (mV)
     'v_init'     : 0.0,  # (mV)

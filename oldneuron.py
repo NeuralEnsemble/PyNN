@@ -231,7 +231,8 @@ class IF_curr_alpha(common.IF_curr_alpha):
         'v_reset'   : ('v_reset'  , "parameters['v_reset']"),
         'tau_refrac': ('t_refrac' , "parameters['tau_refrac']"),
         'i_offset'  : ('i_offset' , "parameters['i_offset']"),
-        'tau_syn'   : ('tau_syn'  , "parameters['tau_syn']"),
+        'tau_syn_E' : ('tau_e'    , "parameters['tau_syn_E']"),
+        'tau_syn_I' : ('tau_i'    , "parameters['tau_syn_I']"),
         'v_init'    : ('v_init'   , "parameters['v_init']"),
     }
     hoc_name = "StandardIF"
@@ -294,6 +295,33 @@ class IF_cond_alpha(common.IF_cond_alpha):
         self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
+
+class IF_cond_exp(common.IF_cond_exp):
+    """Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic conductance."""
+    
+    translations = {
+        'tau_m'     : ('tau_m'    , "parameters['tau_m']"),
+        'cm'        : ('CM'       , "parameters['cm']"),
+        'v_rest'    : ('v_rest'   , "parameters['v_rest']"),
+        'v_thresh'  : ('v_thresh' , "parameters['v_thresh']"),
+        'v_reset'   : ('v_reset'  , "parameters['v_reset']"),
+        'tau_refrac': ('t_refrac' , "parameters['tau_refrac']"),
+        'i_offset'  : ('i_offset' , "parameters['i_offset']"),
+        'tau_syn_E' : ('tau_e'    , "parameters['tau_syn_E']"),
+        'tau_syn_I' : ('tau_i'    , "parameters['tau_syn_I']"),
+        'v_init'    : ('v_init'   , "parameters['v_init']"),
+        'e_rev_E'   : ('e_e'      , "parameters['e_rev_E']"),
+        'e_rev_I'   : ('e_i'      , "parameters['e_rev_I']")
+    }
+    hoc_name = "StandardIF"
+    
+    def __init__(self,parameters):
+        common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
+                                                       # values for not-specified parameters.
+        self.parameters = self.translate(self.parameters)
+        self.parameters['syn_type']  = 'conductance'
+        self.parameters['syn_shape'] = 'exp'
 
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""

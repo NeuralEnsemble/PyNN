@@ -3,7 +3,7 @@
 $Id$
 """
 
-import subprocess, sys, glob
+import subprocess, sys, glob, os
 import numpy as N
 
 nrnheader = """NEURON -- Version 5.8 2005-10-14 12:36:20 Main (88)
@@ -105,33 +105,117 @@ def compare_traces(script,mse_threshold,engines):
                     diff = trace1 - trace2
                     mse += N.sqrt(N.mean(N.square(diff)))
                 else:
-                    fail = True; fail_message = "empty file"
-    
+                    fail = True;
+                    if (l1 == 0):
+                        fail_message = "%s produce an empty file for %s" %(engine1.upper(), script)
+                    if (l2 == 0):
+                        fail_message = "%s produce an empty file for %s" %(engine2.upper(), script)
     if not fail:
         if mse < mse_threshold:
-            print "Pass (mse = %f, threshold = %f)" % (mse, mse_threshold)
+            print " Pass (mse = %f, threshold = %f)" % (mse, mse_threshold)
         else:
-            print "Fail (mse = %f, threshold = %f)" % (mse, mse_threshold)
+            print " Fail (mse = %f, threshold = %f)" % (mse, mse_threshold)
     else:
         print "Fail - ", fail_message
+
+
+def compare_rasters(script,mse_threshold,engines):
+    """For scripts that write a voltage trace to file."""
     
+    print script, ": ",
+    rasters = {}
+    fail = False
+    fail_message = ""
+    
+    for engine in engines:
+        rasters[engine] = []
+        #try:
+        if (True):
+            run(script, engine)
+            filenames = glob.glob('%s_*_%s.ras' % (script, engine))
+            if len(filenames) == 0:
+                filenames = glob.glob('%s_%s.ras' % (script, engine))
+            if filenames:
+                for filename in filenames:
+                    f = open(filename,'r')
+                    raster = [line.strip() for line in f.readlines() if line[0] != "#"]
+                    f.close()
+                    raster = [line for line in raster if line] # ignore blank lines
+                    try:
+                        if engine == 'oldneuron':
+                            position = N.zeros(len(raster))
+                        else:
+                            position = N.array([int(line.split()[1]) for line in raster]) # take second column
+                    except IndexError:
+                        print engine
+                        print line
+                        raise
+                    raster = N.array([float(line.split()[0]) for line in raster]) # take first column 
+                    raster = sortTracesByCells(raster, position)
+                    rasters[engine].append(raster)
+            else:
+                fail = True; fail_message += "No files match glob pattern. "
+        #except Exception:
+        #    fail = True
+        #    fail_message += "Exception raised in %s. " % engine.upper()
+
+    if not fail:
+        mse  = 0.0
+        engine1 = engines[0] # compare all against the first engine in the list.
+        for engine2 in engines[1:]:
+            for raster1,raster2 in zip(rasters[engine1],rasters[engine2]):
+                l1 = len(raster1); l2 = len(raster2)
+                if l1 > 0 and l2 > 0 :
+                    diff = []
+                    for idx in xrange(len(raster1)):
+                        diff.append((raster1[idx]-raster2).min())
+                    mse += N.sqrt(N.mean(N.square(N.array(diff))))
+                else:
+                    fail = True;
+                    if (l1 == 0):
+                        fail_message = "%s produce an empty file for %s" %(engine1.upper(), script)
+                    if (l2 == 0):
+                        fail_message = "%s produce an empty file for %s" %(engine2.upper(), script)
+    if not fail:
+        if mse < mse_threshold:
+            print " Pass (mse = %f, threshold = %f)" % (mse, mse_threshold)
+        else:
+            print " Fail (mse = %f, threshold = %f)" % (mse, mse_threshold)
+    else:
+        print "Fail - ", fail_message
     
 
 if __name__ == "__main__":
     
     engine_list = ("nest", "oldneuron", "neuron", "pcsim")
     
-    thresholds = {"IF_curr_alpha" : 0.5,
-                  "IF_curr_alpha2" : 5.0,
-                  "IF_curr_exp" : 0.1, 
-                  "IF_cond_alpha" : 0.1,
-                  "simpleNetworkL" : 0.5,
-                  "simpleNetwork" : 0.6,
-                  "small_network" : 6.0}
+    thresholds_v = {"IF_curr_alpha"  : 0.3,
+                    "IF_curr_exp"    : 0.3, 
+                    "IF_cond_alpha"  : 0.3,
+                    "IF_cond_exp"    : 0.3,
+                    "simpleNetworkL" : 0.5,
+                    "simpleNetwork"  : 0.6,
+                    "IF_curr_alpha2" : 5.0,
+                    "small_network"  : 5.0}
+    
+    thresholds_ras = {"SpikeSourcePoisson" : 50.}
+    
+    scripts_v   = []
+    scripts_ras = []
+    
     if len(sys.argv) > 1:
-        scripts = sys.argv[1:]
+        for item in sys.argv[1:]:
+            if item in thresholds_v.keys():
+                scripts_v.append(item)
+            if item in thresholds_ras.keys():
+                scripts_ras.append(item)
     else:
-        scripts = thresholds.keys()
-    for script in scripts:
-        compare_traces(script, thresholds[script]*(len(engine_list)-1), engine_list)
+        scripts_v   = thresholds_v.keys()
+        scripts_ras = thresholds_ras.keys()
+
+    for script in scripts_v:
+        compare_traces(script, thresholds_v[script]*(len(engine_list)-1), engine_list)
+
+    for script in scripts_ras:
+        compare_rasters(script, thresholds_ras[script]*(len(engine_list)-1), engine_list)
     
