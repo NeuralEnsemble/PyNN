@@ -226,31 +226,52 @@ class FieldMultiChannelRecorder:
                 f.write("\n")
         f.close()
 
-class ID(common.ID):
+class ID(long):
     """
-    This class is experimental. The idea is that instead of storing ids as
-    integers, we store them as ID objects, which allows a syntax like:
-      p[3,4].set('tau_m',20.0)
+    Instead of storing ids as integers, we store them as ID objects,
+    which allows a syntax like:
+        p[3,4].tau_m = 20.0
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
-    """ 
-
-    def set(self,param,val=None):
-        if hasattr(self,'in_population'):
-            set(self.in_population.pcsim_population[self],self._cellclass,param,val)
-        else:
-            set(self,self._cellclass,param,val)
+    """
+    # Note that some of common.ID has to be reimplemented since PCSIM uses long ints
+    # for ids.
     
-    def get(self,param):
-        raise Exception("Not yet implemented.")
-        # The following does no translation of names, units
+    def __init__(self,n):
+        long.__init__(n)
+        self.parent = None
+        self._cellclass = None
+        
+    cellclass = common.ID.cellclass
+    position = common.ID.position
+    
+    def __setattr__(self,name,value):
+        if name in common.ID.non_parameter_attributes:
+            object.__setattr__(self,name,value)
+        else:
+            return self.setParameters(**{name:value})
+        
+    def __getattr__(self,name):
+        """Note that this currently does not translate units."""
+        translated_name = self.cellclass.translations[name][0]
+        if self.parent:
+            return getattr(self.parent.pcsim_population.object(self), translated_name)
+        else:
+            return getattr(pcsim_globals.net.object(self), translated_name)
+        
+    def setParameters(self,**parameters):
         #if hasattr(self,'in_population'):
-        #    return getattr(self.in_population.pcsim_population.object(self),param) # translation?
-        #else:
-        #    raise getattr(pcsim_globals.net.object(self),param)
-
-    def setCellClass(self, cellclass):
-        self._cellclass = cellclass    
+        if self.parent:
+            set(self.parent.pcsim_population[self], self.cellclass, parameters)
+        else:
+            set(self, self.cellclass, parameters)
+    
+    def getParameters(self):
+        """Note that this currently does not translate units."""
+        params = {}
+        for name in self.cellclass.translations.keys():
+            params[name] = self.__getattr__(name)
+        return params
     
 # ==============================================================================
 #   Standard cells   
@@ -577,7 +598,10 @@ def create(cellclass, paramDict=None, n=1):
             cellfactory = apply(cellclass, (), paramDict)
         else:
             raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
-    cell_list = pcsim_globals.net.add(cellfactory, n)
+    cell_list = [ID(i) for i in pcsim_globals.net.add(cellfactory, n)]
+    #cell_list = pcsim_globals.net.add(cellfactory, n)
+    for id in cell_list:
+        id.cellclass = cellclass
     if n == 1:
         cell_list = cell_list[0]
     return cell_list
@@ -749,10 +773,12 @@ class Population(common.Population):
             if not cellclass in globals():
                 raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
             cellclass = eval(cellclass)
-        self.celltype = cellclass
+            self.celltype = cellclass
         if issubclass(cellclass, common.StandardCellType):
-            self.cellfactory = cellclass(cellparams).simObjFactory
+            self.celltype = cellclass(cellparams)
+            self.cellfactory = self.celltype.simObjFactory
         else:
+            self.celltype = cellclass
             if issubclass(cellclass, SimObject):
                 self.cellfactory = apply(cellclass, (), cellparams)
             else:
@@ -761,6 +787,8 @@ class Population(common.Population):
             
         # CuboidGridPopulation(SimNetwork &net, GridPoint3D origin, Volume3DSize dims, SimObjectFactory &objFactory)
         self.pcsim_population = CuboidGridObjectPopulation(pcsim_globals.net, GridPoint3D(0,0,0), Volume3DSize(dims[0], dims[1], dims[2]), self.cellfactory)
+        self.cell = numpy.array(self.pcsim_population.idVector())
+        self.cell -= self.cell[0]
         
         if not self.label:
             self.label = 'population%d' % Population.nPop         
@@ -788,8 +816,7 @@ class Population(common.Population):
         pcsim_index = self.pcsim_population.getIndex(addr[0],addr[1],addr[2])
         assert index == pcsim_index, " index = %s, pcsim_index = %s" % (index, pcsim_index)
         id = ID(pcsim_index)
-        id.setCellClass(self.celltype)
-        id.in_population = self
+        id.parent = self
         if orig_addr != self.locate(id):
             raise IndexError, 'Invalid cell address %s' % str(addr)
         assert orig_addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, orig_addr, id, self.locate(id))
@@ -875,8 +902,8 @@ class Population(common.Population):
         """
         """PCSIM: iteration through all elements """
         paramDict = checkParams(param, val)
-        if issubclass(self.celltype, common.StandardCellType):
-            paramDict = self.celltype({}).translate(paramDict)
+        if isinstance(self.celltype, common.StandardCellType):
+            paramDict = self.celltype.translate(paramDict)
                  
         for index in range(0,len(self)):
             obj = pcsim_globals.net.object(self.pcsim_population[index])
@@ -894,12 +921,12 @@ class Population(common.Population):
         if self.dim[0:self.actual_ndim] == valueArray.shape:
             values = numpy.copy(valueArray) # we do not wish to change the original valueArray in case it needs to be reused in user code
             values = numpy.reshape(values, values.size)                          
-            if issubclass(self.celltype, common.StandardCellType):
+            if isinstance(self.celltype, common.StandardCellType):
                 try:
-                    unit_scale_factor = self.celltype({}).translate({parametername: values[0]}).values()[0]/values[0]
+                    unit_scale_factor = self.celltype.translate({parametername: values[0]}).values()[0]/values[0]
                 except TypeError:
                     raise common.InvalidParameterValueError(values[0])
-                parametername = self.celltype({}).translate({parametername: values[0]}).keys()[0]
+                parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
                 values *= unit_scale_factor
             for i, val in enumerate(values):
                 try:

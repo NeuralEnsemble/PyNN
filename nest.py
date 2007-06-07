@@ -26,27 +26,35 @@ dt             = 0.1
 
 class ID(common.ID):
     """
-    This class is experimental. The idea is that instead of storing ids as
-    integers, we store them as ID objects, which allows a syntax like:
-      p[3,4].set('tau_m',20.0)
+    Instead of storing ids as integers, we store them as ID objects,
+    which allows a syntax like:
+        p[3,4].tau_m = 20.0
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
     """
     
     def __getattr__(self,name):
         """Note that this currently does not translate units."""
-        translated_name = self._cellclass.translations[name][0]
+        translated_name = self.cellclass.translations[name][0]
         return pynest.getDict([int(self)])[0][translated_name]
     
-    def set(self,param,val=None):
+    def setParameters(self,**parameters):
         # We perform a call to the low-level function set() of the API.
         # If the cellclass is not defined in the ID object :
-        if (self._cellclass == None):
+        if (self.cellclass == None):
             raise Exception("Unknown cellclass")
         else:
             # We use the one given by the user
-            set(self,self._cellclass,param,val)
+            set(self, self.cellclass, parameters) 
 
+    def getParameters(self):
+        """Note that this currently does not translate units."""
+        pynest_params = pynest.getDict([int(self)])[0]
+        params = {}
+        for k,v in self.cellclass.translations.items():
+            params[k] = pynest_params[v[0]]
+        return params
+            
 
 # ==============================================================================
 #   Standard cells
@@ -280,7 +288,8 @@ def create(cellclass,paramDict=None,n=1):
     else:
         raise "Invalid cell type"
     for id in cell_gids:
-        id.setCellClass(cellclass)
+    #    #id.setCellClass(cellclass)
+        id.cellclass = cellclass
     if n == 1:
         return cell_gids[0]
     else:
@@ -330,7 +339,7 @@ def set(cells,cellclass,param,val=None):
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
     cellclass must be supplied for doing translation of parameter names."""
-        
+    # we should just assume that cellclass has been defined and raise an Exception if it has not
     if val:
         param = {param:val}
     try:
@@ -486,8 +495,9 @@ class Population(common.Population):
         self.id_start = self.cell.reshape(self.size,)[0]
         
         for id in self.cell:
-            id.setCellClass(cellclass)
-            id.setPosition(self.locate(id))
+            id.parent = self
+            #id.setCellClass(cellclass)
+            #id.setPosition(self.locate(id))
             
         if self.cellparams:
             pynest.setDict(self.cell, self.cellparams)
@@ -928,8 +938,8 @@ class Projection(common.Projection):
         a scaling between the two dimensions of the populations: the target
         population is scaled to the size of the source population."""
         dist = 0.0
-        src_position = src.getPosition()
-        tgt_position = tgt.getPosition()
+        src_position = src.position
+        tgt_position = tgt.position
         if (len(src_position) == len(tgt_position)):
             for i in xrange(len(src_position)):
                 # We normalize the positions in each population and calculate the

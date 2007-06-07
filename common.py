@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 Defines the PyNN classes and functions, and hence the FACETS API.
 The simulator-specific classes should inherit from these and have the same
@@ -6,7 +7,8 @@ $Id$
 """
 __version__ = "$Revision$"
 
-import types, time, copy
+import types, time, copy, sys
+import numpy
 
 class InvalidParameterValueError(Exception): pass
 class NonExistentParameterError(Exception): pass
@@ -20,46 +22,87 @@ dt = 0.1
 #   Utility classes
 # ==============================================================================
 
+# The following two functions taken from
+# http://www.nedbatchelder.com/text/pythonic-interfaces.html
+def _functionId(obj, nFramesUp):
+    """ Create a string naming the function n frames up on the stack. """
+    fr = sys._getframe(nFramesUp+1)
+    co = fr.f_code
+    return "%s.%s" % (obj.__class__, co.co_name)
+
+def _abstractMethod(obj=None):
+    """ Use this instead of 'pass' for the body of abstract methods. """
+    raise Exception("Unimplemented abstract method: %s" % _functionId(obj, 1))
+
 class ID(int):
     """
-    This class is experimental. The idea is that instead of storing ids as
-    integers, we store them as ID objects, which allows a syntax like:
-      p[3,4].set('tau_m',20.0)
+    Instead of storing ids as integers, we store them as ID objects,
+    which allows a syntax like:
+        p[3,4].tau_m = 20.0
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
     """
     
+    non_parameter_attributes = ('parent','_cellclass','cellclass','_position','position','hocname')
+    
     def __init__(self,n):
         int.__init__(n)
-        self._position  = None
+        self.parent = None
         self._cellclass = None
-        self._hocname   = None
-        # The cellclass can be a global attribute of the ID object, but
-        # it may be discussed: 
-        # The problem is that a call to the low-level funcitons set() and get() will need
-        # the cellclass to work. So we have to choose if we want to store that information in the ID
-        # object (as an attribute for example) or if we want to type it each time we need a call to set()
-        # or get() : p[2,3].set(SpikeSourceArray, {'spike_train' : {}}).
 
-    def set(self,param,val=None):
-        raise Exception("Not yet implemented")
+    def __getattr__(self,name):
+        """Note that this currently does not translate units."""
+        return _abstractMethod(self)
     
-    def get(self,param):
-        raise Exception("Not yet implemented")
+    def __setattr__(self,name,value):
+        if name in ID.non_parameter_attributes:
+            object.__setattr__(self,name,value)
+        else:
+            return self.setParameters(**{name:value})
 
-    def setCellClass(self, cellclass):
-        self._cellclass = cellclass    
-    
-    # Here is a proposal to manage the physical position of the cell, as an
-    # attribute of the ID class. Those positions can be used by functions such
-    # as _distantDependantProbability(), setTopographicDelay()...
-    def setPosition(self,pos):
-        self._position = pos
+    def _set_cellclass(self, cellclass):
+        if self.parent:
+            raise Exception("Cell class is determined by the Population and cannot be changed for individual neurons.")
+        else:
+            self._cellclass = cellclass # should check it is a standard cell class or a string
+
+    def _get_cellclass(self):
+        if self.parent:
+            return self.parent.celltype.__class__
+        else:
+            return self._cellclass
         
-    def getPosition(self):
-        return self._position
+    cellclass = property(_get_cellclass, _set_cellclass)
+    
+    def _set_position(self,pos):
+        assert isinstance(pos, tuple) or isinstance(pos, numpy.ndarray)
+        assert len(pos) == 3
+        if self.parent:
+            index = numpy.where(self.parent.cell.flatten() == int(self))[0][0]
+            self.parent.positions[:,index] = pos
+        else:
+            self._position = pos
+        
+    def _get_position(self):
+        if self.parent:
+            index = numpy.where(self.parent.cell.flatten() == int(self))[0][0]
+            return self.parent.positions[:,index]  
+        else:
+            try:
+                return self._position
+            except (AttributeError, KeyError):
+                self._position = (int(self), 0, 0)
+                return self._position
 
+    position = property(_get_position, _set_position)
 
+    def setParameters(self,**parameters):
+        """Set cell parameters, given as a sequence of parameter=value arguments."""
+        return _abstractMethod(self)
+    
+    def getParameters(self):
+        """Return a dict of all cell parameters."""
+        return _abstractMethod(self)
 
 # ==============================================================================
 #   Standard cells
@@ -162,8 +205,8 @@ class IF_cond_alpha(StandardCellType):
         'e_rev_E'    : 0.0,     # Reversal potential for excitatory input in mV
         'e_rev_I'    : -70.0,   # Reversal potential for inhibitory input in mV
         'v_thresh'   : -50.0,   # Spike threshold in mV.
-	'v_reset'    : -65.0,   # Reset potential after a spike in mV.
-	'i_offset'   : 0.0,     # Offset current in nA
+        'v_reset'    : -65.0,   # Reset potential after a spike in mV.
+        'i_offset'   : 0.0,     # Offset current in nA
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
     
@@ -312,9 +355,40 @@ class Population:
         """
         pass
     
+    def __iter__(self):
+        return _abstractMethod(self)
+        
+    def addresses(self):
+        return _abstractMethod(self)
+    
+    def ids(self):
+        return self.__iter__()
+    
+    def locate(self):
+        return _abstractMethod(self)
+    
     def __len__(self):
         """Returns the total number of cells in the population."""
         return self.size
+    
+    def _get_positions(self):
+        """
+        Try to return self._positions. If it does not exist, create it and then return it
+        """
+        try:
+            return self._positions
+        except AttributeError:
+            x,y,z = numpy.indices(list(self.dim) + [1]*(3-len(self.dim))).astype(float)
+            x = x.flatten(); y = y.flatten(); z = z.flatten()
+            self._positions = numpy.array((x,y,z))
+            return self._positions
+
+    def _set_positions(self, pos_array):
+        assert isinstance(pos_array, numpy.ndarray)
+        assert pos_array.shape == (3,self.size)
+        self._positions = pos_array.copy() # take a copy in case pos_array is changed later
+
+    positions = property(_get_positions, _set_positions, 'A 3xN array (where N is the number of neurons in the Population) giving the x,y,z coordinates of all the neurons (soma, in the case of non-point models).')
     
     def set(self,param,val=None):
         """
@@ -325,21 +399,21 @@ class Population:
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
-        pass
+        return _abstractMethod(self)
 
     def tset(self,parametername,valueArray):
         """
         'Topographic' set. Sets the value of parametername to the values in
         valueArray, which must have the same dimensions as the Population.
         """
-        pass
+        return _abstractMethod(self)
     
     def rset(self,parametername,rand_distr):
         """
         'Random' set. Sets the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-        pass
+        return _abstractMethod(self)
     
     def _call(self,methodname,arguments):
         """
@@ -347,7 +421,7 @@ class Population:
         e.g. p.call("set_background","0.1") if the cell class has a method
         set_background().
         """
-        pass
+        return _abstractMethod(self)
     
     def _tcall(self,methodname,objarr):
         """
@@ -357,14 +431,14 @@ class Population:
         e.g. p.tcall("memb_init",vinitArray) calls
         p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
         """
-        pass
+        return _abstractMethod(self)
 
     def randomInit(self,rand_distr):
         """
         Sets initial membrane potentials for all the cells in the population to
         random values.
         """
-        pass
+        return _abstractMethod(self)
 
     def record(self,record_from=None,rng=None):
         """
@@ -373,7 +447,7 @@ class Population:
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        pass
+        return _abstractMethod(self)
 
     def record_v(self,record_from=None,rng=None):
         """
@@ -383,7 +457,7 @@ class Population:
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        pass
+        return _abstractMethod(self)
 
     def printSpikes(self,filename,gather=True,compatible_output=True):
         """
@@ -403,7 +477,7 @@ class Population:
         If gather is True, the file will only be created on the master node,
         otherwise, a file will be written on each node.
         """        
-        pass
+        return _abstractMethod(self)
     
     def print_v(self,filename,gather=True, compatible_output=True):
         """
@@ -420,14 +494,14 @@ class Population:
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        pass
+        return _abstractMethod(self)
     
     def meanSpikeCount(self,gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        pass
+        return _abstractMethod(self)
 
 # ==============================================================================
 
@@ -498,7 +572,7 @@ class Projection:
         cell i in a 1D pre population of size n should connect to all cells
         in row i of a 2D post population of size (n,m).
         """
-        pass
+        return _abstractMethod(self)
     
     def _fixedProbability(self,parameters,synapse_type=None):
         """
@@ -579,7 +653,7 @@ class Projection:
         lists containing the neuron array coordinates.
         """
         # Need to implement parameter parsing here...
-        pass
+        return _abstractMethod(self)
     
     # --- Methods for setting connection parameters ----------------------------
     
@@ -588,10 +662,10 @@ class Projection:
         w can be a single number, in which case all weights are set to this
         value, or a list/1D array of length equal to the number of connections
         in the population.
-        Weights should be in nA for current-based and uS for conductance-based
+        Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-        pass
+        return _abstractMethod(self)
     
     def randomizeWeights(self,rand_distr):
         """
@@ -600,7 +674,7 @@ class Projection:
         # Arguably, we could merge this with set_weights just by detecting the
         # argument type. It could make for easier-to-read simulation code to
         # give it a separate name, though. Comments?
-        pass
+        return _abstractMethod(self)
     
     def setDelays(self,d):
         """
@@ -608,13 +682,13 @@ class Projection:
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        pass
+        return _abstractMethod(self)
     
     def randomizeDelays(self,rand_distr):
         """
         Set delays to random values taken from rand_distr.
         """
-        pass
+        return _abstractMethod(self)
     
     def setThreshold(self,threshold):
         """
@@ -624,37 +698,37 @@ class Projection:
         # This is a bit tricky, because in NEST the spike threshold is a
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
-        pass
+        return _abstractMethod(self)
     
     
     # --- Methods relating to synaptic plasticity ------------------------------
     
     def setupSTDP(self,stdp_model,parameterDict):
         """Set-up STDP."""
-        pass
+        return _abstractMethod(self)
     
     def toggleSTDP(self,onoff):
         """Turn plasticity on or off."""
-        pass
+        return _abstractMethod(self)
     
     def setMaxWeight(self,wmax):
         """Note that not all STDP models have maximum or minimum weights."""
-        pass
+        return _abstractMethod(self)
     
     def setMinWeight(self,wmin):
         """Note that not all STDP models have maximum or minimum weights."""
-        pass
+        return _abstractMethod(self)
     
     # --- Methods for writing/reading information to/from file. ----------------
     
     def saveConnections(self,filename,gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        pass
+        return _abstractMethod(self)
     
     def printWeights(self,filename,format=None,gather=True):
         """Print synaptic weights to file."""
-        pass
+        return _abstractMethod(self)
     
     def weightHistogram(self,min=None,max=None,nbins=10):
         """
@@ -664,7 +738,7 @@ class Projection:
         """
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
-        pass
+        return _abstractMethod(self)
 
 
 # ==============================================================================

@@ -399,54 +399,34 @@ class ProjectionSetTest(unittest.TestCase):
          pass
          
 
-# #class ProjectionConnectionTest(unittest.TestCase):
-# #    """Tests of the connection attribute and connections() method of the Projection class."""
-# #    
-# #    def setUp(self):
-# #        neuron.Population.nPop = 0
-# #        self.pop1 = neuron.Population((5,),neuron.IF_curr_alpha)
-# #        self.pop2 = neuron.Population((4,4),neuron.IF_curr_alpha)    
-# #        self.pop3 = neuron.Population((3,3,3),neuron.IF_curr_alpha)
-# #        self.prj23 = neuron.Projection(self.pop2,self.pop3,"allToAll")
-# #        self.prj11 = neuron.Projection(self.pop1,self.pop1,"fixedProbability",0.5)
-# #        
-# #    def testFullAddress(self):
-# #        assert self.prj23.connection[(3,1),(2,0,1)] == "[3][1][2][0][1]"
-# #        assert self.prj23.connection[(3,3),(2,2,2)] == "[3][3][2][2][2]"
-# #        
-# #    def testPreIDPostID(self):
-# #        assert self.prj23.connection[0,0] == "[0][0][0][0][0]"
-# #        assert self.prj23.connection[0,26] == "[0][0][2][2][2]"
-# #        assert self.prj23.connection[0,25] == "[0][0][2][2][1]"
-# #        assert self.prj23.connection[15,0] == "[3][3][0][0][0]"
-# #        assert self.prj23.connection[14,0] == "[3][2][0][0][0]"
-# #        assert self.prj23.connection[13,19] == "[3][1][2][0][1]"
-# #        
-# #    def testSingleID(self):
-# #        assert self.prj23.connection[0] == "[0][0][0][0][0]"
-# #        assert self.prj23.connection[26] == "[0][0][2][2][2]"
-# #        assert self.prj23.connection[25] == "[0][0][2][2][1]"
-# #        assert self.prj23.connection[27] == "[0][1][0][0][0]"
-# #        assert self.prj23.connection[53] == "[0][1][2][2][2]"
-# #        assert self.prj23.connection[52] == "[0][1][2][2][1]"
-# #        assert self.prj23.connection[431] == "[3][3][2][2][2]"
-# #        assert self.prj23.connection[377] == "[3][1][2][2][2]"
-# #        assert self.prj23.connection[370] == "[3][1][2][0][1]"
-# #        
-# #        assert self.prj11.connection[0] == "[0][0]"
-
-
 class IDTest(unittest.TestCase):
     """Tests of the ID class."""
     
     def setUp(self):
         setup(max_delay=0.5)
-        self.pop = Population((5,), IF_curr_alpha,{'tau_m':10.0})
-    
-    def testIDSet(self):
-        self.pop[3].set('tau_m',20.0)
-        self.assertAlmostEqual( self.pop.pcsim_population.object(self.pop[3]).taum, 0.02, places = 5) 
-        self.assertAlmostEqual( self.pop.pcsim_population.object(self.pop[1]).taum, 0.01, places = 5) 
+        self.pop1 = Population((5,),  IF_curr_alpha,{'tau_m':10.0})
+        self.pop2 = Population((5,4), IF_curr_exp,{'v_reset':-60.0})
+
+    def testIDSetAndGet(self):
+        self.pop1[3].tau_m = 20.0
+        self.pop2[3,2].v_reset = -70.0
+        self.assertAlmostEqual( self.pop1.pcsim_population.object(self.pop1[3]).taum, 0.02, places = 5) 
+        self.assertAlmostEqual(0.02, self.pop1[3].tau_m, places = 5)
+        self.assertAlmostEqual(0.01, self.pop1[0].tau_m, places = 5)
+        self.assertAlmostEqual(-0.07, self.pop2[3,2].v_reset, places = 5)
+        self.assertAlmostEqual(-0.06, self.pop2[0,0].v_reset, places = 5)
+
+    def testGetCellClass(self):
+        self.assertEqual(IF_curr_alpha, self.pop1[0].cellclass)
+        self.assertEqual(IF_curr_exp, self.pop2[4,3].cellclass)
+        
+    def testSetAndGetPosition(self):
+        self.assert_((self.pop2[0,2].position == (0.0,2.0,0.0)).all())
+        new_pos = (0.5,1.5,0.0)
+        self.pop2[0,2].position = new_pos
+        self.assert_((self.pop2[0,2].position == (0.5,1.5,0.0)).all())
+        new_pos = (-0.6,3.5,-100.0) # check that position is set-by-value from new_pos
+        self.assert_((self.pop2[0,2].position == (0.5,1.5,0.0)).all())
 
 # ==============================================================================
 if __name__ == "__main__":

@@ -594,21 +594,11 @@ class ProjectionSetTest(unittest.TestCase):
         mean_weight_after = float(mean_weight_after/len(prj1.connections))
         assert (mean_weight_before < mean_weight_after)
         
-    def testSetAndGetID(self):
-        # Small test to see if the ID class is working
-        self.target[0,2].set({'tau_m' : 15.1})
-        assert (self.target[0,2].get('tau_m') == 15.1)
-        
-    def testSetAndGetPositionID(self):
-        # Small test to see if the position of the ID class is working
-        self.target[0,2].setPosition((0.5,1.5))
-        assert (self.target[0,2].getPosition() == (0.5,1.5))
-        
     def testSetTopographicDelay(self):
         # We fix arbitrarily the positions of 2 cells in 2 populations and check 
         # the topographical delay between them is linked to the distance
-        self.source[0,0].setPosition((0,0))
-        self.target[2,2].setPosition((0,10))
+        self.source[0,0].position = (0,0,0)
+        self.target[2,2].position = (0,10,0)
         prj1 = neuron.Projection(self.source, self.target, 'allToAll')
         rule="5.432*d"
         prj1.setTopographicDelays(rule)
@@ -660,13 +650,30 @@ class IDTest(unittest.TestCase):
     
     def setUp(self):
         neuron.Population.nPop = 0
-        self.pop = neuron.Population((5,),neuron.IF_curr_alpha,{'tau_m':10.0})
+        self.pop1 = neuron.Population((5,),neuron.IF_curr_alpha,{'tau_m':10.0})
+        self.pop2 = neuron.Population((5,4),neuron.IF_curr_exp,{'v_reset':-60.0})
     
-    def testIDSet(self):
-        self.pop[3].set('tau_m',20.0)
-        self.assertEqual(HocToPy.get('%s.object(3).tau_m' % self.pop.label, 'float'), 20.0)
-        self.assertEqual(HocToPy.get('%s.object(1).tau_m' % self.pop.label, 'float'), 10.0)
+    def testIDSetAndGet(self):
+        self.pop1[3].tau_m = 20.0
+        self.pop2[3,2].v_reset = -70.0
+        self.assertEqual(HocToPy.get('%s.object(3).tau_m' % self.pop1.label, 'float'), 20.0)
+        self.assertEqual(20.0, self.pop1[3].tau_m)
+        self.assertEqual(10.0, self.pop1[0].tau_m)
+        self.assertEqual(-70.0, self.pop2[3,2].v_reset)
+        self.assertEqual(-60.0, self.pop2[0,0].v_reset)
 
+    def testGetCellClass(self):
+        self.assertEqual(neuron.IF_curr_alpha, self.pop1[0].cellclass)
+        self.assertEqual(neuron.IF_curr_exp, self.pop2[4,3].cellclass)
+        
+    def testSetAndGetPosition(self):
+        self.assert_((self.pop2[0,2].position == (0.0,2.0,0.0)).all())
+        new_pos = (0.5,1.5,0.0)
+        self.pop2[0,2].position = new_pos
+        self.assert_((self.pop2[0,2].position == (0.5,1.5,0.0)).all())
+        new_pos = (-0.6,3.5,-100.0) # check that position is set-by-value from new_pos
+        self.assert_((self.pop2[0,2].position == (0.5,1.5,0.0)).all())
+        
 if __name__ == "__main__":
     sys.argv = ['./nrnpython']
     neuron.setup()

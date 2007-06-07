@@ -32,47 +32,43 @@ initialised   = False
 
 class ID(common.ID):
     """
-    This class is experimental. The idea is that instead of storing ids as
-    integers, we store them as ID objects, which allows a syntax like:
-      p[3,4].set('tau_m',20.0)
+    Instead of storing ids as integers, we store them as ID objects,
+    which allows a syntax like:
+        p[3,4].tau_m = 20.0
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
     """
     
+    def __init__(self,n):
+        common.ID.__init__(self,n)
+        self.hocname = None
+    
     def __getattr__(self,name):
         """Note that this currently does not translate units."""
-        translated_name = self._cellclass.translations[name][0]
-        if self._hocname:
-            return HocToPy.get('%s.%s' % (self._hocname, translated_name),'float')
+        translated_name = self.cellclass.translations[name][0]
+        if self.hocname:
+            return HocToPy.get('%s.%s' % (self.hocname, translated_name),'float')
         else:
             return HocToPy.get('cell%d.%s' % (int(self), translated_name),'float')
     
-    def set(self,param,val=None):
+    def setParameters(self,**parameters):
         # We perform a call to the low-level function set() of the API.
-        # If the cellclass is not defined in the ID object, we have an error (?) :
-        if (self._cellclass == None):
+        # If the cellclass is not defined in the ID object, we have an error:
+        if (self.cellclass == None):
             raise Exception("Unknown cellclass")
         else:
             #Otherwise we use the ID one. Nevertheless, here we have a small problem in the
             #parallel framework. Suppose a population is created, distributed among
             #several nodes. Then a call like cell[i,j].set() should be performed only on the
             #node who owns the cell. To do that, if the node doesn't have the cell, a call to set()
-            #do nothing...
-            ##if self._hocname != None:
-            ##    set(self,self._cellclass,param,val, self._hocname)
-            set(self,self._cellclass,param,val)
-    
-    def get(self,param):
-        return self.__getattr__(param)
-    
-    # Fonctions used only by the neuron version of pyNN, to optimize the
-    # creation of networks
-    def setHocName(self, name):
-        self._hocname = name
+            #does nothing...
+            set(self, self.cellclass, parameters)
 
-    def getHocName(self):
-        return self._hocname
-    
+    def getParameters(self):
+        params = {}
+        for k,v in self.cellclass.translations.items():
+            params[k] = HocToPy.get('%s.%s' % (self.hocname, v[0]),'float')
+        return params
 
 # ==============================================================================
 #   Module-specific functions and classes (not part of the common API)
@@ -527,7 +523,7 @@ def create(cellclass,paramDict=None,n=1):
     gidlist.extend(newgidlist)
     cell_list = [ID(i) for i in range(gid,gid+n)]
     for id in cell_list:
-        id.setCellClass(cellclass)
+        id.cellclass = cellclass
     gid = gid+n
     if n == 1:
         cell_list = cell_list[0]
@@ -572,7 +568,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     hoc_execute(hoc_commands, "--- connect(%s,%s) ---" % (str(source),str(target)))
     return range(nc_start,ncid)
 
-def set(cells,cellclass,param,val=None): #,hocname=None):
+def set(cells,cellclass,param,val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
@@ -588,38 +584,16 @@ def set(cells,cellclass,param,val=None): #,hocname=None):
     hoc_commands = []
     for param,val in paramDict.items():
         if isinstance(val,str):
-            ## If we know the hoc name of the object (set() applied to a population object), we use it
-            #if (hocname != None):
-            #    fmt = '%s.%s = "%s"'
-            #else:
-            #    fmt = 'cell%d.%s = "%s"'
             fmt = 'pc.gid2cell(%d).%s = "%s"'
         elif isinstance(val,list):
             cmds,argstr = _hoc_arglist([val])
             hoc_commands += cmds
-            ## If we know the hoc name of the object (set() applied to a population object), we use it
-            #if (hocname != None):
-            #    fmt = '%s.%s = %s'
-            #else:
-            #    fmt = 'cell%d.%s = %s'
             fmt = 'pc.gid2cell(%d).%s = %s'
             val = argstr
         else:
-            ## If we know the hoc name of the object (set() applied to a population object), we use it
-            #if (hocname != None):
-            #    fmt = '%s.%s = %g'
-            #else:
-            #    fmt = 'cell%d.%s = %g'
             fmt = 'pc.gid2cell(%d).%s = %g'
         for cell in cells:
             if cell in gidlist:
-                ## If we know the hoc name of the object (set() applied to a population object), we use it
-                #if (hocname != None):
-                #    hoc_commands += [fmt % (hocname,param,val),
-                #                     'tmp = %s.param_update()' %hocname]
-                #else:
-                #    hoc_commands += [fmt % (cell,param,val),
-                #                     'tmp = cell%d.param_update()' %cell]
                 hoc_commands += [fmt % (cell,param,val),
                                  'tmp = pc.gid2cell(%d).param_update()' % cell]
     hoc_execute(hoc_commands, "--- set() ---")
@@ -727,7 +701,8 @@ class Population(common.Population):
         # of its cells, and not only those of the cells located on a particular node (i.e in self.gidlist). So
         # each population should store what we call a "fullgidlist" with the ID of all the cells in the populations 
         # (and therefore their positions)
-        self.fullgidlist = [ID(i) for i in range(gid, gid+self.size) if i < gid+self.size]
+        self.fullgidlist = numpy.array([ID(i) for i in range(gid, gid+self.size) if i < gid+self.size], ID)
+        self.cell = self.fullgidlist
         
         # self.gidlist is now derived from self.fullgidlist since it contains only the cells of the population located on
         # the node
@@ -756,13 +731,13 @@ class Population(common.Population):
         # method. Note that each node needs to know all the positions of all the cells 
         # in the population
         for cell_id in self.fullgidlist:
-            cell_id.setCellClass(cellclass)
-            cell_id.setPosition(self.locate(cell_id))
+            cell_id.parent = self
+            #cell_id.setPosition(self.locate(cell_id))
                     
         # On the opposite, each node has to know only the precise hocname of its cells, if we
         # want to be able to use the low level set() function
         for cell_id in self.gidlist:
-            cell_id.setHocName("%s.o(%d)" %(self.hoc_label, self.gidlist.index(cell_id)))
+            cell_id.hocname = "%s.o(%d)" % (self.hoc_label, self.gidlist.index(cell_id))
 
     def __getitem__(self,addr):
         """Returns a representation of the cell with coordinates given by addr,
@@ -1187,10 +1162,7 @@ class Projection(common.Projection):
         self.synapse_type = target
         self._syn_objref = _translate_synapse_type(self.synapse_type)
         
-        if target:
-            hoc_commands += connection_method(methodParameters,synapse_type=target)
-        else:
-            hoc_commands += connection_method(methodParameters)
+        hoc_commands += connection_method(methodParameters)
         hoc_execute(hoc_commands, "--- Projection[%s].__init__() ---" %self.label)
         
         # By defaut, we set all the delays to min_delay, except if
@@ -1210,8 +1182,8 @@ class Projection(common.Projection):
         a scaling between the two dimensions of the populations: the target
         population is scaled to the size of the source population."""
         dist = 0.0
-        src_position = src.getPosition()
-        tgt_position = tgt.getPosition()
+        src_position = src.position
+        tgt_position = tgt.position
         if (len(src_position) == len(tgt_position)):
             for i in xrange(len(src_position)):
                 # We normalize the positions in each population and calculate the
@@ -1609,8 +1581,8 @@ class Projection(common.Projection):
                 src = self.connections[i][0]
                 tgt = self.connections[i][1]
                 # calculate the distance between the two cells
-                idx_src = self.pre.fullgidlist.index(src)
-                idx_tgt = self.post.fullgidlist.index(tgt)
+                idx_src = numpy.where(self.pre.fullgidlist == src)[0][0]
+                idx_tgt = numpy.where(self.post.fullgidlist == tgt)[0][0]
                 dist = self._distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
                 # then evaluate the delay according to the delay rule
                 delay = eval(delay_rule.replace('d', '%f' %dist))
