@@ -36,7 +36,7 @@ class CreationTest(unittest.TestCase):
        
     def testCreateStandardCellWithParams(self):
         """create(): Parameters set on creation should be the same as retrieved with HocToPy.get()"""
-        ifcell = neuron.create(neuron.IF_curr_alpha,{'tau_syn':3.141592654})
+        ifcell = neuron.create(neuron.IF_curr_alpha,{'tau_syn_E':3.141592654})
         self.assertAlmostEqual(HocToPy.get('%s.esyn.tau' % ifcell, 'float'), 3.141592654, places=5)
     
     def testCreateNEURONCell(self):
@@ -174,7 +174,7 @@ class PopulationInitTest(unittest.TestCase):
            
     def testInitWithParams(self):
         """Population.__init__(): Parameters set on creation should be the same as retrieved with HocToPy.get()"""
-        net = neuron.Population((3,3),neuron.IF_curr_alpha,{'tau_syn':3.141592654})
+        net = neuron.Population((3,3),neuron.IF_curr_alpha,{'tau_syn_E':3.141592654})
         tau_syn = HocToPy.get('%s.cell[0][0].esyn.tau' % net.label)
         self.assertAlmostEqual(tau_syn, 3.141592654, places=5)
     
