@@ -8,65 +8,61 @@
 : Andrew P. Davison. UNIC, CNRS, May 2006.
 : $Id$
 
-NEURON {	
-	POINT_PROCESS ResetRefrac
-	RANGE vreset, trefrac, vspike
-	NONSPECIFIC_CURRENT i
+NEURON {
+    POINT_PROCESS ResetRefrac
+    RANGE vreset, trefrac, vspike, vthresh
+    NONSPECIFIC_CURRENT i
 }
 
 UNITS {
-	(mV) = (millivolt)
-	(nA) = (nanoamp)
-	(umho) = (micromho)
-}	
+    (mV) = (millivolt)
+    (nA) = (nanoamp)
+    (uS) = (microsiemens)
+}
 
 PARAMETER {
-	vreset	= -60	(mV)	: reset potential after a spike
-	vspike  = 40    (mV)    : spike height (mainly for graphical purposes)
-	trefrac = 1     (ms)
-	g_on    = 1e12  (umho)
-	spikewidth = 1e-12 (ms)  : must be less than trefrac. Check for this?
+    vthresh = -50   (mV)    : spike threshold
+    vreset  = -60   (mV)    : reset potential after a spike
+    vspike  = 40    (mV)    : spike height (mainly for graphical purposes)
+    trefrac = 1     (ms)
+    g_on    = 1e12  (uS)
+    spikewidth = 1e-12 (ms) : must be less than trefrac. Check for this?
 }
 
 
 ASSIGNED {
-	v (mV)
-	i (nA)
-	g (umho)
-	refractory
+    v (mV)
+    i (nA)
+    g (uS)
+    refractory
 }
 
 INITIAL {
-	g = 0
-	refractory = 0
+    g = 0
+    net_send(0,4)
 }
 
 BREAKPOINT {
-	i = g*(v-vreset)
-}	
+    i = g*(v-vreset)
+}
 
 NET_RECEIVE (weight) {
-	if (flag == 1) { : end of spike, beginning of refractory period
-		state_discontinuity(v,vreset)
-		if (trefrac > spikewidth) {
-			net_send(trefrac-spikewidth,2)
-		} else { : also the end of the refractory period
-			refractory = 0
-			g = 0
-		}
-	} else {
-		if (flag == 2) { : end of refractory period
-			state_discontinuity(v,vreset)
-			refractory = 0
-			g = 0
-		} else {
-			if (!refractory) { : beginning of spike
-				g = g_on
-				state_discontinuity(v,vspike)
-				refractory = 1
-				net_send(spikewidth,1)
-				net_event(t)
-			}
-		}
-	}
+    if (flag == 1) {        : beginning of spike
+        g = g_on
+        state_discontinuity(v,vspike)
+        net_send(spikewidth,2)
+        net_event(t)
+    } else if (flag == 2) { : end of spike, beginning of refractory period
+        state_discontinuity(v,vreset)
+        if (trefrac > spikewidth) {
+            net_send(trefrac-spikewidth,3)
+        } else { : also the end of the refractory period
+            g = 0
+        }
+    } else if (flag == 3) { : end of refractory period
+        state_discontinuity(v,vreset)
+        g = 0
+    } else if (flag == 4) { : watch membrane potential
+         WATCH (v > vthresh) 1
+    }
 }

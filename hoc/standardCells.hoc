@@ -5,14 +5,14 @@
 
 begintemplate StandardIF
 
-public cell, spike_reset, isyn, esyn, threshold_watch
+public cell, spike_reset, isyn, esyn
 public spiketimes, memb_init, record, source, vtrace
 public syn_type, syn_shape, record_v, stim, v_init
 public tau_m, CM, v_rest, v_thresh, v_reset, t_refrac, i_offset
 public tau_e, tau_i, e_e, e_i
 public param_update, connect2target
 create cell
-objref spike_reset, threshold_watch, esyn, isyn, source
+objref spike_reset, esyn, isyn, source
 objref spiketimes, rec, nil, fih, fih2, this, vtrace, stim
 strdef syn_type, syn_shape
 
@@ -58,6 +58,7 @@ proc init() {
     spike_reset.trefrac = t_refrac
     spike_reset.vreset = v_reset
     spike_reset.vspike = 40 // (mV) spike height
+    spike_reset.vthresh = v_thresh
     source = spike_reset
     if (current_based) {
       if (strcmp(syn_shape,"exp") == 0) {
@@ -84,7 +85,6 @@ proc init() {
     }
     esyn.tau = tau_e
     isyn.tau = tau_i
-    threshold_watch = new NetCon(&v(0.5),spike_reset,v_thresh,0,1)
     stim = new IClamp(0.5)
     stim.del = 0
     stim.dur = 1e12
@@ -100,6 +100,7 @@ proc param_update() {
     }
     spike_reset.trefrac = t_refrac
     spike_reset.vreset = v_reset
+    spike_reset.vthresh = v_thresh
     stim.amp = i_offset
     if (!current_based) {
         esyn.e   = e_e
