@@ -990,7 +990,9 @@ class Population(common.Population):
         """
         """ PCSIM: IMPLEMENTED by an array of recorders at python level"""
         if isinstance(record_from, int):
-            if not rng:   rng = pyNN.random.RandomDistribution(NativeRNG(seed = datetime.today().microsecond), 'UniformInteger', (0,len(self)-1))             
+            if not rng:   rng = pyNN.random.RandomDistribution(rng=NativeRNG(seed = datetime.today().microsecond),
+                                                               distribution='UniformInteger',
+                                                               parameters=(0,len(self)-1))
             src_indices = [ int(i) for i in rng.next(record_from) ]            
         elif record_from:
             src_indices = record_from
@@ -1009,7 +1011,9 @@ class Population(common.Population):
         """
         """ PCSIM: IMPLEMENTED by an array of recorders """
         if isinstance(record_from, int):             
-            if not rng:   rng = pyNN.random.RandomDistribution(NativeRNG(seed = datetime.today().microsecond), 'UniformInteger', (0,len(self)-1))            
+            if not rng:   rng = pyNN.random.RandomDistribution(rng=NativeRNG(seed = datetime.today().microsecond),
+                                                               distribution='UniformInteger',
+                                                               parameters=(0,len(self)-1))
             src_indices = [ int(i) for i in rng.next(record_from) ]             
         elif record_from:
             src_indices = record_from

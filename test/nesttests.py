@@ -342,54 +342,54 @@ class PopulationRecordTest(unittest.TestCase): # to write later
     """Tests of the record(), record_v(), printSpikes(), print_v() and
        meanSpikeCount() methods of the Population class."""
     def setUp(self):
-	nest.setup()
+        nest.setup()
         nest.Population.nPop = 0
-	self.pop1 = nest.Population((3,3), nest.SpikeSourcePoisson,{'rate': 20})
-	self.pop2 = nest.Population((3,3), nest.IF_curr_alpha)
+        self.pop1 = nest.Population((3,3), nest.SpikeSourcePoisson,{'rate': 20})
+        self.pop2 = nest.Population((3,3), nest.IF_curr_alpha)
 
     def testRecordAll(self):
         """Population.record(): not a full test, just checking there are no Exceptions raised."""
-	self.pop1.record()
+        self.pop1.record()
         
     def testRecordInt(self):
         """Population.record(n): not a full test, just checking there are no Exceptions raised."""
-        # Partial record	
-	self.pop1.record(5)
-	
+        # Partial record        
+        self.pop1.record(5)
+        
     def testRecordWithRNG(self):
         """Population.record(n,rng): not a full test, just checking there are no Exceptions raised."""
-	self.pop1.record(5,random.NumpyRNG())
+        self.pop1.record(5,random.NumpyRNG())
         
     def testRecordList(self):
         """Population.record(list): not a full test, just checking there are no Exceptions raised."""
-	# Selected list record
-	record_list = []
-	for i in range(0,2):
-	    record_list.append(self.pop1[i,1])
-	self.pop1.record(record_list)	
+        # Selected list record
+        record_list = []
+        for i in range(0,2):
+            record_list.append(self.pop1[i,1])
+        self.pop1.record(record_list)   
    
     def testSpikeRecording(self):
-	# We test the mean spike count by checking if the rate of the poissonian sources are
-	# close to 20 Hz. Then we also test how the spikes are saved
-	self.pop1.record()
-	simtime = 1000
-	nest.run(simtime)
-	self.pop1.printSpikes("temp_nest.ras")
-	rate = self.pop1.meanSpikeCount()*1000/simtime
-	assert (20*0.8 < rate) and (rate < 20*1.2), rate
-	
-    def testPotentialRecording(self):
-	"""Population.record_v() and Population.print_v(): not a full test, just checking 
-	# there are no Exceptions raised."""
-	rng = random.NumpyRNG(123)
-	v_reset  = -65.0
-	v_thresh = -50.0
-	uniformDistr = random.RandomDistribution(rng,'uniform',[v_reset,v_thresh])
-	self.pop2.randomInit(uniformDistr)
-	self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
-	simtime = 10
+        # We test the mean spike count by checking if the rate of the poissonian sources are
+        # close to 20 Hz. Then we also test how the spikes are saved
+        self.pop1.record()
+        simtime = 1000
         nest.run(simtime)
-	self.pop2.print_v("temp_nest.v")
+        self.pop1.printSpikes("temp_nest.ras")
+        rate = self.pop1.meanSpikeCount()*1000/simtime
+        assert (20*0.8 < rate) and (rate < 20*1.2), rate
+        
+    def testPotentialRecording(self):
+        """Population.record_v() and Population.print_v(): not a full test, just checking 
+        # there are no Exceptions raised."""
+        rng = random.NumpyRNG(123)
+        v_reset  = -65.0
+        v_thresh = -50.0
+        uniformDistr = random.RandomDistribution(rng=rng,distribution='uniform',parameters=[v_reset,v_thresh])
+        self.pop2.randomInit(uniformDistr)
+        self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
+        simtime = 10
+        nest.run(simtime)
+        self.pop2.print_v("temp_nest.v")
 
 # ==============================================================================
 class ProjectionInitTest(unittest.TestCase):
@@ -418,7 +418,7 @@ class ProjectionInitTest(unittest.TestCase):
     def testdistantDependentProbability(self):
         """For all connections created with "distanceDependentProbability" it should be possible to obtain the weight using pyneuron.getWeight()"""
         # Test should be improved..."
-        distrib_Numpy = random.RandomDistribution(random.NumpyRNG(12345),'uniform',(0,1)) 
+        distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345),distribution='uniform',parameters=(0,1)) 
         prj1 = nest.Projection(self.source33, self.target33, 'distanceDependentProbability',{'d_expression' : 'exp(-d)'}, distrib_Numpy)
         prj2 = nest.Projection(self.source33, self.target33, 'distanceDependentProbability',{'d_expression' : 'd < 0.5'}, distrib_Numpy)
         assert (0 < len(prj1) < len(self.source33)*len(self.target33)) and (0 < len(prj2) < len(self.source33)*len(self.target33))
@@ -463,7 +463,7 @@ class ProjectionSetTest(unittest.TestCase):
         self.source5  = nest.Population((5,),nest.SpikeSourcePoisson)
         self.source22 = nest.Population((2,2),nest.SpikeSourcePoisson)
         self.prjlist = []
-        self.distrib_Numpy = random.RandomDistribution(random.NumpyRNG(12345),'uniform',(0.1,0.5)) 
+        self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345),distribution='uniform',parameters=(0.1,0.5)) 
         for tgtP in [self.target6, self.target33]:
             for srcP in [self.source5, self.source22]:
                 for method in ('allToAll', 'fixedProbability'):

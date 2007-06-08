@@ -429,7 +429,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
 	rng = NumpyRNG(123)
 	v_reset  = -65.0
 	v_thresh = -50.0
-	uniformDistr = RandomDistribution(rng,'uniform',[v_reset,v_thresh])
+	uniformDistr = RandomDistribution(rng=rng,distribution='uniform',parameters=[v_reset,v_thresh])
 	self.pop2.randomInit(uniformDistr)
 	self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
 	simtime = 10.0
@@ -469,12 +469,10 @@ class ProjectionInitTest(unittest.TestCase):
         
     def testFixedProbability(self):
         """For all connections created with "fixedProbability" it should be possible to obtain the weight using pyneuron.getWeight()"""
-        distrib_Numpy = RandomDistribution(NumpyRNG(12345),'uniform',(0,1)) 
-        distrib_Native= RandomDistribution(NativeRNG(12345),'uniform',(0,1)) 
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
-                prj1 = neuron.Projection(srcP, tgtP, 'fixedProbability', 0.5, distrib_Numpy)
-                prj2 = neuron.Projection(srcP, tgtP, 'fixedProbability', 0.5, distrib_Native)
+                prj1 = neuron.Projection(srcP, tgtP, 'fixedProbability', 0.5, rng=NumpyRNG(12345))
+                prj2 = neuron.Projection(srcP, tgtP, 'fixedProbability', 0.5, rng=NativeRNG(12345))
                 assert (0 < len(prj1) < len(srcP)*len(tgtP)) and (0 < len(prj2) < len(srcP)*len(tgtP))
                 
     def testoneToOne(self):
@@ -485,10 +483,8 @@ class ProjectionInitTest(unittest.TestCase):
     def testdistantDependentProbability(self):
         """For all connections created with "distanceDependentProbability" it should be possible to obtain the weight using pyneuron.getWeight()"""
         # Test should be improved..."
-        distrib_Numpy = RandomDistribution(NumpyRNG(12345),'uniform',(0,1)) 
-        distrib_Native= RandomDistribution(NativeRNG(12345),'uniform',(0,1)) 
-        prj1 = neuron.Projection(self.source33, self.target33, 'distanceDependentProbability',{'d_expression' : 'exp(-d)'}, distrib_Numpy)
-        prj2 = neuron.Projection(self.source33, self.target33, 'distanceDependentProbability',{'d_expression' : 'd < 0.5'}, distrib_Native)
+        prj1 = neuron.Projection(self.source33, self.target33, 'distanceDependentProbability',{'d_expression' : 'exp(-d)'}, rng=NumpyRNG(34567), label="DDP_test1")
+        prj2 = neuron.Projection(self.source33, self.target33, 'distanceDependentProbability',{'d_expression' : 'd < 0.5'}, rng=NativeRNG(34567), label="DDP_test2")
         assert (0 < len(prj1) < len(self.source33)*len(self.target33)) and (0 < len(prj2) < len(self.source33)*len(self.target33))
         
     def testSaveAndLoad(self):
@@ -517,8 +513,8 @@ class ProjectionSetTest(unittest.TestCase):
         self.target   = neuron.Population((3,3),neuron.IF_curr_alpha)
         self.target   = neuron.Population((3,3),neuron.IF_curr_alpha)
         self.source   = neuron.Population((3,3),neuron.SpikeSourcePoisson,{'rate': 100})
-        self.distrib_Numpy = RandomDistribution(NumpyRNG(12345),'uniform',(0,1)) 
-        self.distrib_Native= RandomDistribution(NativeRNG(12345),'uniform',(0,1)) 
+        self.distrib_Numpy = RandomDistribution(rng=NumpyRNG(12345),distribution='uniform',parameters=(0,1)) 
+        self.distrib_Native= RandomDistribution(rng=NativeRNG(12345),distribution='uniform',parameters=(0,1)) 
         
     def testsetWeights(self):
         prj1 = neuron.Projection(self.source, self.target, 'allToAll')

@@ -116,7 +116,7 @@ class RandomDistribution:
     """Class which defines a next(n) method which returns an array of n random
        numbers from a given distribution."""
        
-    def __init__(self,rng=None,distribution='uniform',parameters=[]):
+    def __init__(self,distribution='uniform',parameters=[],rng=None):
         """
         If present, rng should be a NumpyRNG or GSLRNG object.
         distribution should be the name of a method supported by the underlying

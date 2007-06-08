@@ -45,7 +45,10 @@ class ID(common.ID):
     
     def __getattr__(self,name):
         """Note that this currently does not translate units."""
-        translated_name = self.cellclass.translations[name][0]
+        if type(self.cellclass) == type and issubclass(self.cellclass, common.StandardCellType):
+            translated_name = self.cellclass.translations[name][0]
+        else:
+            translated_name = name
         if self.hocname:
             return HocToPy.get('%s.%s' % (self.hocname, translated_name),'float')
         else:
@@ -423,6 +426,11 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
         #---Experimental--- Optimize the simulation time ? / Reduce inter-processors exchanges ?
         hoc_commands += [
             'tmp   = pc.spike_compress(1,0)']
+        if extra_params.has_key('use_cvode') and extra_params['use_cvode'] == True:
+            hoc_commands += [
+                'objref cvode',
+                'cvode = new CVode()',
+                'cvode.active(1)']   
         
     hoc_execute(hoc_commands,"--- setup() ---")
     nhost = HocToPy.get('pc.nhost()','int')
@@ -1272,7 +1280,7 @@ class Projection(common.Projection):
                 for src in self.pre.fullgidlist:
                     if HocToPy.get('rng.repick()','float') < p_connect:
                         if allow_self_connections or self.pre != self.post or tgt != src:
-                            self.__connect(src,tgt)
+                            hoc_commands += self.__connect(src,tgt)
             return hoc_commands
         else: # use Python RNG
             for tgt in self.post.gidlist:
@@ -1325,9 +1333,9 @@ class Projection(common.Projection):
                         distance_expression = d_expression.replace('d', '%f' %dist)
                         if alphanum:
                             if HocToPy('rng.repick()','float') < eval(distance_expression):
-                                hoc_commands += self.__connect()
+                                hoc_commands += self.__connect(src,tgt)
                         elif eval(distance_expression):
-                            hoc_commands += self.__connect()
+                            hoc_commands += self.__connect(src,tgt)
             return hoc_commands
         else: # use a python RNG
             for tgt in self.post.gidlist:

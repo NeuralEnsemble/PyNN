@@ -322,10 +322,8 @@ class ProjectionInitTest(unittest.TestCase):
      def testdistantDependentProbability(self):
          """For all connections created with "distanceDependentProbability" it should be possible to obtain the weight using pyneuron.getWeight()"""
          # Test should be improved..."
-         distrib_Numpy = random.RandomDistribution(random.NumpyRNG(12345),'uniform',(0,1)) 
-         distrib_Native= random.RandomDistribution(NativeRNG(12345),'Uniform',(0,1)) 
-         prj1 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 2], distrib_Numpy)
-         prj2 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 3], distrib_Native)
+         prj1 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 2], random.NumpyRNG(12345))
+         prj2 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 3], NativeRNG(12345))
          assert (0 < len(prj1) < len(self.source33)*len(self.target33)) and (0 < len(prj2) < len(self.source33)*len(self.target33))
 #         
 #     def testSaveAndLoad(self):
@@ -355,8 +353,8 @@ class ProjectionSetTest(unittest.TestCase):
          self.target   = Population((3,3),IF_curr_alpha)
          self.target   = Population((3,3),IF_curr_alpha)
          self.source   = Population((3,3),SpikeSourcePoisson,{'rate': 100})
-         self.distrib_Numpy = random.RandomDistribution(random.NumpyRNG(12345),'uniform',(0,1)) 
-         self.distrib_Native= random.RandomDistribution(NativeRNG(12345),'Uniform',(0,1)) 
+         self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345),distribution='uniform',parameters=(0,1)) 
+         self.distrib_Native= random.RandomDistribution(rng=NativeRNG(12345),distribution='Uniform',parameters=(0,1)) 
          
      def testsetWeights(self):
          prj1 = Projection(self.source, self.target, 'allToAll')

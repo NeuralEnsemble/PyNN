@@ -140,7 +140,7 @@ I_net = Population((NI,),IF_curr_alpha,cell_params,"I_net")
 
 print "%d Initialising membrane potential to random values." %myid
 rng2 = NumpyRNG(kernelseed+myid)
-uniformDistr = RandomDistribution(rng2,'uniform',[U0,theta])
+uniformDistr = RandomDistribution('uniform',[U0,theta],rng2)
 E_net.randomInit(uniformDistr)
 I_net.randomInit(uniformDistr)
 
