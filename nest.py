@@ -130,7 +130,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
         common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)
-        self.parameters['gL'] = -self.parameters['Theta'] # Trick to fix the leak conductance of the NEST model.
+        self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
 
 
 class IF_cond_exp(common.IF_cond_exp):
@@ -157,15 +157,16 @@ class IF_cond_exp(common.IF_cond_exp):
         common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)
-        self.parameters['gL'] = -self.parameters['Theta'] # Trick to fix the leak conductance of the NEST model.
+        self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
+
 
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
     translations = {
-        'rate' : ('rate', "parameters['rate']"),
-        'start' : ('start'    , "parameters['start']"),
-        'duration' : ('stop' , "parameters['duration']+parameters['start']")
+        'rate'     : ('rate'   , "parameters['rate']"),
+        'start'    : ('start'  , "parameters['start']"),
+        'duration' : ('stop'   , "parameters['duration']+parameters['start']")
     }
     nest_name = 'poisson_generator'
     
@@ -435,7 +436,11 @@ def _print_v(filename, compatible_output=True):
         # desired format :
         # First line: dimensions of the population
         # Then spiketime cell_id-min(cell_id)
-        raster = numpy.fromfile(tempfilename.replace('/','_'),sep=" ")
+        
+        ##### WARNING ## ---> This numpy option does not seems to work on
+        # all machines : errors with python 2.5 while parsing Vm data with float
+        # Should re do this function
+        raster = numpy.fromfile(tempfilename.replace('/','_'), sep = " ")
         #Sometimes, nest doesn't write the last line entirely, so we need
         #to trunk it to avoid errors
         raster = raster[0:2*(len(raster)/2)]
@@ -452,7 +457,7 @@ def _print_v(filename, compatible_output=True):
             result.write(line)
     result.close()
     os.system("rm %s" %tempfilename.replace('/','_'))
-    
+
 
 
 # ==============================================================================
@@ -846,13 +851,18 @@ class Population(common.Population):
             # desired format :
             # First line: dimensions of the population
             # Then spiketime cell_id-min(cell_id)
-            raster = numpy.fromfile(tempfilename.replace('/','_'),sep=" ")
+            
             #Sometimes, nest doesn't write the last line entirely, so we need
             #to trunk it to avoid errors
+            # Nice way of writing the previous code, but this is not working on all machines...
+            # Quite a shame NUMPY doesnt have such a well defined load feature....
+            raster = numpy.fromfile(tempfilename.replace('/','_'),sep=" ")
             raster = raster[0:2*(len(raster)/2)]
             raster = raster.reshape(len(raster)/2,2)
             raster[:][:,1] = raster[:][:,1]
             raster[:][:,0] = raster[:][:,0] - padding
+            
+            
             for idx in xrange(len(raster)):
                 result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
         else:

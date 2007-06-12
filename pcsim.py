@@ -442,9 +442,9 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
     translations = {
-        'start'    : ('start'  , "parameters['start']"), 
+        'start'    : ('start'  , "parameters['start']*1e-3"), 
         'rate'     : ('rate' , "parameters['rate']"), 
-        'duration' : ('duration' , "parameters['duration']")
+        'duration' : ('duration' , "parameters['duration']*1e-3")
     }
     
     pcsim_name = 'PoissonSpikeTrainGenerator'    

@@ -42,11 +42,11 @@ rngseed  = 98765
 n        = 5000  # number of cells
 r_ei     = 4.0   # number of excitatory cells:number of inhibitory cells
 pconn    = 0.02  # connection probability
-stim_dur = 50    # (ms) duration of random stimulation
-rate     = 20    # (Hz) frequency of the random stimulation
+stim_dur = 50.   # (ms) duration of random stimulation
+rate     = 100.  # (Hz) frequency of the random stimulation
 
 dt       = 0.1   # (ms) simulation timestep
-tstop    = 4000  # (ms) simulaton duration
+tstop    = 1000  # (ms) simulaton duration
 
 # Cell parameters
 area     = 20000. # (µm²)
@@ -66,11 +66,11 @@ tau_inh  = 10.    # (ms)
 
 # Synapse parameters
 if benchmark == "COBA":
-    Gexc = 4.    # (nS)
-    Ginh = 41.   # (nS)
+    Gexc = 4.     # (nS)
+    Ginh = 51.    # (nS)
 elif benchmark == "CUBA":
-    Gexc = 0.27   # (nS)
-    Ginh = 4.5    # (nS)
+    Gexc = 0.5    # (nS) #Those weights should be similar to the COBA weights
+    Ginh = 7.     # (nS) # but the delpolarising drift should be taken into account
 Erev_exc = 0.     # (mV)
 Erev_inh = -80.   # (mV)
 
@@ -85,11 +85,11 @@ assert tau_m == cm*Rm                # just to check
 n_exc = int(round((n*r_ei/(1+r_ei)))) # number of excitatory cells   
 n_inh = n - n_exc                     # number of inhibitory cells
 if benchmark == "COBA":
-    celltype = IF_cond_alpha
-    w_exc = 1e-3*Gexc
-    w_inh = 1e-3*Ginh
+    celltype = IF_cond_exp
+    w_exc    = Gexc*1e-3              # We convert conductances to uS
+    w_inh    = Ginh*1e-3
 elif benchmark == "CUBA":
-    celltype = IF_curr_alpha
+    celltype = IF_curr_exp
     w_exc = 1e-3*Gexc*(Erev_exc - v_mean) # (nA) weight of excitatory synapses
     w_inh = 1e-3*Ginh*(Erev_inh - v_mean) # (nA)
     assert w_exc > 0; assert w_inh < 0
@@ -126,12 +126,13 @@ exc_cells = Population((n_exc,), celltype, cell_params, "Excitatory_Cells")
 inh_cells = Population((n_inh,), celltype, cell_params, "Inhibitory_Cells")
 if benchmark == "COBA":
     ext_stim = Population((10,), SpikeSourcePoisson,{'rate' : rate, 'duration' : stim_dur},"expoisson")
+    conn = 0.005
     
 
 
 print "%d Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(rngseed+node_id)
-uniformDistr = RandomDistribution(rng,'uniform',[v_reset,v_thresh])
+uniformDistr = RandomDistribution('uniform',[v_reset,v_thresh],rng)
 exc_cells.randomInit(uniformDistr)
 inh_cells.randomInit(uniformDistr)
 
@@ -142,8 +143,8 @@ connections = {'e2e' : Projection(exc_cells, exc_cells,'fixedProbability', pconn
                'i2e' : Projection(inh_cells, exc_cells,'fixedProbability', pconn, target='inhibitory',rng=rng),
                'i2i' : Projection(inh_cells, inh_cells,'fixedProbability', pconn, target='inhibitory',rng=rng)}
 if (benchmark == "COBA"):
-    connections['ext2e'] = Projection(ext_stim, exc_cells,'fixedProbability', 0.001, target='excitatory')
-    connections['ext2i'] = Projection(ext_stim, inh_cells,'fixedProbability', 0.001, target='excitatory')
+    connections['ext2e'] = Projection(ext_stim, exc_cells,'fixedProbability', conn, target='excitatory')
+    connections['ext2i'] = Projection(ext_stim, inh_cells,'fixedProbability', conn, target='excitatory')
 
 
 print "%d Setting weights..." % node_id

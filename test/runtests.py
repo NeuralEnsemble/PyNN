@@ -189,10 +189,10 @@ if __name__ == "__main__":
     
     engine_list = ("nest", "oldneuron", "neuron", "pcsim")
     
-    thresholds_v = {"IF_curr_alpha"  : 0.3,
-                    "IF_curr_exp"    : 0.3, 
-                    "IF_cond_alpha"  : 0.3,
-                    "IF_cond_exp"    : 0.3,
+    thresholds_v = {"IF_curr_alpha"  : 0.25,
+                    "IF_curr_exp"    : 0.25, 
+                    "IF_cond_alpha"  : 0.25,
+                    "IF_cond_exp"    : 0.25,
                     "simpleNetworkL" : 0.5,
                     "simpleNetwork"  : 0.6,
                     "IF_curr_alpha2" : 5.0,

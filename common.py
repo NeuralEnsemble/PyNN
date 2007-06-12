@@ -165,8 +165,8 @@ class IF_curr_alpha(StandardCellType):
         'cm'         :   1.0,   # Capacity of the membrane in nF
         'tau_m'      :  20.0,   # Membrane time constant in ms.
         'tau_refrac' :   0.0,   # Duration of refractory period in ms. 
-        'tau_syn_E'  :   5.0,   # Rise time of the excitatory synaptic alpha function in ms.
-        'tau_syn_I'  :   5.0,   # Rise time of the inhibitory synaptic alpha function in ms.
+        'tau_syn_E'  :   0.3,   # Rise time of the excitatory synaptic alpha function in ms.
+        'tau_syn_I'  :   0.5,   # Rise time of the inhibitory synaptic alpha function in ms.
         'i_offset'   :   0.0,   # Offset current in nA
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
         'v_thresh'   : -50.0,   # Spike threshold in mV.
@@ -200,8 +200,8 @@ class IF_cond_alpha(StandardCellType):
         'cm'         : 1.0,     # Capacity of the membrane in nF
         'tau_m'      : 20.0,    # Membrane time constant in ms.
         'tau_refrac' : 0.0,     # Duration of refractory period in ms.
-        'tau_syn_E'  : 5.0,     # Rise time of the excitatory synaptic alpha function in ms.
-        'tau_syn_I'  : 5.0,     # Rise time of the inhibitory synaptic alpha function in ms.
+        'tau_syn_E'  : 0.3,     # Rise time of the excitatory synaptic alpha function in ms.
+        'tau_syn_I'  : 0.5,     # Rise time of the inhibitory synaptic alpha function in ms.
         'e_rev_E'    : 0.0,     # Reversal potential for excitatory input in mV
         'e_rev_I'    : -70.0,   # Reversal potential for inhibitory input in mV
         'v_thresh'   : -50.0,   # Spike threshold in mV.
@@ -235,7 +235,7 @@ class SpikeSourcePoisson(StandardCellType):
     default_parameters = {
         'rate'     : 0.0,       # Mean spike frequency (Hz)
         'start'    : 0.0,       # Start time (ms)
-        'duration' : 1e9        # Duration of spike sequence (ms)
+        'duration' : 1e6        # Duration of spike sequence (ms)
     }  
 
 class SpikeSourceArray(StandardCellType):

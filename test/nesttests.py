@@ -344,7 +344,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
     def setUp(self):
         nest.setup()
         nest.Population.nPop = 0
-        self.pop1 = nest.Population((3,3), nest.SpikeSourcePoisson,{'rate': 20})
+        self.pop1 = nest.Population((3,3), nest.SpikeSourcePoisson,{'rate': 20.})
         self.pop2 = nest.Population((3,3), nest.IF_curr_alpha)
 
     def testRecordAll(self):

@@ -1169,8 +1169,9 @@ class Projection(common.Projection):
         connection_method = getattr(self,'_%s' % method)
         self.synapse_type = target
         self._syn_objref = _translate_synapse_type(self.synapse_type)
-        
+
         hoc_commands += connection_method(methodParameters)
+        
         hoc_execute(hoc_commands, "--- Projection[%s].__init__() ---" %self.label)
         
         # By defaut, we set all the delays to min_delay, except if
