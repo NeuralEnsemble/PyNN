@@ -1,2 +1,2 @@
 #!/bin/bash
-../hoc/i686/special -python "$@"
+../hoc/$HOSTTYPE/special -python "$@"

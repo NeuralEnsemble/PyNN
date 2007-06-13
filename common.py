@@ -224,8 +224,8 @@ class IF_cond_exp(StandardCellType):
         'e_rev_E'    : 0.0,     # Reversal potential for excitatory input in mV
         'e_rev_I'    : -70.0,   # Reversal potential for inhibitory input in mV
         'v_thresh'   : -50.0,   # Spike threshold in mV.
-	'v_reset'    : -65.0,   # Reset potential after a spike in mV.
-	'i_offset'   : 0.0,     # Offset current in nA
+        'v_reset'    : -65.0,   # Reset potential after a spike in mV.
+        'i_offset'   : 0.0,     # Offset current in nA
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
 
@@ -542,8 +542,7 @@ class Projection:
         self.source = source                  # } should be
         self.post   = postsynaptic_population # } read-only
         self.target = target                  # }
-        if label:
-            self.label = label
+        self.label = label
         self.rng = rng
         self.connection = None # access individual connections. To be defined by child, simulator-specific classes
     
