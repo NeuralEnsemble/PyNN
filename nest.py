@@ -404,14 +404,14 @@ def _printSpikes(filename, compatible_output=True):
         # Writing # such that Population.printSpikes and this have same output format
         result.write("# "+"\n")
         # Writing spiketimes, cell_id-min(cell_id)
-        raster = numpy.fromfile(tempfilename,sep=" ")
-        #Sometimes, nest doesn't write the last line entirely, so we need
-        #to trunk it to avoid errors
-        raster = raster[0:3*(len(raster)/3)]
-        raster = raster.reshape(len(raster)/3,3)
-        raster = raster[0:len(raster)][:,1:3]
-        raster[:][:,0] = raster[:][:,0]
-        raster[:][:,1] = raster[:][:,1]*dt
+        # Pylab has a great load() function, but it is not necessary to import
+        # it into pyNN. The fromfile() function of numpy has trouble on several
+        # machine with Python 2.5, so that's why a dedicated _readArray function
+        # has been created to load from file the raster or the membrane potentials
+        # saved by NEST
+        raster = _readArray(tempfilename, sepchar=" ")
+        raster = raster[:,1:3]
+        raster[:,1] = raster[:,1]*dt
         for idx in xrange(len(raster)):
             result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
         result.close()
@@ -436,17 +436,13 @@ def _print_v(filename, compatible_output=True):
         # desired format :
         # First line: dimensions of the population
         # Then spiketime cell_id-min(cell_id)
-        
-        ##### WARNING ## ---> This numpy option does not seems to work on
-        # all machines : errors with python 2.5 while parsing Vm data with float
-        # Should re do this function
-        raster = numpy.fromfile(tempfilename.replace('/','_'), sep = " ")
-        #Sometimes, nest doesn't write the last line entirely, so we need
-        #to trunk it to avoid errors
-        raster = raster[0:2*(len(raster)/2)]
-        raster = raster.reshape(len(raster)/2,2)
-        raster[:][:,1] = raster[:][:,1]
-        raster[:][:,0] = raster[:][:,0]
+
+        # Pylab has a great load() function, but it is not necessary to import
+        # it into pyNN. The fromfile() function of numpy has trouble on several
+        # machine with Python 2.5, so that's why a dedicated _readArray function
+        # has been created to load from file the raster or the membrane potentials
+        # saved by NEST
+        raster = _readArray(tempfilename.replace('/','_'), sepchar="\t")
         for idx in xrange(len(raster)):
             result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
     else:
@@ -458,7 +454,32 @@ def _print_v(filename, compatible_output=True):
     result.close()
     os.system("rm %s" %tempfilename.replace('/','_'))
 
-
+def _readArray(filename, sepchar = " ", skipchar = '#'):
+    myfile = open(filename, "r")
+    contents = myfile.readlines()
+    myfile.close() 
+    data = []
+    for line in contents:
+        stripped_line = line.lstrip()
+        if (len(stripped_line) != 0):
+            if (stripped_line[0] != skipchar):
+                items = stripped_line.split(sepchar)
+                # Here we have to deal with the fact that quite often, NEST
+                # does not write correctly the last line of Vm recordings.
+                # More precisely, it is often not complete
+                try :
+                    data.append(map(float, items))
+                except Exception:
+                    # The last line has a gid and just a "-" sign...
+                    pass
+    try :
+        a = numpy.array(data)
+    except Exception:
+        # The last line has just a gid, so we has to remove it
+        a = numpy.array(data[0:len(data)-2])
+    (Nrow,Ncol) = a.shape
+    if ((Nrow == 1) or (Ncol == 1)): a = ravel(a)
+    return(a)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -778,17 +799,19 @@ class Population(common.Population):
             result = open(filename,'w',1000)
             # Writing dimensions of the population:
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
-        
             # Writing spiketimes, cell_id-min(cell_id)
             padding = numpy.reshape(self.cell,self.cell.size)[0]
-            raster = numpy.fromfile("%s/%s" %(tempdir, tempfilename),sep=" ")
+            # Pylab has a great load() function, but it is not necessary to import
+            # it into pyNN. The fromfile() function of numpy has trouble on several
+            # machine with Python 2.5, so that's why a dedicated _readArray function
+            # has been created to load from file the raster or the membrane potentials
+            # saved by NEST
+            raster = _readArray("%s/%s" %(tempdir, tempfilename),sepchar=" ")
             #Sometimes, nest doesn't write the last line entirely, so we need
             #to trunk it to avoid errors
-            raster = raster[0:3*(len(raster)/3)]
-            raster = raster.reshape(len(raster)/3,3)
-            raster = raster[0:len(raster)][:,1:3]
-            raster[:][:,0] = raster[:][:,0] - padding
-            raster[:][:,1] = raster[:][:,1]*dt
+            raster = raster[:,1:3]
+            raster[:,0] = raster[:,0] - padding
+            raster[:,1] = raster[:,1]*dt
             for idx in xrange(len(raster)):
                 result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
             result.close()
@@ -852,17 +875,14 @@ class Population(common.Population):
             # First line: dimensions of the population
             # Then spiketime cell_id-min(cell_id)
             
-            #Sometimes, nest doesn't write the last line entirely, so we need
-            #to trunk it to avoid errors
-            # Nice way of writing the previous code, but this is not working on all machines...
-            # Quite a shame NUMPY doesnt have such a well defined load feature....
-            raster = numpy.fromfile(tempfilename.replace('/','_'),sep=" ")
-            raster = raster[0:2*(len(raster)/2)]
-            raster = raster.reshape(len(raster)/2,2)
-            raster[:][:,1] = raster[:][:,1]
-            raster[:][:,0] = raster[:][:,0] - padding
-            
-            
+            # Pylab has a great load() function, but it is not necessary to import
+            # it into pyNN. The fromfile() function of numpy has trouble on several
+            # machine with Python 2.5, so that's why a dedicated _readArray function
+            # has been created to load from file the raster or the membrane potentials
+            # saved by NEST
+            raster = _readArray(tempfilename.replace('/','_'),sepchar="\t")
+            raster[:,0] = raster[:,0] - padding
+
             for idx in xrange(len(raster)):
                 result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
         else:
