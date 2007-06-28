@@ -94,7 +94,7 @@ Test it using something like the following::
     
 (This assumes you have PyNEST installed).
 
-If you wish to use NEURON, there is are some additional steps.
+If you wish to use NEURON, there are some additional steps.
 
 1. Copy the ``hoc`` directory of the source distribution to the pyNN installation directory, e.g.::
 

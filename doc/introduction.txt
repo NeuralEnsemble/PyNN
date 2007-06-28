@@ -2,7 +2,7 @@
 Introduction
 ============
 
-PyNN (pronounced 'pine' ) is a Python package for simulator-independent specification of neuronal network models. 
+PyNN (pronounced 'pine') is a Python package for simulator-independent specification of neuronal network models. 
 
 In other words, you can write the code for a model once, using the PyNN API, and then run it without modification on any simulator that PyNN supports (currently NEURON_, NEST_ and PCSIM_). 
 

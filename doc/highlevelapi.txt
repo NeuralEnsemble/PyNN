@@ -67,7 +67,7 @@ To address individual neurons in a population, use ``[]`` notation, e.g.,::
     246
     
 The actual return values depend on the simulator engine used, and may be integers, strings, or Python objects.
-The n-tuple of values within the square brackets is referred to as a neurons's *address*, while the return value is its *id*.
+The n-tuple of values within the square brackets is referred to as a neuron's *address*, while the return value is its *id*.
 Trying to address a non-existent neuron will raise an Exception::
 
     >>> p1[999,0]
