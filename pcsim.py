@@ -139,7 +139,7 @@ class SpikesMultiChannelRecorder(object):
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):    
             self.filename += ".node." + net.mpi_rank()
-        f = file(self.filename, "w",1000)
+        f = file(self.filename, "w",10000)
         all_spikes = []
         if compatible_output:
             for i, rec, src in self.recordings:            

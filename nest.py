@@ -124,7 +124,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
             'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
             'v_init'    : ('u'           , "parameters['v_init']"),
     }
-    nest_name = "iaf_cond_neuron"
+    nest_name = "iaf_cond_alpha"
     
     def __init__(self,parameters):
         common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
@@ -409,15 +409,18 @@ def _printSpikes(filename, compatible_output=True):
         # machine with Python 2.5, so that's why a dedicated _readArray function
         # has been created to load from file the raster or the membrane potentials
         # saved by NEST
-        raster = _readArray(tempfilename, sepchar=" ")
-        raster = raster[:,1:3]
-        raster[:,1] = raster[:,1]*dt
-        for idx in xrange(len(raster)):
-            result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+        try:
+            raster = _readArray(tempfilename, sepchar=" ")
+            raster = raster[:,1:3]
+            raster[:,1] = raster[:,1]*dt
+            for idx in xrange(len(raster)):
+                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+        except Exception:
+            print "Error while writing data into a compatible mode"
         result.close()
+        os.system("rm %s" %tempfilename)
     else:
         shutil.move(tempfilename, filename)
-    os.system("rm %s" %tempfilename)
 
 
 def _print_v(filename, compatible_output=True):
@@ -442,9 +445,12 @@ def _print_v(filename, compatible_output=True):
         # machine with Python 2.5, so that's why a dedicated _readArray function
         # has been created to load from file the raster or the membrane potentials
         # saved by NEST
-        raster = _readArray(tempfilename.replace('/','_'), sepchar="\t")
-        for idx in xrange(len(raster)):
-            result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+        try:
+            raster = _readArray(tempfilename.replace('/','_'), sepchar="\t")
+            for idx in xrange(len(raster)):
+                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+        except Exception:
+            print "Error while writing data into a compatible mode"
     else:
         f = open(tempfilename.replace('/','_'),'r',1000)
         lines = f.readlines()
@@ -806,15 +812,19 @@ class Population(common.Population):
             # machine with Python 2.5, so that's why a dedicated _readArray function
             # has been created to load from file the raster or the membrane potentials
             # saved by NEST
-            raster = _readArray("%s/%s" %(tempdir, tempfilename),sepchar=" ")
-            #Sometimes, nest doesn't write the last line entirely, so we need
-            #to trunk it to avoid errors
-            raster = raster[:,1:3]
-            raster[:,0] = raster[:,0] - padding
-            raster[:,1] = raster[:,1]*dt
-            for idx in xrange(len(raster)):
-                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+            try :
+                raster = _readArray("%s/%s" %(tempdir, tempfilename),sepchar=" ")
+                #Sometimes, nest doesn't write the last line entirely, so we need
+                #to trunk it to avoid errors
+                raster = raster[:,1:3]
+                raster[:,0] = raster[:,0] - padding
+                raster[:,1] = raster[:,1]*dt
+                for idx in xrange(len(raster)):
+                    result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+            except Exception:
+                print "Error while writing data into a compatible mode"
             result.close()
+            os.system("rm %s/%s" %(tempdir, tempfilename))
         else:
             print 'didt go into the compatible output stuff'
             shutil.move(tempdir+'/'+tempfilename,filename)
@@ -880,11 +890,14 @@ class Population(common.Population):
             # machine with Python 2.5, so that's why a dedicated _readArray function
             # has been created to load from file the raster or the membrane potentials
             # saved by NEST
-            raster = _readArray(tempfilename.replace('/','_'),sepchar="\t")
-            raster[:,0] = raster[:,0] - padding
+            try:
+                raster = _readArray(tempfilename.replace('/','_'),sepchar="\t")
+                raster[:,0] = raster[:,0] - padding
 
-            for idx in xrange(len(raster)):
-                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+                for idx in xrange(len(raster)):
+                    result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+            except Exception:
+                print "Error while writing data into a compatible mode"
         else:
             f = open(tempfilename.replace('/','_'),'r',1000)
             lines = f.readlines()
@@ -1212,7 +1225,7 @@ class Projection(common.Projection):
         elif type(parameters) == types.StringType:
             filename = parameters
             # now open the file...
-            f = open(filename,'r',1000)
+            f = open(filename,'r',10000)
             lines = f.readlines()
         elif type(parameters) == types.DictType:
             # dict could have 'filename' key or 'file' key
