@@ -2,10 +2,10 @@
 """Writes documentation for the API in Wiki format."""
 
 import sys
-import pyNN.common
 import types, string, re, logging
-
-
+import imp, os
+common = imp.load_source('common', os.path.join('..','common.py'))
+print common
 
 #-- Define global data ---------------------------------------------------------
 
@@ -140,16 +140,16 @@ def apidoc(output):
     
     # gather information from the common module
     logging.info("Gathering information from the common module.")
-    for entry in dir(pyNN.common):
+    for entry in dir(common):
         if entry not in exclude:
-            instance = eval('pyNN.common.%s' % entry)
+            instance = eval('common.%s' % entry)
             entry_type = type(instance)
             logging.info('  %-30s %s' % (entry,entry_type))
             if entry_type in [types.ClassType, types.TypeType]:
                 classes[entry] = { 'methods': [], 'data': [], 'staticmethods': [] }
                 for classentry in dir(instance):
                     if classentry not in exclude and (classentry[0] != '_' or classentry[0:2] == '__'): # don't include private methods
-                        classentry_type = type(eval('pyNN.common.%s.%s' % (entry,classentry)))
+                        classentry_type = type(eval('common.%s.%s' % (entry,classentry)))
                         logging.info('    %-28s %s' % (classentry,classentry_type))
                         if classentry_type == types.MethodType:
                             classes[entry]['methods'].append(classentry)
@@ -178,7 +178,7 @@ def apidoc(output):
     logging.info("==== DATA ====")
     outputStr += category_fmt % "Data"
     for element in data:
-        instance = eval('pyNN.common.%s' % element)
+        instance = eval('common.%s' % element)
         if type(instance) == types.DictType:
             outputStr += dict_fmt % element
             outputStr += table_begin
@@ -194,7 +194,7 @@ def apidoc(output):
     logging.info("==== FUNCTIONS ====")
     outputStr += category_fmt % "Functions"
     for funcname in functions:
-        funcinst = eval('pyNN.common.%s' % funcname)
+        funcinst = eval('common.%s' % funcname)
         outputStr += function_fmt % func_sig(funcinst, default_arg_fmt, func_sig_fmt)
         if funcinst.__doc__:
             outputStr += _(funcinst.__doc__.strip())
@@ -207,7 +207,7 @@ def apidoc(output):
     for classname in classes.keys():
         if classname.find('Error') > -1:
             error_classes[classname] = classes[classname]
-        elif issubclass(eval('pyNN.common.%s' % classname),pyNN.common.StandardCellType):
+        elif issubclass(eval('common.%s' % classname),common.StandardCellType):
             celltype_classes[classname] = classes[classname]
         else:
             other_classes[classname] = classes[classname]
@@ -224,25 +224,25 @@ def apidoc(output):
         classlist.sort()
         for classname in classlist:
             outputStr += class_fmt % classname
-            docstr = eval('pyNN.common.%s.__doc__' % classname)
+            docstr = eval('common.%s.__doc__' % classname)
             if docstr:
                 outputStr += _(docstr)
             for methodname in classes[classname]['methods']:
-                methodinst = eval('pyNN.common.%s.%s' % (classname,methodname))
+                methodinst = eval('common.%s.%s' % (classname,methodname))
                 fs = func_sig(methodinst, default_arg_fmt, func_sig_fmt)
                 if fs:
                     outputStr += method_fmt % fs
                     if methodinst.__doc__:
                         outputStr += _(methodinst.__doc__.strip())
             for methodname in classes[classname]['staticmethods']:
-                methodinst = eval('pyNN.common.%s.%s' % (classname,methodname))
+                methodinst = eval('common.%s.%s' % (classname,methodname))
                 fs = func_sig(methodinst, default_arg_fmt, func_sig_fmt)
                 if fs:
                     outputStr += staticmethod_fmt % fs
                     if methodinst.__doc__:
                         outputStr += _(methodinst.__doc__.strip())
             for element in classes[classname]['data']:
-                instance = eval('pyNN.common.%s.%s' % (classname,element))
+                instance = eval('common.%s.%s' % (classname,element))
                 if type(instance) == types.DictType:
                     outputStr += dict_fmt % element
                     if len(instance) > 0:
