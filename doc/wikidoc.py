@@ -1,11 +1,15 @@
 # coding: utf-8
 """Writes documentation for the API in Wiki format."""
 
+import os
 import sys
 import types, string, re, logging
-import imp, os
-common = imp.load_source('common', os.path.join('..','common.py'))
-print common
+import imp
+
+# Rather painful way of importing
+this_file = os.path.abspath(__file__)
+common_file = os.path.join(os.path.split(os.path.split(this_file)[0])[0],'common.py')
+common = imp.load_source('common', common_file)
 
 #-- Define global data ---------------------------------------------------------
 
@@ -20,12 +24,13 @@ exclude.remove('__init__')
 leftquote = re.compile(r"'\b")
 leftdblquote = re.compile(r'"\b')
 camelcase = re.compile(r'(\b([A-Z][a-z]+){2,99})')
-
+newline = "\n"
  
 #-- Define functions -----------------------------------------------------------
 
 def _(str):
     """Remove extraneous whitespace."""
+    global newline
     lines = str.strip().split('\n')
     lines = [line.strip() for line in lines]
     return '\n'.join(lines)
@@ -87,6 +92,7 @@ def func_sig(func, default_arg_fmt, func_sig_fmt):
 #-- Main block -----------------------------------------------------------------
 
 def apidoc(output):
+    global newline
     classes = {}
     functions = []
     data = []
@@ -107,6 +113,7 @@ def apidoc(output):
         category_fmt     = '\n==%s==\n'
         class_fmt        = '\n===<span style="color:green">%s</span>===\n'
         horiz_line       = '\n----\n'
+        docstr_fmt       = '%s'
     elif output == 'trac':
         default_arg_fmt  = '%s=%s'
         func_sig_fmt     = '%s(%s)'
@@ -122,6 +129,7 @@ def apidoc(output):
         category_fmt     = '\n= %s =\n'
         class_fmt        = '\n== %s ==\n'
         horiz_line       = '\n----\n'
+        docstr_fmt       = '%s'
     elif output == 'latex':
         default_arg_fmt  = '%s{\\color{grey}=%s}'
         func_sig_fmt     = '%s(\\mdseries %s)'
@@ -137,6 +145,25 @@ def apidoc(output):
         category_fmt     = '\n\\subsection{%s}\n'
         class_fmt        = '\n\\subsubsection*{%s}\n'
         horiz_line       = ''
+        docstr_fmt       = '%s'
+    elif output == 'reportlab_xml':
+        newline          = "<br/>\n"
+        default_arg_fmt  = '%s<font color="gray">=%s</font>'
+        func_sig_fmt     = '<b>%s</b>(%s)'
+        function_fmt     = '\n<para style="FunctionDef"> %s </para>\n'
+        method_fmt       = function_fmt
+        staticmethod_fmt = function_fmt
+        dict_fmt         = '\n\n<para><b>%s</b> = { '
+        dict_fmt_end     = '}</para>\n'
+        data_element_fmt = "<para><b>%s</b> = %s</para>"
+        table_begin      = ''#"<table>["
+        table_end        = ''#"]</table>"
+        #table_row_fmt    = "[ '%s', ':', '%s'],\n"
+        table_row_fmt    = "'%s': %s, "
+        category_fmt     = '\n<para style="Category">%s</para>\n'
+        class_fmt        = '\n<para style="Class">%s</para>\n'
+        horiz_line       = ''
+        docstr_fmt       = '<para>%s</para>'
     
     # gather information from the common module
     logging.info("Gathering information from the common module.")
@@ -174,22 +201,6 @@ def apidoc(output):
         outputStr += '\definecolor{brightblue}{rgb}{0.0,0.38,1.0}\n'
         outputStr += '\definecolor{paleblue}{rgb}{0.5,0.5,1.0}\n'
         outputStr += '\definecolor{grey}{rgb}{0.5,0.5,0.5}\n'
-    
-    logging.info("==== DATA ====")
-    outputStr += category_fmt % "Data"
-    for element in data:
-        instance = eval('common.%s' % element)
-        if type(instance) == types.DictType:
-            outputStr += dict_fmt % element
-            outputStr += table_begin
-            for k,v in instance.items():
-                if output == 'latex':
-                    v = str(v).replace('{',' $\\lbrace$').replace('}',' $\\rbrace$')
-                outputStr += table_row_fmt % (k,v)
-            outputStr += table_end
-            outputStr += dict_fmt_end
-        else:
-            outputStr +=  data_element_fmt % (element, instance)
         
     logging.info("==== FUNCTIONS ====")
     outputStr += category_fmt % "Functions"
@@ -197,7 +208,7 @@ def apidoc(output):
         funcinst = eval('common.%s' % funcname)
         outputStr += function_fmt % func_sig(funcinst, default_arg_fmt, func_sig_fmt)
         if funcinst.__doc__:
-            outputStr += _(funcinst.__doc__.strip())
+            outputStr += docstr_fmt % _(funcinst.__doc__.strip())
        
     logging.info("==== CLASSES ====")
     # sort classes by type:
@@ -226,21 +237,21 @@ def apidoc(output):
             outputStr += class_fmt % classname
             docstr = eval('common.%s.__doc__' % classname)
             if docstr:
-                outputStr += _(docstr)
+                outputStr += docstr_fmt % _(docstr)
             for methodname in classes[classname]['methods']:
                 methodinst = eval('common.%s.%s' % (classname,methodname))
                 fs = func_sig(methodinst, default_arg_fmt, func_sig_fmt)
                 if fs:
                     outputStr += method_fmt % fs
                     if methodinst.__doc__:
-                        outputStr += _(methodinst.__doc__.strip())
+                        outputStr += docstr_fmt % _(methodinst.__doc__.strip())
             for methodname in classes[classname]['staticmethods']:
                 methodinst = eval('common.%s.%s' % (classname,methodname))
                 fs = func_sig(methodinst, default_arg_fmt, func_sig_fmt)
                 if fs:
                     outputStr += staticmethod_fmt % fs
                     if methodinst.__doc__:
-                        outputStr += _(methodinst.__doc__.strip())
+                        outputStr += docstr_fmt % _(methodinst.__doc__.strip())
             for element in classes[classname]['data']:
                 instance = eval('common.%s.%s' % (classname,element))
                 if type(instance) == types.DictType:
@@ -255,12 +266,30 @@ def apidoc(output):
                                 outputStr += table_row_fmt % ('&quot;%s&quot;' % k,v)
                             elif output == 'trac':
                                 outputStr += table_row_fmt % ("'%s'" % k,v)
+                            elif output == 'reportlab_xml':
+                                outputStr += table_row_fmt % ("'%s'" % k,v)
                         outputStr += table_end
                     outputStr += dict_fmt_end
                 else:
                     outputStr +=  data_element_fmt % (element, instance)
                     
             outputStr += horiz_line
+    
+    logging.info("==== DATA ====")
+    outputStr += category_fmt % "Data"
+    for element in data:
+        instance = eval('common.%s' % element)
+        if type(instance) == types.DictType:
+            outputStr += dict_fmt % element
+            outputStr += table_begin
+            for k,v in instance.items():
+                if output == 'latex':
+                    v = str(v).replace('{',' $\\lbrace$').replace('}',' $\\rbrace$')
+                outputStr += table_row_fmt % (k,v)
+            outputStr += table_end
+            outputStr += dict_fmt_end
+        else:
+            outputStr +=  data_element_fmt % (element, instance)
         
     if output == 'latex':
         outputStr = outputStr.replace('_','\_')

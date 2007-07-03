@@ -133,7 +133,7 @@ class IF_curr_alpha(StandardCellType):
 class IF_curr_exp(StandardCellType):
     """Leaky integrate and fire model with fixed threshold and
     decaying-exponential post-synaptic current. (Separate synaptic currents for
-    excitatory and inhibitory synapses"""
+    excitatory and inhibitory synapses)."""
     
     default_parameters = {
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
@@ -223,7 +223,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
-    Weights should be in nA or uS."""
+    Weights should be in nA or µS."""
     pass
 
 def set(cells,cellclass,param,val=None):
@@ -267,7 +267,7 @@ class Population:
         from common.StandardCellType) or a string giving the name of the
         simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
-          constructor
+          constructor.
         label is an optional name for the population.
         """
         
@@ -303,7 +303,7 @@ class Population:
         can be a dict, in which case val should not be supplied, or a string
         giving the parameter name, in which case val is the parameter value.
         val can be a numeric value, or list of such (e.g. for setting spike times).
-        e.g. p.set("tau_m",20.0).
+        e.g. p.set("tau_m",20.0)
              p.set({'tau_m':20,'v_rest':-65})
         """
         pass
@@ -425,7 +425,7 @@ class Projection:
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
-        source - string specifying which attribute of the presynaptic cell signals action potentials
+        source - string specifying which attribute of the presynaptic cell signals action potentials.
         
         target - string specifying which synapse on the postsynaptic cell to connect to
         If source and/or target are not given, default values are used.
@@ -433,7 +433,7 @@ class Projection:
         method - string indicating which algorithm to use in determining connections.
         Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-        'fromFile', 'fromList'
+        'fromFile', 'fromList'.
         
         methodParameters - dict containing parameters needed by the connection method,
         although we should allow this to be a number or string if there is only
