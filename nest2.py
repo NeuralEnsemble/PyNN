@@ -62,7 +62,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
             'i_offset'  : ('I0'    , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
             'v_init'    : ('u'     , "parameters['v_init']"),
     }
-    nest_name = "iaf_neuron2"
+    nest_name = "iaf_psc_alpha"
     
     def __init__(self,parameters):
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
@@ -86,7 +86,7 @@ class IF_curr_exp(common.IF_curr_exp):
         'i_offset'  : ('I0'     , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
         'v_init'    : ('u'      , "parameters['v_init']"),
     }
-    nest_name = 'iaf_exp_neuron2'
+    nest_name = 'iaf_psc_exp'
     
     def __init__(self,parameters):
         common.IF_curr_exp.__init__(self,parameters)
@@ -190,11 +190,11 @@ def end(compatible_output=True):
     # We close the high level files opened by populations objects
     # that may have not been written.
     global tempdir
-    for file in hl_spike_files:
-        pynest.sr('%s close' %file)
-    for file in hl_v_files:
-        file = tempdir + '/' + file
-        pynest.sr('%s close' %file.replace('/','_'))
+#    for file in hl_spike_files:
+#        pynest.sr('%s close' %file)
+#    for file in hl_v_files:
+#        file = tempdir + '/' + file
+#        pynest.sr('%s close' %file.replace('/','_'))
     # And we postprocess the low level files opened by record()
     # and record_v() method
     for file in ll_spike_files:
@@ -598,10 +598,16 @@ class Population(common.Population):
         global hl_spike_files
         
         self.spike_detector = pynest.create('spike_detector')
+
         pynest.setDict(self.spike_detector,{'withtime':True,  # record time of spikes
-                                            'withpath':True}) # record which neuron spiked
+                                            'withpath':True,  # record which neuron spiked
+                                            'to_file':True})  # record to a file
         
         fixed_list = False
+
+        pynest.sps(self.spike_detector[0])
+        pynest.sr('GetStatus /filename get')
+        filename = pynest.spp()
 
         if record_from:
             if type(record_from) == types.ListType:
@@ -613,21 +619,21 @@ class Population(common.Population):
                 raise "record_from must be a list or an integer"
         else:
             n_rec = self.size
-        pynest.resCons(self.spike_detector[0],n_rec)
+#        pynest.resCons(self.spike_detector[0],n_rec)
 
         if (fixed_list == True):
             for neuron in record_from:
-                pynest.connect(pynest.getAddress(neuron),self.spike_detector[0])
+                pynest.connect(neuron,self.spike_detector[0])
         else:
             for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
-                pynest.connect(pynest.getAddress(neuron),self.spike_detector[0])
+                pynest.connect(neuron,self.spike_detector[0])
                 
         # Open temporary output file & register file with detectors
         # This should be redone now that Eilif has implemented the pythondatum datum type
         # pynest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label,self.label)) # old
-        pynest.sr('/%s.spikes (%s/%s.spikes) (w) file def' %  (self.label, tempdir, self.label))
-        pynest.sr('%s << /output_stream %s.spikes >> SetStatus' % (pynest.getGID(self.spike_detector[0]),self.label))
-        hl_spike_files.append('%s.spikes' % self.label)
+#        pynest.sr('/%s.spikes (%s/%s.spikes) (w) file def' %  (self.label, tempdir, self.label))
+#        pynest.sr('%s << /output_stream %s.spikes >> SetStatus' % (pynest.getGID(self.spike_detector[0]),self.label))
+        hl_spike_files.append(filename)
         self.n_rec = n_rec
 
     def record_v(self,record_from=None,rng=None):
@@ -655,15 +661,13 @@ class Population(common.Population):
             n_rec = self.size
 
         tmp_list = []
-        filename    = '%s.v' % self.label
-        record_file = tempdir+'/'+filename
         if (fixed_list == True):
-            tmp_list = [pynest.getAddress(neuron) for neuron in record_from]
+            tmp_list = [neuron for neuron in record_from]
         else:
             for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
-                tmp_list.append(pynest.getAddress(neuron))
+                tmp_list.append(neuron)
+        filename = pynest.record_v(tmp_list)
         hl_v_files.append(filename)
-        pynest.record_v(tmp_list, record_file.replace('/','_'))
     
     
     def printSpikes(self,filename,gather=True, compatible_output=True):
@@ -718,7 +722,7 @@ class Population(common.Population):
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        status = pynest.get(pynest.getGID(self.spike_detector[0]))
+        status = pynest.get(self.spike_detector[0])
         n_spikes = status["events"]
         return float(n_spikes)/self.n_rec
 
@@ -837,7 +841,7 @@ class Projection(common.Projection):
             self.nconn = connection_method(methodParameters,synapse_type=target)
         else:
             self.nconn = connection_method(methodParameters)
-        assert len(self._sources) == len(self._targets) == len(self._targetPorts), "Connection error. Source and target lists are of different lengths."
+#        assert len(self._sources) == len(self._targets) == len(self._targetPorts), "Connection error. Source and target lists are of different lengths."
         self.connection = Projection.ConnectionDict(self)
         
         # By defaut, we set all the delays to min_delay, except if
@@ -894,7 +898,7 @@ class Projection(common.Projection):
             if allow_self_connections or post not in source_list:
                 self._targets += [post]*len(source_list)
                 self._sources += source_list
-                self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
+#                self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
         return len(self._targets)
     
     def _oneToOne(self,synapse_type=None):
@@ -1039,7 +1043,7 @@ class Projection(common.Projection):
             # Reserve space for connections
             if not fixed:
                 n = rand_distr.next()
-            pynest.resCons(pre_addr,n)                
+#            pynest.resCons(pre_addr,n)                
             # pick n neurons at random
             for post in rng.permutation(postsynaptic_neurons)[0:n]:
                 self._sources.append(pre)
@@ -1082,7 +1086,7 @@ class Projection(common.Projection):
             # Reserve space for connections
             if not fixed:
                 n = rand_distr.next()
-            pynest.resCons(post_addr,n)                
+#            pynest.resCons(post_addr,n)                
             # pick n neurons at random
             for pre in rng.permutation(presynaptic_neurons)[0:n]:
                 self._sources.append(pre)
