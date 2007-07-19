@@ -819,6 +819,7 @@ class Population(common.Population):
         global hl_spike_files
 
         # closing of the file
+        # just a workaround, nest will do that automatically soon
         if hl_spike_files.has_key(self.label):#   __contains__(tempfilename):
             nest.sps(self.spike_detector[0])
             nest.sr("FlushDevice")
@@ -897,6 +898,7 @@ class Population(common.Population):
         global hl_v_files
         
         # closing file
+        # just a workaround, nest will do that automatically soon
         if hl_v_files.has_key(self.label):#   __contains__(tempfilename):
             nest.sps(self.voltmeter[0])
             nest.sr("FlushDevice")
