@@ -5,7 +5,7 @@ $Id:nest.py 5 2007-04-16 15:01:24Z davison $
 """
 __version__ = "$Revision:5 $"
 
-import pynest
+import nest
 from pyNN import common
 from pyNN.random import *
 import numpy, types, sys, shutil, os, logging, copy, tempfile
@@ -26,22 +26,35 @@ dt             = 0.1
 
 class ID(common.ID):
     """
-    This class is experimental. The idea is that instead of storing ids as
-    integers, we store them as ID objects, which allows a syntax like:
-      p[3,4].set('tau_m',20.0)
+    Instead of storing ids as integers, we store them as ID objects,
+    which allows a syntax like:
+        p[3,4].tau_m = 20.0
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
     """
     
-    def set(self,param,val=None):
+    def __getattr__(self,name):
+        """Note that this currently does not translate units."""
+        translated_name = self.cellclass.translations[name][0]
+        return nest.getDict([int(self)])[0][translated_name]
+    
+    def setParameters(self,**parameters):
         # We perform a call to the low-level function set() of the API.
         # If the cellclass is not defined in the ID object :
-        if (self._cellclass == None):
+        if (self.cellclass == None):
             raise Exception("Unknown cellclass")
         else:
             # We use the one given by the user
-            set(self,self._cellclass,param,val)
+            set(self, self.cellclass, parameters) 
 
+    def getParameters(self):
+        """Note that this currently does not translate units."""
+        nest_params = nest.getDict([int(self)])[0]
+        params = {}
+        for k,v in self.cellclass.translations.items():
+            params[k] = nest_params[v[0]]
+        return params
+            
 
 # ==============================================================================
 #   Standard cells
@@ -52,17 +65,18 @@ class IF_curr_alpha(common.IF_curr_alpha):
     shaped post-synaptic current."""
     
     translations = {
-            'v_rest'    : ('U0'    , "parameters['v_rest']"),
-            'v_reset'   : ('Vreset', "parameters['v_reset']"),
-            'cm'        : ('C'     , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-            'tau_m'     : ('Tau'   , "parameters['tau_m']"),
-            'tau_refrac': ('TauR'  , "max(dt,parameters['tau_refrac'])"),
-            'tau_syn'   : ('TauSyn', "parameters['tau_syn']"),
-            'v_thresh'  : ('Theta' , "parameters['v_thresh']"),
-            'i_offset'  : ('I0'    , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'v_init'    : ('u'     , "parameters['v_init']"),
+            'v_rest'    : ('U0'    ,  "parameters['v_rest']"),
+            'v_reset'   : ('Vreset',  "parameters['v_reset']"),
+            'cm'        : ('C'     ,  "parameters['cm']*1000.0"), # C is in pF, cm in nF
+            'tau_m'     : ('Tau'   ,  "parameters['tau_m']"),
+            'tau_refrac': ('TauR'  ,  "max(dt,parameters['tau_refrac'])"),
+            'tau_syn_E' : ('TauSynE', "parameters['tau_syn_E']"),
+            'tau_syn_I' : ('TauSynI', "parameters['tau_syn_I']"),
+            'v_thresh'  : ('Theta' ,  "parameters['v_thresh']"),
+            'i_offset'  : ('I0'    ,  "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
+            'v_init'    : ('u'     ,  "parameters['v_init']"),
     }
-    nest_name = "iaf_psc_alpha"
+    nest_name = "iaf_neuron2"
     
     def __init__(self,parameters):
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
@@ -86,7 +100,7 @@ class IF_curr_exp(common.IF_curr_exp):
         'i_offset'  : ('I0'     , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
         'v_init'    : ('u'      , "parameters['v_init']"),
     }
-    nest_name = 'iaf_psc_exp'
+    nest_name = 'iaf_exp_neuron2'
     
     def __init__(self,parameters):
         common.IF_curr_exp.__init__(self,parameters)
@@ -105,26 +119,54 @@ class IF_cond_alpha(common.IF_cond_alpha):
             'tau_syn_E' : ('TauSyn_E'    , "parameters['tau_syn_E']"),
             'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
             'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
-            'i_offset'  : ('I0'          , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
+            'i_offset'  : ('Istim'       , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
             'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
             'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
             'v_init'    : ('u'           , "parameters['v_init']"),
     }
-    nest_name = "iaf_cond_neuron"
+    nest_name = "iaf_cond_alpha"
     
     def __init__(self,parameters):
         common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)
-        self.parameters['gL'] = -self.parameters['Theta'] # Trick to fix the leak conductance of the NEST model.
+        self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
+
+
+class IF_cond_exp(common.IF_cond_exp):
+    """Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic conductance."""
+    
+    translations = {
+            'v_rest'    : ('U0'          , "parameters['v_rest']"),
+            'v_reset'   : ('Vreset'      , "parameters['v_reset']"),
+            'cm'        : ('C'           , "parameters['cm']*1000.0"), # C is in pF, cm in nF
+            'tau_m'     : ('Tau'         , "parameters['tau_m']"),
+            'tau_refrac': ('TauR'        , "max(dt,parameters['tau_refrac'])"),
+            'tau_syn_E' : ('TauSyn_E'    , "parameters['tau_syn_E']"),
+            'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
+            'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
+            'i_offset'  : ('Istim'       , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
+            'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
+            'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
+            'v_init'    : ('u'           , "parameters['v_init']"),
+    }
+    nest_name = "iaf_cond_exp"
+    
+    def __init__(self,parameters):
+        common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
+                                                       # values for not-specified parameters.
+        self.parameters = self.translate(self.parameters)
+        self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
+
 
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
     translations = {
-        'rate' : ('rate', "parameters['rate']"),
-        'start' : ('start'    , "parameters['start']"),
-        'duration' : ('duration' , "parameters['duration']")
+        'rate'     : ('rate'   , "parameters['rate']"),
+        'start'    : ('start'  , "parameters['start']"),
+        'duration' : ('stop'   , "parameters['duration']+parameters['start']")
     }
     nest_name = 'poisson_generator'
     
@@ -162,12 +204,29 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     global dt
     global tempdir
     dt = timestep
+
+    # reset the simulation kernel
+    nest.ResetKernel()
+    # clear the sli stack, if this is not done --> memory leack cause the stack increases
+    nest.sr('clear')
     
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
+    # set tempdir
+    nest.SetStatus([0],[{'device_prefix':tempdir}])
+    # set resolution
+    nest.SetStatus([0],[{'resolution': dt}])
     
-    pynest.destroy()
-    pynest.setDict([0],{'resolution': dt, 'min_delay' : min_delay, 'max_delay' : max_delay})
+    if extra_params.has_key('threads'):
+        update_modes = {'fixed':1, 'serial':3, 'dynamic':0}
+        # number of nodes to give to each thread at a time
+        # some small fraction of your total nodes to be simulated
+        batchsize   = 10
+        kernelseeds = [11,22,33,44,55,66,77,88,99]
+        nest.SetStatus([0],[{'threads'     : extra_params['threads'],
+                            'update_mode' : update_modes['fixed'],
+                            'rng_seeds'   : kernelseeds[0:extra_params['threads']],
+                            'buffsize'    : batchsize}])
     
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
@@ -181,7 +240,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
                     format='%(asctime)s %(levelname)s %(message)s',
                     filename='nest.log',
                     filemode='w')
-                       
+
     logging.info("Initialization of Nest")    
     return 0
 
@@ -190,11 +249,11 @@ def end(compatible_output=True):
     # We close the high level files opened by populations objects
     # that may have not been written.
     global tempdir
-#    for file in hl_spike_files:
-#        pynest.sr('%s close' %file)
-#    for file in hl_v_files:
-#        file = tempdir + '/' + file
-#        pynest.sr('%s close' %file.replace('/','_'))
+    for file in hl_spike_files:
+        nest.sr('%s close' %file)
+    for file in hl_v_files:
+        file = tempdir + '/' + file
+        nest.sr('%s close' %file.replace('/','_'))
     # And we postprocess the low level files opened by record()
     # and record_v() method
     for file in ll_spike_files:
@@ -203,15 +262,15 @@ def end(compatible_output=True):
         _print_v(file, compatible_output)
     for tempdir in tempdirs:
         os.system("rm -rf %s" %tempdir)
-    pynest.end()
+    nest.end()
 
 def run(simtime):
     """Run the simulation for simtime ms."""
-    pynest.simulate(simtime)
+    nest.Simulate(simtime)
 
 def setRNGseeds(seedList):
     """Globally set rng seeds."""
-    pynest.setDict([0],{'rng_seeds': seedList})
+    nest.setDict([0],{'rng_seeds': seedList})
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -226,16 +285,19 @@ def create(cellclass,paramDict=None,n=1):
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, type):
         celltype = cellclass(paramDict)
-        cell_gids = pynest.create(celltype.nest_name,n)
-        cell_gids = [pynest.getGID(gid) for gid in cell_gids]
-        pynest.setDict(cell_gids,celltype.parameters)
+        cell_gids = nest.Create(celltype.nest_name,n)
+        cell_gids = [ID(nest.getGID(gid)) for gid in cell_gids]
+        nest.setDict(cell_gids,celltype.parameters)
     elif isinstance(cellclass, str):  # celltype is not a standard cell
-        cell_gids = pynest.create(cellclass,n)
-        cell_gids = [pynest.getGID(gid) for gid in cell_gids]
+        cell_gids = nest.Create(cellclass,n)
+        cell_gids = [ID(nest.getGID(gid)) for gid in cell_gids]
         if paramDict:
-            pynest.setDict(cell_gids,paramDict)
+            nest.setDict(cell_gids,paramDict)
     else:
         raise "Invalid cell type"
+    for id in cell_gids:
+    #    #id.setCellClass(cellclass)
+        id.cellclass = cellclass
     if n == 1:
         return cell_gids[0]
     else:
@@ -251,14 +313,14 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     if weight is None:
         weight = 0.0
     if delay is None:
-        delay = pynest.getLimits()['min_delay']
+        delay = nest.getLimits()['min_delay']
     weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                          # Using convention in this way is not ideal. We should be able to look up the units used by each model somewhere.
     if synapse_type == 'inhibitory' and weight > 0:
         weight *= -1
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
-            connect_id = pynest.connectWD(pynest.getAddress(source),pynest.getAddress(target),weight,delay)
+            connect_id = nest.connectWD(nest.getAddress(source),nest.getAddress(target),weight,delay)
         else:
             connect_id = []
             if type(source) != types.ListType:
@@ -266,17 +328,17 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
             if type(target) != types.ListType:
                 target = [target]
             for src in source:
-                src = pynest.getAddress(src)
+                src = nest.getAddress(src)
                 if p < 1:
                     if rng: # use the supplied RNG
                         rarr = rng.rng.uniform(0,1,len(target))
                     else:   # use the default RNG
                         rarr = numpy.random.uniform(0,1,len(target))
                 for j,tgt in enumerate(target):
-                    tgt = pynest.getAddress(tgt)
+                    tgt = nest.getAddress(tgt)
                     if p >= 1 or rarr[j] < p:
-                        connect_id += [pynest.connectWD(src,tgt,weight,delay)]
-    except pynest.SLIError:
+                        connect_id += [nest.connectWD(src,tgt,weight,delay)]
+    except nest.SLIError:
         raise common.ConnectionError
     return connect_id
 
@@ -285,48 +347,53 @@ def set(cells,cellclass,param,val=None):
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
     cellclass must be supplied for doing translation of parameter names."""
-        
+    # we should just assume that cellclass has been defined and raise an Exception if it has not
     if val:
         param = {param:val}
-    if type(cells) != types.ListType:
+    try:
+        i = cells[0]
+    except TypeError:
         cells = [cells]
-    if issubclass(cellclass, common.StandardCellType):
-        param = cellclass({}).translate(param)
-    pynest.setDict(cells,param)
+    if not isinstance(cellclass,str):
+        if issubclass(cellclass, common.StandardCellType):
+            param = cellclass({}).translate(param)
+        else:
+            raise TypeError, "cellclass must be a string or derived from commonStandardCellType"
+    nest.setDict(cells,param)
 
 def record(source,filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
-    spike_detector = pynest.create('spike_detector')
-    pynest.setDict(spike_detector,{'withtime':True,  # record time of spikes
+    spike_detector = nest.Create('spike_detector')
+    nest.setDict(spike_detector,{'withtime':True,  # record time of spikes
                                    'withpath':True}) # record which neuron spiked
     if type(source) == types.ListType:
-        source = [pynest.getAddress(src) for src in source]
+        source = [nest.getAddress(src) for src in source]
     else:
-        source = [pynest.getAddress(source)]
+        source = [nest.getAddress(source)]
     for src in source:
-        pynest.connect(src,spike_detector[0])
-        pynest.sr('/%s (%s/%s) (w) file def' % (filename, tempdir, filename))
-        pynest.sr('%s << /output_stream %s >> SetStatus' % (pynest.getGID(spike_detector[0]),filename))
+        nest.connect(src,spike_detector[0])
+        nest.sr('/%s (%s/%s) (w) file def' % (filename, tempdir, filename))
+        nest.sr('%s << /output_stream %s >> SetStatus' % (nest.getGID(spike_detector[0]),filename))
     ll_spike_files.append(filename)
 
 
-def record_v(source,filename):
+def record_v(source,filename_user):
     """
     Record membrane potential to a file. source can be an individual cell or
     a list of cells."""
     # would actually like to be able to record to an array and
     # choose later whether to write to a file.
     if type(source) == types.ListType:
-        source = [pynest.getAddress(src) for src in source]
+        source = [nest.getAddress(src) for src in source]
     else:
-        source = [pynest.getAddress(source)]
-    record_file = tempdir+'/'+filename
+        source = [nest.getAddress(source)]
+    record_file = filename_user
+    #ll_v_files.append(filename)
+    filename = nest.record_v(source,record_file)
     ll_v_files.append(filename)
-    pynest.record_v(source,record_file.replace('/','_'))
-
 
 def _printSpikes(filename, compatible_output=True):
     """ Print spikes into a file, and postprocessed them if
@@ -334,25 +401,33 @@ def _printSpikes(filename, compatible_output=True):
     Should actually work with record() and allow to dissociate the recording of the
     writing process, which is not the case for the moment"""
     tempfilename = "%s/%s" %(tempdir, filename)
-    pynest.sr('%s close' %tempfilename) 
+    nest.sr('%s close' %filename) 
     if (compatible_output):
         # Here we postprocess the file to have effectively the
         # desired format :
         # First line: # dimensions of the population
         # Then spiketime (in ms) cell_id-min(cell_id)
-        result = open(filename,'w',100)
-        g = open(tempfilename,'r',100)
-        lines = g.readlines()
-        g.close()
-        for line in lines:
-            single_line = line.split("\t", 1)
-            neuron = int(single_line[0][1:len(single_line[0])])
-            spike_time = dt*float(single_line[1])
-            result.write("%g\t%d\n" %(spike_time, neuron))
+        result = open(filename,'w',1000)
+        # Writing # such that Population.printSpikes and this have same output format
+        result.write("# "+"\n")
+        # Writing spiketimes, cell_id-min(cell_id)
+        # Pylab has a great load() function, but it is not necessary to import
+        # it into pyNN. The fromfile() function of numpy has trouble on several
+        # machine with Python 2.5, so that's why a dedicated _readArray function
+        # has been created to load from file the raster or the membrane potentials
+        # saved by NEST
+        try:
+            raster = _readArray(tempfilename, sepchar=" ")
+            raster = raster[:,1:3]
+            raster[:,1] = raster[:,1]*dt
+            for idx in xrange(len(raster)):
+                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+        except Exception:
+            print "Error while writing data into a compatible mode"
         result.close()
+        os.system("rm %s" %tempfilename)
     else:
         shutil.move(tempfilename, filename)
-    os.system("rm %s" %tempfilename)
 
 
 def _print_v(filename, compatible_output=True):
@@ -361,36 +436,63 @@ def _print_v(filename, compatible_output=True):
     Should actually work with record_v() and allow to dissociate the recording of the
     writing process, which is not the case for the moment"""
     tempfilename = tempdir+'/'+filename
-    pynest.sr('%s close' %tempfilename.replace('/','_')) 
-    result = open(filename,'w',100)
-    dt = pynest.getNESTStatus()['resolution']
-    n = int(pynest.getNESTStatus()['time']/dt)
+    nest.sr('%s close' %tempfilename.replace('/','_')) 
+    result = open(filename,'w',1000)
+    dt = nest.getNESTStatus()['resolution']
+    n = int(nest.getNESTStatus()['time']/dt)
     result.write("# dt = %f\n# n = %d\n" % (dt,n))
     if (compatible_output):
-        f = open(tempfilename.replace('/','_'),'r',100)
-        lines = f.readlines()
-        f.close()
-
         # Here we postprocess the file to have effectively the
         # desired format :
         # First line: dimensions of the population
         # Then spiketime cell_id-min(cell_id)
-        for line in lines:
-            line = line.rstrip()
-            single_line = line.split("\t", 2)
-            if (len(single_line) > 1) and (single_line[1] != '-'):
-               neuron = int(single_line[0])
-               result.write("%s\t%d\n" %(single_line[1], neuron))
+
+        # Pylab has a great load() function, but it is not necessary to import
+        # it into pyNN. The fromfile() function of numpy has trouble on several
+        # machine with Python 2.5, so that's why a dedicated _readArray function
+        # has been created to load from file the raster or the membrane potentials
+        # saved by NEST
+        try:
+            raster = _readArray(tempfilename.replace('/','_'), sepchar="\t")
+            for idx in xrange(len(raster)):
+                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+        except Exception:
+            print "Error while writing data into a compatible mode"
     else:
-        f = open(tempfilename.replace('/','_'),'r',100)
+        f = open(tempfilename.replace('/','_'),'r',1000)
         lines = f.readlines()
         f.close()
         for line in lines:
             result.write(line)
     result.close()
     os.system("rm %s" %tempfilename.replace('/','_'))
-    
 
+def _readArray(filename, sepchar = " ", skipchar = '#'):
+    myfile = open(filename, "r")
+    contents = myfile.readlines()
+    myfile.close() 
+    data = []
+    for line in contents:
+        stripped_line = line.lstrip()
+        if (len(stripped_line) != 0):
+            if (stripped_line[0] != skipchar):
+                items = stripped_line.split(sepchar)
+                # Here we have to deal with the fact that quite often, NEST
+                # does not write correctly the last line of Vm recordings.
+                # More precisely, it is often not complete
+                try :
+                    data.append(map(float, items))
+                except Exception:
+                    # The last line has a gid and just a "-" sign...
+                    pass
+    try :
+        a = numpy.array(data)
+    except Exception:
+        # The last line has just a gid, so we has to remove it
+        a = numpy.array(data[0:len(data)-2])
+    (Nrow,Ncol) = a.shape
+    if ((Nrow == 1) or (Ncol == 1)): a = ravel(a)
+    return(a)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -423,20 +525,22 @@ class Population(common.Population):
         
         if isinstance(cellclass, type):
             self.celltype = cellclass(cellparams)
-            self.cell = pynest.create(self.celltype.nest_name, self.size)
+            self.cell = nest.Create(self.celltype.nest_name, self.size)
             self.cellparams = self.celltype.parameters
         elif isinstance(cellclass, str):
-            self.cell = pynest.create(cellclass, self.size)
-            
-        self.cell = numpy.array([ ID(addr) for addr in self.cell ], ID)
+            self.cell = nest.Create(cellclass, self.size)
+
+        
+        self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
         self.id_start = self.cell.reshape(self.size,)[0]
         
         for id in self.cell:
-            id.setCellClass(cellclass)
-            id.setPosition(self.locate(id))
+            id.parent = self
+            #id.setCellClass(cellclass)
+            #id.setPosition(self.locate(id))
             
         if self.cellparams:
-            pynest.setDict(self.cell, self.cellparams)
+            nest.SetStatus(self.cell, self.cellparams)
             
         self.cell = numpy.reshape(self.cell, self.dim)    
         
@@ -461,11 +565,26 @@ class Population(common.Population):
             raise IndexError, 'Invalid cell address %s' % str(addr)
         return id
     
-
-    
     def __len__(self):
         """Returns the total number of cells in the population."""
         return self.size
+    
+    def __iter__(self):
+        return self.cell.flat
+
+    def __address_gen(self):
+        """
+        Generator to produce an iterator over all cells on this node,
+        returning addresses.
+        """
+        for i in self.__iter__():
+            yield self.locate(i)
+        
+    def addresses(self):
+        return self.__address_gen()
+    
+    def ids(self):
+        return self.__iter__()
     
     def locate(self, id):
         """Given an element id in a Population, return the coordinates.
@@ -517,7 +636,7 @@ class Population(common.Population):
             raise common.InvalidParameterValueError
         if isinstance(self.celltype, common.StandardCellType):
             paramDict = self.celltype.translate(paramDict)
-        pynest.setDict(numpy.reshape(self.cell,(self.size,)), paramDict)
+        nest.SetStatus(numpy.reshape(self.cell,(self.size,)), paramDict)
         
 
     def tset(self,parametername,valueArray):
@@ -543,8 +662,8 @@ class Population(common.Population):
                     if not isinstance(val,str) and hasattr(val,"__len__"):
                         val = list(val) # tuples, arrays are all converted to lists, since this is what SpikeSourceArray expects. This is not very robust though - we might want to add things that do accept arrays.
                     else:
-                        pynest.setDict([cell],{parametername: val})
-                except pynest.SLIError:
+                        nest.setDict([cell],{parametername: val})
+                except nest.SLIError:
                     raise common.InvalidParameterValueError, "Error from SLI"
         else:
             raise common.InvalidDimensionsError
@@ -565,8 +684,8 @@ class Population(common.Population):
             assert len(rarr) == len(cells)
             for cell,val in zip(cells,rarr):
                 try:
-                    pynest.setDict([cell],{parametername: val})
-                except pynest.SLIError:
+                    nest.setDict([cell],{parametername: val})
+                except nest.SLIError:
                     raise common.InvalidParameterValueError
             
     def _call(self,methodname,arguments):
@@ -597,17 +716,11 @@ class Population(common.Population):
         """
         global hl_spike_files
         
-        self.spike_detector = pynest.create('spike_detector')
-
-        pynest.setDict(self.spike_detector,{'withtime':True,  # record time of spikes
-                                            'withpath':True,  # record which neuron spiked
-                                            'to_file':True})  # record to a file
+        self.spike_detector = nest.Create('spike_detector')
+        nest.SetStatus(self.spike_detector,[{'withtime':True,  # record time of spikes
+                                            'withpath':True}]) # record which neuron spiked
         
         fixed_list = False
-
-        pynest.sps(self.spike_detector[0])
-        pynest.sr('GetStatus /filename get')
-        filename = pynest.spp()
 
         if record_from:
             if type(record_from) == types.ListType:
@@ -619,21 +732,21 @@ class Population(common.Population):
                 raise "record_from must be a list or an integer"
         else:
             n_rec = self.size
-#        pynest.resCons(self.spike_detector[0],n_rec)
+        #nest.resCons(self.spike_detector[0],n_rec)
 
         if (fixed_list == True):
             for neuron in record_from:
-                pynest.connect(neuron,self.spike_detector[0])
+                nest.Connect(neuron,self.spike_detector[0])
         else:
             for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
-                pynest.connect(neuron,self.spike_detector[0])
+                nest.Connect(neuron,self.spike_detector[0])
                 
         # Open temporary output file & register file with detectors
         # This should be redone now that Eilif has implemented the pythondatum datum type
-        # pynest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label,self.label)) # old
-#        pynest.sr('/%s.spikes (%s/%s.spikes) (w) file def' %  (self.label, tempdir, self.label))
-#        pynest.sr('%s << /output_stream %s.spikes >> SetStatus' % (pynest.getGID(self.spike_detector[0]),self.label))
-        hl_spike_files.append(filename)
+        # nest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label,self.label)) # old
+        #nest.sr('/%s.spikes (%s/%s.spikes) (w) file def' %  (self.label, tempdir, self.label))
+        #nest.sr('%s << /output_stream %s.spikes >> SetStatus' % (self.spike_detector[0],self.label))
+        #hl_spike_files.append('%s.spikes' % self.label)
         self.n_rec = n_rec
 
     def record_v(self,record_from=None,rng=None):
@@ -661,13 +774,17 @@ class Population(common.Population):
             n_rec = self.size
 
         tmp_list = []
+        filename    = '%s.v' % self.label
+        record_file = filename
         if (fixed_list == True):
             tmp_list = [neuron for neuron in record_from]
         else:
             for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
                 tmp_list.append(neuron)
-        filename = pynest.record_v(tmp_list)
         hl_v_files.append(filename)
+        #nest.record_v(tmp_list)
+        print type(tmp_list[0])
+        nest.record_v(tmp_list, record_file.replace('/','_'))
     
     
     def printSpikes(self,filename,gather=True, compatible_output=True):
@@ -682,36 +799,42 @@ class Population(common.Population):
         indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        spike files.
-        
+        is used. This may be faster, sinc# Writing spiketimes, cell_id-min(cell_id)
         If gather is True, the file will only be created on the master node,
         otherwise, a file will be written on each node.
         """        
         global hl_spike_files
         tempfilename = '%s.spikes' % self.label
-
         if hl_spike_files.__contains__(tempfilename):
-            pynest.sr('%s close' % tempfilename)
+            nest.sr('%s close' % tempfilename)
             hl_spike_files.remove(tempfilename)
+
         if (compatible_output):
             # Here we postprocess the file to have effectively the
             # desired format: spiketime (in ms) cell_id-min(cell_id)
-            result = open(filename,'w',1)
-            g = open("%s/%s" %(tempdir, tempfilename),'r',1)
+            result = open(filename,'w',1000)
             # Writing dimensions of the population:
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
-        
             # Writing spiketimes, cell_id-min(cell_id)
             padding = numpy.reshape(self.cell,self.cell.size)[0]
-            lines = g.readlines()
-            g.close()
-            for line in lines:
-                single_line = line.split("\t", 1)
-                neuron = int(single_line[0][1:len(single_line[0])]) - padding
-                spike_time = dt*float(single_line[1])
-                result.write("%g\t%d\n" %(spike_time, neuron))
+            # Pylab has a great load() function, but it is not necessary to import
+            # it into pyNN. The fromfile() function of numpy has trouble on several
+            # machine with Python 2.5, so that's why a dedicated _readArray function
+            # has been created to load from file the raster or the membrane potentials
+            # saved by NEST
+            try :
+                raster = _readArray("%s/%s" %(tempdir, tempfilename),sepchar=" ")
+                #Sometimes, nest doesn't write the last line entirely, so we need
+                #to trunk it to avoid errors
+                raster = raster[:,1:3]
+                raster[:,0] = raster[:,0] - padding
+                raster[:,1] = raster[:,1]*dt
+                for idx in xrange(len(raster)):
+                    result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+            except Exception:
+                print "Error while writing data into a compatible mode"
             result.close()
+            os.system("rm %s/%s" %(tempdir, tempfilename))
         else:
             print 'didt go into the compatible output stuff'
             shutil.move(tempdir+'/'+tempfilename,filename)
@@ -722,7 +845,7 @@ class Population(common.Population):
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        status = pynest.get(self.spike_detector[0])
+        status = nest.get(nest.getGID(self.spike_detector[0]))
         n_spikes = status["events"]
         return float(n_spikes)/self.n_rec
 
@@ -735,7 +858,7 @@ class Population(common.Population):
         #cells = numpy.reshape(self.cell,self.cell.size)
         #rvals = rand_distr.next(n=self.cell.size)
         #for node, v_init in zip(cells,rvals):
-        #    pynest.setDict([node],{'u': v_init})
+        #    nest.setDict([node],{'u': v_init})
     
     def print_v(self,filename,gather=True, compatible_output=True):
         """
@@ -753,21 +876,20 @@ class Population(common.Population):
         voltage files.
         """
         global hl_v_files
-        
-        tempfilename = tempdir+'/'+'%s.v' % self.label
+        print hl_v_files
+        tempfilename = '%s.v' % self.label
+        print tempfilename
         if hl_v_files.__contains__(tempfilename):
-            pynest.sr('%s close' % tempfilename.replace('/','_'))
+            nest.sr('%s close' % tempfilename)
             hl_v_files.remove(tempfilename)
-                
-        result = open(filename,'w',1)
-        dt = pynest.getNESTStatus()['resolution']
-        n = int(pynest.getNESTStatus()['time']/dt)
+
+        result = open(filename,'w',1000)
+        NESTStatus = nest.GetStatus([0])
+        dt = NESTStatus['resolution']
+        n = int(NESTStatus['time']/dt)
         result.write("# dt = %f\n# n = %d\n" % (dt,n))
 
         if (compatible_output):
-            f = open(tempfilename.replace('/','_'),'r',1)
-            lines = f.readlines()
-            f.close()
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
             padding = numpy.reshape(self.cell,self.cell.size)[0]
 
@@ -775,19 +897,27 @@ class Population(common.Population):
             # desired format :
             # First line: dimensions of the population
             # Then spiketime cell_id-min(cell_id)
-            for line in lines:
-                line = line.rstrip()
-                single_line = line.split("\t", 2)
-                if (len(single_line) > 1) and (single_line[1] != '-'):
-                    neuron = int(single_line[0]) - padding
-                    result.write("%s\t%d\n" %(single_line[1], neuron))
+            
+            # Pylab has a great load() function, but it is not necessary to import
+            # it into pyNN. The fromfile() function of numpy has trouble on several
+            # machine with Python 2.5, so that's why a dedicated _readArray function
+            # has been created to load from file the raster or the membrane potentials
+            # saved by NEST
+            try:
+                raster = _readArray(tempfilename,sepchar="\t")
+                raster[:,0] = raster[:,0] - padding
+
+                for idx in xrange(len(raster)):
+                    result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+            except Exception:
+                print "Error while writing data into a compatible mode"
         else:
-            f = open(tempfilename.replace('/','_'),'r',1)
+            f = open(tempfilename,'r',1000)
             lines = f.readlines()
             f.close()
             for line in lines:
                 result.write(line)
-        os.system("rm %s" %tempfilename.replace('/','_'))
+        os.system("rm %s" %tempfilename)
         result.close()
 
     
@@ -806,7 +936,7 @@ class Projection(common.Projection):
             def __getitem__(self,id):
                 """Returns a (source address,target port number) tuple."""
                 assert isinstance(id, int)
-                return (pynest.getAddress(self.parent._sources[id]), self.parent._targetPorts[id])
+                return (nest.getAddress(self.parent._sources[id]), self.parent._targetPorts[id])
     
     def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',methodParameters=None,source=None,target=None,label=None,rng=None):
         """
@@ -841,13 +971,13 @@ class Projection(common.Projection):
             self.nconn = connection_method(methodParameters,synapse_type=target)
         else:
             self.nconn = connection_method(methodParameters)
-#        assert len(self._sources) == len(self._targets) == len(self._targetPorts), "Connection error. Source and target lists are of different lengths."
+        assert len(self._sources) == len(self._targets) == len(self._targetPorts), "Connection error. Source and target lists are of different lengths."
         self.connection = Projection.ConnectionDict(self)
         
         # By defaut, we set all the delays to min_delay, except if
         # the Projection data have been loaded from a file or a list.
         if (method != 'fromList') and (method != 'fromFile'):
-            self.setDelays(pynest.getLimits()['min_delay'])
+            self.setDelays(nest.getLimits()['min_delay'])
     
     def __len__(self):
         """Return the total number of connections."""
@@ -864,8 +994,8 @@ class Projection(common.Projection):
         a scaling between the two dimensions of the populations: the target
         population is scaled to the size of the source population."""
         dist = 0.0
-        src_position = src.getPosition()
-        tgt_position = tgt.getPosition()
+        src_position = src.position
+        tgt_position = tgt.position
         if (len(src_position) == len(tgt_position)):
             for i in xrange(len(src_position)):
                 # We normalize the positions in each population and calculate the
@@ -895,10 +1025,11 @@ class Projection(common.Projection):
         for post in postsynaptic_neurons:
             source_list = presynaptic_neurons.tolist()
             # if self connections are not allowed, check whether pre and post are the same
-            if allow_self_connections or post not in source_list:
-                self._targets += [post]*len(source_list)
-                self._sources += source_list
-#                self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
+            if not allow_self_connections and post in source_list:
+                source_list.remove(post)
+            self._targets += [post]*len(source_list)
+            self._sources += source_list
+            self._targetPorts += nest.convergentConnect(source_list,post,[1.0],[0.1])
         return len(self._targets)
     
     def _oneToOne(self,synapse_type=None):
@@ -916,9 +1047,9 @@ class Projection(common.Projection):
             self._sources = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
             self._targets = numpy.reshape(self.post.cell,(self.post.cell.size,))
             for pre,post in zip(self._sources,self._targets):
-                pre_addr = pynest.getAddress(pre)
-                post_addr = pynest.getAddress(post)
-                self._targetPorts.append(pynest.connect(pre_addr,post_addr))
+                pre_addr = nest.getAddress(pre)
+                post_addr = nest.getAddress(post)
+                self._targetPorts.append(nest.connect(pre_addr,post_addr))
             return self.pre.size
         else:
             raise Exception("Method 'oneToOne' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
@@ -947,7 +1078,7 @@ class Projection(common.Projection):
             source_list = numpy.compress(numpy.less(rarr,p_connect),presynaptic_neurons).tolist()
             self._targets += [post]*len(source_list)
             self._sources += source_list
-            self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
+            self._targetPorts += nest.convergentConnect(source_list,post,[1.0],[0.1])
         return len(self._sources)
     
     def _distanceDependentProbability(self,parameters,synapse_type=None):
@@ -993,19 +1124,19 @@ class Projection(common.Projection):
                     distance_expression = d_expression.replace('d', '%f' %dist)
                     
                     # calculate the addresses of cells
-                    pre_addr  = pynest.getAddress(pre)
-                    post_addr = pynest.getAddress(post)
+                    pre_addr  = nest.getAddress(pre)
+                    post_addr = nest.getAddress(post)
                     
                     if alphanum:
                         if rarr[count] < eval(distance_expression):
                             self._sources.append(pre)
                             self._targets.append(post)
-                            self._targetPorts.append(pynest.connect(pre_addr,post_addr)) 
+                            self._targetPorts.append(nest.connect(pre_addr,post_addr)) 
                             count = count + 1
                     elif eval(distance_expression):
                         self._sources.append(pre)
                         self._targets.append(post)
-                        self._targetPorts.append(pynest.connect(pre_addr,post_addr))
+                        self._targetPorts.append(nest.connect(pre_addr,post_addr))
     
     def _fixedNumberPre(self,parameters,synapse_type=None):
         """Each presynaptic cell makes a fixed number of connections."""
@@ -1039,16 +1170,17 @@ class Projection(common.Projection):
         else:
             rng = numpy.random
         for pre in presynaptic_neurons:
-            pre_addr = pynest.getAddress(pre)
+            pre_addr = nest.getAddress(pre)
             # Reserve space for connections
             if not fixed:
                 n = rand_distr.next()
-#            pynest.resCons(pre_addr,n)                
+            nest.resCons(pre_addr,n)                
             # pick n neurons at random
             for post in rng.permutation(postsynaptic_neurons)[0:n]:
-                self._sources.append(pre)
-                self._targets.append(post)
-                self._targetPorts.append(pynest.connect(pre_addr,pynest.getAddress(post)))
+                if allow_self_connections or (pre != post):
+                    self._sources.append(pre)
+                    self._targets.append(post)
+                    self._targetPorts.append(nest.connect(pre_addr,nest.getAddress(post)))
     
     def _fixedNumberPost(self,parameters,synapse_type=None):
         """Each postsynaptic cell receives a fixed number of connections."""
@@ -1082,16 +1214,17 @@ class Projection(common.Projection):
         else:
             rng = numpy.random
         for post in postsynaptic_neurons:
-            post_addr = pynest.getAddress(post)
+            post_addr = nest.getAddress(post)
             # Reserve space for connections
             if not fixed:
                 n = rand_distr.next()
-#            pynest.resCons(post_addr,n)                
+            nest.resCons(post_addr,n)                
             # pick n neurons at random
             for pre in rng.permutation(presynaptic_neurons)[0:n]:
-                self._sources.append(pre)
-                self._targets.append(post)
-                self._targetPorts.append(pynest.connect(pynest.getAddress(pre),post_addr))
+                if allow_self_connections or (pre != post):
+                    self._sources.append(pre)
+                    self._targets.append(post)
+                    self._targetPorts.append(nest.connect(nest.getAddress(pre),post_addr))
     
     def _fromFile(self,parameters,synapse_type=None):
         """
@@ -1105,7 +1238,7 @@ class Projection(common.Projection):
         elif type(parameters) == types.StringType:
             filename = parameters
             # now open the file...
-            f = open(filename,'r')
+            f = open(filename,'r',10000)
             lines = f.readlines()
         elif type(parameters) == types.DictType:
             # dict could have 'filename' key or 'file' key
@@ -1136,12 +1269,11 @@ class Projection(common.Projection):
             src, tgt, weight, delay = conn_list[i][:]
             src = self.pre[tuple(src)]
             tgt = self.post[tuple(tgt)]
-                        
-            pre_addr = pynest.getAddress(src)
-            post_addr = pynest.getAddress(tgt)
+            pre_addr = nest.getAddress(src)
+            post_addr = nest.getAddress(tgt)
             self._sources.append(src)
-            self._targets.append(tgt)        
-            self._targetPorts.append(pynest.connectWD(pre_addr,post_addr, 1000*weight, delay))
+            self._targets.append(tgt)
+            self._targetPorts.append(nest.connectWD(pre_addr,post_addr, 1000*weight, delay))
 
     def _2D_Gauss(self,parameters,synapse_type=None):
         """
@@ -1177,7 +1309,7 @@ class Projection(common.Projection):
                 except IndexError:
                     target_id.append(False)
             
-            pynest.divConnect(pre_id,target_id,[weight],[delay])
+            nest.divConnect(pre_id,target_id,[weight],[delay])
         
         
         n = parameters['n']
@@ -1213,8 +1345,8 @@ class Projection(common.Projection):
         print 'pre_id ',params['pre_id']
         print 'target_id ',params['target_id']
         eval(params['eval_string'])
-        #cons=pynest.divConnect(params['pre_id'],params['target_id'],params['weights_array'].tolist(),params['delays_array'].tolist())
-        #pynest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
+        #cons=nest.divConnect(params['pre_id'],params['target_id'],params['weights_array'].tolist(),params['delays_array'].tolist())
+        #nest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
         print 'leaving test_delay'
         
     def _3D_Gauss(self,parameters,synapse_type=None):
@@ -1291,6 +1423,7 @@ class Projection(common.Projection):
             for syn_nr in range(len(target_position_x)):
                 try:
                     target_id.append(self.post.cell[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
+                    #target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr],target_position_z[syn_nr])])
                     target_id_bool = numpy.append(target_id_bool,True)
                     #target_id_bool.append(True)
                 except IndexError:
@@ -1348,21 +1481,21 @@ class Projection(common.Projection):
             #delay_array = parameters['delays_array']
             #weight_array = parameters['weights_array']
             #target_id = parameters['target_id']
-            if pre_id==100:
-                print '#############################################'
-                print 'This is the data in 3D Gauss'
-                print '#############################################'
-                print 'preneuron id',pre_id
+            #if pre_id==100:
+            #    print '#############################################'
+            #    print 'This is the data in 3D Gauss'
+            #    print '#############################################'
+            #    print 'preneuron id',pre_id
                 #print 'r_syn: ',r_syn
                 #print 'r_syn2',r_syn2
                 #print 'min_delay_offset_array ',min_delay_offset_array
-                print 'delay_array ',delay_array
-                print 'type first element of delay ',type(delay_array[0])
-                print 'weight ',weight_array
-                print 'type first element of weight ',type(weight_array[0])
-                print 'now we dive into pynest.hl_api.... yeah'
-                print '#############################################'
-                print '\n'
+            #    print 'delay_array ',delay_array
+            #    print 'type first element of delay ',type(delay_array[0])
+            #    print 'weight ',weight_array
+            #    print 'type first element of weight ',type(weight_array[0])
+            #    print 'now we dive into nest.hl_api.... yeah'
+            #    print '#############################################'
+            #    print '\n'
                 #print 'size_in_mm: ',size_in_mm
                 #print 'post_dim[0]: ',post_dim[0]
                 #print 'conduction_speed: ',conduction_speed
@@ -1373,16 +1506,16 @@ class Projection(common.Projection):
                 #print 'len weigth ', len(weight_array.tolist())
                 #print 'delay list: ',type(delay_array.tolist())
 
-            #pynest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
-            #delays_array = rng.normal(loc=pynest.getDict([0])[0]['max_delay']/2.,scale=abs(pynest.getDict([0])[0]['max_delay']/2.*params_dist),size=n)
+            #nest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
+            #delays_array = rng.normal(loc=nest.getDict([0])[0]['max_delay']/2.,scale=abs(nest.getDict([0])[0]['max_delay']/2.*params_dist),size=n)
             #weights_array = delays_array
             
-            pynest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
+            nest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
             
             #return delay_array
             #else:
                 #print 'no dist'
-            #    pynest.divConnect(pre_id,target_id,[weight],[delay])
+            #    nest.divConnect(pre_id,target_id,[weight],[delay])
         
         
         n = parameters['n']
@@ -1432,12 +1565,12 @@ class Projection(common.Projection):
            # set all the weights from a given node at once
             for src in numpy.reshape(self.pre.cell,self.pre.cell.size):
                 assert isinstance(src,int), "GIDs should be integers"
-                src_addr = pynest.getAddress(src)
-                n = len(pynest.getDict([src_addr])[0]['weights'])
-                pynest.setDict([src_addr], {'weights' : [w]*n})
+                src_addr = nest.getAddress(src)
+                n = len(nest.getDict([src_addr])[0]['weights'])
+                nest.setDict([src_addr], {'weights' : [w]*n})
         elif isinstance(w,list) or isinstance(w,numpy.ndarray):
             for src, port, weight in zip(self._sources,self._targetPorts,w):
-                pynest.setWeight(pynest.getAddress(src),port,weight)
+                nest.setWeight(nest.getAddress(src),port,weight)
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
     
@@ -1446,7 +1579,7 @@ class Projection(common.Projection):
         Set weights to random values taken from rand_distr.
         """
         for src,port in self.connections():
-            pynest.setWeight(src, port, 1000*rand_distr.next())
+            nest.setWeight(src, port, 1000*rand_distr.next())
     
     def setDelays(self,d):
         """
@@ -1458,12 +1591,12 @@ class Projection(common.Projection):
             # Set all the delays from a given node at once.
             for src in numpy.reshape(self.pre.cell,self.pre.cell.size):
                 assert isinstance(src,int), "GIDs should be integers"
-                src_addr = pynest.getAddress(src)
-                n = len(pynest.getDict([src_addr])[0]['delays'])
-                pynest.setDict([src_addr], {'delays' : [d]*n})
+                src_addr = nest.getAddress(src)
+                n = len(nest.getDict([src_addr])[0]['delays'])
+                nest.setDict([src_addr], {'delays' : [d]*n})
         elif isinstance(d,list) or isinstance(d,numpy.ndarray):
             for src, port, delay in zip(self._sources,self._targetPorts,d):
-                pynest.setDelay(pynest.getAddress(src),port,delay)
+                nest.setDelay(nest.getAddress(src),port,delay)
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
     
@@ -1472,7 +1605,7 @@ class Projection(common.Projection):
         Set delays to random values taken from rand_distr.
         """
         for src,port in self.connections():
-            pynest.setDelay(src, port, rand_distr.next())
+            nest.setDelay(src, port, rand_distr.next())
     
     def setThreshold(self,threshold):
         """
@@ -1508,10 +1641,10 @@ class Projection(common.Projection):
     def saveConnections(self,filename,gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        f = open(filename,'w')
+        f = open(filename,'w',1000)
         # Note unit change from pA to nA or nS to uS, depending on synapse type
-        weights = [0.001*pynest.getWeight(src,port) for (src,port) in self.connections()]
-        delays = [pynest.getDelay(src,port) for (src,port) in self.connections()] 
+        weights = [0.001*nest.getWeight(src,port) for (src,port) in self.connections()]
+        delays = [nest.getDelay(src,port) for (src,port) in self.connections()] 
         fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label,"%s",self.post.label,"%s","%g","%g")
         for i in xrange(len(self)):
             line = fmt  % (self.pre.locate(self._sources[i]),
@@ -1524,18 +1657,18 @@ class Projection(common.Projection):
     
     def printWeights(self,filename,format=None,gather=True):
         """Print synaptic weights to file."""
-        file = open(filename,'w')
+        file = open(filename,'w',1000)
         postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,)).tolist()
         presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,)).tolist()
         weightArray = numpy.zeros((self.pre.size,self.post.size),dtype=float)
         for src in self._sources:
-            src_addr = pynest.getAddress(src)
-            pynest.sps(src_addr)
-            pynest.sr('GetTargets')
-            targetList = [pynest.getGID(tgt) for tgt in pynest.spp()]
-            pynest.sps(src_addr)
-            pynest.sr('GetWeights')
-            weightList = pynest.spp()
+            src_addr = nest.getAddress(src)
+            nest.sps(src_addr)
+            nest.sr('GetTargets')
+            targetList = [nest.getGID(tgt) for tgt in nest.spp()]
+            nest.sps(src_addr)
+            nest.sr('GetWeights')
+            weightList = nest.spp()
             
             i = presynaptic_neurons.index(src)
             for tgt,w in zip(targetList,weightList):
