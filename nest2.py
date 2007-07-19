@@ -767,11 +767,11 @@ class Population(common.Population):
         
         # create device
         
-        self.recorder = nest.Create("voltmeter")
+        self.voltmeter = nest.Create("voltmeter")
         params = {"to_file" : True, "withgid" : True, "withtime" : True}
-        nest.SetStatus(self.recorder, [params])
+        nest.SetStatus(self.voltmeter, [params])
         
-        filename = nest.GetStatus(self.recorder, "filename")
+        filename = nest.GetStatus(self.voltmeter, "filename")
         hl_v_files[self.label] = filename
         
         
@@ -796,7 +796,7 @@ class Population(common.Population):
                 tmp_list.append(neuron)
         
         # connect device to neurons
-        nest.DivergentConnect(self.recorder, tmp_list)
+        nest.DivergentConnect(self.voltmeter, tmp_list)
         
     
     
@@ -819,8 +819,9 @@ class Population(common.Population):
         global hl_spike_files
 
         # closing of the file
-        #if hl_spike_files.has_key(self.label):#   __contains__(tempfilename):
-        #    nest.sr('%s close' % hl_spike_files[self.label][0])
+        if hl_spike_files.has_key(self.label):#   __contains__(tempfilename):
+            nest.sps(self.spike_detector[0])
+            nest.sr("FlushDevice")
         
         
         if (compatible_output):
@@ -896,10 +897,10 @@ class Population(common.Population):
         global hl_v_files
         
         # closing file
-        #if hl_v_files.__contains__(tempfilename):
-        #    nest.sr('%s close' % tempfilename)
-        #    hl_v_files.remove(tempfilename)
-        
+        if hl_v_files.has_key(self.label):#   __contains__(tempfilename):
+            nest.sps(self.voltmeter[0])
+            nest.sr("FlushDevice")
+                
         result = open(filename,'w',1000)
         NESTStatus = nest.GetStatus([0])[0]
         dt = NESTStatus['resolution']
