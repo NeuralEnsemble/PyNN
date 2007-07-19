@@ -13,8 +13,8 @@ from math import *
 
 ll_spike_files = []
 ll_v_files     = []
-hl_spike_files = []
-hl_v_files     = []
+hl_spike_files = {}
+hl_v_files     = {}
 tempdirs       = []
 dt             = 0.1
 
@@ -716,12 +716,16 @@ class Population(common.Population):
         """
         global hl_spike_files
         
+        # create device
         self.spike_detector = nest.Create('spike_detector')
-        nest.SetStatus(self.spike_detector,[{'withtime':True,  # record time of spikes
-                                            'withpath':True}]) # record which neuron spiked
+        params = {"to_file" : True, "withgid" : True, "withtime" : True,'withpath':True}
+        nest.SetStatus(self.spike_detector, [params])
         
+        filename = nest.GetStatus(self.spike_detector, "filename")
+        hl_spike_files[self.label] = filename
+        
+        # create list of neurons        
         fixed_list = False
-
         if record_from:
             if type(record_from) == types.ListType:
                 fixed_list = True
@@ -732,20 +736,22 @@ class Population(common.Population):
                 raise "record_from must be a list or an integer"
         else:
             n_rec = self.size
-        #nest.resCons(self.spike_detector[0],n_rec)
+        
 
+        tmp_list = []
         if (fixed_list == True):
             for neuron in record_from:
-                nest.Connect(neuron,self.spike_detector[0])
+                tmp_list = [neuron for neuron in record_from]
+                #nest.Connect([neuron],[self.spike_detector[0]])
         else:
             for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
-                nest.Connect(neuron,self.spike_detector[0])
-                
-        # Open temporary output file & register file with detectors
-        # This should be redone now that Eilif has implemented the pythondatum datum type
-        # nest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label,self.label)) # old
-        #nest.sr('/%s.spikes (%s/%s.spikes) (w) file def' %  (self.label, tempdir, self.label))
-        #nest.sr('%s << /output_stream %s.spikes >> SetStatus' % (self.spike_detector[0],self.label))
+                tmp_list.append(neuron)
+                #nest.Connect([neuron],[self.spike_detector[0]])
+
+        # connect device to neurons
+        nest.ConvergentConnect(tmp_list,self.spike_detector)
+        
+        
         #hl_spike_files.append('%s.spikes' % self.label)
         self.n_rec = n_rec
 
@@ -759,8 +765,17 @@ class Population(common.Population):
         """
         global hl_v_files
         
-        fixed_list = False
+        # create device
         
+        self.recorder = nest.Create("voltmeter")
+        params = {"to_file" : True, "withgid" : True, "withtime" : True}
+        nest.SetStatus(self.recorder, [params])
+        
+        filename = nest.GetStatus(self.recorder, "filename")
+        hl_v_files[self.label] = filename
+        
+        
+        # create list of neurons
         fixed_list = False
         if record_from:
             if type(record_from) == types.ListType:
@@ -774,17 +789,15 @@ class Population(common.Population):
             n_rec = self.size
 
         tmp_list = []
-        filename    = '%s.v' % self.label
-        record_file = filename
         if (fixed_list == True):
             tmp_list = [neuron for neuron in record_from]
         else:
             for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
                 tmp_list.append(neuron)
-        hl_v_files.append(filename)
-        #nest.record_v(tmp_list)
-        print type(tmp_list[0])
-        nest.record_v(tmp_list, record_file.replace('/','_'))
+        
+        # connect device to neurons
+        nest.DivergentConnect(self.recorder, tmp_list)
+        
     
     
     def printSpikes(self,filename,gather=True, compatible_output=True):
@@ -804,11 +817,12 @@ class Population(common.Population):
         otherwise, a file will be written on each node.
         """        
         global hl_spike_files
-        tempfilename = '%s.spikes' % self.label
-        if hl_spike_files.__contains__(tempfilename):
-            nest.sr('%s close' % tempfilename)
-            hl_spike_files.remove(tempfilename)
 
+        # closing of the file
+        #if hl_spike_files.has_key(self.label):#   __contains__(tempfilename):
+        #    nest.sr('%s close' % hl_spike_files[self.label][0])
+        
+        
         if (compatible_output):
             # Here we postprocess the file to have effectively the
             # desired format: spiketime (in ms) cell_id-min(cell_id)
@@ -822,22 +836,26 @@ class Population(common.Population):
             # machine with Python 2.5, so that's why a dedicated _readArray function
             # has been created to load from file the raster or the membrane potentials
             # saved by NEST
-            try :
-                raster = _readArray("%s/%s" %(tempdir, tempfilename),sepchar=" ")
-                #Sometimes, nest doesn't write the last line entirely, so we need
-                #to trunk it to avoid errors
-                raster = raster[:,1:3]
-                raster[:,0] = raster[:,0] - padding
-                raster[:,1] = raster[:,1]*dt
-                for idx in xrange(len(raster)):
-                    result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
-            except Exception:
-                print "Error while writing data into a compatible mode"
+            if int(os.path.getsize(hl_spike_files[self.label][0])) > 0:
+                try: 
+                    raster = _readArray("%s" % hl_spike_files[self.label][0] ,sepchar=" ")
+                    # Sometimes, nest doesn't write the last line entirely, so we need
+                    # to trunk it to avoid errors
+                    raster = raster[:,1:3]
+                    raster[:,0] = raster[:,0] - padding
+                    raster[:,1] = raster[:,1]*dt
+                    for idx in xrange(len(raster)):
+                        result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+                except Exception:
+                    print "Error while writing data into a compatible mode"
             result.close()
-            os.system("rm %s/%s" %(tempdir, tempfilename))
+            os.system("rm %s" % hl_spike_files[self.label][0])
         else:
             print 'didt go into the compatible output stuff'
-            shutil.move(tempdir+'/'+tempfilename,filename)
+            shutil.move(hl_spike_files[self.label][0],filename)
+
+        # remove the key from hl_spike_files
+        hl_spike_files.pop(self.label)
         
 
     def meanSpikeCount(self,gather=True):
@@ -876,19 +894,18 @@ class Population(common.Population):
         voltage files.
         """
         global hl_v_files
-        print hl_v_files
-        tempfilename = '%s.v' % self.label
-        print tempfilename
-        if hl_v_files.__contains__(tempfilename):
-            nest.sr('%s close' % tempfilename)
-            hl_v_files.remove(tempfilename)
-
+        
+        # closing file
+        #if hl_v_files.__contains__(tempfilename):
+        #    nest.sr('%s close' % tempfilename)
+        #    hl_v_files.remove(tempfilename)
+        
         result = open(filename,'w',1000)
-        NESTStatus = nest.GetStatus([0])
+        NESTStatus = nest.GetStatus([0])[0]
         dt = NESTStatus['resolution']
         n = int(NESTStatus['time']/dt)
         result.write("# dt = %f\n# n = %d\n" % (dt,n))
-
+        
         if (compatible_output):
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
             padding = numpy.reshape(self.cell,self.cell.size)[0]
@@ -903,23 +920,27 @@ class Population(common.Population):
             # machine with Python 2.5, so that's why a dedicated _readArray function
             # has been created to load from file the raster or the membrane potentials
             # saved by NEST
-            try:
-                raster = _readArray(tempfilename,sepchar="\t")
-                raster[:,0] = raster[:,0] - padding
-
-                for idx in xrange(len(raster)):
-                    result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
-            except Exception:
-                print "Error while writing data into a compatible mode"
+            if int(os.path.getsize(hl_v_files[self.label][0])) > 0:
+                try:
+                    raster = _readArray(hl_v_files[self.label][0],sepchar="\t")
+                    raster[:,0] = raster[:,0] - padding
+                
+                    for idx in xrange(len(raster)):
+                        result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+                except Exception:
+                    print "Error while writing data into a compatible mode"
         else:
-            f = open(tempfilename,'r',1000)
+            f = open(hl_v_files[self.label][0],'r',1000)
             lines = f.readlines()
             f.close()
             for line in lines:
                 result.write(line)
-        os.system("rm %s" %tempfilename)
+        os.system("rm %s" % hl_v_files[self.label][0])
         result.close()
 
+        # remove the key from hl_spike_files
+        hl_v_files.pop(self.label)
+        
     
 class Projection(common.Projection):
     """
