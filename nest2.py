@@ -193,14 +193,14 @@ class SpikeSourceArray(common.SpikeSourceArray):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
+def setup(timestep=0.1,debug=False,**extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    if min_delay > max_delay:
-        raise Exception("min_delay has to be less than or equal to max_delay.")
+    #if min_delay > max_delay:
+    #    raise Exception("min_delay has to be less than or equal to max_delay.")
     global dt
     global tempdir
     dt = timestep
@@ -218,15 +218,15 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     nest.SetStatus([0],[{'resolution': dt}])
     
     if extra_params.has_key('threads'):
-        update_modes = {'fixed':1, 'serial':3, 'dynamic':0}
-        # number of nodes to give to each thread at a time
-        # some small fraction of your total nodes to be simulated
-        batchsize   = 10
-        kernelseeds = [11,22,33,44,55,66,77,88,99]
-        nest.SetStatus([0],[{'threads'     : extra_params['threads'],
-                            'update_mode' : update_modes['fixed'],
-                            'rng_seeds'   : kernelseeds[0:extra_params['threads']],
-                            'buffsize'    : batchsize}])
+        if extra_params.has_key('kernelseeds'):
+            kernelseeds = extra_params['kernelseeds']
+        else:
+            # default kernelseeds, for each thread one, to ensure same for each sim we get the rng with seed 42
+            rng = NumpyRNG(42)
+            kernelseeds = (rng.rng.uniform(size=extra_params['threads'])*100).astype('int').tolist()
+        
+        nest.SetStatus([0],[{'local_num_threads'     : extra_params['threads'],
+                            'rng_seeds'   : kernelseeds}])
     
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
@@ -248,12 +248,10 @@ def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     # We close the high level files opened by populations objects
     # that may have not been written.
+
+    # NEST will soon close all its output files after the simulate function is over, therefore this step is not necessary
     global tempdir
-    for file in hl_spike_files:
-        nest.sr('%s close' %file)
-    for file in hl_v_files:
-        file = tempdir + '/' + file
-        nest.sr('%s close' %file.replace('/','_'))
+    
     # And we postprocess the low level files opened by record()
     # and record_v() method
     for file in ll_spike_files:
@@ -540,7 +538,7 @@ class Population(common.Population):
             #id.setPosition(self.locate(id))
             
         if self.cellparams:
-            nest.SetStatus(self.cell, self.cellparams)
+            nest.SetStatus(self.cell, [self.cellparams])
             
         self.cell = numpy.reshape(self.cell, self.dim)    
         
@@ -636,7 +634,7 @@ class Population(common.Population):
             raise common.InvalidParameterValueError
         if isinstance(self.celltype, common.StandardCellType):
             paramDict = self.celltype.translate(paramDict)
-        nest.SetStatus(numpy.reshape(self.cell,(self.size,)), paramDict)
+        nest.SetStatus(numpy.reshape(self.cell,(self.size,)), [paramDict])
         
 
     def tset(self,parametername,valueArray):
@@ -662,7 +660,7 @@ class Population(common.Population):
                     if not isinstance(val,str) and hasattr(val,"__len__"):
                         val = list(val) # tuples, arrays are all converted to lists, since this is what SpikeSourceArray expects. This is not very robust though - we might want to add things that do accept arrays.
                     else:
-                        nest.setDict([cell],{parametername: val})
+                        nest.SetStatus([cell],[{parametername: val}])
                 except nest.SLIError:
                     raise common.InvalidParameterValueError, "Error from SLI"
         else:
@@ -684,7 +682,7 @@ class Population(common.Population):
             assert len(rarr) == len(cells)
             for cell,val in zip(cells,rarr):
                 try:
-                    nest.setDict([cell],{parametername: val})
+                    nest.SetStatus([cell],{parametername: val})
                 except nest.SLIError:
                     raise common.InvalidParameterValueError
             
@@ -865,7 +863,7 @@ class Population(common.Population):
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        status = nest.get(nest.getGID(self.spike_detector[0]))
+        status = nest.GetStatus(self.spike_detector[0])
         n_spikes = status["events"]
         return float(n_spikes)/self.n_rec
 
@@ -899,7 +897,7 @@ class Population(common.Population):
         
         # closing file
         # just a workaround, nest will do that automatically soon
-        if hl_v_files.has_key(self.label):#   __contains__(tempfilename):
+        if hl_v_files.has_key(self.label):
             nest.sps(self.voltmeter[0])
             nest.sr("FlushDevice")
                 
