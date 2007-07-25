@@ -229,6 +229,25 @@ class IF_cond_exp(StandardCellType):
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
 
+class HH_cond_exp(StandardCellType):
+    """docstring needed here."""
+    
+    default_parameters = {
+        'gbar_Na'   : 20000.0,
+        'gbar_K'    : 6000.0,
+        'g_leak'    : 10.0,
+        'cm'        : 0.2,
+        'v_offset'  : -63.0,
+        'e_rev_Na'  : 50.0,
+        'e_rev_K'   : -90.0,
+        'e_rev_leak': -65.0,
+        'e_rev_E'   : 0.0,
+        'e_rev_I'   : -80.0,
+        'tau_syn_E' : 0.2,
+        'tau_syn_I' : 2.0,
+        'i_offset'  : 0.0,
+    } # v_init???
+
 class SpikeSourcePoisson(StandardCellType):
     """Spike source, generating spikes according to a Poisson process."""
 

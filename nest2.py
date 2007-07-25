@@ -5,7 +5,10 @@ $Id:nest.py 5 2007-04-16 15:01:24Z davison $
 """
 __version__ = "$Revision:5 $"
 
-import nest
+# temporary fix to import nest rather than pyNN.nest
+import imp
+mod_search = imp.find_module('nest', ['/usr/lib/python/site-packages'])
+nest = imp.load_module('nest',*mod_search)
 from pyNN import common
 from pyNN.random import *
 import numpy, types, sys, shutil, os, logging, copy, tempfile
@@ -160,6 +163,32 @@ class IF_cond_exp(common.IF_cond_exp):
         self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
 
 
+class HH_cond_exp(common.HH_cond_exp):
+    """docstring needed here."""
+    
+    translations = {
+        'gbar_Na'   : ('g_Na',   "parameters['gbar_Na']"),   
+        'gbar_K'    : ('g_K',    "parameters['gbar_K']"),    
+        'g_leak'    : ('g_L',    "parameters['g_leak']"),    
+        'cm'        : ('C_m',    "parameters['cm']*1000.0"),  
+        'v_offset'  : ('U_tr',   "parameters['v_offset']"),
+        'e_rev_Na'  : ('E_Na',   "parameters['e_rev_Na']"),
+        'e_rev_K'   : ('E_K',    "parameters['e_rev_K']"), 
+        'e_rev_leak': ('E_L',    "parameters['e_rev_leak']"),
+        'e_rev_E'   : ('E_ex',   "parameters['e_rev_E']"),
+        'e_rev_I'   : ('E_in',   "parameters['e_rev_I']"),
+        'tau_syn_E' : ('tau_ex', "parameters['tau_syn_E']"),
+        'tau_syn_I' : ('tau_in', "parameters['tau_syn_I']"),
+        'i_offset'  : ('I_stim', "parameters['i_offset']*1000.0"),
+    }
+    nest_name = "hh_cond_exp_traub"
+    
+    def __init__(self,parameters):
+        common.HH_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
+                                                     # values for not-specified parameters.
+        self.parameters = self.translate(self.parameters)
+        
+        
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
@@ -284,13 +313,13 @@ def create(cellclass,paramDict=None,n=1):
     if isinstance(cellclass, type):
         celltype = cellclass(paramDict)
         cell_gids = nest.Create(celltype.nest_name,n)
-        cell_gids = [ID(nest.getGID(gid)) for gid in cell_gids]
-        nest.setDict(cell_gids,celltype.parameters)
+        cell_gids = [ID(gid) for gid in cell_gids]
+        nest.SetStatus(cell_gids, [celltype.parameters])
     elif isinstance(cellclass, str):  # celltype is not a standard cell
         cell_gids = nest.Create(cellclass,n)
-        cell_gids = [ID(nest.getGID(gid)) for gid in cell_gids]
+        cell_gids = [ID(gid) for gid in cell_gids]
         if paramDict:
-            nest.setDict(cell_gids,paramDict)
+            nest.SetStatus(cell_gids, [paramDict])
     else:
         raise "Invalid cell type"
     for id in cell_gids:
@@ -318,7 +347,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
         weight *= -1
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
-            connect_id = nest.connectWD(nest.getAddress(source),nest.getAddress(target),weight,delay)
+            connect_id = nest.ConnectWD([source],[target],[weight],[delay])
         else:
             connect_id = []
             if type(source) != types.ListType:
@@ -326,16 +355,14 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
             if type(target) != types.ListType:
                 target = [target]
             for src in source:
-                src = nest.getAddress(src)
                 if p < 1:
                     if rng: # use the supplied RNG
                         rarr = rng.rng.uniform(0,1,len(target))
                     else:   # use the default RNG
                         rarr = numpy.random.uniform(0,1,len(target))
                 for j,tgt in enumerate(target):
-                    tgt = nest.getAddress(tgt)
                     if p >= 1 or rarr[j] < p:
-                        connect_id += [nest.connectWD(src,tgt,weight,delay)]
+                        connect_id += [nest.ConnectWD(src,tgt,[weight],[delay])]
     except nest.SLIError:
         raise common.ConnectionError
     return connect_id
@@ -384,10 +411,8 @@ def record_v(source,filename_user):
     a list of cells."""
     # would actually like to be able to record to an array and
     # choose later whether to write to a file.
-    if type(source) == types.ListType:
-        source = [nest.getAddress(src) for src in source]
-    else:
-        source = [nest.getAddress(source)]
+    if type(source) != types.ListType:
+        source = [source]
     record_file = filename_user
     #ll_v_files.append(filename)
     filename = nest.record_v(source,record_file)

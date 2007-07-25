@@ -826,7 +826,7 @@ class Population(common.Population):
             result.close()
             os.system("rm %s/%s" %(tempdir, tempfilename))
         else:
-            print 'didt go into the compatible output stuff'
+            print "didn't go into the compatible output stuff"
             shutil.move(tempdir+'/'+tempfilename,filename)
         
 
