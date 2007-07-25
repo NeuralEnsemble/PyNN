@@ -21,7 +21,7 @@ dt             = 0.1
 
 
 # ==============================================================================
-#   Utility classes
+#   Utility classes and functions
 # ==============================================================================
 
 class ID(common.ID):
@@ -54,7 +54,27 @@ class ID(common.ID):
         for k,v in self.cellclass.translations.items():
             params[k] = pynest_params[v[0]]
         return params
-            
+
+def _distance(presynaptic_population, postsynaptic_population, src, tgt):
+    """
+    Return the Euclidian distance between two cells. For the moment, we do
+    a scaling between the two dimensions of the populations: the target
+    population is scaled to the size of the source population."""
+    dist = 0.0
+    src_position = src.position
+    tgt_position = tgt.position
+    if (len(src_position) == len(tgt_position)):
+        for i in xrange(len(src_position)):
+            # We normalize the positions in each population and calculate the
+            # Euclidian distance :
+            #scaling = float(presynaptic_population.dim[i])/float(postsynaptic_population.dim[i])
+            src_coord = float(src_position[i])
+            tgt_coord = float(tgt_position[i])
+        
+            dist += float(src_coord-tgt_coord)*float(src_coord-tgt_coord)
+    else:    
+        raise Exception("Method _distance() not yet implemented for Populations with different sizes.")
+    return sqrt(dist)
 
 # ==============================================================================
 #   Standard cells
@@ -953,11 +973,14 @@ class Projection(common.Projection):
         self._targetPorts = [] # holds port numbers
         self._targets = []     # holds gids
         self._sources = []     # holds gids
-        connection_method = getattr(self,'_%s' % method)
-        if target:
-            self.nconn = connection_method(methodParameters,synapse_type=target)
-        else:
+        self.synapse_type = target
+        
+        if isinstance(method, str):
+            connection_method = getattr(self,'_%s' % method)   
             self.nconn = connection_method(methodParameters)
+        elif isinstance(method,common.Connector):
+            self.nconn = method.connect(self)
+
         assert len(self._sources) == len(self._targets) == len(self._targetPorts), "Connection error. Source and target lists are of different lengths."
         self.connection = Projection.ConnectionDict(self)
         
@@ -974,31 +997,10 @@ class Projection(common.Projection):
         """for conn in prj.connections()..."""
         for i in xrange(len(self)):
             yield self.connection[i]
-        
-    def _distance(self, presynaptic_population, postsynaptic_population, src, tgt):
-        """
-        Return the Euclidian distance between two cells. For the moment, we do
-        a scaling between the two dimensions of the populations: the target
-        population is scaled to the size of the source population."""
-        dist = 0.0
-        src_position = src.position
-        tgt_position = tgt.position
-        if (len(src_position) == len(tgt_position)):
-            for i in xrange(len(src_position)):
-                # We normalize the positions in each population and calculate the
-                # Euclidian distance :
-                #scaling = float(presynaptic_population.dim[i])/float(postsynaptic_population.dim[i])
-                src_coord = float(src_position[i])
-                tgt_coord = float(tgt_position[i])
-            
-                dist += float(src_coord-tgt_coord)*float(src_coord-tgt_coord)
-        else:    
-            raise Exception("Method _distance() not yet implemented for Populations with different sizes.")
-        return sqrt(dist)
     
     # --- Connection methods ---------------------------------------------------
     
-    def _allToAll(self,parameters=None,synapse_type=None):
+    def _allToAll(self,parameters=None):
         """
         Connect all cells in the presynaptic population to all cells in the postsynaptic population.
         """
@@ -1006,20 +1008,10 @@ class Projection(common.Projection):
                                       # is a cell allowed to connect to itself?
         if parameters and parameters.has_key('allow_self_connections'):
             allow_self_connections = parameters['allow_self_connections']
-        self.synapse_type = synapse_type
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-        for post in postsynaptic_neurons:
-            source_list = presynaptic_neurons.tolist()
-            # if self connections are not allowed, check whether pre and post are the same
-            if not allow_self_connections and post in source_list:
-                source_list.remove(post)
-            self._targets += [post]*len(source_list)
-            self._sources += source_list
-            self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
-        return len(self._targets)
+        c = AllToAllConnector(allow_self_connections)
+        return c.connect(self)
     
-    def _oneToOne(self,synapse_type=None):
+    def _oneToOne(self,parameters=None):
         """
         Where the pre- and postsynaptic populations have the same size, connect
         cell i in the presynaptic population to cell i in the postsynaptic
@@ -1029,23 +1021,23 @@ class Projection(common.Projection):
         cell i in a 1D pre population of size n should connect to all cells
         in row i of a 2D post population of size (n,m).
         """
-        self.synapse_type = synapse_type
-        if self.pre.dim == self.post.dim:
-            self._sources = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-            self._targets = numpy.reshape(self.post.cell,(self.post.cell.size,))
-            for pre,post in zip(self._sources,self._targets):
-                pre_addr = pynest.getAddress(pre)
-                post_addr = pynest.getAddress(post)
-                self._targetPorts.append(pynest.connect(pre_addr,post_addr))
-            return self.pre.size
-        else:
-            raise Exception("Method 'oneToOne' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
+        c = OneToOneConnector()
+        return c.connect(self)
+        #if self.pre.dim == self.post.dim:
+        #    self._sources = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
+        #    self._targets = numpy.reshape(self.post.cell,(self.post.cell.size,))
+        #    for pre,post in zip(self._sources,self._targets):
+        #        pre_addr = pynest.getAddress(pre)
+        #        post_addr = pynest.getAddress(post)
+        #        self._targetPorts.append(pynest.connect(pre_addr,post_addr))
+        #    return self.pre.size
+        #else:
+        #    raise Exception("Method 'oneToOne' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
     
-    def _fixedProbability(self,parameters,synapse_type=None):
+    def _fixedProbability(self,parameters):
         """
         For each pair of pre-post cells, the connection probability is constant.
         """
-        self.synapse_type = synapse_type
         allow_self_connections = True
         try:
             p_connect = float(parameters)
@@ -1053,28 +1045,32 @@ class Projection(common.Projection):
             p_connect = parameters['p_connect']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-        
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-        npre = self.pre.size
-        for post in postsynaptic_neurons:
-            if self.rng:
-                rarr = self.rng.uniform(0,1,(npre,))
-            else:
-                rarr = numpy.random.uniform(0,1,(npre,))
-            source_list = numpy.compress(numpy.less(rarr,p_connect),presynaptic_neurons).tolist()
-            self._targets += [post]*len(source_list)
-            self._sources += source_list
-            self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
-        return len(self._sources)
+        c = FixedProbabilityConnector(p_connect, allow_self_connections)
+        return c.connect(self)
     
-    def _distanceDependentProbability(self,parameters,synapse_type=None):
+        #postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
+        #presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
+        #npre = self.pre.size
+        #for post in postsynaptic_neurons:
+        #    if self.rng:
+        #        rarr = self.rng.uniform(0,1,(npre,))
+        #    else:
+        #        rarr = numpy.random.uniform(0,1,(npre,))
+        #    source_list = numpy.compress(numpy.less(rarr,p_connect),presynaptic_neurons).tolist()
+        #    # if self connections are not allowed, check whether pre and post are the same
+        #    if not allow_self_connections and post in source_list:
+        #        source_list.remove(post)
+        #    self._targets += [post]*len(source_list)
+        #    self._sources += source_list
+        #    self._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
+        #return len(self._sources)
+    
+    def _distanceDependentProbability(self,parameters):
         """
         For each pair of pre-post cells, the connection probability depends on distance.
         d_expression should be the right-hand side of a valid python expression
         for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
         """
-        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.StringType:
             d_expression = parameters
@@ -1082,52 +1078,57 @@ class Projection(common.Projection):
             d_expression = parameters['d_expression']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-                   
-        #raise Exception("Method not yet implemented")   
-        # Here we observe the connectivity rule: if it is a probability function
-        # like "exp(-d^2/2s^2)" then distance_expression should have only
-        # alphanumeric characters. Otherwise, if we have characters
-        # like >,<, = the connectivity rule is by itself a test.
-        alphanum = True
-        operators = ['<', '>', '=']
-        for i in xrange(len(operators)):
-            if not d_expression.find(operators[i])==-1:
-                alphanum = False
-                        
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-        
-        # We need to use the gid stored as ID, so we should modify the loop to scan the global gidlist (containing ID)
-        for post in postsynaptic_neurons:
-            if self.rng:
-                rarr = self.rng.uniform(0,1,(self.pre.size,))
-            else:
-                rarr = numpy.random.uniform(0,1,(self.pre.size,))
-            count = 0
-            for pre in presynaptic_neurons:
-                if allow_self_connections or pre != post: 
-                    # calculate the distance between the two cells :
-                    dist = self._distance(self.pre, self.post, pre, post)
-                    distance_expression = d_expression.replace('d', '%f' %dist)
-                    
-                    # calculate the addresses of cells
-                    pre_addr  = pynest.getAddress(pre)
-                    post_addr = pynest.getAddress(post)
-                    
-                    if alphanum:
-                        if rarr[count] < eval(distance_expression):
-                            self._sources.append(pre)
-                            self._targets.append(post)
-                            self._targetPorts.append(pynest.connect(pre_addr,post_addr)) 
-                            count = count + 1
-                    elif eval(distance_expression):
-                        self._sources.append(pre)
-                        self._targets.append(post)
-                        self._targetPorts.append(pynest.connect(pre_addr,post_addr))
-    
-    def _fixedNumberPre(self,parameters,synapse_type=None):
+        c = DistanceDependentProbabilityConnector(d_expression, allow_self_connections)
+        return c.connect(self)           
+          
+        ## Here we observe the connectivity rule: if it is a probability function
+        ## like "exp(-d^2/2s^2)" then distance_expression should have only
+        ## alphanumeric characters. Otherwise, if we have characters
+        ## like >,<, = the connectivity rule is by itself a test.
+        #alphanum = True
+        #operators = ['<', '>', '=']
+        #for i in xrange(len(operators)):
+        #    if not d_expression.find(operators[i])==-1:
+        #        alphanum = False
+        #                
+        #postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
+        #presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
+        #
+        ## We need to use the gid stored as ID, so we should modify the loop to scan the global gidlist (containing ID)
+        #for post in postsynaptic_neurons:
+        #    if self.rng:
+        #        if isinstance(self.rng, NativeRNG):
+        #            print "Warning: use of NativeRNG not implemented. Using NumpyRNG"
+        #            rarr = numpy.random.uniform(0,1,(self.pre.size,))
+        #        else:
+        #            rarr = self.rng.uniform(0,1,(self.pre.size,))
+        #    else:
+        #        rarr = numpy.random.uniform(0,1,(self.pre.size,))
+        #    count = 0
+        #    for pre in presynaptic_neurons:
+        #        if allow_self_connections or pre != post: 
+        #            # calculate the distance between the two cells :
+        #            dist = _distance(self.pre, self.post, pre, post)
+        #            distance_expression = d_expression.replace('d', '%f' %dist)
+        #            
+        #            # calculate the addresses of cells
+        #            pre_addr  = pynest.getAddress(pre)
+        #            post_addr = pynest.getAddress(post)
+        #            
+        #            if alphanum:
+        #                if rarr[count] < eval(distance_expression):
+        #                    self._sources.append(pre)
+        #                    self._targets.append(post)
+        #                    self._targetPorts.append(pynest.connect(pre_addr,post_addr)) 
+        #                    #count = count + 1
+        #            elif eval(distance_expression):
+        #                self._sources.append(pre)
+        #                self._targets.append(post)
+        #                self._targetPorts.append(pynest.connect(pre_addr,post_addr))
+        #        count = count + 1
+                
+    def _fixedNumberPre(self,parameters):
         """Each presynaptic cell makes a fixed number of connections."""
-        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -1169,9 +1170,8 @@ class Projection(common.Projection):
                     self._targets.append(post)
                     self._targetPorts.append(pynest.connect(pre_addr,pynest.getAddress(post)))
     
-    def _fixedNumberPost(self,parameters,synapse_type=None):
+    def _fixedNumberPost(self,parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
-        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -1213,11 +1213,10 @@ class Projection(common.Projection):
                     self._targets.append(post)
                     self._targetPorts.append(pynest.connect(pynest.getAddress(pre),post_addr))
     
-    def _fromFile(self,parameters,synapse_type=None):
+    def _fromFile(self,parameters):
         """
         Load connections from a file.
         """
-        self.synapse_type = synapse_type
         if type(parameters) == types.FileType:
             fileobj = parameters
             # should check here that fileobj is already open for reading
@@ -1242,16 +1241,15 @@ class Projection(common.Projection):
             input_tuples.append((eval(src),eval(tgt),float(w),float(d)))
         f.close()
         
-        self._fromList(input_tuples, synapse_type)
+        self._fromList(input_tuples)
         
-    def _fromList(self,conn_list,synapse_type=None):
+    def _fromList(self,conn_list):
         """
         Read connections from a list of tuples,
         containing [pre_addr, post_addr, weight, delay]
         where pre_addr and post_addr are both neuron addresses, i.e. tuples or
         lists containing the neuron array coordinates.
         """
-        self.synapse_type = synapse_type
         for i in xrange(len(conn_list)):
             src, tgt, weight, delay = conn_list[i][:]
             src = self.pre[tuple(src)]
@@ -1262,7 +1260,7 @@ class Projection(common.Projection):
             self._targets.append(tgt)
             self._targetPorts.append(pynest.connectWD(pre_addr,post_addr, 1000*weight, delay))
 
-    def _2D_Gauss(self,parameters,synapse_type=None):
+    def _2D_Gauss(self,parameters):
         """
         Source neuron is connected to a 2D targetd population with a spatial profile (Gauss).
         parameters should have:
@@ -1272,7 +1270,6 @@ class Projection(common.Projection):
         n: number of synpases
         sigma: sigma of the Gauss
         """
-        self.synapse_type = synapse_type
         def rcf_2D(parameters):
             rng = parameters['rng']
             pre_id = parameters['pre_id']
@@ -1319,8 +1316,7 @@ class Projection(common.Projection):
                 #a=Projection(self.pre,self.post,'rcf_2D',parameters)
                 rcf_2D(parameters)
 
-    def _test_delay(self,params,synapse_type=None):
-        self.synapse_type = synapse_type
+    def _test_delay(self,params):
         # debug get delays from outside
         #delay_array = parameters['delays_array']
         #weight_array = parameters['weights_array']
@@ -1336,7 +1332,7 @@ class Projection(common.Projection):
         #pynest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
         print 'leaving test_delay'
         
-    def _3D_Gauss(self,parameters,synapse_type=None):
+    def _3D_Gauss(self,parameters):
         """
         Source neuron is connected to a 3D targetd population with a spatial profile (Gauss).
         parameters should have:
@@ -1679,7 +1675,90 @@ class Projection(common.Projection):
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
         raise Exception("Method not yet implemented")
- 
+
+# ==============================================================================
+#   Connection method classes
+# ==============================================================================
+
+class AllToAllConnector(common.AllToAllConnector):    
+    
+    def connect(self, projection):
+        postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
+        presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
+        for post in postsynaptic_neurons:
+            source_list = presynaptic_neurons.tolist()
+            # if self connections are not allowed, check whether pre and post are the same
+            if not self.allow_self_connections and post in source_list:
+                source_list.remove(post)
+            projection._targets += [post]*len(source_list)
+            projection._sources += source_list
+            projection._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
+        return len(projection._targets)
+
+class OneToOneConnector(common.OneToOneConnector):
+    
+    def connect(self, projection):
+        if projection.pre.dim == projection.post.dim:
+            projection._sources = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
+            projection._targets = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
+            for pre,post in zip(projection._sources,projection._targets):
+                pre_addr = pynest.getAddress(pre)
+                post_addr = pynest.getAddress(post)
+                projection._targetPorts.append(pynest.connect(pre_addr,post_addr))
+            return projection.pre.size
+        else:
+            raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
+    
+class FixedProbabilityConnector(common.FixedProbabilityConnector):
+    
+    def connect(self, projection):
+        postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
+        presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
+        npre = projection.pre.size
+        for post in postsynaptic_neurons:
+            if projection.rng:
+                rarr = projection.rng.uniform(0,1,(npre,)) # what about NativeRNG?
+            else:
+                rarr = numpy.random.uniform(0,1,(npre,))
+            source_list = numpy.compress(numpy.less(rarr,self.p_connect),presynaptic_neurons).tolist()
+            # if self connections are not allowed, check whether pre and post are the same
+            if not self.allow_self_connections and post in source_list:
+                source_list.remove(post)
+            projection._targets += [post]*len(source_list)
+            projection._sources += source_list
+            projection._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
+        return len(projection._sources)
+    
+class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector):
+    
+    def connect(self, projection):                  
+        postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
+        presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
+        # what about NativeRNG?
+        if projection.rng:
+            if isinstance(projection.rng, NativeRNG):
+                print "Warning: use of NativeRNG not implemented. Using NumpyRNG"
+                rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
+            else:
+                rarr = projection.rng.uniform(0,1,(projection.pre.size*projection.post.size,))
+        else:
+            rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
+        j = 0
+        for post in postsynaptic_neurons:
+            for pre in presynaptic_neurons:
+                if self.allow_self_connections or pre != post: 
+                    # calculate the distance between the two cells :
+                    d = _distance(projection.pre, projection.post, pre, post)
+                    p = eval(self.d_expression)
+                    # calculate the addresses of cells
+                    pre_addr  = pynest.getAddress(pre)
+                    post_addr = pynest.getAddress(post)
+                    if p >= 1 or (0 < p < 1 and rarr[j] < p):
+                        projection._sources.append(pre)
+                        projection._targets.append(post)
+                        projection._targetPorts.append(pynest.connect(pre_addr,post_addr)) 
+                j += 1
+        
 # ==============================================================================
 #   Utility classes
 # ==============================================================================

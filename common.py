@@ -9,6 +9,8 @@ __version__ = "$Revision$"
 
 import types, time, copy, sys
 import numpy
+from math import *
+
 
 class InvalidParameterValueError(Exception): pass
 class NonExistentParameterError(Exception): pass
@@ -19,7 +21,7 @@ dt = 0.1
 
 
 # ==============================================================================
-#   Utility classes
+#   Utility classes and functions
 # ==============================================================================
 
 # The following two functions taken from
@@ -759,6 +761,70 @@ class Projection:
         return _abstractMethod(self)
 
 
+# ==============================================================================
+#   Connection method classes
+# ==============================================================================
+
+class Connector(object):
+    """Abstract base class for Connector classes."""
+    
+    def __init__(self):
+        _abstractMethod(self)
+    
+    def connect(self,projection):
+        """Connect all neurons in ``projection``"""
+        _abstractMethod(self)
+
+class AllToAllConnector(Connector):
+    """
+    Connects all cells in the presynaptic population to all cells in the
+    postsynaptic population.
+    """
+    
+    def __init__(self, allow_self_connections=True):
+        assert isinstance(allow_self_connections, bool)
+        self.allow_self_connections = allow_self_connections
+
+class OneToOneConnector(Connector):
+    """
+    Where the pre- and postsynaptic populations have the same size, connect
+    cell i in the presynaptic population to cell i in the postsynaptic
+    population for all i.
+    In fact, despite the name, this should probably be generalised to the
+    case where the pre and post populations have different dimensions, e.g.,
+    cell i in a 1D pre population of size n should connect to all cells
+    in row i of a 2D post population of size (n,m).
+    """
+    
+    def __init__(self):
+        pass
+    
+class FixedProbabilityConnector(Connector):
+    """
+    For each pair of pre-post cells, the connection probability is constant.
+    """
+    
+    def __init__(self, p_connect, allow_self_connections=True):
+        assert isinstance(allow_self_connections, bool)
+        self.allow_self_connections = allow_self_connections
+        self.p_connect = float(p_connect)
+        assert 0 <= self.p_connect
+        
+class DistanceDependentProbabilityConnector(Connector):
+    """
+    For each pair of pre-post cells, the connection probability depends on distance.
+    d_expression should be the right-hand side of a valid python expression
+    for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
+    """
+    
+    def __init__(self, d_expression, allow_self_connections=True):
+        assert isinstance(allow_self_connections, bool)
+        assert isinstance(d_expression, str)
+        d = 0; assert 0 <= eval(d_expression)
+        d = 1e12; assert 0 <= eval(d_expression)
+        self.d_expression = d_expression
+        self.allow_self_connections = allow_self_connections
+                
 # ==============================================================================
 #   Utility classes
 # ==============================================================================

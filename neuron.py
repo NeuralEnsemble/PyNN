@@ -229,6 +229,29 @@ class HocToPy:
             raise HocError("caused by HocToPy.bool('%s')" % condition)
         return HocToPy.hocvar
 
+def _distance(presynaptic_population, postsynaptic_population, src, tgt):
+    """
+    Return the Euclidian distance between two cells. For the moment, we do
+    a scaling between the two dimensions of the populations: the target
+    population is scaled to the size of the source population."""
+    dist = 0.0
+    src_position = src.position
+    tgt_position = tgt.position
+    if (len(src_position) == len(tgt_position)):
+        for i in xrange(len(src_position)):
+            # We normalize the positions in each population and calculate the
+            # Euclidian distance :
+            #scaling = float(presynaptic_population.dim[i])/float(postsynaptic_population.dim[i])
+            src_coord = float(src_position[i])
+            tgt_coord = float(tgt_position[i])
+        
+            dist += float(src_coord-tgt_coord)*float(src_coord-tgt_coord)
+    else:    
+        raise Exception("_distance() function not yet implemented for Populations with different sizes.")
+    return sqrt(dist)
+
+
+
 # ==============================================================================
 #   Standard cells
 # ==============================================================================
@@ -1166,12 +1189,14 @@ class Projection(common.Projection):
             self.rng = numpy.random.RandomState()
         hoc_commands = ['objref %s' % self.hoc_label,
                         '%s = new List()' % self.hoc_label]
-        connection_method = getattr(self,'_%s' % method)
         self.synapse_type = target
         self._syn_objref = _translate_synapse_type(self.synapse_type)
 
-        hoc_commands += connection_method(methodParameters)
-        
+        if isinstance(method, str):
+            connection_method = getattr(self,'_%s' % method)   
+            hoc_commands += connection_method(methodParameters)
+        elif isinstance(method,common.Connector):
+            hoc_commands += method.connect(self)
         hoc_execute(hoc_commands, "--- Projection[%s].__init__() ---" %self.label)
         
         # By defaut, we set all the delays to min_delay, except if
@@ -1184,28 +1209,6 @@ class Projection(common.Projection):
     def __len__(self):
         """Return the total number of connections."""
         return len(self.connections)
-     
-    def _distance(self, presynaptic_population, postsynaptic_population, src, tgt):
-        """
-        Return the Euclidian distance between two cells. For the moment, we do
-        a scaling between the two dimensions of the populations: the target
-        population is scaled to the size of the source population."""
-        dist = 0.0
-        src_position = src.position
-        tgt_position = tgt.position
-        if (len(src_position) == len(tgt_position)):
-            for i in xrange(len(src_position)):
-                # We normalize the positions in each population and calculate the
-                # Euclidian distance :
-                #scaling = float(presynaptic_population.dim[i])/float(postsynaptic_population.dim[i])
-                src_coord = float(src_position[i])
-                tgt_coord = float(tgt_position[i])
-            
-                dist += float(src_coord-tgt_coord)*float(src_coord-tgt_coord)
-        else:    
-            raise Exception("Method _distance() not yet implemented for Populations with different sizes.")
-        return sqrt(dist)
-    
 
     # --- Connection methods ---------------------------------------------------
     
@@ -1230,12 +1233,8 @@ class Projection(common.Projection):
                                       # is a cell allowed to connect to itself?
         if parameters and parameters.has_key('allow_self_connections'):
             allow_self_connections = parameters['allow_self_connections']
-        hoc_commands = []
-        for tgt in self.post.gidlist:
-            for src in self.pre.fullgidlist:
-                if allow_self_connections or self.pre != self.post or tgt != src:
-                    hoc_commands += self.__connect(src,tgt)
-        return hoc_commands
+        c = AllToAllConnector(allow_self_connections)
+        return c.connect(self)
         
     def _oneToOne(self,parameters=None):
         """
@@ -1246,15 +1245,9 @@ class Projection(common.Projection):
         case where the pre and post populations have different dimensions, e.g.,
         cell i in a 1D pre population of size n should connect to all cells
         in row i of a 2D post population of size (n,m).
-        """   
-        if self.pre.dim == self.post.dim:
-            hoc_commands = []
-            for tgt in self.post.gidlist:
-                src = tgt - self.post.gid_start + self.pre.gid_start
-                hoc_commands += self.__connect(src,tgt)
-        else:
-            raise Exception("Method '%s' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes." % sys._getframe().f_code.co_name)
-        return hoc_commands
+        """
+        c = OneToOneConnector()
+        return c.connect(self)
     
     def _fixedProbability(self,parameters):
         """
@@ -1267,31 +1260,10 @@ class Projection(common.Projection):
             p_connect = parameters['p_connect']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-            
-        hoc_commands = []
-        if isinstance(self.rng, NativeRNG): # use hoc Random object
-            hoc_commands = ['rng = new Random(%d)' % 0 or self.rng.seed,
-                            'tmp = rng.uniform(0,1)']
-            # Here we are forced to execute the commands on line to be able to
-            # catch the connections from NEURON.
-            hoc_execute(hoc_commands)
-            hoc_commands = []
-            #Then we do the loop
-            for tgt in self.post.gidlist:
-                for src in self.pre.fullgidlist:
-                    if HocToPy.get('rng.repick()','float') < p_connect:
-                        if allow_self_connections or self.pre != self.post or tgt != src:
-                            hoc_commands += self.__connect(src,tgt)
-            return hoc_commands
-        else: # use Python RNG
-            for tgt in self.post.gidlist:
-                rarr = self.rng.uniform(0, 1, self.pre.size)
-                for j in xrange(self.pre.size):
-                    src = j + self.pre.gid_start
-                    if rarr[j] < p_connect:
-                        if allow_self_connections or self.pre != self.post or tgt != src:
-                            hoc_commands += self.__connect(src,tgt)
-        return hoc_commands
+
+        c = FixedProbabilityConnector(p_connect=p_connect,
+                                      allow_self_connections=allow_self_connections)
+        return c.connect(self)    
 
     def _distanceDependentProbability(self,parameters):
         """
@@ -1306,55 +1278,10 @@ class Projection(common.Projection):
             d_expression = parameters['d_expression']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-        hoc_commands = []
-        
-        # Here we observe the connectivity rule: if it is a probability function
-        # like "exp(-d^2/2s^2)" then distance_expression should have only
-        # alphanumeric characters. Otherwise, if we have characters
-        # like >,<, = the connectivity rule is by itself a test.
-        alphanum = True
-        operators = ['<', '>', '=']
-        for i in xrange(len(operators)):
-            if not d_expression.find(operators[i])==-1:
-                alphanum = False
-        
-        if isinstance(self.rng, NativeRNG):
-            hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
-                            'tmp = rng.uniform(0,1)']
-            # Here we are forced to execute the commands on line to be able to
-            # catch the connections from Neuron
-            hoc_execute(hoc_commands)
-            hoc_commands = []
-            # We need to use the gid stored as ID, so we should modify the loop to scan the global gidlist (containing ID)
-            for tgt in self.post.gidlist:
-                for src in self.pre.fullgidlist:
-                    if allow_self_connections or self.pre != self.post or tgt != src: 
-                        # calculate the distance between the two cells :
-                        dist = self._distance(self.pre, self.post, src, tgt)
-                        distance_expression = d_expression.replace('d', '%f' %dist)
-                        if alphanum:
-                            if HocToPy('rng.repick()','float') < eval(distance_expression):
-                                hoc_commands += self.__connect(src,tgt)
-                        elif eval(distance_expression):
-                            hoc_commands += self.__connect(src,tgt)
-            return hoc_commands
-        else: # use a python RNG
-            for tgt in self.post.gidlist:
-                rarr = self.rng.uniform(0,1,self.pre.size)
-                for j in xrange(self.pre.size):
-                    # Again, we should have an ID (stored in the global gidlist) instead
-                    # of a simple int.
-                    src = self.pre.fullgidlist[j]
-                    if allow_self_connections or self.pre != self.post or tgt != src:
-                        # calculate the distance between the two cells :
-                        dist = self._distance(self.pre, self.post, src, tgt)
-                        distance_expression = d_expression.replace('d', '%f' %dist)                      
-                        if alphanum:
-                            if rarr[j] < eval(distance_expression):
-                                hoc_commands += self.__connect(src,tgt)
-                        elif eval(distance_expression):
-                            hoc_commands += self.__connect(src,tgt)
-        return hoc_commands
+
+        c = DistanceDependentProbabilityConnector(d_expression=d_expression,
+                                                  allow_self_connections=allow_self_connections)
+        return c.connect(self)
     
     def _fixedNumberPre(self,parameters):
         """Each presynaptic cell makes a fixed number of connections."""
@@ -1592,7 +1519,7 @@ class Projection(common.Projection):
                 # calculate the distance between the two cells
                 idx_src = numpy.where(self.pre.fullgidlist == src)[0][0]
                 idx_tgt = numpy.where(self.post.fullgidlist == tgt)[0][0]
-                dist = self._distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
+                dist = _distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
                 # then evaluate the delay according to the delay rule
                 delay = eval(delay_rule.replace('d', '%f' %dist))
                 hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(delay))]
@@ -1608,7 +1535,7 @@ class Projection(common.Projection):
                     # calculate the distance between the two cells
                     idx_src = self.pre.fullgidlist.index(src)
                     idx_tgt = self.post.fullgidlist.index(tgt)
-                    dist = self._distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
+                    dist = _distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
                     # then evaluate the delay according to the delay rule
                     delay = delay_rule.replace('d', '%f' % dist)
                     delay = eval(delay.replace('rng', '%f' % HocToPy.get('rng.repick()', 'float')))
@@ -1620,7 +1547,7 @@ class Projection(common.Projection):
                     # calculate the distance between the 2 cells :
                     idx_src = self.pre.fullgidlist.index(src)
                     idx_tgt = self.post.fullgidlist.index(tgt)
-                    dist = self._distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
+                    dist = _distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
                     # then evaluate the delay according to the delay rule :
                     delay = delay_rule.replace('d', '%f' %dist)
                     delay = eval(delay.replace('rng', '%f' %rand_distr.next()))
@@ -1766,6 +1693,97 @@ class Projection(common.Projection):
         # should be put here or in an external module.
         raise Exception("Method not yet implemented")
 
+# ==============================================================================
+#   Connection method classes
+# ==============================================================================
+
+class HocConnector(object):
+    
+    def singleConnect(self,projection,src,tgt):
+        """
+        Write hoc commands to connect a single pair of neurons.
+        """
+        cmdlist = ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
+                                                                 projection.post.hoc_label,
+                                                                 projection.post.gidlist.index(tgt),
+                                                                 projection._syn_objref),
+                'tmp = %s.append(nc)' % projection.hoc_label]
+        projection.connections.append((src,tgt))
+        return cmdlist
+
+class AllToAllConnector(common.AllToAllConnector, HocConnector):    
+    
+    def connect(self, projection):
+        hoc_commands = []
+        for tgt in projection.post.gidlist:
+            for src in projection.pre.fullgidlist:
+                if self.allow_self_connections or projection.pre != projection.post or tgt != src:
+                    hoc_commands += self.singleConnect(projection,src,tgt)
+        return hoc_commands
+
+class OneToOneConnector(common.OneToOneConnector, HocConnector):
+    
+    def connect(self, projection):
+        if projection.pre.dim == projection.post.dim:
+            hoc_commands = []
+            for tgt in projection.post.gidlist:
+                src = tgt - projection.post.gid_start + projection.pre.gid_start
+                hoc_commands += self.singleConnect(projection,src,tgt)
+        else:
+            raise Exception("Method '%s' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes." % sys._getframe().f_code.co_name)
+        return hoc_commands
+
+class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
+    
+    def connect(self, projection):
+        if isinstance(projection.rng, NativeRNG):
+            hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
+                            'tmp = rng.uniform(0,1)']
+            # Here we are forced to execute the commands on line to be able to
+            # catch the connections from NEURON
+            hoc_execute(hoc_commands)
+            rarr = [HocToPy.get('rng.repick()','float') for j in xrange(projection.pre.size*projection.post.size)]        
+        else:
+            rarr = projection.rng.uniform(0,1,projection.pre.size*projection.post.size)
+        hoc_commands = []
+        j = 0        
+        for tgt in projection.post.gidlist:
+            for src in projection.pre.fullgidlist:
+                if self.allow_self_connections or projection.pre != projection.post or tgt != src:
+                    if rarr[j] < self.p_connect:  
+                        hoc_commands += self.singleConnect(projection,src,tgt)
+                j += 1
+        return hoc_commands
+
+class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector, HocConnector):
+    
+    def connect(self, projection):     
+        if isinstance(projection.rng, NativeRNG):
+            hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
+                            'tmp = rng.uniform(0,1)']
+            # Here we are forced to execute the commands on line to be able to
+            # catch the connections from NEURON
+            hoc_execute(hoc_commands)
+            rarr = [HocToPy.get('rng.repick()','float') for j in xrange(projection.pre.size*projection.post.size)]        
+        else:
+            rarr = projection.rng.uniform(0,1,projection.pre.size*projection.post.size)
+        # We need to use the gid stored as ID, so we should modify the loop to scan the global gidlist (containing ID)
+        hoc_commands = []
+        j = 0
+        for tgt in projection.post.gidlist:
+            for src in projection.pre.fullgidlist:
+                if self.allow_self_connections or projection.pre != projection.post or tgt != src: 
+                    # calculate the distance between the two cells :
+                    d = _distance(projection.pre, projection.post, src, tgt)
+                    p = eval(self.d_expression)
+                    if 0 < p < 1:
+                        if rarr[j] < p:
+                            hoc_commands += self.singleConnect(projection,src,tgt)
+                    elif p >= 1:
+                        hoc_commands += self.singleConnect(projection,src,tgt)
+                j += 1
+        return hoc_commands
+    
 # ==============================================================================
 #   Utility classes
 # ==============================================================================

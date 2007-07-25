@@ -1180,27 +1180,30 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, methodParameters, source, target, label, rng)
         
         # Determine connection decider
-        if method == 'allToAll':
-            decider = RandomConnections(1)
-            wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
-        elif method == 'fixedProbability':
-            decider = RandomConnections(float(methodParameters))
-            wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
-        elif method == 'distanceDependentProbability':
-            decider = EuclideanDistanceRandomConnections(methodParameters[0], methodParameters[1])
-            wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
-        elif method == 'fixedNumberPre':
-            decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.incoming)
-            wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
-        elif method == 'fixedNumberPost':
-            decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.outgoing)
-            wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
-        elif method == 'oneToOne':
-            decider = RandomConnections(1)
-            wiring_method = OneToOneWiringMethod(pcsim_globals.net) 
-        else:
-            raise Exception("METHOD NOT YET IMPLEMENTED")
-            
+        if isinstance(method, str):
+            if method == 'allToAll':
+                decider = RandomConnections(1)
+                wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+            elif method == 'fixedProbability':
+                decider = RandomConnections(float(methodParameters))
+                wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+            elif method == 'distanceDependentProbability':
+                decider = EuclideanDistanceRandomConnections(methodParameters[0], methodParameters[1])
+                wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+            elif method == 'fixedNumberPre':
+                decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.incoming)
+                wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
+            elif method == 'fixedNumberPost':
+                decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.outgoing)
+                wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
+            elif method == 'oneToOne':
+                decider = RandomConnections(1)
+                wiring_method = OneToOneWiringMethod(pcsim_globals.net) 
+            else:
+                raise Exception("METHOD NOT YET IMPLEMENTED")
+        elif isinstance(method,common.Connector):
+            decider, wiring_method = method.connect(self)
+        
         if not target:
             self.syn_factory = SimpleScalingSpikingSynapse(1, 1, pcsim_globals.minDelay/1000)
         elif isinstance(target, int):
@@ -1339,6 +1342,37 @@ class Projection(common.Projection):
         raise Exception("Method not yet implemented")
     
 # END
+
+# ==============================================================================
+#   Connection method classes
+# ==============================================================================
+
+class AllToAllConnector(common.AllToAllConnector):    
+    
+    def connect(self, projection):
+        # what about allow_self_connections?
+        decider = RandomConnections(1)
+        wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+        return decider, wiring_method
+
+class OneToOneConnector(common.OneToOneConnector):
+    
+    def connect(self, projection):
+        if projection.pre.dim == projection.post.dim:
+            decider = RandomConnections(1)
+            wiring_method = OneToOneWiringMethod(pcsim_globals.net)
+            return decider, wiring_method
+        else:
+            raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
+
+class FixedProbabilityConnector(common.FixedProbabilityConnector):
+    
+    def connect(self,projection):
+        decider = RandomConnections(float(self.p_connect))
+        wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+        return decider, wiring_method
+    
+
 
 # ==============================================================================
 #   Utility classes

@@ -409,31 +409,52 @@ class ProjectionInitTest(unittest.TestCase):
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 prj1 = nest.Projection(srcP, tgtP, "allToAll")
-                assert len(prj1._sources) == len(prj1._targets)
-                weights = []
-                for src,tgt in prj1.connections():
-                    weights.append(nest.pynest.getWeight(src,tgt))
-                assert weights == [1.0]*len(prj1._sources)
+                prj2 = nest.Projection(srcP, tgtP, nest.AllToAllConnector())
+                for prj in prj1,prj2:
+                    assert len(prj._sources) == len(prj._targets)
+                    weights = []
+                    for src,tgt in prj.connections():
+                        weights.append(nest.pynest.getWeight(src,tgt))
+                    assert weights == [1.0]*len(prj._sources)
     
-    def testdistantDependentProbability(self):
-        """For all connections created with "distanceDependentProbability" it should be possible to obtain the weight using pyneuron.getWeight()"""
-        # Test should be improved..."
-        distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345),distribution='uniform',parameters=(0,1)) 
-        prj1 = nest.Projection(self.source33, self.target33, 'distanceDependentProbability',{'d_expression' : 'exp(-d)'}, distrib_Numpy)
-        prj2 = nest.Projection(self.source33, self.target33, 'distanceDependentProbability',{'d_expression' : 'd < 0.5'}, distrib_Numpy)
-        assert (0 < len(prj1) < len(self.source33)*len(self.target33)) and (0 < len(prj2) < len(self.source33)*len(self.target33))
+    def testOneToOne(self):
+        """For all connections created with "OneToOne" it should be possible to obtain the weight using pyneuron.getWeight()"""
+        prj1 = nest.Projection(self.source33, self.target33, 'oneToOne')
+        prj2 = nest.Projection(self.source33, self.target33, nest.OneToOneConnector())
+        assert len(prj1) == self.source33.size
+        assert len(prj2) == self.source33.size
         
+    def testDistantDependentProbability(self):
+        """For all connections created with "distanceDependentProbability"..."""
+        # Test should be improved..."
+
+        for rngclass in (nest.NumpyRNG, nest.NativeRNG):
+            for expr in ('exp(-d)', 'd < 0.5'):
+                prj1 = nest.Projection(self.source33, self.target33,
+                                         'distanceDependentProbability',
+                                         {'d_expression' : expr},rng=rngclass(12345))
+                prj2 = nest.Projection(self.source33, self.target33,
+                                         nest.DistanceDependentProbabilityConnector(d_expression=expr),
+                                         rng=rngclass(12345))
+                assert (0 < len(prj1) < len(self.source33)*len(self.target33)) \
+                   and (0 < len(prj2) < len(self.source33)*len(self.target33))
+                if rngclass == nest.NumpyRNG:
+                    assert prj1._sources == prj2._sources, "%s %s" % (rngclass, expr)
+                    assert prj1._targets == prj2._targets, "%s %s" % (rngclass, expr)
+
     def testFixedProbability(self):
         """For all connections created with "fixedProbability" it should be possible to obtain the weight using pynest.getWeight()"""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 prj1 = nest.Projection(srcP, tgtP, "fixedProbability", 0.5)
-                assert len(prj1._sources) == len(prj1._targets)
-                weights = []
-                for src, tgt in prj1.connections():
-                    weights.append(nest.pynest.getWeight(src,tgt))
-                assert weights == [1.0]*len(prj1._sources)
-                
+                prj2 = nest.Projection(srcP, tgtP, nest.FixedProbabilityConnector(0.5))
+                for prj in prj1, prj2:
+                    assert len(prj._sources) == len(prj._targets)
+                    weights = []
+                    for src, tgt in prj.connections():
+                        weights.append(nest.pynest.getWeight(src,tgt))
+                    assert weights == [1.0]*len(prj._sources)
+                    
     def testSaveAndLoad(self):
         prj1 = nest.Projection(self.source22, self.target33, 'allToAll')
         prj1.setDelays(0.2)

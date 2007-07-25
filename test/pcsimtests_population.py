@@ -123,208 +123,215 @@ class PopulationIteratorTest(unittest.TestCase):
  # ==============================================================================
 class PopulationSetTest(unittest.TestCase):
          
-     def setUp(self):
-         setup()
-         Population.nPop = 0
-         self.popul1 = Population((3,3),IF_curr_alpha)
-         self.popul2 = Population((5,),CbLifNeuron,{'Vinit':-0.070, 'Inoise':0.001})
-     
-     def testSetFromDict(self):
-         """Population.set(): Parameters set in a dict should all be retrievable from PyPCSIM directly"""
-         self.popul1.set({'tau_m':43.21})
-         self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(8)).taum, 0.04321, places = 5)
+    def setUp(self):
+        setup()
+        Population.nPop = 0
+        self.popul1 = Population((3,3),IF_curr_alpha)
+        self.popul2 = Population((5,),CbLifNeuron,{'Vinit':-0.070, 'Inoise':0.001})
+    
+    def testSetFromDict(self):
+        """Population.set(): Parameters set in a dict should all be retrievable from PyPCSIM directly"""
+        self.popul1.set({'tau_m':43.21})
+        self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(8)).taum, 0.04321, places = 5)
 #     
-     def testSetFromPair(self):
-        """Population.set(): A parameter set as a string,value pair should be retrievable using PyPCSIM directly"""
-        self.popul1.set('tau_m',12.34)
-        self.popul1.set('v_init',-65.0)
-        self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).taum, 0.01234, places=5)
-        self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).Vinit, -0.065, places=5)
-       
-     
-     def testSetInvalidFromPair(self):
-         """Population.set(): Trying to set an invalid value for a parameter should raise an exception."""
-         self.assertRaises(common.InvalidParameterValueError, self.popul1.set, 'tau_m', [])
-     
-     def testSetInvalidFromDict(self):
-         """Population.set(): When any of the parameters in a dict have invalid values, then an exception should be raised.
-            There is no guarantee that the valid parameters will be set."""
-         self.assertRaises(common.InvalidParameterValueError, self.popul1.set, {'v_thresh':'hello','tau_m':56.78})
-     
-     def testSetNonexistentFromPair(self):
-         """Population.set(): Trying to set a nonexistent parameter should raise an exception."""
-         self.assertRaises(common.NonExistentParameterError, self.popul1.set, 'tau_foo', 10.0)
-     
-     def testSetNonexistentFromDict(self):
-         """Population.set(): When some of the parameters in a dict are inexistent, an exception should be raised.
-            There is no guarantee that the existing parameters will be set."""
-         self.assertRaises(common.NonExistentParameterError, self.popul1.set, {'tau_foo': 10.0, 'tau_m': 21.0})
-     
-     def testSetWithNonStandardModel(self):
-         """Population.set(): Parameters set in a dict should all be retrievable using PyPCSIM interface directly"""
-         self.popul2.set({'Rm':4.5e6})
-         self.assertAlmostEqual( pcsim_globals.net.object(self.popul2.getObjectID(3)).Rm , 4.5e6, places = 10)
+    def testSetFromPair(self):
+       """Population.set(): A parameter set as a string,value pair should be retrievable using PyPCSIM directly"""
+       self.popul1.set('tau_m',12.34)
+       self.popul1.set('v_init',-65.0)
+       self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).taum, 0.01234, places=5)
+       self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).Vinit, -0.065, places=5)
+      
+    
+    def testSetInvalidFromPair(self):
+        """Population.set(): Trying to set an invalid value for a parameter should raise an exception."""
+        self.assertRaises(common.InvalidParameterValueError, self.popul1.set, 'tau_m', [])
+    
+    def testSetInvalidFromDict(self):
+        """Population.set(): When any of the parameters in a dict have invalid values, then an exception should be raised.
+           There is no guarantee that the valid parameters will be set."""
+        self.assertRaises(common.InvalidParameterValueError, self.popul1.set, {'v_thresh':'hello','tau_m':56.78})
+    
+    def testSetNonexistentFromPair(self):
+        """Population.set(): Trying to set a nonexistent parameter should raise an exception."""
+        self.assertRaises(common.NonExistentParameterError, self.popul1.set, 'tau_foo', 10.0)
+    
+    def testSetNonexistentFromDict(self):
+        """Population.set(): When some of the parameters in a dict are inexistent, an exception should be raised.
+           There is no guarantee that the existing parameters will be set."""
+        self.assertRaises(common.NonExistentParameterError, self.popul1.set, {'tau_foo': 10.0, 'tau_m': 21.0})
+    
+    def testSetWithNonStandardModel(self):
+        """Population.set(): Parameters set in a dict should all be retrievable using PyPCSIM interface directly"""
+        self.popul2.set({'Rm':4.5e6})
+        self.assertAlmostEqual( pcsim_globals.net.object(self.popul2.getObjectID(3)).Rm , 4.5e6, places = 10)
+        
+    def testTSet(self):
+        """Population.tset(): The valueArray passed should be retrievable using the PyPCSIM interface """
+        array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
+        self.popul1.tset('i_offset', array_in)
+        for i in 0,1,2:
+            for j in 0,1,2:
+                self.assertAlmostEqual( array_in[i,j], pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Iinject*1e9 , places = 7 )
+    
+    def testTSetArrayUnchanged(self):
+       array_in1 = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
+       array_in2 = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
+       self.assert_((array_in1==array_in2).all())
+       self.popul1.tset('i_offset', array_in1)
+       self.assert_((array_in1==array_in2).all())
+    
+    def testTSetInvalidDimensions(self):
+        """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
+        array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6]])
+        self.assertRaises(common.InvalidDimensionsError, self.popul1.tset, 'i_offset', array_in)
+    
+    def testTSetInvalidValues(self):
+        """Population.tset(): If some of the values in the valueArray are invalid, should raise an exception."""
+        array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,'apples']])
+        self.assertRaises(common.InvalidParameterValueError, self.popul1.tset, 'i_offset', array_in)
+        """Population.rset(): with native rng. This is difficult to test, so for now just require that all values retrieved should be different. Later, could calculate distribution and assert that the difference between sample and theoretical distribution is less than some threshold."""
+        
+    def testRSetNative(self):
+        self.popul1.rset('tau_m',
+                      random.RandomDistribution(rng=NativeRNG(),
+                                                distribution='Uniform',
+                                                parameters=[10.0, 30.0]))
+        self.assertNotEqual(pcsim_globals.net.object(self.popul1.getObjectID(3)).taum,
+                            pcsim_globals.net.object(self.popul1.getObjectID(6)).taum)
+        
+    def testRSetNumpy(self):
+         """Population.rset(): with numpy rng."""
+         rd1 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
+                                          distribution='uniform',
+                                          parameters=[0.9,1.1])
+         rd2 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
+                                          distribution='uniform',
+                                          parameters=[0.9,1.1])
+         self.popul1.rset('cm',rd1)
+         output_values = numpy.zeros((3,3),numpy.float)
+         for i in 0,1,2:
+             for j in 0,1,2:    
+                 output_values[i,j] = 1e9*pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
+         input_values = rd2.next(9)
+         output_values = output_values.reshape((9,))
+         for i in range(9):
+             self.assertAlmostEqual(input_values[i],output_values[i],places=5)
          
-     def testTSet(self):
-         """Population.tset(): The valueArray passed should be retrievable using the PyPCSIM interface """
-         array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
-         self.popul1.tset('i_offset', array_in)
+    def testRSetNative2(self):
+         """Population.rset(): with native rng."""
+         rd1 = random.RandomDistribution(rng=NativeRNG(seed=98765),
+                                          distribution='Uniform',
+                                          parameters=[0.9,1.1])
+         rd2 = random.RandomDistribution(rng=NativeRNG(seed=98765),
+                                          distribution='Uniform',
+                                          parameters=[0.9,1.1])
+         self.popul1.rset('cm', rd1)
+         output_values_1 = numpy.zeros((3,3),numpy.float)
+         output_values_2 = numpy.zeros((3,3),numpy.float)
          for i in 0,1,2:
              for j in 0,1,2:
-                 self.assertAlmostEqual( array_in[i,j], pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Iinject*1e9 , places = 7 )
-     
-     def testTSetArrayUnchanged(self):
-        array_in1 = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
-        array_in2 = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
-        self.assert_((array_in1==array_in2).all())
-        self.popul1.tset('i_offset', array_in1)
-        self.assert_((array_in1==array_in2).all())
-     
-     def testTSetInvalidDimensions(self):
-         """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
-         array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6]])
-         self.assertRaises(common.InvalidDimensionsError, self.popul1.tset, 'i_offset', array_in)
-     
-     def testTSetInvalidValues(self):
-         """Population.tset(): If some of the values in the valueArray are invalid, should raise an exception."""
-         array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,'apples']])
-         self.assertRaises(common.InvalidParameterValueError, self.popul1.tset, 'i_offset', array_in)
-         """Population.rset(): with native rng. This is difficult to test, so for now just require that all values retrieved should be different. Later, could calculate distribution and assert that the difference between sample and theoretical distribution is less than some threshold."""
-         
-     def testRSetNative(self):
-         self.popul1.rset('tau_m',
-                       random.RandomDistribution(rng=NativeRNG(),
-                                                 distribution='Uniform',
-                                                 parameters={'a':10.0, 'b':30.0}))
-         self.assertNotEqual(pcsim_globals.net.object(self.popul1.getObjectID(3)).taum,
-                             pcsim_globals.net.object(self.popul1.getObjectID(6)).taum)
-         
-     def testRSetNumpy(self):
-          """Population.rset(): with numpy rng."""
-          rd1 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
-                                           distribution='uniform',
-                                           parameters=[0.9,1.1])
-          rd2 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
-                                           distribution='uniform',
-                                           parameters=[0.9,1.1])
-          self.popul1.rset('cm',rd1)
-          output_values = numpy.zeros((3,3),numpy.float)
-          for i in 0,1,2:
-              for j in 0,1,2:    
-                  output_values[i,j] = 1e9*pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
-          input_values = rd2.next(9)
-          output_values = output_values.reshape((9,))
-          for i in range(9):
-              self.assertAlmostEqual(input_values[i],output_values[i],places=5)
-          
-     def testRSetNative2(self):
-          """Population.rset(): with native rng."""
-          rd1 = random.RandomDistribution(rng=NativeRNG(seed=98765),
-                                           distribution='Uniform',
-                                           parameters=[0.9,1.1])
-          rd2 = random.RandomDistribution(rng=NativeRNG(seed=98765),
-                                           distribution='Uniform',
-                                           parameters=[0.9,1.1])
-          self.popul1.rset('cm', rd1)
-          output_values_1 = numpy.zeros((3,3),numpy.float)
-          output_values_2 = numpy.zeros((3,3),numpy.float)
-          for i in 0,1,2:
-              for j in 0,1,2:
-                  output_values_1[i,j] = pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
-                  
-          self.popul1.rset('cm', rd2)
-          for i in 0,1,2:
-              for j in 0,1,2:
-                  output_values_2[i,j] = pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
+                 output_values_1[i,j] = pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
+                 
+         self.popul1.rset('cm', rd2)
+         for i in 0,1,2:
+             for j in 0,1,2:
+                 output_values_2[i,j] = pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
 
-          output_values_1 = output_values_1.reshape((9,))
-          output_values_2 = output_values_2.reshape((9,))
-          for i in range(9):
-              self.assertAlmostEqual(output_values_1[i],output_values_2[i],places=5)    
+         output_values_1 = output_values_1.reshape((9,))
+         output_values_2 = output_values_2.reshape((9,))
+         for i in range(9):
+             self.assertAlmostEqual(output_values_1[i],output_values_2[i],places=5)    
         
 # ==============================================================================
 class PopulationCallTest(unittest.TestCase): # to write later
-     """Tests of the _call() and _tcall() methods of the Population class."""
-     pass
+    """Tests of the _call() and _tcall() methods of the Population class."""
+    pass
 
  # ==============================================================================
 class PopulationRecordTest(unittest.TestCase): # to write later
-     """Tests of the record(), record_v(), printSpikes(), print_v() and
-        meanSpikeCount() methods of the Population class."""
-     
-     def setUp(self):
-         Population.nPop = 0
-         self.popul = Population((3,3),IF_curr_alpha)
-         
-     def tearDown(self):         
-         end()
-         
-     def testRecordAll(self):
-         """Population.record(): not a full test, just checking there are no Exceptions raised."""
-         self.popul.record()
-         
-     def testRecordInt(self):
-         """Population.record(n): not a full test, just checking there are no Exceptions raised."""
-         self.popul.record(5)
-         
-     def testRecordWithRNG(self):
-         """Population.record(n,rng): not a full test, just checking there are no Exceptions raised."""
-         # self.popul.record(5,random.NumpyRNG())
-         
-     def testRecordList(self):
-         """Population.record(list): not a full test, just checking there are no Exceptions raised."""
-         self.popul.record([self.popul[(2,2)],self.popul[(1,2)],self.popul[(0,0)]])
+    """Tests of the record(), record_v(), printSpikes(), print_v() and
+       meanSpikeCount() methods of the Population class."""
+    
+    def setUp(self):
+        Population.nPop = 0
+        self.popul = Population((3,3),IF_curr_alpha)
+        
+    def tearDown(self):         
+        end()
+        
+    def testRecordAll(self):
+        """Population.record(): not a full test, just checking there are no Exceptions raised."""
+        self.popul.record()
+        
+    def testRecordInt(self):
+        """Population.record(n): not a full test, just checking there are no Exceptions raised."""
+        self.popul.record(5)
+        
+    def testRecordWithRNG(self):
+        """Population.record(n,rng): not a full test, just checking there are no Exceptions raised."""
+        # self.popul.record(5,random.NumpyRNG())
+        
+    def testRecordList(self):
+        """Population.record(list): not a full test, just checking there are no Exceptions raised."""
+        self.popul.record([self.popul[(2,2)],self.popul[(1,2)],self.popul[(0,0)]])
 
  # ==============================================================================
 class PopulationOtherTest(unittest.TestCase): # to write later
-     """Tests of the randomInit() method of the Population class."""
-     pass
+    """Tests of the randomInit() method of the Population class."""
+    pass
 
 # ==============================================================================
 class ProjectionInitTest(unittest.TestCase):
-     """Tests of the __init__() method of the Projection class."""
-         
-     def setUp(self):
-         Population.nPop = 0
-         # Projection.nProj = 0
-         self.target33    = Population((3,3),IF_curr_alpha)
-         self.target6     = Population((6,),IF_curr_alpha)
-         self.source5     = Population((5,),SpikeSourcePoisson)
-         self.source22    = Population((2,2),SpikeSourcePoisson)
-         self.source33    = Population((3,3),SpikeSourcePoisson)
-         self.expoisson33 = Population((3,3),SpikeSourcePoisson,{'rate': 100})
-         
-     def testAllToAll(self):
-         """For all connections created with "allToAll" it should be possible to obtain the weight using pyneuron.getWeight()"""
-         for srcP in [self.source5, self.source22]:
-             for tgtP in [self.target6, self.target33]:
-                 prj1 = Projection(srcP, tgtP, 'allToAll')
-                 prj1.setWeights(1.234)
-                 weights = []
-                 for i in range(len(prj1)):
-                     weights.append(pcsim_globals.net.object(prj1.pcsim_projection[i]).W)
-                 for w in weights:
-                     self.assertAlmostEqual(w,1.234*1e-9, places = 7)
-         
-     def testFixedProbability(self):
-         """For all connections created with "fixedProbability" it should be possible to obtain the weight using pyneuron.getWeight()"""
-         for srcP in [self.source5, self.source22]:
-             for tgtP in [self.target6, self.target33]:
-                 prj1 = Projection(srcP, tgtP, 'fixedProbability', 0.5)
-                 prj2 = Projection(srcP, tgtP, 'fixedProbability', 0.5)
-                 assert (0 < len(prj1) < len(srcP)*len(tgtP)) and (0 < len(prj2) < len(srcP)*len(tgtP))
-                 
-     def testoneToOne(self):
-         """For all connections created with "OneToOne" it should be possible to obtain the weight using pyneuron.getWeight()"""
-         prj1 = Projection(self.source33, self.target33, 'oneToOne')
-         assert len(prj1) == self.source33.size
-      
-     def testdistantDependentProbability(self):
-         """For all connections created with "distanceDependentProbability" it should be possible to obtain the weight using pyneuron.getWeight()"""
-         # Test should be improved..."
-         prj1 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 2], random.NumpyRNG(12345))
-         prj2 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 3], NativeRNG(12345))
-         assert (0 < len(prj1) < len(self.source33)*len(self.target33)) and (0 < len(prj2) < len(self.source33)*len(self.target33))
+    """Tests of the __init__() method of the Projection class."""
+        
+    def setUp(self):
+        Population.nPop = 0
+        # Projection.nProj = 0
+        self.target33    = Population((3,3),IF_curr_alpha)
+        self.target6     = Population((6,),IF_curr_alpha)
+        self.source5     = Population((5,),SpikeSourcePoisson)
+        self.source22    = Population((2,2),SpikeSourcePoisson)
+        self.source33    = Population((3,3),SpikeSourcePoisson)
+        self.expoisson33 = Population((3,3),SpikeSourcePoisson,{'rate': 100})
+        
+    def testAllToAll(self):
+        """For all connections created with "allToAll" it should be possible to obtain the weights"""
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                prj1 = Projection(srcP, tgtP, 'allToAll')
+                prj2 = Projection(srcP, tgtP, AllToAllConnector())
+                for prj in prj1, prj2:
+                   prj.setWeights(1.234)
+                   weights = []
+                   for i in range(len(prj)):
+                       weights.append(pcsim_globals.net.object(prj.pcsim_projection[i]).W)
+                   for w in weights:
+                       self.assertAlmostEqual(w,1.234*1e-9, places = 7)
+
+    def testFixedProbability(self):
+        """For all connections created with "fixedProbability" ..."""
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                prj1 = Projection(srcP, tgtP, 'fixedProbability', 0.5)
+                prj2 = Projection(srcP, tgtP, 'fixedProbability', 0.5)
+                assert (0 < len(prj1) < len(srcP)*len(tgtP)) and (0 < len(prj2) < len(srcP)*len(tgtP))
+                
+    def testOneToOne(self):
+        """For all connections created with "OneToOne" ..."""
+        prj1 = Projection(self.source33, self.target33, 'oneToOne')
+        prj2 = Projection(self.source33, self.target33, OneToOneConnector())
+        assert len(prj1) == self.source33.size
+        assert len(prj2) == self.source33.size
+     
+    def testDistantDependentProbability(self):
+        """For all connections created with "distanceDependentProbability" ..."""
+        # Test should be improved..."
+        distrib_Numpy = random.RandomDistribution('uniform',(0,1),random.NumpyRNG(12345)) 
+        distrib_Native= random.RandomDistribution('Uniform',(0,1),NativeRNG(12345)) 
+        prj1 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 2], distrib_Numpy)
+        prj2 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 3], distrib_Native)
+        assert (0 < len(prj1) < len(self.source33)*len(self.target33)) and (0 < len(prj2) < len(self.source33)*len(self.target33))
+
 #         
 #     def testSaveAndLoad(self):
 #         prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
@@ -345,57 +352,56 @@ class ProjectionInitTest(unittest.TestCase):
 
 
 class ProjectionSetTest(unittest.TestCase):
-     """Tests of the setWeights(), setDelays(), setThreshold(),
-#       randomizeWeights() and randomizeDelays() methods of the Projection class."""
+    """Tests of the setWeights(), setDelays(), setThreshold(),
+       randomizeWeights() and randomizeDelays() methods of the Projection class."""
 
-     def setUp(self):
-         setup()
-         self.target   = Population((3,3),IF_curr_alpha)
-         self.target   = Population((3,3),IF_curr_alpha)
-         self.source   = Population((3,3),SpikeSourcePoisson,{'rate': 100})
-         self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345),distribution='uniform',parameters=(0,1)) 
-         self.distrib_Native= random.RandomDistribution(rng=NativeRNG(12345),distribution='Uniform',parameters=(0,1)) 
+    def setUp(self):
+        setup()
+        self.target   = Population((3,3),IF_curr_alpha)
+        self.target   = Population((3,3),IF_curr_alpha)
+        self.source   = Population((3,3),SpikeSourcePoisson,{'rate': 100})
+        self.distrib_Numpy = random.RandomDistribution('uniform',(0,1),random.NumpyRNG(12345)) 
+        self.distrib_Native= random.RandomDistribution('Uniform',(0,1),NativeRNG(12345)) 
+        
+    def testsetWeights(self):
+        prj1 = Projection(self.source, self.target, 'allToAll')
+        prj1.setWeights(2.345)
+        weights = []
+        for i in range(len(prj1)):
+            weights.append(pcsim_globals.net.object(prj1[i]).W)
+        for w in weights:
+            self.assertAlmostEqual(w, 2.345*1e-9)         
          
-     def testsetWeights(self):
-         prj1 = Projection(self.source, self.target, 'allToAll')
-         prj1.setWeights(2.345)
-         weights = []
-         for i in range(len(prj1)):
-             weights.append(pcsim_globals.net.object(prj1[i]).W)
-         for w in weights:
-             self.assertAlmostEqual(w, 2.345*1e-9)
-         
-         
-     def testrandomizeWeights(self):
-         # The probability of having two consecutive weights vector that are equal should be 0
-         prj1 = Projection(self.source, self.target, 'allToAll')
-         prj2 = Projection(self.source, self.target, 'allToAll')
-         prj1.randomizeWeights(self.distrib_Numpy)
-         prj2.randomizeWeights(self.distrib_Native)
-         w1 = []; w2 = []; w3 = []; w4 = []
-         for i in range(len(prj1)):
-             w1.append(pcsim_globals.net.object(prj1[i]).W)
-             w2.append(pcsim_globals.net.object(prj1[i]).W)
-         prj1.randomizeWeights(self.distrib_Numpy)
-         prj2.randomizeWeights(self.distrib_Native)
-         for i in range(len(prj1)):
-             w3.append(pcsim_globals.net.object(prj1[i]).W)
-             w4.append(pcsim_globals.net.object(prj1[i]).W)  
-         self.assertNotEqual(w1,w3) and self.assertNotEqual(w2,w4)
+    def testrandomizeWeights(self):
+        # The probability of having two consecutive weights vector that are equal should be 0
+        prj1 = Projection(self.source, self.target, 'allToAll')
+        prj2 = Projection(self.source, self.target, 'allToAll')
+        prj1.randomizeWeights(self.distrib_Numpy)
+        prj2.randomizeWeights(self.distrib_Native)
+        w1 = []; w2 = []; w3 = []; w4 = []
+        for i in range(len(prj1)):
+            w1.append(pcsim_globals.net.object(prj1[i]).W)
+            w2.append(pcsim_globals.net.object(prj1[i]).W)
+        prj1.randomizeWeights(self.distrib_Numpy)
+        prj2.randomizeWeights(self.distrib_Native)
+        for i in range(len(prj1)):
+            w3.append(pcsim_globals.net.object(prj1[i]).W)
+            w4.append(pcsim_globals.net.object(prj1[i]).W)  
+        self.assertNotEqual(w1,w3) and self.assertNotEqual(w2,w4)
 
-         
-     def testSetAndGetID(self):
-         # Small test to see if the ID class is working
-         # self.target[0,2].set({'tau_m' : 15.1})
-         # assert (self.target[0,2].get('tau_m') == 15.1)
-         pass
-         
-     def testSetAndGetPositionID(self):
-         # Small test to see if the position of the ID class is working
-         # self.target[0,2].setPosition((0.5,1.5))
-         # assert (self.target[0,2].getPosition() == (0.5,1.5))
-         pass
-         
+        
+    def testSetAndGetID(self):
+        # Small test to see if the ID class is working
+        # self.target[0,2].set({'tau_m' : 15.1})
+        # assert (self.target[0,2].get('tau_m') == 15.1)
+        pass
+        
+    def testSetAndGetPositionID(self):
+        # Small test to see if the position of the ID class is working
+        # self.target[0,2].setPosition((0.5,1.5))
+        # assert (self.target[0,2].getPosition() == (0.5,1.5))
+        pass
+        
 
 class IDTest(unittest.TestCase):
     """Tests of the ID class."""
@@ -428,4 +434,4 @@ class IDTest(unittest.TestCase):
 
 # ==============================================================================
 if __name__ == "__main__":
-     unittest.main()
+    unittest.main()

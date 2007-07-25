@@ -457,36 +457,52 @@ class ProjectionInitTest(unittest.TestCase):
         self.expoisson33 = neuron.Population((3,3),neuron.SpikeSourcePoisson,{'rate': 100})
         
     def testAllToAll(self):
-        """For all connections created with "allToAll" it should be possible to obtain the weight using pyneuron.getWeight()"""
+        """For all connections created with "allToAll" it should be possible to obtain the weight using HocToPy.get()"""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 prj1 = neuron.Projection(srcP, tgtP, 'allToAll')
+                prj2 = neuron.Projection(srcP, tgtP, neuron.AllToAllConnector())
                 prj1.setWeights(1.234)
-                weights = []
-                for connection_id in prj1.connections:
-                    weights.append(HocToPy.get('%s.object(%d).weight' % (prj1.label,prj1.connections.index(connection_id)), 'float'))
-                assert weights == [1.234]*len(prj1)
-        
+                prj2.setWeights(1.234)
+                for prj in prj1,prj2:
+                    weights = []
+                    for connection_id in prj.connections:
+                        weights.append(HocToPy.get('%s.object(%d).weight' % (prj.label,prj.connections.index(connection_id)), 'float'))
+                    assert weights == [1.234]*len(prj)
+            
     def testFixedProbability(self):
-        """For all connections created with "fixedProbability" it should be possible to obtain the weight using pyneuron.getWeight()"""
+        """For all connections created with "fixedProbability"..."""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 prj1 = neuron.Projection(srcP, tgtP, 'fixedProbability', 0.5, rng=NumpyRNG(12345))
                 prj2 = neuron.Projection(srcP, tgtP, 'fixedProbability', 0.5, rng=NativeRNG(12345))
-                assert (0 < len(prj1) < len(srcP)*len(tgtP)) and (0 < len(prj2) < len(srcP)*len(tgtP))
+                prj3 = neuron.Projection(srcP, tgtP, FixedProbabilityConnector(0.5), rng=NumpyRNG(12345))
+                assert (0 < len(prj1) < len(srcP)*len(tgtP)) \
+                       and (0 < len(prj2) < len(srcP)*len(tgtP)) \
+                       and (0 < len(prj3) < len(srcP)*len(tgtP))
                 
     def testoneToOne(self):
-        """For all connections created with "OneToOne" it should be possible to obtain the weight using pyneuron.getWeight()"""
+        """For all connections created with "OneToOne" ..."""
         prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
+        prj2 = neuron.Projection(self.source33, self.target33, neuron.OneToOneConnector())
         assert len(prj1.connections) == self.source33.size
+        assert len(prj2.connections) == self.source33.size
      
     def testdistantDependentProbability(self):
-        """For all connections created with "distanceDependentProbability" it should be possible to obtain the weight using pyneuron.getWeight()"""
+        """For all connections created with "distanceDependentProbability"..."""
         # Test should be improved..."
-        prj1 = neuron.Projection(self.source33, self.target33, 'distanceDependentProbability',{'d_expression' : 'exp(-d)'}, rng=NumpyRNG(34567), label="DDP_test1")
-        prj2 = neuron.Projection(self.source33, self.target33, 'distanceDependentProbability',{'d_expression' : 'd < 0.5'}, rng=NativeRNG(34567), label="DDP_test2")
-        assert (0 < len(prj1) < len(self.source33)*len(self.target33)) and (0 < len(prj2) < len(self.source33)*len(self.target33))
-        
+        for rngclass in (NumpyRNG, NativeRNG):
+            for expr in ('exp(-d)', 'd < 0.5'):
+                prj1 = neuron.Projection(self.source33, self.target33,
+                                         'distanceDependentProbability',
+                                         {'d_expression' : expr},rng=rngclass(12345))
+                prj2 = neuron.Projection(self.source33, self.target33,
+                                         neuron.DistanceDependentProbabilityConnector(d_expression=expr),
+                                         rng=rngclass(12345))
+                assert (0 < len(prj1) < len(self.source33)*len(self.target33)) \
+                   and (0 < len(prj2) < len(self.source33)*len(self.target33)) 
+                assert prj1.connections == prj2.connections, "%s %s" % (rngclass, expr)
+
     def testSaveAndLoad(self):
         prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
         prj1.setDelays(1)
