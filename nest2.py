@@ -7,7 +7,7 @@ __version__ = "$Revision:5 $"
 
 # temporary fix to import nest rather than pyNN.nest
 import imp
-mod_search = imp.find_module('nest', ['/usr/lib/python/site-packages'])
+mod_search = imp.find_module('nest', ['/usr/lib/python/site-packages','/usr/local/lib/python2.5/site-packages'])
 nest = imp.load_module('nest',*mod_search)
 from pyNN import common
 from pyNN.random import *
@@ -232,12 +232,21 @@ def setup(timestep=0.1,debug=False,**extra_params):
     #    raise Exception("min_delay has to be less than or equal to max_delay.")
     global dt
     global tempdir
+    global hl_spike_files, hl_v_files
     dt = timestep
 
     # reset the simulation kernel
     nest.ResetKernel()
     # clear the sli stack, if this is not done --> memory leack cause the stack increases
     nest.sr('clear')
+
+    # check if hl_spike_files , hl_v_files are empty
+    if not len(hl_spike_files) == 0:
+        print 'hl_spike_files still contained files, please close all open files before setup'
+        hl_spike_files = {}
+    if not len(hl_v_files) == 0:
+        print 'hl_v_files still contained files, please close all open files before setup'
+        hl_v_files = {}
     
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
@@ -248,14 +257,18 @@ def setup(timestep=0.1,debug=False,**extra_params):
     
     if extra_params.has_key('threads'):
         if extra_params.has_key('kernelseeds'):
+            print 'params has kernelseed ', extra_params['kernelseeds']
             kernelseeds = extra_params['kernelseeds']
         else:
             # default kernelseeds, for each thread one, to ensure same for each sim we get the rng with seed 42
             rng = NumpyRNG(42)
-            kernelseeds = (rng.rng.uniform(size=extra_params['threads'])*100).astype('int').tolist()
-        
+            num_processes = nest.GetStatus([0])[0]['num_processes']
+            kernelseeds = (rng.rng.uniform(size=extra_params['threads']*num_processes)*100).astype('int').tolist()
+            print 'params has not kernelseed ',kernelseeds
+            
         nest.SetStatus([0],[{'local_num_threads'     : extra_params['threads'],
                             'rng_seeds'   : kernelseeds}])
+
     
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
@@ -297,7 +310,7 @@ def run(simtime):
 
 def setRNGseeds(seedList):
     """Globally set rng seeds."""
-    nest.setDict([0],{'rng_seeds': seedList})
+    nest.SetStatus([0],{'rng_seeds': seedList})
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -741,7 +754,7 @@ class Population(common.Population):
         
         # create device
         self.spike_detector = nest.Create('spike_detector')
-        params = {"to_file" : True, "withgid" : True, "withtime" : True,'withpath':True}
+        params = {"to_file" : True, "withgid" : True, "withtime" : True}#,'withpath':True}
         nest.SetStatus(self.spike_detector, [params])
         
         filename = nest.GetStatus(self.spike_detector, "filename")
@@ -823,7 +836,7 @@ class Population(common.Population):
         
     
     
-    def printSpikes(self,filename,gather=True, compatible_output=True):
+    def printSpikes(self,filename,gather=True, compatible_output=False):
         """
         Writes spike times to file.
         If compatible_output is True, the format is "spiketime cell_id",
@@ -840,46 +853,73 @@ class Population(common.Population):
         otherwise, a file will be written on each node.
         """        
         global hl_spike_files
-
+        global tempdir
         # closing of the file
         # just a workaround, nest will do that automatically soon
         if hl_spike_files.has_key(self.label):#   __contains__(tempfilename):
             nest.sps(self.spike_detector[0])
             nest.sr("FlushDevice")
         
-        
-        if (compatible_output):
-            # Here we postprocess the file to have effectively the
-            # desired format: spiketime (in ms) cell_id-min(cell_id)
-            result = open(filename,'w',1000)
-            # Writing dimensions of the population:
-            result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
-            # Writing spiketimes, cell_id-min(cell_id)
-            padding = numpy.reshape(self.cell,self.cell.size)[0]
-            # Pylab has a great load() function, but it is not necessary to import
-            # it into pyNN. The fromfile() function of numpy has trouble on several
-            # machine with Python 2.5, so that's why a dedicated _readArray function
-            # has been created to load from file the raster or the membrane potentials
-            # saved by NEST
-            if int(os.path.getsize(hl_spike_files[self.label][0])) > 0:
-                try: 
-                    raster = _readArray("%s" % hl_spike_files[self.label][0] ,sepchar=" ")
-                    # Sometimes, nest doesn't write the last line entirely, so we need
-                    # to trunk it to avoid errors
-                    raster = raster[:,1:3]
-                    raster[:,0] = raster[:,0] - padding
-                    raster[:,1] = raster[:,1]*dt
-                    for idx in xrange(len(raster)):
-                        result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
-                except Exception:
-                    print "Error while writing data into a compatible mode"
-            result.close()
-            os.system("rm %s" % hl_spike_files[self.label][0])
-        else:
-            print 'didt go into the compatible output stuff'
-            shutil.move(hl_spike_files[self.label][0],filename)
+        status = nest.GetStatus([0])[0]
+        np = status['num_processes']
+        vp = status['vp']
+        local_num_threads = status['local_num_threads']
+        rank = numpy.mod(vp,np)
 
-        # remove the key from hl_spike_files
+        
+        filename = filename + '-%d' % rank
+        if (compatible_output):
+            if rank == 0:
+                for nest_thread in range(local_num_threads):
+                    label = '-%d-%d-%d.gdf' %(rank,nest_thread,self.spike_detector[0])
+                    # Here we postprocess the file to have effectively the
+                    # desired format: spiketime (in ms) cell_id-min(cell_id)
+                    if not os.path.exists(filename):
+                        result = open(filename,'w',1000)
+                        # Writing dimensions of the population:
+                        result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
+                        # Writing spiketimes, cell_id-min(cell_id)
+                        padding = numpy.reshape(self.cell,self.cell.size)[0]
+                    else:
+                        result = open(filename,'a',1000)
+                        
+                    # Pylab has a great load() function, but it is not necessary to import
+                    # it into pyNN. The fromfile() function of numpy has trouble on several
+                    # machine with Python 2.5, so that's why a dedicated _readArray function
+                    # has been created to load from file the raster or the membrane potentials
+                    # saved by NEST
+                    # open file
+                    simfile = tempdir + '/spike_detector'+ label
+                    # if int(os.path.getsize(hl_spike_files[self.label][0])) > 0:
+                    if int(os.path.getsize(simfile)) > 0:
+                        try:
+                            raster = _readArray(simfile ,sepchar=" ")
+                            # Sometimes, nest doesn't write the last line entirely, so we need
+                            # to trunk it to avoid errors
+                            raster = raster[:,1:3]
+                            raster[:,0] = raster[:,0] - padding
+                            raster[:,1] = raster[:,1]*dt
+                            for idx in xrange(len(raster)):
+                                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+                                
+                        except Exception:
+                            print "Error while writing data into a compatible mode"
+                result.close()
+                # os.system("rm %s" % hl_spike_files[self.label][0])
+        else:
+            if gather:
+                if os.path.exists(filename):
+                    # 'target file exists, will be removed before copying the new data.'
+                    os.remove(filename)
+                for nest_thread in range(local_num_threads):
+                    label = '-%d-%d-%d.gdf' %(rank,nest_thread,self.spike_detector[0])
+                    simfile = tempdir + '/spike_detector'+ label
+                    system_line = 'cat %s >> %s' %(simfile,filename)
+                    if os.system(system_line) == 0: # cat was successful
+                        os.remove(simfile)
+            else:
+                print 'spike data is not gathered and located in: ',tempdir
+        
         hl_spike_files.pop(self.label)
         
 
@@ -903,7 +943,7 @@ class Population(common.Population):
         #for node, v_init in zip(cells,rvals):
         #    nest.setDict([node],{'u': v_init})
     
-    def print_v(self,filename,gather=True, compatible_output=True):
+    def print_v(self,filename,gather=True, compatible_output=False):
         """
         Write membrane potential traces to file.
         If compatible_output is True, the format is "v cell_id",
@@ -925,12 +965,22 @@ class Population(common.Population):
         if hl_v_files.has_key(self.label):
             nest.sps(self.voltmeter[0])
             nest.sr("FlushDevice")
-                
-        result = open(filename,'w',1000)
-        NESTStatus = nest.GetStatus([0])[0]
-        dt = NESTStatus['resolution']
-        n = int(NESTStatus['time']/dt)
-        result.write("# dt = %f\n# n = %d\n" % (dt,n))
+
+
+        status = nest.GetStatus([0])[0]
+        np = status['num_processes']
+        vp = status['vp']
+        local_num_threads = status['local_num_threads']
+        rank = numpy.mod(vp,np)
+
+        filename = filename + '-%d' % rank
+        # compatible_output stuff
+        #result = open(filename,'w',1000)
+        #NESTStatus = nest.GetStatus([0])[0]
+        #dt = NESTStatus['resolution']
+        #n = int(NESTStatus['time']/dt)
+        #result.write("# dt = %f\n# n = %d\n" % (dt,n))
+
         
         if (compatible_output):
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
@@ -956,15 +1006,28 @@ class Population(common.Population):
                 except Exception:
                     print "Error while writing data into a compatible mode"
         else:
-            f = open(hl_v_files[self.label][0],'r',1000)
-            lines = f.readlines()
-            f.close()
-            for line in lines:
-                result.write(line)
-        os.system("rm %s" % hl_v_files[self.label][0])
-        result.close()
+            # f = open(hl_v_files[self.label][0],'r',1000)
+            # lines = f.readlines()
+            # f.close()
+            # for line in lines:
+            #    result.write(line)
+            # os.system("rm %s" % hl_v_files[self.label][0])
+            # result.close()
 
-        # remove the key from hl_spike_files
+            #
+            if gather:
+                if os.path.exists(filename):
+                    # 'target file exists, will be removed before copying the new data.'
+                    os.remove(filename)
+                for nest_thread in range(local_num_threads):
+                    label = '-%d-%d-%d.dat' %(rank,nest_thread,self.voltmeter[0])
+                    simfile = tempdir + '/voltmeter'+ label
+                    system_line = 'cat %s >> %s' %(simfile,filename)
+                    if os.system(system_line) == 0: # cat was successful 
+                        os.remove(simfile)
+            else:
+                print 'voltmeter data is not gathered and located in: ',tempdir
+        
         hl_v_files.pop(self.label)
         
     
