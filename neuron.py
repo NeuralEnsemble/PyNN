@@ -229,29 +229,6 @@ class HocToPy:
             raise HocError("caused by HocToPy.bool('%s')" % condition)
         return HocToPy.hocvar
 
-def _distance(presynaptic_population, postsynaptic_population, src, tgt):
-    """
-    Return the Euclidian distance between two cells. For the moment, we do
-    a scaling between the two dimensions of the populations: the target
-    population is scaled to the size of the source population."""
-    dist = 0.0
-    src_position = src.position
-    tgt_position = tgt.position
-    if (len(src_position) == len(tgt_position)):
-        for i in xrange(len(src_position)):
-            # We normalize the positions in each population and calculate the
-            # Euclidian distance :
-            #scaling = float(presynaptic_population.dim[i])/float(postsynaptic_population.dim[i])
-            src_coord = float(src_position[i])
-            tgt_coord = float(tgt_position[i])
-        
-            dist += float(src_coord-tgt_coord)*float(src_coord-tgt_coord)
-    else:    
-        raise Exception("_distance() function not yet implemented for Populations with different sizes.")
-    return sqrt(dist)
-
-
-
 # ==============================================================================
 #   Standard cells
 # ==============================================================================
@@ -1503,7 +1480,7 @@ class Projection(common.Projection):
                 hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(rand_distr.next()))]
         hoc_execute(hoc_commands, "--- Projection[%s].__randomizeDelays__() ---" %self.label)
         
-    def setTopographicDelays(self,delay_rule,rand_distr=None):
+    def setTopographicDelays(self,delay_rule,rand_distr=None,mask=None,scale_factor=1.0):
         """
         Set delays according to a connection rule expressed in delay_rule, based
         on the delay distance 'd' and an (optional) rng 'rng'. For example,
@@ -1519,7 +1496,8 @@ class Projection(common.Projection):
                 # calculate the distance between the two cells
                 idx_src = numpy.where(self.pre.fullgidlist == src)[0][0]
                 idx_tgt = numpy.where(self.post.fullgidlist == tgt)[0][0]
-                dist = _distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
+                dist = common.distance(self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt],
+                                       mask, scale_factor)
                 # then evaluate the delay according to the delay rule
                 delay = eval(delay_rule.replace('d', '%f' %dist))
                 hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(delay))]
@@ -1535,7 +1513,8 @@ class Projection(common.Projection):
                     # calculate the distance between the two cells
                     idx_src = self.pre.fullgidlist.index(src)
                     idx_tgt = self.post.fullgidlist.index(tgt)
-                    dist = _distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
+                    dist = common.distance(self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt],
+                                           mask, scale_factor)
                     # then evaluate the delay according to the delay rule
                     delay = delay_rule.replace('d', '%f' % dist)
                     delay = eval(delay.replace('rng', '%f' % HocToPy.get('rng.repick()', 'float')))
@@ -1547,7 +1526,8 @@ class Projection(common.Projection):
                     # calculate the distance between the 2 cells :
                     idx_src = self.pre.fullgidlist.index(src)
                     idx_tgt = self.post.fullgidlist.index(tgt)
-                    dist = _distance(self.pre, self.post, self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt])
+                    dist = common.distance(self.pre.fullgidlist[idx_src], self.post.fullgidlist[idx_tgt],
+                                           mask, scale_factor)
                     # then evaluate the delay according to the delay rule :
                     delay = delay_rule.replace('d', '%f' %dist)
                     delay = eval(delay.replace('rng', '%f' %rand_distr.next()))
@@ -1774,7 +1754,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             for src in projection.pre.fullgidlist:
                 if self.allow_self_connections or projection.pre != projection.post or tgt != src: 
                     # calculate the distance between the two cells :
-                    d = _distance(projection.pre, projection.post, src, tgt)
+                    d = common.distance(src, tgt, self.mask, self.scale_factor)
                     p = eval(self.d_expression)
                     if 0 < p < 1:
                         if rarr[j] < p:

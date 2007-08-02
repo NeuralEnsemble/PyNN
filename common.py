@@ -63,13 +63,13 @@ class ID(int):
             return self.setParameters(**{name:value})
 
     def _set_cellclass(self, cellclass):
-        if self.parent:
+        if self.parent is not None:
             raise Exception("Cell class is determined by the Population and cannot be changed for individual neurons.")
         else:
             self._cellclass = cellclass # should check it is a standard cell class or a string
 
     def _get_cellclass(self):
-        if self.parent:
+        if self.parent is not None:
             return self.parent.celltype.__class__
         else:
             return self._cellclass
@@ -105,6 +105,36 @@ class ID(int):
     def getParameters(self):
         """Return a dict of all cell parameters."""
         return _abstractMethod(self)
+
+def distance(src, tgt, mask=None, scale_factor=1.0): # may need to add an offset parameter
+    """
+    Return the Euclidian distance between two cells.
+    `mask` allows only certain dimensions to be considered, e.g.::
+      * to ignore the z-dimension, use `mask=array([0,1])`
+      * to ignore y, `mask=array([0,2])`
+      * to just consider z-distance, `mask=array([2])`
+    `scale_factor` allows for different units in the pre- and post- position
+    (the post-synaptic position is multipied by this quantity).
+    """
+    d = src.position - scale_factor*tgt.position
+    if mask is not None:
+        d = d[mask]
+    return numpy.sqrt(numpy.dot(d,d))
+
+# NOT TESTED
+#def distances(pre, post, mask=None, scale_factor=1.0):
+#    """Calculate the entire distance matrix at once.
+#       From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html"""
+#    x = pre.positions
+#    y = post.positions
+#    d = numpy.zeros((x.shape[1], y.shape[1]), dtype=x.dtype)
+#    for i in xrange(x.shape[0]):
+#        diff2 = x[:,i,None] - y[:,i]
+#        diff2 **= 2
+#        d += diff2
+#    numpy.sqrt(d,d)
+#    return d
+
 
 # ==============================================================================
 #   Standard cells
@@ -358,6 +388,8 @@ class Population:
         if isinstance(dims, int): # also allow a single integer, for a 1D population
             #print "Converting integer dims to tuple"
             self.dim = (self.dim,)
+        else:
+            assert isinstance(dims, tuple), "`dims` must be an integer or a tuple."
         self.label    = label
         self.celltype = cellclass
         self.ndim     = len(self.dim)
@@ -411,6 +443,21 @@ class Population:
 
     positions = property(_get_positions, _set_positions, 'A 3xN array (where N is the number of neurons in the Population) giving the x,y,z coordinates of all the neurons (soma, in the case of non-point models).')
     
+    def index(self, n):
+        """Return the nth cell in the population."""
+        return _abstractMethod(self)
+    
+    def nearest(self, position):
+        """Return the neuron closest to the specified position."""
+        # doesn't always work correctly if a position is equidistant between two neurons,
+        # i.e. 0.5 should be rounded up, but it isn't always.
+        pos = numpy.array([position]*self.positions.shape[1]).transpose()
+        dist_arr = (self.positions - pos)**2
+        distances = dist_arr.sum(axis=0)
+        print distances
+        nearest = distances.argmin()
+        return self.index(nearest)
+            
     def set(self,param,val=None):
         """
         Set one or more parameters for every cell in the population. param
@@ -566,6 +613,9 @@ class Projection:
         self.label = label
         self.rng = rng
         self.connection = None # access individual connections. To be defined by child, simulator-specific classes
+        if label is None:
+            if self.pre.label and self.post.label:
+                self.label = "%s → %s" % (self.pre.label, self.post.label)
     
     def __len__(self):
         """Return the total number of connections."""
@@ -815,15 +865,31 @@ class DistanceDependentProbabilityConnector(Connector):
     For each pair of pre-post cells, the connection probability depends on distance.
     d_expression should be the right-hand side of a valid python expression
     for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
+    If axes is not supplied, then the 3D distance is calculated. If supplied,
+    axes should be a string containing the axes to be used, e.g. 'x', or 'yz'
+    axes='xyz' is the same as axes=None.
+    It may be that the pre and post populations use different units for position, e.g.
+    degrees and µm. In this case, `scale_factor` can be specified, which is applied
+    to the positions in the post-synaptic population.
     """
     
-    def __init__(self, d_expression, allow_self_connections=True):
+    AXES = {'x' : [0],    'y': [1],    'z': [2],
+            'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': None}
+    
+    def __init__(self, d_expression, axes=None, scale_factor=1.0, allow_self_connections=True):
         assert isinstance(allow_self_connections, bool)
         assert isinstance(d_expression, str)
-        d = 0; assert 0 <= eval(d_expression)
-        d = 1e12; assert 0 <= eval(d_expression)
+        try:
+            d = 0; assert 0 <= eval(d_expression), eval(d_expression)
+            d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
+        except ZeroDivisionError:
+            print d_expression
+            raise
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
+        self.mask = numpy.array(DistanceDependentProbabilityConnector.AXES[axes])
+        self.scale_factor = scale_factor
+        
                 
 # ==============================================================================
 #   Utility classes
