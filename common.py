@@ -874,7 +874,7 @@ class DistanceDependentProbabilityConnector(Connector):
     """
     
     AXES = {'x' : [0],    'y': [1],    'z': [2],
-            'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': None}
+            'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': None, None: None}
     
     def __init__(self, d_expression, axes=None, scale_factor=1.0, allow_self_connections=True):
         assert isinstance(allow_self_connections, bool)
@@ -887,7 +887,9 @@ class DistanceDependentProbabilityConnector(Connector):
             raise
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
-        self.mask = numpy.array(DistanceDependentProbabilityConnector.AXES[axes])
+        self.mask = DistanceDependentProbabilityConnector.AXES[axes]
+        if self.mask is not None:
+            self.mask = numpy.array(self.mask)
         self.scale_factor = scale_factor
         
                 

@@ -1034,7 +1034,7 @@ class Projection(common.Projection):
             d_expression = parameters['d_expression']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-        c = DistanceDependentProbabilityConnector(d_expression, allow_self_connections)
+        c = DistanceDependentProbabilityConnector(d_expression, allow_self_connections=allow_self_connections)
         return c.connect(self)           
                 
     def _fixedNumberPre(self,parameters):
