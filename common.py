@@ -70,7 +70,11 @@ class ID(int):
 
     def _get_cellclass(self):
         if self.parent is not None:
-            return self.parent.celltype.__class__
+            celltype = self.parent.celltype
+            if isinstance(celltype, str):
+                return celltype
+            else:
+                return celltype.__class__
         else:
             return self._cellclass
         

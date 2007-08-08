@@ -38,8 +38,13 @@ class ID(common.ID):
     
     def __getattr__(self,name):
         """Note that this currently does not translate units."""
-        translated_name = self.cellclass.translations[name][0]
-        return nest.getDict([int(self)])[0][translated_name]
+        if isinstance(self.cellclass, common.StandardCellType):
+            translated_name = self.cellclass.translations[name][0]
+        elif isinstance(self.cellclass, str) or self.cellclass is None:
+            translated_name = name
+        else:
+            raise Exception("ID object has invalid cell class %s" % str(self.cellclass))
+        return nest.GetStatus([int(self)])[0][translated_name]
     
     def setParameters(self,**parameters):
         # We perform a call to the low-level function set() of the API.
@@ -92,18 +97,18 @@ class IF_curr_exp(common.IF_curr_exp):
     excitatory and inhibitory synapses."""
     
     translations = {
-        'v_rest'    : ('U0'     , "parameters['v_rest']"),
-        'v_reset'   : ('Vreset' , "parameters['v_reset']"),
-        'cm'        : ('C'      , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-        'tau_m'     : ('Tau'    , "parameters['tau_m']"),
-        'tau_refrac': ('TauR'   , "max(dt,parameters['tau_refrac'])"),
-        'tau_syn_E' : ('TauSynE', "parameters['tau_syn_E']"),
-        'tau_syn_I' : ('TauSynI', "parameters['tau_syn_I']"),
-        'v_thresh'  : ('Theta'  , "parameters['v_thresh']"),
-        'i_offset'  : ('I0'     , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-        'v_init'    : ('u'      , "parameters['v_init']"),
+        'v_rest'    : ('E_L'        , "parameters['v_rest']"),
+        'v_reset'   : ('V_reset'    , "parameters['v_reset']"),
+        'cm'        : ('C_m'        , "parameters['cm']*1000.0"), # C is in pF, cm in nF
+        'tau_m'     : ('tau_m'      , "parameters['tau_m']"),
+        'tau_refrac': ('tau_ref_abs', "max(dt,parameters['tau_refrac'])"),
+        'tau_syn_E' : ('tau_ex'     , "parameters['tau_syn_E']"),
+        'tau_syn_I' : ('tau_in'     , "parameters['tau_syn_I']"),
+        'v_thresh'  : ('v_th'       , "parameters['v_thresh']"),
+        'i_offset'  : ('I_e'        , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
+        'v_init'    : ('V_m'        , "parameters['v_init']"),
     }
-    nest_name = 'iaf_exp_neuron2'
+    nest_name = 'iaf_psc_exp'
     
     def __init__(self,parameters):
         common.IF_curr_exp.__init__(self,parameters)
@@ -397,7 +402,7 @@ def set(cells,cellclass,param,val=None):
             param = cellclass({}).translate(param)
         else:
             raise TypeError, "cellclass must be a string or derived from commonStandardCellType"
-    nest.setDict(cells,param)
+    nest.SetStatus(cells,[param])
 
 def record(source,filename):
     """Record spikes to a file. source can be an individual cell or a list of
@@ -753,11 +758,11 @@ class Population(common.Population):
         global hl_spike_files
         
         # create device
-        self.spike_detector = nest.Create('spike_detector')
+        self.spike_detector = ID(nest.Create('spike_detector')[0])
         params = {"to_file" : True, "withgid" : True, "withtime" : True}#,'withpath':True}
-        nest.SetStatus(self.spike_detector, [params])
+        nest.SetStatus([self.spike_detector], [params])
         
-        filename = nest.GetStatus(self.spike_detector, "filename")
+        filename = nest.GetStatus([self.spike_detector], "filename")
         hl_spike_files[self.label] = filename
         
         # create list of neurons        
@@ -785,7 +790,7 @@ class Population(common.Population):
                 #nest.Connect([neuron],[self.spike_detector[0]])
 
         # connect device to neurons
-        nest.ConvergentConnect(tmp_list,self.spike_detector)
+        nest.ConvergentConnect(tmp_list,[self.spike_detector])
         
         
         #hl_spike_files.append('%s.spikes' % self.label)
@@ -857,7 +862,7 @@ class Population(common.Population):
         # closing of the file
         # just a workaround, nest will do that automatically soon
         if hl_spike_files.has_key(self.label):#   __contains__(tempfilename):
-            nest.sps(self.spike_detector[0])
+            nest.sps(self.spike_detector)
             nest.sr("FlushDevice")
         
         status = nest.GetStatus([0])[0]
@@ -1802,7 +1807,10 @@ class Projection(common.Projection):
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
         raise Exception("Method not yet implemented")
- 
+
+
+
+
 # ==============================================================================
 #   Utility classes
 # ==============================================================================
