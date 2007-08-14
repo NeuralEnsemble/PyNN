@@ -18,6 +18,7 @@ ll_spike_files = []
 ll_v_files     = []
 hl_spike_files = {}
 hl_v_files     = {}
+hl_c_files     = {}
 tempdirs       = []
 dt             = 0.1
 
@@ -840,6 +841,48 @@ class Population(common.Population):
         nest.DivergentConnect(self.voltmeter, tmp_list)
         
     
+    def record_c(self,record_from=None,rng=None):
+        """
+        If record_from is not given, record the membrane potential for all cells in
+        the Population.
+        record_from can be an integer - the number of cells to record from, chosen
+        at random (in this case a random number generator can also be supplied)
+        - or a list containing the ids of the cells to record.
+        """
+        global hl_c_files
+        
+        # create device
+        
+        self.conductancemeter = nest.Create("conductancemeter")
+        params = {"to_file" : True, "withgid" : True, "withtime" : True}
+        nest.SetStatus(self.conductancemeter, [params])
+        
+        filename = nest.GetStatus(self.conductancemeter, "filename")
+        hl_c_files[self.label] = filename
+        
+        
+        # create list of neurons
+        fixed_list = False
+        if record_from:
+            if type(record_from) == types.ListType:
+                fixed_list = True
+                n_rec = len(record_from)
+            elif type(record_from) == types.IntType:
+                n_rec = record_from
+            else:
+                raise "record_from must be a list or an integer"
+        else:
+            n_rec = self.size
+
+        tmp_list = []
+        if (fixed_list == True):
+            tmp_list = [neuron for neuron in record_from]
+        else:
+            for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
+                tmp_list.append(neuron)
+        
+        # connect device to neurons
+        nest.DivergentConnect(self.conductancemeter, tmp_list)
     
     def printSpikes(self,filename,gather=True, compatible_output=False):
         """
@@ -917,7 +960,7 @@ class Population(common.Population):
                     # 'target file exists, will be removed before copying the new data.'
                     os.remove(filename)
                 for nest_thread in range(local_num_threads):
-                    label = '-%d-%d-%d.gdf' %(rank,nest_thread,self.spike_detector[0])
+                    label = '-%d-%d-%d.gdf' %(rank,nest_thread,self.spike_detector)
                     simfile = tempdir + '/spike_detector'+ label
                     system_line = 'cat %s >> %s' %(simfile,filename)
                     if os.system(system_line) == 0: # cat was successful
@@ -1035,6 +1078,92 @@ class Population(common.Population):
         
         hl_v_files.pop(self.label)
         
+    def print_c(self,filename,gather=True, compatible_output=False):
+        """
+        Write membrane potential traces to file.
+        If compatible_output is True, the format is "v cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
+        This allows easy plotting of a `raster' plot of spiketimes, with one
+        line for each cell.
+        The timestep and number of data points per cell is written as a header,
+        indicated by a '#' at the beginning of the line.
+        
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        voltage files.
+        """
+        global hl_c_files
+        
+        # closing file
+        # just a workaround, nest will do that automatically soon
+        if hl_c_files.has_key(self.label):
+            nest.sps(self.conductancemeter[0])
+            nest.sr("FlushDevice")
+
+
+        status = nest.GetStatus([0])[0]
+        np = status['num_processes']
+        vp = status['vp']
+        local_num_threads = status['local_num_threads']
+        rank = numpy.mod(vp,np)
+
+        filename = filename + '-%d' % rank
+        # compatible_output stuff
+        #result = open(filename,'w',1000)
+        #NESTStatus = nest.GetStatus([0])[0]
+        #dt = NESTStatus['resolution']
+        #n = int(NESTStatus['time']/dt)
+        #result.write("# dt = %f\n# n = %d\n" % (dt,n))
+
+        
+        if (compatible_output):
+            result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
+            padding = numpy.reshape(self.cell,self.cell.size)[0]
+
+            # Here we postprocess the file to have effectively the
+            # desired format :
+            # First line: dimensions of the population
+            # Then spiketime cell_id-min(cell_id)
+            
+            # Pylab has a great load() function, but it is not necessary to import
+            # it into pyNN. The fromfile() function of numpy has trouble on several
+            # machine with Python 2.5, so that's why a dedicated _readArray function
+            # has been created to load from file the raster or the membrane potentials
+            # saved by NEST
+            if int(os.path.getsize(hl_v_files[self.label][0])) > 0:
+                try:
+                    raster = _readArray(hl_v_files[self.label][0],sepchar="\t")
+                    raster[:,0] = raster[:,0] - padding
+                
+                    for idx in xrange(len(raster)):
+                        result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+                except Exception:
+                    print "Error while writing data into a compatible mode"
+        else:
+            # f = open(hl_v_files[self.label][0],'r',1000)
+            # lines = f.readlines()
+            # f.close()
+            # for line in lines:
+            #    result.write(line)
+            # os.system("rm %s" % hl_v_files[self.label][0])
+            # result.close()
+
+            #
+            if gather:
+                if os.path.exists(filename):
+                    # 'target file exists, will be removed before copying the new data.'
+                    os.remove(filename)
+                for nest_thread in range(local_num_threads):
+                    label = '-%d-%d-%d.dat' %(rank,nest_thread,self.conductancemeter[0])
+                    simfile = tempdir + '/conductancemeter'+ label
+                    system_line = 'cat %s >> %s' %(simfile,filename)
+                    if os.system(system_line) == 0: # cat was successful 
+                        os.remove(simfile)
+            else:
+                print 'voltmeter data is not gathered and located in: ',tempdir
+        
+        hl_c_files.pop(self.label)   
     
 class Projection(common.Projection):
     """
