@@ -969,8 +969,25 @@ class Population(common.Population):
                 print 'spike data is not gathered and located in: ',tempdir
         
         hl_spike_files.pop(self.label)
-        
 
+    def collectdata(self,filename):
+        """
+        merges all mpi data into one final file, should only be called once, after all spikes have been printed
+        """
+        status = nest.GetStatus([0])[0]
+        np = status['num_processes']
+        vp = status['vp']
+        local_num_threads = status['local_num_threads']
+        rank = numpy.mod(vp,np)
+        if os.path.exists(filename):
+            os.remove(filename)
+        
+        for processor in range(np):
+            filename_p = filename+'-'+str(processor)
+            system_line = 'cat %s >> %s' %(filename_p,filename)
+            if os.system(system_line) == 0: # cat was successful
+                os.remove(filename_p)    
+        
     def meanSpikeCount(self,gather=True):
         """
         Returns the mean number of spikes per neuron.
