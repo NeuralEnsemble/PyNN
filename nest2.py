@@ -39,7 +39,7 @@ class ID(common.ID):
     
     def __getattr__(self,name):
         """Note that this currently does not translate units."""
-        if isinstance(self.cellclass, common.StandardCellType):
+        if issubclass(self.cellclass, common.StandardCellType):
             translated_name = self.cellclass.translations[name][0]
         elif isinstance(self.cellclass, str) or self.cellclass is None:
             translated_name = name
@@ -50,15 +50,15 @@ class ID(common.ID):
     def setParameters(self,**parameters):
         # We perform a call to the low-level function set() of the API.
         # If the cellclass is not defined in the ID object :
-        if (self.cellclass == None):
-            raise Exception("Unknown cellclass")
-        else:
-            # We use the one given by the user
-            set(self, self.cellclass, parameters) 
+        #if (self.cellclass == None):
+        #    raise Exception("Unknown cellclass")
+        #else:
+        #    # We use the one given by the user
+        set(self, self.cellclass, parameters) 
 
     def getParameters(self):
         """Note that this currently does not translate units."""
-        nest_params = nest.getDict([int(self)])[0]
+        nest_params = nest.GetStatus([int(self)])[0]
         params = {}
         for k,v in self.cellclass.translations.items():
             params[k] = nest_params[v[0]]
@@ -243,7 +243,7 @@ def setup(timestep=0.1,debug=False,**extra_params):
 
     # reset the simulation kernel
     nest.ResetKernel()
-    # clear the sli stack, if this is not done --> memory leack cause the stack increases
+    # clear the sli stack, if this is not done --> memory leak cause the stack increases
     nest.sr('clear')
 
     # check if hl_spike_files , hl_v_files are empty
@@ -277,11 +277,15 @@ def setup(timestep=0.1,debug=False,**extra_params):
 
     
     # Initialisation of the log module. To write in the logfile, simply enter
-    # logging.critical(), logging.debug(), logging.info(), logging.warning() 
+    # logging.critical(), logging.debug(), logging.info(), logging.warning()
     if debug:
+        if isinstance(debug, basestring):
+            filename = debug
+        else:
+            filename = "nest.log"
         logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s',
-                    filename='nest.log',
+                    filename=filename,
                     filemode='w')
     else:
         logging.basicConfig(level=logging.INFO,
@@ -398,11 +402,11 @@ def set(cells,cellclass,param,val=None):
         i = cells[0]
     except TypeError:
         cells = [cells]
-    if not isinstance(cellclass,str):
+    if not (isinstance(cellclass,str) or cellclass is None):
         if issubclass(cellclass, common.StandardCellType):
             param = cellclass({}).translate(param)
         else:
-            raise TypeError, "cellclass must be a string or derived from commonStandardCellType"
+            raise TypeError, "cellclass must be a string, None, or derived from commonStandardCellType"
     nest.SetStatus(cells,[param])
 
 def record(source,filename):
@@ -459,7 +463,7 @@ def _printSpikes(filename, compatible_output=True):
         # has been created to load from file the raster or the membrane potentials
         # saved by NEST
         try:
-            raster = _readArray(tempfilename, sepchar=" ")
+            raster = _readArray(tempfilename, sepchar=None)
             raster = raster[:,1:3]
             raster[:,1] = raster[:,1]*dt
             for idx in xrange(len(raster)):
@@ -495,7 +499,7 @@ def _print_v(filename, compatible_output=True):
         # has been created to load from file the raster or the membrane potentials
         # saved by NEST
         try:
-            raster = _readArray(tempfilename.replace('/','_'), sepchar="\t")
+            raster = _readArray(tempfilename.replace('/','_'), sepchar=None)
             for idx in xrange(len(raster)):
                 result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
         except Exception:
@@ -509,10 +513,12 @@ def _print_v(filename, compatible_output=True):
     result.close()
     os.system("rm %s" %tempfilename.replace('/','_'))
 
-def _readArray(filename, sepchar = " ", skipchar = '#'):
+def _readArray(filename, sepchar = None, skipchar = '#'):
+    logging.debug(filename)
     myfile = open(filename, "r")
     contents = myfile.readlines()
-    myfile.close() 
+    myfile.close()
+    logging.debug(contents)
     data = []
     for line in contents:
         stripped_line = line.lstrip()
@@ -522,17 +528,18 @@ def _readArray(filename, sepchar = " ", skipchar = '#'):
                 # Here we have to deal with the fact that quite often, NEST
                 # does not write correctly the last line of Vm recordings.
                 # More precisely, it is often not complete
-                try :
-                    data.append(map(float, items))
-                except Exception:
-                    # The last line has a gid and just a "-" sign...
-                    pass
+                #try :
+                data.append(map(float, items))
+                #except Exception:
+                #    # The last line has a gid and just a "-" sign...
+                #    pass
     try :
         a = numpy.array(data)
     except Exception:
         # The last line has just a gid, so we has to remove it
         a = numpy.array(data[0:len(data)-2])
     (Nrow,Ncol) = a.shape
+    logging.debug(str(a.shape))
     if ((Nrow == 1) or (Ncol == 1)): a = ravel(a)
     return(a)
 
@@ -918,8 +925,9 @@ class Population(common.Population):
         filename = filename + '-%d' % rank
         if (compatible_output):
             if rank == 0:
+                logging.info("Writing %s in compatible format." % filename)
                 for nest_thread in range(local_num_threads):
-                    label = '-%d-%d-%d.gdf' %(rank,nest_thread,self.spike_detector[0])
+                    label = '-%d-%d-%d.gdf' %(rank,nest_thread,self.spike_detector)
                     # Here we postprocess the file to have effectively the
                     # desired format: spiketime (in ms) cell_id-min(cell_id)
                     if not os.path.exists(filename):
@@ -927,10 +935,11 @@ class Population(common.Population):
                         # Writing dimensions of the population:
                         result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
                         # Writing spiketimes, cell_id-min(cell_id)
-                        padding = numpy.reshape(self.cell,self.cell.size)[0]
+                        ###padding = numpy.reshape(self.cell,self.cell.size)[0] # moved below
                     else:
                         result = open(filename,'a',1000)
-                        
+                    padding = numpy.reshape(self.cell,self.cell.size)[0]
+                    
                     # Pylab has a great load() function, but it is not necessary to import
                     # it into pyNN. The fromfile() function of numpy has trouble on several
                     # machine with Python 2.5, so that's why a dedicated _readArray function
@@ -940,18 +949,21 @@ class Population(common.Population):
                     simfile = tempdir + '/spike_detector'+ label
                     # if int(os.path.getsize(hl_spike_files[self.label][0])) > 0:
                     if int(os.path.getsize(simfile)) > 0:
-                        try:
-                            raster = _readArray(simfile ,sepchar=" ")
-                            # Sometimes, nest doesn't write the last line entirely, so we need
-                            # to trunk it to avoid errors
-                            raster = raster[:,1:3]
-                            raster[:,0] = raster[:,0] - padding
-                            raster[:,1] = raster[:,1]*dt
-                            for idx in xrange(len(raster)):
-                                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
+#                        try:
+                        raster = _readArray(simfile ,sepchar=None)
+                        # Sometimes, nest doesn't write the last line entirely, so we need
+                        # to trunk it to avoid errors
+                        ###raster = raster[:,1:3]
+                        raster[:,0] = raster[:,0] - padding
+                        raster[:,1] = raster[:,1]*dt
+                        for idx in xrange(len(raster)):
+                            result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
                                 
-                        except Exception:
-                            print "Error while writing data into a compatible mode"
+#                        except Exception, inst:
+#                            print "Error while writing data into a compatible mode"
+#                            logging.error("Error while writing data into a compatible mode: %s" % str(inst))
+                    else:
+                        logging.info("%s is empty" % simfile)
                 result.close()
                 # os.system("rm %s" % hl_spike_files[self.label][0])
         else:
@@ -1150,7 +1162,7 @@ class Population(common.Population):
             # saved by NEST
             if int(os.path.getsize(hl_v_files[self.label][0])) > 0:
                 try:
-                    raster = _readArray(hl_v_files[self.label][0],sepchar="\t")
+                    raster = _readArray(hl_v_files[self.label][0],sepchar=None)
                     raster[:,0] = raster[:,0] - padding
                 
                     for idx in xrange(len(raster)):
