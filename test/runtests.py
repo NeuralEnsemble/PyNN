@@ -194,7 +194,7 @@ if __name__ == "__main__":
                     "IF_cond_alpha"  : 0.25,
                     "IF_cond_exp"    : 0.25,
                     "simpleNetworkL" : 0.5,
-                    "simpleNetwork"  : 0.6,
+                    "simpleNetwork"  : 0.7,
                     "IF_curr_alpha2" : 5.0,
                     "small_network"  : 5.0}
     

@@ -132,7 +132,7 @@ class IF_curr_exp(common.IF_curr_exp):
         'tau_refrac': ('tau_ref_abs', "max(dt,parameters['tau_refrac'])"),
         'tau_syn_E' : ('tau_ex'     , "parameters['tau_syn_E']"),
         'tau_syn_I' : ('tau_in'     , "parameters['tau_syn_I']"),
-        'v_thresh'  : ('v_th'       , "parameters['v_thresh']"),
+        'v_thresh'  : ('V_th'       , "parameters['v_thresh']"),
         'i_offset'  : ('I_e'        , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
         'v_init'    : ('V_m'        , "parameters['v_init']"),
     }
@@ -472,6 +472,7 @@ def set(cells,cellclass,param,val=None):
     nest.SetStatus(cells,[param])
 
 def _connect_recording_device(recorder, record_from=None):
+    print "Connecting recorder %s to cell(s) %s" % (recorder, record_from)
     device = nest.GetStatus(recorder, "model")[0]
     if device == "spike_detector":
         nest.ConvergentConnect(record_from, recorder)
@@ -486,16 +487,18 @@ def _record(variable, source, filename):
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
     device_name = recording_device_names[variable]
-    print "Trying to record %s from cell %s using a %s" % (variable, source, device_name)
-    recording_device = nest.Create(device_name) # does it need to be an ID?
+    
+    recording_device = nest.Create(device_name)
     nest.SetStatus(recording_device,
                    {"to_file" : True, "withgid" : True, "withtime" : True,
                     "interval": nest.GetStatus([0], "resolution")[0]})
+    print "Trying to record %s from cell %s using %s %s (filename=%s)" % (variable, source, device_name, recording_device, filename)
             
     if type(source) != types.ListType:
         source = [source]
     _connect_recording_device(recording_device, record_from=source)
-    recorder_dict[filename] = recording_device 
+    if filename is not None:
+        recorder_dict[filename] = recording_device 
 
 def record(source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
@@ -521,6 +524,9 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
         assert variable in ['spikes', 'v', 'conductance']
         recorder = population.recorders[variable]
     
+    print "Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder,
+                                                                      compatible_output)
+    
     nest.FlushDevice(recorder) 
     status = nest.GetStatus([0])[0]
     local_num_threads = status['local_num_threads']
@@ -533,13 +539,14 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
         nest.sr("%i GetAddress %i append" % (recorder[0], nest_thread))
         nest.sr("GetStatus /filename get")
         nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
+        ###os.system("cat %s" % nest_filename)
         ##system_line = 'cat %s >> %s' % (nest_filename, "%s_%d" % (user_filename, nest.Rank()))
         merged_filename = "%s/%s" % (os.path.dirname(nest_filename), user_filename)
         system_line = 'cat %s >> %s' % (nest_filename, merged_filename) # will fail if writing to a common directory, e.g. using NFS
         print system_line
         os.system(system_line)
-    if gather:
-        raise Exception("'gather' not currently supported.")
+    if gather and len(node_list) > 1:
+        raise Warning("'gather' not currently supported.")
         if nest.Rank() == 0: # only on the master node (?)
             for node in node_list:
                 pass # not a good way to do it at the moment
@@ -557,7 +564,7 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
                 
             ## Writing header info (e.g., dimensions of the population)
             if population is not None:
-                result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
+                result.write("# " + "\t".join([str(d) for d in population.dim]) + "\n")
                 padding = population.cell.flatten()[0]
             else:
                 padding = 0
@@ -573,16 +580,28 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
                     
             # open file
             if int(os.path.getsize(merged_filename)) > 0:
-                raster = _readArray(merged_filename, sepchar=None)
-                result.write("# n = %d\n" % len(raster)) # shouldn't be called raster
-                raster[:,0] = raster[:,0] - padding
-                for idx in xrange(len(raster)):
-                    result.write("%g\t%d\n" % (raster[idx][2], raster[idx][0])) # v id
+                data = _readArray(merged_filename, sepchar=None)
+                result.write("# n = %d\n" % len(data))
+                data[:,0] = data[:,0] - padding
+                # sort
+                indx = data.argsort(axis=0, kind='mergesort')[:,0] # will quicksort (not stable) work?
+                data = data[indx]
+                if data.shape[1] == 4: # conductance files
+                    raise Exception("Not yet implemented")
+                elif data.shape[1] == 3: # voltage files
+                    for idx in xrange(len(data)):
+                        result.write("%g\t%d\n" % (data[idx][2], data[idx][0])) # v id
+                elif data.shape[1] == 2: # spike files
+                    for idx in xrange(len(data)):
+                        result.write("%g\t%d\n" % (data[idx][1], data[idx][0])) # time id
+                else:
+                    raise Exception("Data file should have 2,3 or 4 columns, actually has %d" % data.shape[1])
             else:
-                logging.info("%s_tmp is empty" % user_filename)
+                logging.info("%s is empty" % merged_filename)
             result.close()
-    
-    recorder_dict.pop(user_filename)    
+
+    if population is None:
+        recorder_dict.pop(user_filename)    
 
 def _readArray(filename, sepchar=None, skipchar='#'):
     logging.debug(filename)
@@ -596,15 +615,15 @@ def _readArray(filename, sepchar=None, skipchar='#'):
         if (len(stripped_line) != 0):
             if (stripped_line[0] != skipchar):
                 items = stripped_line.split(sepchar)
-                if len(items) != 3:
-                    print stripped_line
-                    print items
-                    raise Exception()
+                #if len(items) != 3:
+                #    print stripped_line
+                #    print items
+                #    raise Exception()
                 data.append(map(float, items))
-    try :
-        a = numpy.array(data)
-    except Exception:
-        raise
+    #try :
+    a = numpy.array(data)
+    #except Exception:
+    #    raise
         # The last line has just a gid, so we has to remove it
         #a = numpy.array(data[0:len(data)-2])
     (Nrow,Ncol) = a.shape
@@ -831,10 +850,11 @@ class Population(common.Population):
         # create device
         device_name = recording_device_names[variable]
         if self.recorders[variable] is None:
-            self.recorders[variable] = ID(nest.Create(device_name)[0]) # does it need to be an ID?
-            nest.SetStatus([self.recorders[variable]],
-                           {"to_file" : True, "withgid" : True, "withtime" : True})      
-                
+            self.recorders[variable] = nest.Create(device_name)
+            nest.SetStatus(self.recorders[variable],
+                           {"to_file" : True, "withgid" : True, "withtime" : True,
+                            "interval": nest.GetStatus([0], "resolution")[0]})      
+        
         # create list of neurons        
         fixed_list = False
         if record_from:
@@ -847,17 +867,21 @@ class Population(common.Population):
                 raise "record_from must be a list or an integer"
         else:
             n_rec = self.size
+            
+        if variable == 'spikes':
+            self.n_rec = n_rec
         
         tmp_list = []
         if (fixed_list == True):
             for neuron in record_from:
                 tmp_list = [neuron for neuron in record_from]
         else:
+            # should use `rng` here, if provided
             for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
                 tmp_list.append(neuron)
                 
         # connect device to neurons
-        _record(variable, tmp_list)
+        _connect_recording_device(self.recorders[variable], record_from=tmp_list)
 
     def record(self, record_from=None, rng=None):
         """
@@ -889,7 +913,7 @@ class Population(common.Population):
         """
         self._record('conductance', record_from, rng)
     
-    def printSpikes(self, filename, gather=True, compatible_output=False):
+    def printSpikes(self, filename, gather=True, compatible_output=True):
         """
         Writes spike times to file.
         If compatible_output is True, the format is "spiketime cell_id",
@@ -913,8 +937,7 @@ class Population(common.Population):
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        status = nest.GetStatus(self.spike_detector[0])
-        n_spikes = status["events"]
+        n_spikes = nest.GetStatus(self.recorders['spikes'], "events")[0]
         return float(n_spikes)/self.n_rec
 
     def randomInit(self, rand_distr):
@@ -924,7 +947,7 @@ class Population(common.Population):
         """
         self.rset('v_init',rand_distr)
 
-    def print_v(self, filename, gather=True, compatible_output=False):
+    def print_v(self, filename, gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
         If compatible_output is True, the format is "t v cell_id",
@@ -940,7 +963,7 @@ class Population(common.Population):
         _print(filename, gather=gather, compatible_output=compatible_output,
                population=self, variable="v")
                
-    def print_c(self,filename,gather=True, compatible_output=False):
+    def print_c(self,filename,gather=True, compatible_output=True):
         """
         Write conductance traces to file.
         If compatible_output is True, the format is "t g cell_id",
@@ -972,7 +995,7 @@ class Projection(common.Projection):
             def __getitem__(self,id):
                 """Returns a (source address,target port number) tuple."""
                 assert isinstance(id, int)
-                return (nest.getAddress(self.parent._sources[id]), self.parent._targetPorts[id])
+                return (self.parent._sources[id], self.parent._targetPorts[id])
     
     def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',methodParameters=None,source=None,target=None,label=None,rng=None):
         """
@@ -1002,18 +1025,16 @@ class Projection(common.Projection):
         self._targetPorts = [] # holds port numbers
         self._targets = []     # holds gids
         self._sources = []     # holds gids
-        connection_method = getattr(self,'_%s' % method)
-        if target:
-            self.nconn = connection_method(methodParameters,synapse_type=target)
-        else:
-            self.nconn = connection_method(methodParameters)
-        assert len(self._sources) == len(self._targets) == len(self._targetPorts), "Connection error. Source and target lists are of different lengths."
-        self.connection = Projection.ConnectionDict(self)
+        self.synapse_type = target
         
-        # By defaut, we set all the delays to min_delay, except if
-        # the Projection data have been loaded from a file or a list.
-        if (method != 'fromList') and (method != 'fromFile'):
-            self.setDelays(nest.getLimits()['min_delay'])
+        if isinstance(method, str):
+            connection_method = getattr(self,'_%s' % method)   
+            self.nconn = connection_method(methodParameters)
+        elif isinstance(method,common.Connector):
+            self.nconn = method.connect(self)
+
+        #assert len(self._sources) == len(self._targets) == len(self._targetPorts), "Connection error. Source and target lists are of different lengths."
+        self.connection = Projection.ConnectionDict(self)
     
     def __len__(self):
         """Return the total number of connections."""
@@ -1023,31 +1044,10 @@ class Projection(common.Projection):
         """for conn in prj.connections()..."""
         for i in xrange(len(self)):
             yield self.connection[i]
-        
-    def _distance(self, presynaptic_population, postsynaptic_population, src, tgt):
-        """
-        Return the Euclidian distance between two cells. For the moment, we do
-        a scaling between the two dimensions of the populations: the target
-        population is scaled to the size of the source population."""
-        dist = 0.0
-        src_position = src.position
-        tgt_position = tgt.position
-        if (len(src_position) == len(tgt_position)):
-            for i in xrange(len(src_position)):
-                # We normalize the positions in each population and calculate the
-                # Euclidian distance :
-                #scaling = float(presynaptic_population.dim[i])/float(postsynaptic_population.dim[i])
-                src_coord = float(src_position[i])
-                tgt_coord = float(tgt_position[i])
-            
-                dist += float(src_coord-tgt_coord)*float(src_coord-tgt_coord)
-        else:    
-            raise Exception("Method _distance() not yet implemented for Populations with different sizes.")
-        return sqrt(dist)
     
     # --- Connection methods ---------------------------------------------------
     
-    def _allToAll(self,parameters=None,synapse_type=None):
+    def _allToAll(self,parameters=None):
         """
         Connect all cells in the presynaptic population to all cells in the postsynaptic population.
         """
@@ -1055,20 +1055,10 @@ class Projection(common.Projection):
                                       # is a cell allowed to connect to itself?
         if parameters and parameters.has_key('allow_self_connections'):
             allow_self_connections = parameters['allow_self_connections']
-        self.synapse_type = synapse_type
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-        for post in postsynaptic_neurons:
-            source_list = presynaptic_neurons.tolist()
-            # if self connections are not allowed, check whether pre and post are the same
-            if not allow_self_connections and post in source_list:
-                source_list.remove(post)
-            self._targets += [post]*len(source_list)
-            self._sources += source_list
-            self._targetPorts += nest.convergentConnect(source_list,post,[1.0],[0.1])
-        return len(self._targets)
+        c = AllToAllConnector(allow_self_connections)
+        return c.connect(self)
     
-    def _oneToOne(self,synapse_type=None):
+    def _oneToOne(self,parameters=None):
         """
         Where the pre- and postsynaptic populations have the same size, connect
         cell i in the presynaptic population to cell i in the postsynaptic
@@ -1078,23 +1068,13 @@ class Projection(common.Projection):
         cell i in a 1D pre population of size n should connect to all cells
         in row i of a 2D post population of size (n,m).
         """
-        self.synapse_type = synapse_type
-        if self.pre.dim == self.post.dim:
-            self._sources = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-            self._targets = numpy.reshape(self.post.cell,(self.post.cell.size,))
-            for pre,post in zip(self._sources,self._targets):
-                pre_addr = nest.getAddress(pre)
-                post_addr = nest.getAddress(post)
-                self._targetPorts.append(nest.connect(pre_addr,post_addr))
-            return self.pre.size
-        else:
-            raise Exception("Method 'oneToOne' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
-    
-    def _fixedProbability(self,parameters,synapse_type=None):
+        c = OneToOneConnector()
+        return c.connect(self)
+
+    def _fixedProbability(self,parameters):
         """
         For each pair of pre-post cells, the connection probability is constant.
         """
-        self.synapse_type = synapse_type
         allow_self_connections = True
         try:
             p_connect = float(parameters)
@@ -1102,28 +1082,15 @@ class Projection(common.Projection):
             p_connect = parameters['p_connect']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-        
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-        npre = self.pre.size
-        for post in postsynaptic_neurons:
-            if self.rng:
-                rarr = self.rng.uniform(0,1,(npre,))
-            else:
-                rarr = numpy.random.uniform(0,1,(npre,))
-            source_list = numpy.compress(numpy.less(rarr,p_connect),presynaptic_neurons).tolist()
-            self._targets += [post]*len(source_list)
-            self._sources += source_list
-            self._targetPorts += nest.convergentConnect(source_list,post,[1.0],[0.1])
-        return len(self._sources)
+        c = FixedProbabilityConnector(p_connect, allow_self_connections)
+        return c.connect(self)
     
-    def _distanceDependentProbability(self,parameters,synapse_type=None):
+    def _distanceDependentProbability(self,parameters):
         """
         For each pair of pre-post cells, the connection probability depends on distance.
         d_expression should be the right-hand side of a valid python expression
         for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
         """
-        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.StringType:
             d_expression = parameters
@@ -1131,52 +1098,11 @@ class Projection(common.Projection):
             d_expression = parameters['d_expression']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-                   
-        #raise Exception("Method not yet implemented")   
-        # Here we observe the connectivity rule: if it is a probability function
-        # like "exp(-d^2/2s^2)" then distance_expression should have only
-        # alphanumeric characters. Otherwise, if we have characters
-        # like >,<, = the connectivity rule is by itself a test.
-        alphanum = True
-        operators = ['<', '>', '=']
-        for i in xrange(len(operators)):
-            if not d_expression.find(operators[i])==-1:
-                alphanum = False
-                        
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-        
-        # We need to use the gid stored as ID, so we should modify the loop to scan the global gidlist (containing ID)
-        for post in postsynaptic_neurons:
-            if self.rng:
-                rarr = self.rng.uniform(0,1,(self.pre.size,))
-            else:
-                rarr = numpy.random.uniform(0,1,(self.pre.size,))
-            count = 0
-            for pre in presynaptic_neurons:
-                if allow_self_connections or pre != post: 
-                    # calculate the distance between the two cells :
-                    dist = self._distance(self.pre, self.post, pre, post)
-                    distance_expression = d_expression.replace('d', '%f' %dist)
-                    
-                    # calculate the addresses of cells
-                    pre_addr  = nest.getAddress(pre)
-                    post_addr = nest.getAddress(post)
-                    
-                    if alphanum:
-                        if rarr[count] < eval(distance_expression):
-                            self._sources.append(pre)
-                            self._targets.append(post)
-                            self._targetPorts.append(nest.connect(pre_addr,post_addr)) 
-                            count = count + 1
-                    elif eval(distance_expression):
-                        self._sources.append(pre)
-                        self._targets.append(post)
-                        self._targetPorts.append(nest.connect(pre_addr,post_addr))
-    
-    def _fixedNumberPre(self,parameters,synapse_type=None):
+        c = DistanceDependentProbabilityConnector(d_expression, allow_self_connections=allow_self_connections)
+        return c.connect(self)           
+                
+    def _fixedNumberPre(self,parameters):
         """Each presynaptic cell makes a fixed number of connections."""
-        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -1218,9 +1144,8 @@ class Projection(common.Projection):
                     self._targets.append(post)
                     self._targetPorts.append(nest.connect(pre_addr,nest.getAddress(post)))
     
-    def _fixedNumberPost(self,parameters,synapse_type=None):
+    def _fixedNumberPost(self,parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
-        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -1262,11 +1187,10 @@ class Projection(common.Projection):
                     self._targets.append(post)
                     self._targetPorts.append(nest.connect(nest.getAddress(pre),post_addr))
     
-    def _fromFile(self,parameters,synapse_type=None):
+    def _fromFile(self,parameters):
         """
         Load connections from a file.
         """
-        self.synapse_type = synapse_type
         if type(parameters) == types.FileType:
             fileobj = parameters
             # should check here that fileobj is already open for reading
@@ -1291,16 +1215,15 @@ class Projection(common.Projection):
             input_tuples.append((eval(src),eval(tgt),float(w),float(d)))
         f.close()
         
-        self._fromList(input_tuples, synapse_type)
+        self._fromList(input_tuples)
         
-    def _fromList(self,conn_list,synapse_type=None):
+    def _fromList(self,conn_list):
         """
         Read connections from a list of tuples,
         containing [pre_addr, post_addr, weight, delay]
         where pre_addr and post_addr are both neuron addresses, i.e. tuples or
         lists containing the neuron array coordinates.
         """
-        self.synapse_type = synapse_type
         for i in xrange(len(conn_list)):
             src, tgt, weight, delay = conn_list[i][:]
             src = self.pre[tuple(src)]
@@ -1311,7 +1234,7 @@ class Projection(common.Projection):
             self._targets.append(tgt)
             self._targetPorts.append(nest.connectWD(pre_addr,post_addr, 1000*weight, delay))
 
-    def _2D_Gauss(self,parameters,synapse_type=None):
+    def _2D_Gauss(self,parameters):
         """
         Source neuron is connected to a 2D targetd population with a spatial profile (Gauss).
         parameters should have:
@@ -1321,7 +1244,6 @@ class Projection(common.Projection):
         n: number of synpases
         sigma: sigma of the Gauss
         """
-        self.synapse_type = synapse_type
         def rcf_2D(parameters):
             rng = parameters['rng']
             pre_id = parameters['pre_id']
@@ -1368,8 +1290,7 @@ class Projection(common.Projection):
                 #a=Projection(self.pre,self.post,'rcf_2D',parameters)
                 rcf_2D(parameters)
 
-    def _test_delay(self,params,synapse_type=None):
-        self.synapse_type = synapse_type
+    def _test_delay(self,params):
         # debug get delays from outside
         #delay_array = parameters['delays_array']
         #weight_array = parameters['weights_array']
@@ -1385,7 +1306,7 @@ class Projection(common.Projection):
         #nest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
         print 'leaving test_delay'
         
-    def _3D_Gauss(self,parameters,synapse_type=None):
+    def _3D_Gauss(self,parameters):
         """
         Source neuron is connected to a 3D targetd population with a spatial profile (Gauss).
         parameters should have:
@@ -1585,7 +1506,7 @@ class Projection(common.Projection):
     
     # --- Methods for setting connection parameters ----------------------------
     
-    def setWeights(self,w):
+    def setWeights(self, w):
         """
         w can be a single number, in which case all weights are set to this
         value, or a list/1D array of length equal to the number of connections
@@ -1593,20 +1514,19 @@ class Projection(common.Projection):
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-        w = w*1000 # weights should be in nA or µS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
-                   # Using convention in this way is not ideal. We should be able to look up the units used by each model somewhere.
+        w = w*1000.0 # weights should be in nA or µS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+                     # Using convention in this way is not ideal. We should be able to look up the units used by each model somewhere.
         if self.synapse_type == 'inhibitory' and w > 0:
             w *= -1
         if type(w) == types.FloatType or type(w) == types.IntType or type(w) == numpy.float64 :
-           # set all the weights from a given node at once
-            for src in numpy.reshape(self.pre.cell,self.pre.cell.size):
-                assert isinstance(src,int), "GIDs should be integers"
-                src_addr = nest.getAddress(src)
-                n = len(nest.getDict([src_addr])[0]['weights'])
-                nest.setDict([src_addr], {'weights' : [w]*n})
+            # set all the weights from a given node at once
+            for src in self.pre.cell.flat:
+                conn_dict = nest.GetConnections([src], 'static_synapse')[0]
+                if conn_dict:
+                    n = len(conn_dict['weights'])
+                nest.SetConnections([src], 'static_synapse', [{'weights': [w]*n}])
         elif isinstance(w,list) or isinstance(w,numpy.ndarray):
-            for src, port, weight in zip(self._sources,self._targetPorts,w):
-                nest.setWeight(nest.getAddress(src),port,weight)
+            raise Exception("Not yet implemented")
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
     
@@ -1614,8 +1534,16 @@ class Projection(common.Projection):
         """
         Set weights to random values taken from rand_distr.
         """
-        for src,port in self.connections():
-            nest.setWeight(src, port, 1000*rand_distr.next())
+        for src in self.pre.cell.flat:
+            conn_dict = nest.GetConnections([src], 'static_synapse')[0]
+            n = len(conn_dict['weights'])
+            weights = 1000.0*rand_distr.next(n)
+            if n == 1:
+                weights = [weights]
+            else:
+                weights = weights.tolist()    
+            # if self.synapse_type == 'inhibitory', should we *= -1 ???
+            nest.SetConnections([src], 'static_synapse', [{'weights': weights}])
     
     def setDelays(self,d):
         """
@@ -1623,16 +1551,16 @@ class Projection(common.Projection):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        if type(d) == types.FloatType or type(d) == types.IntType:
-            # Set all the delays from a given node at once.
-            for src in numpy.reshape(self.pre.cell,self.pre.cell.size):
-                assert isinstance(src,int), "GIDs should be integers"
-                src_addr = nest.getAddress(src)
-                n = len(nest.getDict([src_addr])[0]['delays'])
-                nest.setDict([src_addr], {'delays' : [d]*n})
+        if type(d) == types.FloatType or type(d) == types.IntType or type(d) == numpy.float64:
+            d = float(d)
+            # set all the weights from a given node at once
+            for src in self.pre.cell.flat:
+                conn_dict = nest.GetConnections([src], 'static_synapse')[0]
+                if conn_dict:
+                    n = len(conn_dict['delays'])
+                nest.SetConnections([src], 'static_synapse', [{'delay': [d]*n}])
         elif isinstance(d,list) or isinstance(d,numpy.ndarray):
-            for src, port, delay in zip(self._sources,self._targetPorts,d):
-                nest.setDelay(nest.getAddress(src),port,delay)
+            raise Exception("Not yet implemented")
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
     
@@ -1640,8 +1568,15 @@ class Projection(common.Projection):
         """
         Set delays to random values taken from rand_distr.
         """
-        for src,port in self.connections():
-            nest.setDelay(src, port, rand_distr.next())
+        for src in self.pre.cell.flat:
+            conn_dict = nest.GetConnections([src], 'static_synapse')[0]
+            n = len(conn_dict['delays'])
+            delays = 1.0*rand_distr.next(n)
+            if n == 1:
+                delays = [delays]
+            else:
+                delays = delays.tolist()
+            nest.SetConnections([src], 'static_synapse', [{'delays': delays}])
     
     def setThreshold(self,threshold):
         """
@@ -1729,7 +1664,94 @@ class Projection(common.Projection):
         # should be put here or in an external module.
         raise Exception("Method not yet implemented")
 
+# ==============================================================================
+#   Connection method classes
+# ==============================================================================
 
+class AllToAllConnector(common.AllToAllConnector):    
+    
+    def connect(self, projection):
+        postsynaptic_neurons  = projection.post.cell.flatten()
+        target_list = postsynaptic_neurons.tolist()
+        for pre in projection.pre.cell.flat:
+            # if self connections are not allowed, check whether pre and post are the same
+            if not self.allow_self_connections:
+                target_list = postsynaptic_neurons.tolist()
+                if pre in target_list:
+                    target_list.remove(pre)
+            projection._targets += target_list
+            projection._sources += [pre]*len(target_list) 
+            conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+            if conn_dict:
+                first_port = len(conn_dict['targets'])
+            else:
+                first_port = 0
+            projection._targetPorts += range(first_port, first_port+len(target_list))
+            nest.DivergentConnectWD([pre], target_list, [1000.0], [_min_delay])
+        return len(projection._targets)
+
+class OneToOneConnector(common.OneToOneConnector):
+    
+    def connect(self, projection):
+        if projection.pre.dim == projection.post.dim:
+            projection._sources = projection.pre.cell.flatten()
+            projection._targets = projection.post.cell.flatten()
+            for pre,post in zip(projection._sources,projection._targets):
+                #projection._targetPorts.append(nest.connect(pre_addr,post_addr))
+                nest.ConnectWD([pre], [post], [1000.0], [_min_delay])
+            return projection.pre.size
+        else:
+            raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
+    
+class FixedProbabilityConnector(common.FixedProbabilityConnector):
+    
+    def connect(self, projection):
+        #postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
+        presynaptic_neurons  = projection.pre.cell.flatten()
+        npre = projection.pre.size
+        for post in projection.post.cell.flat:
+            if projection.rng:
+                rarr = projection.rng.uniform(0,1,(npre,)) # what about NativeRNG?
+            else:
+                rarr = numpy.random.uniform(0,1,(npre,))
+            source_list = numpy.compress(numpy.less(rarr,self.p_connect),presynaptic_neurons).tolist()
+            # if self connections are not allowed, check whether pre and post are the same
+            if not self.allow_self_connections and post in source_list:
+                source_list.remove(post)
+            projection._targets += [post]*len(source_list)
+            projection._sources += source_list
+            #projection._targetPorts += nest.convergentConnect(source_list,post,[1.0],[0.1])
+            nest.convergentConnect(source_list, [post], [1000.0], [_min_delay])
+        return len(projection._sources)
+    
+class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector):
+    
+    def connect(self, projection):                  
+        postsynaptic_neurons = projection.post.cell.flat # iterator
+        presynaptic_neurons  = projection.pre.cell.flatten() # array
+        # what about NativeRNG?
+        if projection.rng:
+            if isinstance(projection.rng, NativeRNG):
+                print "Warning: use of NativeRNG not implemented. Using NumpyRNG"
+                rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
+            else:
+                rarr = projection.rng.uniform(0,1,(projection.pre.size*projection.post.size,))
+        else:
+            rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
+        j = 0
+        for post in postsynaptic_neurons:
+            for pre in presynaptic_neurons:
+                if self.allow_self_connections or pre != post: 
+                    # calculate the distance between the two cells :
+                    d = common.distance(pre, post, self.mask, self.scale_factor)
+                    p = eval(self.d_expression)
+                    if p >= 1 or (0 < p < 1 and rarr[j] < p):
+                        projection._sources.append(pre)
+                        projection._targets.append(post)
+                        #projection._targetPorts.append(nest.connect(pre_addr,post_addr))
+                        nest.Connect(pre,post, [1000.0], [_min_delay])
+                j += 1
+        return len(projection._sources)
 
 
 # ==============================================================================

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 PyNEST implementation of the PyNN API.
-$Id:nest.py 5 2007-04-16 15:01:24Z davison $
+$Id$
 """
 __version__ = "$Revision:5 $"
 
