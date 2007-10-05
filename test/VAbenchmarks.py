@@ -23,7 +23,7 @@ from NeuroTools.stgen import StGen
 
 if hasattr(sys,"argv"):     # run using python
     if len(sys.argv) < 3:
-        print "Usage: python VAbenchmarks.py <simulator> <benchmark>\n\n<simulator> is either neuron, nest or pcsim\n<benchmark> is either CUBA or COBA."
+        print "Usage: python VAbenchmarks.py <simulator> <benchmark>\n\n<simulator> is either neuron, nest1, nest2 or pcsim\n<benchmark> is either CUBA or COBA."
         sys.exit(1)
     simulator = sys.argv[-2]
     benchmark = sys.argv[-1]

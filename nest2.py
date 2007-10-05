@@ -5,10 +5,11 @@ $Id$
 """
 __version__ = "$Revision:5 $"
 
-# temporary fix to import nest rather than pyNN.nest
-import imp
-mod_search = imp.find_module('nest', ['/usr/lib/python/site-packages','/usr/local/lib/python2.5/site-packages'])
-nest = imp.load_module('nest',*mod_search)
+## temporary fix to import nest rather than pyNN.nest
+#import imp
+#mod_search = imp.find_module('nest', #['/usr/lib/python/site-packages','/usr/local/lib/python2.5/site-packages'])
+#nest = imp.load_module('nest',*mod_search)
+import nest
 from pyNN import common
 from pyNN.random import *
 import numpy, types, sys, shutil, os, logging, copy, tempfile

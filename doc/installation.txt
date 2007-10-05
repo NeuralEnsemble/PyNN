@@ -88,7 +88,7 @@ This will install it to your python ``site-packages`` directory, and may require
 
 Test it using something like the following::
 
-    >>> from pyNN.nest import *
+    >>> from pyNN.nest1 import *
     >>> setup()
     >>> end()
     

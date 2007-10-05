@@ -73,7 +73,7 @@ Trying to address a non-existent neuron will raise an Exception::
     >>> p1[999,0]
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
-      File "/usr/lib/python/site-packages/pyNN/nest.py", line 457, in __getitem__
+      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 457, in __getitem__
         id = self.cell[addr]
     IndexError: index (999) out of range (0<=index<=10) in dimension 0
 
@@ -139,7 +139,7 @@ To set the parameters of an individual neuron, you can use the low-level ``set()
 
     >>> set(p1[3,3], IF_curr_exp, 'tau_m', 12.0)
     
-or you can use the set method of the ''ID'' object that the ``neuron``, ``nest`` and ``pcsim`` (but not ``oldneuron``) modules return as neuron ids::
+or you can use the set method of the ''ID'' object that the ``neuron``, ``nest1``, ``nest2``, and ``pcsim`` (but not ``oldneuron``) modules return as neuron ids::
 
     >>> p1[3,3].set('tau_m', 12.0)
     
@@ -210,9 +210,9 @@ Trying to connect two ``Population``\s with different dimensions will raise an E
     >>> invalid_prj = Projection(p2, p3, method='oneToOne')
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
-      File "/usr/lib/python/site-packages/pyNN/nest.py", line 839, in __init__
+      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 839, in __init__
         self.nconn = connection_method(methodParameters)
-      File "/usr/lib/python/site-packages/pyNN/nest.py", line 920, in _oneToOne
+      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 920, in _oneToOne
         raise "Method 'oneToOne' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes."
     Exception: Method 'oneToOne' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.
     
@@ -246,11 +246,11 @@ Currently it is not possible to connect ``Population``\s which have different di
     >>> prj3_1 = Projection(p3, p1, 'distanceDependentProbability', "exp(-(d*d)/4.0)")
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
-      File "/usr/lib/python/site-packages/pyNN/nest.py", line 839, in __init__
+      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 839, in __init__
         self.nconn = connection_method(methodParameters)
-      File "/usr/lib/python/site-packages/pyNN/nest.py", line 988, in _distanceDependentProbability
+      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 988, in _distanceDependentProbability
         dist = self._distance(self.pre, self.post, pre, post)
-      File "/usr/lib/python/site-packages/pyNN/nest.py", line 875, in _distance
+      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 875, in _distance
         raise Exception("Method _distance() not yet implemented for Populations with different sizes.")
     Exception: Method _distance() not yet implemented for Populations with different sizes.
 

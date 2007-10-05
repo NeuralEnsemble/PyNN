@@ -16,12 +16,12 @@ Additional mechanisms from files
 def run(cmd,engine):
     #print 'Running "', cmd, '" with', engine.upper()
     logfile = open("%s_%s.log" % (cmd,engine), 'w')
-    if engine in ('nest', 'pcsim', 'nest2'):
+    if engine in ('nest1', 'pcsim', 'nest2'):
         cmd = 'python ' + cmd + '.py ' + engine
     elif 'neuron' in engine:
         cmd = '../hoc/i686/special -python ' + cmd + '.py %s' % engine
     else:
-        print 'Invalid simulation engine "%s". Valid values are "nest", "nest2", "pcsim", "oldneuron" and "neuron"' % engine
+        print 'Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", "oldneuron" and "neuron"' % engine
         
     p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
     p.wait()
@@ -187,7 +187,7 @@ def compare_rasters(script,mse_threshold,engines):
 
 if __name__ == "__main__":
     
-    engine_list = ("nest", "oldneuron", "neuron", "pcsim", "nest2")
+    engine_list = ("nest1", "oldneuron", "neuron", "pcsim", "nest2")
     
     thresholds_v = {"IF_curr_alpha"  : 0.26,
                     "IF_curr_exp"    : 0.25, 

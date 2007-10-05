@@ -13,7 +13,7 @@ $Id$
 
 import re, string, types, getopt, sys, shutil, os, inspect
 shutil.copy('dummy_hoc.py','hoc.py')
-from pyNN import common, oldneuron, nest, neuron, pcsim
+from pyNN import common, oldneuron, nest1, nest2, neuron, pcsim
 os.remove('hoc.py') #; os.remove('hoc.pyc')
 
 

@@ -56,7 +56,7 @@ if __name__ == "__main__":
     # Process command line
     parser = OptionParser(usage="usage: %prog [options] FILE")
     parser.add_option("-s", "--simulator", dest="simulator",
-                      type="choice", choices=('nest','neuron','oldneuron','pcsim'),
+                      type="choice", choices=('nest1','nest2', 'neuron','oldneuron','pcsim'),
                       help="run doctests with SIMULATOR", metavar="SIMULATOR")
     parser.add_option("--strict", action="store_true", dest="strict", default=False,
                   help="Use the original doctest output checker, not the more lax local version.")

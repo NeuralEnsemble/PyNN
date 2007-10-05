@@ -292,16 +292,16 @@ class AdaptiveExponentialIF_alpha(StandardCellType):
     
     default_parameters = {
         'v_init'    : -70.6, #'V_m'        # Initial membrane potential in mV
-        'w_init'    : 0.0,   #'w'          # Spike-adaptation current in nA (nest:pA)
+        'w_init'    : 0.0,   #'w'          # Spike-adaptation current in nA
         'cm'        : 0.281, #'C_m'        # Capacity of the membrane in nF
         'tau_refrac': 0.0,   #'t_ref'      # Duration of refractory period in ms.
         'v_spike'   : 0.0,   #'V_peak'     # Spike detection threshold in mV.
         'v_reset'   : -70.6, #'V_reset'    # Reset value for V_m after a spike. In mV.
         'v_rest'    : -70.6, #'E_L'        # Resting membrane potential (Leak reversal potential) in mV.
         'tau_m'     : 9.3667,  #'g_L'        # Membrane time constant in ms (nest:Leak conductance in nS.)
-        'i_offset'  : 0.0,   #'I_e'        # Offset current in nA (nest:pA)
+        'i_offset'  : 0.0,   #'I_e'        # Offset current in nA
         'a'         : 4.0,                # Subthreshold adaptation conductance in nS.
-        'b'         : 0.0805,           # Spike-triggered adaptation in nA (nest:pA).
+        'b'         : 0.0805,           # Spike-triggered adaptation in nA
         'delta_T'   : 2.0,   # Delta_T    # Slope factor in mV
         'tau_w'     : 144.0, #'tau_w'      # Adaptation time constant in ms
         'v_thresh'  : -50.4,  #'V_t'        # Spike initiation threshold in mV (V_th can also be used for compatibility).

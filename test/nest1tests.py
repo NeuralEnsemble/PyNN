@@ -3,7 +3,7 @@ Unit tests for pyNN/nest.py.
 $Id:nesttests.py 5 2007-04-16 15:01:24Z davison $
 """
 
-import pyNN.nest as nest
+import pyNN.nest1 as nest
 import pyNN.common as common
 import pyNN.random as random
 import unittest

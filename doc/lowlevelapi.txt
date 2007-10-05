@@ -54,9 +54,9 @@ If you try to set a non-existent parameter, or pass an invalid value, PyNN will 
     >>> create(IF_curr_alpha, paramDict={'foo': 15.0})
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
-      File "/usr/lib/python/site-packages/pyNN/nest.py", line 228, in create
+      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 228, in create
         celltype = cellclass(paramDict)
-      File "/usr/lib/python/site-packages/pyNN/nest.py", line 68, in __init__
+      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 68, in __init__
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
       File "/usr/lib/python/site-packages/pyNN/common.py", line 113, in __init__
         self.parameters = self.checkParameters(parameters, with_defaults=True)
@@ -65,9 +65,9 @@ If you try to set a non-existent parameter, or pass an invalid value, PyNN will 
     NonExistentParameterError: foo
     >>> create(IF_curr_alpha, paramDict={'tau_m': 'bar'})
     Traceback (most recent call last):
-      File "/usr/lib/python/site-packages/pyNN/nest.py", line 228, in create
+      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 228, in create
         celltype = cellclass(paramDict)
-      File "/usr/lib/python/site-packages/pyNN/nest.py", line 68, in __init__
+      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 68, in __init__
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
       File "/usr/lib/python/site-packages/pyNN/common.py", line 113, in __init__
         self.parameters = self.checkParameters(parameters, with_defaults=True)
