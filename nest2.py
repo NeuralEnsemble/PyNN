@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 PyNEST implementation of the PyNN API.
-$Id:nest.py 5 2007-04-16 15:01:24Z davison $
+$Id$
 """
 __version__ = "$Revision:5 $"
 
@@ -14,15 +14,17 @@ from pyNN.random import *
 import numpy, types, sys, shutil, os, logging, copy, tempfile
 from math import *
 
-ll_spike_files = []
-ll_v_files     = []
-hl_spike_files = {}
-hl_v_files     = {}
-hl_c_files     = {}
+#ll_spike_files = []
+#ll_v_files     = {}
+#hl_spike_files = {}
+#hl_v_files     = {}
+#hl_c_files     = {}
+recorder_dict = {}
 tempdirs       = []
 dt             = 0.1
-
-
+recording_device_names = {'spikes': 'spike_detector',
+                          'v': 'voltmeter',
+                          'conductance': 'conductancemeter'}
 
 # ==============================================================================
 #   Utility classes
@@ -65,6 +67,31 @@ class ID(common.ID):
         return params
             
 
+class Connection(object):
+    
+    def __init__(self, pre, post):
+        self.pre = pre
+        self.post = post
+        conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+        if conn_dict:
+            self.port = len(conn_dict['targets'])-1
+        else:
+            raise Exception("Could not get port number for connection between %s and %s" % (pre, post))
+
+    def _set_weight(self, w):
+        pass
+
+    def _get_weight(self):
+        # this needs to be modified to take account of threads
+        # also see nest.GetConnection (was nest.GetSynapseStatus)
+        conn_dict = nest.GetConnections([self.pre],'static_synapse')[0]
+        if conn_dict:
+            return conn_dict['weights'][self.port]
+        else:
+            return None
+        
+    weight = property(_get_weight, _set_weight)
+
 # ==============================================================================
 #   Standard cells
 # ==============================================================================
@@ -74,18 +101,18 @@ class IF_curr_alpha(common.IF_curr_alpha):
     shaped post-synaptic current."""
     
     translations = {
-            'v_rest'    : ('U0'    ,  "parameters['v_rest']"),
-            'v_reset'   : ('Vreset',  "parameters['v_reset']"),
-            'cm'        : ('C'     ,  "parameters['cm']*1000.0"), # C is in pF, cm in nF
-            'tau_m'     : ('Tau'   ,  "parameters['tau_m']"),
-            'tau_refrac': ('TauR'  ,  "max(dt,parameters['tau_refrac'])"),
-            'tau_syn_E' : ('TauSynE', "parameters['tau_syn_E']"),
-            'tau_syn_I' : ('TauSynI', "parameters['tau_syn_I']"),
-            'v_thresh'  : ('Theta' ,  "parameters['v_thresh']"),
-            'i_offset'  : ('I0'    ,  "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'v_init'    : ('u'     ,  "parameters['v_init']"),
+            'v_rest'    : ('E_L'    , "parameters['v_rest']"),
+            'v_reset'   : ('V_reset', "parameters['v_reset']"),
+            'cm'        : ('C_m'    , "parameters['cm']*1000.0"), # C_m is in pF, cm in nF
+            'tau_m'     : ('tau_m'  , "parameters['tau_m']"),
+            'tau_refrac': ('tau_ref', "max(dt,parameters['tau_refrac'])"),
+            'tau_syn_E' : ('tau_ex' , "parameters['tau_syn_E']"),
+            'tau_syn_I' : ('tau_in' , "parameters['tau_syn_I']"),
+            'v_thresh'  : ('V_th'   , "parameters['v_thresh']"),
+            'i_offset'  : ('I_e'    , "parameters['i_offset']*1000.0"), # I_e is in pA, i_offset in nA
+            'v_init'    : ('V_m'    , "parameters['v_init']"),
     }
-    nest_name = "iaf_neuron2"
+    nest_name = "iaf_psc_alpha"
     
     def __init__(self,parameters):
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
@@ -120,18 +147,18 @@ class IF_cond_alpha(common.IF_cond_alpha):
     shaped post-synaptic conductance."""
     
     translations = {
-            'v_rest'    : ('U0'          , "parameters['v_rest']"),
-            'v_reset'   : ('Vreset'      , "parameters['v_reset']"),
-            'cm'        : ('C'           , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-            'tau_m'     : ('Tau'         , "parameters['tau_m']"),
-            'tau_refrac': ('TauR'        , "max(dt,parameters['tau_refrac'])"),
-            'tau_syn_E' : ('TauSyn_E'    , "parameters['tau_syn_E']"),
-            'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
-            'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
-            'i_offset'  : ('Istim'       , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
-            'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
-            'v_init'    : ('u'           , "parameters['v_init']"),
+            'v_rest'    : ('E_L'       , "parameters['v_rest']"),
+            'v_reset'   : ('V_reset'   , "parameters['v_reset']"),
+            'cm'        : ('C_m'       , "parameters['cm']*1000.0"), # C is in pF, cm in nF
+            'tau_m'     : ('g_L'       , "parameters['cm']/parameters['tau_m']*1000.0"),
+            'tau_refrac': ('t_ref'     , "max(dt,parameters['tau_refrac'])"),
+            'tau_syn_E' : ('tau_syn_ex', "parameters['tau_syn_E']"),
+            'tau_syn_I' : ('tau_syn_in', "parameters['tau_syn_I']"),
+            'v_thresh'  : ('V_th'      , "parameters['v_thresh']"),
+            #'i_offset'  : ('Istim'    , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
+            'e_rev_E'   : ('E_ex'      , "parameters['e_rev_E']"),
+            'e_rev_I'   : ('E_in'      , "parameters['e_rev_I']"),
+            'v_init'    : ('V_m'       , "parameters['v_init']"),
     }
     nest_name = "iaf_cond_alpha"
     
@@ -139,26 +166,25 @@ class IF_cond_alpha(common.IF_cond_alpha):
         common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)
-        self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
-
+        
 
 class IF_cond_exp(common.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
     
     translations = {
-            'v_rest'    : ('U0'          , "parameters['v_rest']"),
-            'v_reset'   : ('Vreset'      , "parameters['v_reset']"),
-            'cm'        : ('C'           , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-            'tau_m'     : ('Tau'         , "parameters['tau_m']"),
-            'tau_refrac': ('TauR'        , "max(dt,parameters['tau_refrac'])"),
-            'tau_syn_E' : ('TauSyn_E'    , "parameters['tau_syn_E']"),
-            'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
-            'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
-            'i_offset'  : ('Istim'       , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
-            'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
-            'v_init'    : ('u'           , "parameters['v_init']"),
+            'v_rest'    : ('E_L'          , "parameters['v_rest']"),
+            'v_reset'   : ('V_reset'      , "parameters['v_reset']"),
+            'cm'        : ('C_m'           , "parameters['cm']*1000.0"), # C is in pF, cm in nF
+            'tau_m'     : ('g_L'         , "parameters['cm']/parameters['tau_m']*1000.0"),
+            'tau_refrac': ('t_ref'        , "max(dt,parameters['tau_refrac'])"),
+            'tau_syn_E' : ('tau_syn_ex'    , "parameters['tau_syn_E']"),
+            'tau_syn_I' : ('tau_syn_in'    , "parameters['tau_syn_I']"),
+            'v_thresh'  : ('V_th'       , "parameters['v_thresh']"),
+            #'i_offset'  : ('Istim'       , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
+            'e_rev_E'   : ('E_ex', "parameters['e_rev_E']"),
+            'e_rev_I'   : ('E_in', "parameters['e_rev_I']"),
+            'v_init'    : ('V_m'           , "parameters['v_init']"),
     }
     nest_name = "iaf_cond_exp"
     
@@ -166,8 +192,7 @@ class IF_cond_exp(common.IF_cond_exp):
         common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)
-        self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
-
+        
 
 class HH_cond_exp(common.HH_cond_exp):
     """docstring needed here."""
@@ -186,6 +211,7 @@ class HH_cond_exp(common.HH_cond_exp):
         'tau_syn_E' : ('tau_ex', "parameters['tau_syn_E']"),
         'tau_syn_I' : ('tau_in', "parameters['tau_syn_I']"),
         'i_offset'  : ('I_stim', "parameters['i_offset']*1000.0"),
+        'v_init'    : ('V_m',    "parameters['v_init']"),
     }
     nest_name = "hh_cond_exp_traub"
     
@@ -194,6 +220,34 @@ class HH_cond_exp(common.HH_cond_exp):
                                                      # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)
         
+class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
+    """adaptive exponential integrate and fire neuron according to Brette and Gerstner (2005)"""
+    
+    translations = {
+        'v_init'    : ('V_m',        "parameters['v_init']"),
+        'w_init'    : ('w',          "parameters['w_init']*1000.0"), # nA -> pA
+        'cm'        : ('C_m',        "parameters['cm']*1000.0"),     # nF -> pF
+        'tau_refrac': ('t_ref',      "parameters['tau_refrac']"), 
+        'v_spike'   : ('V_peak',     "parameters['v_spike']"),
+        'v_reset'   : ('V_reset',    "parameters['v_reset']"),
+        'v_rest'    : ('E_L',        "parameters['v_rest']"),
+        'tau_m'     : ('g_L',        "parameters['cm']/parameters['tau_m']*1000.0"),
+        'i_offset'  : ('I_e',        "parameters['i_offset']*1000.0"), # nA -> pA
+        'a'         : ('a',          "parameters['a']"),       
+        'b'         : ('b',          "parameters['b']*1000.0"),  # nA -> pA.
+        'delta_T'   : ('Delta_T',    "parameters['delta_T']"), 
+        'tau_w'     : ('tau_w',      "parameters['tau_w']"), 
+        'v_thresh'  : ('V_th',       "parameters['v_thresh']"), 
+        'e_rev_E'   : ('E_ex',       "parameters['e_rev_E']"),
+        'tau_syn_E' : ('tau_syn_ex', "parameters['tau_syn_E']"), 
+        'e_rev_I'   : ('E_in',       "parameters['e_rev_I']"), 
+        'tau_syn_I' : ('tau_syn_in', "parameters['tau_syn_I']"),
+    }
+    nest_name = "aeif_cond_alpha"
+    
+    def __init__(self,parameters):
+        common.AdaptiveExponentialIF_alpha.__init__(self,parameters)
+        self.parameters = self.translate(self.parameters)
         
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
@@ -228,7 +282,7 @@ class SpikeSourceArray(common.SpikeSourceArray):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,debug=False,**extra_params):
+def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -238,28 +292,31 @@ def setup(timestep=0.1,debug=False,**extra_params):
     #    raise Exception("min_delay has to be less than or equal to max_delay.")
     global dt
     global tempdir
-    global hl_spike_files, hl_v_files
+    global _min_delay
+    #global hl_spike_files, hl_v_files
     dt = timestep
-
+    _min_delay = min_delay
+    
     # reset the simulation kernel
     nest.ResetKernel()
     # clear the sli stack, if this is not done --> memory leak cause the stack increases
     nest.sr('clear')
 
-    # check if hl_spike_files , hl_v_files are empty
-    if not len(hl_spike_files) == 0:
-        print 'hl_spike_files still contained files, please close all open files before setup'
-        hl_spike_files = {}
-    if not len(hl_v_files) == 0:
-        print 'hl_v_files still contained files, please close all open files before setup'
-        hl_v_files = {}
+#    # check if hl_spike_files , hl_v_files are empty
+#    if not len(hl_spike_files) == 0:
+#        print 'hl_spike_files still contained files, please close all open files before setup'
+#        hl_spike_files = {}
+#    if not len(hl_v_files) == 0:
+#        print 'hl_v_files still contained files, please close all open files before setup'
+#        hl_v_files = {}
     
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
+    
     # set tempdir
-    nest.SetStatus([0],[{'device_prefix':tempdir}])
+    nest.SetStatus([0], {'device_prefix':tempdir})
     # set resolution
-    nest.SetStatus([0],[{'resolution': dt}])
+    nest.SetStatus([0], {'resolution': dt})
     
     if extra_params.has_key('threads'):
         if extra_params.has_key('kernelseeds'):
@@ -294,7 +351,7 @@ def setup(timestep=0.1,debug=False,**extra_params):
                     filemode='w')
 
     logging.info("Initialization of Nest")    
-    return 0
+    return nest.Rank()
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
@@ -302,17 +359,20 @@ def end(compatible_output=True):
     # that may have not been written.
 
     # NEST will soon close all its output files after the simulate function is over, therefore this step is not necessary
-    global tempdir
+    global tempdirs
     
     # And we postprocess the low level files opened by record()
     # and record_v() method
-    for file in ll_spike_files:
-        _printSpikes(file, compatible_output)
-    for file in ll_v_files:
-        _print_v(file, compatible_output)
+    #for file in ll_spike_files:
+    #    _printSpikes(file, compatible_output)
+    #for file, nest_file in ll_v_files:
+    #    _print_v(file, nest_file, compatible_output)
+    print "Saving the following files:", recorder_dict.keys()
+    for filename in recorder_dict.keys():
+        _print(filename, gather=False, compatible_output=compatible_output)
+    
     for tempdir in tempdirs:
         os.system("rm -rf %s" %tempdir)
-    nest.end()
 
 def run(simtime):
     """Run the simulation for simtime ms."""
@@ -363,14 +423,15 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     if weight is None:
         weight = 0.0
     if delay is None:
-        delay = nest.getLimits()['min_delay']
+        delay = _min_delay
     weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                          # Using convention in this way is not ideal. We should be able to look up the units used by each model somewhere.
     if synapse_type == 'inhibitory' and weight > 0:
         weight *= -1
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
-            connect_id = nest.ConnectWD([source],[target],[weight],[delay])
+            nest.ConnectWD([source],[target],[weight],[delay])
+            connect_id = Connection(source, target)
         else:
             connect_id = []
             if type(source) != types.ListType:
@@ -385,7 +446,8 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
                         rarr = numpy.random.uniform(0,1,len(target))
                 for j,tgt in enumerate(target):
                     if p >= 1 or rarr[j] < p:
-                        connect_id += [nest.ConnectWD(src,tgt,[weight],[delay])]
+                        nest.ConnectWD([src],[tgt],[weight],[delay])
+                        connect_id += [Connection(src,tgt)]
     except nest.SLIError:
         raise common.ConnectionError
     return connect_id
@@ -409,111 +471,120 @@ def set(cells,cellclass,param,val=None):
             raise TypeError, "cellclass must be a string, None, or derived from commonStandardCellType"
     nest.SetStatus(cells,[param])
 
-def record(source,filename):
+def _connect_recording_device(recorder, record_from=None):
+    device = nest.GetStatus(recorder, "model")[0]
+    if device == "spike_detector":
+        nest.ConvergentConnect(record_from, recorder)
+    elif device in ('voltmeter', 'conductancemeter'):        
+        nest.DivergentConnect(recorder, record_from)
+    else:
+        raise Exception("Not a valid recording device")
+
+def _record(variable, source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
-    spike_detector = nest.Create('spike_detector')
-    nest.setDict(spike_detector,{'withtime':True,  # record time of spikes
-                                   'withpath':True}) # record which neuron spiked
-    if type(source) == types.ListType:
-        source = [nest.getAddress(src) for src in source]
-    else:
-        source = [nest.getAddress(source)]
-    for src in source:
-        nest.connect(src,spike_detector[0])
-        nest.sr('/%s (%s/%s) (w) file def' % (filename, tempdir, filename))
-        nest.sr('%s << /output_stream %s >> SetStatus' % (nest.getGID(spike_detector[0]),filename))
-    ll_spike_files.append(filename)
+    device_name = recording_device_names[variable]
+    print "Trying to record %s from cell %s using a %s" % (variable, source, device_name)
+    recording_device = nest.Create(device_name) # does it need to be an ID?
+    nest.SetStatus(recording_device,
+                   {"to_file" : True, "withgid" : True, "withtime" : True,
+                    "interval": nest.GetStatus([0], "resolution")[0]})
+            
+    if type(source) != types.ListType:
+        source = [source]
+    _connect_recording_device(recording_device, record_from=source)
+    recorder_dict[filename] = recording_device 
 
-
-def record_v(source,filename_user):
+def record(source, filename):
+    """Record spikes to a file. source can be an individual cell or a list of
+    cells."""
+    # would actually like to be able to record to an array and choose later
+    # whether to write to a file.
+    _record('spikes', source, filename) 
+    
+def record_v(source, filename):
     """
     Record membrane potential to a file. source can be an individual cell or
     a list of cells."""
     # would actually like to be able to record to an array and
     # choose later whether to write to a file.
-    if type(source) != types.ListType:
-        source = [source]
-    record_file = filename_user
-    #ll_v_files.append(filename)
-    filename = nest.record_v(source,record_file)
-    ll_v_files.append(filename)
+    _record('v', source, filename) 
 
-def _printSpikes(filename, compatible_output=True):
-    """ Print spikes into a file, and postprocessed them if
-    needed and asked to produce a compatible output for all the simulator
-    Should actually work with record() and allow to dissociate the recording of the
-    writing process, which is not the case for the moment"""
-    tempfilename = "%s/%s" %(tempdir, filename)
-    nest.sr('%s close' %filename) 
-    if (compatible_output):
-        # Here we postprocess the file to have effectively the
-        # desired format :
-        # First line: # dimensions of the population
-        # Then spiketime (in ms) cell_id-min(cell_id)
-        result = open(filename,'w',1000)
-        # Writing # such that Population.printSpikes and this have same output format
-        result.write("# "+"\n")
-        # Writing spiketimes, cell_id-min(cell_id)
-        # Pylab has a great load() function, but it is not necessary to import
-        # it into pyNN. The fromfile() function of numpy has trouble on several
-        # machine with Python 2.5, so that's why a dedicated _readArray function
-        # has been created to load from file the raster or the membrane potentials
-        # saved by NEST
-        try:
-            raster = _readArray(tempfilename, sepchar=None)
-            raster = raster[:,1:3]
-            raster[:,1] = raster[:,1]*dt
-            for idx in xrange(len(raster)):
-                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
-        except Exception:
-            print "Error while writing data into a compatible mode"
-        result.close()
-        os.system("rm %s" %tempfilename)
+def _print(user_filename, gather=True, compatible_output=True, population=None, variable=None):
+    global recorder_dict
+    
+    if population is None:
+        recorder = recorder_dict[user_filename]
     else:
-        shutil.move(tempfilename, filename)
+        assert variable in ['spikes', 'v', 'conductance']
+        recorder = population.recorders[variable]
+    
+    nest.FlushDevice(recorder) 
+    status = nest.GetStatus([0])[0]
+    local_num_threads = status['local_num_threads']
+    node_list = range(nest.GetStatus([0], "num_processes")[0])
+    
+    # First combine data from different threads
+    os.system("rm -f %s" % user_filename)
+    for nest_thread in range(local_num_threads):
+        nest.sps(recorder[0])
+        nest.sr("%i GetAddress %i append" % (recorder[0], nest_thread))
+        nest.sr("GetStatus /filename get")
+        nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
+        ##system_line = 'cat %s >> %s' % (nest_filename, "%s_%d" % (user_filename, nest.Rank()))
+        merged_filename = "%s/%s" % (os.path.dirname(nest_filename), user_filename)
+        system_line = 'cat %s >> %s' % (nest_filename, merged_filename) # will fail if writing to a common directory, e.g. using NFS
+        print system_line
+        os.system(system_line)
+    if gather:
+        raise Exception("'gather' not currently supported.")
+        if nest.Rank() == 0: # only on the master node (?)
+            for node in node_list:
+                pass # not a good way to do it at the moment
+    
+    if compatible_output:
+        if gather == False or nest.Rank() == 0: # if we gather, only do this on the master node
+            logging.info("Writing %s in compatible format." % user_filename)
+            
+            # Here we postprocess the file to have effectively the
+            # desired format: spiketime (in ms) cell_id-min(cell_id)
+            #if not os.path.exists(user_filename):
+            result = open(user_filename,'w',1000)
+            #else:
+            #    result = open(user_filename,'a',1000)
+                
+            ## Writing header info (e.g., dimensions of the population)
+            if population is not None:
+                result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
+                padding = population.cell.flatten()[0]
+            else:
+                padding = 0
+            result.write("# dt = %g\n" % nest.GetStatus([0], "resolution")[0])
+                            
+            # Writing spiketimes, cell_id-min(cell_id)
+                 
+            # (Pylab has a great load() function, but it is not necessary to import
+            # it into pyNN. The fromfile() function of numpy has trouble on several
+            # machine with Python 2.5, so that's why a dedicated _readArray function
+            # has been created to load from file the raster or the membrane potentials
+            # saved by NEST).
+                    
+            # open file
+            if int(os.path.getsize(merged_filename)) > 0:
+                raster = _readArray(merged_filename, sepchar=None)
+                result.write("# n = %d\n" % len(raster)) # shouldn't be called raster
+                raster[:,0] = raster[:,0] - padding
+                for idx in xrange(len(raster)):
+                    result.write("%g\t%d\n" % (raster[idx][2], raster[idx][0])) # v id
+            else:
+                logging.info("%s_tmp is empty" % user_filename)
+            result.close()
+    
+    recorder_dict.pop(user_filename)    
 
-
-def _print_v(filename, compatible_output=True):
-    """ Print membrane potentials in a file, and postprocessed them if
-    needed and asked to produce a compatible output for all the simulator
-    Should actually work with record_v() and allow to dissociate the recording of the
-    writing process, which is not the case for the moment"""
-    tempfilename = tempdir+'/'+filename
-    nest.sr('%s close' %tempfilename.replace('/','_')) 
-    result = open(filename,'w',1000)
-    dt = nest.getNESTStatus()['resolution']
-    n = int(nest.getNESTStatus()['time']/dt)
-    result.write("# dt = %f\n# n = %d\n" % (dt,n))
-    if (compatible_output):
-        # Here we postprocess the file to have effectively the
-        # desired format :
-        # First line: dimensions of the population
-        # Then spiketime cell_id-min(cell_id)
-
-        # Pylab has a great load() function, but it is not necessary to import
-        # it into pyNN. The fromfile() function of numpy has trouble on several
-        # machine with Python 2.5, so that's why a dedicated _readArray function
-        # has been created to load from file the raster or the membrane potentials
-        # saved by NEST
-        try:
-            raster = _readArray(tempfilename.replace('/','_'), sepchar=None)
-            for idx in xrange(len(raster)):
-                result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
-        except Exception:
-            print "Error while writing data into a compatible mode"
-    else:
-        f = open(tempfilename.replace('/','_'),'r',1000)
-        lines = f.readlines()
-        f.close()
-        for line in lines:
-            result.write(line)
-    result.close()
-    os.system("rm %s" %tempfilename.replace('/','_'))
-
-def _readArray(filename, sepchar = None, skipchar = '#'):
+def _readArray(filename, sepchar=None, skipchar='#'):
     logging.debug(filename)
     myfile = open(filename, "r")
     contents = myfile.readlines()
@@ -525,19 +596,17 @@ def _readArray(filename, sepchar = None, skipchar = '#'):
         if (len(stripped_line) != 0):
             if (stripped_line[0] != skipchar):
                 items = stripped_line.split(sepchar)
-                # Here we have to deal with the fact that quite often, NEST
-                # does not write correctly the last line of Vm recordings.
-                # More precisely, it is often not complete
-                #try :
+                if len(items) != 3:
+                    print stripped_line
+                    print items
+                    raise Exception()
                 data.append(map(float, items))
-                #except Exception:
-                #    # The last line has a gid and just a "-" sign...
-                #    pass
     try :
         a = numpy.array(data)
     except Exception:
+        raise
         # The last line has just a gid, so we has to remove it
-        a = numpy.array(data[0:len(data)-2])
+        #a = numpy.array(data[0:len(data)-2])
     (Nrow,Ncol) = a.shape
     logging.debug(str(a.shape))
     if ((Nrow == 1) or (Ncol == 1)): a = ravel(a)
@@ -595,6 +664,7 @@ class Population(common.Population):
         
         if not self.label:
             self.label = 'population%d' % Population.nPop
+        self.recorders = {'spikes': None, 'v': None, 'conductance': None}
         Population.nPop += 1
     
     def __getitem__(self,addr):
@@ -755,24 +825,16 @@ class Population(common.Population):
         """
         raise Exception("Method not yet implemented")
 
-    def record(self,record_from=None,rng=None):
-        """
-        If record_from is not given, record spikes from all cells in the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids
-        of the cells to record.
-        """
-        global hl_spike_files
-        
+    def _record(self, variable, record_from=None, rng=None):
+        assert variable in ('spikes', 'v', 'conductance')
+    
         # create device
-        self.spike_detector = ID(nest.Create('spike_detector')[0])
-        params = {"to_file" : True, "withgid" : True, "withtime" : True}#,'withpath':True}
-        nest.SetStatus([self.spike_detector], [params])
-        
-        filename = nest.GetStatus([self.spike_detector], "filename")
-        hl_spike_files[self.label] = filename
-        
+        device_name = recording_device_names[variable]
+        if self.recorders[variable] is None:
+            self.recorders[variable] = ID(nest.Create(device_name)[0]) # does it need to be an ID?
+            nest.SetStatus([self.recorders[variable]],
+                           {"to_file" : True, "withgid" : True, "withtime" : True})      
+                
         # create list of neurons        
         fixed_list = False
         if record_from:
@@ -786,24 +848,27 @@ class Population(common.Population):
         else:
             n_rec = self.size
         
-
         tmp_list = []
         if (fixed_list == True):
             for neuron in record_from:
                 tmp_list = [neuron for neuron in record_from]
-                #nest.Connect([neuron],[self.spike_detector[0]])
         else:
             for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
                 tmp_list.append(neuron)
-                #nest.Connect([neuron],[self.spike_detector[0]])
-
+                
         # connect device to neurons
-        nest.ConvergentConnect(tmp_list,[self.spike_detector])
-        
-        
-        #hl_spike_files.append('%s.spikes' % self.label)
-        self.n_rec = n_rec
+        _record(variable, tmp_list)
 
+    def record(self, record_from=None, rng=None):
+        """
+        If record_from is not given, record spikes from all cells in the Population.
+        record_from can be an integer - the number of cells to record from, chosen
+        at random (in this case a random number generator can also be supplied)
+        - or a list containing the ids
+        of the cells to record.
+        """
+        self._record('spikes', record_from, rng)
+        
     def record_v(self,record_from=None,rng=None):
         """
         If record_from is not given, record the membrane potential for all cells in
@@ -812,41 +877,7 @@ class Population(common.Population):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        global hl_v_files
-        
-        # create device
-        
-        self.voltmeter = nest.Create("voltmeter")
-        params = {"to_file" : True, "withgid" : True, "withtime" : True}
-        nest.SetStatus(self.voltmeter, [params])
-        
-        filename = nest.GetStatus(self.voltmeter, "filename")
-        hl_v_files[self.label] = filename
-        
-        
-        # create list of neurons
-        fixed_list = False
-        if record_from:
-            if type(record_from) == types.ListType:
-                fixed_list = True
-                n_rec = len(record_from)
-            elif type(record_from) == types.IntType:
-                n_rec = record_from
-            else:
-                raise "record_from must be a list or an integer"
-        else:
-            n_rec = self.size
-
-        tmp_list = []
-        if (fixed_list == True):
-            tmp_list = [neuron for neuron in record_from]
-        else:
-            for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
-                tmp_list.append(neuron)
-        
-        # connect device to neurons
-        nest.DivergentConnect(self.voltmeter, tmp_list)
-        
+        self._record('v', record_from, rng)
     
     def record_c(self,record_from=None,rng=None):
         """
@@ -856,42 +887,9 @@ class Population(common.Population):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        global hl_c_files
-        
-        # create device
-        
-        self.conductancemeter = nest.Create("conductancemeter")
-        params = {"to_file" : True, "withgid" : True, "withtime" : True}
-        nest.SetStatus(self.conductancemeter, [params])
-        
-        filename = nest.GetStatus(self.conductancemeter, "filename")
-        hl_c_files[self.label] = filename
-        
-        
-        # create list of neurons
-        fixed_list = False
-        if record_from:
-            if type(record_from) == types.ListType:
-                fixed_list = True
-                n_rec = len(record_from)
-            elif type(record_from) == types.IntType:
-                n_rec = record_from
-            else:
-                raise "record_from must be a list or an integer"
-        else:
-            n_rec = self.size
-
-        tmp_list = []
-        if (fixed_list == True):
-            tmp_list = [neuron for neuron in record_from]
-        else:
-            for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
-                tmp_list.append(neuron)
-        
-        # connect device to neurons
-        nest.DivergentConnect(self.conductancemeter, tmp_list)
+        self._record('conductance', record_from, rng)
     
-    def printSpikes(self,filename,gather=True, compatible_output=False):
+    def printSpikes(self, filename, gather=True, compatible_output=False):
         """
         Writes spike times to file.
         If compatible_output is True, the format is "spiketime cell_id",
@@ -903,104 +901,14 @@ class Population(common.Population):
         indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, sinc# Writing spiketimes, cell_id-min(cell_id)
+        is used. This may be faster.
         If gather is True, the file will only be created on the master node,
         otherwise, a file will be written on each node.
-        """        
-        global hl_spike_files
-        global tempdir
-        # closing of the file
-        # just a workaround, nest will do that automatically soon
-        if hl_spike_files.has_key(self.label):#   __contains__(tempfilename):
-            nest.sps(self.spike_detector)
-            nest.sr("FlushDevice")
-        
-        status = nest.GetStatus([0])[0]
-        np = status['num_processes']
-        vp = status['vp']
-        local_num_threads = status['local_num_threads']
-        rank = numpy.mod(vp,np)
-
-        
-        filename = filename + '-%d' % rank
-        if (compatible_output):
-            if rank == 0:
-                logging.info("Writing %s in compatible format." % filename)
-                for nest_thread in range(local_num_threads):
-                    label = '-%d-%d-%d.gdf' %(rank,nest_thread,self.spike_detector)
-                    # Here we postprocess the file to have effectively the
-                    # desired format: spiketime (in ms) cell_id-min(cell_id)
-                    if not os.path.exists(filename):
-                        result = open(filename,'w',1000)
-                        # Writing dimensions of the population:
-                        result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
-                        # Writing spiketimes, cell_id-min(cell_id)
-                        ###padding = numpy.reshape(self.cell,self.cell.size)[0] # moved below
-                    else:
-                        result = open(filename,'a',1000)
-                    padding = numpy.reshape(self.cell,self.cell.size)[0]
-                    
-                    # Pylab has a great load() function, but it is not necessary to import
-                    # it into pyNN. The fromfile() function of numpy has trouble on several
-                    # machine with Python 2.5, so that's why a dedicated _readArray function
-                    # has been created to load from file the raster or the membrane potentials
-                    # saved by NEST
-                    # open file
-                    simfile = tempdir + '/spike_detector'+ label
-                    # if int(os.path.getsize(hl_spike_files[self.label][0])) > 0:
-                    if int(os.path.getsize(simfile)) > 0:
-#                        try:
-                        raster = _readArray(simfile ,sepchar=None)
-                        # Sometimes, nest doesn't write the last line entirely, so we need
-                        # to trunk it to avoid errors
-                        ###raster = raster[:,1:3]
-                        raster[:,0] = raster[:,0] - padding
-                        raster[:,1] = raster[:,1]*dt
-                        for idx in xrange(len(raster)):
-                            result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
-                                
-#                        except Exception, inst:
-#                            print "Error while writing data into a compatible mode"
-#                            logging.error("Error while writing data into a compatible mode: %s" % str(inst))
-                    else:
-                        logging.info("%s is empty" % simfile)
-                result.close()
-                # os.system("rm %s" % hl_spike_files[self.label][0])
-        else:
-            if gather:
-                if os.path.exists(filename):
-                    # 'target file exists, will be removed before copying the new data.'
-                    os.remove(filename)
-                for nest_thread in range(local_num_threads):
-                    label = '-%d-%d-%d.gdf' %(rank,nest_thread,self.spike_detector)
-                    simfile = tempdir + '/spike_detector'+ label
-                    system_line = 'cat %s >> %s' %(simfile,filename)
-                    if os.system(system_line) == 0: # cat was successful
-                        os.remove(simfile)
-            else:
-                print 'spike data is not gathered and located in: ',tempdir
-        
-        hl_spike_files.pop(self.label)
-
-    def collectdata(self,filename):
         """
-        merges all mpi data into one final file, should only be called once, after all spikes have been printed
-        """
-        status = nest.GetStatus([0])[0]
-        np = status['num_processes']
-        vp = status['vp']
-        local_num_threads = status['local_num_threads']
-        rank = numpy.mod(vp,np)
-        if os.path.exists(filename):
-            os.remove(filename)
-        
-        for processor in range(np):
-            filename_p = filename+'-'+str(processor)
-            system_line = 'cat %s >> %s' %(filename_p,filename)
-            if os.system(system_line) == 0: # cat was successful
-                os.remove(filename_p)    
-        
-    def meanSpikeCount(self,gather=True):
+        _print(filename, gather=gather, compatible_output=compatible_output,
+               population=self, variable="spikes")
+       
+    def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
@@ -1009,25 +917,19 @@ class Population(common.Population):
         n_spikes = status["events"]
         return float(n_spikes)/self.n_rec
 
-    def randomInit(self,rand_distr):
+    def randomInit(self, rand_distr):
         """
         Sets initial membrane potentials for all the cells in the population to
         random values.
         """
         self.rset('v_init',rand_distr)
-        #cells = numpy.reshape(self.cell,self.cell.size)
-        #rvals = rand_distr.next(n=self.cell.size)
-        #for node, v_init in zip(cells,rvals):
-        #    nest.setDict([node],{'u': v_init})
-    
-    def print_v(self,filename,gather=True, compatible_output=False):
+
+    def print_v(self, filename, gather=True, compatible_output=False):
         """
         Write membrane potential traces to file.
-        If compatible_output is True, the format is "v cell_id",
+        If compatible_output is True, the format is "t v cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
-        This allows easy plotting of a `raster' plot of spiketimes, with one
-        line for each cell.
         The timestep and number of data points per cell is written as a header,
         indicated by a '#' at the beginning of the line.
         
@@ -1035,86 +937,15 @@ class Population(common.Population):
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        global hl_v_files
-        
-        # closing file
-        # just a workaround, nest will do that automatically soon
-        if hl_v_files.has_key(self.label):
-            nest.sps(self.voltmeter[0])
-            nest.sr("FlushDevice")
-
-
-        status = nest.GetStatus([0])[0]
-        np = status['num_processes']
-        vp = status['vp']
-        local_num_threads = status['local_num_threads']
-        rank = numpy.mod(vp,np)
-
-        filename = filename + '-%d' % rank
-        # compatible_output stuff
-        #result = open(filename,'w',1000)
-        #NESTStatus = nest.GetStatus([0])[0]
-        #dt = NESTStatus['resolution']
-        #n = int(NESTStatus['time']/dt)
-        #result.write("# dt = %f\n# n = %d\n" % (dt,n))
-
-        
-        if (compatible_output):
-            result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
-            padding = numpy.reshape(self.cell,self.cell.size)[0]
-
-            # Here we postprocess the file to have effectively the
-            # desired format :
-            # First line: dimensions of the population
-            # Then spiketime cell_id-min(cell_id)
-            
-            # Pylab has a great load() function, but it is not necessary to import
-            # it into pyNN. The fromfile() function of numpy has trouble on several
-            # machine with Python 2.5, so that's why a dedicated _readArray function
-            # has been created to load from file the raster or the membrane potentials
-            # saved by NEST
-            if int(os.path.getsize(hl_v_files[self.label][0])) > 0:
-                try:
-                    raster = _readArray(hl_v_files[self.label][0],sepchar="\t")
-                    raster[:,0] = raster[:,0] - padding
-                
-                    for idx in xrange(len(raster)):
-                        result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
-                except Exception:
-                    print "Error while writing data into a compatible mode"
-        else:
-            # f = open(hl_v_files[self.label][0],'r',1000)
-            # lines = f.readlines()
-            # f.close()
-            # for line in lines:
-            #    result.write(line)
-            # os.system("rm %s" % hl_v_files[self.label][0])
-            # result.close()
-
-            #
-            if gather:
-                if os.path.exists(filename):
-                    # 'target file exists, will be removed before copying the new data.'
-                    os.remove(filename)
-                for nest_thread in range(local_num_threads):
-                    label = '-%d-%d-%d.dat' %(rank,nest_thread,self.voltmeter[0])
-                    simfile = tempdir + '/voltmeter'+ label
-                    system_line = 'cat %s >> %s' %(simfile,filename)
-                    if os.system(system_line) == 0: # cat was successful 
-                        os.remove(simfile)
-            else:
-                print 'voltmeter data is not gathered and located in: ',tempdir
-        
-        hl_v_files.pop(self.label)
-        
+        _print(filename, gather=gather, compatible_output=compatible_output,
+               population=self, variable="v")
+               
     def print_c(self,filename,gather=True, compatible_output=False):
         """
-        Write membrane potential traces to file.
-        If compatible_output is True, the format is "v cell_id",
+        Write conductance traces to file.
+        If compatible_output is True, the format is "t g cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
-        This allows easy plotting of a `raster' plot of spiketimes, with one
-        line for each cell.
         The timestep and number of data points per cell is written as a header,
         indicated by a '#' at the beginning of the line.
         
@@ -1122,77 +953,9 @@ class Population(common.Population):
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        global hl_c_files
-        
-        # closing file
-        # just a workaround, nest will do that automatically soon
-        if hl_c_files.has_key(self.label):
-            nest.sps(self.conductancemeter[0])
-            nest.sr("FlushDevice")
+        _print(filename, gather=gather, compatible_output=compatible_output,
+               population=self, variable="conductance")
 
-
-        status = nest.GetStatus([0])[0]
-        np = status['num_processes']
-        vp = status['vp']
-        local_num_threads = status['local_num_threads']
-        rank = numpy.mod(vp,np)
-
-        filename = filename + '-%d' % rank
-        # compatible_output stuff
-        #result = open(filename,'w',1000)
-        #NESTStatus = nest.GetStatus([0])[0]
-        #dt = NESTStatus['resolution']
-        #n = int(NESTStatus['time']/dt)
-        #result.write("# dt = %f\n# n = %d\n" % (dt,n))
-
-        
-        if (compatible_output):
-            result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
-            padding = numpy.reshape(self.cell,self.cell.size)[0]
-
-            # Here we postprocess the file to have effectively the
-            # desired format :
-            # First line: dimensions of the population
-            # Then spiketime cell_id-min(cell_id)
-            
-            # Pylab has a great load() function, but it is not necessary to import
-            # it into pyNN. The fromfile() function of numpy has trouble on several
-            # machine with Python 2.5, so that's why a dedicated _readArray function
-            # has been created to load from file the raster or the membrane potentials
-            # saved by NEST
-            if int(os.path.getsize(hl_v_files[self.label][0])) > 0:
-                try:
-                    raster = _readArray(hl_v_files[self.label][0],sepchar=None)
-                    raster[:,0] = raster[:,0] - padding
-                
-                    for idx in xrange(len(raster)):
-                        result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
-                except Exception:
-                    print "Error while writing data into a compatible mode"
-        else:
-            # f = open(hl_v_files[self.label][0],'r',1000)
-            # lines = f.readlines()
-            # f.close()
-            # for line in lines:
-            #    result.write(line)
-            # os.system("rm %s" % hl_v_files[self.label][0])
-            # result.close()
-
-            #
-            if gather:
-                if os.path.exists(filename):
-                    # 'target file exists, will be removed before copying the new data.'
-                    os.remove(filename)
-                for nest_thread in range(local_num_threads):
-                    label = '-%d-%d-%d.dat' %(rank,nest_thread,self.conductancemeter[0])
-                    simfile = tempdir + '/conductancemeter'+ label
-                    system_line = 'cat %s >> %s' %(simfile,filename)
-                    if os.system(system_line) == 0: # cat was successful 
-                        os.remove(simfile)
-            else:
-                print 'voltmeter data is not gathered and located in: ',tempdir
-        
-        hl_c_files.pop(self.label)   
     
 class Projection(common.Projection):
     """

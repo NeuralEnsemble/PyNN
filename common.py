@@ -19,7 +19,6 @@ class ConnectionError(Exception): pass
 
 dt = 0.1
 
-
 # ==============================================================================
 #   Utility classes and functions
 # ==============================================================================
@@ -97,7 +96,7 @@ class ID(int):
             try:
                 return self._position
             except (AttributeError, KeyError):
-                self._position = (int(self), 0, 0)
+                self._position = (float(self), 0.0, 0.0)
                 return self._position
 
     position = property(_get_position, _set_position)
@@ -282,7 +281,35 @@ class HH_cond_exp(StandardCellType):
         'tau_syn_E' : 0.2,
         'tau_syn_I' : 2.0,
         'i_offset'  : 0.0,
-    } # v_init???
+        'v_init'    : -65.0,
+    }
+
+class AdaptiveExponentialIF_alpha(StandardCellType):
+    """adaptive exponential integrate and fire neuron according to 
+    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
+            an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
+    """
+    
+    default_parameters = {
+        'v_init'    : -70.6, #'V_m'        # Initial membrane potential in mV
+        'w_init'    : 0.0,   #'w'          # Spike-adaptation current in nA (nest:pA)
+        'cm'        : 0.281, #'C_m'        # Capacity of the membrane in nF
+        'tau_refrac': 0.0,   #'t_ref'      # Duration of refractory period in ms.
+        'v_spike'   : 0.0,   #'V_peak'     # Spike detection threshold in mV.
+        'v_reset'   : -70.6, #'V_reset'    # Reset value for V_m after a spike. In mV.
+        'v_rest'    : -70.6, #'E_L'        # Resting membrane potential (Leak reversal potential) in mV.
+        'tau_m'     : 9.3667,  #'g_L'        # Membrane time constant in ms (nest:Leak conductance in nS.)
+        'i_offset'  : 0.0,   #'I_e'        # Offset current in nA (nest:pA)
+        'a'         : 4.0,                # Subthreshold adaptation conductance in nS.
+        'b'         : 0.0805,           # Spike-triggered adaptation in nA (nest:pA).
+        'delta_T'   : 2.0,   # Delta_T    # Slope factor in mV
+        'tau_w'     : 144.0, #'tau_w'      # Adaptation time constant in ms
+        'v_thresh'  : -50.4,  #'V_t'        # Spike initiation threshold in mV (V_th can also be used for compatibility).
+        'e_rev_E'   : 0.0,    #'E_ex'       # Excitatory reversal potential in mV.
+        'tau_syn_E' : 5.0,  #'tau_ex'     # Rise time of excitatory synaptic conductance in ms (alpha function).
+        'e_rev_I'   : -80.0,  #'E_in'       # Inhibitory reversal potential in mV.
+        'tau_syn_I' : 5.0, #'tau_in'     # Rise time of the inhibitory synaptic conductance in ms (alpha function).
+    }
 
 class SpikeSourcePoisson(StandardCellType):
     """Spike source, generating spikes according to a Poisson process."""
