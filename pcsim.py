@@ -273,6 +273,10 @@ class ID(long):
             params[name] = self.__getattr__(name)
         return params
     
+
+def list_standard_models():
+    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+
 # ==============================================================================
 #   Standard cells   
 # ==============================================================================

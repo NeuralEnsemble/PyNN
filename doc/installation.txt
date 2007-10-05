@@ -32,10 +32,10 @@ Installing NEST and PyNEST
 NEST can be downloaded from `<http://www.nest-initiative.org/?page=Software&subpage=Download>`_.
 Installation instructions are available from `<http://www.nest-initiative.uni-freiburg.de/helpdesk/synod2/doc/install.html>`_.
 
-Check out PyNEST from the following Subversion repository (contact the NEST developers for access)::
+Download PyNEST from `<http://www.nest-initiative.org/index.php/Image:Pynest1.tgz>`_, change to the directory to which you downloaded it, then::
 
-    $ svn co svn+ssh://facets@www.nest-initiative.uni-freiburg.de/facets/trunk pynest
-    $ cd pynest
+    $ tar xzf Pynest1.tgz
+    $ cd pynest1
     
 Set the ``SLIHOME`` environment variable to your NEST source installation and ``SLIBUILD`` to your NEST build directory, e.g. (for bash)::
 

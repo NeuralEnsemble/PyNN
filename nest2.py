@@ -5,10 +5,6 @@ $Id$
 """
 __version__ = "$Revision:5 $"
 
-## temporary fix to import nest rather than pyNN.nest
-#import imp
-#mod_search = imp.find_module('nest', #['/usr/lib/python/site-packages','/usr/local/lib/python2.5/site-packages'])
-#nest = imp.load_module('nest',*mod_search)
 import nest
 from pyNN import common
 from pyNN.random import *
@@ -28,7 +24,7 @@ recording_device_names = {'spikes': 'spike_detector',
                           'conductance': 'conductancemeter'}
 
 # ==============================================================================
-#   Utility classes
+#   Utility classes and functions
 # ==============================================================================
 
 class ID(common.ID):
@@ -92,6 +88,9 @@ class Connection(object):
             return None
         
     weight = property(_get_weight, _set_weight)
+
+def list_standard_models():
+    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
 
 # ==============================================================================
 #   Standard cells

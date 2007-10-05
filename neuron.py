@@ -27,7 +27,7 @@ running       = False
 initialised   = False
 
 # ==============================================================================
-#   Utility classes
+#   Utility classes and functions
 # ==============================================================================
 
 class ID(common.ID):
@@ -72,6 +72,9 @@ class ID(common.ID):
         for k,v in self.cellclass.translations.items():
             params[k] = HocToPy.get('%s.%s' % (self.hocname, v[0]),'float')
         return params
+
+def list_standard_models():
+    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
 
 # ==============================================================================
 #   Module-specific functions and classes (not part of the common API)

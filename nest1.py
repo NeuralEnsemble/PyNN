@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 PyNEST implementation of the PyNN API.
-$Id$
+$Id:nest1.py 143 2007-10-05 14:20:16Z apdavison $
 """
 __version__ = "$Revision:5 $"
 
@@ -54,6 +54,9 @@ class ID(common.ID):
         for k,v in self.cellclass.translations.items():
             params[k] = pynest_params[v[0]]
         return params
+
+def list_standard_models():
+    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
 
 # ==============================================================================
 #   Standard cells

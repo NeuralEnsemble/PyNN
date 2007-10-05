@@ -138,7 +138,6 @@ def distance(src, tgt, mask=None, scale_factor=1.0): # may need to add an offset
 #    numpy.sqrt(d,d)
 #    return d
 
-
 # ==============================================================================
 #   Standard cells
 # ==============================================================================

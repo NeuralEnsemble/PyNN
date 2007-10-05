@@ -54,10 +54,13 @@ class ID(common.ID):
     # Functions used only by the neuron module of pyNN, to optimize the
     # creation of networks
     def setHocName(self, name):
-    	self._hocname = name
+        self._hocname = name
 
     def getHocName(self):
-    	return self._hocname
+        return self._hocname
+
+def list_standard_models():
+    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
 
 # ==============================================================================
 #   Module-specific functions and classes (not part of the common API)
