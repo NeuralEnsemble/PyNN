@@ -67,7 +67,7 @@ class IF_base(object):
         soma_node = build_node('mml:segment',id=0, name="Soma", cable=0)
         # L = 100  diam = 1000/PI: gives area = 10³ cm²
         soma_node.appendChild(build_node('mml:proximal', x=0, y=0, z=0, diameter=1000/math.pi))
-        soma_node.appendChild(build_node('mml:proximal', x=0, y=0, z=100, diameter=1000/math.pi))
+        soma_node.appendChild(build_node('mml:distal', x=0, y=0, z=100, diameter=1000/math.pi))
         segments_node.appendChild(soma_node)
         
         cables_node   = build_node('mml:cables')
@@ -91,7 +91,8 @@ class IF_base(object):
         esyn_node     = build_node('bio:mechanism', name="ExcitatorySynapse", type="Channel Mechanism")
         isyn_node     = build_node('bio:mechanism', name="InhibitorySynapse", type="Channel Mechanism")
         
-        for node in ifnode,passive_node, cm_node, Ra_node, esyn_node, isyn_node:
+        
+        for node in ifnode, passive_node, esyn_node, isyn_node, cm_node, Ra_node: # the order is important here
             biophys_node.appendChild(node)
         return biophys_node
         
@@ -125,13 +126,13 @@ class IF_base(object):
         esyn_node = build_node('cml:synapse_type', name="ExcitatorySynapse")
         esyn_node.appendChild( build_node('cml:%s' % synapse_type,
                                           max_conductance="1.0e-5",
-                                          rise_time="0",
+                                          rise_time="1.0e-12",
                                           decay_time=self.parameters['tau_syn_E'],
                                           reversal_potential=self.parameters['e_rev_E'] ) )
         isyn_node = build_node('cml:synapse_type', name="InhibitorySynapse")
         isyn_node.appendChild( build_node('cml:%s' % synapse_type,
                                           max_conductance="1.0e-5",
-                                          rise_time="0",
+                                          rise_time="1.0e-12",
                                           decay_time=self.parameters['tau_syn_I'],
                                           reversal_potential=self.parameters['e_rev_I'] ) )
         return [esyn_node, isyn_node]
@@ -147,7 +148,7 @@ class IF_base(object):
         channel_nodes = self.define_channel_types()
         synapse_nodes = self.define_synapse_types(self.synapse_type)
         channel_nodes.extend(synapse_nodes)
-
+        
         return cell_node, channel_nodes
 
 # ==============================================================================
@@ -159,14 +160,14 @@ class IF_curr_exp(common.IF_curr_exp):
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses"""
     
-    def __init__(self):
+    def __init__(self,parameters):
         raise Exception('Cell type %s is not available in NeuroML' % self.__class__.__name__)
 
 class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
-    def __init__(self):
+    def __init__(self,parameters):
         raise Exception('Cell type %s is not available in NeuroML' % self.__class__.__name__)
 
 class IF_cond_exp(common.IF_cond_exp, IF_base):
@@ -188,7 +189,7 @@ class IF_cond_alpha(common.IF_cond_alpha, IF_base):
     n = 0
     
     def __init__(self,parameters):
-        common.IF_cond_exp.__init__(self,parameters)
+        common.IF_cond_alpha.__init__(self,parameters)
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.synapse_type = "alpha_syn"
         self.__class__.n += 1
@@ -218,8 +219,10 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global xmldoc, xmlfile, populations_node, projections_node, inputs_node, cells_node, channels_node
+    global xmldoc, xmlfile, populations_node, projections_node, inputs_node, cells_node, channels_node, neuromlNode
     xmlfile = extra_params['file']
+    if isinstance(xmlfile, basestring):
+        xmlfile = open(xmlfile, 'w')
     dt = timestep
     xmldoc = xml.dom.minidom.Document()
     neuromlNode = xmldoc.createElementNS(neuroml_url+'/neuroml/schema','neuroml')
@@ -231,14 +234,21 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     projections_node = build_node('net:projections', units="Physiological Units")
     inputs_node = build_node('net:inputs', units="Physiological Units")
     cells_node = build_node(':cells')
-    channels_node = build_node(':channels')
+    channels_node = build_node(':channels', units="Physiological Units")
     
-    for node in populations_node, projections_node, inputs_node, cells_node, channels_node:
+    for node in cells_node, channels_node, populations_node, projections_node, inputs_node:
         neuromlNode.appendChild(node)
         
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
+    global xmldoc, xmlfile, populations_node, projections_node, inputs_node, cells_node, channels_node, neuromlNode
+    # Remove empty nodes, otherwise the validator will complain
+    for node in cells_node, channels_node, populations_node, projections_node, inputs_node:
+        if not node.hasChildNodes():
+            neuromlNode.removeChild(node)
+    # Write the file
     xml.dom.ext.PrettyPrint(xmldoc, xmlfile)
+    xmlfile.close()
 
 def run(simtime):
     """Run the simulation for simtime ms."""
