@@ -541,10 +541,11 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
         nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
         ###os.system("cat %s" % nest_filename)
         ##system_line = 'cat %s >> %s' % (nest_filename, "%s_%d" % (user_filename, nest.Rank()))
-        merged_filename = "%s/%s" % (os.path.dirname(nest_filename), user_filename)
-        system_line = 'cat %s >> %s' % (nest_filename, merged_filename) # will fail if writing to a common directory, e.g. using NFS
+        #merged_filename = "%s/%s" % (os.path.dirname(nest_filename), user_filename)
+        system_line = 'cat %s >> %s_%d' % (nest_filename, user_filename,nest.Rank()) # will fail if writing to a common directory, e.g. using NFS
         print system_line
         os.system(system_line)
+        os.remove(nest_filename)
     if gather and len(node_list) > 1:
         raise Warning("'gather' not currently supported.")
         if nest.Rank() == 0: # only on the master node (?)
@@ -666,7 +667,8 @@ class Population(common.Population):
             self.cellparams = self.celltype.parameters
         elif isinstance(cellclass, str):
             self.cell = nest.Create(cellclass, self.size)
-
+            
+        self.cell_local = numpy.array(self.cell)[numpy.array(nest.GetStatus(self.cell,'local'))]
         
         self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
         self.id_start = self.cell.reshape(self.size,)[0]
@@ -677,7 +679,7 @@ class Population(common.Population):
             #id.setPosition(self.locate(id))
             
         if self.cellparams:
-            nest.SetStatus(self.cell, [self.cellparams])
+            nest.SetStatus(self.cell_local, [self.cellparams])
             
         self.cell = numpy.reshape(self.cell, self.dim)    
         
