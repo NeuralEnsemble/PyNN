@@ -533,7 +533,7 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
     node_list = range(nest.GetStatus([0], "num_processes")[0])
     
     # First combine data from different threads
-    os.system("rm -f %s" % user_filename)
+    os.system("rm -f %s" % user_filename+'_%d'%nest.Rank())
     for nest_thread in range(local_num_threads):
         nest.sps(recorder[0])
         nest.sr("%i GetAddress %i append" % (recorder[0], nest_thread))
