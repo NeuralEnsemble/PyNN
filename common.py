@@ -35,6 +35,27 @@ def _abstractMethod(obj=None):
     """ Use this instead of 'pass' for the body of abstract methods. """
     raise Exception("Unimplemented abstract method: %s" % _functionId(obj, 1))
 
+def build_translations(*translation_list):
+    translations = {}
+    for item in translation_list:
+        pynn_name = item[0]
+        sim_name = item[1]
+        if len(item) == 2: # no transformation
+            f = pynn_name
+            g = sim_name
+        elif len(item) == 3: # simple multiplicative factor
+            scale_factor = item[2]
+            f = "float(%g)*%s" % (scale_factor, pynn_name)
+            g = "%s/float(%g)" % (sim_name, scale_factor)
+        elif len(item) == 4: # more complex transformation
+            f = item[2]
+            g = item[3]
+        translations[pynn_name] = {'translated_name': sim_name,
+                                   'forward_transform': f,
+                                   'reverse_transform': g}
+    return translations
+
+
 class ID(int):
     """
     Instead of storing ids as integers, we store them as ID objects,
@@ -183,6 +204,17 @@ class StandardCellType(object):
         for k in parameters.keys():
             pname = self.__class__.translations[k][0]
             pval = eval(self.__class__.translations[k][1])
+            translated_parameters[pname] = pval
+        return translated_parameters
+    
+    def translate1(self, parameters):
+        """Translate standardized model names to simulator specific names.
+           Alternative implementation."""
+        parameters = self.checkParameters(parameters)
+        translated_parameters = {}
+        for k in parameters.keys():
+            pname = self.__class__.translations[k]['translated_name']
+            pval = eval(self.__class__.translations[k]['forward_transform'], globals(), parameters)
             translated_parameters[pname] = pval
         return translated_parameters
 
@@ -366,7 +398,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
-    Weights should be in nA or uS."""
+    Weights should be in nA or µS."""
     pass
 
 def set(cells,cellclass,param,val=None):

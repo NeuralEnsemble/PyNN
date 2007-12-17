@@ -37,14 +37,19 @@ class ID(common.ID):
     """
     
     def __getattr__(self,name):
-        """Note that this currently does not translate units."""
+        """ """
+        nest_parameters = nest.GetStatus([int(self)])[0]
         if issubclass(self.cellclass, common.StandardCellType):
-            translated_name = self.cellclass.translations[name][0]
+            #translated_name = self.cellclass.translations[name][0]
+            #pname = self.cellclass.translations[name]['translated_name']
+            pval = eval(self.cellclass.translations[name]['reverse_transform'], {}, nest_parameters)
         elif isinstance(self.cellclass, str) or self.cellclass is None:
-            translated_name = name
+            #translated_name = name
+            pval = nest_parameters[name]
         else:
             raise Exception("ID object has invalid cell class %s" % str(self.cellclass))
-        return nest.GetStatus([int(self)])[0][translated_name]
+        #return nest.GetStatus([int(self)])[0][translated_name]
+        return pval
     
     def setParameters(self,**parameters):
         # We perform a call to the low-level function set() of the API.
@@ -56,12 +61,13 @@ class ID(common.ID):
         set(self, self.cellclass, parameters) 
 
     def getParameters(self):
-        """Note that this currently does not translate units."""
-        nest_params = nest.GetStatus([int(self)])[0]
-        params = {}
-        for k,v in self.cellclass.translations.items():
-            params[k] = nest_params[v[0]]
-        return params
+        """ """
+        nest_parameters = nest.GetStatus([int(self)])[0]
+        pynn_parameters = {}
+        if issubclass(self.cellclass, common.StandardCellType):
+            for k,v in self.cellclass.translations.items():
+                pynn_parameters[k] = eval(self.cellclass.translations[k]['reverse_transform'], {}, nest_parameters)
+        return pynn_parameters
             
 
 class Connection(object):
@@ -100,24 +106,36 @@ class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
-    translations = {
-            'v_rest'    : ('E_L'    , "parameters['v_rest']"),
-            'v_reset'   : ('V_reset', "parameters['v_reset']"),
-            'cm'        : ('C_m'    , "parameters['cm']*1000.0"), # C_m is in pF, cm in nF
-            'tau_m'     : ('tau_m'  , "parameters['tau_m']"),
-            'tau_refrac': ('tau_ref', "max(dt,parameters['tau_refrac'])"),
-            'tau_syn_E' : ('tau_ex' , "parameters['tau_syn_E']"),
-            'tau_syn_I' : ('tau_in' , "parameters['tau_syn_I']"),
-            'v_thresh'  : ('V_th'   , "parameters['v_thresh']"),
-            'i_offset'  : ('I_e'    , "parameters['i_offset']*1000.0"), # I_e is in pA, i_offset in nA
-            'v_init'    : ('V_m'    , "parameters['v_init']"),
-    }
+    #translations = {
+    #        'v_rest'    : ('E_L'    , "parameters['v_rest']"),
+    #        'v_reset'   : ('V_reset', "parameters['v_reset']"),
+    #        'cm'        : ('C_m'    , "parameters['cm']*1000.0"), # C_m is in pF, cm in nF
+    #        'tau_m'     : ('tau_m'  , "parameters['tau_m']"),
+    #        'tau_refrac': ('tau_ref', "max(dt,parameters['tau_refrac'])"),
+    #        'tau_syn_E' : ('tau_ex' , "parameters['tau_syn_E']"),
+    #        'tau_syn_I' : ('tau_in' , "parameters['tau_syn_I']"),
+    #        'v_thresh'  : ('V_th'   , "parameters['v_thresh']"),
+    #        'i_offset'  : ('I_e'    , "parameters['i_offset']*1000.0"), # I_e is in pA, i_offset in nA
+    #        'v_init'    : ('V_m'    , "parameters['v_init']"),
+    #}  
+    translations = common.build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'V_reset'),
+        ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
+        ('tau_m',      'tau_m'),
+        ('tau_refrac', 'tau_ref',  "max(dt, tau_refrac)", "tau_ref"),
+        ('tau_syn_E',  'tau_ex'),
+        ('tau_syn_I',  'tau_in'),
+        ('v_thresh',   'V_th'),
+        ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
+        ('v_init',     'V_m'),
+    )
     nest_name = "iaf_psc_alpha"
     
     def __init__(self,parameters):
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.translate1(self.parameters)
 
 class IF_curr_exp(common.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
@@ -146,26 +164,40 @@ class IF_cond_alpha(common.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
     
-    translations = {
-            'v_rest'    : ('E_L'       , "parameters['v_rest']"),
-            'v_reset'   : ('V_reset'   , "parameters['v_reset']"),
-            'cm'        : ('C_m'       , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-            'tau_m'     : ('g_L'       , "parameters['cm']/parameters['tau_m']*1000.0"),
-            'tau_refrac': ('t_ref'     , "max(dt,parameters['tau_refrac'])"),
-            'tau_syn_E' : ('tau_syn_ex', "parameters['tau_syn_E']"),
-            'tau_syn_I' : ('tau_syn_in', "parameters['tau_syn_I']"),
-            'v_thresh'  : ('V_th'      , "parameters['v_thresh']"),
-            #'i_offset'  : ('Istim'    , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'e_rev_E'   : ('E_ex'      , "parameters['e_rev_E']"),
-            'e_rev_I'   : ('E_in'      , "parameters['e_rev_I']"),
-            'v_init'    : ('V_m'       , "parameters['v_init']"),
-    }
+    #translations = {
+    #        'v_rest'    : ('E_L'       , "parameters['v_rest']"),
+    #        'v_reset'   : ('V_reset'   , "parameters['v_reset']"),
+    #        'cm'        : ('C_m'       , "parameters['cm']*1000.0"), # C is in pF, cm in nF
+    #        'tau_m'     : ('g_L'       , "parameters['cm']/parameters['tau_m']*1000.0"),
+    #        'tau_refrac': ('t_ref'     , "max(dt,parameters['tau_refrac'])"),
+    #        'tau_syn_E' : ('tau_syn_ex', "parameters['tau_syn_E']"),
+    #        'tau_syn_I' : ('tau_syn_in', "parameters['tau_syn_I']"),
+    #        'v_thresh'  : ('V_th'      , "parameters['v_thresh']"),
+    #        #'i_offset'  : ('Istim'    , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
+    #        'e_rev_E'   : ('E_ex'      , "parameters['e_rev_E']"),
+    #        'e_rev_I'   : ('E_in'      , "parameters['e_rev_I']"),
+    #        'v_init'    : ('V_m'       , "parameters['v_init']"),
+    #}
+    translations = common.build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'V_reset'),
+        ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
+        ('tau_m',      'g_L',      "cm/tau_m*1000.0", "C_m/g_L"),
+        ('tau_refrac', 't_ref',  "max(dt, tau_refrac)", "t_ref"),
+        ('tau_syn_E',  'tau_syn_ex'),
+        ('tau_syn_I',  'tau_syn_in'),
+        ('v_thresh',   'V_th'),
+        ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
+        ('e_rev_E',    'E_ex'),
+        ('e_rev_I',    'E_in'),
+        ('v_init',     'V_m'),
+    )
     nest_name = "iaf_cond_alpha"
     
     def __init__(self,parameters):
         common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.translate1(self.parameters)
         
 
 class IF_cond_exp(common.IF_cond_exp):
