@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 FACETS-ML implementation of the PyNN API.
 $Id$
@@ -5,7 +6,7 @@ $Id$
 
 import common
 #import numpy, types, sys, shutil
-import RandomArray
+#import RandomArray
 from xml.dom import *
 from xml.dom.minidom import *
 from xml.dom.ext import *
@@ -156,9 +157,11 @@ class FacetsmlCellType(object):
         self.domNode = cellNode
         cellsNode.appendChild(cellNode)
         facetsml_nameNode = xmldoc.createElementNS('http://morphml.org/neuroml/schema',facetsml_name)
+        self.parameters = parameters
         # just dump "as it" the given parameters
-        for k in self.parameters.keys:
-            facetsml_nameNode.setAttribute(k,self.parameters[k])
+        for k in self.parameters.keys():
+            print k, self.parameters[k]
+            facetsml_nameNode.setAttribute(k,str(self.parameters[k]))
         cellNode.appendChild(facetsml_nameNode)
 
 
@@ -192,7 +195,7 @@ class IF_curr_exp(common.IF_curr_exp):
 
     def __init__(self,parameters):
         common.IF_curr_exp.__init__(self,parameters)
-        self.facetsmlCellType = FacetsmlCellType(facetsml_name,self.parameters)
+        self.facetsmlCellType = FacetsmlCellType(IF_curr_exp.facetsml_name,self.parameters)
     
 
 class IF_cond_alpha(common.IF_cond_alpha):
@@ -233,7 +236,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1):
     """Should be called at the very beginning of a script."""
     global dt
     dt = timestep
-    raise "Not yet implemented"
+    initDocument('','')
 
 def end():
     PrettyPrint(xmldoc)
@@ -342,52 +345,52 @@ class Population(common.Population):
             #maybe we should look if the cellclass is not already defined
             self.celltype = cellclass(cellparams)
             self.cellparams = self.celltype.parameters
-	    #not used ?
+            #not used ?
             facetsml_name = self.celltype.facetsml_name
         elif isinstance(cellclass, str): # not a standard model
             #define a new cellType
             self.celltype = FacetsmlCellType(cellclass,paramDict)
         
-	
-	if not self.label:
+        
+        if not self.label:
             self.label = 'population%d' % Population.nPop
         
-	
-	#the <population> markup is linked, in NeuroML, to a <cell> markup, which defines the type of cells of the population
-	# the cell_type name which makes the link is here the concatenation of 'cell_type_' and population label
-	cell_type_label = 'cell_type_%s' % label
-	self.celltype.domNode. = setAttribute("name",'cell_type_%s' % label)
-	
-	
+        
+        #the <population> markup is linked, in NeuroML, to a <cell> markup, which defines the type of cells of the population
+        # the cell_type name which makes the link is here the concatenation of 'cell_type_' and population label
+        cell_type_label = 'cell_type_%s' % label
+        self.celltype.facetsmlCellType.domNode.setAttribute("name",'cell_type_%s' % label)
+        
+        
         # Now the gid and cellclass are stored as instance of the ID class, which will allow a syntax like
         # p[i,j].set(param, val). But we have also to deal with positions : a population needs to know ALL the positions
         # of its cells, and not only those of the cells located on a particular node (i.e in self.gidlist). So
         # each population should store what we call a "fullgidlist" with the ID of all the cells in the populations 
         # (and therefore their positions)
-        self.fullgidlist = [ID(i) for i in range(gid, gid+self.size) if i < gid+self.size]
+        #self.fullgidlist = [ID(i) for i in range(gid, gid+self.size) if i < gid+self.size]
         
         # self.gidlist is now derived from self.fullgidlist since it contains only the cells of the population located on
         # the node
-        self.gidlist     = [self.fullgidlist[i+myid] for i in range(0, len(self.fullgidlist),nhost) if i < len(self.fullgidlist)-myid]
-        self.gid_start   = gid
+        #self.gidlist     = [self.fullgidlist[i+myid] for i in range(0, len(self.fullgidlist),nhost) if i < len(self.fullgidlist)-myid]
+        #self.gid_start   = gid
 
-	
+        
             
         populationsNode = initDocument('http://morphml.org/networkml/schema','populations','net')
     
         populationNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:population')
         populationNode.setAttribute('name',label)
         populationsNode.appendChild(populationNode)
-	self.dom_node = populationNode
+        self.dom_node = populationNode
     
         cell_typeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','net:cell_type')
-	cell_typeTextNode = xmldoc.createTextNode(cell_type_label)
+        cell_typeTextNode = xmldoc.createTextNode(cell_type_label)
         cell_typeNode.appendChild(cell_typeTextNode)
         populationNode.appendChild(cell_typeNode)
         
         
             
-         """
+        """
         the minimal neuroml to add there is :
         <net:pop_location reference="aReference">
             <net:grid_arrangement>
@@ -437,14 +440,14 @@ class Population(common.Population):
         gid = gid+self.size
 
         # We add the gidlist of the population to the global gidlist
-        gidlist += self.gidlist
+        #gidlist += self.gidlist
         
         # By default, the positions of the cells are their coordinates, given by the locate()
         # method. Note that each node needs to know all the positions of all the cells 
         # in the population
-        for cell_id in self.fullgidlist:
-            cell_id.setCellClass(cellclass)
-            cell_id.setPosition(self.locate(cell_id))
+        #for cell_id in self.fullgidlist:
+        #    cell_id.setCellClass(cellclass)
+        #    cell_id.setPosition(self.locate(cell_id))
                     
         
         PrettyPrint(xmldoc)
@@ -513,11 +516,11 @@ class Population(common.Population):
 
         for param,val in paramDict.items():
             if isinstance(val,str):
-		#I have to retrieve the <cell> markup which defines the type of cells of that population
-		# self.cellType is the cellType class, which contains the corresponding domNode
-		# self.cellType.facetsml_name, for example "IF_curr_alpha" is the name of the markup under <cell>
-		cellTypeNode = self.cellType.domNode.getElementsByTagNameNS('http://morphml.org/neuroml/schema',self.celltype.facetsml_name)
-		cellTypeNode.setAttribute(param,val)
+                #I have to retrieve the <cell> markup which defines the type of cells of that population
+                # self.cellType is the cellType class, which contains the corresponding domNode
+                # self.cellType.facetsml_name, for example "IF_curr_alpha" is the name of the markup under <cell>
+                cellTypeNode = self.cellType.domNode.getElementsByTagNameNS('http://morphml.org/neuroml/schema',self.celltype.facetsml_name)
+                cellTypeNode.setAttribute(param,val)
 
 
         
@@ -526,14 +529,14 @@ class Population(common.Population):
         'Topographic' set. Sets the value of parametername to the values in
         valueArray, which must have the same dimensions as the Population.
         """
-	raise Exception("not yet implemented")
+        raise Exception("not yet implemented")
     
     def rset(self,parametername,rand_distr):
         """
         'Random' set. Sets the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-	raise Exception("not yet implemented")
+        raise Exception("not yet implemented")
 
 
     def randomInit(self,rand_distr):
@@ -541,7 +544,7 @@ class Population(common.Population):
         Sets initial membrane potentials for all the cells in the population to
         random values.
         """
-	raise Exception("not yet implemented")
+        raise Exception("not yet implemented")
     
 
     
@@ -627,7 +630,7 @@ class Projection(common.Projection):
         projectionNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','projection')
         projectionNode.setAttribute('name',label)
         projectionsNode.appendChild(projectionNode)
-	self.domNode = projectionNode
+        self.domNode = projectionNode
         
         sourceNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','source')
         
@@ -654,10 +657,10 @@ class Projection(common.Projection):
         targetNode.appendChild(targetTextNode)
         projectionNode.appendChild(targetNode)
         
-	connection_method = getattr(self,'_%s' % method)
-	
-	projectionNode.appendChild(connection_method(methodParameters))
-	
+        connection_method = getattr(self,'_%s' % method)
+        
+        projectionNode.appendChild(connection_method(methodParameters))
+        
         PrettyPrint(xmldoc)
         
     
@@ -668,10 +671,10 @@ class Projection(common.Projection):
     def __connect(self,synapse_type,):
         """
         Here this function doesn't have the same meaning than in neuron.py, it just creates the
-	neuroML template around the connectivity_pattern
+        neuroML template around the connectivity_pattern
         """
-	"""
-	 <projection name="2">
+        """
+         <projection name="2">
             <source>CellGroupA</source>
             <target>CellGroupB</target>
             <synapse_props>
@@ -682,11 +685,11 @@ class Projection(common.Projection):
                 <all_to_all/>
             </connectivity_pattern>
         </projection>
-	"""
-	
-	synapse_propsNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','synapse_props')
+        """
+        
+        synapse_propsNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','synapse_props')
         projectionNode = self.domNode
-	
+        
         synapse_typeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','synapse_type')
         synapse_typeTextNode = xmldoc.createTextNode(synapse_type)
         synapse_typeNode.appendChild(synapse_typeTextNode)
@@ -702,19 +705,19 @@ class Projection(common.Projection):
         Connect all cells in the presynaptic population to all cells in the
         postsynaptic population.
         """
-	"""
-	<connectivity_pattern>
+        """
+        <connectivity_pattern>
             <all_to_all/>
-	</connectivity_pattern>
-	"""
-	
+        </connectivity_pattern>
+        """
+        
         #still have to create the connectivity_pattern node which will be created by its corresponding method
-	__connect(self,parameters,synapse_type)
+        __connect(self,parameters,synapse_type)
         connectivity_patternNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connectivity_pattern')
-	
-	connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','all_to_all')
-	connectivity_patternNode.appendChild(connectivity_patternTypeNode)
-	
+        
+        connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','all_to_all')
+        connectivity_patternNode.appendChild(connectivity_patternTypeNode)
+        
         return connectivity_patternNode
     
         
@@ -728,12 +731,12 @@ class Projection(common.Projection):
         cell i in a 1D pre population of size n should connect to all cells
         in row i of a 2D post population of size (n,m).
         """
-	__connect(self,parameters,synapse_type)
+        __connect(self,parameters,synapse_type)
         connectivity_patternNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connectivity_pattern')
-	
-	connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','one_to_one')
-	connectivity_patternNode.appendChild(connectivity_patternTypeNode)
-	
+        
+        connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','one_to_one')
+        connectivity_patternNode.appendChild(connectivity_patternTypeNode)
+        
         return connectivity_patternNode
 
     
@@ -749,13 +752,13 @@ class Projection(common.Projection):
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
 
-	__connect(self,parameters,synapse_type)
+        __connect(self,parameters,synapse_type)
         connectivity_patternNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connectivity_pattern')
-	
-	connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','fixed_probability')
-	connectivity_patternTypeNode.setAttribute('probability',p_connect)
-	connectivity_patternNode.appendChild(connectivity_patternTypeNode)
-	
+        
+        connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','fixed_probability')
+        connectivity_patternTypeNode.setAttribute('probability',p_connect)
+        connectivity_patternNode.appendChild(connectivity_patternTypeNode)
+        
         return connectivity_patternNode
 
 
@@ -765,17 +768,17 @@ class Projection(common.Projection):
         d_expression should be the right-hand side of a valid python expression
         for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
         """
-	raise Exception("Method not yet implemented")
+        raise Exception("Method not yet implemented")
         
 
     def _fixedNumberPre(self,parameters,synapse_type=None):
         """Each presynaptic cell makes a fixed number of connections."""
-	"""
-	<connectivity_pattern>
+        """
+        <connectivity_pattern>
            <per_cell_connection num_per_source="1.2" max_per_target="2.3" direction="PreToPost"/>
         </connectivity_pattern>
-	"""
-	self.synapse_type = synapse_type
+        """
+        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -797,27 +800,27 @@ class Projection(common.Projection):
             fixed = False
         else:
             raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-		
-	__connect(self,parameters,synapse_type)
+                
+        __connect(self,parameters,synapse_type)
         connectivity_patternNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connectivity_pattern')
-	
-	connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','per_cell_connection')
-	connectivity_patternTypeNode.setAttribute('num_per_source',n)
-	connectivity_patternTypeNode.setAttribute('max_per_target',n)
-	connectivity_patternTypeNode.setAttribute('direction','PreToPost')
-	connectivity_patternNode.appendChild(connectivity_patternTypeNode)
-	
+        
+        connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','per_cell_connection')
+        connectivity_patternTypeNode.setAttribute('num_per_source',n)
+        connectivity_patternTypeNode.setAttribute('max_per_target',n)
+        connectivity_patternTypeNode.setAttribute('direction','PreToPost')
+        connectivity_patternNode.appendChild(connectivity_patternTypeNode)
+        
         return connectivity_patternNode
     
             
     def _fixedNumberPost(self,parameters,synapse_type=None):
         """Each postsynaptic cell receives a fixed number of connections."""
-	"""
-	<connectivity_pattern>
+        """
+        <connectivity_pattern>
            <per_cell_connection num_per_source="1.2" max_per_target="2.3" direction="PostToPre"/>
         </connectivity_pattern>
-	"""
-	self.synapse_type = synapse_type
+        """
+        self.synapse_type = synapse_type
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -839,21 +842,21 @@ class Projection(common.Projection):
             fixed = False
         else:
             raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-		
-	__connect(self,parameters,synapse_type)
+                
+        __connect(self,parameters,synapse_type)
         connectivity_patternNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connectivity_pattern')
-	
-	connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','per_cell_connection')
-	connectivity_patternTypeNode.setAttribute('num_per_source',n)
-	connectivity_patternTypeNode.setAttribute('max_per_target',n)
-	connectivity_patternTypeNode.setAttribute('direction','PostToPre')
-	connectivity_patternNode.appendChild(connectivity_patternTypeNode)
-	
+        
+        connectivity_patternTypeNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','per_cell_connection')
+        connectivity_patternTypeNode.setAttribute('num_per_source',n)
+        connectivity_patternTypeNode.setAttribute('max_per_target',n)
+        connectivity_patternTypeNode.setAttribute('direction','PostToPre')
+        connectivity_patternNode.appendChild(connectivity_patternTypeNode)
+        
         return connectivity_patternNode
 
 
 
-   def _fromFile(self,parameters,synapse_type=None):
+    def _fromFile(self,parameters,synapse_type=None):
         """
         Load connections from a file.
         """
@@ -888,7 +891,7 @@ class Projection(common.Projection):
         containing ['src[x,y]', 'tgt[x,y]', 'weight', 'delay']
         """
         """
-	<projection name="NetworkConnection">
+        <projection name="NetworkConnection">
             <source>CellGroupA</source>
             <target>CellGroupB</target>
             <synapse_props>
@@ -903,12 +906,12 @@ class Projection(common.Projection):
                 </connection>
             </connections>
         </projection>
-	"""
-	__connect(self,synapse_type)
-	projectionNode = self.domNode
-	connectionsNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connections')
-	projectionNode.appendChild(connectionsNode)
-	
+        """
+        __connect(self,synapse_type)
+        projectionNode = self.domNode
+        connectionsNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connections')
+        projectionNode.appendChild(connectionsNode)
+        
         # Then we go through those tuple and extract the fields
         for i in xrange(len(conn_list)):
             src    = conn_list[i][0]
@@ -919,24 +922,24 @@ class Projection(common.Projection):
             tgt = "[%s" %tgt.split("[",1)[1]
             src  = eval("self.pre%s" % src)
             tgt  = eval("self.post%s" % tgt)
-	    
-	    connectionNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connection')
-	    connectionNode.setAttribute('id',i)
-	    preNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','pre')
-	    preNode.setAttribute('cell_id',src)
-	    connectionNode.appendChild(preNode)
-	    
-	    postNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','post')
-	    postNode.setAttribute('cell_id',tgt)
-	    connectionNode.appendChild(postNode)
-	    
-	    propertiesNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','properties')
-	    propertiesNode.setAttribute('internal_delay',delay)
-	    propertiesNode.setAttribute('weight',weight)
-	    connectionNode.appendChild(propertiesNode)
-	    connectionsNode.appendChild(connectionNode)
-	    
-	
+            
+            connectionNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','connection')
+            connectionNode.setAttribute('id',i)
+            preNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','pre')
+            preNode.setAttribute('cell_id',src)
+            connectionNode.appendChild(preNode)
+            
+            postNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','post')
+            postNode.setAttribute('cell_id',tgt)
+            connectionNode.appendChild(postNode)
+            
+            propertiesNode = xmldoc.createElementNS('http://morphml.org/networkml/schema','properties')
+            propertiesNode.setAttribute('internal_delay',delay)
+            propertiesNode.setAttribute('weight',weight)
+            connectionNode.appendChild(propertiesNode)
+            connectionsNode.appendChild(connectionNode)
+            
+        
         return connectivity_patternNode
         
     
@@ -950,7 +953,7 @@ class Projection(common.Projection):
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-	raise Exception("Method not yet implemented")
+        raise Exception("Method not yet implemented")
 
 
     def randomizeWeights(self,rand_distr):
@@ -959,7 +962,7 @@ class Projection(common.Projection):
         """
         # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
         # Python
-	raise Exception("Method not yet implemented")
+        raise Exception("Method not yet implemented")
         
         
     
@@ -968,7 +971,7 @@ class Projection(common.Projection):
         d can be a single number, in which case all delays are set to this
         value, or an array with the same dimensions as the Projection array.
         """
-	raise Exception("Method not yet implemented")
+        raise Exception("Method not yet implemented")
 
         
     def randomizeDelays(self,rand_distr):
@@ -977,7 +980,7 @@ class Projection(common.Projection):
         """   
         # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
         # Python  
-	raise Exception("Method not yet implemented")
+        raise Exception("Method not yet implemented")
 
         
     def setTopographicDelays(self,delay_rule,rand_distr=None):
@@ -987,7 +990,7 @@ class Projection(common.Projection):
         the rule can be "rng*d + 0.5", with "a" extracted from the rng and
         d being the distance.
         """
-	raise Exception("Method not yet implemented")
+        raise Exception("Method not yet implemented")
         
     def setThreshold(self,threshold):
         """
@@ -997,7 +1000,7 @@ class Projection(common.Projection):
         # This is a bit tricky, because in NEST the spike threshold is a
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
-	raise Exception("Method not yet implemented")
+        raise Exception("Method not yet implemented")
     
     # --- Methods relating to synaptic plasticity ------------------------------
     
