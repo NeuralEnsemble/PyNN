@@ -69,8 +69,9 @@ class ID(common.ID):
 
     def getParameters(self):
         params = {}
-        for k,v in self.cellclass.translations.items():
-            params[k] = HocToPy.get('%s.%s' % (self.hocname, v[0]),'float')
+        for k in self.cellclass.translations.keys():
+            params[k] = self.__getattr__(k)
+            #params[k] = HocToPy.get('%s.%s' % (self.hocname, v[0]),'float')
         return params
 
 def list_standard_models():
@@ -377,7 +378,37 @@ class SpikeSourceArray(common.SpikeSourceArray):
         self.parameters = self.translate(self.parameters)  
         self.parameters['source_type'] = 'VecStim'
         
-                        
+class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
+    """Adaptive exponential integrate and fire neuron according to Brette and Gerstner (2005)"""
+    
+    translations = {
+        'v_init'    : ('v_init',   "parameters['v_init']"),
+        'w_init'    : ('w_init',   "parameters['w_init']"),
+        'cm'        : ('CM',       "parameters['cm']"),
+        'tau_refrac': ('Ref',      "parameters['tau_refrac']"), 
+        'v_spike'   : ('Vtop',     "parameters['v_spike']"),
+        'v_reset'   : ('Vbot',     "parameters['v_reset']"),
+        'v_rest'    : ('EL',       "parameters['v_rest']"),
+        'tau_m'     : ('GL',       "parameters['cm']/parameters['tau_m']"), # uS
+        'i_offset'  : ('i_offset', "parameters['i_offset']"), 
+        'a'         : ('a',        "parameters['a']"),       
+        'b'         : ('b',        "parameters['b']"),
+        'delta_T'   : ('delta',    "parameters['delta_T']"), 
+        'tau_w'     : ('tau_w',    "parameters['tau_w']"), 
+        'v_thresh'  : ('Vtr',      "parameters['v_thresh']"), 
+        'e_rev_E'   : ('e_e',      "parameters['e_rev_E']"),
+        'tau_syn_E' : ('tau_e',    "parameters['tau_syn_E']"), 
+        'e_rev_I'   : ('e_i',      "parameters['e_rev_I']"), 
+        'tau_syn_I' : ('tau_i',    "parameters['tau_syn_I']"),
+    }
+    hoc_name = "IF_BG4_alpha"
+    
+    def __init__(self,parameters):
+        common.AdaptiveExponentialIF_alpha.__init__(self,parameters)
+        self.parameters = self.translate(self.parameters)
+        self.parameters['syn_type']  = 'conductance'
+        self.parameters['syn_shape'] = 'alpha'
+                
 # ==============================================================================
 #   Functions for simulation set-up and control
 # ==============================================================================
