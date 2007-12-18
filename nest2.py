@@ -181,13 +181,13 @@ class IF_cond_alpha(common.IF_cond_alpha):
     translations = common.build_translations(
         ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
-        ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
-        ('tau_m',      'g_L',      "cm/tau_m*1000.0", "C_m/g_L"),
-        ('tau_refrac', 't_ref',  "max(dt, tau_refrac)", "t_ref"),
+        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
+        ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
+        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
+        ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
         ('v_init',     'V_m'),
@@ -255,31 +255,51 @@ class HH_cond_exp(common.HH_cond_exp):
 class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
     """adaptive exponential integrate and fire neuron according to Brette and Gerstner (2005)"""
     
-    translations = {
-        'v_init'    : ('V_m',        "parameters['v_init']"),
-        'w_init'    : ('w',          "parameters['w_init']*1000.0"), # nA -> pA
-        'cm'        : ('C_m',        "parameters['cm']*1000.0"),     # nF -> pF
-        'tau_refrac': ('t_ref',      "parameters['tau_refrac']"), 
-        'v_spike'   : ('V_peak',     "parameters['v_spike']"),
-        'v_reset'   : ('V_reset',    "parameters['v_reset']"),
-        'v_rest'    : ('E_L',        "parameters['v_rest']"),
-        'tau_m'     : ('g_L',        "parameters['cm']/parameters['tau_m']*1000.0"),
-        'i_offset'  : ('I_e',        "parameters['i_offset']*1000.0"), # nA -> pA
-        'a'         : ('a',          "parameters['a']"),       
-        'b'         : ('b',          "parameters['b']*1000.0"),  # nA -> pA.
-        'delta_T'   : ('Delta_T',    "parameters['delta_T']"), 
-        'tau_w'     : ('tau_w',      "parameters['tau_w']"), 
-        'v_thresh'  : ('V_th',       "parameters['v_thresh']"), 
-        'e_rev_E'   : ('E_ex',       "parameters['e_rev_E']"),
-        'tau_syn_E' : ('tau_syn_ex', "parameters['tau_syn_E']"), 
-        'e_rev_I'   : ('E_in',       "parameters['e_rev_I']"), 
-        'tau_syn_I' : ('tau_syn_in', "parameters['tau_syn_I']"),
-    }
+    #translations = {
+    #    'v_init'    : ('V_m',        "parameters['v_init']"),
+    #    'w_init'    : ('w',          "parameters['w_init']*1000.0"), # nA -> pA
+    #    'cm'        : ('C_m',        "parameters['cm']*1000.0"),     # nF -> pF
+    #    'tau_refrac': ('t_ref',      "parameters['tau_refrac']"), 
+    #    'v_spike'   : ('V_peak',     "parameters['v_spike']"),
+    #    'v_reset'   : ('V_reset',    "parameters['v_reset']"),
+    #    'v_rest'    : ('E_L',        "parameters['v_rest']"),
+    #    'tau_m'     : ('g_L',        "parameters['cm']/parameters['tau_m']*1000.0"),
+    #    'i_offset'  : ('I_e',        "parameters['i_offset']*1000.0"), # nA -> pA
+    #    'a'         : ('a',          "parameters['a']"),       
+    #    'b'         : ('b',          "parameters['b']*1000.0"),  # nA -> pA.
+    #    'delta_T'   : ('Delta_T',    "parameters['delta_T']"), 
+    #    'tau_w'     : ('tau_w',      "parameters['tau_w']"), 
+    #    'v_thresh'  : ('V_th',       "parameters['v_thresh']"), 
+    #    'e_rev_E'   : ('E_ex',       "parameters['e_rev_E']"),
+    #    'tau_syn_E' : ('tau_syn_ex', "parameters['tau_syn_E']"), 
+    #    'e_rev_I'   : ('E_in',       "parameters['e_rev_I']"), 
+    #    'tau_syn_I' : ('tau_syn_in', "parameters['tau_syn_I']"),
+    #}
+    translations = common.build_translations(
+        ('v_init'    , 'V_m'),
+        ('w_init'    , 'w',         1000.0),  # nA -> pA
+        ('cm'        , 'C_m',       1000.0),  # nF -> pF
+        ('tau_refrac', 't_ref'), 
+        ('v_spike'   , 'V_peak'),
+        ('v_reset'   , 'V_reset'),
+        ('v_rest'    , 'E_L'),
+        ('tau_m'     , 'g_L',       "cm/tau_m*1000.0", "C_m/g_L"),
+        ('i_offset'  , 'I_e',       1000.0),  # nA -> pA
+        ('a'         , 'a'),       
+        ('b'         , 'b',         1000.0),  # nA -> pA.
+        ('delta_T'   , 'Delta_T'), 
+        ('tau_w'     , 'tau_w'), 
+        ('v_thresh'  , 'V_th'), 
+        ('e_rev_E'   , 'E_ex'),
+        ('tau_syn_E' , 'tau_syn_ex'), 
+        ('e_rev_I'   , 'E_in'), 
+        ('tau_syn_I' , 'tau_syn_in'),
+    )
     nest_name = "aeif_cond_alpha"
     
     def __init__(self,parameters):
         common.AdaptiveExponentialIF_alpha.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.translate1(self.parameters)
         
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
@@ -571,10 +591,8 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
         nest.sr("%i GetAddress %i append" % (recorder[0], nest_thread))
         nest.sr("GetStatus /filename get")
         nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
-        ###os.system("cat %s" % nest_filename)
-        ##system_line = 'cat %s >> %s' % (nest_filename, "%s_%d" % (user_filename, nest.Rank()))
-        #merged_filename = "%s/%s" % (os.path.dirname(nest_filename), user_filename)
-        system_line = 'cat %s >> %s_%d' % (nest_filename, user_filename,nest.Rank()) # will fail if writing to a common directory, e.g. using NFS
+        merged_filename = "%s/%s_%d" % (os.path.dirname(nest_filename), user_filename, nest.Rank())
+        system_line = 'cat %s >> %s' % (nest_filename, merged_filename) 
         print system_line
         os.system(system_line)
         os.remove(nest_filename)
