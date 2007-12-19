@@ -371,14 +371,14 @@ proc connect2target() {
 endtemplate HH
 
 
-begintemplate IF_BG4_alpha
+begintemplate IF_BG_alpha
 
 public cell, isyn, esyn
 public spiketimes, memb_init, record, source, vtrace
 public syn_type, syn_shape, record_v, stim
 
 public v_init, w_init, CM, Ref, Vtop, Vbot, EL, GL, i_offset, a, b, delta
-public tau_w, Vtr, tau_e, tau_i, e_e, e_i
+public tau_w, Vtr, tau_e, tau_i, e_e, e_i, Vspike
 
 public param_update, connect2target
 
@@ -399,9 +399,9 @@ proc init() {
   if ($o1.has_key("EL"))       { EL       = $o1.get("EL") }       else { EL       = -70.6 }  // (mV)
   if ($o1.has_key("v_init"))   { v_init   = $o1.get("v_init") }   else { v_init   = -70.6 }  // (mV)
   if ($o1.has_key("w_init"))   { w_init   = $o1.get("w_init") }   else { w_init   = 0 }      // (nA)
-  if ($o1.has_key("CM"))       { CM       = $o1.get("CM") }       else { CM       = 0.281 }    // (nF)
+  if ($o1.has_key("CM"))       { CM       = $o1.get("CM") }       else { CM       = 0.281 }  // (nF)
   if ($o1.has_key("Ref"))      { Ref      = $o1.get("Ref") }      else { Ref      = 0 }      // (ms)
-  if ($o1.has_key("Vtop"))     { Vtop     = $o1.get("Vtop") }     else { Vtop     = 0 }      // (mV)
+  if ($o1.has_key("Vspike"))   { Vspike   = $o1.get("Vspike") }   else { Vspike   = 0 }      // (mV)
   if ($o1.has_key("Vbot"))     { Vbot     = $o1.get("Vbot") }     else { Vbot     = -70.6 }  // (mV)
   if ($o1.has_key("GL"))       { GL       = $o1.get("GL") }       else { GL       = 0.03 }   // (uS)
   if ($o1.has_key("i_offset")) { i_offset = $o1.get("i_offset") } else { i_offset = 0 }      // (nA)
@@ -429,10 +429,9 @@ proc init() {
   fih2 = new FInitializeHandler("param_update()", this)
   cell {
     insert pas
-    insert IF_BG4
+    insert IF_BG5
     L = 100  diam = 1000/PI  // gives area = 1e-3 cm2  
-    surf_IF_BG4   = area(0.5)
-    
+    surf_IF_BG5   = area(0.5)
     spike_detector = new NetCon(&v(0.5), nil)
     //source = &v(0.5)
     if (current_based) {
@@ -473,16 +472,17 @@ proc param_update() {
         cm           = CM  // uF/cm2, equivalent to nF given the area is 1e-3
         g_pas        = GL*1e-3 // S/cm2
         e_pas        = EL
-        Vtr_IF_BG4   = Vtr
-	Ref_IF_BG4   = Ref
-	Vtop_IF_BG4  = Vtop
-	Vbot_IF_BG4  = Vbot
-	a_IF_BG4     = a
-	b_IF_BG4     = b
-	tau_w_IF_BG4 = tau_w
-	EL_IF_BG4    = e_pas
-	GL_IF_BG4    = g_pas
-	delta_IF_BG4 = delta
+        Vspike_IF_BG5 = Vspike
+        Vtop_IF_BG5   = Vspike + 10
+        Vtr_IF_BG5   = Vtr
+	Ref_IF_BG5   = Ref
+	Vbot_IF_BG5  = Vbot
+	a_IF_BG5     = a
+	b_IF_BG5     = b
+	tau_w_IF_BG5 = tau_w
+	EL_IF_BG5    = e_pas
+	GL_IF_BG5    = g_pas
+	delta_IF_BG5 = delta
     }
     stim.amp = i_offset
     if (!current_based) {
@@ -507,7 +507,7 @@ proc record() {
 proc record_v() {
   if ($1 == 1) {
     vtrace = new Vector()
-    cell vtrace.record(&v(0.5))
+    cell vtrace.record(&v(0.5),$2)
   } else {
     objref vtrace
   }
@@ -524,4 +524,4 @@ proc connect2target() {
   $o2 = new NetCon(&v(0.5), $o1)
 }
 
-endtemplate IF_BG4_alpha
+endtemplate IF_BG_alpha

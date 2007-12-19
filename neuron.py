@@ -386,12 +386,12 @@ class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
         'w_init'    : ('w_init',   "parameters['w_init']"),
         'cm'        : ('CM',       "parameters['cm']"),
         'tau_refrac': ('Ref',      "parameters['tau_refrac']"), 
-        'v_spike'   : ('Vtop',     "parameters['v_spike']"),
+        'v_spike'   : ('Vspike',     "parameters['v_spike']"),
         'v_reset'   : ('Vbot',     "parameters['v_reset']"),
         'v_rest'    : ('EL',       "parameters['v_rest']"),
         'tau_m'     : ('GL',       "parameters['cm']/parameters['tau_m']"), # uS
         'i_offset'  : ('i_offset', "parameters['i_offset']"), 
-        'a'         : ('a',        "parameters['a']"),       
+        'a'         : ('a',        "parameters['a']*0.001"), # nS --> uS
         'b'         : ('b',        "parameters['b']"),
         'delta_T'   : ('delta',    "parameters['delta_T']"), 
         'tau_w'     : ('tau_w',    "parameters['tau_w']"), 
@@ -401,7 +401,7 @@ class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
         'e_rev_I'   : ('e_i',      "parameters['e_rev_I']"), 
         'tau_syn_I' : ('tau_i',    "parameters['tau_syn_I']"),
     }
-    hoc_name = "IF_BG4_alpha"
+    hoc_name = "IF_BG_alpha"
     
     def __init__(self,parameters):
         common.AdaptiveExponentialIF_alpha.__init__(self,parameters)
@@ -671,7 +671,7 @@ def record_v(source,filename):
         vfilelist[filename] = []
     for src in source:
         if src in gidlist:
-            hoc_commands += ['tmp = cell%d.record_v(1)' % src]
+            hoc_commands += ['tmp = cell%d.record_v(1,%g)' % (src,dt)]
             vfilelist[filename] += [src] # writing to file is done in end()
     hoc_execute(hoc_commands, "---record_v() ---")
 

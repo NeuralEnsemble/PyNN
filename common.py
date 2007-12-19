@@ -329,17 +329,17 @@ class AdaptiveExponentialIF_alpha(StandardCellType):
         'v_spike'   : 0.0,   #'V_peak'     # Spike detection threshold in mV.
         'v_reset'   : -70.6, #'V_reset'    # Reset value for V_m after a spike. In mV.
         'v_rest'    : -70.6, #'E_L'        # Resting membrane potential (Leak reversal potential) in mV.
-        'tau_m'     : 9.3667,  #'g_L'        # Membrane time constant in ms (nest:Leak conductance in nS.)
+        'tau_m'     : 9.3667,#'g_L'        # Membrane time constant in ms (nest:Leak conductance in nS.)
         'i_offset'  : 0.0,   #'I_e'        # Offset current in nA
-        'a'         : 4.0,                # Subthreshold adaptation conductance in nS.
-        'b'         : 0.0805,           # Spike-triggered adaptation in nA
-        'delta_T'   : 2.0,   # Delta_T    # Slope factor in mV
+        'a'         : 4.0,                 # Subthreshold adaptation conductance in nS.
+        'b'         : 0.0805,              # Spike-triggered adaptation in nA
+        'delta_T'   : 2.0,   # Delta_T     # Slope factor in mV
         'tau_w'     : 144.0, #'tau_w'      # Adaptation time constant in ms
-        'v_thresh'  : -50.4,  #'V_t'        # Spike initiation threshold in mV (V_th can also be used for compatibility).
-        'e_rev_E'   : 0.0,    #'E_ex'       # Excitatory reversal potential in mV.
-        'tau_syn_E' : 5.0,  #'tau_ex'     # Rise time of excitatory synaptic conductance in ms (alpha function).
-        'e_rev_I'   : -80.0,  #'E_in'       # Inhibitory reversal potential in mV.
-        'tau_syn_I' : 5.0, #'tau_in'     # Rise time of the inhibitory synaptic conductance in ms (alpha function).
+        'v_thresh'  : -50.4, #'V_t'        # Spike initiation threshold in mV (V_th can also be used for compatibility).
+        'e_rev_E'   : 0.0,   #'E_ex'       # Excitatory reversal potential in mV.
+        'tau_syn_E' : 5.0,   #'tau_ex'     # Rise time of excitatory synaptic conductance in ms (alpha function).
+        'e_rev_I'   : -80.0, #'E_in'       # Inhibitory reversal potential in mV.
+        'tau_syn_I' : 5.0,   #'tau_in'     # Rise time of the inhibitory synaptic conductance in ms (alpha function).
     }
 
 class SpikeSourcePoisson(StandardCellType):
