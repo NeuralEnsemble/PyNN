@@ -208,7 +208,7 @@ class FieldMultiChannelRecorder:
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):
             self.filename += ".node." + net.mpi_rank()
-        f = file(self.filename, "w",1000)
+        f = file(self.filename, "w",10000)
         all_spikes = []
         if compatible_output:
             f.write("# dt = %g\n" % pcsim_globals.dt)
@@ -1183,6 +1183,8 @@ class Projection(common.Projection):
         global pcsim_globals
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, methodParameters, source, target, label, rng)
         
+        parameters = None
+        
         # Determine connection decider
         if isinstance(method, str):
             if method == 'allToAll':
@@ -1206,18 +1208,31 @@ class Projection(common.Projection):
             else:
                 raise Exception("METHOD NOT YET IMPLEMENTED")
         elif isinstance(method,common.Connector):
-            decider, wiring_method = method.connect(self)
-        
+            decider, wiring_method, parameters = method.connect(self)
+            
+        weight = 1.
+        delay = pcsim_globals.minDelay/1000
+           
+        if not parameters == None:
+            if parameters.has_key('weights'):
+                weight = float(parameters['weights'])
+            if hasattr(self.post.pcsim_population.object(0),'ErevExc'):
+                weight_factor = 1e-6 # Convert from µS to S
+            else:
+                weight_factor = 1e-9 # Convert from nA to A
+            weight = weight_factor*weight
+            if parameters.has_key('delays'):  
+                delay = float(parameters['delays'])/1000
         if not target:
-            self.syn_factory = SimpleScalingSpikingSynapse(1, 1, pcsim_globals.minDelay/1000)
+            self.syn_factory = SimpleScalingSpikingSynapse(1, weight, delay)
         elif isinstance(target, int):
-            self.syn_factory = SimpleScalingSpikingSynapse(target, 1, pcsim_globals.minDelay/1000)
+            self.syn_factory = SimpleScalingSpikingSynapse(target, weight, delay)
         else:
             if isinstance(target, str):
                 if target == 'excitatory':
-                    self.syn_factory = SimpleScalingSpikingSynapse(1, 1, pcsim_globals.minDelay/1000)
+                    self.syn_factory = SimpleScalingSpikingSynapse(1, weight, delay)
                 elif target == 'inhibitory':
-                    self.syn_factory = SimpleScalingSpikingSynapse(2, 1, pcsim_globals.minDelay/1000)
+                    self.syn_factory = SimpleScalingSpikingSynapse(2, weight, delay)
                 else:
                     target = eval(target)
                     self.syn_factory = target({})
@@ -1354,27 +1369,30 @@ class Projection(common.Projection):
 class AllToAllConnector(common.AllToAllConnector):    
     
     def connect(self, projection):
+        
         # what about allow_self_connections?
         decider = RandomConnections(1)
         wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
-        return decider, wiring_method
+        return decider, wiring_method, self.params
 
 class OneToOneConnector(common.OneToOneConnector):
     
     def connect(self, projection):
+        
         if projection.pre.dim == projection.post.dim:
             decider = RandomConnections(1)
             wiring_method = OneToOneWiringMethod(pcsim_globals.net)
-            return decider, wiring_method
+            return decider, wiring_method, self.params
         else:
             raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
 
 class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
     def connect(self,projection):
+        
         decider = RandomConnections(float(self.p_connect))
         wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
-        return decider, wiring_method
+        return decider, wiring_method, self.params
     
 
 

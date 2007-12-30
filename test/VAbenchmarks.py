@@ -39,7 +39,7 @@ import pyNN.utility
 
 rngseed  = 98765
 
-n        = 5000  # number of cells
+n        = 1000  # number of cells
 r_ei     = 4.0   # number of excitatory cells:number of inhibitory cells
 pconn    = 0.02  # connection probability
 stim_dur = 50.   # (ms) duration of random stimulation
@@ -96,7 +96,8 @@ elif benchmark == "CUBA":
 
 # === Build the network ========================================================
 
-extra = {'threads' : 2}
+#extra = {'threads' : 2}
+extra={}
 
 node_id = setup(timestep=dt, min_delay=dt, max_delay=dt, **extra)
 
@@ -138,23 +139,27 @@ inh_cells.randomInit(uniformDistr)
 
 
 print "%d Connecting populations..." % node_id
-connections = {'e2e' : Projection(exc_cells, exc_cells,'fixedProbability', pconn, target='excitatory',rng=rng),
-               'e2i' : Projection(exc_cells, inh_cells,'fixedProbability', pconn, target='excitatory',rng=rng),
-               'i2e' : Projection(inh_cells, exc_cells,'fixedProbability', pconn, target='inhibitory',rng=rng),
-               'i2i' : Projection(inh_cells, inh_cells,'fixedProbability', pconn, target='inhibitory',rng=rng)}
-if (benchmark == "COBA"):
-    connections['ext2e'] = Projection(ext_stim, exc_cells,'fixedProbability', conn, target='excitatory')
-    connections['ext2i'] = Projection(ext_stim, inh_cells,'fixedProbability', conn, target='excitatory')
 
+exc_conn = FixedProbabilityConnector(pconn, params={'weights' : w_exc})
+inh_conn = FixedProbabilityConnector(pconn, params={'weights' : w_inh})
+ext_conn = FixedProbabilityConnector(pconn, params={'weights' : 0.1})
 
-print "%d Setting weights..." % node_id
-connections['e2e'].setWeights(w_exc)
-connections['e2i'].setWeights(w_exc)
-connections['i2e'].setWeights(w_inh)
-connections['i2i'].setWeights(w_inh)
+connections = {'e2e' : Projection(exc_cells, exc_cells, exc_conn, target='excitatory',rng=rng),
+               'e2i' : Projection(exc_cells, inh_cells, exc_conn, target='excitatory',rng=rng),
+               'i2e' : Projection(inh_cells, exc_cells, inh_conn, target='inhibitory',rng=rng),
+               'i2i' : Projection(inh_cells, inh_cells, inh_conn, target='inhibitory',rng=rng)}
 if (benchmark == "COBA"):
-    connections['ext2e'].setWeights(0.1)
-    connections['ext2i'].setWeights(0.1)
+    connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, target='excitatory')
+    connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
+
+#print "%d Setting weights..." % node_id
+#connections['e2e'].setWeights(w_exc)
+#connections['e2i'].setWeights(w_exc)
+#connections['i2e'].setWeights(w_inh)
+#connections['i2i'].setWeights(w_inh)
+#if (benchmark == "COBA"):
+#   connections['ext2e'].setWeights(0.1)
+#   connections['ext2i'].setWeights(0.1)
 
 #for prj in connections.keys():
 #    connections[prj].saveConnections('VAbenchmark_%s_%s_%s.conn' % (benchmark,prj,simulator))

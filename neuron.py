@@ -1382,7 +1382,7 @@ class Projection(common.Projection):
         elif type(parameters) == types.StringType:
             filename = parameters
             # now open the file...
-            f = open(filename,'r',1000)
+            f = open(filename,'r',10000)
             lines = f.readlines()
         elif type(parameters) == types.DictType:
             # dict could have 'filename' key or 'file' key
@@ -1650,7 +1650,7 @@ class Projection(common.Projection):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
         hoc_comment("--- Projection[%s].__saveConnections__() ---" %self.label)  
-        f = open(filename,'w',1000)
+        f = open(filename,'w',10000)
         for i in xrange(len(self)):
             src = self.connections[i][0]
             tgt = self.connections[i][1]
@@ -1683,7 +1683,7 @@ class Projection(common.Projection):
             hoc_execute(hoc_commands, "--- [Posting weights list to master] ---")
 
         if not gather or myid == 0:
-            f = open(filename,'w',1000)
+            f = open(filename,'w',10000)
             for i in xrange(len(self)):
                 weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
                 f.write(weight)
@@ -1713,7 +1713,7 @@ class Projection(common.Projection):
 
 class HocConnector(object):
     
-    def singleConnect(self,projection,src,tgt):
+    def singleConnect(self,projection,src,tgt,weight,delay):
         """
         Write hoc commands to connect a single pair of neurons.
         """
@@ -1721,6 +1721,8 @@ class HocConnector(object):
                                                                  projection.post.hoc_label,
                                                                  projection.post.gidlist.index(tgt),
                                                                  projection._syn_objref),
+                'nc.weight = %f' %weight,
+                'nc.delay  = %f' %delay,
                 'tmp = %s.append(nc)' % projection.hoc_label]
         projection.connections.append((src,tgt))
         return cmdlist
@@ -1728,21 +1730,33 @@ class HocConnector(object):
 class AllToAllConnector(common.AllToAllConnector, HocConnector):    
     
     def connect(self, projection):
+        
+        if self.params.has_key('weights'): weight = float(self.params['weights'])
+        else: weight = 1.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
+        
         hoc_commands = []
         for tgt in projection.post.gidlist:
             for src in projection.pre.fullgidlist:
                 if self.allow_self_connections or projection.pre != projection.post or tgt != src:
-                    hoc_commands += self.singleConnect(projection,src,tgt)
+                    hoc_commands += self.singleConnect(projection,src,tgt,weight,delay)
         return hoc_commands
 
 class OneToOneConnector(common.OneToOneConnector, HocConnector):
     
     def connect(self, projection):
+        
+        if self.params.has_key('weights'): weight = float(self.params['weights'])
+        else: weight = 1.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
+        
         if projection.pre.dim == projection.post.dim:
             hoc_commands = []
             for tgt in projection.post.gidlist:
                 src = tgt - projection.post.gid_start + projection.pre.gid_start
-                hoc_commands += self.singleConnect(projection,src,tgt)
+                hoc_commands += self.singleConnect(projection,src,tgt,weight,delay)
         else:
             raise Exception("Method '%s' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes." % sys._getframe().f_code.co_name)
         return hoc_commands
@@ -1750,6 +1764,12 @@ class OneToOneConnector(common.OneToOneConnector, HocConnector):
 class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
     
     def connect(self, projection):
+        
+        if self.params.has_key('weights'): weight = float(self.params['weights'])
+        else: weight = 1.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
+        
         if isinstance(projection.rng, NativeRNG):
             hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
                             'tmp = rng.uniform(0,1)']
@@ -1765,13 +1785,19 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
             for src in projection.pre.fullgidlist:
                 if self.allow_self_connections or projection.pre != projection.post or tgt != src:
                     if rarr[j] < self.p_connect:  
-                        hoc_commands += self.singleConnect(projection,src,tgt)
+                        hoc_commands += self.singleConnect(projection,src,tgt,weight,delay)
                 j += 1
         return hoc_commands
 
 class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector, HocConnector):
     
-    def connect(self, projection):     
+    def connect(self, projection):
+        
+        if self.params.has_key('weights'): weight = float(self.params['weights'])
+        else: weight = 1.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
+        
         if isinstance(projection.rng, NativeRNG):
             hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
                             'tmp = rng.uniform(0,1)']
@@ -1792,9 +1818,9 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                     p = eval(self.d_expression)
                     if 0 < p < 1:
                         if rarr[j] < p:
-                            hoc_commands += self.singleConnect(projection,src,tgt)
+                            hoc_commands += self.singleConnect(projection,src,tgt,weight,delay)
                     elif p >= 1:
-                        hoc_commands += self.singleConnect(projection,src,tgt)
+                        hoc_commands += self.singleConnect(projection,src,tgt,weight,delay)
                 j += 1
         return hoc_commands
     

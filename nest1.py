@@ -205,7 +205,11 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
         raise Exception("min_delay has to be less than or equal to max_delay.")
     global dt
     global tempdir
+    global _min_delay
+    global _max_delay
     dt = timestep
+    _min_delay = min_delay
+    _max_delay = max_delay
     
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
@@ -213,11 +217,17 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     pynest.destroy()
     pynest.setDict([0],{'resolution': dt, 'min_delay' : min_delay, 'max_delay' : max_delay})
     if extra_params.has_key('threads'):
+        if extra_params.has_key('kernelseeds'):
+            print 'params has kernelseeds ', extra_params['kernelseeds']
+            kernelseeds = extra_params['kernelseeds']
+        else:
+            rng = NumpyRNG(42)
+            kernelseeds = (rng.rng.uniform(size=extra_params['threads'])*100).astype('int').tolist()
+            print 'params has no kernelseeds, we use ',kernelseeds
         update_modes = {'fixed':1, 'serial':3, 'dynamic':0}
         # number of nodes to give to each thread at a time
         # some small fraction of your total nodes to be simulated
         batchsize   = 10
-        kernelseeds = [11,22,33,44,55,66,77,88,99]
         pynest.setDict([0],{'threads'     : extra_params['threads'],
                             'update_mode' : update_modes['fixed'],
                             'rng_seeds'   : kernelseeds[0:extra_params['threads']],
@@ -1596,6 +1606,10 @@ class Projection(common.Projection):
 class AllToAllConnector(common.AllToAllConnector):    
     
     def connect(self, projection):
+        if self.params.has_key('weights'): weight = 1000.*float(self.params['weights'])
+        else: weight = 1000.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         for post in postsynaptic_neurons:
@@ -1605,19 +1619,23 @@ class AllToAllConnector(common.AllToAllConnector):
                 source_list.remove(post)
             projection._targets += [post]*len(source_list)
             projection._sources += source_list
-            projection._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
+            projection._targetPorts +=  pynest.convergentConnect(source_list,post,[weight],[delay])
         return len(projection._targets)
 
 class OneToOneConnector(common.OneToOneConnector):
     
     def connect(self, projection):
+        if self.params.has_key('weights'): weight = 1000.*float(self.params['weights'])
+        else: weight = 1000.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
         if projection.pre.dim == projection.post.dim:
             projection._sources = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
             projection._targets = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
             for pre,post in zip(projection._sources,projection._targets):
                 pre_addr = pynest.getAddress(pre)
                 post_addr = pynest.getAddress(post)
-                projection._targetPorts.append(pynest.connect(pre_addr,post_addr))
+                projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr,weight,delay))
             return projection.pre.size
         else:
             raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
@@ -1625,6 +1643,10 @@ class OneToOneConnector(common.OneToOneConnector):
 class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
     def connect(self, projection):
+        if self.params.has_key('weights'): weight = 1000.*float(self.params['weights'])
+        else: weight = 1000.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         npre = projection.pre.size
@@ -1639,12 +1661,16 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
                 source_list.remove(post)
             projection._targets += [post]*len(source_list)
             projection._sources += source_list
-            projection._targetPorts += pynest.convergentConnect(source_list,post,[1.0],[0.1])
+            projection._targetPorts += pynest.convergentConnect(source_list,post,[weight],[delay])
         return len(projection._sources)
     
 class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector):
     
-    def connect(self, projection):                  
+    def connect(self, projection):
+        if self.params.has_key('weights'): weight = 1000.*float(self.params['weights'])
+        else: weight = 1000.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         # what about NativeRNG?
@@ -1669,7 +1695,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                     if p >= 1 or (0 < p < 1 and rarr[j] < p):
                         projection._sources.append(pre)
                         projection._targets.append(post)
-                        projection._targetPorts.append(pynest.connect(pre_addr,post_addr)) 
+                        projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr,weight,delay)) 
                 j += 1
         return len(projection._sources)
         

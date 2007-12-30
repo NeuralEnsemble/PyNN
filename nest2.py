@@ -16,7 +16,7 @@ from math import *
 #hl_spike_files = {}
 #hl_v_files     = {}
 #hl_c_files     = {}
-recorder_dict = {}
+recorder_dict  = {}
 tempdirs       = []
 dt             = 0.1
 recording_device_names = {'spikes': 'spike_detector',
@@ -75,7 +75,12 @@ class Connection(object):
     def __init__(self, pre, post):
         self.pre = pre
         self.post = post
-        conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+        try:
+            conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+        except Exception:
+            raise common.ConnectionError
+        if (len(conn_dict['targets']) == 0):
+            raise common.ConnectionError
         if conn_dict:
             self.port = len(conn_dict['targets'])-1
         else:
@@ -92,8 +97,21 @@ class Connection(object):
             return conn_dict['weights'][self.port]
         else:
             return None
+    
+    def _set_delay(self, d):
+        pass
+
+    def _get_delay(self):
+        # this needs to be modified to take account of threads
+        # also see nest.GetConnection (was nest.GetSynapseStatus)
+        conn_dict = nest.GetConnections([self.pre],'static_synapse')[0]
+        if conn_dict:
+            return conn_dict['delays'][self.port]
+        else:
+            return None
         
     weight = property(_get_weight, _set_weight)
+    delay = property(_get_delay, _set_delay)
 
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
@@ -105,33 +123,20 @@ def list_standard_models():
 class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
-    
-    #translations = {
-    #        'v_rest'    : ('E_L'    , "parameters['v_rest']"),
-    #        'v_reset'   : ('V_reset', "parameters['v_reset']"),
-    #        'cm'        : ('C_m'    , "parameters['cm']*1000.0"), # C_m is in pF, cm in nF
-    #        'tau_m'     : ('tau_m'  , "parameters['tau_m']"),
-    #        'tau_refrac': ('tau_ref', "max(dt,parameters['tau_refrac'])"),
-    #        'tau_syn_E' : ('tau_ex' , "parameters['tau_syn_E']"),
-    #        'tau_syn_I' : ('tau_in' , "parameters['tau_syn_I']"),
-    #        'v_thresh'  : ('V_th'   , "parameters['v_thresh']"),
-    #        'i_offset'  : ('I_e'    , "parameters['i_offset']*1000.0"), # I_e is in pA, i_offset in nA
-    #        'v_init'    : ('V_m'    , "parameters['v_init']"),
-    #}  
+
     translations = common.build_translations(
         ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'tau_m'),
-        ('tau_refrac', 'tau_ref',  "max(dt, tau_refrac)", "tau_ref"),
-        ('tau_syn_E',  'tau_ex'),
-        ('tau_syn_I',  'tau_in'),
+        ('tau_refrac', 't_ref',  "max(dt, tau_refrac)", "tau_ref"),
+        ('tau_syn_E',  'tau_syn_ex'),
+        ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
         ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
         ('v_init',     'V_m'),
     )
     nest_name = "iaf_psc_alpha"
-    
     def __init__(self,parameters):
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
@@ -142,44 +147,29 @@ class IF_curr_exp(common.IF_curr_exp):
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses."""
     
-    translations = {
-        'v_rest'    : ('E_L'        , "parameters['v_rest']"),
-        'v_reset'   : ('V_reset'    , "parameters['v_reset']"),
-        'cm'        : ('C_m'        , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-        'tau_m'     : ('tau_m'      , "parameters['tau_m']"),
-        'tau_refrac': ('tau_ref_abs', "max(dt,parameters['tau_refrac'])"),
-        'tau_syn_E' : ('tau_ex'     , "parameters['tau_syn_E']"),
-        'tau_syn_I' : ('tau_in'     , "parameters['tau_syn_I']"),
-        'v_thresh'  : ('V_th'       , "parameters['v_thresh']"),
-        'i_offset'  : ('I_e'        , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-        'v_init'    : ('V_m'        , "parameters['v_init']"),
-    }
+    translations = common.build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'V_reset'),
+        ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
+        ('tau_m',      'tau_m'),
+        ('tau_refrac', 't_ref_abs',  "max(dt, tau_refrac)", "tau_ref"),
+        ('tau_syn_E',  'tau_syn_ex'),
+        ('tau_syn_I',  'tau_syn_in'),
+        ('v_thresh',   'V_th'),
+        ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
+        ('v_init',     'V_m'),
+    )
     nest_name = 'iaf_psc_exp'
-    
     def __init__(self,parameters):
         common.IF_curr_exp.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.translate1(self.parameters)
 
 class IF_cond_alpha(common.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
-    
-    #translations = {
-    #        'v_rest'    : ('E_L'       , "parameters['v_rest']"),
-    #        'v_reset'   : ('V_reset'   , "parameters['v_reset']"),
-    #        'cm'        : ('C_m'       , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-    #        'tau_m'     : ('g_L'       , "parameters['cm']/parameters['tau_m']*1000.0"),
-    #        'tau_refrac': ('t_ref'     , "max(dt,parameters['tau_refrac'])"),
-    #        'tau_syn_E' : ('tau_syn_ex', "parameters['tau_syn_E']"),
-    #        'tau_syn_I' : ('tau_syn_in', "parameters['tau_syn_I']"),
-    #        'v_thresh'  : ('V_th'      , "parameters['v_thresh']"),
-    #        #'i_offset'  : ('Istim'    , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-    #        'e_rev_E'   : ('E_ex'      , "parameters['e_rev_E']"),
-    #        'e_rev_I'   : ('E_in'      , "parameters['e_rev_I']"),
-    #        'v_init'    : ('V_m'       , "parameters['v_init']"),
-    #}
+
     translations = common.build_translations(
-        ('v_rest',     'E_L'),
+        ('v_rest',     'E_L')    ,
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
@@ -193,7 +183,6 @@ class IF_cond_alpha(common.IF_cond_alpha):
         ('v_init',     'V_m'),
     )
     nest_name = "iaf_cond_alpha"
-    
     def __init__(self,parameters):
         common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
@@ -204,26 +193,25 @@ class IF_cond_exp(common.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
     
-    translations = {
-            'v_rest'    : ('E_L'          , "parameters['v_rest']"),
-            'v_reset'   : ('V_reset'      , "parameters['v_reset']"),
-            'cm'        : ('C_m'           , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-            'tau_m'     : ('g_L'         , "parameters['cm']/parameters['tau_m']*1000.0"),
-            'tau_refrac': ('t_ref'        , "max(dt,parameters['tau_refrac'])"),
-            'tau_syn_E' : ('tau_syn_ex'    , "parameters['tau_syn_E']"),
-            'tau_syn_I' : ('tau_syn_in'    , "parameters['tau_syn_I']"),
-            'v_thresh'  : ('V_th'       , "parameters['v_thresh']"),
-            #'i_offset'  : ('Istim'       , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'e_rev_E'   : ('E_ex', "parameters['e_rev_E']"),
-            'e_rev_I'   : ('E_in', "parameters['e_rev_I']"),
-            'v_init'    : ('V_m'           , "parameters['v_init']"),
-    }
+    translations = common.build_translations(
+        ('v_rest',     'E_L')    ,
+        ('v_reset',    'V_reset'),
+        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
+        ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
+        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
+        ('tau_syn_E',  'tau_syn_ex'),
+        ('tau_syn_I',  'tau_syn_in'),
+        ('v_thresh',   'V_th'),
+        ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
+        ('e_rev_E',    'E_ex'),
+        ('e_rev_I',    'E_in'),
+        ('v_init',     'V_m'),
+    )
     nest_name = "iaf_cond_exp"
-    
     def __init__(self,parameters):
         common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.translate1(self.parameters)
         
 
 class HH_cond_exp(common.HH_cond_exp):
@@ -254,27 +242,7 @@ class HH_cond_exp(common.HH_cond_exp):
         
 class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
     """adaptive exponential integrate and fire neuron according to Brette and Gerstner (2005)"""
-    
-    #translations = {
-    #    'v_init'    : ('V_m',        "parameters['v_init']"),
-    #    'w_init'    : ('w',          "parameters['w_init']*1000.0"), # nA -> pA
-    #    'cm'        : ('C_m',        "parameters['cm']*1000.0"),     # nF -> pF
-    #    'tau_refrac': ('t_ref',      "parameters['tau_refrac']"), 
-    #    'v_spike'   : ('V_peak',     "parameters['v_spike']"),
-    #    'v_reset'   : ('V_reset',    "parameters['v_reset']"),
-    #    'v_rest'    : ('E_L',        "parameters['v_rest']"),
-    #    'tau_m'     : ('g_L',        "parameters['cm']/parameters['tau_m']*1000.0"),
-    #    'i_offset'  : ('I_e',        "parameters['i_offset']*1000.0"), # nA -> pA
-    #    'a'         : ('a',          "parameters['a']"),       
-    #    'b'         : ('b',          "parameters['b']*1000.0"),  # nA -> pA.
-    #    'delta_T'   : ('Delta_T',    "parameters['delta_T']"), 
-    #    'tau_w'     : ('tau_w',      "parameters['tau_w']"), 
-    #    'v_thresh'  : ('V_th',       "parameters['v_thresh']"), 
-    #    'e_rev_E'   : ('E_ex',       "parameters['e_rev_E']"),
-    #    'tau_syn_E' : ('tau_syn_ex', "parameters['tau_syn_E']"), 
-    #    'e_rev_I'   : ('E_in',       "parameters['e_rev_I']"), 
-    #    'tau_syn_I' : ('tau_syn_in', "parameters['tau_syn_I']"),
-    #}
+
     translations = common.build_translations(
         ('v_init'    , 'V_m'),
         ('w_init'    , 'w',         1000.0),  # nA -> pA
@@ -311,7 +279,6 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     }
     nest_name = 'poisson_generator'
     
-    
     def __init__(self,parameters):
         common.SpikeSourcePoisson.__init__(self,parameters)
         self.parameters = self.translate(self.parameters)
@@ -345,9 +312,11 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     global dt
     global tempdir
     global _min_delay
+    global _max_delay
     #global hl_spike_files, hl_v_files
     dt = timestep
     _min_delay = min_delay
+    _max_delay = max_delay
     
     # reset the simulation kernel
     nest.ResetKernel()
@@ -372,17 +341,17 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     
     if extra_params.has_key('threads'):
         if extra_params.has_key('kernelseeds'):
-            print 'params has kernelseed ', extra_params['kernelseeds']
+            print 'params has kernelseeds ', extra_params['kernelseeds']
             kernelseeds = extra_params['kernelseeds']
         else:
             # default kernelseeds, for each thread one, to ensure same for each sim we get the rng with seed 42
             rng = NumpyRNG(42)
             num_processes = nest.GetStatus([0])[0]['num_processes']
             kernelseeds = (rng.rng.uniform(size=extra_params['threads']*num_processes)*100).astype('int').tolist()
-            print 'params has not kernelseed ',kernelseeds
+            print 'params has no kernelseeds, we use ',kernelseeds
             
-        nest.SetStatus([0],[{'local_num_threads'     : extra_params['threads'],
-                            'rng_seeds'   : kernelseeds}])
+        nest.SetStatus([0],[{'local_num_threads' : extra_params['threads'],
+                             'rng_seeds'         : kernelseeds}])
 
     
     # Initialisation of the log module. To write in the logfile, simply enter
@@ -476,6 +445,9 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
         weight = 0.0
     if delay is None:
         delay = _min_delay
+    # If the delay is too small , we have to throw an error
+    if delay < _min_delay or delay > _max_delay:
+        raise common.ConnectionError
     weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                          # Using convention in this way is not ideal. We should be able to look up the units used by each model somewhere.
     if synapse_type == 'inhibitory' and weight > 0:
@@ -518,13 +490,13 @@ def set(cells,cellclass,param,val=None):
         cells = [cells]
     if not (isinstance(cellclass,str) or cellclass is None):
         if issubclass(cellclass, common.StandardCellType):
-            param = cellclass({}).translate(param)
+            param = cellclass({}).translate1(param)
         else:
             raise TypeError, "cellclass must be a string, None, or derived from commonStandardCellType"
     nest.SetStatus(cells,[param])
 
 def _connect_recording_device(recorder, record_from=None):
-    print "Connecting recorder %s to cell(s) %s" % (recorder, record_from)
+    #print "Connecting recorder %s to cell(s) %s" % (recorder, record_from)
     device = nest.GetStatus(recorder, "model")[0]
     if device == "spike_detector":
         nest.ConvergentConnect(record_from, recorder)
@@ -825,7 +797,7 @@ class Population(common.Population):
         else:
             raise common.InvalidParameterValueError
         if isinstance(self.celltype, common.StandardCellType):
-            paramDict = self.celltype.translate(paramDict)
+            paramDict = self.celltype.translate1(paramDict)
         nest.SetStatus(numpy.reshape(self.cell,(self.size,)), [paramDict])
         
 
@@ -844,7 +816,7 @@ class Population(common.Population):
             raise common.InvalidDimensionsError, "Population: %s, valueArray: %s" % (str(cells.shape), str(valueArray.shape))
         # Translate the parameter name
         if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
+            parametername = self.celltype.translate1({parametername: values[0]}).keys()[0]
         # Set the values for each cell
         if len(cells) == len(values):
             for cell,val in zip(cells,values):
@@ -865,7 +837,7 @@ class Population(common.Population):
         rand_distr, which should be a RandomDistribution object.
         """
         if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate({parametername: 0.0}).keys()[0]
+            parametername = self.celltype.translate1({parametername: 0.0}).keys()[0]
         if isinstance(rand_distr.rng, NativeRNG):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
@@ -1264,7 +1236,9 @@ class Projection(common.Projection):
             src, tgt, w, d = single_line.split("\t", 4)
             src = "[%s" % src.split("[",1)[1]
             tgt = "[%s" % tgt.split("[",1)[1]
-            input_tuples.append((eval(src),eval(tgt),float(w),float(d)))
+            src=eval(src)
+            tgt=eval(tgt)
+            input_tuples.append((src,tgt,float(w),float(d)))
         f.close()
         
         self._fromList(input_tuples)
@@ -1278,13 +1252,14 @@ class Projection(common.Projection):
         """
         for i in xrange(len(conn_list)):
             src, tgt, weight, delay = conn_list[i][:]
-            src = self.pre[tuple(src)]
-            tgt = self.post[tuple(tgt)]
-            pre_addr = nest.getAddress(src)
-            post_addr = nest.getAddress(tgt)
+            src = eval("self.pre%s" %src)
+            tgt = eval("self.post%s" %tgt)
+            pre_addr = nest.GetAddress([src])
+            post_addr = nest.GetAddress([tgt])
+            nest.ConnectWD(pre_addr,post_addr, [1000*weight], [delay])
             self._sources.append(src)
             self._targets.append(tgt)
-            self._targetPorts.append(nest.connectWD(pre_addr,post_addr, 1000*weight, delay))
+            self._targetPorts.append(tgt)
 
             
 
@@ -1361,7 +1336,7 @@ class Projection(common.Projection):
                 conn_dict = nest.GetConnections([src], 'static_synapse')[0]
                 if conn_dict:
                     n = len(conn_dict['delays'])
-                nest.SetConnections([src], 'static_synapse', [{'delay': [d]*n}])
+                nest.SetConnections([src], 'static_synapse', [{'delays': [d]*n}])
         elif isinstance(d,list) or isinstance(d,numpy.ndarray):
             raise Exception("Not yet implemented")
         else:
@@ -1417,8 +1392,8 @@ class Projection(common.Projection):
         'fromFile' method."""
         f = open(filename,'w',1000)
         # Note unit change from pA to nA or nS to uS, depending on synapse type
-        weights = [0.001*nest.getWeight(src,port) for (src,port) in self.connections()]
-        delays = [nest.getDelay(src,port) for (src,port) in self.connections()] 
+        weights = [0.001*nest.GetWeight(src,port) for (src,port) in self.connections()]
+        delays = [nest.GetDelay(src,port) for (src,port) in self.connections()] 
         fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label,"%s",self.post.label,"%s","%g","%g")
         for i in xrange(len(self)):
             line = fmt  % (self.pre.locate(self._sources[i]),
@@ -1472,8 +1447,14 @@ class Projection(common.Projection):
 # ==============================================================================
 
 class AllToAllConnector(common.AllToAllConnector):    
-    
+
     def connect(self, projection):
+        
+        if self.params.has_key('weights'): weight = 1000.*float(self.params['weights'])
+        else: weight = 1000.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
+        
         postsynaptic_neurons  = projection.post.cell.flatten()
         target_list = postsynaptic_neurons.tolist()
         for pre in projection.pre.cell.flat:
@@ -1485,23 +1466,26 @@ class AllToAllConnector(common.AllToAllConnector):
             projection._targets += target_list
             projection._sources += [pre]*len(target_list) 
             conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
-            if conn_dict:
-                first_port = len(conn_dict['targets'])
-            else:
-                first_port = 0
-            projection._targetPorts += range(first_port, first_port+len(target_list))
-            nest.DivergentConnectWD([pre], target_list, [1000.0], [_min_delay])
+            projection._targetPorts += target_list
+            nest.DivergentConnectWD([pre], target_list, [weight], [delay])
         return len(projection._targets)
 
 class OneToOneConnector(common.OneToOneConnector):
     
     def connect(self, projection):
+        
+        if self.params.has_key('weights'): weight = 1000.*float(self.params['weights'])
+        else: weight = 1000.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
+        
         if projection.pre.dim == projection.post.dim:
             projection._sources = projection.pre.cell.flatten()
             projection._targets = projection.post.cell.flatten()
+            projection._targetPorts = projection.post.cell.flatten()
             for pre,post in zip(projection._sources,projection._targets):
                 #projection._targetPorts.append(nest.connect(pre_addr,post_addr))
-                nest.ConnectWD([pre], [post], [1000.0], [_min_delay])
+                nest.ConnectWD([pre], [post], [weight], [delay])
             return projection.pre.size
         else:
             raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
@@ -1509,27 +1493,39 @@ class OneToOneConnector(common.OneToOneConnector):
 class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
     def connect(self, projection):
+        
+        if self.params.has_key('weights'): weight = 1000.*float(self.params['weights'])
+        else: weight = 1000.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
+        
         #postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
-        presynaptic_neurons  = projection.pre.cell.flatten()
-        npre = projection.pre.size
-        for post in projection.post.cell.flat:
+        postsynaptic_neurons  = projection.post.cell.flatten()
+        npost= projection.post.size
+        for pre in projection.pre.cell.flat:
             if projection.rng:
-                rarr = projection.rng.uniform(0,1,(npre,)) # what about NativeRNG?
+                rarr = projection.rng.uniform(0,1,(npost,)) # what about NativeRNG?
             else:
-                rarr = numpy.random.uniform(0,1,(npre,))
-            source_list = numpy.compress(numpy.less(rarr,self.p_connect),presynaptic_neurons).tolist()
+                rarr = numpy.random.uniform(0,1,(npost,))
+            target_list = numpy.compress(numpy.less(rarr,self.p_connect),postsynaptic_neurons).tolist()
             # if self connections are not allowed, check whether pre and post are the same
-            if not self.allow_self_connections and post in source_list:
-                source_list.remove(post)
-            projection._targets += [post]*len(source_list)
-            projection._sources += source_list
-            #projection._targetPorts += nest.convergentConnect(source_list,post,[1.0],[0.1])
-            nest.convergentConnect(source_list, [post], [1000.0], [_min_delay])
+            if not self.allow_self_connections and pre in target_list:
+                target_list.remove(pre)
+            projection._targets += target_list
+            projection._sources += [pre]*len(target_list) 
+            projection._targetPorts += target_list
+            nest.DivergentConnectWD([pre], target_list, [weight], [delay])
         return len(projection._sources)
     
 class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector):
     
-    def connect(self, projection):                  
+    def connect(self, projection):
+        
+        if self.params.has_key('weights'): weight = 1000.*float(self.params['weights'])
+        else: weight = 1000.
+        if self.params.has_key('delays'):  delay = float(self.params['delays'])
+        else: delay = _min_delay
+        
         postsynaptic_neurons = projection.post.cell.flat # iterator
         presynaptic_neurons  = projection.pre.cell.flatten() # array
         # what about NativeRNG?
@@ -1552,7 +1548,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                         projection._sources.append(pre)
                         projection._targets.append(post)
                         #projection._targetPorts.append(nest.connect(pre_addr,post_addr))
-                        nest.Connect(pre,post, [1000.0], [_min_delay])
+                        nest.ConnectWD([pre],[post], [weight], [delay])
                 j += 1
         return len(projection._sources)
 

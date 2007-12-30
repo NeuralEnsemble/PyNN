@@ -893,9 +893,10 @@ class AllToAllConnector(Connector):
     postsynaptic population.
     """
     
-    def __init__(self, allow_self_connections=True):
+    def __init__(self, allow_self_connections=True, params={}):
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
+        self.params = params
 
 class OneToOneConnector(Connector):
     """
@@ -908,7 +909,8 @@ class OneToOneConnector(Connector):
     in row i of a 2D post population of size (n,m).
     """
     
-    def __init__(self):
+    def __init__(self,params={}):
+        self.params = params
         pass
     
 class FixedProbabilityConnector(Connector):
@@ -916,9 +918,10 @@ class FixedProbabilityConnector(Connector):
     For each pair of pre-post cells, the connection probability is constant.
     """
     
-    def __init__(self, p_connect, allow_self_connections=True):
+    def __init__(self, p_connect, allow_self_connections=True, params={}):
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
+        self.params = params
         self.p_connect = float(p_connect)
         assert 0 <= self.p_connect
         
@@ -938,7 +941,7 @@ class DistanceDependentProbabilityConnector(Connector):
     AXES = {'x' : [0],    'y': [1],    'z': [2],
             'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': None, None: None}
     
-    def __init__(self, d_expression, axes=None, scale_factor=1.0, allow_self_connections=True):
+    def __init__(self, d_expression, axes=None, scale_factor=1.0, allow_self_connections=True, params={}):
         assert isinstance(allow_self_connections, bool)
         assert isinstance(d_expression, str)
         try:
@@ -949,6 +952,7 @@ class DistanceDependentProbabilityConnector(Connector):
             raise
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
+        self.params = params
         self.mask = DistanceDependentProbabilityConnector.AXES[axes]
         if self.mask is not None:
             self.mask = numpy.array(self.mask)

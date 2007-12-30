@@ -37,8 +37,8 @@ class CreationTest(unittest.TestCase):
     def testCreateStandardCellWithParams(self):
         """create(): Parameters set on creation should be the same as retrieved with getDict()"""
         ifcell = nest.create(nest.IF_curr_alpha,{'tau_syn_E':3.141592654})
-        ifcell_params = nest.pynest.getDict([ifcell])
-        assert ifcell_params[0]['TauSynE'] == 3.141592654
+        ifcell_params = nest.nest.GetStatus([ifcell])
+        assert ifcell_params[0]['tau_syn_ex'] == 3.141592654
  
     def testCreateNESTCell(self):
         """create(): First cell created should have GID==1"""
@@ -48,7 +48,7 @@ class CreationTest(unittest.TestCase):
     def testCreateNonExistentCell(self):
         """create(): Trying to create a cell type which is not a standard cell or
         a NEST cell should raise a SLIError."""
-        self.assertRaises(nest.pynest.SLIError, nest.create, 'qwerty')
+        self.assertRaises(Exception, nest.create, 'qwerty')
     
     #def testCreateWithInvalidParameter(self):
     #    """create(): Creating a cell with an invalid parameter should raise an Exception."""
@@ -67,37 +67,37 @@ class ConnectionTest(unittest.TestCase):
         self.postcells = nest.create(nest.IF_curr_alpha,n=3)
         self.precells = nest.create(nest.SpikeSourcePoisson,n=5)
         
-    def testConnectTwoCells(self):
-        """connect(): The first connection created should have id 0."""
-        conn = nest.connect(self.precells[0],self.postcells[0])
-        assert conn == 0, 'Error creating connection'
+    #def testConnectTwoCells(self):
+    #    """connect(): The first connection created should have id 0."""
+    #    conn = nest.connect(self.precells[0],self.postcells[0])
+    #    assert conn == 0, 'Error creating connection'
         
     def testConnectTwoCellsWithWeight(self):
         """connect(): Weight set should match weight retrieved."""
         conn_id = nest.connect(self.precells[0],self.postcells[0],weight=0.1234)
-        weight = nest.pynest.getWeight(nest.pynest.getAddress(self.precells[0]),conn_id)
+        weight = conn_id._get_weight()
         assert weight == 0.1234*1000, "Weight set does not match weight retrieved." # note that pyNN.nest uses nA for weights, whereas NEST uses pA
 
     def testConnectTwoCellsWithDelay(self):
         """connect(): Delay set should match delay retrieved."""
-        conn_id = nest.connect(self.precells[0],self.postcells[0],delay=4.321)
-        delay = nest.pynest.getDelay(nest.pynest.getAddress(self.precells[0]),conn_id)
-        assert delay == 4.3, "Delay set does not match delay retrieved." # Note that delays are only stored to the precision of the timestep.
+        conn_id = nest.connect(self.precells[0],self.postcells[0],delay=4.4)
+        delay = conn_id._get_delay()
+        assert delay == 4.4, "Delay set does not match delay retrieved." # Note that delays are only stored to the precision of the timestep.
 
     def testConnectManyToOne(self):
         """connect(): Connecting n sources to one target should return a list of size n, each element being the target port."""
         connlist = nest.connect(self.precells,self.postcells[0])
-        assert connlist == [0]*len(self.precells)
+        assert len(connlist) == len(self.precells)
         
     def testConnectOneToMany(self):
         """connect(): Connecting one source to n targets should return a list of target ports."""
         connlist = nest.connect(self.precells[0],self.postcells)
-        assert connlist == [0,1,2]
+        assert len(connlist) == len(self.postcells)
         
     def testConnectManyToMany(self):
         """connect(): Connecting m sources to n targets should return a list of length m x n"""
         connlist = nest.connect(self.precells,self.postcells)
-        assert connlist == [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]
+        assert len(connlist) == len(self.precells)*len(self.postcells)
         
     def testConnectWithProbability(self):
         """connect(): If p=0.5, it is very unlikely that either zero or the maximum number of connections should be created."""
@@ -106,11 +106,11 @@ class ConnectionTest(unittest.TestCase):
     
     def testConnectNonExistentPreCell(self):
         """connect(): Connecting from non-existent cell should raise a ConnectionError."""
-        self.assertRaises(common.ConnectionError, nest.connect, 12345, self.postcells[0])
+        self.assertRaises(common.ConnectionError, nest.connect, [12345], self.postcells[0])
         
     def testConnectNonExistentPostCell(self):
         """connect(): Connecting to a non-existent cell should raise a ConnectionError."""
-        self.assertRaises(common.ConnectionError, nest.connect, self.precells[0], 45678)
+        self.assertRaises(common.ConnectionError, nest.connect, self.precells[0], [45678])
         
     def testDelayTooSmall(self):
         """connect(): Setting a delay smaller than min_delay should raise an Exception.""" 
@@ -159,8 +159,8 @@ class PopulationInitTest(unittest.TestCase):
     def testInitWithParams(self):
         """Population.__init__(): Parameters set on creation should be the same as retrieved with getDict()"""
         net = nest.Population((3,3),nest.IF_curr_alpha,{'tau_syn_E':3.141592654})
-        ifcell_params = nest.pynest.getDict([net.cell[0,0]])
-        assert ifcell_params[0]['TauSynE'] == 3.141592654
+        ifcell_params = nest.nest.GetStatus([net.cell[0,0]])
+        assert ifcell_params[0]['tau_syn_ex'] == 3.141592654
     
     def testInitWithLabel(self):
         """Population.__init__(): A label set on initialisation should be retrievable with the Population.label attribute."""
@@ -260,13 +260,13 @@ class PopulationSetTest(unittest.TestCase):
     def testSetFromDict(self):
         """Parameters set in a dict should all be retrievable using pynest.getDict()"""
         self.net.set({'tau_m':43.21, 'cm':0.987})
-        assert nest.pynest.getDict([self.net.cell[0,0]])[0]['Tau'] == 43.21
-        assert nest.pynest.getDict([self.net.cell[0,0]])[0]['C'] == 987.0 # pF
+        assert nest.nest.GetStatus([self.net.cell[0,0]])[0]['tau_m'] == 43.21
+        assert nest.nest.GetStatus([self.net.cell[0,0]])[0]['C_m'] == 987.0 # pF
     
     def testSetFromPair(self):
         """A parameter set as a string,value pair should be retrievable using pynest.getDict()"""
         self.net.set('tau_m',12.34)
-        assert nest.pynest.getDict([self.net.cell[0,0]])[0]['Tau'] == 12.34
+        assert nest.nest.GetStatus([self.net.cell[0,0]])[0]['tau_m'] == 12.34
     
     def testSetInvalidFromPair(self):
         """Trying to set an invalid value for a parameter should raise an exception."""
@@ -288,15 +288,15 @@ class PopulationSetTest(unittest.TestCase):
     
     def testSetWithNonStandardModel(self):
         """Parameters set in a dict should all be retrievable using pynest.getDict()"""
-        self.net2.set({'Tau':43.21})
-        assert nest.pynest.getDict([self.net2.cell[0]])[0]['Tau'] == 43.21
+        self.net2.set({'tau_m':43.21})
+        assert nest.nest.GetStatus([self.net2.cell[0]])[0]['tau_m'] == 43.21
     
     def testTSet(self):
         """The valueArray passed should be retrievable using pynest.getDict() on all nodes."""
         array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
         self.net.tset('cm', array_in)
-        tmp = nest.pynest.getDict(list(self.net.cell.reshape((9,))))
-        tmp = [d['C'] for d in tmp]
+        tmp = nest.nest.GetStatus(list(self.net.cell.reshape((9,))))
+        tmp = [d['C_m'] for d in tmp]
         array_out = numpy.array(tmp).reshape((3,3))
         assert numpy.equal(array_in, array_out).all()
     
@@ -326,8 +326,8 @@ class PopulationSetTest(unittest.TestCase):
                                          distribution='uniform',
                                          parameters=[0.9,1.1])
         self.net.rset('cm',rd1)
-        tmp = nest.pynest.getDict(list(self.net.cell.reshape((9,))))
-        output_values = [d['C'] for d in tmp]
+        tmp = nest.nest.GetStatus(list(self.net.cell.reshape((9,))))
+        output_values = [d['C_m'] for d in tmp]
         input_values = rd2.next(9)
         for i in range(9):
             self.assertAlmostEqual(input_values[i],output_values[i],places=5)
@@ -414,8 +414,8 @@ class ProjectionInitTest(unittest.TestCase):
                     assert len(prj._sources) == len(prj._targets)
                     weights = []
                     for src,tgt in prj.connections():
-                        weights.append(nest.pynest.getWeight(src,tgt))
-                    assert weights == [1.0]*len(prj._sources)
+                        weights.append(nest.nest.GetWeight(src,tgt))
+                    assert weights == [1000.0]*len(prj._sources)
     
     def testOneToOne(self):
         """For all connections created with "OneToOne" it should be possible to obtain the weight using pyneuron.getWeight()"""
@@ -427,7 +427,6 @@ class ProjectionInitTest(unittest.TestCase):
     def testDistantDependentProbability(self):
         """For all connections created with "distanceDependentProbability"..."""
         # Test should be improved..."
-
         for rngclass in (nest.NumpyRNG, nest.NativeRNG):
             for expr in ('exp(-d)', 'd < 0.5'):
                 prj1 = nest.Projection(self.source33, self.target33,
@@ -443,7 +442,7 @@ class ProjectionInitTest(unittest.TestCase):
                     assert prj1._targets == prj2._targets, "%s %s" % (rngclass, expr)
 
     def testFixedProbability(self):
-        """For all connections created with "fixedProbability" it should be possible to obtain the weight using pynest.getWeight()"""
+        """For all connections created with "fixedProbability" it should be possible to obtain the weight using .getWeight()"""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 prj1 = nest.Projection(srcP, tgtP, "fixedProbability", 0.5)
@@ -452,8 +451,8 @@ class ProjectionInitTest(unittest.TestCase):
                     assert len(prj._sources) == len(prj._targets)
                     weights = []
                     for src, tgt in prj.connections():
-                        weights.append(nest.pynest.getWeight(src,tgt))
-                    assert weights == [1.0]*len(prj._sources)
+                        weights.append(nest.nest.GetWeight(src,tgt))
+                    assert weights == [1000.]*len(prj._sources)
                     
     def testSaveAndLoad(self):
         prj1 = nest.Projection(self.source22, self.target33, 'allToAll')
@@ -465,11 +464,11 @@ class ProjectionInitTest(unittest.TestCase):
         # For a connections scheme saved and reloaded, we test if the connections, their weights and their delays
         # are equal.
         for src,tgt in prj1.connections():
-            w1.append(nest.pynest.getWeight(src,tgt))
-            d1.append(nest.pynest.getDelay(src,tgt))
+            w1.append(nest.nest.GetWeight(src,tgt))
+            d1.append(nest.nest.GetDelay(src,tgt))
         for src,tgt in prj2.connections():
-            w2.append(nest.pynest.getWeight(src,tgt))
-            d2.append(nest.pynest.getDelay(src,tgt))
+            w2.append(nest.nest.GetWeight(src,tgt))
+            d2.append(nest.nest.GetDelay(src,tgt))
         assert (w1 == w2) and (d1 == d2)
 
 class ProjectionSetTest(unittest.TestCase):
@@ -488,14 +487,14 @@ class ProjectionSetTest(unittest.TestCase):
         for tgtP in [self.target6, self.target33]:
             for srcP in [self.source5, self.source22]:
                 for method in ('allToAll', 'fixedProbability'):
-                    self.prjlist.append( nest.Projection(srcP,tgtP,method,{'p_connect':0.5}) )
+                    self.prjlist.append(nest.Projection(srcP,tgtP,method,{'p_connect':0.5}) )
 
     def testSetWeightsToSingleValue(self):
-        """Weights set using setWeights() should be retrievable with pynest.getWeight()"""
+        """Weights set using setWeights() should be retrievable with .getWeight()"""
         for prj in self.prjlist:
             prj.setWeights(1.234)
             for src, tgt in prj.connections():
-                assert nest.pynest.getWeight(src,tgt) == 1234.0 # note the difference in units between pyNN and NEST
+                assert nest.nest.GetWeight(src,tgt) == 1234.0 # note the difference in units between pyNN and NEST
 
     #def testSetAndGetID(self):
         # Small test to see if the ID class is working
@@ -508,10 +507,10 @@ class ProjectionSetTest(unittest.TestCase):
         prj1.randomizeWeights(self.distrib_Numpy)
         w1 = []; w2 = [];
         for src,tgt in prj1.connections():
-            w1.append(nest.pynest.getWeight(src,tgt))
+            w1.append(nest.nest.GetWeight(src,tgt))
         prj1.randomizeWeights(self.distrib_Numpy)        
         for src, tgt in prj1.connections():
-            w2.append(nest.pynest.getWeight(src,tgt)) 
+            w2.append(nest.nest.GetWeight(src,tgt)) 
         self.assertNotEqual(w1,w2)
         
     def testrandomizeDelays(self):
@@ -520,10 +519,10 @@ class ProjectionSetTest(unittest.TestCase):
         prj1.randomizeDelays(self.distrib_Numpy)
         d1 = []; d2 = [];
         for src,tgt in prj1.connections():
-            d1.append(nest.pynest.getDelay(src,tgt))
+            d1.append(nest.nest.GetDelay(src,tgt))
         prj1.randomizeDelays(self.distrib_Numpy)        
         for src, tgt in prj1.connections():
-            d2.append(nest.pynest.getDelay(src,tgt)) 
+            d2.append(nest.nest.GetDelay(src,tgt)) 
         self.assertNotEqual(d1,d2)
 
 class IDTest(unittest.TestCase):
@@ -538,8 +537,8 @@ class IDTest(unittest.TestCase):
     def testIDSetAndGet(self):
         self.pop1[3].tau_m = 20.0
         self.pop2[3,2].v_reset = -70.0
-        ifcell_params = nest.pynest.getDict([self.pop1[3]])[0]
-        self.assertEqual(20.0, ifcell_params['Tau'])
+        ifcell_params = nest.nest.GetStatus([self.pop1[3]])[0]
+        self.assertEqual(20.0, ifcell_params['tau_m'])
         self.assertEqual(20.0, self.pop1[3].tau_m)
         self.assertEqual(10.0, self.pop1[0].tau_m)
         self.assertEqual(-70.0, self.pop2[3,2].v_reset)
