@@ -548,8 +548,7 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
         assert variable in ['spikes', 'v', 'conductance']
         recorder = population.recorders[variable]
     
-    print "Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder,
-                                                                      compatible_output)
+    #print "Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder, compatible_output)
     
     nest.FlushDevice(recorder) 
     status = nest.GetStatus([0])[0]
@@ -565,7 +564,7 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
         nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
         merged_filename = "%s/%s_%d" % (os.path.dirname(nest_filename), user_filename, nest.Rank())
         system_line = 'cat %s >> %s' % (nest_filename, merged_filename) 
-        print system_line
+        #print system_line
         os.system(system_line)
         os.remove(nest_filename)
     if gather and len(node_list) > 1:
@@ -581,7 +580,7 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
             # Here we postprocess the file to have effectively the
             # desired format: spiketime (in ms) cell_id-min(cell_id)
             #if not os.path.exists(user_filename):
-            result = open(user_filename,'w',1000)
+            result = open(user_filename,'w',10000)
             #else:
             #    result = open(user_filename,'a',1000)
                 
@@ -591,7 +590,7 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
                 padding = population.cell.flatten()[0]
             else:
                 padding = 0
-            result.write("# dt = %g\n" % nest.GetStatus([0], "resolution")[0])
+            result.write("# dt = %g\n" % dt)
                             
             # Writing spiketimes, cell_id-min(cell_id)
                  
@@ -604,14 +603,14 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
             # open file
             if int(os.path.getsize(merged_filename)) > 0:
                 data = _readArray(merged_filename, sepchar=None)
-                result.write("# n = %d\n" % len(data))
                 data[:,0] = data[:,0] - padding
                 # sort
-                indx = data.argsort(axis=0, kind='mergesort')[:,0] # will quicksort (not stable) work?
-                data = data[indx]
+                #indx = data.argsort(axis=0, kind='mergesort')[:,0] # will quicksort (not stable) work?
+                #data = data[indx]
                 if data.shape[1] == 4: # conductance files
                     raise Exception("Not yet implemented")
                 elif data.shape[1] == 3: # voltage files
+                    result.write("# n = %d\n" % int(nest.GetStatus([0], "time")[0]/dt))
                     for idx in xrange(len(data)):
                         result.write("%g\t%d\n" % (data[idx][2], data[idx][0])) # v id
                 elif data.shape[1] == 2: # spike files
@@ -1454,7 +1453,7 @@ class AllToAllConnector(common.AllToAllConnector):
         else: weight = 1000.
         if self.params.has_key('delays'):  delay = float(self.params['delays'])
         else: delay = _min_delay
-        
+        if projection.synapse_type == 'inhibitory' and weight > 0: weight *= -1
         postsynaptic_neurons  = projection.post.cell.flatten()
         target_list = postsynaptic_neurons.tolist()
         for pre in projection.pre.cell.flat:
@@ -1465,7 +1464,7 @@ class AllToAllConnector(common.AllToAllConnector):
                     target_list.remove(pre)
             projection._targets += target_list
             projection._sources += [pre]*len(target_list) 
-            conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+            #conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
             projection._targetPorts += target_list
             nest.DivergentConnectWD([pre], target_list, [weight], [delay])
         return len(projection._targets)
@@ -1478,7 +1477,7 @@ class OneToOneConnector(common.OneToOneConnector):
         else: weight = 1000.
         if self.params.has_key('delays'):  delay = float(self.params['delays'])
         else: delay = _min_delay
-        
+        if projection.synapse_type == 'inhibitory' and weight > 0: weight *= -1
         if projection.pre.dim == projection.post.dim:
             projection._sources = projection.pre.cell.flatten()
             projection._targets = projection.post.cell.flatten()
@@ -1498,7 +1497,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
         else: weight = 1000.
         if self.params.has_key('delays'):  delay = float(self.params['delays'])
         else: delay = _min_delay
-        
+        if projection.synapse_type == 'inhibitory' and weight > 0: weight *= -1
         #postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         postsynaptic_neurons  = projection.post.cell.flatten()
         npost= projection.post.size
@@ -1525,9 +1524,14 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         else: weight = 1000.
         if self.params.has_key('delays'):  delay = float(self.params['delays'])
         else: delay = _min_delay
-        
-        postsynaptic_neurons = projection.post.cell.flat # iterator
-        presynaptic_neurons  = projection.pre.cell.flatten() # array
+        if projection.synapse_type == 'inhibitory' and weight > 0: weight *= -1
+        periodic_boundaries = None
+        if self.params.has_key('periodic_boundaries'): 
+            if self.params['periodic_boundaries']:
+                dimensions = projection.post.dim
+                periodic_boundaries = numpy.concatenate((dimensions,numpy.zeros(3-len(dimensions))))
+        postsynaptic_neurons = projection.post.cell.flatten() # array
+        presynaptic_neurons  = projection.pre.cell.flat # iterator 
         # what about NativeRNG?
         if projection.rng:
             if isinstance(projection.rng, NativeRNG):
@@ -1538,18 +1542,23 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         else:
             rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
         j = 0
-        for post in postsynaptic_neurons:
-            for pre in presynaptic_neurons:
+        for pre in presynaptic_neurons:
+            target_list = []
+            for post in postsynaptic_neurons:
                 if self.allow_self_connections or pre != post: 
                     # calculate the distance between the two cells :
-                    d = common.distance(pre, post, self.mask, self.scale_factor)
+                    d = common.distance(pre, post, self.mask, self.scale_factor, self.offset, periodic_boundaries)
                     p = eval(self.d_expression)
                     if p >= 1 or (0 < p < 1 and rarr[j] < p):
-                        projection._sources.append(pre)
-                        projection._targets.append(post)
+                        target_list.append(post)
+                        #projection._targets.append(post)
                         #projection._targetPorts.append(nest.connect(pre_addr,post_addr))
-                        nest.ConnectWD([pre],[post], [weight], [delay])
+                        #nest.ConnectWD([pre],[post], [weight], [delay])
                 j += 1
+            projection._targets += target_list
+            projection._sources += [pre]*len(target_list) 
+            projection._targetPorts += target_list
+            nest.DivergentConnectWD([pre], target_list, [weight], [delay])
         return len(projection._sources)
 
 

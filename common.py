@@ -130,7 +130,7 @@ class ID(int):
         """Return a dict of all cell parameters."""
         return _abstractMethod(self)
 
-def distance(src, tgt, mask=None, scale_factor=1.0): # may need to add an offset parameter
+def distance(src, tgt, mask=None, scale_factor=1.0, offset=0., periodic_boundaries=None): # may need to add an offset parameter
     """
     Return the Euclidian distance between two cells.
     `mask` allows only certain dimensions to be considered, e.g.::
@@ -140,7 +140,10 @@ def distance(src, tgt, mask=None, scale_factor=1.0): # may need to add an offset
     `scale_factor` allows for different units in the pre- and post- position
     (the post-synaptic position is multipied by this quantity).
     """
-    d = src.position - scale_factor*tgt.position
+    d = src.position - scale_factor*(tgt.position + offset)
+    
+    if not periodic_boundaries == None:
+        d = numpy.array(map(min,((x_i,y_i) for (x_i,y_i) in zip(abs(d),periodic_boundaries-abs(d)))))
     if mask is not None:
         d = d[mask]
     return numpy.sqrt(numpy.dot(d,d))
@@ -935,13 +938,13 @@ class DistanceDependentProbabilityConnector(Connector):
     axes='xyz' is the same as axes=None.
     It may be that the pre and post populations use different units for position, e.g.
     degrees and µm. In this case, `scale_factor` can be specified, which is applied
-    to the positions in the post-synaptic population.
+    to the positions in the post-synaptic population. An offset can also be included.
     """
     
     AXES = {'x' : [0],    'y': [1],    'z': [2],
             'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': None, None: None}
     
-    def __init__(self, d_expression, axes=None, scale_factor=1.0, allow_self_connections=True, params={}):
+    def __init__(self, d_expression, axes=None, scale_factor=1.0, offset=0., allow_self_connections=True, params={}):
         assert isinstance(allow_self_connections, bool)
         assert isinstance(d_expression, str)
         try:
@@ -957,6 +960,7 @@ class DistanceDependentProbabilityConnector(Connector):
         if self.mask is not None:
             self.mask = numpy.array(self.mask)
         self.scale_factor = scale_factor
+        self.offset = offset
         
                 
 # ==============================================================================

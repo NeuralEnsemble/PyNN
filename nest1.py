@@ -1610,6 +1610,7 @@ class AllToAllConnector(common.AllToAllConnector):
         else: weight = 1000.
         if self.params.has_key('delays'):  delay = float(self.params['delays'])
         else: delay = _min_delay
+        if projection.synapse_type == 'inhibitory' and weight > 0: weight *= -1
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         for post in postsynaptic_neurons:
@@ -1629,6 +1630,7 @@ class OneToOneConnector(common.OneToOneConnector):
         else: weight = 1000.
         if self.params.has_key('delays'):  delay = float(self.params['delays'])
         else: delay = _min_delay
+        if projection.synapse_type == 'inhibitory' and weight > 0: weight *= -1
         if projection.pre.dim == projection.post.dim:
             projection._sources = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
             projection._targets = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
@@ -1647,6 +1649,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
         else: weight = 1000.
         if self.params.has_key('delays'):  delay = float(self.params['delays'])
         else: delay = _min_delay
+        if projection.synapse_type == 'inhibitory' and weight > 0: weight *= -1
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         npre = projection.pre.size
@@ -1671,6 +1674,12 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         else: weight = 1000.
         if self.params.has_key('delays'):  delay = float(self.params['delays'])
         else: delay = _min_delay
+        if projection.synapse_type == 'inhibitory' and weight > 0: weight *= -1
+        periodic_boundaries = None
+        if self.params.has_key('periodic_boundaries'): 
+            if self.params['periodic_boundaries']:
+                dimensions = projection.post.dim
+                periodic_boundaries = numpy.concatenate((dimensions,numpy.zeros(3-len(dimensions))))
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         # what about NativeRNG?
@@ -1684,19 +1693,23 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
         j = 0
         for post in postsynaptic_neurons:
+            source_list=[]
             for pre in presynaptic_neurons:
                 if self.allow_self_connections or pre != post: 
                     # calculate the distance between the two cells :
-                    d = common.distance(pre, post, self.mask, self.scale_factor)
+                    d = common.distance(pre, post, self.mask, self.scale_factor, self.offset, periodic_boundaries)
                     p = eval(self.d_expression)
                     # calculate the addresses of cells
-                    pre_addr  = pynest.getAddress(pre)
-                    post_addr = pynest.getAddress(post)
+                    #pre_addr  = pynest.getAddress(pre)
+                    #post_addr = pynest.getAddress(post)
                     if p >= 1 or (0 < p < 1 and rarr[j] < p):
-                        projection._sources.append(pre)
-                        projection._targets.append(post)
-                        projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr,weight,delay)) 
+                        source_list.append(pre)
+                        #projection._targets.append(post)
+                        #projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr,weight,delay)) 
                 j += 1
+            projection._targets += [post]*len(source_list)
+            projection._sources += source_list
+            projection._targetPorts += pynest.convergentConnect(source_list,post,[weight],[delay])
         return len(projection._sources)
         
 # ==============================================================================

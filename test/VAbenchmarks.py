@@ -39,7 +39,7 @@ import pyNN.utility
 
 rngseed  = 98765
 
-n        = 1000  # number of cells
+n        = 5000  # number of cells
 r_ei     = 4.0   # number of excitatory cells:number of inhibitory cells
 pconn    = 0.02  # connection probability
 stim_dur = 50.   # (ms) duration of random stimulation
@@ -69,8 +69,8 @@ if benchmark == "COBA":
     Gexc = 4.     # (nS)
     Ginh = 51.    # (nS)
 elif benchmark == "CUBA":
-    Gexc = 0.5    # (nS) #Those weights should be similar to the COBA weights
-    Ginh = 7.     # (nS) # but the delpolarising drift should be taken into account
+    Gexc = 0.27   # (nS) #Those weights should be similar to the COBA weights
+    Ginh = 4.5    # (nS) # but the delpolarising drift should be taken into account
 Erev_exc = 0.     # (mV)
 Erev_inh = -80.   # (mV)
 
@@ -127,7 +127,8 @@ exc_cells = Population((n_exc,), celltype, cell_params, "Excitatory_Cells")
 inh_cells = Population((n_inh,), celltype, cell_params, "Inhibitory_Cells")
 if benchmark == "COBA":
     ext_stim = Population((10,), SpikeSourcePoisson,{'rate' : rate, 'duration' : stim_dur},"expoisson")
-    conn = 0.005
+    rconn = 0.005
+    ext_conn = FixedProbabilityConnector(rconn, params={'weights' : 0.1})
     
 
 
@@ -142,7 +143,6 @@ print "%d Connecting populations..." % node_id
 
 exc_conn = FixedProbabilityConnector(pconn, params={'weights' : w_exc})
 inh_conn = FixedProbabilityConnector(pconn, params={'weights' : w_inh})
-ext_conn = FixedProbabilityConnector(pconn, params={'weights' : 0.1})
 
 connections = {'e2e' : Projection(exc_cells, exc_cells, exc_conn, target='excitatory',rng=rng),
                'e2i' : Projection(exc_cells, inh_cells, exc_conn, target='excitatory',rng=rng),

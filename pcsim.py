@@ -150,6 +150,7 @@ class SpikesMultiChannelRecorder(object):
                 spikes =  pcsim_globals.net.object(rec).getSpikeTimes()
                 all_spikes += zip( [ i for k in xrange(len(spikes)) ], spikes)
         all_spikes = sorted(all_spikes, key=operator.itemgetter(1))
+        f.write("# dt = %g\n" % pcsim_globals.dt)
         for spike in all_spikes:
             f.write("%s %s\n" % spike )                
         f.close()        
