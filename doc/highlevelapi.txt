@@ -66,7 +66,7 @@ To address individual neurons in a population, use ``[]`` notation, e.g.,::
     >>> p3[2,1,0]
     246
     
-The actual return values depend on the simulator engine used, and may be integers, strings, or Python objects.
+The actual return values depend on the simulator engine used, and may be integers, strings, or Python objects [NOTE: are they all now ID objects?].
 The n-tuple of values within the square brackets is referred to as a neurons's *address*, while the return value is its *id*.
 Trying to address a non-existent neuron will raise an Exception::
 
@@ -94,6 +94,17 @@ They may also be used to specify a position in space, e.g.::
     >>> p1[5,5].getPosition()
     (0.0, 0.10000000000000001)
 
+To access the 'i'th neuron in a Population, use the ``index()`` method, e.g.,::
+
+    >>> p1.index(0)
+    ?
+    >>> p1.index(5)
+    ?
+    >>> p1.index(24)
+    ?
+    >>> p1.index(25)
+    ? should raise an Exception
+
 Setting parameter values
 ========================
 
@@ -116,6 +127,10 @@ The following example sets the initial membrane potential of each neuron to a va
     >>> from pyNN.random import RandomDistribution
     >>> vinit_distr = RandomDistribution(distribution='uniform',parameters=[-70,-55])
     >>> p1.rset('v_init', vinit_distr)
+
+Note that positional arguments can also be used. The following produces the same result as the above::
+
+    >>> vinit_distr = RandomDistribution('uniform', [-70,-55])
 
 For the specific case of setting the initial membrane potential, there is a convenience method ``randomInit()``, e.g.::
 
@@ -142,6 +157,33 @@ To set the parameters of an individual neuron, you can use the low-level ``set()
 or you can use the set method of the ''ID'' object that the ``neuron``, ``nest1``, ``nest2``, and ``pcsim`` (but not ``oldneuron``) modules return as neuron ids::
 
     >>> p1[3,3].set('tau_m', 12.0)
+
+Iterating over all the neurons in a population
+==============================================
+
+To iterate over all the cells in a population, returning the neuron ids, use::
+
+    >>> for id in p1:
+    ...   print id, id.tau_m
+    ...
+    1 20.0
+    2 20.0
+    3 20.0
+    4 20.0
+    5 15.0
+    6 20.0
+
+The ``Population.ids()`` method produces the same result. To iterate over cells but return neuron addresses, use the ``addresses()`` method::
+
+    >>> for addr in p1.addresses():
+    ...   print addr
+    ...
+    (0, 0)
+    (0, 1)
+    (0, 2)
+    (1, 0)
+    (1, 1)
+    (1, 2)
     
 Recording
 =========
@@ -167,6 +209,14 @@ When running a distributed simulation, each node records only those neurons that
 By default, at the end of the simulation all nodes send their recorded data to the master node so that all values are written to a single output file.
 Again, there is a performance penalty for this, so if you wish each node to write its own file, add ``gather=False`` to the argument list.
 
+[NOTE1: do we make record_c() (for synaptic conductance) an official part of the API?]
+[NOTE2: What about having a single ``record()`` method which takes what to record as the first argument? and similarly for ``write()`` (being more Pythonic than ``print()``)?]
+
+Position in space
+=================
+
+``positions()``, ``nearest()``
+
 Statistics
 ==========
 
@@ -189,6 +239,8 @@ A ``Projection`` is created by specifying a pre-synaptic ``Population``, a post-
     
 This connects ``p2`` (pre-synaptic) to ``p1`` (post-synaptic), using the '``allToAll``' connection method, which connects every neuron in the pre-synaptic population to every neuron in the post-synaptic population.
 The currently available connection or 'wiring' methods are explained below.
+
+[NOTE: need to revise this section to explain the ``Connector`` classes]
 
 All-to-all connections
 ----------------------
@@ -256,6 +308,7 @@ Currently it is not possible to connect ``Population``\s which have different di
 
 but it is planned to change this in the next release.
 
+[NOTE new argument to allow periodic boundary conditions]
 
 Divergent/fan-out connections
 -----------------------------

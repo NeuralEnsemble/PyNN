@@ -288,8 +288,8 @@ class IF_cond_exp(StandardCellType):
         'cm'         : 1.0,     # Capacity of the membrane in nF
         'tau_m'      : 20.0,    # Membrane time constant in ms.
         'tau_refrac' : 0.0,     # Duration of refractory period in ms.
-        'tau_syn_E'  : 5.0,     # Rise time of the excitatory synaptic alpha function in ms.
-        'tau_syn_I'  : 5.0,     # Rise time of the inhibitory synaptic alpha function in ms.
+        'tau_syn_E'  : 5.0,     # Decay time of the excitatory synaptic conductance in ms.
+        'tau_syn_I'  : 5.0,     # Decay time of the inhibitory synaptic conductance in ms.
         'e_rev_E'    : 0.0,     # Reversal potential for excitatory input in mV
         'e_rev_I'    : -70.0,   # Reversal potential for inhibitory input in mV
         'v_thresh'   : -50.0,   # Spike threshold in mV.

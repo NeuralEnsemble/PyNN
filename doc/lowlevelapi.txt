@@ -125,16 +125,33 @@ If the neuron model has more than one synapse mechanism, or more than one synapt
 Setting neuron parameters
 =========================
 
-The parameters for individual neurons and post-synaptic mechanisms may be changed after creation of the neuron using the ``set()`` function, e.g.::
+There are many ways to change the parameters for individual neurons and post-synaptic mechanisms after creation of the neuron.
+To change a single parameter of a single neuron, just set the relevant attribute of the neuron id object, e.g.::
 
     >>> cells = create(IF_curr_exp, paramDict={'v_init': -70.0}, n=10)
+    >>> cells[0].tau_m
+    20.0
+    >>> cells[0].tau_m = 15
+    >>> cells[0].tau_m
+    15.0
+    
+To change several parameters at once for a single neuron, use the ``setParameters()`` method of the neuron id, e.g.::
+
+    >>> cells[1].setParameters(tau_m=10.0, cm=0.9)
+    >>> cells[1].tau_m
+    10.0
+    >>> cells[1].cm
+    0.9
+
+To change parameters for several cells at once, use the ``set()`` function, e.g.::
+
     >>> set(cells[0:5], IF_curr_exp, param='v_init', val=-65.0)
     >>> print cells[0].v_init
     -65.0
     >>> print cells[5].v_init
     -70.0
     
-It is unfortunately necessary to specify the neuron type as the second argument, since cell ids do not (currently, at least) hold information about the neuron type.
+It is unfortunately necessary to specify the neuron type as the second argument, since cell ids do not (currently, at least) hold information about the neuron type [NOTE: not sure if this is still true, due to cellclass property - what about string (native) cell classes?].
 Individual parameters can be set using the ``param`` and ``val`` arguments, as above, or multiple parameters can be set at once by passing a dictionary of name:value pairs as the ``param`` argument, with ``val`` empty, e.g.::
 
     >>> set(cells, IF_curr_exp, param={'tau_refrac': 2.0, 'tau_syn_E': 5.0})
@@ -143,6 +160,11 @@ An alternative way to set parameter values is to call the ``set()`` method of th
 
     >>> cells[0].set('v_reset', -70.0)
     >>> cells[1].set({'tau_refrac': 2.0, 'tau_syn_E': 5.0})
+
+Setting position in space
+=========================
+
+[to write]
 
 Recording spikes and membrane potential
 =======================================

@@ -124,6 +124,11 @@ You should now be able to run PyNN with NEURON as the simulator::
 If your model relies on other NMODL mechanisms, copy the mod files from pyNN/hoc to the directory in which they are contained, run ``nrnivmodl`` again, and modify the ``nrnpython`` alias accordingly.
 
 
+Running PyNN on a parallel machine
+==================================
+
+[to write - mention both threads and MPI]
+
 .. _PyNN: http://neuralensemble.kip.uni-heidelberg.de/trac/PyNN
 .. _numpy: http://numpy.scipy.org/
 .. _PCSIM: http://sourceforge.net/projects/pcsim/
