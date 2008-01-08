@@ -253,13 +253,16 @@ class ID(long):
             return self.setParameters(**{name:value})
         
     def __getattr__(self,name):
-        """Note that this currently does not translate units."""
-        translated_name = self.cellclass.translations[name][0]
+        """Note that this currently does not work for parameters that are computed
+        from the value of other parameters. Will need to get all parameters involved
+        in the computation."""
+        translated_name = self.cellclass.translations[name]['translated_name']
         if self.parent:
-            return getattr(self.parent.pcsim_population.object(self), translated_name)
+            pval = getattr(self.parent.pcsim_population.object(self), translated_name)
         else:
-            return getattr(pcsim_globals.net.object(self), translated_name)
-        
+            pval = getattr(pcsim_globals.net.object(self), translated_name)
+        return pval
+            
     def setParameters(self,**parameters):
         #if hasattr(self,'in_population'):
         if self.parent:
@@ -305,18 +308,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
         common.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)                
         self.parameters['Inoise'] = 0.0
-        self.simObjFactory = LIFCurrAlphaNeuron(taum     = self.parameters['taum'], 
-                                                Cm       = self.parameters['Cm'], 
-                                                Vresting = self.parameters['Vresting'], 
-                                                Vthresh  = self.parameters['Vthresh'],
-                                                Vreset   = self.parameters['Vreset'],
-                                                Trefract = self.parameters['Trefract'], 
-                                                Iinject  = self.parameters['Iinject'], 
-                                                Vinit    = self.parameters['Vinit'], 
-                                                Inoise   = self.parameters['Inoise'], 
-                                                TauSynExc = self.parameters['TauSynExc'],
-                                                TauSynInh = self.parameters['TauSynInh'])
-
+        self.simObjFactory = LIFCurrAlphaNeuron(**self.parameters)
 
 
 class IF_curr_exp(common.IF_curr_exp):
@@ -385,6 +377,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
         common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)                
         self.parameters['Inoise'] = 0.0
+        print self.parameters
         self.simObjFactory = LIFCondAlphaNeuron(taum      = self.parameters['taum'], 
                                                 Cm        = self.parameters['Cm'], 
                                                 Vresting  = self.parameters['Vresting'], 
@@ -496,6 +489,46 @@ class SpikeSourceArray(common.SpikeSourceArray):
         elif isinstance(translated_parameters['spikeTimes'],numpy.array):
             translated_parameters['spikeTimes'] *= 0.001 
         return translated_parameters
+
+
+class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
+    """adaptive exponential integrate and fire neuron according to Brette and Gerstner (2005)"""
+
+    translations = common.build_translations(
+        ('v_init'    , 'Vinit',     1e-3),  # mV -> V
+        ('w_init'    , 'w',         1e-9),  # nA -> A
+        ('cm'        , 'Cm',        1e-9),  # nF -> F
+        ('tau_refrac', 'Trefract',  1e-3),  # ms -> s 
+        ('v_spike'   , 'Vpeak',     1e-3),
+        ('v_reset'   , 'Vr',        1e-3),
+        ('v_rest'    , 'El',        1e-3),
+        ('tau_m'     , 'gl',        "1e-6*cm/tau_m", "Cm/gl"), # units correct?
+        ('i_offset'  , 'Iinject',   1e-9),
+        ('a'         , 'a',         1e-9),       
+        ('b'         , 'b',         1e-9),
+        ('delta_T'   , 'slope',     1e-3), 
+        ('tau_w'     , 'tau_w',     1e-3), 
+        ('v_thresh'  , 'Vt',        1e-3), 
+        ('e_rev_E'   , 'ErevExc',   1e-3),
+        ('tau_syn_E' , 'TauSynExc', 1e-3), 
+        ('e_rev_I'   , 'ErevInh',   1e-3), 
+        ('tau_syn_I' , 'TauSynInh',  1e-3),
+    )
+    pcsim_name = "CbaEIFNeuron"
+    simObjFactory = None
+    setterMethods = {}
+    
+    def __init__(self, parameters):
+        common.AdaptiveExponentialIF_alpha.__init__(self,parameters)
+        self.parameters = self.translate1(self.parameters)                
+        self.parameters['Inoise'] = 0.0
+        print self.parameters
+        limited_parameters = {}
+        for k in ('a','b','Vt','Vr','El','gl','Cm','tau_w','slope','Vpeak',
+                  'Vinit','Inoise','Iinject'):
+            limited_parameters[k] = self.parameters[k]
+        self.simObjFactory = CbaEIFNeuron(**limited_parameters)
+        
                         
 # ==============================================================================
 #   Functions for simulation set-up and control
