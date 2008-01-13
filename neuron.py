@@ -1167,7 +1167,9 @@ class Projection(common.Projection):
     
     nProj = 0
     
-    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',methodParameters=None,source=None,target=None,label=None,rng=None):
+    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',
+                 methodParameters=None,source=None,target=None,
+                 synapse_dynamics=None, label=None,rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -1185,13 +1187,16 @@ class Projection(common.Projection):
         although we should allow this to be a number or string if there is only
         one parameter.
         
+        synapse_dynamics - ...
+        
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
         than within methodParameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
         global _min_delay
-        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,methodParameters,source,target,label,rng)
+        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,
+                                   methodParameters,source,target,synapse_dynamics,label,rng)
         self.connections = []
         if not label:
             self.label = 'projection%d' % Projection.nProj
@@ -1215,6 +1220,24 @@ class Projection(common.Projection):
         if (method != 'fromList') and (method != 'fromFile'):
             self.setDelays(_min_delay)
         
+        # Deal with synaptic plasticity
+        if isinstance(self.synapse_dynamics, SynapseDynamics):
+            self.short_term_plasticity_mechanism = self.synapse_dynamics.fast
+            self.long_term_plasticity_mechanism = self.synapse_dynamics.slow
+        else:
+            print type(synapse_dynamics)
+            raise Exception("The synapse_dynamics argument, if specified, must be a SynapseDynamics object.")
+        if self.short_term_plasticity_mechanism is not None:
+            raise Exception("Not yet implemented.")
+        if self.long_term_plasticity_mechanism is not None:
+            assert isinstance(self.long_term_plasticity_mechanism, STDPMechanism)
+            print "Using %s" % self.long_term_plasticity_mechanism
+            td = self.long_term_plasticity_mechanism.timing_dependence
+            wd = self.long_term_plasticity_mechanism.weight_dependence
+            self.setupSTDP('StdwaSA', {'wmax': wd.w_max, 'wmin': wd.w_min,
+                                       'aLTP': wd.A_plus, 'aLTD': wd.A_minus,
+                                       'tauLTP': td.tau_plus, 'tauLTD': td.tau_minus})
+            
         Projection.nProj += 1
 
     def __len__(self):
@@ -1646,6 +1669,10 @@ class Projection(common.Projection):
     
     # --- Methods for writing/reading information to/from file. ----------------
     
+    def weights(self, gather=False):
+        """Not in the API, but should be."""
+        return [HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float') for i in range(len(self))]
+    
     def saveConnections(self,filename,gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
@@ -1683,7 +1710,10 @@ class Projection(common.Projection):
             hoc_execute(hoc_commands, "--- [Posting weights list to master] ---")
 
         if not gather or myid == 0:
-            f = open(filename,'w',10000)
+            if hasattr(filename, 'write'): # filename should be renamed to file, to allow open file objects to be used
+                f = filename
+            else:
+                f = open(filename,'w',10000)
             for i in xrange(len(self)):
                 weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
                 f.write(weight)
@@ -1695,7 +1725,8 @@ class Projection(common.Projection):
                     for j in xrange(HocToPy.get('weight_list.size()', 'int')):
                         weight = "%f\n" %HocToPy.get('weight_list.x[%d]' %j, 'float')
                         f.write(weight)
-            f.close()
+            if not hasattr(filename, 'write'):
+                f.close()
   
     def weightHistogram(self,min=None,max=None,nbins=10):
         """
@@ -1823,6 +1854,59 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                         hoc_commands += self.singleConnect(projection,src,tgt,weight,delay)
                 j += 1
         return hoc_commands
+    
+# ==============================================================================
+#   Synapse Dynamics classes
+# ==============================================================================
+
+class SynapseDynamics(common.SynapseDynamics):
+    """
+    For specifying synapse short-term (faciliation,depression) and long-term
+    (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
+    `Projection.__init__()` or `connect()`.
+    """
+    
+    def __init__(self, fast=None, slow=None):
+        common.SynapseDynamics.__init__(self, fast, slow)
+
+class STDPMechanism(common.STDPMechanism):
+    """Specification of STDP models."""
+    
+    def __init__(self, timing_dependence=None, weight_dependence=None,
+                 voltage_dependence=None):
+        common.STDPMechanism.__init__(self, timing_dependence, weight_dependence, voltage_dependence)
+
+class TsodkysMarkramMechanism(common.TsodkysMarkramMechanism):
+    
+    def __init__(self, U, D, F, u0, r0, f0):
+        common.TsodkysMarkramMechanism.__init__(self, U, D, F, u0, r0, f0)
+
+class AdditiveWeightDependence(common.AdditiveWeightDependence):
+    """
+    The amplitude of the weight change is fixed for depression (`A_minus`)
+    and for potentiation (`A_plus`).
+    If the new weight would be less than `w_min` it is set to `w_min`. If it would
+    be greater than `w_max` it is set to `w_max`.
+    """
+    
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
+        common.AdditiveWeightDependence.__init__(self,w_min, w_max, A_plus, A_minus)
+
+class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
+    """
+    The amplitude of the weight change depends on the current weight.
+    For depression, Dw propto w-w_min
+    For potentiation, Dw propto w_max-w
+    """
+    
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
+        pass
+
+class SpikePairRule(common.SpikePairRule):
+    
+    def __init__(self, tau_plus, tau_minus):
+        self.tau_plus = tau_plus
+        self.tau_minus = tau_minus
     
 # ==============================================================================
 #   Utility classes

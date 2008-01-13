@@ -647,7 +647,8 @@ class Projection:
     
     def __init__(self, presynaptic_population, postsynaptic_population,
                  method='allToAll', methodParameters=None,
-                 source=None, target=None, label=None, rng=None):
+                 source=None, target=None, synapse_dynamics=None,
+                 label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -665,6 +666,8 @@ class Projection:
         although we should allow this to be a number or string if there is only
         one parameter.
         
+        synapse_dynamics - ...
+        
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
         than within methodParameters, particularly since some methods also use
@@ -677,6 +680,7 @@ class Projection:
         self.target = target                  # }
         self.label = label
         self.rng = rng
+        self.synapse_dynamics = synapse_dynamics
         self.connection = None # access individual connections. To be defined by child, simulator-specific classes
         if label is None:
             if self.pre.label and self.post.label:
@@ -688,7 +692,7 @@ class Projection:
     
     # --- Connection methods ---------------------------------------------------
     
-    def _allToAll(self,parameters=None,synapse_type=None):
+    def _allToAll(self,parameters=None):
         """
         Connect all cells in the presynaptic population to all cells in the postsynaptic population.
         """
@@ -697,7 +701,7 @@ class Projection:
         if parameters and parameters.has_key('allow_self_connections'):
             allow_self_connections = parameters['allow_self_connections']
     
-    def _oneToOne(self,synapse_type=None):
+    def _oneToOne(self):
         """
         Where the pre- and postsynaptic populations have the same size, connect
         cell i in the presynaptic population to cell i in the postsynaptic
@@ -709,7 +713,7 @@ class Projection:
         """
         return _abstractMethod(self)
     
-    def _fixedProbability(self,parameters,synapse_type=None):
+    def _fixedProbability(self,parameters):
         """
         For each pair of pre-post cells, the connection probability is constant.
         """
@@ -721,7 +725,7 @@ class Projection:
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
     
-    def _distanceDependentProbability(self,parameters,synapse_type=None):
+    def _distanceDependentProbability(self,parameters):
         """
         For each pair of pre-post cells, the connection probability depends on distance.
         d_expression should be the right-hand side of a valid python expression
@@ -735,7 +739,7 @@ class Projection:
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
     
-    def _fixedNumberPre(self,parameters,synapse_type=None):
+    def _fixedNumberPre(self,parameters):
         """Each presynaptic cell makes a fixed number of connections."""
         allow_self_connections = True
         if type(parameters) == types.IntType:
@@ -750,7 +754,7 @@ class Projection:
         else : # assume parameters is a rng
             rng = parameters
     
-    def _fixedNumberPost(self,parameters,synapse_type=None):
+    def _fixedNumberPost(self,parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
         allow_self_connections = True
         if type(parameters) == types.IntType:
@@ -765,7 +769,7 @@ class Projection:
         else : # assume parameters is a rng
             rng = parameters
     
-    def _fromFile(self,parameters,synapse_type=None):
+    def _fromFile(self,parameters):
         """
         Load connections from a file.
         """
@@ -780,7 +784,7 @@ class Projection:
             # implement this...
             pass
         
-    def _fromList(self,conn_list,synapse_type=None):
+    def _fromList(self,conn_list):
         """
         Read connections from a list of tuples,
         containing [pre_addr, post_addr, weight, delay]
@@ -962,7 +966,105 @@ class DistanceDependentProbabilityConnector(Connector):
         self.scale_factor = scale_factor
         self.offset = offset
         
+# ==============================================================================
+#   Synapse Dynamics classes
+# ==============================================================================
+
+class SynapseDynamics(object):
+    """
+    For specifying synapse short-term (faciliation,depression) and long-term
+    (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
+    `Projection.__init__()` or `connect()`.
+    """
+    
+    def __init__(self, fast=None, slow=None):
+        self.fast = fast
+        self.slow = slow
                 
+class ShortTermPlasticityMechanism(object):
+    """Abstract base class for models of short-term synaptic dynamics."""
+    
+    def __init__(self):
+        _abstractMethod(self)
+
+class STDPMechanism(object):
+    """Specification of STDP models."""
+    
+    def __init__(self, timing_dependence=None, weight_dependence=None,
+                 voltage_dependence=None):
+        self.timing_dependence = timing_dependence
+        self.weight_dependence = weight_dependence
+        self.voltage_dependence = voltage_dependence
+
+class TsodkysMarkramMechanism(ShortTermPlasticityMechanism):
+    
+    def __init__(self, U, D, F, u0, r0, f0):
+        self.U = U # use parameter
+        self.D = D # depression time constant (ms)
+        self.F = F # facilitation time constant (ms)
+        self.u0 = u0 # } initial 
+        self.r0 = r0 # } values
+        
+class STDPWeightDependence(object):
+    """Abstract base class for models of STDP weight dependence."""
+    
+    def __init__(self):
+        _abstractMethod(self)
+        
+class STDPTimingDependence(object):
+    """Abstract base class for models of STDP timing dependence (triplets, etc)"""
+    
+    def __init__(self):
+        _abstractMethod(self)
+
+class AdditiveWeightDependence(STDPWeightDependence):
+    """
+    The amplitude of the weight change is fixed for depression (`A_minus`)
+    and for potentiation (`A_plus`).
+    If the new weight would be less than `w_min` it is set to `w_min`. If it would
+    be greater than `w_max` it is set to `w_max`.
+    """
+    
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
+        self.w_min = w_min
+        self.w_max = w_max
+        self.A_plus = A_plus
+        self.A_minus = A_minus
+
+class MultiplicativeWeightDependence(STDPWeightDependence):
+    """
+    The amplitude of the weight change depends on the current weight.
+    For depression, Dw propto w-w_min
+    For potentiation, Dw propto w_max-w
+    """
+    
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
+        pass
+    
+
+class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
+    """
+    For depression, Dw propto w-w_min
+    For potentiation, Dw constant
+    (van Rossum rule?)
+    """
+
+    def __init__(self, w_min=0.0, A_plus=0.01, A_minus=0.01):
+        pass
+    
+class GutigWeightDependence(STDPWeightDependence):
+    pass
+
+class PfisterSpikeTripletRule(STDPTimingDependence):
+    pass
+
+class SpikePairRule(STDPTimingDependence):
+    
+    def __init__(self, tau_plus, tau_minus):
+        self.tau_plus = tau_plus
+        self.tau_minus = tau_minus
+
+
 # ==============================================================================
 #   Utility classes
 # ==============================================================================

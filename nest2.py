@@ -1020,7 +1020,8 @@ class Projection(common.Projection):
                 assert isinstance(id, int)
                 return (self.parent._sources[id], self.parent._targetPorts[id])
     
-    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',methodParameters=None,source=None,target=None,label=None,rng=None):
+    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',
+                 methodParameters=None,source=None,target=None,label=None,rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -1043,7 +1044,8 @@ class Projection(common.Projection):
         than within methodParameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
-        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,methodParameters,source,target,label,rng)
+        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,
+                                   method,methodParameters,source,target,label,rng)
         
         self._targetPorts = [] # holds port numbers
         self._targets = []     # holds gids
