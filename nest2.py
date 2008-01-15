@@ -1005,11 +1005,10 @@ class Population(common.Population):
     
 class Projection(common.Projection):
     """
-    A container for all the connections between two populations, together with
-    methods to set parameters of those connections, including of plasticity
-    mechanisms.
-    """
-    
+    A container for all the connections of a given type (same synapse type and
+    plasticity mechanisms) between two populations, together with methods to set
+    parameters of those connections, including of plasticity mechanisms.
+    """    
     class ConnectionDict:
             
             def __init__(self,parent):

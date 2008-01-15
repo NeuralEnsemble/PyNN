@@ -640,9 +640,9 @@ class Population:
 
 class Projection:
     """
-    A container for all the connections between two populations, together with
-    methods to set parameters of those connections, including of plasticity
-    mechanisms.
+    A container for all the connections of a given type (same synapse type and
+    plasticity mechanisms) between two populations, together with methods to set
+    parameters of those connections, including of plasticity mechanisms.
     """
     
     def __init__(self, presynaptic_population, postsynaptic_population,
@@ -983,6 +983,7 @@ class SynapseDynamics(object):
                 
 class ShortTermPlasticityMechanism(object):
     """Abstract base class for models of short-term synaptic dynamics."""
+    # implement a translation mechanism here, as for StandardCell ?
     
     def __init__(self):
         _abstractMethod(self)
