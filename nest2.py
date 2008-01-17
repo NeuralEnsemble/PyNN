@@ -1665,9 +1665,37 @@ class FixedNumberPreConnector(common.FixedNumberPreConnector):
 
 class FixedNumberPostConnector(common.FixedNumberPostConnector):
     
-    def connect(self, projection):
-        raise Exception("Not implemented yet !")
-
+    def connect(self, projection):        
+        npre = projection.pre.size
+        presynaptic_neurons  = projection.pre.cell.flatten()
+        if projection.rng:
+            rng = projection.rng
+        else:
+            rng = numpy.random
+        for post in projection.post.cell.flat:
+            if hasattr(self, 'rand_distr'):
+                n = self.rand_distr.next()
+            else:
+                n = self.n
+            source_list = rng.permutation(presynaptic_neurons)[0:n]
+            # if self connections are not allowed, check whether pre and post are the same
+            if not self.allow_self_connections and pre in source_list:
+                source_list.remove(pre)
+            
+            N = len(source_list)
+            weights = 1000.0*self.getWeights(N)
+            if projection.synapse_type == 'inhibitory':
+                weights *= -1    
+            delays = self.getDelays(N)
+            
+            nest.ConvergentConnectWD(source_list.tolist(), [post], weights.tolist(), delays.tolist())
+        for pre in presynaptic_neurons:
+            projection._sources += [pre]*N
+            conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+            if isinstance(conn_dict, dict):
+                projection._targets += conn_dict['targets']
+                projection._targetPorts += range(len(conn_dict['targets']))
+        return len(projection._sources)
 
 # ==============================================================================
 #   Utility classes

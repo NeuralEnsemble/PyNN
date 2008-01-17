@@ -10,7 +10,7 @@ __version__ = "$Revision$"
 import types, time, copy, sys
 import numpy
 from math import *
-
+from pyNN import random
 
 class InvalidParameterValueError(Exception): pass
 class NonExistentParameterError(Exception): pass
@@ -18,6 +18,7 @@ class InvalidDimensionsError(Exception): pass
 class ConnectionError(Exception): pass
 
 dt = 0.1
+_min_delay = 0.1
 
 # ==============================================================================
 #   Utility classes and functions
@@ -900,52 +901,99 @@ class Projection:
 # ==============================================================================
 
 class Connector(object):
-    """Abstract base class for Connector classes."""
+    """Base class for Connector classes."""
     
-    def __init__(self):
-        _abstractMethod(self)
+    def __init__(self, weights, delays):
+        self.w_index = 0 # should probably use a generator
+        self.d_index = 0 # rather than storing these values
+        self.weights = weights
+        self.delays = delays
     
     def connect(self,projection):
         """Connect all neurons in ``projection``"""
         _abstractMethod(self)
-
+        
+    def getWeights(self, N):
+        """
+        Returns the next N weight values
+        """
+        if isinstance(self.weights, random.RandomDistribution): # random
+            weights = numpy.array(self.weights.next(N))
+        elif isinstance(self.weights, int) or isinstance(self.weights, float):  # int, float
+            weights = numpy.ones((N,))*float(self.weights)
+        elif hasattr(self.weights, "__len__"):                                            # numpy array
+            weights = self.weights[self.w_index:self.w_index+N]
+        else:
+            raise Exception("weights is of type %s" % type(self.weights))
+        assert numpy.all(weights>=0), "Weight values must be positive"
+        self.w_index += N
+        return weights
+    
+    def getDelays(self, N, start=0):
+        """
+        Returns the next N delays values
+        """
+        if isinstance(self.delays, random.RandomDistribution): # random
+            delays = numpy.array(self.delays.next(N))
+        elif isinstance(self.weights, int) or isinstance(self.weights, float):  # int, float
+            delays = numpy.ones((N,))*float(self.delays)
+        elif hasattr(delays, "__len__"):                           # numpy array
+            delays = self.delays[self.d_index:self.d_index+N]
+        else:
+            raise Exception("delays is of type %s" % type(self.delays))
+        assert numpy.all(delays>=_min_delay), "Delay values must be greater than the minimum delay"
+        self.d_index += N
+        return delays
+    
 class AllToAllConnector(Connector):
     """
     Connects all cells in the presynaptic population to all cells in the
     postsynaptic population.
     """
     
-    def __init__(self, allow_self_connections=True, weights=None, delays=None):
+    def __init__(self, allow_self_connections=True, weights=0.0, delays=_min_delay):
+        Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
-        self.weights = weights
-        self.delays = delays
-
-
+        
 class FixedNumberPostConnector(Connector):
     """
-    Connects all cells in the presynaptic population to fixed number of
-    cells in the postsynaptic population, randomly choosen.
+    Each postsynaptic cell receives a fixed number of connections, chosen
+    randomly from the presynaptic cells.
     """
-    def __init__(self, fixedpost, allow_self_connections=True, weights=None, delays=None):
+    
+    def __init__(self, n, allow_self_connections=True, rand_distr=None, weights=0.0, delays=_min_delay):
+        Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
-        self.weights = weights
-        self.delays = delays
-        self.fixedpost = int(fixedpost)
-
+        if isinstance(n, int):
+            self.n = n
+            assert n >= 0
+        elif isinstance(n, random.RandomDistribution):
+            self.rand_distr = n
+            # weak check that the random distribution is ok
+            assert numpy.all(numpy.array(n.next(100)) > 0), "the random distribution produces negative numbers"
+        else:
+            raise Exception("n must be an integer or a RandomDistribution object")
 
 class FixedNumberPreConnector(Connector):
     """
     Connects all cells in the postsynaptic population to fixed number of
     cells in the presynaptic population, randomly choosen.
     """
-    def __init__(self, fixedpre, allow_self_connections=True, weights=None, delays=None):
+    def __init__(self, n, allow_self_connections=True, rand_distr=None, weights=0.0, delays=_min_delay):
+        Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
-        self.weights = weights
-        self.delays = delays
-        self.fixedpre = int(fixedpre)
+        if isinstance(n, int):
+            self.n = n
+            assert n >= 0
+        elif isinstance(n, random.RandomDistribution):
+            self.rand_distr = n
+            # weak check that the random distribution is ok
+            assert numpy.all(numpy.array(n.next(100)) > 0), "the random distribution produces negative numbers"
+        else:
+            raise Exception("n must be an integer or a RandomDistribution object")
 
 class OneToOneConnector(Connector):
     """
@@ -958,21 +1006,18 @@ class OneToOneConnector(Connector):
     in row i of a 2D post population of size (n,m).
     """
     
-    def __init__(self, weights=None, delays=None):
-        self.weights = weights
-        self.delays = delays
-        pass
+    def __init__(self, weights=0.0, delays=None):
+        Connector.__init__(self, weights, delays)
     
 class FixedProbabilityConnector(Connector):
     """
     For each pair of pre-post cells, the connection probability is constant.
     """
     
-    def __init__(self, p_connect, allow_self_connections=True, weights=None, delays=None):
+    def __init__(self, p_connect, allow_self_connections=True, weights=0.0, delays=_min_delay):
+        Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
-        self.weights = weights
-        self.delays = delays
         self.p_connect = float(p_connect)
         assert 0 <= self.p_connect
         
@@ -992,7 +1037,10 @@ class DistanceDependentProbabilityConnector(Connector):
     AXES = {'x' : [0],    'y': [1],    'z': [2],
             'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': None, None: None}
     
-    def __init__(self, d_expression, axes=None, scale_factor=1.0, offset=0., periodic_boundaries=False, allow_self_connections=True, weights=None, delays=None):
+    def __init__(self, d_expression, axes=None, scale_factor=1.0, offset=0.,
+                 periodic_boundaries=False, allow_self_connections=True,
+                 weights=0.0, delays=_min_delay):
+        Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         assert isinstance(d_expression, str)
         try:
@@ -1003,14 +1051,14 @@ class DistanceDependentProbabilityConnector(Connector):
             raise
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
-        self.weights = weights
-        self.delays = delays
         self.mask = DistanceDependentProbabilityConnector.AXES[axes]
         self.periodic_boundaries = periodic_boundaries
         if self.mask is not None:
             self.mask = numpy.array(self.mask)
         self.scale_factor = scale_factor
         self.offset = offset
+        
+
         
 # ==============================================================================
 #   Synapse Dynamics classes
