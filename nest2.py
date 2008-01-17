@@ -1186,89 +1186,19 @@ class Projection(common.Projection, WDManager):
                 
     def _fixedNumberPre(self,parameters):
         """Each presynaptic cell makes a fixed number of connections."""
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-            assert n > 0
-            fixed = True
-        elif type(parameters) == types.DictType:
-            if parameters.has_key('n'): # all cells have same number of connections
-                n = int(parameters['n'])
-                assert n > 0
-                fixed = True
-            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
-                rand_distr = parameters['rand_distr']
-                assert isinstance(rand_distr,RandomDistribution)
-                fixed = False
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        elif isinstance(parameters, RandomDistribution):
-            rand_distr = parameters
-            fixed = False
-        else:
-            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-         
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-        if self.rng:
-            rng = self.rng
-        else:
-            rng = numpy.random
-        for pre in presynaptic_neurons:
-            pre_addr = nest.getAddress(pre)
-            # Reserve space for connections
-            if not fixed:
-                n = rand_distr.next()
-            nest.resCons(pre_addr,n)                
-            # pick n neurons at random
-            for post in rng.permutation(postsynaptic_neurons)[0:n]:
-                if allow_self_connections or (pre != post):
-                    self._sources.append(pre)
-                    self._targets.append(post)
-                    self._targetPorts.append(nest.connect(pre_addr,nest.getAddress(post)))
+        n = parameters['n']
+        if parameters.has_key('allow_self_connections'):
+            allow_self_connections = parameters['allow_self_connections']
+        c = FixedNumberPreConnector(n, allow_self_connections)
+        return c.connect(self)
     
     def _fixedNumberPost(self,parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-            assert n > 0
-            fixed = True
-        elif type(parameters) == types.DictType:
-            if parameters.has_key('n'): # all cells have same number of connections
-                n = int(parameters['n'])
-                assert n > 0
-                fixed = True
-            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
-                rand_distr = parameters['rand_distr']
-                assert isinstance(rand_distr,RandomDistribution)
-                fixed = False
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        elif isinstance(parameters, RandomDistribution):
-            rand_distr = parameters
-            fixed = False
-        else:
-            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-         
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-        if self.rng:
-            rng = self.rng
-        else:
-            rng = numpy.random
-        for post in postsynaptic_neurons:
-            post_addr = nest.getAddress(post)
-            # Reserve space for connections
-            if not fixed:
-                n = rand_distr.next()
-            nest.resCons(post_addr,n)                
-            # pick n neurons at random
-            for pre in rng.permutation(presynaptic_neurons)[0:n]:
-                if allow_self_connections or (pre != post):
-                    self._sources.append(pre)
-                    self._targets.append(post)
-                    self._targetPorts.append(nest.connect(nest.getAddress(pre),post_addr))
+        n = parameters['n']
+        if parameters.has_key('allow_self_connections'):
+            allow_self_connections = parameters['allow_self_connections']
+        c = FixedNumberPostConnector(n, allow_self_connections)
+        return c.connect(self)
     
     def _fromFile(self,parameters):
         """
@@ -1660,7 +1590,36 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
 class FixedNumberPreConnector(common.FixedNumberPreConnector):
     
     def connect(self, projection):
-        raise Exception("Not implemented yet !")
+        npost = projection.post.size
+        postsynaptic_neurons  = projection.post.cell.flatten()
+        if projection.rng:
+            rng = projection.rng
+        else:
+            rng = numpy.random
+        for pre in projection.pre.cell.flat:
+            if hasattr(self, 'rand_distr'):
+                n = self.rand_distr.next()
+            else:
+                n = self.n
+            target_list = rng.permutation(postsynaptic_neurons)[0:n]
+            # if self connections are not allowed, check whether pre and post are the same
+            if not self.allow_self_connections and pre in target_list:
+                target_list.remove(pre)
+            
+            N = len(target_list)
+            weights = 1000.0*self.getWeights(N)
+            if projection.synapse_type == 'inhibitory':
+                weights *= -1    
+            delays = self.getDelays(N)
+            
+            nest.DivergentConnectWD([pre], target_list.tolist(), weights.tolist(), delays.tolist())
+        
+            projection._sources += [pre]*N
+            conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+            if isinstance(conn_dict, dict):
+                projection._targets += conn_dict['targets']
+                projection._targetPorts += range(len(conn_dict['targets']))
+        return len(projection._sources)
 
 
 class FixedNumberPostConnector(common.FixedNumberPostConnector):
@@ -1696,6 +1655,8 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
                 projection._targets += conn_dict['targets']
                 projection._targetPorts += range(len(conn_dict['targets']))
         return len(projection._sources)
+
+
 
 # ==============================================================================
 #   Utility classes

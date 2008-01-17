@@ -962,7 +962,7 @@ class FixedNumberPostConnector(Connector):
     randomly from the presynaptic cells.
     """
     
-    def __init__(self, n, allow_self_connections=True, rand_distr=None, weights=0.0, delays=_min_delay):
+    def __init__(self, n, allow_self_connections=True, weights=0.0, delays=_min_delay):
         Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
@@ -981,7 +981,7 @@ class FixedNumberPreConnector(Connector):
     Connects all cells in the postsynaptic population to fixed number of
     cells in the presynaptic population, randomly choosen.
     """
-    def __init__(self, n, allow_self_connections=True, rand_distr=None, weights=0.0, delays=_min_delay):
+    def __init__(self, n, allow_self_connections=True, weights=0.0, delays=_min_delay):
         Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
