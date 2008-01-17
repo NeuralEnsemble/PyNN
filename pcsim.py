@@ -152,7 +152,7 @@ class SpikesMultiChannelRecorder(object):
         all_spikes = sorted(all_spikes, key=operator.itemgetter(1))
         f.write("# dt = %g\n" % pcsim_globals.dt)
         for spike in all_spikes:
-            f.write("%s %s\n" % spike )                
+            f.write("%s\t%s\n" % spike )                
         f.close()        
     
     def meanSpikeCount(self):
@@ -217,7 +217,7 @@ class FieldMultiChannelRecorder:
             for i, rec, src in self.recordings:
                 analog_values =  pcsim_globals.net.object(rec).getRecordedValues()
                 for v in analog_values:
-                    f.write("%g %d\n" % (float(v)*1000.0,i)) # convert from mV to V
+                    f.write("%g\t%d\n" % (float(v)*1000.0,i)) # convert from mV to V
             
         else:
             for i, rec, src in self.recordings:
@@ -280,6 +280,61 @@ class ID(long):
 
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+
+
+class WDManager(object):
+    
+    def getWeight(self, w=None):
+        if w is not None:
+            weight = w
+        else:
+            weight = 1.
+        return weight
+        
+    def getDelay(self, d=None):
+        if d is not None:
+            delay = d
+        else:
+            delay = pcsim_globals.minDelay
+        return delay
+    
+    def convertWeight(self, w, conductance):
+        if conductance:
+            w_factor = 1e-6 # Convert from µS to S
+        else:
+            w_factor = 1e-9 # Convert from nA to A
+        if isinstance(w, pyNN.random.RandomDistribution):
+            weight = pyNN.random.RandomDistribution(w.name, w.parameters, w.rng)
+            if weight.name == "uniform":
+                (w_min,w_max) = weight.parameters
+                weight.parameters = (w_factor*w_min, w_factor*w_max)
+            elif weight.name ==  "normal":
+                (w_mean,w_std) = weight.parameters
+                weight.parameters = (w_factor*w_mean, w_factor*w_std)
+            else:
+                print "WARNING: no conversion of the weights for this particular distribution"
+        else:
+            weight = w*w_factor
+        return weight
+     
+    def convertDelay(self, d):
+        
+        if isinstance(d, pyNN.random.RandomDistribution):
+            delay = pyNN.random.RandomDistribution(d.name, d.parameters, d.rng)
+            if delay.name == "uniform":
+                (d_min,d_max) = delay.parameters
+                delay.parameters = (d_min/1000., d_max/1000.)
+            elif delay.name ==  "normal":
+                (d_mean,d_std) = delay.parameters
+                delay.parameters = (d_mean/1000., w_std)
+        else:
+            delay = d/1000.
+        return delay
+
+
+
+
+
 
 # ==============================================================================
 #   Standard cells   
@@ -679,9 +734,9 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
             syn_factory = synapse_type
         elif isinstance(synapse_type, str):
             if synapse_type == 'excitatory':
-                syn_factory = SimpleScalingSpikingSynapse(1, 1, pcsim_globals.minDelay/1000)
+                syn_factory = SimpleScalingSpikingSynapse(1, weight, delay)
             elif synapse_type == 'inhibitory':
-                syn_factory = SimpleScalingSpikingSynapse(2, 1, pcsim_globals.minDelay/1000)
+                syn_factory = SimpleScalingSpikingSynapse(2, weight, delay)
             else:
                 eval('syn_factory = ' + synapse_type + '()')
             syn_factory.W = weight;
@@ -1125,7 +1180,7 @@ class Population(common.Population):
         self.rset("v_init", rand_distr)
 
 
-class Projection(common.Projection):
+class Projection(common.Projection, WDManager):
     """
     A container for all the connections of a given type (same synapse type and
     plasticity mechanisms) between two populations, together with methods to set
@@ -1176,7 +1231,7 @@ class Projection(common.Projection):
     #        return address
     #
     
-    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', methodParameters=None, source=None, target=None, label=None, rng=None):
+    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', methodParameters=None, source=None, target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -1215,12 +1270,12 @@ class Projection(common.Projection):
                    
         """
         global pcsim_globals
-        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, methodParameters, source, target, label, rng)
-        
-        parameters = None
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, methodParameters, source, target, synapse_dynamics, label, rng)
         
         # Determine connection decider
         if isinstance(method, str):
+            weight = None
+            delay = None
             if method == 'allToAll':
                 decider = RandomConnections(1)
                 wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
@@ -1242,31 +1297,31 @@ class Projection(common.Projection):
             else:
                 raise Exception("METHOD NOT YET IMPLEMENTED")
         elif isinstance(method,common.Connector):
-            decider, wiring_method, parameters = method.connect(self)
-            
-        weight = 1.
-        delay = pcsim_globals.minDelay/1000
-           
-        if not parameters == None:
-            if parameters.has_key('weights'):
-                weight = float(parameters['weights'])
-            if hasattr(self.post.pcsim_population.object(0),'ErevExc'):
-                weight_factor = 1e-6 # Convert from µS to S
-            else:
-                weight_factor = 1e-9 # Convert from nA to A
-            weight = weight_factor*weight
-            if parameters.has_key('delays'):  
-                delay = float(parameters['delays'])/1000
+            decider, wiring_method, weight, delay = method.connect(self)
+        
+        weight = self.getWeight(weight)
+        is_conductance = hasattr(self.post.pcsim_population.object(0),'ErevExc')
+        if isinstance(weight, pyNN.random.RandomDistribution):
+            w = 1.
+        else:
+            w = self.convertWeight(weight, is_conductance)
+        
+        delay  = self.getDelay(delay)
+        if isinstance(delay, pyNN.random.RandomDistribution):
+            d = pcsim_globals.minDelay/1000.
+        else:
+            d = self.convertDelay(delay)
+
         if not target:
-            self.syn_factory = SimpleScalingSpikingSynapse(1, weight, delay)
+            self.syn_factory = SimpleScalingSpikingSynapse(1, w, d)
         elif isinstance(target, int):
-            self.syn_factory = SimpleScalingSpikingSynapse(target, weight, delay)
+            self.syn_factory = SimpleScalingSpikingSynapse(target, w, d)
         else:
             if isinstance(target, str):
                 if target == 'excitatory':
-                    self.syn_factory = SimpleScalingSpikingSynapse(1, weight, delay)
+                    self.syn_factory = SimpleScalingSpikingSynapse(1, w, d)
                 elif target == 'inhibitory':
-                    self.syn_factory = SimpleScalingSpikingSynapse(2, weight, delay)
+                    self.syn_factory = SimpleScalingSpikingSynapse(2, w, d)
                 else:
                     target = eval(target)
                     self.syn_factory = target({})
@@ -1275,7 +1330,16 @@ class Projection(common.Projection):
             
         self.pcsim_projection = ConnectionsProjection(self.pre.pcsim_population, self.post.pcsim_population, 
                                                       self.syn_factory, decider, wiring_method, collectIDs = True)
-
+        
+        ######## Should be removed and better implemented by using
+        # the fact that those random Distribution can be passed directly
+        # while the network is build, and not set after...
+        if isinstance(weight, pyNN.random.RandomDistribution):
+            self.randomizeWeights(weight)
+        
+        if isinstance(delay, pyNN.random.RandomDistribution):
+            self.randomizeDelays(delay)
+        
         if not label:
             self.label = 'projection%d' % Projection.nProj
         if not rng:
@@ -1300,17 +1364,14 @@ class Projection(common.Projection):
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-        if hasattr(self.post.pcsim_population.object(0),'ErevExc'):
-            weight_factor = 1e-6 # Convert from µS to S
-        else:
-            weight_factor = 1e-9 # Convert from nA to A
+        is_conductance = hasattr(self.post.pcsim_population.object(0),'ErevExc')
+        w = self.convertWeight(w, is_conductance)
         if isinstance(w, float) or isinstance(w, int):
-            w = w*weight_factor
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).W = w
         else:
             for i in range(len(self)):
-                pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]*weight_factor
+                pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]
     
     def randomizeWeights(self, rand_distr):
         """
@@ -1319,8 +1380,11 @@ class Projection(common.Projection):
         # Arguably, we could merge this with set_weights just by detecting the
         # argument type. It could make for easier-to-read simulation code to
         # give it a separate name, though. Comments?
+        is_conductance = hasattr(self.post.pcsim_population.object(0),'ErevExc')
+        rand_distr = self.convertWeight(rand_distr, is_conductance)
         weights = rand_distr.next(len(self))
-        self.setWeights(weights)
+        for i in range(len(self)):
+            pcsim_globals.net.object(self.pcsim_projection[i]).W = weights[i]
      
     def setDelays(self, d):
         """
@@ -1328,7 +1392,7 @@ class Projection(common.Projection):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        d = d/1000.0 # Delays in pcsim are specified in seconds
+        d = self.convertDelay(d)
         if isinstance(d, float) or isinstance(d, int):
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).delay = d
@@ -1340,7 +1404,10 @@ class Projection(common.Projection):
         """
         Set delays to random values taken from rand_distr.
         """
-        raise Exception("Method not yet implemented!")
+        rand_distr = self.convertDelay(rand_distr)
+        delays = rand_distr.next(len(self))
+        for i in range(len(self)):
+            pcsim_globals.net.object(self.pcsim_projection[i]).delay = delays[i]
     
     def setThreshold(self, threshold):
         """
@@ -1407,7 +1474,7 @@ class AllToAllConnector(common.AllToAllConnector):
         # what about allow_self_connections?
         decider = RandomConnections(1)
         wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
-        return decider, wiring_method, self.params
+        return decider, wiring_method, self.weights, self.delays
 
 class OneToOneConnector(common.OneToOneConnector):
     
@@ -1416,7 +1483,7 @@ class OneToOneConnector(common.OneToOneConnector):
         if projection.pre.dim == projection.post.dim:
             decider = RandomConnections(1)
             wiring_method = OneToOneWiringMethod(pcsim_globals.net)
-            return decider, wiring_method, self.params
+            return decider, wiring_method, self.weights, self.delays
         else:
             raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
 
@@ -1426,8 +1493,22 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
         
         decider = RandomConnections(float(self.p_connect))
         wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
-        return decider, wiring_method, self.params
+        return decider, wiring_method, self.weights, self.delays
+
+class FixedNumberPreConnector(common.FixedNumberPreConnector):
     
+    def connect(self, projection):
+        
+        decider = DegreeDistributionConnections(ConstantNumber(self.fixedpre), DegreeDistributionConnections.incoming)
+        wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
+        return decider, wiring_method, self.weights, self.delays
+
+class FixedNumberPostConnector(common.FixedNumberPostConnector):
+    
+    def connect(self, projection):
+        decider = DegreeDistributionConnections(ConstantNumber(self.fixedpost), DegreeDistributionConnections.outgoing)
+        wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
+        return decider, wiring_method, self.weights, self.delays
 
 
 # ==============================================================================

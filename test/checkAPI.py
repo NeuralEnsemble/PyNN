@@ -47,7 +47,7 @@ exclude_list = ['__module__','__doc__','__builtins__','__file__','__class__',
                 'StandardCellType',
                 ]
 
-module_list = [oldneuron, nest, neuron, pcsim]
+module_list = [oldneuron, nest1, nest2, neuron, pcsim]
 
 if coloured:
     def colour(col,text):

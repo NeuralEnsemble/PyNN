@@ -71,11 +71,13 @@ class NumpyRNG(AbstractRNG):
         """Return n random numbers from the distribution.
         
         If n is 1, return a float, if n > 1, return a numpy array,
-        if n <= 0, raise an Exception."""
-        if n > 1:
+        if n < 0, raise an Exception."""
+        if n == 0:
+            return numpy.random.rand(0) # We return an empty array
+        if n > 0:
            return getattr(self.rng,distribution)(size=n,*parameters)
-        elif n == 1:
-            return getattr(self.rng,distribution)(size=1,*parameters)[0]
+        #elif n == 1:
+        #    return getattr(self.rng,distribution)(size=1,*parameters)[0]
         else:
             raise ValueError, "The sample number must be positive"
 
@@ -100,9 +102,15 @@ class GSLRNG(AbstractRNG):
         """Return n random numbers from the distribution.
         
         If n is 1, return a float, if n > 1, return a numpy array,
-        if n <= 0, raise an Exception."""
+        if n < 0, raise an Exception."""
         p = parameters + [n]
-        return getattr(self.rng,distribution)(*p)
+        if n == 0:
+            return numpy.random.rand(0) # We return an empty array
+        if n > 0:
+            return getattr(self.rng,distribution)(*p)
+        else:
+            raise ValueError, "The sample number must be positive"
+
 
     
 class NativeRNG(AbstractRNG):

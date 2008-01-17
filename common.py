@@ -148,19 +148,34 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0., periodic_boundari
         d = d[mask]
     return numpy.sqrt(numpy.dot(d,d))
 
-# NOT TESTED
-#def distances(pre, post, mask=None, scale_factor=1.0):
-#    """Calculate the entire distance matrix at once.
-#       From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html"""
-#    x = pre.positions
-#    y = post.positions
-#    d = numpy.zeros((x.shape[1], y.shape[1]), dtype=x.dtype)
-#    for i in xrange(x.shape[0]):
-#        diff2 = x[:,i,None] - y[:,i]
-#        diff2 **= 2
-#        d += diff2
-#    numpy.sqrt(d,d)
-#    return d
+
+def distances(pre, post, mask=None, scale_factor=1.0, offset=0., periodic_boundaries=None):
+    """Calculate the entire distance matrix at once.
+       From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html"""
+    if isinstance(pre, Population): x = pre.positions
+    else: 
+        x = pre.position
+        x = x.reshape(3,1)
+    if isinstance(post, Population): y = post.positions
+    else: 
+        y = post.position
+        y = y.reshape(3,1)
+    y = scale_factor*(y + offset)
+    d = numpy.zeros((x.shape[1],y.shape[1]), dtype=x.dtype)
+    for i in xrange(x.shape[0]):
+        diff2 = abs(x[i,:,None] - y[i,:])
+        if not periodic_boundaries == None:
+            dims  = diff2.shape
+            diff2 = diff2.flatten()
+            diff2 = numpy.array(map(min,((x_i,y_i) for (x_i,y_i) in zip(diff2,periodic_boundaries[i]-diff2))))
+            diff2 = diff2.reshape(dims)
+        diff2 **= 2
+        d += diff2
+    numpy.sqrt(d,d)
+    return d
+
+
+
 
 # ==============================================================================
 #   Standard cells
@@ -678,8 +693,8 @@ class Projection:
         self.source = source                  # } should be
         self.post   = postsynaptic_population # } read-only
         self.target = target                  # }
-        self.label = label
-        self.rng = rng
+        self.label  = label
+        self.rng    = rng
         self.synapse_dynamics = synapse_dynamics
         self.connection = None # access individual connections. To be defined by child, simulator-specific classes
         if label is None:
@@ -900,10 +915,37 @@ class AllToAllConnector(Connector):
     postsynaptic population.
     """
     
-    def __init__(self, allow_self_connections=True, params={}):
+    def __init__(self, allow_self_connections=True, weights=None, delays=None):
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
-        self.params = params
+        self.weights = weights
+        self.delays = delays
+
+
+class FixedNumberPostConnector(Connector):
+    """
+    Connects all cells in the presynaptic population to fixed number of
+    cells in the postsynaptic population, randomly choosen.
+    """
+    def __init__(self, fixedpost, allow_self_connections=True, weights=None, delays=None):
+        assert isinstance(allow_self_connections, bool)
+        self.allow_self_connections = allow_self_connections
+        self.weights = weights
+        self.delays = delays
+        self.fixedpost = int(fixedpost)
+
+
+class FixedNumberPreConnector(Connector):
+    """
+    Connects all cells in the postsynaptic population to fixed number of
+    cells in the presynaptic population, randomly choosen.
+    """
+    def __init__(self, fixedpre, allow_self_connections=True, weights=None, delays=None):
+        assert isinstance(allow_self_connections, bool)
+        self.allow_self_connections = allow_self_connections
+        self.weights = weights
+        self.delays = delays
+        self.fixedpre = int(fixedpre)
 
 class OneToOneConnector(Connector):
     """
@@ -916,8 +958,9 @@ class OneToOneConnector(Connector):
     in row i of a 2D post population of size (n,m).
     """
     
-    def __init__(self,params={}):
-        self.params = params
+    def __init__(self, weights=None, delays=None):
+        self.weights = weights
+        self.delays = delays
         pass
     
 class FixedProbabilityConnector(Connector):
@@ -925,10 +968,11 @@ class FixedProbabilityConnector(Connector):
     For each pair of pre-post cells, the connection probability is constant.
     """
     
-    def __init__(self, p_connect, allow_self_connections=True, params={}):
+    def __init__(self, p_connect, allow_self_connections=True, weights=None, delays=None):
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
-        self.params = params
+        self.weights = weights
+        self.delays = delays
         self.p_connect = float(p_connect)
         assert 0 <= self.p_connect
         
@@ -948,7 +992,7 @@ class DistanceDependentProbabilityConnector(Connector):
     AXES = {'x' : [0],    'y': [1],    'z': [2],
             'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': None, None: None}
     
-    def __init__(self, d_expression, axes=None, scale_factor=1.0, offset=0., allow_self_connections=True, params={}):
+    def __init__(self, d_expression, axes=None, scale_factor=1.0, offset=0., periodic_boundaries=False, allow_self_connections=True, weights=None, delays=None):
         assert isinstance(allow_self_connections, bool)
         assert isinstance(d_expression, str)
         try:
@@ -959,8 +1003,10 @@ class DistanceDependentProbabilityConnector(Connector):
             raise
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
-        self.params = params
+        self.weights = weights
+        self.delays = delays
         self.mask = DistanceDependentProbabilityConnector.AXES[axes]
+        self.periodic_boundaries = periodic_boundaries
         if self.mask is not None:
             self.mask = numpy.array(self.mask)
         self.scale_factor = scale_factor

@@ -451,6 +451,7 @@ class ProjectionInitTest(unittest.TestCase):
                     assert len(prj._sources) == len(prj._targets)
                     weights = []
                     for src, tgt in prj.connections():
+                        #print nest.nest.GetConnections([src],[tgt])
                         weights.append(nest.nest.GetWeight(src,tgt))
                     assert weights == [1000.]*len(prj._sources)
                     

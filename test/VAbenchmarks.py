@@ -20,6 +20,7 @@ $Id:VAbenchmarks.py 5 2007-04-16 15:01:24Z davison $
 import sys
 from copy import copy
 from NeuroTools.stgen import StGen
+from math import *
 
 if hasattr(sys,"argv"):     # run using python
     if len(sys.argv) < 3:
@@ -47,6 +48,7 @@ rate     = 100.  # (Hz) frequency of the random stimulation
 
 dt       = 0.1   # (ms) simulation timestep
 tstop    = 1000  # (ms) simulaton duration
+delay    = dt
 
 # Cell parameters
 area     = 20000. # (µm²)
@@ -126,10 +128,10 @@ print "%d Creating cell populations..." % node_id
 exc_cells = Population((n_exc,), celltype, cell_params, "Excitatory_Cells")
 inh_cells = Population((n_inh,), celltype, cell_params, "Inhibitory_Cells")
 if benchmark == "COBA":
-    ext_stim = Population((10,), SpikeSourcePoisson,{'rate' : rate, 'duration' : stim_dur},"expoisson")
-    rconn = 0.005
-    ext_conn = FixedProbabilityConnector(rconn, params={'weights' : 0.1})
-    
+    ext_stim = Population((20,), SpikeSourcePoisson,{'rate' : rate, 'duration' : stim_dur},"expoisson")
+    rconn = 0.01
+    ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
+
 
 
 print "%d Initialising membrane potential to random values..." % node_id
@@ -138,28 +140,19 @@ uniformDistr = RandomDistribution('uniform',[v_reset,v_thresh],rng)
 exc_cells.randomInit(uniformDistr)
 inh_cells.randomInit(uniformDistr)
 
-
 print "%d Connecting populations..." % node_id
+exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay)
+inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay)
 
-exc_conn = FixedProbabilityConnector(pconn, params={'weights' : w_exc})
-inh_conn = FixedProbabilityConnector(pconn, params={'weights' : w_inh})
+connections={}
 
-connections = {'e2e' : Projection(exc_cells, exc_cells, exc_conn, target='excitatory',rng=rng),
-               'e2i' : Projection(exc_cells, inh_cells, exc_conn, target='excitatory',rng=rng),
-               'i2e' : Projection(inh_cells, exc_cells, inh_conn, target='inhibitory',rng=rng),
-               'i2i' : Projection(inh_cells, inh_cells, inh_conn, target='inhibitory',rng=rng)}
+connections['e2e']=Projection(exc_cells, exc_cells, exc_conn, target='excitatory',rng=rng)
+connections['e2i']=Projection(exc_cells, inh_cells, exc_conn, target='excitatory',rng=rng)
+connections['i2e']=Projection(inh_cells, exc_cells, inh_conn, target='inhibitory',rng=rng)
+connections['i2i']=Projection(inh_cells, inh_cells, inh_conn, target='inhibitory',rng=rng)
 if (benchmark == "COBA"):
-    connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, target='excitatory')
-    connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
-
-#print "%d Setting weights..." % node_id
-#connections['e2e'].setWeights(w_exc)
-#connections['e2i'].setWeights(w_exc)
-#connections['i2e'].setWeights(w_inh)
-#connections['i2i'].setWeights(w_inh)
-#if (benchmark == "COBA"):
-#   connections['ext2e'].setWeights(0.1)
-#   connections['ext2i'].setWeights(0.1)
+    connections['ext2e']=Projection(ext_stim, exc_cells, ext_conn, target='excitatory')
+    connections['ext2i']=Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
 
 #for prj in connections.keys():
 #    connections[prj].saveConnections('VAbenchmark_%s_%s_%s.conn' % (benchmark,prj,simulator))
@@ -176,6 +169,7 @@ buildCPUTime = Timer.elapsedTime()
 # === Run simulation ===========================================================
 print "%d Running simulation..." % node_id
 Timer.reset()
+
 run(tstop)
 
 simCPUTime = Timer.elapsedTime()
@@ -201,8 +195,8 @@ nprint("Number of Neurons      : %d" %n)
 nprint("Number of Synapses     : %s" %tmp_string)
 nprint("Excitatory conductance : %g nS" %Gexc)
 nprint("Inhibitory conductance : %g nS" %Ginh)
-nprint("Excitatory rate        : %g Hz" %E_rate)
-nprint("Inhibitory rate        : %g Hz" %I_rate)
+nprint("Excitatory rate        : %g Hz (may be wrong for MPI/threads mode)" %E_rate)
+nprint("Inhibitory rate        : %g Hz (may be wrong for MPI/threads mode)" %I_rate)
 nprint("Build time             : %g s" %buildCPUTime) 
 nprint("Simulation time        : %g s" %simCPUTime)
 nprint("Writing time           : %g s" %writeCPUTime)
