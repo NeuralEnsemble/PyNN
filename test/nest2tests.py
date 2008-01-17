@@ -10,6 +10,20 @@ import unittest
 import numpy
 import os
 
+def get_weight(src, port):
+    conn_dict = nest.nest.GetConnection([src], 'static_synapse', port)
+    if isinstance(conn_dict, dict):
+        return conn_dict['weight']
+    else:
+        raise Exception("Either the source id (%s) or the port number (%s) or both is invalid." % (src, port))
+
+def get_delay(src, port):
+    conn_dict = nest.nest.GetConnection([src], 'static_synapse', port)
+    if isinstance(conn_dict, dict):
+        return conn_dict['delay']
+    else:
+        raise Exception("Either the source id (%s) or the port number (%s) or both is invalid." % (src, port))
+
 # ==============================================================================
 class CreationTest(unittest.TestCase):
     """Tests of the create() function."""
@@ -398,23 +412,25 @@ class ProjectionInitTest(unittest.TestCase):
     def setUp(self):
         nest.setup(max_delay=0.5)
         nest.Population.nPop = 0
-        self.target33 = nest.Population((3,3),nest.IF_curr_alpha)
-        self.target6  = nest.Population((6,),nest.IF_curr_alpha)
-        self.source5  = nest.Population((5,),nest.SpikeSourcePoisson)
-        self.source22 = nest.Population((2,2),nest.SpikeSourcePoisson)
-        self.source33 = nest.Population((3,3),nest.SpikeSourcePoisson)
+        self.target33 = nest.Population((3,3),nest.IF_curr_alpha, label="target33")
+        self.target6  = nest.Population((6,),nest.IF_curr_alpha, label="target6")
+        self.source5  = nest.Population((5,),nest.SpikeSourcePoisson, label="source5")
+        self.source22 = nest.Population((2,2),nest.SpikeSourcePoisson, label="source22")
+        self.source33 = nest.Population((3,3),nest.SpikeSourcePoisson, label="source33")
 
     def testAllToAll(self):
         """For all connections created with "allToAll" it should be possible to obtain the weight using pynest.getWeight()"""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
-                prj1 = nest.Projection(srcP, tgtP, "allToAll")
-                prj2 = nest.Projection(srcP, tgtP, nest.AllToAllConnector())
+                prj1 = nest.Projection(srcP, tgtP, "allToAll", label="string")
+                prj2 = nest.Projection(srcP, tgtP, nest.AllToAllConnector(), label="connector")
                 for prj in prj1,prj2:
                     assert len(prj._sources) == len(prj._targets)
                     weights = []
                     for src,tgt in prj.connections():
-                        weights.append(nest.nest.GetWeight(src,tgt))
+                        ###print "--------", prj.label, srcP.label, tgtP.label, src, tgt
+                        ###print nest.nest.GetConnections([src],'static_synapse') ###
+                        weights.append(get_weight(src, tgt))
                     assert weights == [1000.0]*len(prj._sources)
     
     def testOneToOne(self):
@@ -452,7 +468,7 @@ class ProjectionInitTest(unittest.TestCase):
                     weights = []
                     for src, tgt in prj.connections():
                         #print nest.nest.GetConnections([src],[tgt])
-                        weights.append(nest.nest.GetWeight(src,tgt))
+                        weights.append(get_weight(src, tgt))
                     assert weights == [1000.]*len(prj._sources)
                     
     def testSaveAndLoad(self):
@@ -465,11 +481,11 @@ class ProjectionInitTest(unittest.TestCase):
         # For a connections scheme saved and reloaded, we test if the connections, their weights and their delays
         # are equal.
         for src,tgt in prj1.connections():
-            w1.append(nest.nest.GetWeight(src,tgt))
-            d1.append(nest.nest.GetDelay(src,tgt))
+            w1.append(get_weight(src, tgt))
+            d1.append(get_delay(src, tgt))
         for src,tgt in prj2.connections():
-            w2.append(nest.nest.GetWeight(src,tgt))
-            d2.append(nest.nest.GetDelay(src,tgt))
+            w2.append(get_weight(src, tgt))
+            d2.append(get_delay(src, tgt))
         assert (w1 == w2) and (d1 == d2)
 
 class ProjectionSetTest(unittest.TestCase):
@@ -495,35 +511,35 @@ class ProjectionSetTest(unittest.TestCase):
         for prj in self.prjlist:
             prj.setWeights(1.234)
             for src, tgt in prj.connections():
-                assert nest.nest.GetWeight(src,tgt) == 1234.0 # note the difference in units between pyNN and NEST
+                assert get_weight(src, tgt) == 1234.0 # note the difference in units between pyNN and NEST
 
     #def testSetAndGetID(self):
         # Small test to see if the ID class is working
         #self.target33[0,2].set({'tau_m' : 15.1})
         #assert (self.target33[0,2].get('tau_m') == 15.1)
         
-    def testrandomizeWeights(self):
+    def testRandomizeWeights(self):
         # The probability of having two consecutive weights vector that are equal should be 0
         prj1 = nest.Projection(self.source5, self.target33, 'allToAll')
         prj1.randomizeWeights(self.distrib_Numpy)
         w1 = []; w2 = [];
         for src,tgt in prj1.connections():
-            w1.append(nest.nest.GetWeight(src,tgt))
+            w1.append(get_weight(src, tgt))
         prj1.randomizeWeights(self.distrib_Numpy)        
         for src, tgt in prj1.connections():
-            w2.append(nest.nest.GetWeight(src,tgt)) 
+            w2.append(get_weight(src, tgt))
         self.assertNotEqual(w1,w2)
         
-    def testrandomizeDelays(self):
+    def testRandomizeDelays(self):
         # The probability of having two consecutive weights vector that are equal should be 0
         prj1 = nest.Projection(self.source5, self.target33, 'allToAll')
         prj1.randomizeDelays(self.distrib_Numpy)
         d1 = []; d2 = [];
         for src,tgt in prj1.connections():
-            d1.append(nest.nest.GetDelay(src,tgt))
+            d1.append(get_delay(src,tgt))
         prj1.randomizeDelays(self.distrib_Numpy)        
         for src, tgt in prj1.connections():
-            d2.append(nest.nest.GetDelay(src,tgt)) 
+            d2.append(get_delay(src,tgt))
         self.assertNotEqual(d1,d2)
 
 class IDTest(unittest.TestCase):

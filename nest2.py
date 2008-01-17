@@ -528,7 +528,8 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
                     if p >= 1 or rarr[j] < p:
                         nest.ConnectWD([src],[tgt],[weight],[delay])
                         connect_id += [Connection(src,tgt)]
-    except nest.SLIError:
+    #except nest.SLIError:
+    except Exception: # unfortunately, SLIError seems to have disappeared.
         raise common.ConnectionError
     return connect_id
 
@@ -880,7 +881,8 @@ class Population(common.Population):
                         val = list(val) # tuples, arrays are all converted to lists, since this is what SpikeSourceArray expects. This is not very robust though - we might want to add things that do accept arrays.
                     else:
                         nest.SetStatus([cell],[{parametername: val}])
-                except nest.SLIError:
+                #except nest.SLIError:
+                except Exception: # unfortunately, SLIError seems to have disappeared.    
                     raise common.InvalidParameterValueError, "Error from SLI"
         else:
             raise common.InvalidDimensionsError
@@ -902,7 +904,8 @@ class Population(common.Population):
             for cell,val in zip(cells,rarr):
                 try:
                     nest.SetStatus([cell],{parametername: val})
-                except nest.SLIError:
+                #except nest.SLIError:
+                except Exception: # unfortunately, SLIError seems to have disappeared.
                     raise common.InvalidParameterValueError
             
     def _call(self,methodname,arguments):
@@ -1438,8 +1441,17 @@ class Projection(common.Projection, WDManager):
         'fromFile' method."""
         f = open(filename,'w',10000)
         # Note unit change from pA to nA or nS to uS, depending on synapse type
-        weights = [0.001*nest.GetWeight(src,port) for (src,port) in self.connections()]
-        delays = [nest.GetDelay(src,port) for (src,port) in self.connections()] 
+        def getWD(wd, src, port):
+            conn_dict = nest.GetConnection([src],'static_synapse',port)
+            if isinstance(conn_dict, dict):
+                return conn_dict[wd]
+            else:
+
+                raise Exception("Either the source id (%s) or the port number (%s) or both is invalid." % (src, port))
+        #weights = [0.001*nest.GetConnection([src],'static_synapse',port)['weight'] for (src,port) in self.connections()]
+        #delays = [nest.GetConnection([src],'static_synapse',port)['delay'] for (src,port) in self.connections()]
+        weights = [0.001*getWD('weight',src,port) for (src,port) in self.connections()]
+        delays = [getWD('delay',src,port) for (src,port) in self.connections()]
         fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label,"%s",self.post.label,"%s","%g","%g")
         for i in xrange(len(self)):
             line = fmt  % (self.pre.locate(self._sources[i]),
@@ -1492,6 +1504,19 @@ class Projection(common.Projection, WDManager):
 #   Connection method classes
 # ==============================================================================
 
+def get_target_ports(pre, target_list):
+    # The connection dict returned by NEST contains a list of target ids,
+    # so it is possible to obtain the target port by finding the index of
+    # the target in this list. For now, we stick with saving the target port
+    # in Python (faster, but more memory needed), but PyNEST should soon have
+    # a function to do the lookup, at which point we will switch to using that.
+    conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+    if conn_dict:
+        first_port = len(conn_dict['targets'])
+    else:
+        first_port = 0
+    return range(first_port, first_port+len(target_list))  
+
 class AllToAllConnector(common.AllToAllConnector, WDManager):    
 
     def connect(self, projection):
@@ -1517,8 +1542,7 @@ class AllToAllConnector(common.AllToAllConnector, WDManager):
                 delays = [float(delay)]*N
             projection._targets += target_list
             projection._sources += [pre]*N
-            #conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
-            projection._targetPorts += target_list
+            projection._targetPorts += get_target_ports(pre, target_list)
             nest.DivergentConnectWD([pre], target_list, weights, delays)
         return len(projection._targets)
 
@@ -1531,8 +1555,8 @@ class OneToOneConnector(common.OneToOneConnector, WDManager):
         if projection.pre.dim == projection.post.dim:
             projection._sources = projection.pre.cell.flatten()
             projection._targets = projection.post.cell.flatten()
-            projection._targetPorts = projection.post.cell.flatten()
             N = len(projection._sources)
+            projection._targetPorts = range(N)
             if isinstance(weight, RandomDistribution):
                 weights = list(weight.next(N))
             else:
@@ -1574,7 +1598,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, WDManager):
                 delays = [float(delay)]*N
             projection._targets += target_list
             projection._sources += [pre]*N
-            projection._targetPorts += target_list
+            projection._targetPorts += get_target_ports(pre, target_list)
             nest.DivergentConnectWD([pre], target_list, weights, delays)
         return len(projection._sources)
     
@@ -1628,7 +1652,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 delays = [float(delay)]*N
             projection._targets += target_list
             projection._sources += [pre]*N 
-            projection._targetPorts += target_list
+            projection._targetPorts += get_target_ports(pre, target_list)
             nest.DivergentConnectWD([pre], target_list, weights, delays)
         return len(projection._sources)
 
