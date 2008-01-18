@@ -263,6 +263,35 @@ class IF_cond_exp(common.IF_cond_exp):
         common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters = self.translate1(self.parameters)
+
+
+class IF_facets_hardware1(common.IF_facets_hardware1):
+    """Leaky integrate and fire model with conductance-based synapses and fixed 
+    threshold as it is resembled by the FACETS Hardware Stage 1. For further 
+    details regarding the hardware model see the FACETS-internal Wiki:
+    https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
+    """
+    # in 'iaf_cond_exp_sfa_rr', the dimension of C_m is pF, 
+    # while in the pyNN context, cm is given in nF
+    translations = {
+        'v_reset'   : ('V_reset',        "parameters['v_reset']"),
+        'v_rest'    : ('E_L',            "parameters['v_rest']"),
+        'v_thresh'  : ('V_th',           "parameters['v_thresh']"),
+        'e_rev_E'   : ('E_ex',           "parameters['e_rev_E']"),
+        'e_rev_I'   : ('E_in',           "parameters['e_rev_I']"),
+        'cm'        : ('C_m',            "parameters['cm']*1000.0"), 
+        'tau_refrac': ('t_ref',          "max(dt,parameters['tau_refrac'])"),
+        'tau_syn_E' : ('tau_syn_ex',     "parameters['tau_syn_E']"),
+        'tau_syn_I' : ('tau_syn_in',     "parameters['tau_syn_I']"),                              
+        'g_leak'    : ('g_L',            "parameters['g_leak']")    
+    }
+    nest_name = "iaf_cond_exp_sfa_rr"
+
+    def __init__(self, parameters):
+        common.IF_facets_hardware1.__init__(self,parameters)
+        self.parameters = self.translate(self.parameters)
+        self.parameters['q_rr']     = 0.0
+        self.parameters['q_sfa']    = 0.0
         
 
 class HH_cond_exp(common.HH_cond_exp):

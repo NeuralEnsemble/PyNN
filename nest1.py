@@ -215,6 +215,36 @@ class IF_cond_exp(common.IF_cond_exp):
         self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
 
 
+class IF_facets_hardware1(common.IF_facets_hardware1):
+    """Leaky integrate and fire model with conductance-based synapses and fixed 
+    threshold as it is resembled by the FACETS Hardware Stage 1. For further 
+    details regarding the hardware model see the FACETS-internal Wiki:
+    https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
+    """    
+    # in 'iaf_sfa_neuron', the dimension of C is pF, 
+    # while in the pyNN context, cm is given in nF
+    translations = {
+        'v_reset'   : ('Vreset',        "parameters['v_reset']"),
+        'v_rest'    : ('U0',            "parameters['v_rest']"),
+        'v_thresh'  : ('Theta',         "parameters['v_thresh']"),
+        'e_rev_E'   : ('V_reversal_E',  "parameters['e_rev_E']"),
+        'e_rev_I'   : ('V_reversal_I',  "parameters['e_rev_I']"),
+        'cm'        : ('C',             "parameters['cm']*1000.0"), 
+        'tau_refrac': ('TauR',          "max(dt,parameters['tau_refrac'])"),
+        'tau_syn_E' : ('TauSyn_E',      "parameters['tau_syn_E']"),
+        'tau_syn_I' : ('TauSyn_I',      "parameters['tau_syn_I']"),                              
+        'g_leak'    : ('gL',            "parameters['g_leak']")    
+    }
+    nest_name = "iaf_sfa_neuron" 
+
+    def __init__(self, parameters):
+        common.IF_facets_hardware1.__init__(self,parameters)
+        self.parameters = self.translate(self.parameters)
+        self.parameters['q_relref'] = 0.0
+        self.parameters['q_sfa']    = 0.0
+        self.parameters['python']   = True
+
+
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 

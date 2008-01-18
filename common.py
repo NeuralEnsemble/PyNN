@@ -313,6 +313,26 @@ class IF_cond_exp(StandardCellType):
         'i_offset'   : 0.0,     # Offset current in nA
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
+    
+class IF_facets_hardware1(StandardCellType):
+    """Leaky integrate and fire model with conductance-based synapses and fixed 
+    threshold as it is resembled by the FACETS Hardware Stage 1. For further 
+    details regarding the hardware model see the FACETS-internal Wiki:
+    https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
+    """
+    
+    default_parameters = {
+        'cm'                :    0.2,     # nF  
+        'g_leak'            :   20.0,     # nS
+        'tau_refrac'        :    1.0,     # ms
+        'tau_syn_E'         :   20.0,     # ms
+        'tau_syn_I'         :   20.0,     # ms
+        'v_reset'           :  -80.0,     # mV
+        'e_rev_I'           :  -75.0,     # mV,
+        'v_rest'            :  -70.0,     # mV
+        'v_thresh'          :  -57.0,     # mV
+        'e_rev_E'           :    0.0,     # mV        
+    }
 
 class HH_cond_exp(StandardCellType):
     """docstring needed here."""
