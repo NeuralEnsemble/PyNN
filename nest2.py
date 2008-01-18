@@ -3,7 +3,7 @@
 PyNEST implementation of the PyNN API.
 $Id$
 """
-__version__ = "$Revision:5 $"
+__version__ = "$Rev$"
 
 import nest
 from pyNN import common
@@ -1646,11 +1646,24 @@ class FixedNumberPreConnector(common.FixedNumberPreConnector):
             projection._sources += [pre]*N
             conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
             if isinstance(conn_dict, dict):
-                projection._targets += conn_dict['targets']
-                projection._targetPorts += range(len(conn_dict['targets']))
+                all_targets = conn_dict['targets']
+                total_targets = len(all_targets)
+                projection._targets += all_targets[-N:]
+                projection._targetPorts += range(total_targets-N,total_targets)
         return len(projection._sources)
 
-
+def _n_connections(population):
+    """
+    Get a list of the total number of connections made by each neuron in a
+    population.
+    """
+    n = numpy.zeros((len(population),),'int')
+    conn_dict_list = nest.GetConnections([id for id in population],'static_synapse')
+    for i, conn_dict in enumerate(conn_dict_list):
+        assert isinstance(conn_dict, dict)
+        n[i] = len(conn_dict['targets'])
+    return n
+        
 class FixedNumberPostConnector(common.FixedNumberPostConnector):
     
     def connect(self, projection):        
@@ -1660,6 +1673,7 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
             rng = projection.rng
         else:
             rng = numpy.random
+        start_ports = _n_connections(projection.pre)
         for post in projection.post.cell.flat:
             if hasattr(self, 'rand_distr'):
                 n = self.rand_distr.next()
@@ -1677,12 +1691,16 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
             delays = self.getDelays(N)
             
             nest.ConvergentConnectWD(source_list.tolist(), [post], weights.tolist(), delays.tolist())
-        for pre in presynaptic_neurons:
-            projection._sources += [pre]*N
+            
+        end_ports = _n_connections(projection.pre)
+        for pre, start_port, end_port in zip(presynaptic_neurons, start_ports, end_ports):
+            projection._targetPorts += range(start_port, end_port)
+            projection._sources += [pre]*(end_port-start_port)
             conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
             if isinstance(conn_dict, dict):
-                projection._targets += conn_dict['targets']
-                projection._targetPorts += range(len(conn_dict['targets']))
+                projection._targets += conn_dict['targets'][start_port:end_port]
+        print start_ports
+        print end_ports
         return len(projection._sources)
 
 
