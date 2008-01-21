@@ -27,7 +27,7 @@ p2 = Population(1, IF_curr_exp)
 stdp_model = STDPMechanism(timing_dependence=SpikePairRule(tau_plus=20.0, tau_minus=20.0),
                            weight_dependence=AdditiveWeightDependence(w_min=0, w_max=0.2, A_plus=0.01, A_minus=0.012))
 
-connection_method = AllToAllConnector(params={'weights': 0.1})
+connection_method = AllToAllConnector(weights=0.1)
 prj = Projection(p1, p2, method=connection_method,
                  synapse_dynamics=SynapseDynamics(slow=stdp_model))
 

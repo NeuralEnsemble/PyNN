@@ -654,11 +654,17 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
         os.system(system_line)
         os.remove(nest_filename)
     if gather and len(node_list) > 1:
-        raise Warning("'gather' not currently supported.")
+        nest.sps(recorder[0])
+        nest.sr("GetStatus /filename get")
+        nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
         if nest.Rank() == 0: # only on the master node (?)
             for node in node_list:
-                pass # not a good way to do it at the moment
-    
+                merged_filename = "%s/%s_%d" % (os.path.dirname(nest_filename), user_filename, node)
+                system_line = 'cat %s >> %s' % (nest_filename, merged_filename) 
+                #print system_line
+                os.system(system_line)
+                os.remove(nest_filename)
+
     if compatible_output:
         if gather == False or nest.Rank() == 0: # if we gather, only do this on the master node
             logging.info("Writing %s in compatible format." % user_filename)
@@ -826,6 +832,7 @@ class Population(common.Population):
         """
         for i in self.__iter__():
             yield self.locate(i)
+    
         
     def addresses(self):
         return self.__address_gen()
@@ -883,7 +890,7 @@ class Population(common.Population):
             raise common.InvalidParameterValueError
         if isinstance(self.celltype, common.StandardCellType):
             paramDict = self.celltype.translate1(paramDict)
-        nest.SetStatus(numpy.reshape(self.cell,(self.size,)), [paramDict])
+        nest.SetStatus(self.cell_local, [paramDict])
         
 
     def tset(self,parametername,valueArray):
@@ -909,7 +916,8 @@ class Population(common.Population):
                     if not isinstance(val,str) and hasattr(val,"__len__"):
                         val = list(val) # tuples, arrays are all converted to lists, since this is what SpikeSourceArray expects. This is not very robust though - we might want to add things that do accept arrays.
                     else:
-                        nest.SetStatus([cell],[{parametername: val}])
+                        if cell in self.cell_local:
+                            nest.SetStatus([cell],[{parametername: val}])
                 #except nest.SLIError:
                 except Exception: # unfortunately, SLIError seems to have disappeared.    
                     raise common.InvalidParameterValueError, "Error from SLI"
@@ -928,7 +936,8 @@ class Population(common.Population):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
             rarr = rand_distr.next(n=self.size)
-            cells = numpy.reshape(self.cell,self.cell.size)
+            #cells = numpy.reshape(self.cell,self.cell.size)
+            cells = self.cell_local
             assert len(rarr) == len(cells)
             for cell,val in zip(cells,rarr):
                 try:
