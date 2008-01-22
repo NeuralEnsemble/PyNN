@@ -193,12 +193,13 @@ class RecordTest(unittest.TestCase):
         expected_id = 0;
         expected_spike_time = 0.001;
         for line in f:
-            id, spike_time = line.split()
-            self.assertEqual( expected_id, int(id))
-            self.assertAlmostEqual( expected_spike_time, float(spike_time), places = 7 )
-            expected_id = (expected_id + 1)  % 10
-            expected_spike_time += 0.001        
-            
+            if len(line.split()) > 0 and line.split()[0][0] != '#':
+                id, spike_time = line.split()
+                self.assertEqual( expected_id, int(id))
+                self.assertAlmostEqual( expected_spike_time, float(spike_time), places = 7 )
+                expected_id = (expected_id + 1)  % 10
+                expected_spike_time += 0.001        
+                
     def testRecordVmTextFormat(self):        
         analog_nrns = create(AnalogInputNeuron, {}, 10)
         for i, n in enumerate(analog_nrns):

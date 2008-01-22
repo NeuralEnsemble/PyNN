@@ -221,7 +221,7 @@ class FieldMultiChannelRecorder:
             
         else:
             for i, rec, src in self.recordings:
-                analog_values =  [i] +  pcsim_globals.net.object(rec).getRecordedValues()
+                analog_values =  [i] +  list(pcsim_globals.net.object(rec).getRecordedValues())
                 for v in analog_values:
                     f.write("%s " % v)                
                 f.write("\n")
@@ -500,7 +500,7 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
         'duration' : ('duration' , "parameters['duration']*1e-3")
     }
     
-    pcsim_name = 'PoissonSpikeTrainGenerator'    
+    pcsim_name = 'PoissonInputNeuron'    
     simObjFactory = None
     setterMethods = {}
    
@@ -508,14 +508,14 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
         common.SpikeSourcePoisson.__init__(self, parameters)
         self.parameters = self.translate(self.parameters)
         self.setterMethods = {}        
-        self.simObjFactory = PoissonSpikeTrainGenerator(rate = self.parameters["rate"],
-                                                        start = self.parameters["start"], 
+        self.simObjFactory = PoissonInputNeuron(rate = self.parameters["rate"],
+                                                       Tstart = self.parameters["Tstart"], 
                                                         duration = self.parameters["duration"])
     
     def translate(self,parameters):
         translated_parameters = common.SpikeSourcePoisson.translate(self,parameters)
-        translated_parameters['start'] = Time.sec(translated_parameters['start'])
-        translated_parameters['duration'] = Time.sec(translated_parameters['duration'])
+        translated_parameters['Tstart'] = translated_parameters['start']
+        translated_parameters['duration'] = translated_parameters['duration']
         return translated_parameters
     
     
@@ -569,7 +569,7 @@ class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
         ('e_rev_I'   , 'ErevInh',   1e-3), 
         ('tau_syn_I' , 'TauSynInh',  1e-3),
     )
-    pcsim_name = "CbaEIFNeuron"
+    pcsim_name = "CbaEIFCondAlphaNeuron"
     simObjFactory = None
     setterMethods = {}
     
@@ -580,9 +580,10 @@ class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
         print self.parameters
         limited_parameters = {}
         for k in ('a','b','Vt','Vr','El','gl','Cm','tau_w','slope','Vpeak',
-                  'Vinit','Inoise','Iinject'):
+                  'Vinit','Inoise','Iinject', 'ErevExc', 
+                  'TauSynExc', 'ErevInh', 'TauSynInh'):
             limited_parameters[k] = self.parameters[k]
-        self.simObjFactory = CbaEIFNeuron(**limited_parameters)
+        self.simObjFactory = CbaEIFCondAlphaNeuron(**limited_parameters)
         
                         
 # ==============================================================================
