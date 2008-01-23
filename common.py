@@ -422,6 +422,25 @@ class SpikeSourcePoisson(StandardCellType):
         'duration' : 1e6        # Duration of spike sequence (ms)
     }  
 
+class SpikeSourceInhGamma(StandardCellType):
+    """Spike source, generating realizations of an inhomogeneous gamma process, employing
+    the thinning method.
+
+    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
+    and renewal theories. Neural Computation 19: 2958-3010.
+    """
+
+    default_parameters = {
+        'a'     : numpy.array([1.0]),# time histogram of parameter a of a gamma distribution (dimensionaless)
+        'b'     : numpy.array([1.0]),# time histogram of parameter b of a gamma distribution (seconds)
+        'tbins' : numpy.array([0]),  # time bins of the time histogram of a,b in units of ms
+        'rmax' : 1.0,           # Rate (Hz) of the Poisson process to be thinned, usually set to max(1/b)
+        'start'    : 0.0,       # Start time (ms)
+        'duration' : 1e6        # Duration of spike sequence (ms)
+    }  
+
+
+
 class SpikeSourceArray(StandardCellType):
     """Spike source generating spikes at the times given in the spike_times array."""
     
@@ -680,6 +699,19 @@ class Population:
         """        
         return _abstractMethod(self)
     
+
+    def getSpikes(self):
+        """
+        returns a numpy array of the spikes of the population
+
+        Useful for small populations, for example for single neuron Monte-Carlo.
+
+        NOTE: getSpikes or printSpikes should be called only once per run,
+        because they mangle simulator recorder files.
+        """
+        
+        return _abstractMethod(self)
+
     def print_v(self,filename,gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.

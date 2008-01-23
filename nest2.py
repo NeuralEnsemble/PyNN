@@ -401,6 +401,33 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
         common.SpikeSourcePoisson.__init__(self,parameters)
         self.parameters = self.translate(self.parameters)
         self.parameters['origin'] = 1.0
+
+
+
+class SpikeSourceInhGamma(common.SpikeSourceInhGamma):
+    """Spike source, generating realizations of an inhomogeneous gamma process, employing
+    the thinning method.
+
+    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
+    and renewal theories. Neural Computation 19: 2958-3010.
+    """
+
+    translations = {
+        'a'     : ('a'   , "parameters['a']"),
+        'b'     : ('b'   , "parameters['b']"),
+        'tbins'     : ('tbins'   , "parameters['tbins']"),
+        'rmax'     : ('rmax'   , "parameters['rmax']"),
+        'start'    : ('start'  , "parameters['start']"),
+        'duration' : ('stop'   , "parameters['duration']+parameters['start']")
+    }
+    nest_name = 'inh_gamma_generator'
+    
+    def __init__(self,parameters):
+        common.SpikeSourceInhGamma.__init__(self,parameters)
+        self.parameters = self.translate(self.parameters)
+        self.parameters['origin'] = 1.0
+
+
     
 class SpikeSourceArray(common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
@@ -755,6 +782,54 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
     if population is None:
         recorder_dict.pop(user_filename)    
 
+
+def _get(population=None, variable=None):
+    global recorder_dict
+    
+    if population is None:
+        recorder = recorder_dict[user_filename]
+    else:
+        assert variable in ['spikes', 'v', 'conductance']
+        recorder = population.recorders[variable]
+    
+    #print "Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder, compatible_output)
+    
+    nest.FlushDevice(recorder) 
+    status = nest.GetStatus([0])[0]
+    local_num_threads = status['local_num_threads']
+    node_list = range(nest.GetStatus([0], "num_processes")[0])
+    
+    # Combine data from different threads to the zeroeth thread
+    nest.sps(recorder[0])
+    nest.sr("%i GetAddress %i append" % (recorder[0], 0))
+    nest.sr("GetStatus /filename get")
+    base_filename = nest.spp() #nest.GetStatus(recorder, "filename")
+
+    if local_num_threads>1:
+        for nest_thread in range(1,local_num_threads):
+            nest.sps(recorder[0])
+            nest.sr("%i GetAddress %i append" % (recorder[0], nest_thread))
+            nest.sr("GetStatus /filename get")
+            nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
+            system_line = 'cat %s >> %s' % (nest_filename, base_filename) 
+            os.system(system_line)
+            os.remove(nest_filename)
+
+    # now we have the merged_filename
+
+    if population is not None:
+        padding = population.cell.flatten()[0]
+    else:
+        padding = 0
+    
+
+    data = _readArray(base_filename, sepchar=None)
+    data[:,0] = data[:,0] - padding
+    os.remove(base_filename)
+
+    return data
+
+
 def _readArray(filename, sepchar=None, skipchar='#'):
     logging.debug(filename)
     myfile = open(filename, "r")
@@ -1089,6 +1164,18 @@ class Population(common.Population):
         """
         _print(filename, gather=gather, compatible_output=compatible_output,
                population=self, variable="spikes")
+
+
+    def getSpikes(self):
+        """
+        returns a numpy array of the spikes of the population
+
+        Useful for small populations, for example for single neuron Monte-Carlo.
+
+        NOTE: getSpikes or printSpikes should be called only once per run,
+        because they mangle simulator recorder files.
+        """
+        return _get(population=self, variable="spikes")
        
     def meanSpikeCount(self, gather=True):
         """
