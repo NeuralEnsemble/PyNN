@@ -265,6 +265,44 @@ class IF_cond_exp(common.IF_cond_exp):
         self.parameters = self.translate1(self.parameters)
 
 
+class IF_cond_exp_sfa_rr(common.IF_cond_exp_sfa_rr):
+    """Linear leaky integrate and fire model with fixed threshold,
+    decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
+    and a conductance-based relative refractory mechanism.
+
+    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
+    and renewal theories. Neural Computation 19: 2958-3010.
+    """
+    translations = common.build_translations(
+        ('v_rest',     'E_L')    ,
+        ('v_reset',    'V_reset'),
+        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
+        ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
+        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
+        ('tau_syn_E',  'tau_syn_ex'),
+        ('tau_syn_I',  'tau_syn_in'),
+        ('v_thresh',   'V_th'),
+        ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
+        ('e_rev_E',    'E_ex'),
+        ('e_rev_I',    'E_in'),
+        ('v_init',     'V_m'),
+        ('tau_sfa',    'tau_sfa'),
+        ('e_rev_sfa',  'E_sfa'),
+        ('q_sfa',      'q_sfa'),
+        ('tau_rr',     'tau_rr'),
+        ('e_rev_rr',   'E_rr'),
+        ('q_rr',       'q_rr')
+    )
+    nest_name = "iaf_cond_exp_sfa_rr"
+    def __init__(self,parameters):
+        common.IF_cond_exp_sfa_rr.__init__(self,parameters) # checks supplied parameters and adds default
+                                                       # values for not-specified parameters.
+        self.parameters = self.translate1(self.parameters)
+
+
+
+
+
 class IF_facets_hardware1(common.IF_facets_hardware1):
     """Leaky integrate and fire model with conductance-based synapses and fixed 
     threshold as it is resembled by the FACETS Hardware Stage 1. For further 

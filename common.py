@@ -313,6 +313,38 @@ class IF_cond_exp(StandardCellType):
         'i_offset'   : 0.0,     # Offset current in nA
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
+
+class IF_cond_exp_sfa_rr(StandardCellType):
+    """Linear leaky integrate and fire model with fixed threshold,
+    decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
+    and a conductance-based relative refractory mechanism.
+
+    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
+    and renewal theories. Neural Computation 19: 2958-3010.
+    """
+    
+    default_parameters = {
+        'v_rest'     : -65.0,   # Resting membrane potential in mV. 
+        'cm'         : 1.0,     # Capacity of the membrane in nF
+        'tau_m'      : 20.0,    # Membrane time constant in ms.
+        'tau_refrac' : 0.0,     # Duration of refractory period in ms.
+        'tau_syn_E'  : 5.0,     # Decay time of the excitatory synaptic conductance in ms.
+        'tau_syn_I'  : 5.0,     # Decay time of the inhibitory synaptic conductance in ms.
+        'e_rev_E'    : 0.0,     # Reversal potential for excitatory input in mV
+        'e_rev_I'    : -70.0,   # Reversal potential for inhibitory input in mV
+        'v_thresh'   : -50.0,   # Spike threshold in mV.
+        'v_reset'    : -65.0,   # Reset potential after a spike in mV.
+        'i_offset'   : 0.0,     # Offset current in nA
+        'v_init'     : -65.0,   # Membrane potential in mV at t = 0
+        'tau_sfa'    : 100.0,   # Time constant of spike-frequency adaptation in ms
+        'e_rev_sfa'  : -75.0,   # spike-frequency adaptation conductance reversal potential in mV
+        'q_sfa'      : 15.0,    # Quantal spike-frequency adaptation conductance increase in nS
+        'tau_rr'     : 2.0,     # Time constant of the relative refractory mechanism in ms
+        'e_rev_rr'   : -75.0,   # relative refractory mechanism conductance reversal potential in mV
+        'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS
+        
+    }
+
     
 class IF_facets_hardware1(StandardCellType):
     """Leaky integrate and fire model with conductance-based synapses and fixed 
@@ -437,7 +469,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
-    Weights should be in nA or µS."""
+    Weights should be in nA or ÂµS."""
     pass
 
 def set(cells,cellclass,param,val=None):
@@ -720,7 +752,7 @@ class Projection:
         self.connection = None # access individual connections. To be defined by child, simulator-specific classes
         if label is None:
             if self.pre.label and self.post.label:
-                self.label = "%s → %s" % (self.pre.label, self.post.label)
+                self.label = "%s â %s" % (self.pre.label, self.post.label)
     
     def __len__(self):
         """Return the total number of connections."""
@@ -837,7 +869,7 @@ class Projection:
         w can be a single number, in which case all weights are set to this
         value, or a list/1D array of length equal to the number of connections
         in the population.
-        Weights should be in nA for current-based and µS for conductance-based
+        Weights should be in nA for current-based and ÂµS for conductance-based
         synapses.
         """
         return _abstractMethod(self)
@@ -1050,7 +1082,7 @@ class DistanceDependentProbabilityConnector(Connector):
     axes should be a string containing the axes to be used, e.g. 'x', or 'yz'
     axes='xyz' is the same as axes=None.
     It may be that the pre and post populations use different units for position, e.g.
-    degrees and µm. In this case, `scale_factor` can be specified, which is applied
+    degrees and Âµm. In this case, `scale_factor` can be specified, which is applied
     to the positions in the post-synaptic population. An offset can also be included.
     """
     
