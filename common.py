@@ -189,7 +189,16 @@ class StandardCellType(object):
     default_parameters = {}
     
     def checkParameters(self, supplied_parameters, with_defaults=False):
-        """Checks that the parameters exist and have values of the correct type."""
+        """
+        Returns a parameter dictionary, checking that each
+        supplied_parameter is in the default_parameters and
+        converts to the type of the latter.
+
+        If with_defaults==True, parameters not in
+        supplied_parameters are in the returned dictionary
+        as in default_parameters.
+
+        """
         default_parameters = self.__class__.default_parameters
         if with_defaults:
             parameters = copy.copy(default_parameters)
@@ -236,6 +245,13 @@ class StandardCellType(object):
             pval = eval(self.__class__.translations[k]['forward_transform'], globals(), parameters)
             translated_parameters[pname] = pval
         return translated_parameters
+
+    def update_parameters(self,parameters):
+        """
+        update self.parameters with those in parameters 
+        """
+        self.parameters.update(self.translate1(parameters, with_defaults=False))
+        
 
     def __init__(self,parameters):
         self.parameters = self.checkParameters(parameters, with_defaults=True)
