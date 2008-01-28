@@ -1259,6 +1259,9 @@ class Projection(common.Projection):
         if isinstance(self.synapse_dynamics, SynapseDynamics):
             self.short_term_plasticity_mechanism = self.synapse_dynamics.fast
             self.long_term_plasticity_mechanism = self.synapse_dynamics.slow
+        elif self.synapse_dynamics is None:
+            self.short_term_plasticity_mechanism = None
+            self.long_term_plasticity_mechanism = None
         else:
             print type(synapse_dynamics)
             raise Exception("The synapse_dynamics argument, if specified, must be a SynapseDynamics object.")

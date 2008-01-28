@@ -743,7 +743,9 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
                 
             ## Writing header info (e.g., dimensions of the population)
             if population is not None:
-                result.write("# " + "\t".join([str(d) for d in population.dim]) + "\n")
+                result.write("# dimensions =" + "\t".join([str(d) for d in population.dim]) + "\n")
+                result.write("# first_id = %d\n" % population.cell[0])
+                result.write("# last_id = %d\n" % population.cell[-1])
                 padding = population.cell.flatten()[0]
             else:
                 padding = 0
@@ -982,6 +984,12 @@ class Population(common.Population):
         else:
             raise common.InvalidDimensionsError
         return coords
+    
+    def index(self, n):
+        """Return the nth cell in the population."""
+        if hasattr(n, '__len__'):
+            n = numpy.array(n)
+        return self.cell[n]
     
     def set(self,param,val=None):
         """

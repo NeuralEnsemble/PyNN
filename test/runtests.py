@@ -11,7 +11,7 @@ by John W. Moore, Michael Hines, and Ted Carnevale
 Duke and Yale University -- Copyright 1984-2005
 
 Additional mechanisms from files
- alphaisyn.mod alphasyn.mod expisyn.mod refrac.mod reset.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod vecstim.mod"""
+ alphaisyn.mod alphasyn.mod expisyn.mod IF_BG5.mod refrac.mod reset.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod vecstim.mod"""
 
 def run(cmd,engine):
     #print 'Running "', cmd, '" with', engine.upper()
