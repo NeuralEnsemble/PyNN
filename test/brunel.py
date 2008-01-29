@@ -11,7 +11,6 @@ $Id$
 """
 
 import sys
-from NeuroTools.stgen import StGen
 
 if hasattr(sys,"argv"):     # run using python
     simulator = sys.argv[-1]
@@ -159,37 +158,28 @@ print "%d Setting up recording in inhibitory population." %myid
 I_net.record(Nrec)
 I_net.record_v([I_net[0],I_net[1]])
 
+E_Connector = FixedProbabilityConnector(epsilon, weights = JE, delays = delay)
+I_Connector = FixedProbabilityConnector(epsilon, weights = JI, delays = delay)
+ext_Connector = OneToOneConnector(weights = JE, delays = dt)
+
 print "%d Connecting excitatory population."  %myid
-E_to_E = Projection(E_net,E_net,'fixedProbability',epsilon,rng=rng)
-E_to_E.setWeights(JE)
-E_to_E.setDelays(delay)
+E_to_E = Projection(E_net, E_net, E_Connector, rng=rng)
 print "E --> E\t\t", len(E_to_E), "connections"
-I_to_E = Projection(I_net,E_net,'fixedProbability',epsilon,rng=rng)
-I_to_E.setWeights(JI)
-I_to_E.setDelays(delay)
+I_to_E = Projection(I_net, E_net, I_Connector, rng=rng)
 print "I --> E\t\t", len(I_to_E), "connections"
-input_to_E = Projection(expoisson,E_net,'oneToOne')
-input_to_E.setWeights(JE)
-input_to_E.setDelays(dt) # min_delay = dt ??
+input_to_E = Projection(expoisson, E_net, ext_Connector)
 print "input --> E\t", len(input_to_E), "connections"
 
 print "%d Connecting inhibitory population." %myid
-E_to_I = Projection(E_net,I_net,'fixedProbability',epsilon,rng=rng)
-E_to_I.setWeights(JE)
-E_to_I.setDelays(delay)
+E_to_I = Projection(E_net, I_net, E_Connector, rng=rng)
 print "E --> I\t\t", len(E_to_I), "connections"
-I_to_I = Projection(I_net,I_net,'fixedProbability',epsilon,rng=rng)
-I_to_I.setWeights(JI)
-I_to_I.setDelays(delay)
+I_to_I = Projection(I_net, I_net, I_Connector, rng=rng)
 print "I --> I\t\t", len(I_to_I), "connections"
-input_to_I = Projection(inpoisson,I_net,'oneToOne')
-input_to_I.setWeights(JE)
-input_to_I.setDelays(dt) # min_delay = dt ??
+input_to_I = Projection(inpoisson, I_net, ext_Connector)
 print "input --> I\t", len(input_to_I), "connections"
 
 # read out time used for building
 buildCPUTime = Timer.elapsedTime()
-
 # === Run simulation ===========================================================
 
 # run, measure computer time
@@ -217,7 +207,8 @@ nprint("Inhibitory weight  : %g" %JI)
 nprint("Excitatory rate    : %g Hz" %E_rate)
 nprint("Inhibitory rate    : %g Hz" %I_rate)
 nprint("Build time         : %g s" %buildCPUTime)   
-nprint("Simulation time    : %g s" %simCPUTime)    
+nprint("Simulation time    : %g s" %simCPUTime)
+
   
 # === Clean up and quit ========================================================
 

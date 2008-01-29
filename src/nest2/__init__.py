@@ -13,18 +13,15 @@ from math import *
 from pyNN.nest2.cells import *
 from pyNN.nest2.connectors import *
 
-#ll_spike_files = []
-#ll_v_files     = {}
-#hl_spike_files = {}
-#hl_v_files     = {}
-#hl_c_files     = {}
+
 recorder_dict  = {}
 tempdirs       = []
 dt             = 0.1
+_min_delay     = 0.1
 recording_device_names = {'spikes': 'spike_detector',
                           'v': 'voltmeter',
                           'conductance': 'conductancemeter'}
-_min_delay = 0.1
+
 
 # ==============================================================================
 #   Utility classes and functions
@@ -781,7 +778,9 @@ class Population(common.Population):
         if isinstance(rand_distr.rng, NativeRNG):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
-            rarr = rand_distr.next(n=self.size)
+            #cells = numpy.reshape(self.cell,self.cell.size)
+            #rarr = rand_distr.next(n=self.size)
+            rarr = rand_distr.next(n=len(self.cell_local))
             cells = self.cell_local
             assert len(rarr) == len(cells)
             for cell,val in zip(cells,rarr):

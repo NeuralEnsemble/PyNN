@@ -13,13 +13,10 @@ from math import *
 from pyNN.nest1.cells import *
 from pyNN.nest1.connectors import *
 
-ll_spike_files = []
-ll_v_files     = []
-hl_spike_files = []
-hl_v_files     = []
-tempdirs       = []
-dt             = 0.1
-_min_delay     = 0.1
+recorders  = {}
+tempdirs   = []
+dt         = 0.1
+_min_delay = 0.1
 
 
 # ==============================================================================
@@ -175,20 +172,16 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
+    global tempdir
     # We close the high level files opened by populations objects
     # that may have not been written.
-    global tempdir
-    for file in hl_spike_files:
-        pynest.sr('%s close' %file)
-    for file in hl_v_files:
-        file = tempdir + '/' + file
-        pynest.sr('%s close' %file.replace('/','_'))
     # And we postprocess the low level files opened by record()
     # and record_v() method
-    for file in ll_spike_files:
-        _printSpikes(file, compatible_output)
-    for file in ll_v_files:
-        _print_v(file, compatible_output)
+    for key, value in zip(recorders.keys(), recorders.values()):
+        if value[0] == "spikes":
+            _printSpikes(value[1], key, compatible_output)
+        if value[0] == "v":
+            _print_v(value[1], key, compatible_output)
     for tempdir in tempdirs:
         os.system("rm -rf %s" %tempdir)
     pynest.end()
@@ -304,9 +297,10 @@ def record(source,filename):
         source = [pynest.getAddress(source)]
     for src in source:
         pynest.connect(src,spike_detector[0])
-        pynest.sr('/%s (%s/%s) (w) file def' % (filename, tempdir, filename))
+        tmpfile = "%s/%s" %(tempdir, filename)
+        pynest.sr('/%s (%s) (w) file def' % (filename, tmpfile))
         pynest.sr('%s << /output_stream %s >> SetStatus' % (pynest.getGID(spike_detector[0]),filename))
-    ll_spike_files.append(filename)
+    recorders[filename] = ("spikes", tmpfile)
 
 
 def record_v(source,filename):
@@ -320,23 +314,23 @@ def record_v(source,filename):
     else:
         source = [pynest.getAddress(source)]
     record_file = tempdir+'/'+filename
-    ll_v_files.append(filename)
-    pynest.record_v(source,record_file.replace('/','_'))
+    tmpfile = record_file.replace('/','_')
+    recorders[filename] = ("v", tmpfile)
+    pynest.record_v(source,tmpfile)
 
 
-def _printSpikes(filename, compatible_output=True):
+def _printSpikes(tmpfile, filename, compatible_output=True):
     """ Print spikes into a file, and postprocessed them if
     needed and asked to produce a compatible output for all the simulator
     Should actually work with record() and allow to dissociate the recording of the
     writing process, which is not the case for the moment"""
-    tempfilename = "%s/%s" %(tempdir, filename)
-    pynest.sr('%s close' %filename) 
+    pynest.sr('%s close' %tmpfile) 
     if (compatible_output):
         # Here we postprocess the file to have effectively the
         # desired format :
         # First line: # dimensions of the population
         # Then spiketime (in ms) cell_id-min(cell_id)
-        result = open(filename,'w',1000)
+        result = open(filename,'w',10000)
         # Writing # such that Population.printSpikes and this have same output format
         result.write("# "+"\n")
         # Writing spiketimes, cell_id-min(cell_id)
@@ -346,7 +340,7 @@ def _printSpikes(filename, compatible_output=True):
         # has been created to load from file the raster or the membrane potentials
         # saved by NEST
         try:
-            raster = _readArray(tempfilename, sepchar=" ")
+            raster = _readArray(tmpfile, sepchar=" ")
             raster = raster[:,1:3]
             raster[:,1] = raster[:,1]*dt
             for idx in xrange(len(raster)):
@@ -354,19 +348,18 @@ def _printSpikes(filename, compatible_output=True):
         except Exception:
             print "Error while writing data into a compatible mode"
         result.close()
-        os.system("rm %s" %tempfilename)
+        os.system("rm %s" %tmpfile)
     else:
-        shutil.move(tempfilename, filename)
+        shutil.move(tmpfile, filename)
 
 
-def _print_v(filename, compatible_output=True):
+def _print_v(tmpfile, filename, compatible_output=True):
     """ Print membrane potentials in a file, and postprocessed them if
     needed and asked to produce a compatible output for all the simulator
     Should actually work with record_v() and allow to dissociate the recording of the
     writing process, which is not the case for the moment"""
-    tempfilename = tempdir+'/'+filename
-    pynest.sr('%s close' %tempfilename.replace('/','_')) 
-    result = open(filename,'w',1000)
+    pynest.sr('%s close' %tmpfile) 
+    result = open(filename,'w',10000)
     dt = pynest.getNESTStatus()['resolution']
     n = int(pynest.getNESTStatus()['time']/dt)
     result.write("# dt = %f\n# n = %d\n" % (dt,n))
@@ -382,22 +375,22 @@ def _print_v(filename, compatible_output=True):
         # has been created to load from file the raster or the membrane potentials
         # saved by NEST
         try:
-            raster = _readArray(tempfilename.replace('/','_'), sepchar="\t")
+            raster = _readArray(tmpfile, sepchar="\t")
             for idx in xrange(len(raster)):
                 result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
         except Exception:
             print "Error while writing data into a compatible mode"
     else:
-        f = open(tempfilename.replace('/','_'),'r',1000)
+        f = open(tmpfile,'r',10000)
         lines = f.readlines()
         f.close()
         for line in lines:
             result.write(line)
     result.close()
-    os.system("rm %s" %tempfilename.replace('/','_'))
+    os.system("rm %s" %tmpfile)
 
 def _readArray(filename, sepchar = " ", skipchar = '#'):
-    myfile = open(filename, "r")
+    myfile = open(filename, "r", 10000)
     contents = myfile.readlines()
     myfile.close() 
     data = []
@@ -644,16 +637,13 @@ class Population(common.Population):
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids
-        of the cells to record.
+        of the cells to record._printSpikes(tmpfile, filename, compatible_output=True)
         """
-        global hl_spike_files
         
         self.spike_detector = pynest.create('spike_detector')
         pynest.setDict(self.spike_detector,{'withtime':True,  # record time of spikes
                                             'withpath':True}) # record which neuron spiked
-        
         fixed_list = False
-
         if record_from:
             if type(record_from) == types.ListType:
                 fixed_list = True
@@ -676,9 +666,10 @@ class Population(common.Population):
         # Open temporary output file & register file with detectors
         # This should be redone now that Eilif has implemented the pythondatum datum type
         # pynest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label,self.label)) # old
-        pynest.sr('/%s.spikes (%s/%s.spikes) (w) file def' %  (self.label, tempdir, self.label))
+        file = "%s/%s.spikes" %(tempdir, self.label)
+        pynest.sr('/%s.spikes (%s) (w) file def' %  (self.label, file))
         pynest.sr('%s << /output_stream %s.spikes >> SetStatus' % (pynest.getGID(self.spike_detector[0]),self.label))
-        hl_spike_files.append('%s.spikes' % self.label)
+        recorders['%s.spikes' %self.label] = ("spikes", file)
         self.n_rec = n_rec
 
     def record_v(self,record_from=None,rng=None):
@@ -689,10 +680,6 @@ class Population(common.Population):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        global hl_v_files
-        
-        fixed_list = False
-        
         fixed_list = False
         if record_from:
             if type(record_from) == types.ListType:
@@ -713,11 +700,11 @@ class Population(common.Population):
         else:
             for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
                 tmp_list.append(pynest.getAddress(neuron))
-        hl_v_files.append(filename)
+        recorders['%s.v' %self.label] = ("v", record_file.replace('/','_'))
         pynest.record_v(tmp_list, record_file.replace('/','_'))
     
     
-    def printSpikes(self,filename,gather=True, compatible_output=True):
+    def printSpikes(self, filename, gather=True, compatible_output=True):
         """
         Writes spike times to file.
         If compatible_output is True, the format is "spiketime cell_id",
@@ -733,16 +720,14 @@ class Population(common.Population):
         If gather is True, the file will only be created on the master node,
         otherwise, a file will be written on each node.
         """        
-        global hl_spike_files
-        tempfilename = '%s.spikes' % self.label
-        if hl_spike_files.__contains__(tempfilename):
-            pynest.sr('%s close' % tempfilename)
-            hl_spike_files.remove(tempfilename)
+        file_label = '%s.spikes' % self.label
+        (file_type, tmpfile) = recorders.pop(file_label)
+        pynest.sr('%s close' % file_label)
 
         if (compatible_output):
             # Here we postprocess the file to have effectively the
             # desired format: spiketime (in ms) cell_id-min(cell_id)
-            result = open(filename,'w',1000)
+            result = open(filename,'w',10000)
             # Writing dimensions of the population:
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
             # Writing spiketimes, cell_id-min(cell_id)
@@ -753,7 +738,7 @@ class Population(common.Population):
             # has been created to load from file the raster or the membrane potentials
             # saved by NEST
             try :
-                raster = _readArray("%s/%s" %(tempdir, tempfilename),sepchar=" ")
+                raster = _readArray(tmpfile,sepchar=" ")
                 #Sometimes, nest doesn't write the last line entirely, so we need
                 #to trunk it to avoid errors
                 raster = raster[:,1:3]
@@ -762,12 +747,12 @@ class Population(common.Population):
                 for idx in xrange(len(raster)):
                     result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
             except Exception:
-                print "Error while writing data into a compatible mode"
+                print "Error while writing data into a compatible mode with file %s" %filename
             result.close()
-            os.system("rm %s/%s" %(tempdir, tempfilename))
+            os.system("rm %s" %tmpfile)
         else:
             print "didn't go into the compatible output stuff"
-            shutil.move(tempdir+'/'+tempfilename,filename)
+            shutil.move(tmpfile, filename)
         
 
     def meanSpikeCount(self,gather=True):
@@ -790,7 +775,7 @@ class Population(common.Population):
         #for node, v_init in zip(cells,rvals):
         #    pynest.setDict([node],{'u': v_init})
     
-    def print_v(self,filename,gather=True, compatible_output=True):
+    def print_v(self, filename, gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
         If compatible_output is True, the format is "v cell_id",
@@ -805,46 +790,31 @@ class Population(common.Population):
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        global hl_v_files
-        tempfilename = tempdir+'/'+'%s.v' % self.label
-        if hl_v_files.__contains__(tempfilename):
-            pynest.sr('%s close' % tempfilename.replace('/','_'))
-            hl_v_files.remove(tempfilename)
 
-        result = open(filename,'w',1000)
+        file_label = '%s.v' % self.label
+        (file_type, tmpfile) = recorders.pop(file_label)
+        pynest.sr('%s close' % tmpfile)
+        result = open(filename,'w',10000)
         dt = pynest.getNESTStatus()['resolution']
         n = int(pynest.getNESTStatus()['time']/dt)
         result.write("# dt = %f\n# n = %d\n" % (dt,n))
-
         if (compatible_output):
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
             padding = numpy.reshape(self.cell,self.cell.size)[0]
-
-            # Here we postprocess the file to have effectively the
-            # desired format :
-            # First line: dimensions of the population
-            # Then spiketime cell_id-min(cell_id)
-            
-            # Pylab has a great load() function, but it is not necessary to import
-            # it into pyNN. The fromfile() function of numpy has trouble on several
-            # machine with Python 2.5, so that's why a dedicated _readArray function
-            # has been created to load from file the raster or the membrane potentials
-            # saved by NEST
             try:
-                raster = _readArray(tempfilename.replace('/','_'),sepchar="\t")
+                raster = _readArray(tmpfile,sepchar="\t")
                 raster[:,0] = raster[:,0] - padding
-
                 for idx in xrange(len(raster)):
                     result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
             except Exception:
-                print "Error while writing data into a compatible mode"
+                print "Error while writing data into a compatible mode with file %s" %filename
         else:
-            f = open(tempfilename.replace('/','_'),'r',1000)
+            f = open(tmpfile,'r',10000)
             lines = f.readlines()
             f.close()
             for line in lines:
                 result.write(line)
-        os.system("rm %s" %tempfilename.replace('/','_'))
+        os.system("rm %s" %tmpfile)
         result.close()
 
     
@@ -1469,7 +1439,7 @@ class Projection(common.Projection, WDManager):
     def saveConnections(self,filename,gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        f = open(filename,'w',1000)
+        f = open(filename,'w',10000)
         # Note unit change from pA to nA or nS to uS, depending on synapse type
         weights = [0.001*pynest.getWeight(src,port) for (src,port) in self.connections()]
         delays = [pynest.getDelay(src,port) for (src,port) in self.connections()] 
@@ -1485,7 +1455,7 @@ class Projection(common.Projection, WDManager):
     
     def printWeights(self,filename,format=None,gather=True):
         """Print synaptic weights to file."""
-        file = open(filename,'w',1000)
+        file = open(filename,'w',10000)
         postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,)).tolist()
         presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,)).tolist()
         weightArray = numpy.zeros((self.pre.size,self.post.size),dtype=float)
@@ -1502,7 +1472,7 @@ class Projection(common.Projection, WDManager):
             for tgt,w in zip(targetList,weightList):
                 try:
                     j = postsynaptic_neurons.index(tgt)
-                    weightArray[i][j] = w
+                    weightArray[i][j] = 0.001*w
                 except ValueError: # tgt is in a different population to the current postsynaptic population
                     pass
         fmt = "%g "*len(postsynaptic_neurons) + "\n"

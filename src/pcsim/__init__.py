@@ -193,7 +193,7 @@ class FieldMultiChannelRecorder:
         if filename:
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):
-            self.filename += ".node." + net.mpi_rank()
+            self.filename += ".node." + pcsim_globals.net.mpi_rank()
         try:
             h5file = tables.openFile(filename, mode = "w", title = self.filename + " recordings")
         except NameError:
@@ -208,7 +208,7 @@ class FieldMultiChannelRecorder:
         if filename:
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):
-            self.filename += ".node." + net.mpi_rank()
+            self.filename += ".node." + pcsim_globals.net.net.mpi_rank()
         f = file(self.filename, "w",10000)
         all_spikes = []
         if compatible_output:

@@ -19,7 +19,6 @@ $Id:VAbenchmarks.py 5 2007-04-16 15:01:24Z davison $
 
 import sys
 from copy import copy
-from NeuroTools.stgen import StGen
 from math import *
 
 if hasattr(sys,"argv"):     # run using python
@@ -98,8 +97,8 @@ elif benchmark == "CUBA":
 
 # === Build the network ========================================================
 
-#extra = {'threads' : 2}
-extra={}
+extra = {'threads' : 2}
+#extra={}
 
 node_id = setup(timestep=dt, min_delay=dt, max_delay=dt, **extra)
 

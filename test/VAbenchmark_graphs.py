@@ -6,7 +6,7 @@ if len(sys.argv) < 2:
     sys.exit(1)
 benchmark = sys.argv[1]
 
-simulators = ('pcsim','nest1','neuron')
+simulators = ('nest2','nest1','neuron','pcsim')
 v_thresh = -50.0
 #pylab.rcParams['backend'] = 'PS'
 CM=1/2.54
@@ -72,7 +72,7 @@ for simulator in simulators:
     
     # Plot membrane potential trace
     allvdata = pylab.load("VAbenchmark_%s_exc_%s.v" % (benchmark,simulator), comments='#')
-    cell_ids = allvdata[:,1].astype(pylab.Int)
+    cell_ids = allvdata[:,1].astype(int)
     allvdata = allvdata[:,0]
     sortmap = pylab.argsort(cell_ids, kind='mergesort')
     cell_ids = pylab.take(cell_ids,sortmap)
@@ -95,8 +95,8 @@ for simulator in simulators:
     exc_spikedata = pylab.load("VAbenchmark_%s_exc_%s.ras" % (benchmark,simulator))
     inh_spikedata = pylab.load("VAbenchmark_%s_inh_%s.ras" % (benchmark,simulator))
 
-    exc_spikeids   = exc_spikedata[:,1].astype(pylab.Int)
-    inh_spikeids   = inh_spikedata[:,1].astype(pylab.Int)
+    exc_spikeids   = exc_spikedata[:,1].astype(int)
+    inh_spikeids   = inh_spikedata[:,1].astype(int)
     exc_spiketimes = exc_spikedata[:,0]
     inh_spiketimes = inh_spikedata[:,0]
 

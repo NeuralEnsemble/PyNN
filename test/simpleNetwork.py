@@ -9,7 +9,6 @@ $Id$
 """
 
 import sys
-from NeuroTools.stgen import StGen
 
 if hasattr(sys,"argv"):     # run using python
     simulator = sys.argv[-1]
