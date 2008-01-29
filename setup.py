@@ -5,8 +5,8 @@ from distutils.core import setup
 setup(
     name = "PyNN",
     version = "0.4.0alpha",
-    package_dir={'pyNN': ''},
-    packages = ['pyNN'],
+    package_dir={'pyNN': 'src'},
+    packages = ['pyNN','pyNN.nest2','pyNN.nest1','pyNN.pcsim','pyNN.neuron'],
     author = "The NeuralEnsemble Community",
     author_email = "pynn@neuralensemble.org",
     description = "A Python package for simulator-independent specification of neuronal network models",

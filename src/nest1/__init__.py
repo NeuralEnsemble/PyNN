@@ -10,6 +10,8 @@ from pyNN import common
 from pyNN.random import *
 import numpy, types, sys, shutil, os, logging, copy, tempfile
 from math import *
+from pyNN.nest1.cells import *
+from pyNN.nest1.connectors import *
 
 ll_spike_files = []
 ll_v_files     = []
@@ -17,7 +19,7 @@ hl_spike_files = []
 hl_v_files     = []
 tempdirs       = []
 dt             = 0.1
-
+_min_delay     = 0.1
 
 
 # ==============================================================================
@@ -111,168 +113,7 @@ class WDManager(object):
 
 
 
-# ==============================================================================
-#   Standard cells
-# ==============================================================================
- 
-class IF_curr_alpha(common.IF_curr_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
-    
-    translations = {
-            'v_rest'    : ('U0'    ,  "parameters['v_rest']"),
-            'v_reset'   : ('Vreset',  "parameters['v_reset']"),
-            'cm'        : ('C'     ,  "parameters['cm']*1000.0"), # C is in pF, cm in nF
-            'tau_m'     : ('Tau'   ,  "parameters['tau_m']"),
-            'tau_refrac': ('TauR'  ,  "max(dt,parameters['tau_refrac'])"),
-            'tau_syn_E' : ('TauSynE', "parameters['tau_syn_E']"),
-            'tau_syn_I' : ('TauSynI', "parameters['tau_syn_I']"),
-            'v_thresh'  : ('Theta' ,  "parameters['v_thresh']"),
-            'i_offset'  : ('I0'    ,  "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'v_init'    : ('u'     ,  "parameters['v_init']"),
-    }
-    nest_name = "iaf_neuron2"
-    
-    def __init__(self,parameters):
-        common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
 
-class IF_curr_exp(common.IF_curr_exp):
-    """Leaky integrate and fire model with fixed threshold and
-    decaying-exponential post-synaptic current. (Separate synaptic currents for
-    excitatory and inhibitory synapses."""
-    
-    translations = {
-        'v_rest'    : ('U0'     , "parameters['v_rest']"),
-        'v_reset'   : ('Vreset' , "parameters['v_reset']"),
-        'cm'        : ('C'      , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-        'tau_m'     : ('Tau'    , "parameters['tau_m']"),
-        'tau_refrac': ('TauR'   , "max(dt,parameters['tau_refrac'])"),
-        'tau_syn_E' : ('TauSynE', "parameters['tau_syn_E']"),
-        'tau_syn_I' : ('TauSynI', "parameters['tau_syn_I']"),
-        'v_thresh'  : ('Theta'  , "parameters['v_thresh']"),
-        'i_offset'  : ('I0'     , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-        'v_init'    : ('u'      , "parameters['v_init']"),
-    }
-    nest_name = 'iaf_exp_neuron2'
-    
-    def __init__(self,parameters):
-        common.IF_curr_exp.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)
-
-class IF_cond_alpha(common.IF_cond_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic conductance."""
-    
-    translations = {
-            'v_rest'    : ('U0'          , "parameters['v_rest']"),
-            'v_reset'   : ('Vreset'      , "parameters['v_reset']"),
-            'cm'        : ('C'           , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-            'tau_m'     : ('Tau'         , "parameters['tau_m']"),
-            'tau_refrac': ('TauR'        , "max(dt,parameters['tau_refrac'])"),
-            'tau_syn_E' : ('TauSyn_E'    , "parameters['tau_syn_E']"),
-            'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
-            'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
-            'i_offset'  : ('Istim'       , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
-            'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
-            'v_init'    : ('u'           , "parameters['v_init']"),
-    }
-    nest_name = "iaf_cond_neuron"
-    
-    def __init__(self,parameters):
-        common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
-        self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
-
-
-class IF_cond_exp(common.IF_cond_exp):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic conductance."""
-    
-    translations = {
-            'v_rest'    : ('U0'          , "parameters['v_rest']"),
-            'v_reset'   : ('Vreset'      , "parameters['v_reset']"),
-            'cm'        : ('C'           , "parameters['cm']*1000.0"), # C is in pF, cm in nF
-            'tau_m'     : ('Tau'         , "parameters['tau_m']"),
-            'tau_refrac': ('TauR'        , "max(dt,parameters['tau_refrac'])"),
-            'tau_syn_E' : ('TauSyn_E'    , "parameters['tau_syn_E']"),
-            'tau_syn_I' : ('TauSyn_I'    , "parameters['tau_syn_I']"),
-            'v_thresh'  : ('Theta'       , "parameters['v_thresh']"),
-            'i_offset'  : ('Istim'       , "parameters['i_offset']*1000.0"), # I0 is in pA, i_offset in nA
-            'e_rev_E'   : ('V_reversal_E', "parameters['e_rev_E']"),
-            'e_rev_I'   : ('V_reversal_I', "parameters['e_rev_I']"),
-            'v_init'    : ('u'           , "parameters['v_init']"),
-    }
-    nest_name = "iaf_cond_exp"
-    
-    def __init__(self,parameters):
-        common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
-        self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
-
-
-class IF_facets_hardware1(common.IF_facets_hardware1):
-    """Leaky integrate and fire model with conductance-based synapses and fixed 
-    threshold as it is resembled by the FACETS Hardware Stage 1. For further 
-    details regarding the hardware model see the FACETS-internal Wiki:
-    https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
-    """    
-    # in 'iaf_sfa_neuron', the dimension of C is pF, 
-    # while in the pyNN context, cm is given in nF
-    translations = {
-        'v_reset'   : ('Vreset',        "parameters['v_reset']"),
-        'v_rest'    : ('U0',            "parameters['v_rest']"),
-        'v_thresh'  : ('Theta',         "parameters['v_thresh']"),
-        'e_rev_E'   : ('V_reversal_E',  "parameters['e_rev_E']"),
-        'e_rev_I'   : ('V_reversal_I',  "parameters['e_rev_I']"),
-        'cm'        : ('C',             "parameters['cm']*1000.0"), 
-        'tau_refrac': ('TauR',          "max(dt,parameters['tau_refrac'])"),
-        'tau_syn_E' : ('TauSyn_E',      "parameters['tau_syn_E']"),
-        'tau_syn_I' : ('TauSyn_I',      "parameters['tau_syn_I']"),                              
-        'g_leak'    : ('gL',            "parameters['g_leak']")    
-    }
-    nest_name = "iaf_sfa_neuron" 
-
-    def __init__(self, parameters):
-        common.IF_facets_hardware1.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)
-        self.parameters['q_relref'] = 0.0
-        self.parameters['q_sfa']    = 0.0
-        self.parameters['python']   = True
-
-
-class SpikeSourcePoisson(common.SpikeSourcePoisson):
-    """Spike source, generating spikes according to a Poisson process."""
-
-    translations = {
-        'rate'     : ('rate'   , "parameters['rate']"),
-        'start'    : ('start'  , "parameters['start']"),
-        'duration' : ('stop'   , "parameters['duration']+parameters['start']")
-    }
-    nest_name = 'poisson_generator'
-    
-    
-    def __init__(self,parameters):
-        common.SpikeSourcePoisson.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)
-        self.parameters['origin'] = 1.0
-    
-class SpikeSourceArray(common.SpikeSourceArray):
-    """Spike source generating spikes at the times given in the spike_times array."""
-
-    translations = {
-        'spike_times' : ('spike_times' , "parameters['spike_times']"),
-    }
-    nest_name = 'spike_generator'
-    
-    def __init__(self,parameters):
-        common.SpikeSourceArray.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)  
-    
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -1681,169 +1522,11 @@ class Projection(common.Projection, WDManager):
         raise Exception("Method not yet implemented")
 
 # ==============================================================================
-#   Connection method classes
-# ==============================================================================
-
-
-class AllToAllConnector(common.AllToAllConnector, WDManager):    
-    
-    def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
-        postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
-        for post in postsynaptic_neurons:
-            source_list = presynaptic_neurons.tolist()
-            # if self connections are not allowed, check whether pre and post are the same
-            if not self.allow_self_connections and post in source_list:
-                source_list.remove(post)
-            N = len(source_list)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
-            projection._targets += [post]*N
-            projection._sources += source_list
-            projection._targetPorts +=  pynest.convergentConnect(source_list,post,weights,delays)
-        return len(projection._targets)
-
-class OneToOneConnector(common.OneToOneConnector, WDManager):
-    
-    def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
-        if projection.pre.dim == projection.post.dim:
-            projection._sources = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
-            projection._targets = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
-            N = len(projection._sources)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
-            for pre,post,w,d in zip(projection._sources,projection._targets,weights, delays):
-                pre_addr = pynest.getAddress(pre)
-                post_addr = pynest.getAddress(post)
-                projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr,w,d))
-            return projection.pre.size
-        else:
-            raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
-    
-class FixedProbabilityConnector(common.FixedProbabilityConnector, WDManager):
-    
-    def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
-        postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
-        npre = projection.pre.size
-        for post in postsynaptic_neurons:
-            if projection.rng:
-                rarr = projection.rng.uniform(0,1,(npre,)) # what about NativeRNG?
-            else:
-                rarr = numpy.random.uniform(0,1,(npre,))
-            source_list = numpy.compress(numpy.less(rarr,self.p_connect),presynaptic_neurons).tolist()
-            # if self connections are not allowed, check whether pre and post are the same
-            if not self.allow_self_connections and post in source_list:
-                source_list.remove(post)
-            N = len(source_list)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
-            projection._targets += [post]*N
-            projection._sources += source_list
-            projection._targetPorts += pynest.convergentConnect(source_list,post,weights,delays)
-        return len(projection._sources)
-    
-class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector, WDManager):
-    
-    def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
-        periodic_boundaries = self.periodic_boundaries 
-        if periodic_boundaries is not None:
-            dimensions = projection.post.dim
-            periodic_boundaries = numpy.concatenate((dimensions,numpy.zeros(3-len(dimensions))))
-        postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
-        # what about NativeRNG?
-        if projection.rng:
-            if isinstance(projection.rng, NativeRNG):
-                print "Warning: use of NativeRNG not implemented. Using NumpyRNG"
-                rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
-            else:
-                rarr = projection.rng.uniform(0,1,(projection.pre.size*projection.post.size,))
-        else:
-            rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
-        j = 0
-        for post in postsynaptic_neurons:
-            source_list=[]
-            idx_pre  = 0
-            distances = common.distances(projection.pre, post, self.mask, self.scale_factor, self.offset, periodic_boundaries)
-            for pre in presynaptic_neurons:
-                if self.allow_self_connections or pre != post: 
-                    # calculate the distance between the two cells :
-                    d = distances[idx_pre][0]
-                    p = eval(self.d_expression)
-                    # calculate the addresses of cells
-                    #pre_addr  = pynest.getAddress(pre)
-                    #post_addr = pynest.getAddress(post)
-                    if p >= 1 or (0 < p < 1 and rarr[j] < p):
-                        source_list.append(pre)
-                        #projection._targets.append(post)
-                        #projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr,weight,delay)) 
-                j += 1
-                idx_pre += 1
-            N = len(source_list)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
-            projection._targets += [post]*N
-            projection._sources += source_list
-            projection._targetPorts += pynest.convergentConnect(source_list,post,weights,delays)
-        return len(projection._sources)
-
-
-class FixedNumberPreConnector(common.FixedNumberPreConnector):
-    
-    def connect(self, projection):
-        raise Exception("Not implemented yet !")
-
-
-class FixedNumberPostConnector(common.FixedNumberPostConnector):
-    
-    def connect(self, projection):
-        raise Exception("Not implemented yet !")
-
-
-
-
-
-# ==============================================================================
 #   Utility classes
 # ==============================================================================
    
 Timer = common.Timer
 
 # ==============================================================================
+ 
+ 

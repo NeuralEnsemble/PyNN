@@ -1,2 +1,2 @@
 #!/bin/bash
-../hoc/$HOSTTYPE/special -python "$@"
+../src/hoc/$HOSTTYPE/special -python "$@"

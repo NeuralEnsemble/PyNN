@@ -19,7 +19,7 @@ def run(cmd,engine):
     if engine in ('nest1', 'pcsim', 'nest2'):
         cmd = 'python ' + cmd + '.py ' + engine
     elif 'neuron' in engine:
-        cmd = '../hoc/i686/special -python ' + cmd + '.py %s' % engine
+        cmd = '../src/hoc/i686/special -python ' + cmd + '.py %s' % engine
     else:
         print 'Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", "oldneuron" and "neuron"' % engine
         
@@ -219,3 +219,5 @@ if __name__ == "__main__":
     for script in scripts_ras:
         compare_rasters(script, thresholds_ras[script]*(len(engine_list)-1), engine_list)
     
+    if len(scripts_v)+len(scripts_ras) == 0:
+        print "Invalid test name(s)."

@@ -504,7 +504,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
-    Weights should be in nA or ÂµS."""
+    Weights should be in nA or µS."""
     pass
 
 def set(cells,cellclass,param,val=None):
@@ -800,7 +800,7 @@ class Projection:
         self.connection = None # access individual connections. To be defined by child, simulator-specific classes
         if label is None:
             if self.pre.label and self.post.label:
-                self.label = "%s â %s" % (self.pre.label, self.post.label)
+                self.label = "%s → %s" % (self.pre.label, self.post.label)
     
     def __len__(self):
         """Return the total number of connections."""
@@ -917,7 +917,7 @@ class Projection:
         w can be a single number, in which case all weights are set to this
         value, or a list/1D array of length equal to the number of connections
         in the population.
-        Weights should be in nA for current-based and ÂµS for conductance-based
+        Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
         return _abstractMethod(self)

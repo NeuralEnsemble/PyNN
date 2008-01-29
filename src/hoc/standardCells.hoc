@@ -1,0 +1,527 @@
+// Class definitions for standard celltypes used in the FACETS project
+// $Id$
+
+//xopen("odict.hoc")
+
+begintemplate StandardIF
+
+public cell, spike_reset, isyn, esyn
+public spiketimes, memb_init, record, source, vtrace
+public syn_type, syn_shape, record_v, stim, v_init
+public tau_m, CM, v_rest, v_thresh, v_reset, t_refrac, i_offset
+public tau_e, tau_i, e_e, e_i
+public param_update, connect2target
+create cell
+objref spike_reset, esyn, isyn, source
+objref spiketimes, rec, nil, fih, fih2, this, vtrace, stim
+strdef syn_type, syn_shape
+
+proc init() {
+  // The argument is a Dict containing:
+  // "syn_type"    : string denoting the synapse type (current change or conductance change)
+  // "syn_shape"   : string denoting synapse shape (step then decaying exponential or alpha-function)
+  // "cell_params" : (optional) vector containing the non-synaptic parameters
+  // "syn_params"  : (optional) vector containing the synaptic parameters
+  syn_type  = $o1.oget("syn_type").s
+  syn_shape = $o1.oget("syn_shape").s
+  if ($o1.has_key("tau_m"))    { tau_m    = $o1.get("tau_m") }    else { tau_m    = 20 }     // (ms)
+  if ($o1.has_key("CM"))       { CM       = $o1.get("CM") }       else { CM       = 1.0 }    // (nF)
+  if ($o1.has_key("v_rest"))   { v_rest   = $o1.get("v_rest") }   else { v_rest   = -65 }    // (mV)
+  if ($o1.has_key("v_thresh")) { v_thresh = $o1.get("v_thresh")}  else { v_thresh = -55 }    // (mV) 
+  if ($o1.has_key("v_reset"))  { v_reset  = $o1.get("v_reset") }  else { v_reset  = v_rest } // (mV) 
+  if ($o1.has_key("t_refrac")) { t_refrac = $o1.get("t_refrac") } else { t_refrac = 2 }      // (ms)
+  if ($o1.has_key("i_offset")) { i_offset = $o1.get("i_offset") } else { i_offset = 0 }      // (nA)
+  if ($o1.has_key("v_init"))   { v_init   = $o1.get("v_init") }   else { v_init   = v_rest } // (mV)
+  if ($o1.has_key("tau_syn"))  {
+    tau_e = $o1.get("tau_syn")
+    tau_i = $o1.get("tau_syn")
+  } else {
+    if ($o1.has_key("tau_e"))    { tau_e    = $o1.get("tau_e") }    else { tau_e    = 5 }      // (ms)
+    if ($o1.has_key("tau_i"))    { tau_i    = $o1.get("tau_i") }    else { tau_i    = 5 }      // (ms)
+  }
+  if (strcmp(syn_type,"current") == 0) { // current-based synapse
+    current_based = 1
+  } else { // conductance-based
+    current_based = 0
+    if ($o1.has_key("e_e"))    { e_e      = $o1.get("e_e") }      else { e_e      = 0 }      // (mV)
+    if ($o1.has_key("e_i"))    { e_i      = $o1.get("e_i") }      else { e_i      = -70 }    // (mV)
+  }
+  fih = new FInitializeHandler("memb_init()",this)
+  fih2 = new FInitializeHandler("param_update()", this)
+  cell {
+    insert pas
+    L = 100  diam = 1000/PI  // gives area = 1e-3 cm2
+    cm = CM  // uF/cm2, equivalent to nF given the area is 1e-3
+    g_pas = 1e-3*cm/tau_m  // cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+    e_pas = v_rest
+    spike_reset = new ResetRefrac(0.5)
+    spike_reset.trefrac = t_refrac
+    spike_reset.vreset = v_reset
+    spike_reset.vspike = 40 // (mV) spike height
+    spike_reset.vthresh = v_thresh
+    source = spike_reset
+    if (current_based) {
+      if (strcmp(syn_shape,"exp") == 0) {
+	esyn = new ExpISyn(0.5)
+        isyn = new ExpISyn(0.5)
+      } else if (strcmp(syn_shape,"alpha") == 0) {
+	esyn = new AlphaISyn(0.5)
+        isyn = new AlphaISyn(0.5)
+      } else {
+	print "Error: invalid synapse type"
+      }
+    } else {
+      if (strcmp(syn_shape,"exp") == 0) {
+	esyn = new ExpSyn(0.5)
+	isyn = new ExpSyn(0.5)
+      } else if (strcmp(syn_shape,"alpha") == 0) {
+	esyn = new AlphaSyn(0.5)
+	isyn = new AlphaSyn(0.5)
+      } else {
+	print "Error: invalid synapse type"
+      }
+      esyn.e   = e_e
+      isyn.e   = e_i
+    }
+    esyn.tau = tau_e
+    isyn.tau = tau_i
+    stim = new IClamp(0.5)
+    stim.del = 0
+    stim.dur = 1e12
+    stim.amp = i_offset
+  }
+}
+
+proc param_update() {
+    cell {
+        cm = CM  // uF/cm2, equivalent to nF given the area is 1e-3
+        g_pas = 1e-3*cm/tau_m  // cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+        e_pas = v_rest
+    }
+    spike_reset.trefrac = t_refrac
+    spike_reset.vreset = v_reset
+    spike_reset.vthresh = v_thresh
+    stim.amp = i_offset
+    if (!current_based) {
+        esyn.e   = e_e
+        isyn.e   = e_i
+    }
+    esyn.tau = tau_e
+    isyn.tau = tau_i
+}
+
+proc record() {
+  if ($1 == 1) {
+    spiketimes = new Vector()
+    cell rec = new NetCon(&v(0.5),nil)
+    rec.record(spiketimes)
+  } else {
+    objref rec
+    objref spiketimes
+  }
+}
+
+proc record_v() {
+  if ($1 == 1) {
+    vtrace = new Vector()
+    cell vtrace.record(&v(0.5))
+  } else {
+    objref vtrace
+  }
+}
+
+proc memb_init() {
+  if (numarg() == 1) {
+    v_init = $1
+  }
+  cell.v(0.5) = v_init
+}
+
+proc connect2target() {
+  $o2 = new NetCon(source, $o1)
+}
+
+endtemplate StandardIF
+
+// Network spike source
+// Acts as a wrapper for a number of possible mechanisms
+// The advantage of using this wrapper is that it hides some of the set-up code from the
+// top-level script, and adds a record function, for easy recording of the spikes.
+// for use with the NetLayer and LayerConn classes.
+
+// SYNTAX:
+// spikesource = new SpikeSource(paramString)
+// 
+// paramString should contain the name of the spike-generating mechanism
+
+// source
+//   reference to the spike source.
+
+// spiketimes
+//   For mechanisms that generate spikes, this is a vector into which the 
+//     times of spikes are recorded.
+//   For mechanisms that replay spikes, this is a vector containing the times
+//     of spikes to be replayed.
+
+// Andrew P. Davison, UNIC, CNRS, March 2005
+
+
+begintemplate SpikeSource
+  public spiketimes, source, record, set, stim_type, param_update, connect2target
+  
+  objref spiketimes, rec, source, nil, this, keys
+  strdef command, stim_type, key
+  
+  proc init() {
+    stim_type = $o1.oget("source_type").s
+    sprint(command,"source = new %s(0.5)",stim_type)
+    execute1(command,this)
+    if ($o1.has_key("spiketimes")) {
+      spiketimes = $o1.oget("spiketimes") //.c()?
+      source.play(spiketimes)
+      do_not_record = 1
+    } else {
+      spiketimes = new Vector()
+      do_not_record = 0
+    }
+    keys = $o1.keys()
+    for i = 0, keys.count()-1 {
+      key = keys.object(i).s
+      if (strcmp(key,"source_type") != 0) {
+	if (strcmp(key,"spiketimes") != 0) {
+	  set(key,$o1.get(key))
+	}
+      }
+    }
+  }
+  
+  proc record() {
+    if (!do_not_record) { // for VecStims, etc, recording doesn't make sense as we already have the spike times
+      if ($1 == 1) {
+        rec = new NetCon(source,nil)
+        rec.record(spiketimes)
+      } else {
+        objref rec    
+      }
+    }
+  }
+  
+  proc set() {
+    if (strcmp($s1,"spiketimes") == 0) {
+      spiketimes = $o2 // should do a copy here to be safe?
+      source.play(spiketimes)
+      do_not_record = 1
+    } else {
+      sprint(command,"source.%s = %d",$s1,$2)
+      execute1(command,this)
+    }
+  }
+  
+  proc param_update() {
+    if (spiketimes.size() > 0) {
+      source.play(spiketimes)
+      do_not_record = 1
+    } else {
+      do_not_record = 0
+    }
+  }
+
+  proc connect2target() {
+    $o2 = new NetCon(source, $o1)
+  }
+
+endtemplate SpikeSource
+
+begintemplate HH
+
+public cell, isyn, esyn
+public spiketimes, memb_init, record, source, vtrace
+public syn_type, syn_shape, record_v, stim, v_init
+public tau_m, CM, v_rest, i_offset
+public tau_e, tau_i, e_e, e_i, gmax_Na, gmax_K
+public param_update, connect2target
+create cell
+objref esyn, isyn, source
+objref spiketimes, rec, nil, fih, fih2, this, vtrace, stim
+strdef syn_type, syn_shape
+
+proc init() {
+  // The argument is a Dict containing:
+  // "syn_type"    : string denoting the synapse type (current change or conductance change)
+  // "syn_shape"   : string denoting synapse shape (step then decaying exponential or alpha-function)
+  // "cell_params" : (optional) vector containing the non-synaptic parameters
+  // "syn_params"  : (optional) vector containing the synaptic parameters
+  syn_type  = $o1.oget("syn_type").s
+  syn_shape = $o1.oget("syn_shape").s
+  if ($o1.has_key("tau_m"))    { tau_m    = $o1.get("tau_m") }    else { tau_m    = 20 }     // (ms)
+  if ($o1.has_key("CM"))       { CM       = $o1.get("CM") }       else { CM       = 1.0 }    // (nF)
+  if ($o1.has_key("v_rest"))   { v_rest   = $o1.get("v_rest") }   else { v_rest   = -65 }    // (mV)
+  if ($o1.has_key("i_offset")) { i_offset = $o1.get("i_offset") } else { i_offset = 0 }      // (nA)
+  if ($o1.has_key("v_init"))   { v_init   = $o1.get("v_init") }   else { v_init   = v_rest } // (mV)
+  if ($o1.has_key("gmax_Na"))  { gmax_Na  = $o1.get("gmax_Na") }  else { gmax_Na  =  0.12  } // (S/cm2)
+  if ($o1.has_key("gmax_K"))   { gmax_K   = $o1.get("gmax_K") }   else { gmax_K   =  0.036  } // (S/cm2)
+  if ($o1.has_key("ena"))      { eNa      = $o1.get("ena") }  else { eNa      =  50.0  }  // (mV)
+  if ($o1.has_key("ek"))       { eK       = $o1.get("ek") }   else { eK       =  -77.0  } // (mV) 
+  if ($o1.has_key("tau_e"))    { tau_e    = $o1.get("tau_e") }    else { tau_e    = 5 }      // (ms)
+  if ($o1.has_key("tau_i"))    { tau_i    = $o1.get("tau_i") }    else { tau_i    = 5 }      // (ms)
+  if (strcmp(syn_type,"current") == 0) { // current-based synapse
+    current_based = 1
+  } else { // conductance-based
+    current_based = 0
+    if ($o1.has_key("e_e"))    { e_e      = $o1.get("e_e") }      else { e_e      = 0 }      // (mV)
+    if ($o1.has_key("e_i"))    { e_i      = $o1.get("e_i") }      else { e_i      = -70 }    // (mV)
+  }
+  fih = new FInitializeHandler("memb_init()",this)
+  fih2 = new FInitializeHandler("param_update()", this)
+  cell {
+    insert pas
+    insert hh
+    L = 100  diam = 1000/PI  // gives area = 1e-3 cm2
+    cm = CM  // uF/cm2, equivalent to nF given the area is 1e-3
+    g_pas = 1e-3*cm/tau_m  // cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+    e_pas = v_rest
+    gnabar_hh = gmax_Na
+    gkbar_hh = gmax_K
+    ek = eK
+    ena = eNa
+    //source = &v(0.5)
+    if (current_based) {
+      if (strcmp(syn_shape,"exp") == 0) {
+	esyn = new ExpISyn(0.5)
+        isyn = new ExpISyn(0.5)
+      } else if (strcmp(syn_shape,"alpha") == 0) {
+	esyn = new AlphaISyn(0.5)
+        isyn = new AlphaISyn(0.5)
+      } else {
+	print "Error: invalid synapse type"
+      }
+    } else {
+      if (strcmp(syn_shape,"exp") == 0) {
+	esyn = new ExpSyn(0.5)
+	isyn = new ExpSyn(0.5)
+      } else if (strcmp(syn_shape,"alpha") == 0) {
+	esyn = new AlphaSyn(0.5)
+	isyn = new AlphaSyn(0.5)
+      } else {
+	print "Error: invalid synapse type"
+      }
+      esyn.e   = e_e
+      isyn.e   = e_i
+    }
+    esyn.tau = tau_e
+    isyn.tau = tau_i
+    stim = new IClamp(0.5)
+    stim.del = 0
+    stim.dur = 1e12
+    stim.amp = i_offset
+  }
+}
+
+proc param_update() {
+    cell {
+        cm = CM  // uF/cm2, equivalent to nF given the area is 1e-3
+        g_pas = 1e-3*cm/tau_m  // cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+        e_pas = v_rest
+        gnabar_hh = gmax_Na
+        gkbar_hh = gmax_K
+        ena = eNa
+        ek = eK
+    }
+    stim.amp = i_offset
+    if (!current_based) {
+        esyn.e   = e_e
+        isyn.e   = e_i
+    }
+    esyn.tau = tau_e
+    isyn.tau = tau_i
+
+}
+
+proc record() {
+  if ($1 == 1) {
+    spiketimes = new Vector()
+    cell rec = new NetCon(&v(0.5),nil)
+    rec.record(spiketimes)
+  } else {
+    objref rec
+    objref spiketimes
+  }
+}
+
+proc record_v() {
+  if ($1 == 1) {
+    vtrace = new Vector()
+    cell vtrace.record(&v(0.5))
+  } else {
+    objref vtrace
+  }
+}
+
+proc memb_init() {
+  if (numarg() == 1) {
+    v_init = $1
+  }
+  cell.v(0.5) = v_init
+}
+
+proc connect2target() {
+  cell $o2 = new NetCon(&v(0.5), $o1)
+}
+
+endtemplate HH
+
+
+begintemplate IF_BG_alpha
+
+public cell, isyn, esyn
+public spiketimes, memb_init, record, source, vtrace
+public syn_type, syn_shape, record_v, stim
+
+public v_init, w_init, CM, Ref, Vtop, Vbot, EL, GL, i_offset, a, b, delta
+public tau_w, Vtr, tau_e, tau_i, e_e, e_i, Vspike
+
+public param_update, connect2target
+
+create cell
+objref spike_detector, esyn, isyn, source
+objref spiketimes, rec, nil, fih, fih2, this, vtrace, stim
+strdef syn_type, syn_shape
+
+proc init() {
+  // The argument is a Dict containing:
+  // "syn_type"    : string denoting the synapse type (current change or conductance change)
+  // "syn_shape"   : string denoting synapse shape (step then decaying exponential or alpha-function)
+  // "cell_params" : (optional) vector containing the non-synaptic parameters
+  // "syn_params"  : (optional) vector containing the synaptic parameters
+  syn_type  = $o1.oget("syn_type").s
+  syn_shape = $o1.oget("syn_shape").s
+  
+  if ($o1.has_key("EL"))       { EL       = $o1.get("EL") }       else { EL       = -70.6 }  // (mV)
+  if ($o1.has_key("v_init"))   { v_init   = $o1.get("v_init") }   else { v_init   = -70.6 }  // (mV)
+  if ($o1.has_key("w_init"))   { w_init   = $o1.get("w_init") }   else { w_init   = 0 }      // (nA)
+  if ($o1.has_key("CM"))       { CM       = $o1.get("CM") }       else { CM       = 0.281 }  // (nF)
+  if ($o1.has_key("Ref"))      { Ref      = $o1.get("Ref") }      else { Ref      = 0 }      // (ms)
+  if ($o1.has_key("Vspike"))   { Vspike   = $o1.get("Vspike") }   else { Vspike   = 0 }      // (mV)
+  if ($o1.has_key("Vbot"))     { Vbot     = $o1.get("Vbot") }     else { Vbot     = -70.6 }  // (mV)
+  if ($o1.has_key("GL"))       { GL       = $o1.get("GL") }       else { GL       = 0.03 }   // (uS)
+  if ($o1.has_key("i_offset")) { i_offset = $o1.get("i_offset") } else { i_offset = 0 }      // (nA)
+  if ($o1.has_key("a"))        { a        = $o1.get("a") }        else { a        = 4.0 }    // (nS)
+  if ($o1.has_key("b"))        { b        = $o1.get("b") }        else { b        = 0.0805 } // (nA)
+  if ($o1.has_key("delta"))    { delta    = $o1.get("delta") }    else { delta    = 2.0 }    // (mV)
+  if ($o1.has_key("tau_w"))    { tau_w    = $o1.get("tau_w") }    else { tau_w    = 144.0 }  // (ms)
+  if ($o1.has_key("Vtr"))      { Vtr      = $o1.get("Vtr") }      else { Vtr      = -50.4 }  // (mV)
+      
+  if ($o1.has_key("tau_syn"))  {
+    tau_e = $o1.get("tau_syn")
+    tau_i = $o1.get("tau_syn")
+  } else {
+    if ($o1.has_key("tau_e"))    { tau_e    = $o1.get("tau_e") }    else { tau_e    = 5 }      // (ms)
+    if ($o1.has_key("tau_i"))    { tau_i    = $o1.get("tau_i") }    else { tau_i    = 5 }      // (ms)
+  }
+  if (strcmp(syn_type,"current") == 0) { // current-based synapse
+    current_based = 1
+  } else { // conductance-based
+    current_based = 0
+    if ($o1.has_key("e_e"))    { e_e      = $o1.get("e_e") }      else { e_e      = 0 }      // (mV)
+    if ($o1.has_key("e_i"))    { e_i      = $o1.get("e_i") }      else { e_i      = -70 }    // (mV)
+  }
+  fih = new FInitializeHandler("memb_init()",this)
+  fih2 = new FInitializeHandler("param_update()", this)
+  cell {
+    insert pas
+    insert IF_BG5
+    L = 100  diam = 1000/PI  // gives area = 1e-3 cm2  
+    surf_IF_BG5   = area(0.5)
+    spike_detector = new NetCon(&v(0.5), nil)
+    //source = &v(0.5)
+    if (current_based) {
+      if (strcmp(syn_shape,"exp") == 0) {
+	esyn = new ExpISyn(0.5)
+        isyn = new ExpISyn(0.5)
+      } else if (strcmp(syn_shape,"alpha") == 0) {
+	esyn = new AlphaISyn(0.5)
+        isyn = new AlphaISyn(0.5)
+      } else {
+	print "Error: invalid synapse type"
+      }
+    } else {
+      if (strcmp(syn_shape,"exp") == 0) {
+	esyn = new ExpSyn(0.5)
+	isyn = new ExpSyn(0.5)
+      } else if (strcmp(syn_shape,"alpha") == 0) {
+	esyn = new AlphaSyn(0.5)
+	isyn = new AlphaSyn(0.5)
+      } else {
+	print "Error: invalid synapse type"
+      }
+      esyn.e   = e_e
+      isyn.e   = e_i
+    }
+    esyn.tau = tau_e
+    isyn.tau = tau_i
+    stim = new IClamp(0.5)
+    stim.del = 0
+    stim.dur = 1e12
+    stim.amp = i_offset
+  }
+  param_update()
+}
+
+proc param_update() {
+    cell {
+        cm           = CM  // uF/cm2, equivalent to nF given the area is 1e-3
+        g_pas        = GL*1e-3 // S/cm2
+        e_pas        = EL
+        Vspike_IF_BG5 = Vspike
+        Vtop_IF_BG5   = Vspike + 10
+        Vtr_IF_BG5   = Vtr
+	Ref_IF_BG5   = Ref
+	Vbot_IF_BG5  = Vbot
+	a_IF_BG5     = a
+	b_IF_BG5     = b
+	tau_w_IF_BG5 = tau_w
+	EL_IF_BG5    = e_pas
+	GL_IF_BG5    = g_pas
+	delta_IF_BG5 = delta
+    }
+    stim.amp = i_offset
+    if (!current_based) {
+        esyn.e   = e_e
+        isyn.e   = e_i
+    }
+    esyn.tau = tau_e
+    isyn.tau = tau_i
+}
+
+proc record() {
+  if ($1 == 1) {
+    spiketimes = new Vector()
+    cell rec = new NetCon(&v(0.5),nil)
+    rec.record(spiketimes)
+  } else {
+    objref rec
+    objref spiketimes
+  }
+}
+
+proc record_v() {
+  if ($1 == 1) {
+    vtrace = new Vector()
+    cell vtrace.record(&v(0.5),$2)
+  } else {
+    objref vtrace
+  }
+}
+
+proc memb_init() {
+  if (numarg() == 1) {
+    v_init = $1
+  }
+  cell.v(0.5) = v_init
+}
+
+proc connect2target() {
+  $o2 = new NetCon(&v(0.5), $o1)
+}
+
+endtemplate IF_BG_alpha

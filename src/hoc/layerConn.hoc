@@ -1,0 +1,618 @@
+// Template for LayerConn class.
+// $Id$
+// Intended to be used together with the NetLayer and ObjectArray
+// classes. A LayerConn is a container for NetCons, and connects
+// together two NetLayers/ObjectArrays with connections determined
+// according to user-specified rules.
+
+// Note: add the ability to connect to/from a single cell, to avoid
+// the overhead of creating a 1 cell Layer.
+
+// SYNTAX:
+// lc = new LayerConn(presynapticlayer,"source",postsynapticlayer,"target")
+// lc = new LayerConn(presynapticlayer,"source",postsynapticlayer,"target",method)
+// lc = new LayerConn(presynapticlayer,"source",postsynapticlayer,"target",method,pconnect,randobj)
+// lc = new LayerConn(presynapticlayer,"source",postsynapticlayer,"target",4,fileobj)
+//
+// presynapticlayer is either a NetLayer or an ObjectArray consisting
+// of sources of network events, e.g. NetStims.
+// "source" is a string specifying which attribute of the objects in
+// the presynaptic layer is the actual source. It could be "" if the
+// objects are NetStims, for example. If the source is a section whose
+// membrane potential is to be watched, the string should consist of
+// the section, a comma, then a reference to the variable, e.g. "soma,&v(0.5)"
+// postsynapticlayer is a NetLayer consisting of `cell' objects that can
+// receive network events, for example IntFire4s. 
+// "target" is a string specifying which attribute of the objects in
+// the postsynaptic layer receives the events. Again, it could be "".
+// method is an integer between 0 and 5 inclusive.
+//   method = 0  --   1:1, 1:column, 1:surface connections, depending
+//                    on the number of dimensions of the two NetLayers. 
+//                    If the presynaptic and postsynaptic NetLayers have
+//                    the same dimensions, then presynapticlayer.nc[i][j]
+//                    is connected only to postsynapticlayer.[i][j]. 
+//                    If the dimensions are different then, for example,
+//                    presynapticlayer.nc[i] connects to
+//                    postsynapticlayer.nc[i][j] for all j. (Check this is right)
+//   method = 1  --   all to all connections, optionally with a certain connection
+//                    probability
+//   method = 2  --   connection probability based on distance between
+//                    the pre- and post-synaptic cells. For this method,
+//                    NetCons are not created on creation of the
+//                    layerConn; the procedure make_connections() must
+//                    be called to specify the rule (see below).
+//   method = 3  --   fixed number of synapses per pre- or post-synaptic
+//                    cell. User must call a procedure to specify the
+//                    rule. (Not yet implemented).
+//   method = 4  --   reads connections/weights from a file.
+// method 0 assumes that the sizes of the pre- and post-synaptic NetLayer
+// dimensions are the same, even if the number of dimenions is different.
+// e.g. 10x10 and 10x10x10 are ok, 10x10 and 9x9 is not. For the other
+// methods, the sizes can be different.
+// If no method parameter is supplied, no connections are created.
+// pconnect is an optional parameter specifying the probability that a
+// connection specified by one of the methods is actually created. If
+// it is not specified, this probability defaults to 1.
+// If pconnect < 1, then a Random object must be provided.
+
+// lc.nc
+//   Address an individual NetCon, e.g. ln.nc[3][2][4] connects cell 3
+//   in a one dimensional presynaptic layer to cell (2,4) in a two-
+//   dimensional postsynaptic layer (or cell (3,2) to cell 4 if the
+//   dimensions are the opposite).
+
+// make_connections("connrule",randobj)
+// make_connections("connrule",randobj,wraparound)
+// make_connections("connrule",randobj,wraparound,mapto)
+//   If method=2 was specified when the object was created, this
+//   procedure must be called to create the connections.
+//   connrule is a string including the letter d for distance.
+//     e.g. connrule = "(d < 5)" specifies that only cells that are
+//     less than 5 units apart should be connected.
+//     connrule = "exp(-d)" specifies that the probability of connection
+//     is a decying exponential function of the distance between them.
+//   randobj is a Random object.
+//   wraparound is an optional parameter that determines whether the
+//     edges of the array are considered to wrap-around when calculating
+//     distances. It defaults to 0 (no wrap-around).
+//   mapto is an optional parameter, only required if the pre- and
+//     post-synaptic layers have different dimensions. See file 
+//     distance.hoc for more detail. It defaults to -1.
+
+// remove_self_connections() 
+//   In the case where a NetLayer is connected to itself, this procedure
+//   removes connections from a cell to itself (actully sets the NetCons
+//   to be inactive).
+
+// prelayer
+// postlayer
+//   Contain references to the pre- and post-synaptic NetLayers.
+
+// randomize_weights(randobj)
+// randomize_delays(randobj)
+//   Set all NetCon weights or delays to random values drawn from a 
+//   previously initialised Random object.
+
+// set_weights(w)
+// set_delays(d)
+// set_threshold(thr)
+//   Set all NetCon weights, delays or threshold to the value supplied
+//   as the argument.
+
+// label
+//   Allows a label for the LayerConn to be set or
+//   retreived. It doesn't do anything at the moment, but could be used
+//   in a GUI.
+
+// stdp("pp")
+//   Sets up spike-timing-dependent plasticity. "pp" is the name of the
+//   point process that implements the STDP. pp is notified of pre-
+//   and post-synaptic spikes via NetCons.
+
+// wa
+//   Address an individual STDP point process (`Weight Adjuster').
+//   e.g. lc.wa[5][3][2][6] controls lc.nc[5][3][2][6].weight.
+
+// set_max_weight(wmax)
+// set_min_weight(wmin)
+//   Set the upper or lower bounds on the weight. This assumes that the
+//   point process has attributes called wmax and wmin.
+
+// wa_set("attr",val)
+//   Set an attribute "attr" of the weight adjuster point process to the
+//   value val, for all synapses. e.g. set_max_weight(wmax) and
+//   wa_set("wmax",wmax) achieve the same result.
+
+// save_connections(fileobj)
+//   Saves the state of the connections in a form that can be read in
+//   using method=4.
+
+// print_weights()
+// print_weights(fileobj)
+//   Writes the values of the synaptic weights to the screen or to a file
+//   with the format of one row per cell in the presynaptic layer.
+
+// print_weight_hist(histbins)
+// print_weight_hist(histbins,maxw)
+// print_weight_hist(fileobj,histbins,colflag)
+// print_weight_hist(fileobj,histbins,colflag,maxw)
+//   Calculates a histogram of all the weights, between wmin and maxw
+//   with a number of bins given by histbins, and writes the histogram
+//   to the screen or to a file. If maxw is not set, maxw = wmax. if colflag=1,
+//   print as a row without bin labels, otherwise as a column with bin labels.
+
+// Andrew Davison, UNIC, CNRS, August-September 2003
+
+
+begintemplate LayerConn
+  public nc, stdp, randomize_weights, set_weights
+  public randomize_delays, set_delays, set_threshold
+  public set_max_weight, set_min_weight, wa_set
+  public print_weights, print_weight_hist
+  public prelayer, postlayer, make_connections
+  public wa, watype, pre2wa, label, save_connections, post2wa
+  public remove_self_connections, count
+  
+  objref nc, prelayer, postlayer, random, this, strobj, fileobj
+  objref coordpre, coordpost, vdist, weights_snapshot, weight_hist
+  objref wa, pre2wa, post2wa
+  strdef command, forpre, forpost, preaddrs, postaddrs, args
+  strdef connrule, command2, preaddrs1, postaddrs1
+  strdef forprepost, addrs, watype, label, pname, fmt
+  strdef source, target, prefmt, postfmt, sourcesec, randopen, randclose
+  
+  proc init() { local i // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    // initialize various parameters and objects -------------------------------
+    i0=i1=i2=0
+    j0=j1=j2=0
+    connected = 0
+    threshold = 1
+    stdpset = 0
+    usepointer = 0
+    p = 0
+    w = 0
+    wmax = 0.1 //
+    wmin = 0
+    n_conn = 0
+    strobj = new StringFunctions()
+    weights_snapshot = new Vector() // } used by
+    weight_hist = new Vector()      // } print_weight_hist()
+    coordpre = new Vector(3)        // }
+    coordpost = new Vector(3)       // } used by dist()
+    vdist = new Vector(3)           // }
+    
+    // Assign variables/references from arguments ------------------------------
+    prelayer = $o1
+    source = $s2
+    if (strobj.len(source) > 0) {  // if there is a source string
+      if (strobj.substr(source,"&") != -1) { // if we are watching a variable for threshold crossings
+	usepointer = 1
+	strobj.head(source,",",sourcesec)
+	sprint(sourcesec,".%s",sourcesec)    //    (adds a `.' to the front of the section)
+	strobj.tail(source,",",source)
+      } else {                               // if the source emits events
+	sprint(source,".%s",source)          //    (adds a `.' to the front of the source)
+      }
+    }
+    postlayer = $o3
+    target = $s4
+    if (strobj.len(target) > 0) {  // if there is a target string,
+      sprint(target,".%s",target)  // add a `.' to the front.
+    }
+    
+    m_pre  = prelayer.dimensions()
+    m_post = postlayer.dimensions()
+    n_pre = prelayer.size()
+    n_post = postlayer.size()
+    method = -1
+    if (numarg() > 4) {
+      method = $5
+    }
+    pconnect = 1  // default value
+    if (numarg() == 6 && method == 4) { // if method=4
+      fileobj = $o6
+    }
+    if (numarg() == 7) { // next 2 arguments only required if pconnect < 1
+      pconnect = $6 
+      random = $o7
+      random.uniform(0,1)
+    }
+    
+    // Declare the objref with appropriate dimensions --------------------------
+    // and write some frequently-used strings.
+    command = "objref nc"
+    preaddrs = ""      // Will become, e.g., "[i1][i2][i3]"
+    postaddrs = ""     //                    "[j1][j2]"
+    forpre = ""        //                    "for i1 = 1,n_pre for i2 = 1,n_pre"
+    forpost = ""       //                    "for j1 = 1,n_post"
+    args = ""          //                    "i1,i2,j1,j2,j3"
+    prefmt = ""        //                    "%g\t%g\t%g\t%g" 
+    postfmt = ""
+    randopen = ""      //                    "{r = random.repick()} { if (r < pconnect) {"
+    randclose = ""     //                    "}}"
+    for i = 0, m_pre-1 {
+      sprint(command,"%s[%d]",command,n_pre)
+      sprint(preaddrs,"%s[i%d]",preaddrs,i)
+      sprint(forpre,"%s for i%d = 0,n_pre-1 ",forpre,i)
+      sprint(args,"%si%d,",args,i)
+      sprint(prefmt,"%s%s",prefmt,"[%d]")
+    }
+    for i = 0, m_post-1 {
+      sprint(command,"%s[%d]",command,n_post)
+      sprint(postaddrs,"%s[j%d]",postaddrs,i)
+      sprint(forpost,"%s for j%d = 0, n_post-1 ",forpost,i)
+      sprint(args,"%sj%d,",args,i)
+      sprint(postfmt,"%s%s",postfmt,"[%d]")
+    }
+    execute1(command,this) // declare the objref nc
+    strobj.left(args,strobj.len(args)-1) // take off the last comma
+    sprint(forprepost,"%s%s",forpre,forpost)
+    sprint(addrs,"%s%s",preaddrs,postaddrs)
+    sprint(fmt,"%s%s",prefmt,postfmt)
+    if (pconnect < 1) {
+      sprint(randopen,"{r = random.repick()} { if (r < pconnect) {")
+      sprint(randclose,"}}")
+    }
+    
+    // Create connections ------------------------------------------------------
+    if (method == 0) { // 1:1, 1:row, etc. Currently assumes that n_pre == n_post
+      if (m_pre == m_post) {
+	if (usepointer) {
+	  sprint(command,"%s { %s prelayer.cell%s%s nc%s%s = new NetCon(%s,postlayer.cell%s%s,0,0,0) %s }",forpre,randopen,preaddrs,sourcesec,preaddrs,preaddrs,source,preaddrs,target,randclose)
+	} else {
+	  sprint(command,"%s { %s nc%s%s = new NetCon(prelayer.cell%s%s,postlayer.cell%s%s,0,0,0) %s }",forpre,randopen,preaddrs,preaddrs,preaddrs,source,preaddrs,target,randclose)
+	}
+	connected = execute1(command,this)
+      }
+      if (m_pre > m_post) {
+	postaddrs1 = preaddrs
+	strobj.left(postaddrs1,strobj.len(postaddrs1)-4*(m_pre-m_post))
+	if (usepointer) {
+	  sprint(command,"%s { %s prelayer.cell%s%s nc%s%s = new NetCon(%s,postlayer.cell%s%s,0,0,0) n_conn += 1 %s }",forpre,randopen,preaddrs,sourcesec,preaddrs,postaddrs1,source,postaddrs1,target,randclose)
+	} else {
+	  sprint(command,"%s { %s nc%s%s = new NetCon(prelayer.cell%s%s,postlayer.cell%s%s,0,0,0) n_conn += 1%s }",forpre,randopen,preaddrs,postaddrs1,preaddrs,source,postaddrs1,target,randclose)
+	}
+	connected = execute1(command,this)
+      }
+      if (m_pre < m_post) {
+	preaddrs1 = postaddrs
+	strobj.left(preaddrs1,strobj.len(preaddrs1)-4*(m_post-m_pre))
+	if (usepointer) {
+	  sprint(command,"%s { %s prelayer.cell%s%s nc%s%s = new NetCon(%s,postlayer.cell%s%s,0,0,0) %s }",forpost,randopen,preaddrs1,sourcesec,preaddrs1,postaddrs,source,postaddrs,target,randclose)
+	} else {
+	  sprint(command,"%s { %s nc%s%s = new NetCon(prelayer.cell%s%s,postlayer.cell%s%s,0,0,0) %s }",forpost,randopen,preaddrs1,postaddrs,preaddrs1,source,postaddrs,target,randclose)
+	}
+	connected = execute1(command,this)
+      }
+    }
+    if (method == 1) { // all-to-all
+      if (usepointer) {
+	sprint(command,"%s { %s prelayer.cell%s%s nc%s = new NetCon(%s,postlayer.cell%s%s,0,0,0) n_conn += 1 %s }",forprepost,randopen,preaddrs,sourcesec,addrs,source,postaddrs,target,randclose)
+      } else {
+	sprint(command,"%s { %s nc%s = new NetCon(prelayer.cell%s%s,postlayer.cell%s%s,0,0,0) n_conn += 1 %s }",forprepost,randopen,addrs,preaddrs,source,postaddrs,target,randclose)
+      }
+      connected = execute1(command,this)
+    }
+    if (method == 2) { // connection probability based on distance
+      //print "Warning: connections not yet created. Please call"
+      //print "the procedure make_connections() to set connectivity parameters."
+    }
+    if (method == 3) { // fixed number of synapses per pre- or post-synaptic cell.
+                       // User provides rule for deciding where they go
+      print "Not yet implemented."
+    }
+    if (method == 4) { // read connections/weights from file
+      while (!fileobj.eof()) {
+	fileobj.gets(command)
+	execute1(command,this)
+      }
+    }
+    set_threshold(threshold)
+  }
+  
+  
+  //// Procedures for creating connections
+  
+  proc make_connections() { // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    if (!connected) { // if connections have already been created, leave them as they are.
+      print "make_connections() called"
+      mapto = -1      // default
+      wraparound = 0  //  values
+      connrule = $s1
+      random = $o2
+      random.uniform(0,1)
+      if (numarg() > 2) {
+	wraparound = $3
+	if (numarg() > 3) {
+	  mapto = $4
+	}
+      }
+      sprint(command,"%s { make_connection(dist(%s),%s) }",forprepost,args,args)
+      connected = execute1(command,this)
+      set_threshold(threshold)
+    } else {
+      print "Connections have already been created."
+    }
+  }
+  
+  proc make_connection() { local i  // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    r = random.repick() // should be uniform distribution
+    if (r < pconnect) {
+      r = random.repick()
+      d = $1
+      sprint(command2,"p = %s",connrule)
+      execute1(command2,this)
+      
+      preaddrs1 = ""
+      postaddrs1 = ""
+      for i = 2, m_pre+1 {
+	sprint(preaddrs1,"%s[%d]",preaddrs1,$i)
+      }
+      for i = m_pre+2, m_post+m_pre+1 {
+	sprint(postaddrs1,"%s[%d]",postaddrs1,$i)
+      }
+      if (usepointer) {
+	sprint(command2,"if (r < p) { prelayer.cell%s%s nc%s%s = new NetCon(%s,postlayer.cell%s%s,0,0,0)}",preaddrs1,sourcesec,preaddrs1,postaddrs1,source,postaddrs1,target)
+      } else {
+	sprint(command2,"if (r < p) { nc%s%s = new NetCon(prelayer.cell%s%s,postlayer.cell%s%s,0,0,0)}",preaddrs1,postaddrs1,preaddrs1,source,postaddrs1,target)
+      }
+      execute1(command2,this)
+    }
+  }
+  
+  proc remove_self_connections() {  // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    // calling a procedure is not the most elegant way
+    // of getting rid of connections from a cell to
+    // itself -- it would be better not to create them
+    // in the first place if not wanted -- but it is
+    // certainly the simplest.
+    sprint(command,"%s { if(object_id(this.nc%s%s)) { this.nc%s%s.weight = 0 }}",forpre,preaddrs,preaddrs,preaddrs,preaddrs)
+    execute1(command,this)
+    sprint(command,"%s { if(object_id(this.nc%s%s)) { this.nc%s%s.active(0) }}",forpre,preaddrs,preaddrs,preaddrs,preaddrs)
+    execute1(command,this)
+  }
+  
+  func wrap() { local d // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    d = $1
+    if (d > n_post/2) { d = n_post-d }
+    if (d < -1*n_post/2) { d = n_post+d }
+    return abs(d)
+  }
+  
+  func min() { if ($1 < $2) { return $1 } else { return $2 } }
+  func max() { if ($1 < $2) { return $2 } else { return $1 } }
+  
+  func dist() { local i, j, d, a, scaling // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    // Calculates the distance between two cells.
+    // For a fuller explanation of this function, see the file distance.hoc
+    scaling = n_post/n_pre
+    i = 1
+    a = mapto
+    while (i <= 3) {
+      if (i <= m_pre) {
+	coordpre.x[i-1] = $i*scaling
+      } else {
+	coordpre.x[i-1] = int(a/n_pre^(m_post-i))
+	a = a%n_pre
+      }
+      i += 1
+    }
+    j = 1
+    a = mapto
+    while (j <= 3) {
+      if (j <= m_post) {
+	i = j+m_pre
+	coordpost.x[j-1] = $i
+      } else {
+	coordpost.x[j-1] = int(a/n_post^(m_pre-j))*scaling
+	a = a%n_post
+      }
+      j += 1
+    }
+    vdist = coordpre.sub(coordpost)
+    if (wraparound) { 
+      vdist.apply("wrap")
+    }
+    vdist.mul(vdist)
+    if (mapto < 0) {
+      d = vdist.sum(0,min(m_pre,m_post)-1)
+    } else {
+      d = vdist.sum(0,max(m_pre,m_post)-1)
+    }
+    return sqrt(d)
+  }
+  
+  
+  //// Procedures for setting NetCon parameters.
+  
+  // It might well be preferable to maintain a list of netcons, and iterate through
+  // this, rather than iterate through the whole array and test which objrefs
+  // actually point to netcons. On the other hand, these procedures are called
+  // infrequently, so don't perhaps need to be highly optimized.
+  
+  proc randomize_weights() {  // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    // ensure random has been appropriately initialised before passing it to
+    // this procedure, e.g. random.uniform(wmin,wmax)
+    random = $o1
+    if (numarg() == 1) {
+      sprint(command,"%s { if (object_id(this.nc%s)) { this.nc%s.weight = random.repick() } }",forprepost,addrs,addrs)
+    } else { // weight setting is conditional on existing weight
+      sprint(command,"%s { if (object_id(this.nc%s)) { if (this.nc%s.weight %s) {this.nc%s.weight = random.repick()} } }",forprepost,addrs,addrs,$s2,addrs)
+    }
+    execute1(command,this)
+  }
+  
+  proc set_weights() {  // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    sprint(command,"%s { if (object_id(this.nc%s)) { this.nc%s.weight = %g } }",forprepost,addrs,addrs,$1)
+    execute1(command,this)
+  }
+  
+  proc randomize_delays() { // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    random = $o1
+    sprint(command,"%s { if (object_id(this.nc%s)) { this.nc%s.delay = random.repick() } }",forprepost,addrs,addrs)
+    execute1(command,this)
+  }
+    
+  proc set_delays() { // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    del = $1
+    sprint(command,"%s { if (object_id(this.nc%s)) { this.nc%s.delay = del } }",forprepost,addrs,addrs)
+    execute1(command,this)
+  }
+  
+  proc set_threshold() {  // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    thr = $1
+    sprint(command,"%s { if (object_id(this.nc%s)) { this.nc%s.threshold = thr } }",forprepost,addrs,addrs)
+    execute1(command,this)
+    if (stdpset) {
+      sprint(command,"%s { if (object_id(this.pre2wa%s) { pre2wa%s.threshold = thr } }",forprepost,addrs,addrs)
+      execute1(command,this)
+    }
+  }
+  
+  
+  //// Procedures for implementing STDP
+  
+  proc make_objref_array() { local i  // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    // Used by stdp()
+    sprint(command,"objref %s",$s1)
+    for i = 0, m_pre-1 {
+      sprint(command,"%s[%d]",command,n_pre)
+    }
+    for i = 0, m_post-1 {
+      sprint(command,"%s[%d]",command,n_post)
+    }
+    execute1(command,this)
+  }
+  
+  proc stdp() { local i   // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    // Creates `weight adjusters' for each connection.
+    watype = $s1
+    make_objref_array("wa")
+    make_objref_array("pre2wa")
+    make_objref_array("post2wa")
+    sprint(command,"%s { if (object_id(this.nc%s)) { this.wa%s = new %s(0.5) } }",forprepost,addrs,addrs,watype)
+    execute1(command,this)
+    if (usepointer) { // this next line not tested yet
+      sprint(command,"%s { if (object_id(this.wa%s)) { prelayer.cell%s%s pre2wa%s = new NetCon(%s,this.wa%s,this.nc%s.threshold,this.nc%s.delay,1) }",forprepost,addrs,preaddrs,sourcesec,addrs,source,addrs,addrs,addrs)
+    } else {
+      sprint(command,"%s { if (object_id(this.wa%s)) { pre2wa%s = new NetCon(prelayer.cell%s%s,this.wa%s,this.nc%s.threshold,this.nc%s.delay,1) } }",forprepost,addrs,addrs,preaddrs,source,addrs,addrs,addrs)
+    }
+    execute1(command,this)
+    if (numarg() > 1) { // for the case where we need a pointer to the post-synaptic membrane potential.
+      sprint(command,"%s { if (object_id(this.wa%s)) { postlayer.cell%s.%s post2wa%s = new NetCon(%s,this.wa%s,1,0,-1) } }",forprepost,addrs,postaddrs,$s2,addrs,$s3,addrs)
+    } else {
+      sprint(command,"%s { if (object_id(this.wa%s)) { post2wa%s = new NetCon(postlayer.cell%s.source,this.wa%s,1,0,-1) } }",forprepost,addrs,addrs,postaddrs,addrs,addrs)
+    }
+    execute1(command,this)
+    sprint(command,"%s { if (object_id(this.wa%s)) { setpointer this.wa%s.wsyn, this.nc%s.weight } }",forprepost,addrs,addrs,addrs)
+    execute1(command,this)
+    stdpset = 1
+  }
+  
+  proc set_max_weight() { // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    wmax = $1
+    sprint(command,"%s { if (object_id(this.wa%s)) { this.wa%s.wmax = wmax } }",forprepost,addrs,addrs)
+    execute1(command,this)
+  } 
+  
+  proc set_min_weight() { // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    wmin = $1
+    sprint(command,"%s { if (object_id(this.wa%s)) { wa%s.wmin = wmin } }",forprepost,addrs,addrs)
+    execute1(command,this)
+  }
+  
+  proc wa_set() { // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    pname  = $s1
+    pval   = $2
+    sprint(command,"%s { if (object_id(this.wa%s)) { this.wa%s.%s = %g } }",forprepost,addrs,addrs,pname,pval)
+    execute1(command,this)
+  }
+  
+  
+  //// Procedures for writing/reading information to/from file.
+  
+  proc save_connections() { // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    // saves connections in the form of nc[][] = new NetCon(...) commands
+    // for loading using method=4
+    // This is more efficient than print_weights for sparse connections and 
+    // allows negative weights (I was using w=-1 to represent no connection).
+    fileobj = $o1
+    if (usepointer) {
+      sprint(command,"%s { if (object_id(this.nc%s)) { fileobj.printf(\"prelayer.cell%s nc%s = new NetCon(%s,postlayer.cell%s%s,%s\",%s,%s,this.nc%s.threshold,this.nc%s.delay,this.nc%s.weight) } }",forprepost,addrs,prefmt,fmt,source,postfmt,target,"%g,%g,%g)\\n",args,args,addrs,addrs,addrs)
+    } else {
+      sprint(command,"%s { if (object_id(this.nc%s)) { fileobj.printf(\"nc%s = new NetCon(prelayer.cell%s%s,postlayer.cell%s%s,%s\",%s,%s,this.nc%s.threshold,this.nc%s.delay,this.nc%s.weight) } }",forprepost,addrs,fmt,prefmt,source,postfmt,target,"%g,%g,%g)\\n",args,args,addrs,addrs,addrs)
+    }
+    execute1(command,this)
+  }
+  
+  proc print_weights() {  // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    if (numarg() > 0) {
+      // print weights to file in a matrix format suitable for plotting.
+      fileobj = $o1
+      sprint(command,"%s { %s { if(object_id(this.nc%s)) { fileobj.printf(\"%s\",this.nc%s.weight) } else { fileobj.printf(\"%s\",0) } } fileobj.printf(\"\\n\")}",forpre,forpost,addrs,"%g\t",addrs,"%g\t")
+      if (numarg() > 1) { // print one line per postsynaptic cell, rather than per presynaptic cell
+	if ($2 == 1) {
+          sprint(command,"%s { %s { if(object_id(this.nc%s)) { fileobj.printf(\"%s\",this.nc%s.weight) } else { fileobj.printf(\"%s\",0) } } fileobj.printf(\"\\n\")}",forpost,forpre,addrs,"%g\t",addrs,"%g\t")
+	}
+      }
+      execute1(command,this)
+    } else {
+      // print weights to the screen
+      sprint(command,"%s { %s { if(object_id(this.nc%s)) { printf(\"%s\",this.nc%s.weight) } else { printf(\"%s\",0) } } printf(\"\\n\")}",forpre,forpost,addrs,"%g\t",addrs,"%g\t")
+      execute1(command,this)
+    }
+  }
+  
+  proc print_weight_hist() { local histbins, i, colflag, usefile  // =-=-=-=-=-=
+    // Calculates a histogram of weight values and writes it to file.
+    usefile = 0
+    maxw    = wmax
+    if (numarg() > 2) {
+      usefile  = 1
+      fileobj  = $o1
+      histbins = $2
+      colflag  = $3
+      if (numarg() > 3) {
+	maxw = $4
+      }
+    } else {
+      histbins = $1
+      if (numarg() > 1) {
+	maxw = $2
+      }
+    }
+    if (maxw > wmin) {
+      weights_snapshot.resize(0)
+      sprint(command,"%s { if (object_id(this.nc%s)) { weights_snapshot.append(this.nc%s.weight) } }",forprepost,addrs,addrs)
+      execute1(command,this)
+      weight_hist.hist(weights_snapshot,wmin,histbins,(maxw-wmin)/histbins)
+      if (usefile) {
+	if (colflag == 1) {       //print on a single line
+	  weight_hist.printf(fileobj,"%g\t")
+	  //fileobj.printf("\n")
+	} else {
+	  for i = 0, histbins-1 { //print in a column
+            fileobj.printf("%g\t%g\n",i*maxw/histbins,weight_hist.x[i])
+	  }
+	}
+      } else {
+	for i = 0, histbins-1 {   //print in a column to the screen
+            printf("%g\t%g\n",i*maxw/histbins,weight_hist.x[i])
+	  }
+	}
+    } else {
+      print "Warning: Weight histogram cannot be calculated as maxw <= wmin. Writing empty file."
+    }
+  }
+  
+  // N.B. if a LayerConn is removed, are all the constituent NetCons
+  // removed automatically, or do I need to clean up with unref() ?
+  
+  func count() {
+    nconn = 0
+    sprint(command,"%s { if (object_id(this.nc%s)) { nconn += 1 } }",forprepost,addrs)
+    execute1(command,this)
+    return nconn
+  }
+  
+endtemplate LayerConn

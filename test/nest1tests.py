@@ -415,7 +415,7 @@ class ProjectionInitTest(unittest.TestCase):
                     weights = []
                     for src,tgt in prj.connections():
                         weights.append(nest.pynest.getWeight(src,tgt))
-                    assert weights == [1000.0]*len(prj._sources)
+                    assert weights == [0.0]*len(prj._sources) # default weight is zero
     
     def testOneToOne(self):
         """For all connections created with "OneToOne" it should be possible to obtain the weight using pyneuron.getWeight()"""
@@ -453,7 +453,7 @@ class ProjectionInitTest(unittest.TestCase):
                     weights = []
                     for src, tgt in prj.connections():
                         weights.append(nest.pynest.getWeight(src,tgt))
-                    assert weights == [1000.0]*len(prj._sources)
+                    assert weights == [0.0]*len(prj._sources), weights
                     
     def testSaveAndLoad(self):
         prj1 = nest.Projection(self.source22, self.target33, 'allToAll')

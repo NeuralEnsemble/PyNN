@@ -10,6 +10,8 @@ from pyNN import common
 from pyNN.random import *
 import numpy, types, sys, shutil, os, logging, copy, tempfile
 from math import *
+from pyNN.nest2.cells import *
+from pyNN.nest2.connectors import *
 
 #ll_spike_files = []
 #ll_v_files     = {}
@@ -22,6 +24,7 @@ dt             = 0.1
 recording_device_names = {'spikes': 'spike_detector',
                           'v': 'voltmeter',
                           'conductance': 'conductancemeter'}
+_min_delay = 0.1
 
 # ==============================================================================
 #   Utility classes and functions
@@ -166,281 +169,6 @@ class Connection(object):
 
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
-
-# ==============================================================================
-#   Standard cells
-# ==============================================================================
- 
-class IF_curr_alpha(common.IF_curr_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
-
-    translations = common.build_translations(
-        ('v_rest',     'E_L'),
-        ('v_reset',    'V_reset'),
-        ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
-        ('tau_m',      'tau_m'),
-        ('tau_refrac', 't_ref',  "max(dt, tau_refrac)", "tau_ref"),
-        ('tau_syn_E',  'tau_syn_ex'),
-        ('tau_syn_I',  'tau_syn_in'),
-        ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
-        ('v_init',     'V_m'),
-    )
-    nest_name = "iaf_psc_alpha"
-    def __init__(self,parameters):
-        common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
-
-class IF_curr_exp(common.IF_curr_exp):
-    """Leaky integrate and fire model with fixed threshold and
-    decaying-exponential post-synaptic current. (Separate synaptic currents for
-    excitatory and inhibitory synapses."""
-    
-    translations = common.build_translations(
-        ('v_rest',     'E_L'),
-        ('v_reset',    'V_reset'),
-        ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
-        ('tau_m',      'tau_m'),
-        ('tau_refrac', 't_ref_abs',  "max(dt, tau_refrac)", "tau_ref"),
-        ('tau_syn_E',  'tau_syn_ex'),
-        ('tau_syn_I',  'tau_syn_in'),
-        ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
-        ('v_init',     'V_m'),
-    )
-    nest_name = 'iaf_psc_exp'
-    def __init__(self,parameters):
-        common.IF_curr_exp.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
-
-class IF_cond_alpha(common.IF_cond_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic conductance."""
-
-    translations = common.build_translations(
-        ('v_rest',     'E_L')    ,
-        ('v_reset',    'V_reset'),
-        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
-        ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
-        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
-        ('tau_syn_E',  'tau_syn_ex'),
-        ('tau_syn_I',  'tau_syn_in'),
-        ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
-        ('e_rev_E',    'E_ex'),
-        ('e_rev_I',    'E_in'),
-        ('v_init',     'V_m'),
-    )
-    nest_name = "iaf_cond_alpha"
-    def __init__(self,parameters):
-        common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
-        
-
-class IF_cond_exp(common.IF_cond_exp):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic conductance."""
-    
-    translations = common.build_translations(
-        ('v_rest',     'E_L')    ,
-        ('v_reset',    'V_reset'),
-        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
-        ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
-        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
-        ('tau_syn_E',  'tau_syn_ex'),
-        ('tau_syn_I',  'tau_syn_in'),
-        ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
-        ('e_rev_E',    'E_ex'),
-        ('e_rev_I',    'E_in'),
-        ('v_init',     'V_m'),
-    )
-    nest_name = "iaf_cond_exp"
-    def __init__(self,parameters):
-        common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
-
-
-class IF_cond_exp_sfa_rr(common.IF_cond_exp_sfa_rr):
-    """Linear leaky integrate and fire model with fixed threshold,
-    decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
-    and a conductance-based relative refractory mechanism.
-
-    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
-    and renewal theories. Neural Computation 19: 2958-3010.
-    """
-    translations = common.build_translations(
-        ('v_rest',     'E_L')    ,
-        ('v_reset',    'V_reset'),
-        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
-        ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
-        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
-        ('tau_syn_E',  'tau_syn_ex'),
-        ('tau_syn_I',  'tau_syn_in'),
-        ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
-        ('e_rev_E',    'E_ex'),
-        ('e_rev_I',    'E_in'),
-        ('v_init',     'V_m'),
-        ('tau_sfa',    'tau_sfa'),
-        ('e_rev_sfa',  'E_sfa'),
-        ('q_sfa',      'q_sfa'),
-        ('tau_rr',     'tau_rr'),
-        ('e_rev_rr',   'E_rr'),
-        ('q_rr',       'q_rr')
-    )
-    nest_name = "iaf_cond_exp_sfa_rr"
-    def __init__(self,parameters):
-        common.IF_cond_exp_sfa_rr.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
-
-
-
-
-
-class IF_facets_hardware1(common.IF_facets_hardware1):
-    """Leaky integrate and fire model with conductance-based synapses and fixed 
-    threshold as it is resembled by the FACETS Hardware Stage 1. For further 
-    details regarding the hardware model see the FACETS-internal Wiki:
-    https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
-    """
-    # in 'iaf_cond_exp_sfa_rr', the dimension of C_m is pF, 
-    # while in the pyNN context, cm is given in nF
-    translations = {
-        'v_reset'   : ('V_reset',        "parameters['v_reset']"),
-        'v_rest'    : ('E_L',            "parameters['v_rest']"),
-        'v_thresh'  : ('V_th',           "parameters['v_thresh']"),
-        'e_rev_E'   : ('E_ex',           "parameters['e_rev_E']"),
-        'e_rev_I'   : ('E_in',           "parameters['e_rev_I']"),
-        'cm'        : ('C_m',            "parameters['cm']*1000.0"), 
-        'tau_refrac': ('t_ref',          "max(dt,parameters['tau_refrac'])"),
-        'tau_syn_E' : ('tau_syn_ex',     "parameters['tau_syn_E']"),
-        'tau_syn_I' : ('tau_syn_in',     "parameters['tau_syn_I']"),                              
-        'g_leak'    : ('g_L',            "parameters['g_leak']")    
-    }
-    nest_name = "iaf_cond_exp_sfa_rr"
-
-    def __init__(self, parameters):
-        common.IF_facets_hardware1.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)
-        self.parameters['q_rr']     = 0.0
-        self.parameters['q_sfa']    = 0.0
-        
-
-class HH_cond_exp(common.HH_cond_exp):
-    """docstring needed here."""
-    
-    translations = {
-        'gbar_Na'   : ('g_Na',   "parameters['gbar_Na']"),   
-        'gbar_K'    : ('g_K',    "parameters['gbar_K']"),    
-        'g_leak'    : ('g_L',    "parameters['g_leak']"),    
-        'cm'        : ('C_m',    "parameters['cm']*1000.0"),  
-        'v_offset'  : ('U_tr',   "parameters['v_offset']"),
-        'e_rev_Na'  : ('E_Na',   "parameters['e_rev_Na']"),
-        'e_rev_K'   : ('E_K',    "parameters['e_rev_K']"), 
-        'e_rev_leak': ('E_L',    "parameters['e_rev_leak']"),
-        'e_rev_E'   : ('E_ex',   "parameters['e_rev_E']"),
-        'e_rev_I'   : ('E_in',   "parameters['e_rev_I']"),
-        'tau_syn_E' : ('tau_ex', "parameters['tau_syn_E']"),
-        'tau_syn_I' : ('tau_in', "parameters['tau_syn_I']"),
-        'i_offset'  : ('I_stim', "parameters['i_offset']*1000.0"),
-        'v_init'    : ('V_m',    "parameters['v_init']"),
-    }
-    nest_name = "hh_cond_exp_traub"
-    
-    def __init__(self,parameters):
-        common.HH_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
-                                                     # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
-        
-class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
-    """adaptive exponential integrate and fire neuron according to Brette and Gerstner (2005)"""
-
-    translations = common.build_translations(
-        ('v_init'    , 'V_m'),
-        ('w_init'    , 'w',         1000.0),  # nA -> pA
-        ('cm'        , 'C_m',       1000.0),  # nF -> pF
-        ('tau_refrac', 't_ref'), 
-        ('v_spike'   , 'V_peak'),
-        ('v_reset'   , 'V_reset'),
-        ('v_rest'    , 'E_L'),
-        ('tau_m'     , 'g_L',       "cm/tau_m*1000.0", "C_m/g_L"),
-        ('i_offset'  , 'I_e',       1000.0),  # nA -> pA
-        ('a'         , 'a'),       
-        ('b'         , 'b',         1000.0),  # nA -> pA.
-        ('delta_T'   , 'Delta_T'), 
-        ('tau_w'     , 'tau_w'), 
-        ('v_thresh'  , 'V_th'), 
-        ('e_rev_E'   , 'E_ex'),
-        ('tau_syn_E' , 'tau_syn_ex'), 
-        ('e_rev_I'   , 'E_in'), 
-        ('tau_syn_I' , 'tau_syn_in'),
-    )
-    nest_name = "aeif_cond_alpha"
-    
-    def __init__(self,parameters):
-        common.AdaptiveExponentialIF_alpha.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
-        
-class SpikeSourcePoisson(common.SpikeSourcePoisson):
-    """Spike source, generating spikes according to a Poisson process."""
-
-    translations = {
-        'rate'     : ('rate'   , "parameters['rate']"),
-        'start'    : ('start'  , "parameters['start']"),
-        'duration' : ('stop'   , "parameters['duration']+parameters['start']")
-    }
-    nest_name = 'poisson_generator'
-    
-    def __init__(self,parameters):
-        common.SpikeSourcePoisson.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)
-        self.parameters['origin'] = 1.0
-
-
-
-class SpikeSourceInhGamma(common.SpikeSourceInhGamma):
-    """Spike source, generating realizations of an inhomogeneous gamma process, employing
-    the thinning method.
-
-    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
-    and renewal theories. Neural Computation 19: 2958-3010.
-    """
-
-    translations = {
-        'a'     : ('a'   , "parameters['a']"),
-        'b'     : ('b'   , "parameters['b']"),
-        'tbins'     : ('tbins'   , "parameters['tbins']"),
-        'rmax'     : ('rmax'   , "parameters['rmax']"),
-        'start'    : ('start'  , "parameters['start']"),
-        'duration' : ('stop'   , "parameters['duration']+parameters['start']")
-    }
-    nest_name = 'inh_gamma_generator'
-    
-    def __init__(self,parameters):
-        common.SpikeSourceInhGamma.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)
-        self.parameters['origin'] = 1.0
-
-
-    
-class SpikeSourceArray(common.SpikeSourceArray):
-    """Spike source generating spikes at the times given in the spike_times array."""
-
-    translations = {
-        'spike_times' : ('spike_times' , "parameters['spike_times']"),
-    }
-    nest_name = 'spike_generator'
-    
-    def __init__(self,parameters):
-        common.SpikeSourceArray.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)  
-    
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -623,7 +351,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
                         nest.ConnectWD([src],[tgt],[weight],[delay])
                         connect_id += [Connection(src,tgt)]
     #except nest.SLIError:
-    except Exception: # unfortunately, SLIError seems to have disappeared.
+    except Exception: # unfortunately, SLIError seems to have disappeared.Hopefully it will be reinstated.
         raise common.ConnectionError
     return connect_id
 
@@ -725,11 +453,11 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
         if nest.Rank() == 0: # only on the master node (?)
             for node in node_list:
                 merged_filename = "%s/%s_%d" % (os.path.dirname(nest_filename), user_filename, node)
-                system_line = 'cat %s >> %s' % (nest_filename, merged_filename) 
+                system_line = 'cat %s >> %s' % (nest_filename, merged_filename)
                 #print system_line
                 os.system(system_line)
                 os.remove(nest_filename)
-
+   
     if compatible_output:
         if gather == False or nest.Rank() == 0: # if we gather, only do this on the master node
             logging.info("Writing %s in compatible format." % user_filename)
@@ -784,23 +512,22 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
     if population is None:
         recorder_dict.pop(user_filename)    
 
-
 def _get(population=None, variable=None):
     global recorder_dict
-    
+
     if population is None:
         recorder = recorder_dict[user_filename]
     else:
         assert variable in ['spikes', 'v', 'conductance']
         recorder = population.recorders[variable]
-    
+
     #print "Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder, compatible_output)
-    
-    nest.FlushDevice(recorder) 
+
+    nest.FlushDevice(recorder)
     status = nest.GetStatus([0])[0]
     local_num_threads = status['local_num_threads']
     node_list = range(nest.GetStatus([0], "num_processes")[0])
-    
+
     # Combine data from different threads to the zeroeth thread
     nest.sps(recorder[0])
     nest.sr("%i GetAddress %i append" % (recorder[0], 0))
@@ -813,7 +540,7 @@ def _get(population=None, variable=None):
             nest.sr("%i GetAddress %i append" % (recorder[0], nest_thread))
             nest.sr("GetStatus /filename get")
             nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
-            system_line = 'cat %s >> %s' % (nest_filename, base_filename) 
+            system_line = 'cat %s >> %s' % (nest_filename, base_filename)
             os.system(system_line)
             os.remove(nest_filename)
 
@@ -823,7 +550,7 @@ def _get(population=None, variable=None):
         padding = population.cell.flatten()[0]
     else:
         padding = 0
-    
+
 
     data = _readArray(base_filename, sepchar=None)
     data[:,0] = data[:,0] - padding
@@ -947,14 +674,13 @@ class Population(common.Population):
         """
         for i in self.__iter__():
             yield self.locate(i)
-    
         
     def addresses(self):
         return self.__address_gen()
     
     def ids(self):
         return self.__iter__()
-    
+
     def locate(self, id):
         """Given an element id in a Population, return the coordinates.
                e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
@@ -1012,7 +738,6 @@ class Population(common.Population):
         if isinstance(self.celltype, common.StandardCellType):
             paramDict = self.celltype.translate1(paramDict)
         nest.SetStatus(self.cell_local, [paramDict])
-        
 
     def tset(self,parametername,valueArray):
         """
@@ -1040,7 +765,7 @@ class Population(common.Population):
                         if cell in self.cell_local:
                             nest.SetStatus([cell],[{parametername: val}])
                 #except nest.SLIError:
-                except Exception: # unfortunately, SLIError seems to have disappeared.    
+                except Exception: # unfortunately, SLIError seems to have disappeared.
                     raise common.InvalidParameterValueError, "Error from SLI"
         else:
             raise common.InvalidDimensionsError
@@ -1057,7 +782,6 @@ class Population(common.Population):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
             rarr = rand_distr.next(n=self.size)
-            #cells = numpy.reshape(self.cell,self.cell.size)
             cells = self.cell_local
             assert len(rarr) == len(cells)
             for cell,val in zip(cells,rarr):
@@ -1172,11 +896,10 @@ class Population(common.Population):
         """
         _print(filename, gather=gather, compatible_output=compatible_output,
                population=self, variable="spikes")
-
-
+    
     def getSpikes(self):
         """
-        returns a numpy array of the spikes of the population
+        Returns a numpy array of the spikes of the population
 
         Useful for small populations, for example for single neuron Monte-Carlo.
 
@@ -1184,7 +907,7 @@ class Population(common.Population):
         because they mangle simulator recorder files.
         """
         return _get(population=self, variable="spikes")
-       
+    
     def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
@@ -1547,7 +1270,6 @@ class Projection(common.Projection, WDManager):
             if isinstance(conn_dict, dict):
                 return conn_dict[wd]
             else:
-
                 raise Exception("Either the source id (%s) or the port number (%s) or both is invalid." % (src, port))
         #weights = [0.001*nest.GetConnection([src],'static_synapse',port)['weight'] for (src,port) in self.connections()]
         #delays = [nest.GetConnection([src],'static_synapse',port)['delay'] for (src,port) in self.connections()]
@@ -1600,251 +1322,6 @@ class Projection(common.Projection, WDManager):
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
         raise Exception("Method not yet implemented")
-
-# ==============================================================================
-#   Connection method classes
-# ==============================================================================
-
-def get_target_ports(pre, target_list):
-    # The connection dict returned by NEST contains a list of target ids,
-    # so it is possible to obtain the target port by finding the index of
-    # the target in this list. For now, we stick with saving the target port
-    # in Python (faster, but more memory needed), but PyNEST should soon have
-    # a function to do the lookup, at which point we will switch to using that.
-    conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
-    if conn_dict:
-        first_port = len(conn_dict['targets'])
-    else:
-        first_port = 0
-    return range(first_port, first_port+len(target_list))  
-
-class AllToAllConnector(common.AllToAllConnector, WDManager):    
-
-    def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
-        postsynaptic_neurons  = projection.post.cell.flatten()
-        target_list = postsynaptic_neurons.tolist()
-        for pre in projection.pre.cell.flat:
-            # if self connections are not allowed, check whether pre and post are the same
-            if not self.allow_self_connections:
-                target_list = postsynaptic_neurons.tolist()
-                if pre in target_list:
-                    target_list.remove(pre)
-            N = len(target_list)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
-            projection._targets += target_list
-            projection._sources += [pre]*N
-            projection._targetPorts += get_target_ports(pre, target_list)
-            nest.DivergentConnectWD([pre], target_list, weights, delays)
-        return len(projection._targets)
-
-class OneToOneConnector(common.OneToOneConnector, WDManager):
-    
-    def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
-        if projection.pre.dim == projection.post.dim:
-            projection._sources = projection.pre.cell.flatten()
-            projection._targets = projection.post.cell.flatten()
-            N = len(projection._sources)
-            projection._targetPorts = range(N)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
-            nest.ConnectWD(projection._sources, projection._targets, weights, delays)
-            return projection.pre.size
-        else:
-            raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
-    
-class FixedProbabilityConnector(common.FixedProbabilityConnector, WDManager):
-    
-    def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
-        postsynaptic_neurons  = projection.post.cell.flatten()
-        npost= projection.post.size
-        for pre in projection.pre.cell.flat:
-            if projection.rng:
-                rarr = projection.rng.uniform(0,1,(npost,)) # what about NativeRNG?
-            else:
-                rarr = numpy.random.uniform(0,1,(npost,))
-            target_list = numpy.compress(numpy.less(rarr,self.p_connect),postsynaptic_neurons).tolist()
-            # if self connections are not allowed, check whether pre and post are the same
-            if not self.allow_self_connections and pre in target_list:
-                target_list.remove(pre)
-            N=len(target_list)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
-            projection._targets += target_list
-            projection._sources += [pre]*N
-            projection._targetPorts += get_target_ports(pre, target_list)
-            nest.DivergentConnectWD([pre], target_list, weights, delays)
-        return len(projection._sources)
-    
-class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector, WDManager):
-    
-    def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
-        periodic_boundaries = self.periodic_boundaries
-        if periodic_boundaries is not None:
-            dimensions = projection.post.dim
-            periodic_boundaries = numpy.concatenate((dimensions,numpy.zeros(3-len(dimensions))))
-        postsynaptic_neurons = projection.post.cell.flatten() # array
-        presynaptic_neurons  = projection.pre.cell.flat # iterator 
-        # what about NativeRNG?
-        if projection.rng:
-            if isinstance(projection.rng, NativeRNG):
-                print "Warning: use of NativeRNG not implemented. Using NumpyRNG"
-                rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
-            else:
-                rarr = projection.rng.uniform(0,1,(projection.pre.size*projection.post.size,))
-        else:
-            rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
-        j = 0
-        idx_post = 0
-        for pre in presynaptic_neurons:
-            target_list = []
-            idx_post = 0
-            distances = common.distances(pre, projection.post, self.mask, self.scale_factor, self.offset, periodic_boundaries)
-            for post in postsynaptic_neurons:
-                if self.allow_self_connections or pre != post: 
-                    # calculate the distance between the two cells :
-                    d = distances[0][idx_post]
-                    p = eval(self.d_expression)
-                    if p >= 1 or (0 < p < 1 and rarr[j] < p):
-                        target_list.append(post)
-                        #projection._targets.append(post)
-                        #projection._targetPorts.append(nest.connect(pre_addr,post_addr))
-                        #nest.ConnectWD([pre],[post], [weight], [delay])
-                j += 1
-                idx_post += 1
-            N = len(target_list)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
-            projection._targets += target_list
-            projection._sources += [pre]*N 
-            projection._targetPorts += get_target_ports(pre, target_list)
-            nest.DivergentConnectWD([pre], target_list, weights, delays)
-        return len(projection._sources)
-
-
-class FixedNumberPreConnector(common.FixedNumberPreConnector):
-    
-    def connect(self, projection):
-        npost = projection.post.size
-        postsynaptic_neurons  = projection.post.cell.flatten()
-        if projection.rng:
-            rng = projection.rng
-        else:
-            rng = numpy.random
-        for pre in projection.pre.cell.flat:
-            if hasattr(self, 'rand_distr'):
-                n = self.rand_distr.next()
-            else:
-                n = self.n
-            target_list = rng.permutation(postsynaptic_neurons)[0:n]
-            # if self connections are not allowed, check whether pre and post are the same
-            if not self.allow_self_connections and pre in target_list:
-                target_list.remove(pre)
-            
-            N = len(target_list)
-            weights = 1000.0*self.getWeights(N)
-            if projection.synapse_type == 'inhibitory':
-                weights *= -1    
-            delays = self.getDelays(N)
-            
-            nest.DivergentConnectWD([pre], target_list.tolist(), weights.tolist(), delays.tolist())
-        
-            projection._sources += [pre]*N
-            conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
-            if isinstance(conn_dict, dict):
-                all_targets = conn_dict['targets']
-                total_targets = len(all_targets)
-                projection._targets += all_targets[-N:]
-                projection._targetPorts += range(total_targets-N,total_targets)
-        return len(projection._sources)
-
-def _n_connections(population):
-    """
-    Get a list of the total number of connections made by each neuron in a
-    population.
-    """
-    n = numpy.zeros((len(population),),'int')
-    conn_dict_list = nest.GetConnections([id for id in population],'static_synapse')
-    for i, conn_dict in enumerate(conn_dict_list):
-        assert isinstance(conn_dict, dict)
-        n[i] = len(conn_dict['targets'])
-    return n
-        
-class FixedNumberPostConnector(common.FixedNumberPostConnector):
-    
-    def connect(self, projection):        
-        npre = projection.pre.size
-        presynaptic_neurons  = projection.pre.cell.flatten()
-        if projection.rng:
-            rng = projection.rng
-        else:
-            rng = numpy.random
-        start_ports = _n_connections(projection.pre)
-        for post in projection.post.cell.flat:
-            if hasattr(self, 'rand_distr'):
-                n = self.rand_distr.next()
-            else:
-                n = self.n
-            source_list = rng.permutation(presynaptic_neurons)[0:n]
-            # if self connections are not allowed, check whether pre and post are the same
-            if not self.allow_self_connections and pre in source_list:
-                source_list.remove(pre)
-            
-            N = len(source_list)
-            weights = 1000.0*self.getWeights(N)
-            if projection.synapse_type == 'inhibitory':
-                weights *= -1    
-            delays = self.getDelays(N)
-            
-            nest.ConvergentConnectWD(source_list.tolist(), [post], weights.tolist(), delays.tolist())
-            
-        end_ports = _n_connections(projection.pre)
-        for pre, start_port, end_port in zip(presynaptic_neurons, start_ports, end_ports):
-            projection._targetPorts += range(start_port, end_port)
-            projection._sources += [pre]*(end_port-start_port)
-            conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
-            if isinstance(conn_dict, dict):
-                projection._targets += conn_dict['targets'][start_port:end_port]
-        print start_ports
-        print end_ports
-        return len(projection._sources)
-
 
 
 # ==============================================================================
