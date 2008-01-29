@@ -3,9 +3,9 @@
 nrnpython implementation of the PyNN API.
 
 This is an attempt at a parallel-enabled implementation.                                                                
-$Id$
+$Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 """
-__version__ = "$Revision$"
+__version__ = "$Rev$"
 
 import hoc
 from pyNN.random import *

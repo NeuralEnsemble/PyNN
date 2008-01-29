@@ -3,7 +3,7 @@
 PyNEST implementation of the PyNN API.
 $Id:nest1.py 143 2007-10-05 14:20:16Z apdavison $
 """
-__version__ = "$Revision:5 $"
+__version__ = "$Rev$"
 
 import pynest
 from pyNN import common

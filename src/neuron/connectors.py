@@ -1,5 +1,6 @@
 # ==============================================================================
-#   Connection method classes for neuron
+# Connection method classes for neuron
+# $Id$
 # ==============================================================================
 
 from pyNN import common

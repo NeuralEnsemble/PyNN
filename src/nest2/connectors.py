@@ -1,5 +1,6 @@
 # ==============================================================================
-#   Connection method classes for nest2
+# Connection method classes for nest
+# $Id$
 # ==============================================================================
 
 from pyNN import common

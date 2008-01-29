@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-PyNEST implementation of the PyNN API.
-$Id$
+PyNEST v2 implementation of the PyNN API.
+$Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 """
-__version__ = "$Rev$"
+__version__ = "$Rev:188 $"
 
 import nest
 from pyNN import common

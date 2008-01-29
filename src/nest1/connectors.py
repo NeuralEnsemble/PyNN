@@ -1,15 +1,12 @@
 # ==============================================================================
-#   Connection method classes for nest2
+# Connection method classes for nest1
+# $Id$
 # ==============================================================================
 
 from pyNN import common
 from pyNN.nest1.__init__ import pynest, WDManager, _min_delay, numpy
 from pyNN.random import RandomDistribution, NativeRNG
 from math import *
-
-# ==============================================================================
-#   Connection method classes
-# ==============================================================================
 
 
 class AllToAllConnector(common.AllToAllConnector, WDManager):    

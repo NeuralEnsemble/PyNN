@@ -1,5 +1,6 @@
 # ==============================================================================
-#   Synapse Dynamics classes for neuron
+# Synapse Dynamics classes for neuron
+# $Id$
 # ==============================================================================
 
 from pyNN import common
