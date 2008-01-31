@@ -8,13 +8,16 @@ $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 __version__ = "$Rev: 191 $"
 
 import neuron
+from pyNN import __path__ as pyNN_path
+neuron.h.nrn_load_dll("%s/hoc/i686/.libs/libnrnmech.so" % pyNN_path[0])
+
 from pyNN.random import *
 from math import *
 from pyNN import common
-from pyNN.neuron.cells import *
-from pyNN.neuron.connectors import *
-from pyNN.neuron.synapses import *
-from pyNN import __path__
+from pyNN.neuron2.cells import *
+from pyNN.neuron2.connectors import *
+from pyNN.neuron2.synapses import *
+
 import os.path
 import types
 import sys
@@ -161,8 +164,8 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
         h.dt = dt
     else:
         #hoc_commands = [
-        #    'tmp = xopen("%s")' % os.path.join(__path__[0],'hoc','standardCells.hoc'),
-        #    'tmp = xopen("%s")' % os.path.join(__path__[0],'hoc','odict.hoc'),
+        #    'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','standardCells.hoc'),
+        #    'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','odict.hoc'),
         #    'objref pc',
         #    'pc = new ParallelContext()',
         #    'dt = %f' % dt,
@@ -175,8 +178,8 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
         #    'objref nc', 
         #    'objref rng',
         #    'objref cell']
-        neuron.xopen("%s" % os.path.join(__path__[0],'hoc','standardCells.hoc') )
-        neuron.xopen("%s" % os.path.join(__path__[0],'hoc','odict.hoc') ) # to suppress - odict no longer needed?
+        neuron.xopen("%s" % os.path.join(pyNN_path[0],'hoc','standardCells.hoc') )
+        neuron.xopen("%s" % os.path.join(pyNN_path[0],'hoc','odict.hoc') ) # to suppress - odict no longer needed?
         pc = neuron.ParallelContext()
         
         #---Experimental--- Optimize the simulation time ? / Reduce inter-processors exchanges ?

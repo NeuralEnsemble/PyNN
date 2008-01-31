@@ -4,15 +4,38 @@
 # ==============================================================================
 
 from pyNN import common
-from pyNN.neuron2 import neuron
+#from pyNN.neuron2.__init__ import neuron
+import neuron
 from math import pi
+
+ExpISyn   = neuron.new_point_process('ExpISyn')
+AlphaISyn = neuron.new_point_process('AlphaISyn')
+AlphaSyn  = neuron.new_point_process('AlphaSyn')
+ResetRefrac = neuron.new_point_process('ResetRefrac')
+
+def _new_property(obj_hierarchy, attr_name):
+    """
+    Returns a new property, mapping attr_name to obj_hierarchy.attr_name.
+    
+    For example, suppose that an object of class A has an attribute b which
+    itself has an attribute c which itself has an attribute d. Then placing
+      e = _new_property('b.c', 'd')
+    in the class definition of A makes A.e an alias for A.d
+    """
+    def set(self, value):
+        obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
+        setattr(obj, attr_name, value)
+    def get(self):
+        obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
+        return getattr(obj, attr_name)
+    return property(fset=set, fget=get)
 
 class StandardIF(neuron.nrn.Section):
     """docstring"""
     
     synapse_models = {
-        'current':      { 'exp': neuron.ExpISyn, 'alpha': neuron.AlphaISyn },
-        'conductance' : {'exp': neuron.ExpSyn, 'alpha': neuron.AlphaSyn },
+        'current':      { 'exp': ExpISyn,        'alpha': AlphaISyn },
+        'conductance' : { 'exp': neuron.ExpSyn,  'alpha': AlphaSyn },
     }
     
     def __init__(self, syn_type, syn_shape, tau_m=20, cm=1.0, v_rest=-65,
@@ -23,22 +46,23 @@ class StandardIF(neuron.nrn.Section):
         neuron.nrn.Section.__init__(self)
         self.seg = self(0.5)
         self.L = 100
-        self.seg.diam = 1000/math.pi # gives area = 1e-3 cm2
+        self.seg.diam = 1000/pi # gives area = 1e-3 cm2
         self.insert('pas')
         
         # insert synapses
         assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'"
         assert syn_shape in ('alpha', 'exp'), "syn_type must be either 'alpha' or 'exp'"
-        synapse_model = synapse_models[syn_type][syn_shape]
-        if syn_type == 'current':
-            esyn = synapse_model(self, 0.5, tau=tau_e)
-            isyn = synapse_model(self, 0.5, tau=tau_i)
-        elif syn_type == 'conductance':
-            esyn = synapse_model(self, 0.5, tau=tau_e, e=e_e)
-            isyn = synapse_model(self, 0.5, tau=tau_i, e=e_i)    
+        synapse_model = StandardIF.synapse_models[syn_type][syn_shape]
+        self.esyn = synapse_model(self, 0.5)
+        self.isyn = synapse_model(self, 0.5)
 
         # insert current source
-        stim = neuron.IClamp(self, 0.5, delay=0, dur=1e12, amp=i_offset)
+        self.stim = neuron.IClamp(self, 0.5, delay=0, dur=1e12, amp=i_offset)
+        
+        # insert spike reset mechanism
+        self.spike_reset = ResetRefrac(self, 0.5)
+        self.spike_reset.vspike = 40 # (mV) spike height
+        self.source = self.spike_reset
         
         # process arguments
         for name in ('tau_m', 'cm', 'v_rest', 'v_thresh', 't_refrac',
@@ -55,18 +79,6 @@ class StandardIF(neuron.nrn.Section):
         # need to deal with FinitializeHandlers ??
         #fih = new FInitializeHandler("memb_init()",this)
         #fih2 = new FInitializeHandler("param_update()", this)
-        
-        
-
-    def __property_factory(self, name, mechanism=None):
-        def set(self, value):
-            if mechanism:
-                setattr(getattr(self.seg, mechanism), name, value)
-            else:
-                setattr(self.seg, name, value)
-        def get(self):
-            return getattr(self.seg.pas, name)
-        return property(set, get)
     
     def __set_tau_m(self, value):
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
@@ -74,10 +86,29 @@ class StandardIF(neuron.nrn.Section):
     def __get_tau_m(self):
         return 1e-3*self.seg.cm/self.seg.pas.g
     
-    tau_m = property(__set_tau_m, __get_tau_m)
-    v_rest = self.__property_factory('e', 'pas')
-    cm = self.__property_factory('cm')
-    # need properties for tau_e, e_e, i_stim, etc
+    tau_m    = property(fget=__get_tau_m, fset=__set_tau_m)
+    cm       = _new_property('seg', 'cm')
+    i_offset = _new_property('stim', 'amp')
+    tau_e    = _new_property('esyn', 'tau')
+    tau_i    = _new_property('isyn', 'tau')
+    e_e      = _new_property('esyn', 'e')
+    e_i      = _new_property('isyn', 'e')
+    v_rest   = _new_property('seg.pas', 'e')
+    v_thresh = _new_property('spike_reset', 'v_thresh')
+    v_reset  = _new_property('spike_reset', 'v_reset')
+    t_refrac = _new_property('spike_reset', 't_refrac')
+    
+    # what about v_init?
+
+    def record(self):
+        pass
+    
+    def record_v(self):
+        pass
+    
+    def connect2target(self, target, netcon):
+        pass
+
 
 class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
