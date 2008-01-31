@@ -20,8 +20,7 @@ proc init() {
   // The argument is a Dict containing:
   // "syn_type"    : string denoting the synapse type (current change or conductance change)
   // "syn_shape"   : string denoting synapse shape (step then decaying exponential or alpha-function)
-  // "cell_params" : (optional) vector containing the non-synaptic parameters
-  // "syn_params"  : (optional) vector containing the synaptic parameters
+  // various numerical parameters as floats or ints
   syn_type  = $o1.oget("syn_type").s
   syn_shape = $o1.oget("syn_shape").s
   if ($o1.has_key("tau_m"))    { tau_m    = $o1.get("tau_m") }    else { tau_m    = 20 }     // (ms)
