@@ -25,7 +25,10 @@ quit = h.quit
 class HocError(Exception): pass
 
 def new_point_process(name):
-    """Returns a Python-wrapped hoc class."""
+    """
+    Returns a Python-wrapped hoc class where the object needs to be associated
+    with a section.
+    """
     h('obfunc new_%s() { return new %s($1) }' % (name, name))
     class someclass(object):
         def __init__(self, section, position=0.5):
@@ -33,6 +36,23 @@ def new_point_process(name):
             section.push()
             self.__obj = getattr(h, 'new_%s' % name)(position)
             h.pop_section()
+        def __getattr__(self, name):
+            try:
+                return self.__getattribute__(name)
+            except AttributeError:
+                return self.__obj.__getattribute__(name)
+    someclass.__name__ = name
+    return someclass
+
+def new_hoc_class(name):
+    """
+    Returns a Python-wrapped hoc class where the object does not need to be
+    associated with a section.
+    """
+    h('obfunc new_%s() { return new %s() }' % (name, name))
+    class someclass(object):
+        def __init__(self):
+            self.__obj = getattr(h, 'new_%s' % name)()
         def __getattr__(self, name):
             try:
                 return self.__getattribute__(name)
@@ -154,9 +174,6 @@ class IClamp(object):
         else:
             object.__setattr__(self, name, value)
 
-class ParallelContext(object):
-    pass
-
 def open(filename, mode='r'):
     """Return an open File object"""
     pass
@@ -164,20 +181,6 @@ def open(filename, mode='r'):
 class File(object):
     """Hoc file object with Python-like syntax added."""
     pass
-
-#h('obfunc new_ExpSyn() { return new ExpSyn($1) }')
-#class ExpSyn(object):
-#
-#    def __init__(self, section, position=0.5):
-#        assert 0 <= position <= 1
-#        section.push()
-#        self.__obj = h.new_ExpSyn(position)
-#        h.pop_section()
-#            
-#    def __getattr__(self, name):
-#        try:
-#            return self.__getattribute__(name)
-#        except AttributeError:
-#            return self.__obj.__getattribute__(name)
             
 ExpSyn = new_point_process('ExpSyn')
+ParallelContext = new_hoc_class('ParallelContext')

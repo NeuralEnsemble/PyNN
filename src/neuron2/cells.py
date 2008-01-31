@@ -4,7 +4,6 @@
 # ==============================================================================
 
 from pyNN import common
-#from pyNN.neuron2.__init__ import neuron
 import neuron
 from math import pi
 
@@ -76,9 +75,8 @@ class StandardIF(neuron.nrn.Section):
             self.e_e = e_e
             self.e_i = e_i
             
-        # need to deal with FinitializeHandlers ??
+        # need to deal with FinitializeHandler for v_init?
         #fih = new FInitializeHandler("memb_init()",this)
-        #fih2 = new FInitializeHandler("param_update()", this)
     
     def __set_tau_m(self, value):
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
@@ -94,17 +92,21 @@ class StandardIF(neuron.nrn.Section):
     e_e      = _new_property('esyn', 'e')
     e_i      = _new_property('isyn', 'e')
     v_rest   = _new_property('seg.pas', 'e')
-    v_thresh = _new_property('spike_reset', 'v_thresh')
-    v_reset  = _new_property('spike_reset', 'v_reset')
-    t_refrac = _new_property('spike_reset', 't_refrac')
+    v_thresh = _new_property('spike_reset', 'vthresh')
+    v_reset  = _new_property('spike_reset', 'vreset')
+    t_refrac = _new_property('spike_reset', 'trefrac')
     
     # what about v_init?
 
-    def record(self):
+    def record(self, active):
         pass
     
-    def record_v(self):
-        pass
+    def record_v(self, active):
+        if active:
+            self.vtrace = neuron.Vector()
+            self.vtrace.record(self, 'v')
+        else:
+            self.vtrace = None
     
     def connect2target(self, target, netcon):
         pass
