@@ -13,16 +13,30 @@ $Id$
 import hoc
 import nrn
 h  = hoc.HocObject()
-dt = h.dt
 
-h('obfunc new_IClamp() { return new IClamp($1) }')
-h('obfunc newlist() { return new List() }')
-h('obfunc newvec() { return new Vector($1) }')
-
-xopen = h.xopen
-quit = h.quit
+# ------------------------------------------------------------------------------
+# Python classes and functions without a Hoc equivalent, mainly for internal
+# use within this file.
+# ------------------------------------------------------------------------------
 
 class HocError(Exception): pass
+
+class Wrapper(object):
+    """Base class to provide attribute access for HocObjects."""
+    def __getattr__(self, name):
+        if name == 'hoc_obj':
+            return self.__dict__['hoc_obj']
+        else:
+            try:
+                return self.__getattribute__(name)
+            except AttributeError:
+                return self.hoc_obj.__getattribute__(name)
+        
+    def __setattr__(self, name, value):
+        try:
+            self.hoc_obj.__setattr__(name, value)
+        except LookupError:
+            object.__setattr__(self, name, value)
 
 def new_point_process(name):
     """
@@ -30,17 +44,12 @@ def new_point_process(name):
     with a section.
     """
     h('obfunc new_%s() { return new %s($1) }' % (name, name))
-    class someclass(object):
+    class someclass(Wrapper):
         def __init__(self, section, position=0.5):
             assert 0 <= position <= 1
             section.push()
-            self.__obj = getattr(h, 'new_%s' % name)(position)
+            self.__dict__['hoc_obj'] = getattr(h, 'new_%s' % name)(position) # have to put directly in __dict__ to avoid infinite recursion with __getattr__
             h.pop_section()
-        def __getattr__(self, name):
-            try:
-                return self.__getattribute__(name)
-            except AttributeError:
-                return self.__obj.__getattribute__(name)
     someclass.__name__ = name
     return someclass
 
@@ -50,16 +59,20 @@ def new_hoc_class(name):
     associated with a section.
     """
     h('obfunc new_%s() { return new %s() }' % (name, name))
-    class someclass(object):
-        def __init__(self):
-            self.__obj = getattr(h, 'new_%s' % name)()
-        def __getattr__(self, name):
-            try:
-                return self.__getattribute__(name)
-            except AttributeError:
-                return self.__obj.__getattribute__(name)
+    class someclass(Wrapper):
+        def __init__(self, **kwargs):
+            self.__dict__['hoc_obj'] = getattr(h, 'new_%s' % name)()
+            for k,v in kwargs.items():
+                setattr(self.hoc_obj, k, v)
     someclass.__name__ = name
     return someclass
+
+# ------------------------------------------------------------------------------
+# Python equivalents to Hoc functions
+# ------------------------------------------------------------------------------
+
+xopen = h.xopen
+quit = h.quit
 
 def hoc_execute(hoc_commands, comment=None):
     assert isinstance(hoc_commands,list)
@@ -80,14 +93,52 @@ def psection(section):
     h.pop_section()
 
 def init():
-    h.dt = dt
     h.finitialize()
     
 def run(tstop):
     h('tstop = %g' % tstop)
     h('while (t < tstop) { fadvance() }')
+    # what about pc.psolve(tstop)?
+# ------------------------------------------------------------------------------
+# Python wrappers around Hoc objects
+# For most objects we use a generic wrapper, created using the factory functions
+#   `new_point_process()` or `new_hoc_class()`.
+# Where we wish to modify the methods of the Hoc class, or add new methods,
+#   we write an explicit Python class.
+# ------------------------------------------------------------------------------
 
-class Vector(object):
+ExpSyn = new_point_process('ExpSyn')
+Exp2Syn = new_point_process('Exp2Syn')
+VClamp = new_point_process('VClamp')
+SEClamp = new_point_process('SEClamp')
+APCount = new_point_process('APCount')
+
+ParallelContext = new_hoc_class('ParallelContext')
+NetStim = new_hoc_class('NetStim')
+Random = new_hoc_class('Random')
+CVode = new_hoc_class('CVode')
+FInitializeHandler = new_hoc_class('FInitializeHandler')
+
+h('obfunc new_IClamp() { return new IClamp($1) }')
+h('obfunc newlist() { return new List() }')
+h('obfunc newvec() { return new Vector($1) }')
+h('obfunc new_NetConO() { return new NetCon($o1, $o2, $3, $4, $5) }')
+h('obfunc new_NetConP() { return new NetCon(&v($1), $o2, $3, $4, $5) }')
+h('objref nil')
+h('obfunc new_NetConO_nil() { return new NetCon($o1, nil) }')
+h('obfunc new_NetConP_nil() { return new NetCon(&v($1), nil) }')
+h('obfunc new_File() { return new File() }')
+
+class List(Wrapper):
+    
+    def __init__(self):
+        self.hoc_obj = h.newlist()
+        
+    def __len__(self):
+        return self.count()
+    
+    
+class Vector(Wrapper):
     n = 0
     
     def __init__(self,arg=10):
@@ -102,9 +153,6 @@ class Vector(object):
             self.hoc_obj = getattr(h, self.name)
             for i,x in enumerate(arg):
                 self.x[i] = x
-       
-    def __getattr__(self,name):
-        return getattr(self.hoc_obj, name)
    
     def __len__(self):
         return self.size()
@@ -146,13 +194,12 @@ class Vector(object):
         h('%s.record(&%s(%g))' % (self.name, variable, position))
         h.pop_section()                      
 
-
 class IClamp(object):
       
     def __init__(self, section, position=0.5, delay=0, dur=0, amp=0):
         assert 0 <= position <= 1
         section.push()
-        self.__obj = h.new_IClamp(position)
+        self.hoc_obj = h.new_IClamp(position)
         h.pop_section()
         self.delay = delay
         self.dur = dur
@@ -160,27 +207,55 @@ class IClamp(object):
         
     def __getattr__(self, name):
         if name == "delay":
-            return self.__obj.__getattribute__('del')
+            return self.hoc_obj.__getattribute__('del')
         elif name in ('amp', 'dur'):
-            return self.__obj.__getattribute__(name)
+            return self.hoc_obj.__getattribute__(name)
         else:
             return self.__getattribute__(name)
      
     def __setattr__(self, name, value):
         if name == "delay":
-            self.__obj.__setattr__('del', value)
+            self.hoc_obj.__setattr__('del', value)
         elif name in ('amp', 'dur'):
-            self.__obj.__setattr__(name, value)
+            self.hoc_obj.__setattr__(name, value)
         else:
             object.__setattr__(self, name, value)
 
-def open(filename, mode='r'):
-    """Return an open File object"""
-    pass
 
-class File(object):
+class NetCon(Wrapper):
+    
+    def __init__(self, source, target, threshold=10, delay=1, weight=0, section=None, position=0.5):
+        # What about generalising to obtain the NetCon object via pc.gid_connect(), if source is
+        # an integer?
+        if hasattr(target, 'hoc_obj'):
+           target = target.hoc_obj
+        if target is None:
+            if section:
+                section.push()
+                self.hoc_obj = h.new_NetConP_nil(position)
+                h.pop_section()
+            else:
+                self.hoc_obj = h.new_NetConO_nil(source.hoc_obj)
+        else:
+            if section:
+                section.push()
+                self.hoc_obj = h.new_NetConP(position, target, threshold, delay, weight)
+                h.pop_section()
+            else:
+                self.hoc_obj = h.new_NetConO(source.hoc_obj, target, threshold, delay, weight)
+        self.section = section
+
+        
+class File(Wrapper):
     """Hoc file object with Python-like syntax added."""
-    pass
-            
-ExpSyn = new_point_process('ExpSyn')
-ParallelContext = new_hoc_class('ParallelContext')
+    
+    def __init__(self, name, mode='r'):
+        assert mode in ('r', 'w', 'a')
+        self.hoc_obj = h.new_File()
+        open_func = getattr(self.hoc_obj, "%sopen" % mode)
+        open_func(name)
+        
+    def write(self, s):
+        pass
+        
+

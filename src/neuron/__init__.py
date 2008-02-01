@@ -7,14 +7,15 @@ $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 """
 __version__ = "$Rev$"
 
-import hoc
+from neuron import hoc
+from pyNN import __path__ as pyNN_path
+#hoc.execute('nrn_load_dll("%s/hoc/i686/.libs/libnrnmech.so")' % pyNN_path[0])
 from pyNN.random import *
 from math import *
 from pyNN import common
 from pyNN.neuron.cells import *
 from pyNN.neuron.connectors import *
 from pyNN.neuron.synapses import *
-from pyNN import __path__
 import os.path
 import types
 import sys
@@ -248,6 +249,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     global dt, nhost, myid, _min_delay, logger, initialised
     dt = timestep
     _min_delay = min_delay
+    hoc.execute('nrn_load_dll("%s/hoc/i686/.libs/libnrnmech.so")' % pyNN_path[0])
     
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
@@ -269,8 +271,8 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
         hoc_commands = ['dt = %f' % dt]    
     else:
         hoc_commands = [
-            'tmp = xopen("%s")' % os.path.join(__path__[0],'hoc','standardCells.hoc'),
-            'tmp = xopen("%s")' % os.path.join(__path__[0],'hoc','odict.hoc'),
+            'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','standardCells.hoc'),
+            'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','odict.hoc'),
             'objref pc',
             'pc = new ParallelContext()',
             'dt = %f' % dt,

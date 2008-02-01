@@ -9,7 +9,7 @@ __version__ = "$Rev: 191 $"
 
 import neuron
 from pyNN import __path__ as pyNN_path
-neuron.h.nrn_load_dll("%s/hoc/i686/.libs/libnrnmech.so" % pyNN_path[0])
+neuron.h.nrn_load_dll("%s/hoc/i686/.libs/libnrnmech.so" % pyNN_path[0]) # put this in setup()?
 
 from pyNN.random import *
 from math import *
@@ -49,6 +49,7 @@ class ID(common.ID):
     def __init__(self,n):
         common.ID.__init__(self,n)
         self.hocname = None
+        self.model_obj = None
     
     def __getattr__(self,name):
         """Note that this currently does not translate units."""
@@ -139,7 +140,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global dt, nhost, myid, _min_delay, logger, initialised
+    global dt, nhost, myid, _min_delay, logger, initialised, pc
     dt = timestep
     _min_delay = min_delay
     
@@ -148,20 +149,20 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     if debug:
         logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s',
-                    filename='neuron.log',
+                    filename='neuron2.log',
                     filemode='w')
     else:
         logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s',
-                    filename='neuron.log',
+                    filename='neuron2.log',
                     filemode='w')
         
     logging.info("Initialization of NEURON (use setup(..,debug=True) to see a full logfile)")
     
     # All the objects that will be used frequently in the hoc code are declared in the setup
+    neuron.h.dt = dt
     if initialised:
-        #hoc_commands = ['dt = %f' % dt]
-        h.dt = dt
+        pass
     else:
         #hoc_commands = [
         #    'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','standardCells.hoc'),
@@ -207,27 +208,28 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    global logfile, myid #, vfilelist, spikefilelist
+    global logfile, myid, vfilelist, spikefilelist
     #hoc_commands = []
+    print vfilelist
     if len(vfilelist) > 0:
         #hoc_commands = ['objref fileobj',
         #                'fileobj = new File()']
         tstop = neuron.h.tstop
-        header = "# dt = %g\\n# n = %d\\n" % (dt, int(tstop/dt))
+        header = "# dt = %g\n# n = %d\n" % (dt, int(tstop/dt))
         for filename, cell_list in vfilelist.items():
-            fileobj = neuron.open(filename, 'w')
+            fileobj = neuron.File(filename, 'w')
             fileobj.write(header)
             for cell in cell_list:
-                fmt = "%s\\t%d\\n" % ("%.6g",cell)
-                fileobj.write_vector('cell%d.vtrace' % cell, fmt)
+                fmt = "%s\t%d\n" % ("%.6g",cell.gid)
+                cell.vtrace.printf(fileobj.hoc_obj, fmt)
             fileobj.close()
     if len(spikefilelist) > 0:
-        header = "# dt = %g\\n# "% dt
+        header = "# dt = %g\n# "% dt
         for filename,cell_list in spikefilelist.items():
-            fileobj = neuron.open(filename, 'w')
+            fileobj = neuron.File(filename, 'w')
             for cell in cell_list:
-                fmt = "%s\\t%d\\n" % ("%.2f",cell)
-                fileobj.write_vector('cell%d.spiketimes' % cell, fmt)
+                fmt = "%s\t%d\n" % ("%.2f", cell.gid)
+                cell.spiketimes.printf(fileobj.hoc_obj, fmt)
             fileobj.close()
     pc.runworker()
     pc.done()
@@ -240,11 +242,13 @@ def run(simtime):
     global running
     if not running:
         running = True
-        neuron.h.tstop = simtime
+        #neuron.h.tstop = simtime
         print "dt        = %f" % dt
         print "min delay = ", pc.set_maxstep(100)
-        neuron.finitialize()
-    print "tstop     = ", tstop
+        #neuron.finitialize()
+        neuron.init()
+    print "tstop     = ", simtime
+    neuron.h('tstop = %g' % simtime)
     pc.psolve(simtime)
 
 def setRNGseeds(seedList):
@@ -255,82 +259,95 @@ def setRNGseeds(seedList):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass,paramDict=None,n=1):
+def create(cellclass, paramDict=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
     If n==1, return just the single id.
     """
-    global gid, gidlist, nhost, myid
+    global gid, gidlist, nhost, myid, pc, nc
     
     assert n > 0, 'n must be a positive integer'
-    if isinstance(cellclass, type):
-        celltype = cellclass(paramDict)
-        hoc_name = celltype.hoc_name
-        hoc_commands, argstr = _hoc_arglist([celltype.parameters])
-    elif isinstance(cellclass,str):
-        hoc_name = cellclass
-        hoc_commands, argstr = _hoc_arglist([paramDict])
-    argstr = argstr.strip().strip(',')
+    #if isinstance(cellclass, type):
+    #    celltype = cellclass(paramDict)
+    #    hoc_name = celltype.hoc_name
+    #    hoc_commands, argstr = _hoc_arglist([celltype.parameters])
+    #elif isinstance(cellclass,str):
+    #    hoc_name = cellclass
+    #    hoc_commands, argstr = _hoc_arglist([paramDict])
+    #argstr = argstr.strip().strip(',')
  
     # round-robin partitioning
     newgidlist = [i+myid for i in range(gid,gid+n,nhost) if i < gid+n-myid]
+    cell_list = []
     for cell_id in newgidlist:
-        hoc_commands += ['tmp = pc.set_gid2node(%d,%d)' % (cell_id,myid),
-                         'objref cell%d' % cell_id,
-                         'cell%d = new %s(%s)' % (cell_id,hoc_name,argstr),
-                         'tmp = cell%d.connect2target(nil,nc)' % cell_id,
-                         #'nc = new NetCon(cell%d.source,nil)' % cell_id,
-                         'tmp = pc.cell(%d,nc)' % cell_id]
-    hoc_execute(hoc_commands, "--- create() ---")
+        #hoc_commands += ['tmp = pc.set_gid2node(%d,%d)' % (cell_id,myid),
+        #                 'objref cell%d' % cell_id,
+        #                 'cell%d = new %s(%s)' % (cell_id,hoc_name,argstr),
+        #                 'tmp = cell%d.connect2target(nil,nc)' % cell_id,
+        #                 #'nc = new NetCon(cell%d.source,nil)' % cell_id,
+        #                 'tmp = pc.cell(%d,nc)' % cell_id]
+        cell = cellclass(paramDict)           # create the cell object
+        cell.gid = cell_id                    # and assign its gid
+        pc.set_gid2node(cell.gid, myid)       # assign this gid to this node
+        nc = neuron.NetCon(cell.source, None) # } associate the cell spike source
+        pc.cell(cell.gid, nc.hoc_obj)         # } with the gid (using a temporary NetCon)
+        cell_list.append(cell)
 
     gidlist.extend(newgidlist)
-    cell_list = [ID(i) for i in range(gid,gid+n)]
-    for id in cell_list:
-        id.cellclass = cellclass
+    #cell_list = [ID(i) for i in range(gid,gid+n)]
+    #for id in cell_list:
+    #    id.cellclass = cellclass
     gid = gid+n
     if n == 1:
         cell_list = cell_list[0]
     return cell_list
 
-def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None):
+def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
     Weights should be in nA or uS."""
-    global ncid, gid, gidlist, _min_delay
+    global ncid, gid, gidlist, _min_delay, pc
     if type(source) != types.ListType:
         source = [source]
     if type(target) != types.ListType:
         target = [target]
     if weight is None:  weight = 0.0
     if delay  is None:  delay = _min_delay
-    syn_objref = _translate_synapse_type(synapse_type,weight)
+    syn_objref = _translate_synapse_type(synapse_type, weight)
     nc_start = ncid
     hoc_commands = []
+    conn_list = []
     for tgt in target:
-        if tgt > gid or tgt < 0 or not isinstance(tgt,int):
-            raise common.ConnectionError, "Postsynaptic cell id %s does not exist." % str(tgt)
+        if tgt.gid > gid or tgt.gid < 0: # or not isinstance(tgt,int):
+            raise common.ConnectionError, "Postsynaptic cell id %s does not exist." % str(tgt.gid)
         else:
-            if tgt in gidlist: # only create connections to cells that exist on this machine
+            if tgt.gid in gidlist: # only create connections to cells that exist on this machine
                 if p < 1:
                     if rng: # use the supplied RNG
                         rarr = self.rng.uniform(0,1,len(source))
                     else:   # use the default RNG
                         rarr = numpy.random.uniform(0,1,len(source))
                 for j,src in enumerate(source):
-                    if src > gid or src < 0 or not isinstance(src,int):
-                        raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src)
+                    if src.gid > gid or src.gid < 0: # or not isinstance(src,int):
+                        raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src.gid)
                     else:
                         if p >= 1.0 or rarr[j] < p: # might be more efficient to vectorise the latter comparison
-                            hoc_commands += ['nc = pc.gid_connect(%d,pc.gid2cell(%d).%s)' % (src,tgt,syn_objref),
-                                             'nc.delay = %g' % delay,
-                                             'nc.weight = %g' % weight,
-                                             'tmp = netconlist.append(nc)']
+                            
+                            nc = pc.gid_connect(src.gid,
+                                                getattr(tgt, syn_objref).hoc_obj)
+                            nc.delay = delay
+                            nc.weight[0] = weight
+                            conn_list.append(nc)
                             ncid += 1
-    hoc_execute(hoc_commands, "--- connect(%s,%s) ---" % (str(source),str(target)))
-    return range(nc_start,ncid)
+                            print nc, weight, nc.weight[0]
+    #hoc_execute(hoc_commands, "--- connect(%s,%s) ---" % (str(source),str(target)))
+    #return range(nc_start, ncid) # why not return a list of NetCon objects, instead of ids?
+    if len(conn_list) == 1:
+        conn_list = conn_list[0]
+    return conn_list
 
 def set(cells,cellclass,param,val=None):
     """Set one or more parameters of an individual cell or list of cells.
@@ -375,9 +392,10 @@ def record(source,filename):
         spikefilelist[filename] = []
     for src in source:
         if src in gidlist:
-            hoc_commands += ['tmp = cell%d.record(1)' % src]
+            #hoc_commands += ['tmp = cell%d.record(1)' % src]
+            src.record(1)
             spikefilelist[filename] += [src] # writing to file is done in end()
-    hoc_execute(hoc_commands, "---record() ---")
+    #hoc_execute(hoc_commands, "---record() ---")
 
 def record_v(source,filename):
     """
@@ -392,10 +410,11 @@ def record_v(source,filename):
     if not vfilelist.has_key(filename):
         vfilelist[filename] = []
     for src in source:
-        if src in gidlist:
-            hoc_commands += ['tmp = cell%d.record_v(1,%g)' % (src,dt)]
+        if src.gid in gidlist:
+            #hoc_commands += ['tmp = cell%d.record_v(1,%g)' % (src,dt)]
+            src.record_v(1)
             vfilelist[filename] += [src] # writing to file is done in end()
-    hoc_execute(hoc_commands, "---record_v() ---")
+    #hoc_execute(hoc_commands, "---record_v() ---")
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of

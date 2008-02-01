@@ -5,7 +5,8 @@
 
 from pyNN import common
 from pyNN.random import RandomDistribution, NativeRNG
-from pyNN.neuron.__init__ import numpy, hoc_execute, HocToPy
+from pyNN.neuron.__init__ import hoc_execute, HocToPy
+import numpy
 from math import *
 
 # ==============================================================================

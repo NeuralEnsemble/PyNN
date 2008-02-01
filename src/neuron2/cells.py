@@ -9,8 +9,9 @@ from math import pi
 
 ExpISyn   = neuron.new_point_process('ExpISyn')
 AlphaISyn = neuron.new_point_process('AlphaISyn')
-AlphaSyn  = neuron.new_point_process('AlphaSyn')
+AlphaSyn  = neuron.new_point_process('AlphaSyn') # note that AlphaSynapse exists in NEURON now
 ResetRefrac = neuron.new_point_process('ResetRefrac')
+VecStim = neuron.new_hoc_class('VecStim')
 
 def _new_property(obj_hierarchy, attr_name):
     """
@@ -99,7 +100,9 @@ class StandardIF(neuron.nrn.Section):
     # what about v_init?
 
     def record(self, active):
-        pass
+        if active:
+            rec = NetCon(self.source, None)
+            rec.record(self.spiketimes)
     
     def record_v(self, active):
         if active:
@@ -108,17 +111,33 @@ class StandardIF(neuron.nrn.Section):
         else:
             self.vtrace = None
     
-    def connect2target(self, target, netcon):
-        pass
 
+class SpikeSource(object):
+    
+    def __init__(self, source_type, spiketimes=[]):
+        self.source = source_type()
+        if spiketimes:
+            self.spiketimes = neuron.Vector(spiketimes)
+            self.source.play(self.spiketimes.hoc_obj)
+            self.do_not_record = True
+        else:
+            self.spiketimes = neuron.Vector()
+            self.do_not_record = False
 
-class IF_curr_alpha(common.IF_curr_alpha):
+    def record(self, active):
+        if not self.do_not_record: # for VecStims, etc, recording doesn't make sense as we already have the spike times
+            if active:
+                rec = NetCon(self.source, None)
+                rec.record(self.spiketimes)
+            
+
+class IF_curr_alpha(StandardIF, common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
     translations = {
         'tau_m'     : ('tau_m'    , "parameters['tau_m']"),
-        'cm'        : ('CM'       , "parameters['cm']"),
+        'cm'        : ('cm'       , "parameters['cm']"),
         'v_rest'    : ('v_rest'   , "parameters['v_rest']"),
         'v_thresh'  : ('v_thresh' , "parameters['v_thresh']"),
         'v_reset'   : ('v_reset'  , "parameters['v_reset']"),
@@ -128,14 +147,15 @@ class IF_curr_alpha(common.IF_curr_alpha):
         'tau_syn_I' : ('tau_i'    , "parameters['tau_syn_I']"),
         'v_init'    : ('v_init'   , "parameters['v_init']"),
     }
-    hoc_name = "StandardIF"
+    #hoc_name = "StandardIF"
     
-    def __init__(self,parameters):
-        common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
+    def __init__(self, parameters):
+        common.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)
-        self.parameters['syn_type']  = 'current'
-        self.parameters['syn_shape'] = 'alpha'
+        #self.parameters['syn_type']  = 'current'
+        #self.parameters['syn_shape'] = 'alpha'
+        StandardIF.__init__(self, 'current', 'alpha', **self.parameters)
 
 class IF_curr_exp(common.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
@@ -272,18 +292,19 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
             translated_parameters['interval'] = 1000.0/parameters['rate']
         return translated_parameters
 
-class SpikeSourceArray(common.SpikeSourceArray):
+class SpikeSourceArray(SpikeSource, common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
     translations = {
         'spike_times' : ('spiketimes' , "parameters['spike_times']"),
     }
-    hoc_name = 'SpikeSource'
+    #hoc_name = 'SpikeSource'
     
     def __init__(self,parameters):
         common.SpikeSourceArray.__init__(self,parameters)
         self.parameters = self.translate(self.parameters)  
-        self.parameters['source_type'] = 'VecStim'
+        #self.parameters['source_type'] = 'VecStim'
+        SpikeSource.__init__(self, source_type=VecStim, spiketimes=self.parameters['spiketimes'])
         
 class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
     """Adaptive exponential integrate and fire neuron according to Brette and Gerstner (2005)"""
