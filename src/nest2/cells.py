@@ -108,6 +108,9 @@ class IF_cond_exp_sfa_rr(common.IF_cond_exp_sfa_rr):
 
     See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
     and renewal theories. Neural Computation 19: 2958-3010.
+
+    Depreciated: Use the equivalent type 'IF_cond_exp_gsfa_grr' instead.
+
     """
     translations = common.build_translations(
         ('v_rest',     'E_L')    ,
@@ -134,6 +137,47 @@ class IF_cond_exp_sfa_rr(common.IF_cond_exp_sfa_rr):
         common.IF_cond_exp_sfa_rr.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters = self.translate1(self.parameters)
+
+
+class IF_cond_exp_gsfa_grr(common.IF_cond_exp_gsfa_grr):
+    """Linear leaky integrate and fire model with fixed threshold,
+    decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
+    and a conductance-based relative refractory mechanism.
+
+    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
+    and renewal theories. Neural Computation 19: 2958-3010.
+
+    NOTE: This is a renaming if the now depreciated 'IF_cond_exp_sfa_rr'.
+
+    See also: EIF_cond_alpha_isfa_ista
+
+    """
+    translations = common.build_translations(
+        ('v_rest',     'E_L')    ,
+        ('v_reset',    'V_reset'),
+        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
+        ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
+        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
+        ('tau_syn_E',  'tau_syn_ex'),
+        ('tau_syn_I',  'tau_syn_in'),
+        ('v_thresh',   'V_th'),
+        ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
+        ('e_rev_E',    'E_ex'),
+        ('e_rev_I',    'E_in'),
+        ('v_init',     'V_m'),
+        ('tau_sfa',    'tau_sfa'),
+        ('e_rev_sfa',  'E_sfa'),
+        ('q_sfa',      'q_sfa'),
+        ('tau_rr',     'tau_rr'),
+        ('e_rev_rr',   'E_rr'),
+        ('q_rr',       'q_rr')
+    )
+    nest_name = "iaf_cond_exp_sfa_rr"
+    def __init__(self,parameters):
+        common.IF_cond_exp_gsfa_grr.__init__(self,parameters) # checks supplied parameters and adds default
+                                                       # values for not-specified parameters.
+        self.parameters = self.translate1(self.parameters)
+
 
 
 class IF_facets_hardware1(common.IF_facets_hardware1):
@@ -193,7 +237,13 @@ class HH_cond_exp(common.HH_cond_exp):
         
         
 class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
-    """adaptive exponential integrate and fire neuron according to Brette and Gerstner (2005)"""
+    """adaptive exponential integrate and fire neuron according to 
+    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
+    an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
+
+    Depreciated: Use the equivalent type 'EIF_cond_alpha_isfa_ista' instead.
+
+    """
 
     translations = common.build_translations(
         ('v_init'    , 'V_m'),
@@ -219,6 +269,47 @@ class AdaptiveExponentialIF_alpha(common.AdaptiveExponentialIF_alpha):
     
     def __init__(self,parameters):
         common.AdaptiveExponentialIF_alpha.__init__(self,parameters)
+        self.parameters = self.translate1(self.parameters)
+        
+
+
+class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
+    """exponential integrate and fire neuron with spike triggered and sub-threshold
+    adaptation currents (isfa, ista reps.) according to:
+    
+    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
+    an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
+
+    NOTE: This is a renaming if the now depreciated 'AdaptiveExponentialIF_alpha'.
+
+    See also: IF_cond_exp_gsfa_grr
+
+    """
+
+    translations = common.build_translations(
+        ('v_init'    , 'V_m'),
+        ('w_init'    , 'w',         1000.0),  # nA -> pA
+        ('cm'        , 'C_m',       1000.0),  # nF -> pF
+        ('tau_refrac', 't_ref'), 
+        ('v_spike'   , 'V_peak'),
+        ('v_reset'   , 'V_reset'),
+        ('v_rest'    , 'E_L'),
+        ('tau_m'     , 'g_L',       "cm/tau_m*1000.0", "C_m/g_L"),
+        ('i_offset'  , 'I_e',       1000.0),  # nA -> pA
+        ('a'         , 'a'),       
+        ('b'         , 'b',         1000.0),  # nA -> pA.
+        ('delta_T'   , 'Delta_T'), 
+        ('tau_w'     , 'tau_w'), 
+        ('v_thresh'  , 'V_th'), 
+        ('e_rev_E'   , 'E_ex'),
+        ('tau_syn_E' , 'tau_syn_ex'), 
+        ('e_rev_I'   , 'E_in'), 
+        ('tau_syn_I' , 'tau_syn_in'),
+    )
+    nest_name = "aeif_cond_alpha"
+    
+    def __init__(self,parameters):
+        common.EIF_cond_alpha_isfa_ista.__init__(self,parameters)
         self.parameters = self.translate1(self.parameters)
         
         

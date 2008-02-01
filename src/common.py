@@ -330,13 +330,18 @@ class IF_cond_exp(StandardCellType):
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
 
-class IF_cond_exp_sfa_rr(StandardCellType):
+class IF_cond_exp_gsfa_grr(StandardCellType):
     """Linear leaky integrate and fire model with fixed threshold,
     decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
     and a conductance-based relative refractory mechanism.
 
     See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
     and renewal theories. Neural Computation 19: 2958-3010.
+
+    NOTE: This is a renaming if the now depreciated 'IF_cond_exp_sfa_rr'.
+
+    See also: EIF_cond_alpha_isfa_ista
+
     """
     
     default_parameters = {
@@ -360,6 +365,48 @@ class IF_cond_exp_sfa_rr(StandardCellType):
         'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS
         
     }
+
+
+class IF_cond_exp_sfa_rr(StandardCellType):
+    """Linear leaky integrate and fire model with fixed threshold,
+    decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
+    and a conductance-based relative refractory mechanism.
+
+    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
+    and renewal theories. Neural Computation 19: 2958-3010.
+
+    Depreciated: Use the equivalent type 'IF_cond_exp_gsfa_grr' instead.
+
+
+    """
+    
+    default_parameters = {
+        'v_rest'     : -65.0,   # Resting membrane potential in mV. 
+        'cm'         : 1.0,     # Capacity of the membrane in nF
+        'tau_m'      : 20.0,    # Membrane time constant in ms.
+        'tau_refrac' : 0.0,     # Duration of refractory period in ms.
+        'tau_syn_E'  : 5.0,     # Decay time of the excitatory synaptic conductance in ms.
+        'tau_syn_I'  : 5.0,     # Decay time of the inhibitory synaptic conductance in ms.
+        'e_rev_E'    : 0.0,     # Reversal potential for excitatory input in mV
+        'e_rev_I'    : -70.0,   # Reversal potential for inhibitory input in mV
+        'v_thresh'   : -50.0,   # Spike threshold in mV.
+        'v_reset'    : -65.0,   # Reset potential after a spike in mV.
+        'i_offset'   : 0.0,     # Offset current in nA
+        'v_init'     : -65.0,   # Membrane potential in mV at t = 0
+        'tau_sfa'    : 100.0,   # Time constant of spike-frequency adaptation in ms
+        'e_rev_sfa'  : -75.0,   # spike-frequency adaptation conductance reversal potential in mV
+        'q_sfa'      : 15.0,    # Quantal spike-frequency adaptation conductance increase in nS
+        'tau_rr'     : 2.0,     # Time constant of the relative refractory mechanism in ms
+        'e_rev_rr'   : -75.0,   # relative refractory mechanism conductance reversal potential in mV
+        'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS
+        
+    }
+
+    def __init__(self,parameters):
+        self.parameters = self.checkParameters(parameters, with_defaults=True)
+        print "Warning: the cell type name 'IF_cond_exp_sfa_rr' is depreciated."
+        print "Use the name 'IF_cond_exp_gsfa_grr' instead."
+        print "The 'IF_cond_exp_sfa_rr' type will be removed in future releases."
 
     
 class IF_facets_hardware1(StandardCellType):
@@ -405,7 +452,10 @@ class HH_cond_exp(StandardCellType):
 class AdaptiveExponentialIF_alpha(StandardCellType):
     """adaptive exponential integrate and fire neuron according to 
     Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
-            an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
+    an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
+
+    Depreciated: Use the equivalent type 'EIF_cond_alpha_isfa_ista' instead.
+
     """
     
     default_parameters = {
@@ -428,6 +478,48 @@ class AdaptiveExponentialIF_alpha(StandardCellType):
         'e_rev_I'   : -80.0, #'E_in'       # Inhibitory reversal potential in mV.
         'tau_syn_I' : 5.0,   #'tau_in'     # Rise time of the inhibitory synaptic conductance in ms (alpha function).
     }
+
+    def __init__(self,parameters):
+        self.parameters = self.checkParameters(parameters, with_defaults=True)
+        print "Warning: the cell type name 'AdaptiveExponentialIF_alpha' is depreciated."
+        print "Use the name 'EIF_cond_alpha_isfa_ista' instead."
+        print "The 'AdaptiveExponentialIF_alpha' type will be removed in future releases."
+
+class EIF_cond_alpha_isfa_ista(StandardCellType):
+    """exponential integrate and fire neuron with spike triggered and sub-threshold
+    adaptation currents (isfa, ista reps.) according to:
+    
+    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
+    an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
+
+    NOTE: This is a renaming if the now depreciated 'AdaptiveExponentialIF_alpha'.
+
+    See also: IF_cond_exp_gsfa_grr
+
+    """
+    
+    default_parameters = {
+        'v_init'    : -70.6, #'V_m'        # Initial membrane potential in mV
+        'w_init'    : 0.0,   #'w'          # Spike-adaptation current in nA
+        'cm'        : 0.281, #'C_m'        # Capacity of the membrane in nF
+        'tau_refrac': 0.0,   #'t_ref'      # Duration of refractory period in ms.
+        'v_spike'   : 0.0,   #'V_peak'     # Spike detection threshold in mV.
+        'v_reset'   : -70.6, #'V_reset'    # Reset value for V_m after a spike. In mV.
+        'v_rest'    : -70.6, #'E_L'        # Resting membrane potential (Leak reversal potential) in mV.
+        'tau_m'     : 9.3667,#'g_L'        # Membrane time constant in ms (nest:Leak conductance in nS.)
+        'i_offset'  : 0.0,   #'I_e'        # Offset current in nA
+        'a'         : 4.0,                 # Subthreshold adaptation conductance in nS.
+        'b'         : 0.0805,              # Spike-triggered adaptation in nA
+        'delta_T'   : 2.0,   # Delta_T     # Slope factor in mV
+        'tau_w'     : 144.0, #'tau_w'      # Adaptation time constant in ms
+        'v_thresh'  : -50.4, #'V_t'        # Spike initiation threshold in mV (V_th can also be used for compatibility).
+        'e_rev_E'   : 0.0,   #'E_ex'       # Excitatory reversal potential in mV.
+        'tau_syn_E' : 5.0,   #'tau_ex'     # Rise time of excitatory synaptic conductance in ms (alpha function).
+        'e_rev_I'   : -80.0, #'E_in'       # Inhibitory reversal potential in mV.
+        'tau_syn_I' : 5.0,   #'tau_in'     # Rise time of the inhibitory synaptic conductance in ms (alpha function).
+    }
+
+
 
 class SpikeSourcePoisson(StandardCellType):
     """Spike source, generating spikes according to a Poisson process."""
