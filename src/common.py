@@ -242,7 +242,10 @@ class StandardCellType(object):
         translated_parameters = {}
         for k in parameters.keys():
             pname = self.__class__.translations[k]['translated_name']
-            pval = eval(self.__class__.translations[k]['forward_transform'], globals(), parameters)
+            try:
+                pval = eval(self.__class__.translations[k]['forward_transform'], globals(), parameters)
+            except ZeroDivisionError:
+                pval = 1e1000
             translated_parameters[pname] = pval
         return translated_parameters
 
