@@ -74,7 +74,6 @@ class ID(int):
         self._cellclass = None
 
     def __getattr__(self,name):
-        """Note that this currently does not translate units."""
         return _abstractMethod(self)
     
     def __setattr__(self,name,value):

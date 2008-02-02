@@ -33,9 +33,14 @@ class ID(common.ID):
     """
     
     def __getattr__(self,name):
-        """Note that this currently does not translate units."""
-        translated_name = self.cellclass.translations[name][0]
-        return pynest.getDict([int(self)])[0][translated_name]
+        nest_parameters = nest.getDict([int(self)])[0]
+        if issubclass(self.cellclass, common.StandardCellType):
+            pval = eval(self.cellclass.translations[name]['reverse_transform'], {}, nest_parameters)
+        elif isinstance(self.cellclass, str) or self.cellclass is None:
+            pval = nest_parameters[name]
+        else:
+            raise Exception("ID object has invalid cell class %s" % str(self.cellclass))
+        return pval
     
     def setParameters(self,**parameters):
         # We perform a call to the low-level function set() of the API.
