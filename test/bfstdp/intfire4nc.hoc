@@ -1,0 +1,103 @@
+// Template for a network cell based on the IntFire4 class
+// for use with the NetLayer and LayerConn classes.
+
+// SYNTAX:
+// if4nc = new IntFire4nc(paramvec)
+// 
+// paramvec is a 4-element vector containing the values of taum, taue, taui1
+// and taui2.
+
+// syn
+//   reference to the actual IntFire4. Called syn as the IntFire4 artificial
+//   cell acts as both cell and post-synaptic mechanism, i.e. it receives the
+//   network events directly.
+
+// spiketimes
+//   Vector into which the times of spike in the IntFire4 are recorded.
+
+// set_background(weight)
+// set_background(weight,rate)
+// set_background(weight,rate,start)
+// set_background(weight,rate,start,noise)
+// set_background(weight,rate,start,noise,number)
+//  All except the first argument optional. Sets parameters of the built-in
+//  NetStim. The NetStim is created the first time this procedure is called.
+//  rate is in spikes/second, i.e. netstim.interval = 1000.0/rate
+
+// memb_init() 
+// memb_init(m_init)
+// With no arguments, sets the initial value of m to the stored value
+// (default 0). With one argument, changes the stored value and sets
+// the initial value to this.
+
+// source
+// For external objects to query the source of spike events. For IntFire4
+// it is just a reference to syn.
+
+// Andrew Davison, UNIC, CNRS, Aug 2003
+
+
+begintemplate IntFire4nc
+  public syn, spiketimes, set_background
+  public memb_init, source, record
+  public bg, bgconn // for debugging
+  
+  objref syn, spiketimes, bg, bgconn
+  objref rec, source, nil, fih, this
+  
+  proc init() {
+    syn = new IntFire4(0.5)
+    syn.taum = $o1.x[0]
+    syn.taue = $o1.x[1]
+    syn.taui1 = $o1.x[2]
+    syn.taui2 = $o1.x[3]
+    source = syn
+    spiketimes = new Vector()
+    //rec = new NetCon(syn,nil)
+    //rec.record(spiketimes)
+    fih = new FInitializeHandler("memb_init()",this)
+    m_init = 0
+  }
+  
+  proc record() {
+    if ($1 == 1) {
+      rec = new NetCon(syn,nil)
+      rec.record(spiketimes)
+    } else {
+      objref rec
+    }
+  }
+  
+  proc memb_init() {
+    if (numarg() == 1) {
+      m_init = $1
+    }
+    syn.m = m_init
+  }
+  
+  proc set_background() { local na
+    if (!object_id(bg)) { // if the background stimulus does not exist, create it
+      bg = new NetStim(0.5)
+      bgconn = new NetCon(bg,syn,1,0,0.0)
+    }
+    bgconn.weight = $1
+    na = numarg()
+    if (na > 1) {
+      if ($2 > 1e-9) {
+	bg.interval = 1000.0/$2
+      } else {
+	bg.interval = 1e12
+      }
+      if (na > 2) {
+	bg.start = $3
+	if (na > 3) {
+	  bg.noise = $4
+	  if (na > 4) {
+	    bg.number = $5
+	  }
+	}
+      }
+    }      
+  }
+  
+endtemplate IntFire4nc
