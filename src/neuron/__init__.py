@@ -1060,16 +1060,26 @@ class Projection(common.Projection):
         else:
             print type(synapse_dynamics)
             raise Exception("The synapse_dynamics argument, if specified, must be a SynapseDynamics object.")
+        
         if self.short_term_plasticity_mechanism is not None:
             raise Exception("Not yet implemented.")
         if self.long_term_plasticity_mechanism is not None:
             assert isinstance(self.long_term_plasticity_mechanism, STDPMechanism)
-            print "Using %s" % self.long_term_plasticity_mechanism
+            
             td = self.long_term_plasticity_mechanism.timing_dependence
             wd = self.long_term_plasticity_mechanism.weight_dependence
-            self.setupSTDP('StdwaSA', {'wmax': wd.w_max, 'wmin': wd.w_min,
-                                       'aLTP': wd.A_plus, 'aLTD': wd.A_minus,
-                                       'tauLTP': td.tau_plus, 'tauLTD': td.tau_minus})
+            possible_models = td.possible_models.intersection(wd.possible_models)
+            if len(possible_models) == 1 :
+                plasticity_model = list(possible_models)[0]
+            elif len(possible_models) == 0 :
+                raise Exception("No available plasticity models")
+            elif len(possible_models) > 1 :
+                raise Exception("Multiple plasticity models available")
+            
+            print "Using %s" % plasticity_model
+            all_parameters = td.parameters.copy()
+            all_parameters.update(wd.parameters)
+            self.setupSTDP(plasticity_model, all_parameters)
             
         Projection.nProj += 1
 

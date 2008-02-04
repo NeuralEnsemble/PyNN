@@ -5,6 +5,7 @@
 
 from pyNN import common
 
+
 class SynapseDynamics(common.SynapseDynamics):
     """
     For specifying synapse short-term (faciliation,depression) and long-term
@@ -15,6 +16,7 @@ class SynapseDynamics(common.SynapseDynamics):
     def __init__(self, fast=None, slow=None):
         common.SynapseDynamics.__init__(self, fast, slow)
 
+
 class STDPMechanism(common.STDPMechanism):
     """Specification of STDP models."""
     
@@ -22,10 +24,12 @@ class STDPMechanism(common.STDPMechanism):
                  voltage_dependence=None):
         common.STDPMechanism.__init__(self, timing_dependence, weight_dependence, voltage_dependence)
 
+
 class TsodkysMarkramMechanism(common.TsodkysMarkramMechanism):
     
     def __init__(self, U, D, F, u0, r0, f0):
         common.TsodkysMarkramMechanism.__init__(self, U, D, F, u0, r0, f0)
+
 
 class AdditiveWeightDependence(common.AdditiveWeightDependence):
     """
@@ -35,8 +39,20 @@ class AdditiveWeightDependence(common.AdditiveWeightDependence):
     be greater than `w_max` it is set to `w_max`.
     """
     
+    translations = common.build_translations(
+        ('w_max',     'wmax'),
+        ('w_min',     'wmin'),
+        ('A_plus',    'aLTP'),
+        ('A_minus',   'aLTD'),
+    )
+    possible_models = set(['StdwaSA',])
+    
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
-        common.AdditiveWeightDependence.__init__(self,w_min, w_max, A_plus, A_minus)
+        common.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        parameters = locals()
+        parameters.pop('self') 
+        self.parameters = self.translate1(parameters)
+
 
 class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
     """
@@ -44,12 +60,32 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
     For depression, Dw propto w-w_min
     For potentiation, Dw propto w_max-w
     """
-    
+    translations = common.build_translations(
+        ('w_max',     'wmax'),
+        ('w_min',     'wmin'),
+        ('A_plus',    'aLTP'),
+        ('A_minus',   'aLTD'),
+    )
+    possible_models = set(['StdwaSoft',])
+        
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
-        pass
+        common.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        parameters = locals()
+        parameters.pop('self') 
+        self.parameters = self.translate1(parameters)
+
 
 class SpikePairRule(common.SpikePairRule):
     
+    translations = common.build_translations(
+        ('tau_plus',  'tauLTP'),
+        ('tau_minus', 'tauLTD'),
+    )
+    possible_models = set(['StdwaSA','StdwaSoft'])
+    
     def __init__(self, tau_plus, tau_minus):
-        self.tau_plus = tau_plus
-        self.tau_minus = tau_minus
+        common.SpikePairRule.__init__(self, tau_plus, tau_minus)
+        parameters = locals()
+        parameters.pop('self')
+        self.parameters = self.translate1(parameters)
+        

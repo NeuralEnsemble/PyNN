@@ -182,8 +182,8 @@ def distances(pre, post, mask=None, scale_factor=1.0, offset=0., periodic_bounda
 #   Standard cells
 # ==============================================================================
 
-class StandardCellType(object):
-    """Base class for standardized cell model classes."""
+class StandardModelType(object):
+    """Base class for standardized cell model and synapse model classes."""
     
     translations = {}
     default_parameters = {}
@@ -259,7 +259,10 @@ class StandardCellType(object):
     def __init__(self,parameters):
         self.parameters = self.checkParameters(parameters, with_defaults=True)
     
-    
+
+StandardCellType = StandardModelType
+StandardSynapseType = StandardModelType
+
 class IF_curr_alpha(StandardCellType):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
@@ -820,7 +823,6 @@ class Population:
         NOTE: getSpikes or printSpikes should be called only once per run,
         because they mangle simulator recorder files.
         """
-        
         return _abstractMethod(self)
 
     def print_v(self,filename,gather=True, compatible_output=True):
@@ -1270,7 +1272,7 @@ class SynapseDynamics(object):
         self.fast = fast
         self.slow = slow
                 
-class ShortTermPlasticityMechanism(object):
+class ShortTermPlasticityMechanism(StandardModelType):
     """Abstract base class for models of short-term synaptic dynamics."""
     # implement a translation mechanism here, as for StandardCell ?
     
@@ -1295,17 +1297,18 @@ class TsodkysMarkramMechanism(ShortTermPlasticityMechanism):
         self.u0 = u0 # } initial 
         self.r0 = r0 # } values
         
-class STDPWeightDependence(object):
+class STDPWeightDependence(StandardModelType):
     """Abstract base class for models of STDP weight dependence."""
     
     def __init__(self):
         _abstractMethod(self)
         
-class STDPTimingDependence(object):
+class STDPTimingDependence(StandardModelType):
     """Abstract base class for models of STDP timing dependence (triplets, etc)"""
     
     def __init__(self):
         _abstractMethod(self)
+        
 
 class AdditiveWeightDependence(STDPWeightDependence):
     """
@@ -1314,6 +1317,12 @@ class AdditiveWeightDependence(STDPWeightDependence):
     If the new weight would be less than `w_min` it is set to `w_min`. If it would
     be greater than `w_max` it is set to `w_max`.
     """
+    default_parameters = {
+        'w_min':  20.0,
+        'w_max': 20.0,
+        'A_plus': 0.01,
+        'A_minus': 0.01
+    }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         self.w_min = w_min
@@ -1327,6 +1336,12 @@ class MultiplicativeWeightDependence(STDPWeightDependence):
     For depression, Dw propto w-w_min
     For potentiation, Dw propto w_max-w
     """
+    default_parameters = {
+        'w_min':  20.0,
+        'w_max': 20.0,
+        'A_plus': 0.01,
+        'A_minus': 0.01
+    }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         pass
@@ -1349,6 +1364,11 @@ class PfisterSpikeTripletRule(STDPTimingDependence):
     pass
 
 class SpikePairRule(STDPTimingDependence):
+    
+    default_parameters = {
+        'tau_plus':  20.0,
+        'tau_minus': 20.0,
+    }
     
     def __init__(self, tau_plus, tau_minus):
         self.tau_plus = tau_plus

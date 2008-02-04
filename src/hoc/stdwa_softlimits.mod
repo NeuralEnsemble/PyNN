@@ -7,7 +7,7 @@ ENDCOMMENT
 NEURON {
 	POINT_PROCESS StdwaSoft
 	RANGE interval, tlast_pre, tlast_post, M, P
-	RANGE deltaw, wmax, aLTP, aLTD, wprune, tauLTP, tauLTD, on
+	RANGE deltaw, wmax, wmin, aLTP, aLTD, wprune, tauLTP, tauLTD, on
 	POINTER wsyn
 }
 
@@ -34,6 +34,7 @@ PARAMETER {
 	tauLTP  = 20	(ms)    : decay time for LTP part ( values from           )
 	tauLTD  = 20	(ms)    : decay time for LTD part ( Song and Abbott, 2001 )
 	wmax    = 1		: min and max values of synaptic weight
+        wmin    = 0
 	aLTP    = 0.001		: amplitude of LTP steps
 	aLTD    = 0.00106	: amplitude of LTD steps
 	on	= 1		: allows learning to be turned on and off globally
@@ -45,7 +46,7 @@ NET_RECEIVE (w) {
 		P = P*exp((tlast_pre-t)/tauLTP) + aLTP
 		interval = tlast_post - t	: interval is negative
 		tlast_pre = t
-		deltaw = wsyn * M * exp(interval/tauLTD)
+		deltaw = (wsyn-wmin) * M * exp(interval/tauLTD)
 	} else {				: this is a post-synaptic spike
 		M = M*exp((tlast_post-t)/tauLTD) - aLTD
 		interval = t - tlast_pre	: interval is positive
