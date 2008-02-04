@@ -39,6 +39,7 @@ def _abstractMethod(obj=None):
 def build_translations(*translation_list):
     translations = {}
     for item in translation_list:
+        assert 2 <= len(item) <= 4, "Translation tuples must have between 2 and 4 items"
         pynn_name = item[0]
         sim_name = item[1]
         if len(item) == 2: # no transformation
@@ -244,7 +245,7 @@ class StandardCellType(object):
             try:
                 pval = eval(self.__class__.translations[k]['forward_transform'], globals(), parameters)
             except ZeroDivisionError:
-                pval = 1e1000
+                pval = 1e300 # this is about the highest value hoc can deal with
             translated_parameters[pname] = pval
         return translated_parameters
 

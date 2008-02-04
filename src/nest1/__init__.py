@@ -33,7 +33,7 @@ class ID(common.ID):
     """
     
     def __getattr__(self,name):
-        nest_parameters = nest.getDict([int(self)])[0]
+        nest_parameters = pynest.getDict([int(self)])[0]
         if issubclass(self.cellclass, common.StandardCellType):
             pval = eval(self.cellclass.translations[name]['reverse_transform'], {}, nest_parameters)
         elif isinstance(self.cellclass, str) or self.cellclass is None:
@@ -283,7 +283,7 @@ def set(cells,cellclass,param,val=None):
         cells = [cells]
     if not isinstance(cellclass,str):
         if issubclass(cellclass, common.StandardCellType):
-            param = cellclass({}).translate(param)
+            param = cellclass({}).translate1(param)
         else:
             raise TypeError, "cellclass must be a string or derived from commonStandardCellType"
     pynest.setDict(cells,param)
@@ -565,7 +565,7 @@ class Population(common.Population):
         else:
             raise common.InvalidParameterValueError
         if isinstance(self.celltype, common.StandardCellType):
-            paramDict = self.celltype.translate(paramDict)
+            paramDict = self.celltype.translate1(paramDict)
         pynest.setDict(numpy.reshape(self.cell,(self.size,)), paramDict)
         
 
@@ -584,7 +584,7 @@ class Population(common.Population):
             raise common.InvalidDimensionsError, "Population: %s, valueArray: %s" % (str(cells.shape), str(valueArray.shape))
         # Translate the parameter name
         if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
+            parametername = self.celltype.translate1({parametername: values[0]}).keys()[0]
         # Set the values for each cell
         if len(cells) == len(values):
             for cell,val in zip(cells,values):
@@ -605,7 +605,7 @@ class Population(common.Population):
         rand_distr, which should be a RandomDistribution object.
         """
         if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate({parametername: 0.0}).keys()[0]
+            parametername = self.celltype.translate1({parametername: 0.0}).keys()[0]
         if isinstance(rand_distr.rng, NativeRNG):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:

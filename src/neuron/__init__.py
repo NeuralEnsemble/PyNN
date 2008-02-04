@@ -51,7 +51,7 @@ class ID(common.ID):
     def __getattr__(self,name):
         """Note that this currently does not translate units."""
         if type(self.cellclass) == type and issubclass(self.cellclass, common.StandardCellType):
-            translated_name = self.cellclass.translations[name][0]
+            translated_name = self.cellclass.translations[name]['translated_name']
         else:
             translated_name = name
         if self.hocname:
@@ -450,7 +450,7 @@ def set(cells,cellclass,param,val=None):
     paramDict = checkParams(param,val)
 
     if type(cellclass) == type and issubclass(cellclass, common.StandardCellType):
-        paramDict = cellclass({}).translate(paramDict)
+        paramDict = cellclass({}).translate1(paramDict)
     if not isinstance(cells,list):
         cells = [cells]    
     hoc_commands = []
@@ -699,7 +699,7 @@ class Population(common.Population):
         """
         paramDict = checkParams(param,val)
         if isinstance(self.celltype, common.StandardCellType):
-            paramDict = self.celltype.translate(paramDict)
+            paramDict = self.celltype.translate1(paramDict)
 
         strfmt  = '%s.object(tmp).%s = "%s"' % (self.hoc_label,"%s","%s")
         numfmt  = '%s.object(tmp).%s = %s' % (self.hoc_label,"%s","%g")
@@ -731,7 +731,7 @@ class Population(common.Population):
             values = values.take(numpy.array(self.gidlist)-self.gid_start) # take just the values for cells on this machine
             assert len(values) == len(self.gidlist)
             if isinstance(self.celltype, common.StandardCellType):
-                parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
+                parametername = self.celltype.translate1({parametername: values[0]}).keys()[0]
             hoc_commands = []
             fmt = '%s.object(%s).%s = %s' % (self.hoc_label, "%d", parametername, "%g")
             for i,val in enumerate(values):
@@ -751,7 +751,7 @@ class Population(common.Population):
         """
         if isinstance(rand_distr.rng, NativeRNG):
             if isinstance(self.celltype, common.StandardCellType):
-                parametername = self.celltype.translate({parametername: 0}).keys()[0]
+                parametername = self.celltype.translate1({parametername: 0}).keys()[0]
             paramfmt = "%g,"*len(rand_distr.parameters); paramfmt = paramfmt.strip(',')
             distr_params = paramfmt % tuple(rand_distr.parameters)
             hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,

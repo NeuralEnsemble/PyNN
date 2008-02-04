@@ -16,7 +16,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
         ('cm',         'C',     1000.0), # C is in pF, cm in nF
         ('tau_m',      'Tau'),
         ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
-        ('tau_syn_E,'  'TauSynE'),
+        ('tau_syn_E',  'TauSynE'),
         ('tau_syn_I',  'TauSynI'),
         ('v_thresh',   'Theta'),
         ('i_offset',   'I0',    1000.0), # I0 is in pA, i_offset in nA
@@ -41,7 +41,7 @@ class IF_curr_exp(common.IF_curr_exp):
         ('cm',         'C',     1000.0), # C is in pF, cm in nF
         ('tau_m',      'Tau'),
         ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
-        ('tau_syn_E,'  'TauSynE'),
+        ('tau_syn_E',  'TauSynE'),
         ('tau_syn_I',  'TauSynI'),
         ('v_thresh',   'Theta'),
         ('i_offset',   'I0',    1000.0), # I0 is in pA, i_offset in nA
@@ -64,7 +64,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
         ('cm',         'C',     1000.0), # C is in pF, cm in nF
         ('tau_m',      'Tau'),
         ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
-        ('tau_syn_E,'  'TauSynE'),
+        ('tau_syn_E',  'TauSynE'),
         ('tau_syn_I',  'TauSynI'),
         ('v_thresh',   'Theta'),
         ('i_offset',   'I0',    1000.0), # I0 is in pA, i_offset in nA
@@ -91,7 +91,7 @@ class IF_cond_exp(common.IF_cond_exp):
         ('cm',         'C',     1000.0), # C is in pF, cm in nF
         ('tau_m',      'Tau'),
         ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
-        ('tau_syn_E,'  'TauSynE'),
+        ('tau_syn_E',  'TauSynE'),
         ('tau_syn_I',  'TauSynI'),
         ('v_thresh',   'Theta'),
         ('i_offset',   'I0',    1000.0), # I0 is in pA, i_offset in nA
