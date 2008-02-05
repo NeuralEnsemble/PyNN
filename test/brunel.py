@@ -25,7 +25,7 @@ from pyNN.random import NumpyRNG, RandomDistribution
 downscale   = 50      # scale number of neurons down by this factor
                       # scale synaptic weights up by this factor to
                       # obtain similar dynamics independent of size
-order       = 10000   # determines size of network:
+order       = 50000   # determines size of network:
                       # 4*order excitatory neurons
                       # 1*order inhibitory neurons
 Nrec        = 50      # number of neurons to record from, per population
@@ -128,8 +128,7 @@ def nprint(s):
 Timer.start() # start timer on construction    
 
 print "%d Setting up random number generator" %myid
-rng = numpy.random.RandomState()
-rng.seed(kernelseed+myid)
+rng = NumpyRNG(kernelseed+myid)
 
 print "%d Creating excitatory population." %myid
 E_net = Population((NE,),IF_curr_alpha,cell_params,"E_net")
@@ -163,19 +162,19 @@ I_Connector = FixedProbabilityConnector(epsilon, weights = JI, delays = delay)
 ext_Connector = OneToOneConnector(weights = JE, delays = dt)
 
 print "%d Connecting excitatory population."  %myid
-E_to_E = Projection(E_net, E_net, E_Connector, rng=rng)
+E_to_E = Projection(E_net, E_net, E_Connector, rng=rng, target="excitatory")
 print "E --> E\t\t", len(E_to_E), "connections"
-I_to_E = Projection(I_net, E_net, I_Connector, rng=rng)
+I_to_E = Projection(I_net, E_net, I_Connector, rng=rng, target="inhibitory")
 print "I --> E\t\t", len(I_to_E), "connections"
-input_to_E = Projection(expoisson, E_net, ext_Connector)
+input_to_E = Projection(expoisson, E_net, ext_Connector, target="excitatory")
 print "input --> E\t", len(input_to_E), "connections"
 
 print "%d Connecting inhibitory population." %myid
-E_to_I = Projection(E_net, I_net, E_Connector, rng=rng)
+E_to_I = Projection(E_net, I_net, E_Connector, rng=rng, target="excitatory")
 print "E --> I\t\t", len(E_to_I), "connections"
-I_to_I = Projection(I_net, I_net, I_Connector, rng=rng)
+I_to_I = Projection(I_net, I_net, I_Connector, rng=rng, target="inhibitory")
 print "I --> I\t\t", len(I_to_I), "connections"
-input_to_I = Projection(inpoisson, I_net, ext_Connector)
+input_to_I = Projection(inpoisson, I_net, ext_Connector, target="excitatory")
 print "input --> I\t", len(input_to_I), "connections"
 
 # read out time used for building

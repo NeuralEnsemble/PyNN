@@ -329,7 +329,7 @@ def _printSpikes(tmpfile, filename, compatible_output=True):
     needed and asked to produce a compatible output for all the simulator
     Should actually work with record() and allow to dissociate the recording of the
     writing process, which is not the case for the moment"""
-    pynest.sr('%s close' %tmpfile) 
+    pynest.sr('%s close' %tmpfile[15:1000]) 
     if (compatible_output):
         # Here we postprocess the file to have effectively the
         # desired format :
