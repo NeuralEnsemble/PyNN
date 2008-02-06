@@ -64,10 +64,10 @@ class IF_cond_alpha(common.IF_cond_alpha):
         ('cm',         'C',     1000.0), # C is in pF, cm in nF
         ('tau_m',      'Tau'),
         ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
-        ('tau_syn_E',  'TauSynE'),
-        ('tau_syn_I',  'TauSynI'),
+        ('tau_syn_E',  'TauSyn_E'),
+        ('tau_syn_I',  'TauSyn_I'),
         ('v_thresh',   'Theta'),
-        ('i_offset',   'I0',    1000.0), # I0 is in pA, i_offset in nA
+        ('i_offset',   'Istim',    1000.0), # I0 is in pA, i_offset in nA
         ('v_init',     'u'),
         ('e_rev_E',    'V_reversal_E'),
         ('e_rev_I',    'V_reversal_I'),
@@ -91,10 +91,10 @@ class IF_cond_exp(common.IF_cond_exp):
         ('cm',         'C',     1000.0), # C is in pF, cm in nF
         ('tau_m',      'Tau'),
         ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
-        ('tau_syn_E',  'TauSynE'),
-        ('tau_syn_I',  'TauSynI'),
+        ('tau_syn_E',  'TauSyn_E'),
+        ('tau_syn_I',  'TauSyn_I'),
         ('v_thresh',   'Theta'),
-        ('i_offset',   'I0',    1000.0), # I0 is in pA, i_offset in nA
+        ('i_offset',   'Istim',    1000.0), # I0 is in pA, i_offset in nA
         ('v_init',     'u'),
         ('e_rev_E',    'V_reversal_E'),
         ('e_rev_I',    'V_reversal_I'),
