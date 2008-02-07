@@ -13,7 +13,7 @@ __version__ = "$Revision$"
 import sys
 
 import pyNN.random
-from pyNN import __path__, common
+from pyNN import common
 import os.path
 import types
 import sys

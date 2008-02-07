@@ -4,7 +4,7 @@
 # ==============================================================================
 
 from pyNN import common
-
+from pypcsim import *
 
 class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
@@ -143,7 +143,7 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
 class SpikeSourceArray(common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
     translations = common.build_translations(
-        ('spike_times', 'spikeTimes', 1e-3), 
+        ('spike_times', 'spikeTimes'), # 1e-3), 
     )
     pcsim_name = 'SpikingInputNeuron'
     simObjFactory = None
@@ -157,8 +157,7 @@ class SpikeSourceArray(common.SpikeSourceArray):
         self.simObjFactory  = SpikingInputNeuron(**self.parameters)
      
     def translate(self,parameters):
-        ##translated_parameters = common.SpikeSourceArray.translate(self,parameters)
-        translated_parameters = parameters
+        translated_parameters = common.SpikeSourceArray.translate1(self,parameters)
         # convert from ms to s - should really be done in common.py, but that doesn't handle lists, only arrays
         if isinstance(translated_parameters['spikeTimes'],list):
             translated_parameters['spikeTimes'] = [t*0.001 for t in translated_parameters['spikeTimes']]
