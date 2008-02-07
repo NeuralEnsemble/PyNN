@@ -17,6 +17,8 @@ else:
 
 exec("from pyNN.%s import *" % simulator)
 
+from NeuroTools.stgen import StGen
+
 tstop = 1000.0
 
 setup(timestep=0.025,min_delay=1.0,max_delay=1.0)

@@ -16,8 +16,9 @@ if hasattr(sys,"argv"):     # run using python
 else:
     simulator = "oldneuron"    # run using nrngui -python
 
-
 exec("from pyNN.%s import *" % simulator)
+
+from NeuroTools.stgen import StGen
 
 tstop = 1000.0 # all times in milliseconds
 
