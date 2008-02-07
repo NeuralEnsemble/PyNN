@@ -3,22 +3,17 @@
 $Id$
 """
 
-import subprocess, sys, glob, os
+import subprocess, sys, glob, os, re
 import numpy as N
 
-nrnheader = """NEURON -- Version 5.8 2005-10-14 12:36:20 Main (88)
-by John W. Moore, Michael Hines, and Ted Carnevale
-Duke and Yale University -- Copyright 1984-2005
-
-Additional mechanisms from files
- alphaisyn.mod alphasyn.mod expisyn.mod IF_BG5.mod refrac.mod reset.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod vecstim.mod"""
+nrnheader = re.compile(r'(?P<header>NEURON.*Additional mechanisms from files(\s+\w+.mod)+\s+)(?P<body>.*)', re.S)
 
 def run(cmd,engine):
     #print 'Running "', cmd, '" with', engine.upper()
     logfile = open("%s_%s.log" % (cmd,engine), 'w')
-    if engine in ('nest1', 'pcsim', 'nest2'):
+    if engine in ('nest1', 'pcsim', 'nest2', 'neuron'):
         cmd = 'python ' + cmd + '.py ' + engine
-    elif 'neuron' in engine:
+    elif engine == 'oldneuron':
         cmd = '../src/hoc/i686/special -python ' + cmd + '.py %s' % engine
     else:
         print 'Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", "oldneuron" and "neuron"' % engine
@@ -27,7 +22,10 @@ def run(cmd,engine):
     p.wait()
     logfile.close()
     errorMsg = p.stderr.read()
-    errorMsg = errorMsg.strip(nrnheader)
+    #errorMsg = errorMsg.strip(nrnheader)
+    match = nrnheader.match(errorMsg)
+    if match:
+        errorMsg = match.groupdict()['body']
     
     if len(errorMsg) > 0:
         print "\n=== %s Error =======================" % engine.upper()
@@ -63,9 +61,11 @@ def compare_traces(script,mse_threshold,engines):
         traces[engine] = []
         try:
             run(script, engine)
-            filenames = glob.glob('%s_*_%s.v' % (script, engine))
+            pattern = '%s_*_%s.v' % (script, engine)
+            filenames = glob.glob(pattern)
             if len(filenames) == 0:
-                filenames = glob.glob('%s_%s.v' % (script, engine))
+                pattern = '%s_%s.v' % (script, engine)
+                filenames = glob.glob(pattern)
             if filenames:
                 for filename in filenames:
                     f = open(filename,'r')
@@ -85,7 +85,7 @@ def compare_traces(script,mse_threshold,engines):
                     trace = sortTracesByCells(trace, position)
                     traces[engine].append(trace)
             else:
-                fail = True; fail_message += "No files match glob pattern. "
+                fail = True; fail_message += "No files match glob pattern. %s" % pattern
         except Exception:
             fail = True
             fail_message += "Exception raised in %s. " % engine.upper()
