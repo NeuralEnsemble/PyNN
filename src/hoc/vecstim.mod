@@ -72,7 +72,7 @@ ENDCOMMENT
 :  Vector stream of events
 
 NEURON {
-	POINT_PROCESS VecStim
+	ARTIFICIAL_CELL VecStim
 }
 
 ASSIGNED {

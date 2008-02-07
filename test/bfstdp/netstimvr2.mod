@@ -13,7 +13,7 @@ NEURON	{
 PARAMETER {
 	noise		= 1 <0,1> : amount of randomness (0.0 - 1.0)
         theta           = 0 <0,1> : location of this cell
-	tchange         = 20 (ms) : time of next firing rate change
+	tchange         = 1e12 (ms) : time of next firing rate change
 	thetastim       = 0 <0,1> : stimulus location
 	Rmax            = 60 (/s) : peak firing rate
 	Rmin            = 0  (/s) : min firing rate
@@ -77,6 +77,7 @@ FUNCTION tuning_curve(theta,theta0) (ms){
 }
 
 NET_RECEIVE (w) {
+        :printf("flag = %d, t = %g\n", flag, t)
 	if (flag == 4) { : from INITIAL
 		if (transform == 1) {
 			fthetastim = prmtr*thetastim
@@ -93,6 +94,7 @@ NET_RECEIVE (w) {
 		}
 		interval = tuning_curve(theta,fthetastim)
 		event = invl(interval) - interval*(1. - noise)
+                :printf("flag = 4, t = %g, event = %g\n", t, event)
 		if (event < 1e-12) {
 			event = 1e-12
 		}
@@ -117,6 +119,7 @@ NET_RECEIVE (w) {
 		}	
 		interval = tuning_curve(theta,fthetastim)
 		event = t + invl(interval) - interval*(1. - noise)
+                :printf("flag = 3, t = %g, event = %g, tchange = %g\n", t, event, tchange)
 		if (event < t) {
 			event = t
 		}
@@ -133,6 +136,7 @@ NET_RECEIVE (w) {
 			net_send(event - t, 1)
 		}
 		net_send(0.1, 2)
+                :printf("spike at t = %g\n", t)
 	} else {
 	if (flag == 2) {
 		y = 0

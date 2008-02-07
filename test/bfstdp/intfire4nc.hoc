@@ -38,25 +38,33 @@
 
 
 begintemplate IntFire4nc
-  public syn, spiketimes, set_background
-  public memb_init, source, record
+  public syn, spiketimes, vtrace, set_background
+  public memb_init, source, record, record_v
   public bg, bgconn // for debugging
+  public connect2target
   
-  objref syn, spiketimes, bg, bgconn
-  objref rec, source, nil, fih, this
+  objref syn, spiketimes, bg, bgconn, vtrace
+  objref rec, source, nil, fih, this, keys
+  strdef key, command
   
   proc init() {
     syn = new IntFire4(0.5)
-    syn.taum = $o1.x[0]
-    syn.taue = $o1.x[1]
-    syn.taui1 = $o1.x[2]
-    syn.taui2 = $o1.x[3]
     source = syn
+    
+    keys = $o1.keys()
+    for i = 0, keys.count()-1 {
+      key = keys.object(i).s
+      set(key,$o1.get(key))
+    }
+
     spiketimes = new Vector()
-    //rec = new NetCon(syn,nil)
-    //rec.record(spiketimes)
     fih = new FInitializeHandler("memb_init()",this)
     m_init = 0
+  }
+  
+  proc set() {
+    sprint(command,"source.%s = %d",$s1,$2)
+    execute1(command,this)
   }
   
   proc record() {
@@ -65,6 +73,15 @@ begintemplate IntFire4nc
       rec.record(spiketimes)
     } else {
       objref rec
+    }
+  }
+  
+  proc record_v() {
+    if ($1 == 1) {
+      vtrace = new Vector()
+      vtrace.record(&source.m)
+    } else {
+      objref vtrace
     }
   }
   
@@ -98,6 +115,10 @@ begintemplate IntFire4nc
 	}
       }
     }      
+  }
+  
+  proc connect2target() {
+    $o2 = new NetCon(source, $o1)
   }
   
 endtemplate IntFire4nc

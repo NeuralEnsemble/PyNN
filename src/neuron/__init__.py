@@ -341,7 +341,7 @@ def end(compatible_output=True):
     if len(spikefilelist) > 0:
         hoc_commands += ['objref fileobj',
                         'fileobj = new File()']
-        header = "# dt = %g\\n# "% dt
+        header = "# dt = %g\\n"% dt
         for filename,cell_list in spikefilelist.items():
             hoc_commands += ['tmp = fileobj.wopen("%s")' % filename,
                              'tmp = fileobj.printf("%s")' % header]
@@ -1593,6 +1593,55 @@ class Projection(common.Projection):
                 weight = getattr(h, self.hoc_label).object(i).weight[0]
                 f.write("%f\n" % weight)
             if gather:
+                for id in range (1, nhost):
+                    hoc_commands = ['weight_list = new Vector()']       
+                    hoc_commands += ['tmp = pc.take("%s.weight_list.node[%d]", weight_list)' %(self.hoc_label, id)]
+                    hoc_execute(hoc_commands)                
+                    #for j in xrange(HocToPy.get('weight_list.size()', 'int')):
+                    for j in xrange(int(h.weight_list.size)):
+                        #weight = "%f\n" %HocToPy.get('weight_list.x[%d]' %j, 'float')
+                        weight = h.weight_list.x[j]
+                        f.write("%f\n" % weight)
+            if not hasattr(filename, 'write'):
+                f.close()
+                
+    def printWeights1(self,filename,format=None,gather=True):
+        """Print synaptic weights to file."""
+        global myid
+        
+        hoc_execute(['objref weight_list'])
+        hoc_commands = [] 
+        hoc_comment("--- Projection[%s].__printWeights__() ---" %self.label)
+        
+        # Here we have to deal with the gather options. If we gather, then each
+        # slave node posts its list of weights to the master node.
+        if gather and myid !=0:
+            raise Exception("Not implemented.")
+            hoc_commands += ['weight_list = new Vector()']
+            for i in xrange(len(self)):
+                #weight = HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
+                weight = getattr(h, self.hoc_label).object(i).weight[0]
+                hoc_commands += ['weight_list = weight_list.append(%f)' % weight]
+            hoc_commands += ['tmp = pc.post("%s.weight_list.node[%d]", weight_list)' %(self.hoc_label, myid)]
+            hoc_execute(hoc_commands, "--- [Posting weights list to master] ---")
+
+        if not gather or myid == 0:
+            if hasattr(filename, 'write'): # filename should be renamed to file, to allow open file objects to be used
+                f = filename
+            else:
+                f = open(filename,'w',10000)
+            weights = numpy.zeros((len(self.pre),len(self.post)), 'float')
+            fmt = "%g "*len(self.post) + "\n"
+            for i in xrange(len(self)):
+            #    #weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
+                weight = getattr(h, self.hoc_label).object(i).weight[0]
+                weights[self.connections[i][0]-self.pre.gid_start,
+                        self.connections[i][1]-self.post.gid_start] = weight
+            #    f.write("%d\t%d\t%f\n" % (self.connections[i][0], self.connections[i][1], weight))
+            for row in weights:
+                f.write(fmt % tuple(row))
+            if gather:
+                if nhost > 1: raise Exception("Not implemented.")
                 for id in range (1, nhost):
                     hoc_commands = ['weight_list = new Vector()']       
                     hoc_commands += ['tmp = pc.take("%s.weight_list.node[%d]", weight_list)' %(self.hoc_label, id)]
