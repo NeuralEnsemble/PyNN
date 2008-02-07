@@ -8,8 +8,8 @@ $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 __version__ = "$Rev$"
 
 from neuron import hoc
+h = hoc.HocObject()
 from pyNN import __path__ as pyNN_path
-#hoc.execute('nrn_load_dll("%s/hoc/i686/.libs/libnrnmech.so")' % pyNN_path[0])
 from pyNN.random import *
 from math import *
 from pyNN import common
@@ -30,6 +30,8 @@ spikefilelist = {}
 dt            = 0.1
 running       = False
 initialised   = False
+_min_delay    = 0.0
+
 
 # ==============================================================================
 #   Utility classes and functions
@@ -56,8 +58,14 @@ class ID(common.ID):
             translated_name = name
         if self.hocname:
             return HocToPy.get('%s.%s' % (self.hocname, translated_name),'float')
+            #print self.hocname
+            #print self.hocname.split('.')
+            #cell = reduce(getattr, [h] + self.hocname.split('.'))
+            #return getattr(cell, translated_name)
         else:
-            return HocToPy.get('cell%d.%s' % (int(self), translated_name),'float')
+            #return HocToPy.get('cell%d.%s' % (int(self), translated_name),'float')
+            cell = getattr(h, 'cell%d' % int(self))
+            return getattr(cell, translated_name)
     
     def setParameters(self,**parameters):
         # We perform a call to the low-level function set() of the API.
@@ -165,6 +173,10 @@ def _hoc_arglist(paramlist):
             nvar += 1
     return hoc_commands, argstr.strip().strip(',')
 
+def get_min_delay():
+    global _min_delay
+    return _min_delay
+
 def _translate_synapse_type(synapse_type,weight=None):
     """
     If synapse_type is given (not None), it is used to determine whether the
@@ -249,7 +261,9 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     global dt, nhost, myid, _min_delay, logger, initialised
     dt = timestep
     _min_delay = min_delay
+    print "min delay=", _min_delay
     hoc.execute('nrn_load_dll("%s/hoc/i686/.libs/libnrnmech.so")' % pyNN_path[0])
+
     
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
@@ -295,11 +309,13 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
                 'cvode.active(1)']   
         
     hoc_execute(hoc_commands,"--- setup() ---")
-    nhost = HocToPy.get('pc.nhost()','int')
+    #nhost = HocToPy.get('pc.nhost()','int')
+    nhost = int(h.pc.nhost())
     if nhost < 2:
         nhost = 1; myid = 0
     else:
-        myid = HocToPy.get('pc.id()','int')
+        #myid = HocToPy.get('pc.id()','int')
+        myid = int(h.pc.id())
     print "\nHost #%d of %d" % (myid+1, nhost)
     
     initialised = True
@@ -313,7 +329,8 @@ def end(compatible_output=True):
         hoc_commands = ['objref fileobj',
                         'fileobj = new File()']
         for filename,cell_list in vfilelist.items():
-            tstop = HocToPy.get('tstop','float')
+            #tstop = HocToPy.get('tstop','float')
+            tstop = h.tstop
             header = "# dt = %g\\n# n = %d\\n" % (dt,int(tstop/dt))
             hoc_commands += ['tmp = fileobj.wopen("%s")' % filename,
                              'tmp = fileobj.printf("%s")' % header]
@@ -348,12 +365,13 @@ def run(simtime):
         running = True
         hoc_commands += ['tstop = 0',
                          'print "dt        = %f"' % dt,
-                         'print "min delay = ", pc.set_maxstep(100)',
+                         'print "max step  = ", pc.set_maxstep(100)',
                          'tmp = finitialize()',]
     hoc_commands += ['tstop += %f' %simtime,
                      'print "tstop     = ", tstop',
                      'tmp = pc.psolve(tstop)']
     hoc_execute(hoc_commands,"--- run() ---")
+    return h.t
 
 def setRNGseeds(seedList):
     """Globally set rng seeds."""
@@ -467,7 +485,8 @@ def set(cells,cellclass,param,val=None):
         for cell in cells:
             if cell in gidlist:
                 hoc_commands += [fmt % (cell,param,val),
-                                 'tmp = pc.gid2cell(%d).param_update()' % cell]
+                                 'if (pc.gid2cell(%d) != pc.gid2obj(%d)) { tmp = pc.gid2cell(%d).param_update()} ' % (cell,cell,cell)]
+                
     hoc_execute(hoc_commands, "--- set() ---")
 
 def record(source,filename):
@@ -839,8 +858,10 @@ class Population(common.Population):
                     hoc_commands = ['record_from = new Vector()']
                     hoc_commands += ['tmp = pc.take("%s.record_from[%s].node[%d]", record_from)' %(self.hoc_label, record_what, id)]
                     hoc_execute(hoc_commands)
-                    for j in xrange(HocToPy.get('record_from.size()', 'int')):
-                        self.record_from[record_what] += [HocToPy.get('record_from.x[%d]' %j, 'int')]
+                    #for j in xrange(HocToPy.get('record_from.size()', 'int')):
+                    for j in xrange(h.record_from.size()):
+                        #self.record_from[record_what] += [HocToPy.get('record_from.x[%d]' %j, 'int')]
+                        self.record_from[record_what] += [h.record_from.x[j]]
 
     def record(self,record_from=None,rng=None):
         """
@@ -937,7 +958,8 @@ class Population(common.Population):
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        tstop = HocToPy.get('tstop','float')
+        #tstop = HocToPy.get('tstop','float')
+        tstop = h.tstop
         header = "# dt = %f\\n# n = %d\\n" % (dt,int(tstop/dt))
         header = "%s# %d" %(header,self.dim[0])
         for dimension in list(self.dim)[1:]:
@@ -957,7 +979,8 @@ class Population(common.Population):
             nspikes = 0;ncells  = 0
             for id in self.record_from['spiketimes']:
                 if id in self.gidlist:
-                    nspikes += HocToPy.get('%s.object(%d).spiketimes.size()' %(self.hoc_label, self.gidlist.index(id)),'int')
+                    #nspikes += HocToPy.get('%s.object(%d).spiketimes.size()' %(self.hoc_label, self.gidlist.index(id)),'int')
+                    nspikes += getattr(h, self.hoc_label).object(self.gidlist.index(id)).spiketimes.size()
                     ncells  += 1
             hoc_commands += ['tmp = pc.post("%s.node[%d].nspikes",%d)' % (self.hoc_label,myid,nspikes)]
             hoc_commands += ['tmp = pc.post("%s.node[%d].ncells",%d)' % (self.hoc_label,myid,ncells)]    
@@ -969,14 +992,16 @@ class Population(common.Population):
             hoc_execute(["nspikes = 0", "ncells = 0"])
             for id in self.record_from['spiketimes']:
                 if id in self.gidlist:
-                    nspikes += HocToPy.get('%s.object(%d).spiketimes.size()' % (self.hoc_label, self.gidlist.index(id)),'int')
+                    nspikes += getattr(h, self.hoc_label).object(self.gidlist.index(id)).spiketimes.size()
                     ncells  += 1
             if gather:
                 for id in range(1,nhost):
                     hoc_execute(['tmp = pc.take("%s.node[%d].nspikes",&nspikes)' % (self.hoc_label,id)])
-                    nspikes += HocToPy.get('nspikes','int')
+                    #nspikes += HocToPy.get('nspikes','int')
+                    nspikes += int(h.nspikes)
                     hoc_execute(['tmp = pc.take("%s.node[%d].ncells",&ncells)' % (self.hoc_label,id)])
-                    ncells  += HocToPy.get('ncells','int')
+                    #ncells  += HocToPy.get('ncells','int')
+                    ncells += int(h.ncells)
             return float(nspikes/ncells)
 
     def randomInit(self,rand_distr):
@@ -1342,6 +1367,8 @@ class Projection(common.Projection):
         in the population.
         """
         if isinstance(d,float) or isinstance(d,int):
+            if d < get_min_delay():
+                raise Exception("Delays must be greater than or equal to the minimum delay, currently %g ms" % get_min_delay())
             loop = ['for tmp = 0, %d {' %(len(self)-1), 
                         '%s.object(tmp).delay = %f ' %(self.hoc_label, float(d)),
                     '}']
@@ -1349,6 +1376,7 @@ class Projection(common.Projection):
             hoc_commands = [ 'cmd = "%s"' %hoc_code,
                              'success = execute1(cmd)']
         elif isinstance(d,list) or isinstance(d,numpy.ndarray):
+            # need check for min_delay here
             hoc_commands = []
             assert len(d) == len(self), "List of delays has length %d, Projection %s has length %d" % (len(d),self.label,len(self))
             for i,delay in enumerate(d):
@@ -1417,7 +1445,8 @@ class Projection(common.Projection):
                                            mask, scale_factor)
                     # then evaluate the delay according to the delay rule
                     delay = delay_rule.replace('d', '%f' % dist)
-                    delay = eval(delay.replace('rng', '%f' % HocToPy.get('rng.repick()', 'float')))
+                    #delay = eval(delay.replace('rng', '%f' % HocToPy.get('rng.repick()', 'float')))
+                    delay = eval(delay.replace('rng', '%f' % h.rng.repick()))
                     hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(delay))]   
             else:
                 for i in xrange(len(self)):
@@ -1514,7 +1543,8 @@ class Projection(common.Projection):
     
     def weights(self, gather=False):
         """Not in the API, but should be."""
-        return [HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float') for i in range(len(self))]
+        #return [HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float') for i in range(len(self))]
+        return [getattr(h, self.hoc_label).object(i).weight[0] for i in range(len(self))]
     
     def saveConnections(self,filename,gather=False):
         """Save connections to file in a format suitable for reading in with the
@@ -1528,8 +1558,8 @@ class Projection(common.Projection):
                                      self.pre.locate(src),
                                      self.post.hoc_label,
                                      self.post.locate(tgt),
-                                     HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float'),
-                                     HocToPy.get('%s.object(%d).delay' % (self.hoc_label,i),'float'))
+                                     getattr(h,self.hoc_label).object(i).weight[0],
+                                     getattr(h,self.hoc_label).object(i).delay)
             line = line.replace('(','[').replace(')',']')
             f.write(line)
         f.close()
@@ -1547,8 +1577,9 @@ class Projection(common.Projection):
         if gather and myid !=0:
             hoc_commands += ['weight_list = new Vector()']
             for i in xrange(len(self)):
-                weight = HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
-                hoc_commands += ['weight_list = weight_list.append(%f)' %float(weight)]
+                #weight = HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
+                weight = getattr(h, self.hoc_label).object(i).weight[0]
+                hoc_commands += ['weight_list = weight_list.append(%f)' % weight]
             hoc_commands += ['tmp = pc.post("%s.weight_list.node[%d]", weight_list)' %(self.hoc_label, myid)]
             hoc_execute(hoc_commands, "--- [Posting weights list to master] ---")
 
@@ -1558,16 +1589,19 @@ class Projection(common.Projection):
             else:
                 f = open(filename,'w',10000)
             for i in xrange(len(self)):
-                weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
-                f.write(weight)
+                #weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
+                weight = getattr(h, self.hoc_label).object(i).weight[0]
+                f.write("%f\n" % weight)
             if gather:
                 for id in range (1, nhost):
                     hoc_commands = ['weight_list = new Vector()']       
                     hoc_commands += ['tmp = pc.take("%s.weight_list.node[%d]", weight_list)' %(self.hoc_label, id)]
                     hoc_execute(hoc_commands)                
-                    for j in xrange(HocToPy.get('weight_list.size()', 'int')):
-                        weight = "%f\n" %HocToPy.get('weight_list.x[%d]' %j, 'float')
-                        f.write(weight)
+                    #for j in xrange(HocToPy.get('weight_list.size()', 'int')):
+                    for j in xrange(int(h.weight_list.size)):
+                        #weight = "%f\n" %HocToPy.get('weight_list.x[%d]' %j, 'float')
+                        weight = h.weight_list.x[j]
+                        f.write("%f\n" % weight)
             if not hasattr(filename, 'write'):
                 f.close()
   

@@ -5,9 +5,10 @@
 
 from pyNN import common
 from pyNN.random import RandomDistribution, NativeRNG
-from pyNN.neuron.__init__ import hoc_execute, HocToPy
+from pyNN.neuron.__init__ import hoc_execute, get_min_delay, h #, HocToPy
 import numpy
 from math import *
+
 
 # ==============================================================================
 #   Connection method classes
@@ -23,8 +24,8 @@ class HocConnector(object):
                                                                  projection.post.hoc_label,
                                                                  projection.post.gidlist.index(tgt),
                                                                  projection._syn_objref),
-                'nc.weight = %f' %weight,
-                'nc.delay  = %f' %delay,
+                'nc.weight = %f' % weight,
+                'nc.delay  = %f' % delay,
                 'tmp = %s.append(nc)' % projection.hoc_label]
         projection.connections.append((src,tgt))
         return cmdlist
@@ -40,14 +41,15 @@ class HocConnector(object):
         if d is not None:
             delay = d
         else:
-            delay = _min_delay
+            delay = get_min_delay()
         return delay
+
 
 class AllToAllConnector(common.AllToAllConnector, HocConnector):    
     
     def connect(self, projection):
         weight = self.getWeight(self.weights)
-        delay = self.getWeight(self.delays)
+        delay = self.getDelay(self.delays)
         hoc_commands = []
         for tgt in projection.post.gidlist:
             for src in projection.pre.fullgidlist:
@@ -59,11 +61,12 @@ class AllToAllConnector(common.AllToAllConnector, HocConnector):
                     hoc_commands += self.singleConnect(projection,src,tgt,w,d)
         return hoc_commands
 
+
 class OneToOneConnector(common.OneToOneConnector, HocConnector):
     
     def connect(self, projection):
         weight = self.getWeight(self.weights)
-        delay = self.getWeight(self.delays)
+        delay = self.getDelay(self.delays)
         if projection.pre.dim == projection.post.dim:
             hoc_commands = []
             for tgt in projection.post.gidlist:
@@ -77,18 +80,20 @@ class OneToOneConnector(common.OneToOneConnector, HocConnector):
             raise Exception("Method '%s' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes." % sys._getframe().f_code.co_name)
         return hoc_commands
 
+
 class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
     
     def connect(self, projection):
         weight = self.getWeight(self.weights)
-        delay = self.getWeight(self.delays)
+        delay = self.getDelay(self.delays)
         if isinstance(projection.rng, NativeRNG):
             hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
                             'tmp = rng.uniform(0,1)']
             # Here we are forced to execute the commands on line to be able to
             # catch the connections from NEURON
             hoc_execute(hoc_commands)
-            rarr = [HocToPy.get('rng.repick()','float') for j in xrange(projection.pre.size*projection.post.size)]        
+            #rarr = [HocToPy.get('rng.repick()','float') for j in xrange(projection.pre.size*projection.post.size)]
+            rarr = [h.rng.repick() for j in xrange(projection.pre.size*projection.post.size)]
         else:
             rarr = projection.rng.uniform(0,1,projection.pre.size*projection.post.size)
         hoc_commands = []
@@ -105,11 +110,12 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
                 j += 1
         return hoc_commands
 
+
 class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector, HocConnector):
     
     def connect(self, projection):
         weight = self.getWeight(self.weights)
-        delay = self.getWeight(self.delays)
+        delay = self.getDelay(self.delays)
         periodic_boundaries = self.periodic_boundaries
         if periodic_boundaries is not None:
             dimensions = projection.post.dim
@@ -120,7 +126,8 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             # Here we are forced to execute the commands on line to be able to
             # catch the connections from NEURON
             hoc_execute(hoc_commands)
-            rarr = [HocToPy.get('rng.repick()','float') for j in xrange(projection.pre.size*projection.post.size)]        
+            #rarr = [HocToPy.get('rng.repick()','float') for j in xrange(projection.pre.size*projection.post.size)]
+            rarr = [h.rng.repick() for j in xrange(projection.pre.size*projection.post.size)]
         else:
             rarr = projection.rng.uniform(0,1,projection.pre.size*projection.post.size)
         # We need to use the gid stored as ID, so we should modify the loop to scan the global gidlist (containing ID)
