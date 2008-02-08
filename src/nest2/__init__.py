@@ -550,8 +550,13 @@ def _get(population=None, variable=None):
 
 
     data = _readArray(base_filename, sepchar=None)
-    data[:,0] = data[:,0] - padding
     os.remove(base_filename)
+
+    # case for empty array
+    if not data:
+        return data
+
+    data[:,0] = data[:,0] - padding
 
     return data
 
@@ -579,6 +584,11 @@ def _readArray(filename, sepchar=None, skipchar='#'):
     #    raise
         # The last line has just a gid, so we has to remove it
         #a = numpy.array(data[0:len(data)-2])
+
+    # case for empty a
+    if not a:
+        return a
+
     (Nrow,Ncol) = a.shape
     logging.debug(str(a.shape))
     if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
