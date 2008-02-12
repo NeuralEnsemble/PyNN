@@ -166,15 +166,17 @@ endtemplate StandardIF
 
 
 begintemplate SpikeSource
-  public spiketimes, source, record, set, stim_type, param_update, connect2target
+  public spiketimes, source, record, set, stim_type, param_update
+  public connect2target
   
-  objref spiketimes, rec, source, nil, this, keys
+  objref spiketimes, rec, source, nil, this, keys, saved_spiketimes
   strdef command, stim_type, key
   
   proc init() {
     stim_type = $o1.oget("source_type").s
     sprint(command,"source = new %s(0.5)",stim_type)
     execute1(command,this)
+    saved_spiketimes = new Vector(0)
     if ($o1.has_key("spiketimes")) {
       spiketimes = $o1.oget("spiketimes") //.c()?
       source.play(spiketimes)
@@ -210,6 +212,8 @@ begintemplate SpikeSource
     if (strcmp($s1,"spiketimes") == 0) {
       spiketimes = $o2 // should do a copy here to be safe?
       source.play(spiketimes)
+      saved_spiketimes.append(spiketimes)
+      spiketimes = saved_spiketimes
       do_not_record = 1
     } else {
       sprint(command,"source.%s = %d",$s1,$2)
@@ -220,6 +224,8 @@ begintemplate SpikeSource
   proc param_update() {
     if (spiketimes.size() > 0) {
       source.play(spiketimes)
+      saved_spiketimes.append(spiketimes)
+      spiketimes = saved_spiketimes
       do_not_record = 1
     } else {
       do_not_record = 0
