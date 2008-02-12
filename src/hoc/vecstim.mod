@@ -73,6 +73,11 @@ ENDCOMMENT
 
 NEURON {
 	ARTIFICIAL_CELL VecStim
+        RANGE ping 
+}
+
+PARAMETER {
+        ping = 0 (ms) 
 }
 
 ASSIGNED {
@@ -87,6 +92,9 @@ INITIAL {
 	if (index > 0) { 
 		net_send(etime - t, 1)
 	}
+        if (ping > 0) {
+                net_send(ping+0.1, 2)
+        }
 }
 
 NET_RECEIVE (w) {
@@ -95,12 +103,30 @@ NET_RECEIVE (w) {
 		element()
 		if (index > 0) {
                         if (etime < t) {
-                            printf("Warning in VecStim: inter-spike interval smaller than dt.\nRounding up to dt.")
-                            etime = t
+                            :printf("Warning in VecStim: inter-spike interval smaller than dt.\nRounding up to dt.")
+                            :etime = t
+                            printf("Warning in VecStim: spike time before current time\n")
+                        } else {
+                            net_send(etime - t, 1)
                         }
-			net_send(etime - t, 1)
 		}
-	}
+	} else if (flag == 2) { : ping - reset index to 0
+        :printf("flag=2, etime=%g, t=%g, ping=%g, index=%g\n",etime,t,ping,index)
+                if (index == -2) { : play() has been called
+                    :printf("Detected new vector\n")
+                    index = 0
+                    while (etime < t) {
+                        element()
+                        :printf("element(): index=%g, etime=%g, t=%g\n",index,etime,t)
+                    }
+                    if (index > 0) {
+                        if (etime >= t) {
+                            net_send(etime - t, 1)
+                        }
+                    }
+                }
+                net_send(ping, 2)
+        }
 }
 
 
@@ -142,4 +168,5 @@ VERBATIM
 		*vv = vector_arg(1);
 	}
 ENDVERBATIM
+index = -2
 }

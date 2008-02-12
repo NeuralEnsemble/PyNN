@@ -178,6 +178,7 @@ begintemplate SpikeSource
     if ($o1.has_key("spiketimes")) {
       spiketimes = $o1.oget("spiketimes") //.c()?
       source.play(spiketimes)
+      source.ping = 1.0 // check for a new play() at this interval
       do_not_record = 1
     } else {
       spiketimes = new Vector()
