@@ -20,10 +20,12 @@ Original hoc version: July 2004-May 2006
 Python version: February 2008
 """
 
-import os
+import sys
 import datetime
 import pyNN.neuron as sim
 import pyNN.random as random
+from numpy import exp, cos, pi
+import numpy
 
 sim.Timer.start()
 
@@ -60,9 +62,9 @@ histbins         = 100         # Number of bins for weight histograms
 record_spikes    = True        # Whether or not to record spikes
 wfromfile        = False       # if positive, read connections/weights from file
 infile           = ""          # File to read connections/weights from
-tstop            = 1e4         # (ms)
-trw              = 1e4         # (ms) Time between reading input spikes/printing weights
-numhist          = 1           # Number of histograms between each weight printout
+tstop            = 1e7         # (ms)
+trw              = 1e6         # (ms) Time between reading input spikes/printing weights
+numhist          = 10          # Number of histograms between each weight printout
 label            = "bfstdp_demo_" # Extra label for labelling output files
 datadir          = ""          # Sub-directory of Data for writing output files
 tau_m            = 20          # Membrane time constant
@@ -71,14 +73,25 @@ tau_m            = 20          # Membrane time constant
 
 rng = random.NumpyRNG(seed)
 
+def set_training_weights(prj):
+    # Set the Training-->Output weights
+    # what about setWeights() with a 2D array? weight values for non-existent connections would be ignored?
+    global ncells
+    if wtr_square:
+        weights = numpy.fromfunction(lambda i,j: 1.0*(abs(i-j)>ncells*(1-wtr_sigma)), (ncells, ncells)) + \
+                  numpy.fromfunction(lambda i,j: 1.0*(abs(i-j)<ncells*wtr_sigma), (ncells, ncells))
+    else:
+        weights = numpy.fromfunction(lambda i,j: exp( (cos(2*pi*(i-j)/ncells) - 1) / (wtr_sigma*wtr_sigma) ),
+                                     (ncells, ncells))
+    weights *= f_wtr*wmax
+    prj.setWeights(weights.flatten())
+
 # =-=-= Create the network  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 sim.setup(min_delay=min_delay, debug=True, use_cvode=True)
-print "1. min_delay = ", sim.get_min_delay()
 #sim.hoc_execute(['nrn_load_dll("%s/i686/.libs/libnrnmech.so")' % os.getcwd()])
 sim.hoc_execute(['xopen("spikeSourceVR.hoc")',
                  'xopen("intfire4nc.hoc")'])
-print "2. min_delay = ", sim.get_min_delay()
 # Input spike trains are implemented using NetStimVR2s.
 print "Creating network layers (time %g s)" % sim.Timer.elapsedTime()
 
@@ -105,11 +118,10 @@ cellParams[2] = {
 
 cellLayer = [None, None, None]
 # Create network layers
-
 for layer in 0,1:
     cellLayer[layer] = sim.Population(ncells, "SpikeSourceVariableRate", cellParams[layer])
     for i in range(ncells):
-        cellLayer[layer].cell[i].theta = i/ncells
+        cellLayer[layer].cell[i].theta = float(i)/ncells
     
 hoc_commands = ["Rmax_NetStimVR2 = %g" % Rmax,
                 "Rmin_NetStimVR2 = %g" % Rmin,
@@ -119,13 +131,11 @@ sim.hoc_execute(hoc_commands)
 cellLayer[2] = sim.Population(ncells, "IntFire4nc", cellParams[2])
 
 # Create synaptic connections
-print "3. min_delay = ", sim.get_min_delay()
 print "Creating synaptic connections (time %g s)" % sim.Timer.elapsedTime()
 
 initial_weight_distribution = random.RandomDistribution('uniform', (0,wmax), rng)
 
 # Turn on STDP for Input-->Output connections
-
 print "  Defining STDP configuration for Input-->Output connections"
 aLTD = B*aLTP*tauLTP_StdwaSA/tauLTD_StdwaSA
 stdp_model = sim.STDPMechanism(timing_dependence=sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0),
@@ -134,7 +144,6 @@ stdp_model = sim.STDPMechanism(timing_dependence=sim.SpikePairRule(tau_plus=20.0
                                                                               A_minus=aLTD))
 synapse_dynamics = sim.SynapseDynamics(fast=None, slow=stdp_model)
 
-print "4. min_delay = ", sim.get_min_delay()
 conn = [None, None, None]
 if wfromfile: # read connections from file
     conn[0] = sim.Projection(cellLayer[0], cellLayer[2],
@@ -168,7 +177,7 @@ else:         # or generate them according to the rules specified
                              target="syn",
                              rng=rng,
                              synapse_dynamics=None)
-    
+    set_training_weights(conn[1])
     if syndelay < 0:
       conn[0].setDelays(min_delay + -1*syndelay)
       conn[1].setDelays(min_delay)
@@ -182,10 +191,10 @@ else:         # or generate them according to the rules specified
                              source="syn",
                              target="syn")
         conn[2].setWeights(wmax*f_winhib)
-print "5. min_delay = ", sim.get_min_delay()
 
 # Set background input
-background_input = sim.Population(cellLayer[2].dim, sim.SpikeSourcePoisson, {'rate': bgRate})
+background_input = sim.Population(cellLayer[2].dim, sim.SpikeSourcePoisson, {'rate': bgRate,
+                                                                             'duration': tstop})
 background_connect = sim.Projection(background_input, cellLayer[2],
                                     method=sim.OneToOneConnector(weights=bgWeight),
                                     target="syn")
@@ -211,27 +220,7 @@ def set_fileroot():
 
 # Procedures to set weights ---------------------------------------------------
 
-#def set_training_weights():
-#  # Set the Training-->Output weights
-#  # what about setWeights() with a 2D array? weight values for non-existent connections would be ignored?
-#  global ncells
-#  for i in range(ncells):
-#    for j in range(ncells):
-#      if(object_id(conn[1].nc[i][j])) {
-#	d = i-j
-#	if (d > ncells/2)  { d = ncells - d }
-#	if (d < -ncells/2) { d = ncells + d }
-#	if (wtr_square) {
-#	  if (d <= wtr_sigma*ncells && d >= -wtr_sigma*ncells) {
-#	    conn[1].nc[i][j].weight = f_wtr*wmax
-#	  }
-#	} else {
-#	  conn[1].nc[i][j].weight = f_wtr*wmax*exp( (cos(2*PI*d/ncells) - 1) / (wtr_sigma*wtr_sigma) )
-#	}
-#      }
-#    }
-#  }
-#}
+
 
 # Procedures for writing results to file --------------------------------------
 
@@ -263,12 +252,14 @@ def print_weights(projection_id):
     conn[projection_id].printWeights1("%s.conn%d.w" % (fileroot, projection_id+1))
 
 def save_connections():
-  for i in range(3-(f_winhib==0)):
-    conn[i].saveConnections("%s.conn%d.conn" % (fileroot,i+1))
+     for i in range(3-(f_winhib==0)):
+       conn[i].saveConnections("%s.conn%d.conn" % (fileroot,i+1))
 
-def print_weight_distribution():
-  # Pointless to calculate distribution for inhibitory weights (i=1,2)
-  bins, hist = conn[0].weightHistogram(min=0, max=wmax, nbins=histbins)
+def print_weight_distribution(histfileobj):
+    # Pointless to calculate distribution for inhibitory weights (i=1,2)
+    hist, bins = conn[0].weightHistogram(min=0, max=wmax, nbins=histbins)
+    fmt = "%g "*len(hist) + "\n"
+    histfileobj.write(fmt % tuple(hist))
 
 #def print_delta_t(binwidth, range, normalize):
 #  histbins = 2*range+1
@@ -383,24 +374,23 @@ def run_training():
     j = 0
     
     #running_ = 1
-    stoprun = False
     #setup_weight_plot()
     #finitialize(-65)
     #plot_weights(conn[0])
     #starttime = startsw()
     sim.Timer.reset()
     t = 0
-    while t < tstop and not stoprun:
+    while t < tstop:
         fileroot = "%s_%d" % (save_fileroot, j*thist)
-        #print_weight_distribution()
+        print_weight_distribution(histfileobj)
         if i == numhist:
             print_weights(0)
             i = 0
             print "--- Simulated %d seconds in %d seconds\r" % (int(t/1000), sim.Timer.elapsedTime()),
-            os.stdout.flush()
+            sys.stdout.flush()
         i += 1
         j += 1
-        t = sim.run(j*thist)
+        t = sim.run(thist)
         #plot_weights(conn[0])
     
     print "--- Simulated %d seconds in %d seconds\n" % (int(t/1000), sim.Timer.elapsedTime())
@@ -408,7 +398,7 @@ def run_training():
     fileroot = "%s_%d" % (save_fileroot, j*thist)
     print_weights(0)
     print_weights(1) # for debugging. Should not have changed since t = 0
-    #print_weight_distribution()
+    print_weight_distribution(histfileobj)
     save_connections()
     
     fileroot = save_fileroot
@@ -440,7 +430,6 @@ set_fileroot()
 sim.h.cvode.active(1)
 sim.h.cvode.use_local_dt(1)         # The variable time step method must be used.
 sim.h.cvode.condition_order(2)      # Improves threshold-detection.
-#set_training_weights()
 
 print "Finished set-up (time %g s)" % sim.Timer.elapsedTime()
 

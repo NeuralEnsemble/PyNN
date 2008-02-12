@@ -368,7 +368,7 @@ def run(simtime):
                          'print "max step  = ", pc.set_maxstep(100)',
                          'tmp = finitialize()',]
     hoc_commands += ['tstop += %f' %simtime,
-                     'print "tstop     = ", tstop',
+                     #'print "tstop     = ", tstop',
                      'tmp = pc.psolve(tstop)']
     hoc_execute(hoc_commands,"--- run() ---")
     return h.t
@@ -485,8 +485,15 @@ def set(cells,cellclass,param,val=None):
         for cell in cells:
             if cell in gidlist:
                 hoc_commands += [fmt % (cell,param,val),
-                                 'if (pc.gid2cell(%d) != pc.gid2obj(%d)) { tmp = pc.gid2cell(%d).param_update()} ' % (cell,cell,cell)]
-                
+                                 'if (pc.gid2cell(%d) != pc.gid2obj(%d)) { tmp = pc.gid2cell(%d).param_update() }' % (cell,cell,cell)]
+                #hoc_commands += [fmt % (cell,param,val),
+                #                 '''if (pc.gid2cell(%d) != pc.gid2obj(%d)) {
+                #                        tmp = pc.gid2cell(%d).param_update()
+                #                    } else {
+                #                        tmp = %s.object(%d).param_update()
+                #                    }''' % (cell,cell,cell,
+                #                            cell.parent.hoc_label,
+                #                            cell.parent.locate(cell)[0])]
     hoc_execute(hoc_commands, "--- set() ---")
 
 def record(source,filename):
@@ -1331,7 +1338,7 @@ class Projection(common.Projection):
             hoc_commands = []
             assert len(w) == len(self), "List of weights has length %d, Projection %s has length %d" % (len(w),self.label,len(self))
             for i,weight in enumerate(w):
-                hoc_commands += ['%s.object(tmp).weight = %f' % (self.hoc_label, weight)]
+                hoc_commands += ['%s.object(%d).weight = %f' % (self.hoc_label, i, weight)]
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
         hoc_execute(hoc_commands, "--- Projection[%s].__setWeights__() ---" % self.label)
@@ -1654,7 +1661,7 @@ class Projection(common.Projection):
             if not hasattr(filename, 'write'):
                 f.close()
   
-    def weightHistogram(self,min=None,max=None,nbins=10):
+    def weightHistogram(self, min=None, max=None, nbins=10):
         """
         Return a histogram of synaptic weights.
         If min and max are not given, the minimum and maximum weights are
@@ -1662,7 +1669,8 @@ class Projection(common.Projection):
         """
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
-        raise Exception("Method not yet implemented")
+        bins = numpy.arange(min, max, (max-min)/nbins)
+        return numpy.histogram(self.weights(), bins) # returns n, bins
     
 # ==============================================================================
 #   Utility classes
