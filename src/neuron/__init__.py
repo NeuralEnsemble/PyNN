@@ -353,9 +353,9 @@ def end(compatible_output=True):
     hoc_commands += ['tmp = pc.runworker()',
                      'tmp = pc.done()']
     hoc_execute(hoc_commands,"--- end() ---")
-    hoc.execute('tmp = quit()')
-    logging.info("Finishing up with NEURON.")
-    sys.exit(0)
+    #hoc.execute('tmp = quit()')
+    #logging.info("Finishing up with NEURON.")
+    #sys.exit(0)
 
 def run(simtime):
     """Run the simulation for simtime ms."""
@@ -472,20 +472,31 @@ def set(cells,cellclass,param,val=None):
     if not isinstance(cells,list):
         cells = [cells]    
     hoc_commands = []
+    if cells[0].parent:
+        prefix = "%s.object(%s)" % (cells[0].parent.hoc_label, "%d")
+    else:
+        prefix = "cell%d"
     for param,val in paramDict.items():
         if isinstance(val,str):
-            fmt = 'pc.gid2cell(%d).%s = "%s"'
+            #fmt = 'pc.gid2cell(%d).%s = "%s"'
+            fmt = prefix + '.%s = "%s"'
         elif isinstance(val,list):
             cmds,argstr = _hoc_arglist([val])
             hoc_commands += cmds
-            fmt = 'pc.gid2cell(%d).%s = %s'
+            #fmt = 'pc.gid2cell(%d).%s = %s'
+            fmt = prefix + '.%s = %s'
             val = argstr
         else:
-            fmt = 'pc.gid2cell(%d).%s = %g'
+            #fmt = 'pc.gid2cell(%d).%s = %g'
+            fmt = prefix + '.%s = %g'
         for cell in cells:
             if cell in gidlist:
-                hoc_commands += [fmt % (cell,param,val),
-                                 'if (pc.gid2cell(%d) != pc.gid2obj(%d)) { tmp = pc.gid2cell(%d).param_update() }' % (cell,cell,cell)]
+                id = int(cell)
+                if cell.parent:
+                    id = list(cell.parent.cell).index(id)
+                hoc_commands += [fmt % (id, param, val),
+                                 "%s.param_update()" % prefix % id,]
+                                 #'if (pc.gid2cell(%d) != pc.gid2obj(%d)) { tmp = pc.gid2cell(%d).param_update() }' % (cell,cell,cell)]
                 #hoc_commands += [fmt % (cell,param,val),
                 #                 '''if (pc.gid2cell(%d) != pc.gid2obj(%d)) {
                 #                        tmp = pc.gid2cell(%d).param_update()
@@ -494,6 +505,7 @@ def set(cells,cellclass,param,val=None):
                 #                    }''' % (cell,cell,cell,
                 #                            cell.parent.hoc_label,
                 #                            cell.parent.locate(cell)[0])]
+    print hoc_commands
     hoc_execute(hoc_commands, "--- set() ---")
 
 def record(source,filename):
