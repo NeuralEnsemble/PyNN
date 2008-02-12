@@ -493,19 +493,10 @@ def set(cells,cellclass,param,val=None):
             if cell in gidlist:
                 id = int(cell)
                 if cell.parent:
-                    id = list(cell.parent.cell).index(id)
+                    id = list(cell.parent.cell).index(id) # id=cell.parent.locate(cell)[0]) ??
                 hoc_commands += [fmt % (id, param, val),
                                  "%s.param_update()" % prefix % id,]
                                  #'if (pc.gid2cell(%d) != pc.gid2obj(%d)) { tmp = pc.gid2cell(%d).param_update() }' % (cell,cell,cell)]
-                #hoc_commands += [fmt % (cell,param,val),
-                #                 '''if (pc.gid2cell(%d) != pc.gid2obj(%d)) {
-                #                        tmp = pc.gid2cell(%d).param_update()
-                #                    } else {
-                #                        tmp = %s.object(%d).param_update()
-                #                    }''' % (cell,cell,cell,
-                #                            cell.parent.hoc_label,
-                #                            cell.parent.locate(cell)[0])]
-    print hoc_commands
     hoc_execute(hoc_commands, "--- set() ---")
 
 def record(source,filename):
@@ -962,7 +953,7 @@ class Population(common.Population):
                 header = "%s\t%d" %(header,dimension)
         self.__print('spiketimes',filename,"%.2f",gather, header)
 
-    def print_v(self,filename,gather=True, compatible_output=True):
+    def print_v(self,filename, gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
         If compatible_output is True, the format is "v cell_id",
@@ -986,6 +977,26 @@ class Population(common.Population):
         hoc_comment("--- Population[%s].__print_v()__ ---" %self.label)
         self.__print('vtrace',filename,"%.4g",gather,header)
 
+    def getSpikes(self, gather=True):
+        """
+        Returns a numpy array of the spikes of the population
+
+        Useful for small populations, for example for single neuron Monte-Carlo.
+
+        NOTE: getSpikes or printSpikes should be called only once per run,
+        because they mangle simulator recorder files.
+        """
+        # This is a bit of a hack implemetation
+        tmpfile = "neuron_tmpfile" # should really use tempfile module
+        self.__print('spiketimes', tmpfile, "%.2f", gather)
+        f = open(tmpfile, 'r')
+        lines = [line for line in f.read().split('\n') if line] # remove blank lines
+        line2spike = lambda s: (int(s[1]), float(s[0]))
+        spikes = numpy.array([line2spike(line.split()) for line in lines])
+        f.close()
+        os.remove("neuron_tmpfile")
+        return spikes
+        
     def meanSpikeCount(self,gather=True):
         """
         Returns the mean number of spikes per neuron.
