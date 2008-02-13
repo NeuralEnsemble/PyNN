@@ -162,7 +162,7 @@ class SpikeSourceArray(common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
     translations = common.build_translations(
-        ('spike_times', 'spiketimes'),
+        ('spike_times', 'input_spiketimes'),
     )
     hoc_name = 'SpikeSource'
     

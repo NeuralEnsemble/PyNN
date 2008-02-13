@@ -167,35 +167,38 @@ endtemplate StandardIF
 
 begintemplate SpikeSource
   public spiketimes, source, record, set, stim_type, param_update
-  public connect2target
+  public connect2target, input_spiketimes
   
-  objref spiketimes, rec, source, nil, this, keys, saved_spiketimes
+  objref spiketimes, rec, source, nil, this, keys, input_spiketimes
   strdef command, stim_type, key
   
   proc init() {
     stim_type = $o1.oget("source_type").s
     sprint(command,"source = new %s(0.5)",stim_type)
     execute1(command,this)
-    saved_spiketimes = new Vector(0)
-    if ($o1.has_key("spiketimes")) {
-      spiketimes = $o1.oget("spiketimes") //.c()?
-      source.play(spiketimes)
-      source.ping = 1.0 // check for a new play() at this interval
+    input_spiketimes = new Vector(0)
+    spiketimes = new Vector()
+    
+    if ($o1.has_key("input_spiketimes")) {
+      input_spiketimes = $o1.oget("input_spiketimes") //.c()?
+      if (input_spiketimes.size() > 0) {
+        source.play(input_spiketimes)
+        spiketimes.append(input_spiketimes)
+      }
       do_not_record = 1
     } else {
-      spiketimes = new Vector()
       do_not_record = 0
     }
+    
     keys = $o1.keys()
     for i = 0, keys.count()-1 {
       key = keys.object(i).s
-      if (strcmp(key,"source_type") != 0) {
-	if (strcmp(key,"spiketimes") != 0) {
+      if ((strcmp(key,"source_type") != 0) && (strcmp(key,"input_spiketimes") != 0)) {
 	  set(key,$o1.get(key))
-	}
       }
     }
   }
+  
   
   proc record() {
     if (!do_not_record) { // for VecStims, etc, recording doesn't make sense as we already have the spike times
@@ -209,26 +212,14 @@ begintemplate SpikeSource
   }
   
   proc set() {
-    if (strcmp($s1,"spiketimes") == 0) {
-      spiketimes = $o2 // should do a copy here to be safe?
-      source.play(spiketimes)
-      saved_spiketimes.append(spiketimes)
-      spiketimes = saved_spiketimes
-      do_not_record = 1
-    } else {
       sprint(command,"source.%s = %d",$s1,$2)
       execute1(command,this)
-    }
   }
   
   proc param_update() {
-    if (spiketimes.size() > 0) {
-      source.play(spiketimes)
-      saved_spiketimes.append(spiketimes)
-      spiketimes = saved_spiketimes
-      do_not_record = 1
-    } else {
-      do_not_record = 0
+    if (input_spiketimes.size() > 0) {
+      source.play(input_spiketimes)
+      spiketimes.append(input_spiketimes)
     }
   }
 

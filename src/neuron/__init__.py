@@ -495,7 +495,7 @@ def set(cells,cellclass,param,val=None):
                 if cell.parent:
                     id = list(cell.parent.cell).index(id) # id=cell.parent.locate(cell)[0]) ??
                 hoc_commands += [fmt % (id, param, val),
-                                 "%s.param_update()" % prefix % id,]
+                                 "tmp = %s.param_update()" % prefix % id,]
                                  #'if (pc.gid2cell(%d) != pc.gid2obj(%d)) { tmp = pc.gid2cell(%d).param_update() }' % (cell,cell,cell)]
     hoc_execute(hoc_commands, "--- set() ---")
 
