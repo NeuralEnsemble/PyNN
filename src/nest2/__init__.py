@@ -553,7 +553,7 @@ def _get(population=None, variable=None):
     os.remove(base_filename)
 
     # case for empty array
-    if not data:
+    if data.shape==(0,):
         return data
 
     data[:,0] = data[:,0] - padding
@@ -586,7 +586,7 @@ def _readArray(filename, sepchar=None, skipchar='#'):
         #a = numpy.array(data[0:len(data)-2])
 
     # case for empty a
-    if not a:
+    if a.shape==(0,):
         return a
 
     (Nrow,Ncol) = a.shape
