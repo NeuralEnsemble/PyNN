@@ -1,9 +1,9 @@
 # encoding=utf-8
 """
 nrnpy implementation of the PyNN API.
-$Id$
+$Id:oldneuron.py 188 2008-01-29 10:03:59Z apdavison $
 """
-__version__ = "$Revision$"
+__version__ = "$Revision:188 $"
 
 import hoc
 from pyNN.random import *
@@ -352,7 +352,7 @@ class SpikeSourceArray(common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
     translations = {
-        'spike_times' : ('spiketimes' , "parameters['spike_times']"),
+        'spike_times' : ('input_spiketimes' , "parameters['spike_times']"),
     }
     hoc_name = 'SpikeSource'
     

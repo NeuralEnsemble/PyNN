@@ -183,11 +183,12 @@ begintemplate SpikeSource
       input_spiketimes = $o1.oget("input_spiketimes") //.c()?
       if (input_spiketimes.size() > 0) {
         source.play(input_spiketimes)
+        source.ping = 1.0
         spiketimes.append(input_spiketimes)
       }
-      do_not_record = 1
+      has_input_spikes = 1
     } else {
-      do_not_record = 0
+      has_input_spikes = 0
     }
     
     keys = $o1.keys()
@@ -197,18 +198,20 @@ begintemplate SpikeSource
 	  set(key,$o1.get(key))
       }
     }
+    recording = 0
   }
   
   
   proc record() {
-    if (!do_not_record) { // for VecStims, etc, recording doesn't make sense as we already have the spike times
+    if (!has_input_spikes) { // for VecStims, etc, recording doesn't make sense as we already have the spike times
       if ($1 == 1) {
         rec = new NetCon(source,nil)
         rec.record(spiketimes)
       } else {
-        objref rec    
+        objref rec
       }
     }
+    recording = $1
   }
   
   proc set() {
@@ -218,8 +221,12 @@ begintemplate SpikeSource
   
   proc param_update() {
     if (input_spiketimes.size() > 0) {
+      has_input_spikes = 1
       source.play(input_spiketimes)
-      spiketimes.append(input_spiketimes)
+      source.ping = 1.0
+      if (recording == 1) {
+        spiketimes.append(input_spiketimes)
+      }
     }
   }
 

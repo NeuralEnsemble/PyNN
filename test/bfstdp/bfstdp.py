@@ -24,8 +24,10 @@ import sys
 import datetime
 import pyNN.neuron as sim
 import pyNN.random as random
-from numpy import exp, cos, pi
+from numpy import exp, cos, pi, sin, arcsin
 import numpy
+import babble
+babble.set_simulator(sim)
 
 sim.Timer.start()
 
@@ -64,8 +66,8 @@ wfromfile        = False       # if positive, read connections/weights from file
 infile           = ""          # File to read connections/weights from
 tstop            = 1e7         # (ms)
 trw              = 1e6         # (ms) Time between reading input spikes/printing weights
-numhist          = 10          # Number of histograms between each weight printout
-label            = "bfstdp_demo_" # Extra label for labelling output files
+numhist          = 100         # Number of histograms between each weight printout
+label            = "bfstdp_bbl_" # Extra label for labelling output files
 datadir          = ""          # Sub-directory of Data for writing output files
 tau_m            = 20          # Membrane time constant
 
@@ -96,19 +98,24 @@ sim.hoc_execute(['xopen("spikeSourceVR.hoc")',
 print "Creating network layers (time %g s)" % sim.Timer.elapsedTime()
 
 TRANSFORMATIONS = {
-    "":     0,
-    "mul":  1,
-    "sin":  2,
-    "sq":   3,
-    "asin": 4, 
-    "sinn": 5
+    None:   lambda x,a: x,
+    "mul":  lambda x,a: a*x,
+    "sin":  lambda x,a: 0.5*(sin(2*pi*x + a) + 1),
+    "sq":   lambda x,a: x*x,
+    "asin": lambda x,a: arcsin(2*x-1)/pi, 
+    "sinn": lambda x,a: 0.5*(sin(2*pi*a*x) + 1),
 }
 
 cellParams = [None, None, None]
-cellParams[0] = {'noise': 1, 'transform': 0, 'prmtr': 0,
-                 'tau_corr': correlation_time, 'seed': seed}
-cellParams[1] = {'noise': 1, 'transform': TRANSFORMATIONS[funcstr],
-                 'prmtr': k[0], 'alpha': alpha}
+cellParams[0] = {
+    'Rmax': Rmax, 'Rmin': Rmin, 'Rsigma': Rsigma, 'alpha': 1.0,
+    'correlation_time': correlation_time, 'transform': None
+}
+cellParams[1] = {
+    'Rmax': Rmax, 'Rmin': Rmin, 'Rsigma': Rsigma, 'alpha': alpha,
+    'correlation_time': correlation_time,
+    'transform': lambda x: TRANSFORMATIONS[funcstr](x, *k)
+}
 cellParams[2] = {
     'taum': tau_m,
     'taue': 5,
@@ -119,14 +126,8 @@ cellParams[2] = {
 cellLayer = [None, None, None]
 # Create network layers
 for layer in 0,1:
-    cellLayer[layer] = sim.Population(ncells, "SpikeSourceVariableRate", cellParams[layer])
-    for i in range(ncells):
-        cellLayer[layer].cell[i].theta = float(i)/ncells
+    cellLayer[layer] = babble.BabblingPopulation(ncells, **cellParams[layer])
     
-hoc_commands = ["Rmax_NetStimVR2 = %g" % Rmax,
-                "Rmin_NetStimVR2 = %g" % Rmin,
-                "sigma_NetStimVR2 = %g" % Rsigma]
-sim.hoc_execute(hoc_commands)
 
 cellLayer[2] = sim.Population(ncells, "IntFire4nc", cellParams[2])
 
@@ -386,10 +387,13 @@ def run_training():
         if i == numhist:
             print_weights(0)
             i = 0
-            print "--- Simulated %d seconds in %d seconds\r" % (int(t/1000), sim.Timer.elapsedTime()),
-            sys.stdout.flush()
+        print "--- Simulated %d seconds in %d seconds (%d%%)\r" % (int(t/1000), sim.Timer.elapsedTime(), int(100*t/tstop)),
+        sys.stdout.flush()
         i += 1
         j += 1
+        for i in 0,1:
+            cellLayer[i].generate_spikes(thist, sync=cellLayer[0])
+        #sim.h('population0.object(0).input_spiketimes.printf()')
         t = sim.run(thist)
         #plot_weights(conn[0])
     
@@ -437,4 +441,4 @@ print "Running training ..."
 
 run_training()
 
-#sim.h('for i = 0, population0.count()-1 {population0.o(i).spiketimes.printf()}')
+
