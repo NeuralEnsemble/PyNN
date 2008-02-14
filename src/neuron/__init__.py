@@ -364,8 +364,8 @@ def run(simtime):
     if not running:
         running = True
         hoc_commands += ['tstop = 0',
-                         'print "dt        = %f"' % dt,
-                         'print "max step  = ", pc.set_maxstep(100)',
+                         #'print "dt        = %f"' % dt,
+                         #'print "max step  = ", pc.set_maxstep(100)',
                          'tmp = finitialize()',]
     hoc_commands += ['tstop += %f' %simtime,
                      #'print "tstop     = ", tstop',
@@ -1131,7 +1131,7 @@ class Projection(common.Projection):
             elif len(possible_models) > 1 :
                 raise Exception("Multiple plasticity models available")
             
-            print "Using %s" % plasticity_model
+            #print "Using %s" % plasticity_model
             all_parameters = td.parameters.copy()
             all_parameters.update(wd.parameters)
             self.setupSTDP(plasticity_model, all_parameters)
