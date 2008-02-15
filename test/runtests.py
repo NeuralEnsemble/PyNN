@@ -168,7 +168,7 @@ def compare_rasters(script,mse_threshold,engines):
                 if l1 > 0 and l2 > 0 :
                     diff = []
                     for idx in xrange(len(raster1)):
-                        diff.append((raster1[idx]-raster2).min())
+                        diff.append(N.abs(raster1[idx]-raster2).min())
                     mse += N.sqrt(N.mean(N.square(N.array(diff))))
                 else:
                     fail = True;
@@ -196,9 +196,11 @@ if __name__ == "__main__":
                     "simpleNetworkL" : 0.5,
                     "simpleNetwork"  : 0.7,
                     "IF_curr_alpha2" : 5.0,
-                    "small_network"  : 5.0}
+                    "small_network"  : 5.0,
+                    "IF_curr_exp2"   : 0.6}
     
-    thresholds_ras = {"SpikeSourcePoisson" : 50.}
+    thresholds_ras = {"SpikeSourcePoisson" : 50.,
+                      "IF_curr_exp2": 0.25,}
     
     scripts_v   = []
     scripts_ras = []
