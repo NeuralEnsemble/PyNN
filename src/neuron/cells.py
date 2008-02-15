@@ -30,6 +30,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'alpha'
 
+
 class IF_curr_exp(common.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
     decaying-exponential post-synaptic current. (Separate synaptic currents for
@@ -130,7 +131,8 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         ('tau_syn_I',  'tau_i'),
         ('e_rev_E',    'e_e'),
         ('e_rev_I',    'e_i'),
-    ) # v_init?
+        ('v_init',     'v_init'),
+    )
     hoc_name = "StandardIF"
 
     def __init__(self,parameters):

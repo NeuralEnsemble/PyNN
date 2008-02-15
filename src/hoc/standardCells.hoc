@@ -112,7 +112,8 @@ proc param_update() {
 proc record() {
   if ($1 == 1) {
     spiketimes = new Vector()
-    cell rec = new NetCon(&v(0.5),nil)
+    //cell rec = new NetCon(&v(0.5),nil)
+    cell rec = new NetCon(source, nil)
     rec.record(spiketimes)
   } else {
     objref rec
@@ -215,7 +216,7 @@ begintemplate SpikeSource
   }
   
   proc set() {
-      sprint(command,"source.%s = %d",$s1,$2)
+      sprint(command,"source.%s = %g",$s1,$2)
       execute1(command,this)
   }
   

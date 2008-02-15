@@ -1,5 +1,5 @@
 """
-Simple test to compare iaf_exp_neuron2 in PyNEST with StandardIF in NEURON.
+Simple test of recording a SpikeSourcePoisson object
 
 Andrew Davison, UNIC, CNRS
 September 2006
