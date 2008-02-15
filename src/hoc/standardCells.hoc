@@ -168,7 +168,7 @@ endtemplate StandardIF
 
 begintemplate SpikeSource
   public spiketimes, source, record, set, stim_type, param_update
-  public connect2target, input_spiketimes
+  public connect2target, input_spiketimes, start, interval, number, noise
   
   objref spiketimes, rec, source, nil, this, keys, input_spiketimes
   strdef command, stim_type, key
@@ -191,6 +191,10 @@ begintemplate SpikeSource
     } else {
       has_input_spikes = 0
     }
+    start = 0        // }
+    interval = 1e12  // } used by NetStim, but not by VecStim
+    number = 1e12    // }
+    noise = 1
     
     keys = $o1.keys()
     for i = 0, keys.count()-1 {
@@ -216,8 +220,10 @@ begintemplate SpikeSource
   }
   
   proc set() {
-      sprint(command,"source.%s = %g",$s1,$2)
-      execute1(command,this)
+    sprint(command,"%s = %g",$s1,$2)
+    execute1(command,this)
+    sprint(command,"source.%s = %g",$s1,$2)
+    execute1(command,this)
   }
   
   proc param_update() {
