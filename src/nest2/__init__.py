@@ -552,12 +552,9 @@ def _get(population=None, variable=None):
     data = _readArray(base_filename, sepchar=None)
     os.remove(base_filename)
 
-    # case for empty array
-    if data.shape==(0,):
-        return data
-
-    data[:,0] = data[:,0] - padding
-
+    if data.size > 0:
+        data[:,0] = data[:,0] - padding
+        
     return data
 
 
@@ -582,17 +579,14 @@ def _readArray(filename, sepchar=None, skipchar='#'):
     a = numpy.array(data)
     #except Exception:
     #    raise
-        # The last line has just a gid, so we has to remove it
+        # The last line has just a gid, so we have to remove it
         #a = numpy.array(data[0:len(data)-2])
 
-    # case for empty a
-    if a.shape==(0,):
-        return a
-
-    (Nrow,Ncol) = a.shape
-    logging.debug(str(a.shape))
-    if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
-    return(a)
+    if a.size > 0:
+        (Nrow,Ncol) = a.shape
+        logging.debug(str(a.shape))
+        if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
+    return a
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of

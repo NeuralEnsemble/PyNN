@@ -5,7 +5,7 @@ common interface so that they can be used interchangeably in PyNN.
 Note however that we have so far made no effort to implement parameter translation,
 and parameter names/order may be different for the different RNGs.
 
-$Id$
+$Id:random.py 188 2008-01-29 10:03:59Z apdavison $
 """
 
 import sys
@@ -38,7 +38,7 @@ class AbstractRNG:
     
     def __init__(self,seed=None):
         if seed:
-            assert isinstance(seed,int)
+            assert isinstance(seed,int), "`seed` must be an int (< %d), not a %s" % (sys.maxint, type(seed).__name__)
         self.seed = seed
         # define some aliases
         self.random = self.next
