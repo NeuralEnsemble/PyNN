@@ -117,7 +117,6 @@ ParallelContext = new_hoc_class('ParallelContext')
 NetStim = new_hoc_class('NetStim')
 Random = new_hoc_class('Random')
 CVode = new_hoc_class('CVode')
-FInitializeHandler = new_hoc_class('FInitializeHandler')
 
 h('obfunc new_IClamp() { return new IClamp($1) }')
 h('obfunc newlist() { return new List() }')
@@ -257,5 +256,4 @@ class File(Wrapper):
         
     def write(self, s):
         pass
-        
 

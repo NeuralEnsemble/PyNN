@@ -77,7 +77,13 @@ class StandardIF(neuron.nrn.Section):
             self.e_i = e_i
             
         # need to deal with FinitializeHandler for v_init?
-        #fih = new FInitializeHandler("memb_init()",this)
+        #self.fih = neuron.FInitializeHandler("memb_init()", obj=self)
+        self.fih2 = neuron.FInitializeHandler('print "kjyuyv"', obj=self)
+        #neuron.h('objref fih3')
+        #neuron.h('fih3 = new FInitializeHandler("reslugis")')
+        #fih4 = neuron.h.new_FInitializeHandler(1, "kurh")
+        #neuron.h('obfunc foobar() { return new FInitializeHandler(1, "kuauw") }')
+        #fih5 = neuron.h.foobar()
     
     def __set_tau_m(self, value):
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
@@ -111,6 +117,11 @@ class StandardIF(neuron.nrn.Section):
         else:
             self.vtrace = None
     
+    def memb_init(self, v_init=None):
+        if v_init:
+            self.v_init = v_init
+        self.v = v_init
+        
 
 class SpikeSource(object):
     
@@ -137,7 +148,7 @@ class IF_curr_alpha(StandardIF, common.IF_curr_alpha):
     
     translations = common.build_translations(
         ('tau_m',      'tau_m'),
-        ('cm',         'CM'),
+        ('cm',         'cm'),
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
@@ -164,7 +175,7 @@ class IF_curr_exp(common.IF_curr_exp):
     
     translations = common.build_translations(
         ('tau_m',      'tau_m'),
-        ('cm',         'CM'),
+        ('cm',         'cm'),
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
@@ -189,7 +200,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
     
     translations = common.build_translations(
         ('tau_m',      'tau_m'),
-        ('cm',         'CM'),
+        ('cm',         'cm'),
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
@@ -217,7 +228,7 @@ class IF_cond_exp(common.IF_cond_exp):
     
     translations = common.build_translations(
         ('tau_m',      'tau_m'),
-        ('cm',         'CM'),
+        ('cm',         'cm'),
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
@@ -247,7 +258,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
     """
 
     translations = common.build_translations(
-        ('cm',         'CM'),
+        ('cm',         'cm'),
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
@@ -316,7 +327,7 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     translations = (
         ('v_init',     'v_init'),
         ('w_init',     'w_init'),
-        ('cm',         'CM'),
+        ('cm',         'cm'),
         ('tau_refrac', 'Ref'), 
         ('v_spike',    'Vspike'),
         ('v_reset',    'Vbot'),
