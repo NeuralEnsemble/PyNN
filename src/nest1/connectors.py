@@ -100,9 +100,12 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         weight = self.getWeight(self.weights)
         weight = self.convertWeight(weight, projection.synapse_type)
         delay  = self.getDelay(self.delays)
-        periodic_boundaries = self.periodic_boundaries 
+        periodic_boundaries = self.periodic_boundaries
         if periodic_boundaries is not None:
-            dimensions = projection.post.dim
+            if periodic_boundaries is True: 
+                dimensions = projection.post.dim
+            else:
+                dimensions = periodic_boundaries
             periodic_boundaries = numpy.concatenate((dimensions,numpy.zeros(3-len(dimensions))))
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
