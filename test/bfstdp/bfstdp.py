@@ -61,12 +61,13 @@ wtr_sigma        = 0.15        # Width parameter for Training-->Output weights
 noise            = 1           # Noise parameter
 histbins         = 100         # Number of bins for weight histograms
 record_spikes    = True        # Whether or not to record spikes
+record_v         = 0           # Number of output cells to record membrane potential from
 wfromfile        = False       # if positive, read connections/weights from file
 infile           = ""          # File to read connections/weights from
-tstop            = 1e6         # (ms)
-trw              = 1e5         # (ms) Time between reading input spikes/printing weights
-numhist          = 10          # Number of histograms between each weight printout
-label            = "bfstdp_bbl_" # Extra label for labelling output files
+tstop            = 1e7         # (ms)
+trw              = 1e6         # (ms) Time between reading input spikes/printing weights
+numhist          = 20          # Number of histograms between each weight printout
+label            = "bfstdp_"   # Extra label for labelling output files
 datadir          = ""          # Sub-directory of Data for writing output files
 tau_m            = 20          # Membrane time constant
 
@@ -82,10 +83,8 @@ def build_network():
     global conn, cellLayers
     
     sim.Timer.start()
-    sim.setup(min_delay=min_delay, debug=True, use_cvode=True)
-    #sim.hoc_execute(['nrn_load_dll("%s/i686/.libs/libnrnmech.so")' % os.getcwd()])
-    sim.hoc_execute(['xopen("intfire4nc.hoc")'])
-    # Input spike trains are implemented using NetStimVR2s.
+    sim.setup(min_delay=min_delay, debug=True)
+    
     print "Creating network layers (time %g s)" % sim.Timer.elapsedTime()
     
     TRANSFORMATIONS = {
@@ -108,10 +107,10 @@ def build_network():
         'transform': lambda x: TRANSFORMATIONS[funcstr](x, *k)
     }
     cellParams['Output'] = {
-        'taum':  tau_m,
-        'taue':  5,
-        'taui1': 10,
-        'taui2': 15
+        'v_rest'     : 0,     'cm'         : 3.18,   'tau_m'      : tau_m,
+        'tau_refrac' : 0.0,   'tau_syn_E'  : 5.0,    'tau_syn_I'  : 15.0,  
+        'i_offset'   : 0.0,   'v_reset'    : 0.0,    'v_thresh'   : 1.0,
+        'v_init'     : 0.0,
     }
     
     cellLayers = {}
@@ -119,7 +118,7 @@ def build_network():
     for layer in 'Input','Training':
         cellLayers[layer] = babble.BabblingPopulation(ncells, **cellParams[layer])
             
-    cellLayers['Output'] = sim.Population(ncells, "IntFire4nc", cellParams['Output'])
+    cellLayers['Output'] = sim.Population(ncells, sim.IF_curr_exp, cellParams['Output'])
     
     # Create synaptic connections
     print "Creating synaptic connections (time %g s)" % sim.Timer.elapsedTime()
@@ -140,32 +139,32 @@ def build_network():
         conn['IO'] = sim.Projection(cellLayers['Input'], cellLayers['Output'],
                                     method=sim.FromFileConnector("%s.connIO.conn" % infile),
                                     source="",
-                                    target="syn",
+                                    target="",
                                     synapse_dynamics=synapse_dynamics)
         conn['TO'] = sim.Projection(cellLayers['Training'], cellLayers['Output'],
                                     method=sim.FromFileConnector("%s.connTO.conn" % infile),
                                     source="",
-                                    target="syn",
+                                    target="",
                                     synapse_dynamics=None)
         if f_winhib != 0:
             filename = "%s.connOO.conn" % infile
             conn['OO'] = sim.Projection(cellLayers['Output'], cellLayers['Output'],
                                         method=sim.FromFileConnector(filename),
-                                        source="syn",
-                                        target="syn")
+                                        source="",
+                                        target="")
     else:         # or generate them according to the rules specified
         connector = sim.FixedProbabilityConnector(pconnect) # can you reuse a connector?
         conn['IO'] = sim.Projection(cellLayers['Input'], cellLayers['Output'],
                                     method=connector,
                                     source="",
-                                    target="syn",
+                                    target="",
                                     rng=rng,
                                     synapse_dynamics=synapse_dynamics)
         conn['IO'].randomizeWeights(initial_weight_distribution)
         conn['TO'] = sim.Projection(cellLayers['Training'], cellLayers['Output'],
                                     method=connector,
                                     source="",
-                                    target="syn",
+                                    target="",
                                     rng=rng,
                                     synapse_dynamics=None)
         set_training_weights(conn['TO'])
@@ -179,21 +178,23 @@ def build_network():
         if f_winhib != 0:
             conn['OO'] = Population(cellLayers['Output'], cellLayers['Output'],
                                     method=sim.AllToAllConnector(allow_self_connections=False),
-                                    source="syn",
-                                    target="syn")
+                                    source="",
+                                    target="")
             conn['OO'].setWeights(wmax*f_winhib)
     
     # Set background input
     background_input = sim.Population(cellLayers['Output'].dim, sim.SpikeSourcePoisson, {'rate': bgRate,
-                                                                                        'duration': tstop})
+                                                                                         'duration': tstop})
     background_connect = sim.Projection(background_input, cellLayers['Output'],
                                         method=sim.OneToOneConnector(weights=bgWeight),
-                                        target="syn")
+                                        target="")
 
     # Turn on recording of spikes
     if record_spikes:
         for layer in ('Input','Output','Training'):
             cellLayers[layer].record()
+    if record_v:
+        cellLayers['Output'].record_v(int(record_v))
 
     print "Finished set-up (time %g s)" % sim.Timer.elapsedTime()
 
@@ -240,6 +241,10 @@ def save_parameters(fileroot):
         lines += ['%-17s = "%s"' % (p, eval(p)) for p in ("infile",)]
     f.write("\n".join(lines))
     f.close()
+
+def print_v(fileroot):
+    for layer in ('Output',):
+        cellLayers[layer].print_v("%s.cell%s.v" % (fileroot,layer))
 
 def print_rasters(fileroot):
     for layer in ('Input','Output','Training'):
@@ -342,8 +347,6 @@ def print_weight_distribution(histfileobj):
 #  }
 #}
 
-
-
 # Procedures that run simulations ---------------------------------------------
 
 def run_training():
@@ -354,7 +357,6 @@ def run_training():
     cells are written to file at the end.
     """
     fileroot = get_fileroot()
-    ###on_StdwaSA = 1
     thist = int(trw/numhist)
     histfileobj = open("%s.connIO.whist" % fileroot, "w")
     save_parameters(fileroot)
@@ -407,6 +409,8 @@ def run_training():
     #}
     
     print_rasters(fileroot)
+    if record_v:
+        print_v(fileroot)
     
     histfileobj.close()
     print "Training complete. Time ", sim.Timer.elapsedTime()
@@ -417,10 +421,6 @@ def run_training():
 
 if __name__ == "__main__":
     build_network()
-    if hasattr(sim, 'h'):
-        sim.h.cvode.active(1)
-        sim.h.cvode.use_local_dt(1)         # The variable time step method must be used.
-        sim.h.cvode.condition_order(2)      # Improves threshold-detection.
     print "Running training ..."
     run_training()
 
