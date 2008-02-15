@@ -139,9 +139,11 @@ class IF_cond_exp_gsfa_grr(common.IF_cond_exp_gsfa_grr):
                                                               # values for not-specified parameters.
         self.parameters = self.translate1(self.parameters)
 
+
 class IF_cond_exp_sfa_rr(IF_cond_exp_gsfa_grr):
     """Deprecated: Use the equivalent type 'IF_cond_exp_gsfa_grr' instead."""
     pass
+
 
 class IF_facets_hardware1(common.IF_facets_hardware1):
     """Leaky integrate and fire model with conductance-based synapses and fixed 
@@ -162,6 +164,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('g_leak',     'g_L'),
+        ('v_init',     'V_m'),
     )
     nest_name = "iaf_cond_exp_sfa_rr"
 
