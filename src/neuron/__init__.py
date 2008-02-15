@@ -52,20 +52,26 @@ class ID(common.ID):
     
     def __getattr__(self,name):
         """Note that this currently does not translate units."""
+        # First we build a dictionary containing the hoc parameter names and values
         if type(self.cellclass) == type and issubclass(self.cellclass, common.StandardCellType):
-            translated_name = self.cellclass.translations[name]['translated_name']
+            hoc_values = {}
+            for trans_dict in self.cellclass.translations.values():
+                hoc_values[trans_dict['translated_name']] = None
         else:
-            translated_name = name
+            hoc_values[name] = None
+        
         if self.hocname:
-            return HocToPy.get('%s.%s' % (self.hocname, translated_name),'float')
-            #print self.hocname
-            #print self.hocname.split('.')
-            #cell = reduce(getattr, [h] + self.hocname.split('.'))
-            #return getattr(cell, translated_name)
+            cell_name = self.hocname
         else:
-            #return HocToPy.get('cell%d.%s' % (int(self), translated_name),'float')
-            cell = getattr(h, 'cell%d' % int(self))
-            return getattr(cell, translated_name)
+            cell_name = "cell%d" % int(self)
+        
+        for hoc_name in hoc_values.keys():
+            try:
+                hoc_values[hoc_name] = HocToPy.get('%s.%s' % (cell_name, hoc_name), 'float')
+            except HocError:
+                hoc_values[hoc_name] = HocToPy.get('%s.source.%s' % (cell_name, hoc_name), 'float')
+        # Now we apply the reverse transform
+        return eval(self.cellclass.translations[name]['reverse_transform'], {}, hoc_values)
     
     def setParameters(self,**parameters):
         # We perform a call to the low-level function set() of the API.
@@ -450,7 +456,8 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
                         raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src)
                     else:
                         if p >= 1.0 or rarr[j] < p: # might be more efficient to vectorise the latter comparison
-                            hoc_commands += ['nc = pc.gid_connect(%d,pc.gid2cell(%d).%s)' % (src,tgt,syn_objref),
+                            hoc_commands += [#'nc = pc.gid_connect(%d,pc.gid2cell(%d).%s)' % (src,tgt,syn_objref),
+                                             'nc = pc.gid_connect(%d, cell%d.%s)' % (src,tgt,syn_objref),
                                              'nc.delay = %g' % delay,
                                              'nc.weight = %g' % weight,
                                              'tmp = netconlist.append(nc)']
