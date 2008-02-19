@@ -198,7 +198,10 @@ def _set_connection(source_id, target_id, synapse_type, **parameters):
             raise common.RoundingWarning("delays rounded to the precision of the timestep.")
         else:
             raise common.ConnectionError("Invalid parameter value(s): %(parameters)s [%(input_values)s != %(output_values)s]" % locals())
-        
+
+NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
+                      "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse"]
+
 def _get_connection(source_id, target_id, synapse_type, *parameter_names):
     conn_dict = nest.GetConnection([source_id], synapse_type, target_id)
     if isinstance(conn_dict, dict):
@@ -207,9 +210,15 @@ def _get_connection(source_id, target_id, synapse_type, *parameter_names):
         else:
             return [conn_dict[p] for p in parameter_names]
     else:
-        raise common.ConnectionError("Invalid source_id (%(source_id)s), target_id (%(target_id)s), synapse_type(%(synapse_type)s) or parameter names (%(parameter_names)s)"
- % locals())
-    
+        assert synapse_type in NEST_SYNAPSE_TYPES, "Invalid synapse type: '%s'" % synapse_type
+        conn_dict = nest.GetConnections([source_id], synapse_type)[0]
+        if isinstance(conn_dict, dict): # valid dict returned, so target_id must be the problem
+            raise common.ConnectionError("Invalid target_id (%s). Valid target_ids for source_id=%s are: %s" % (target_id, source_id, range(len(conn_dict['weights']))))
+        elif isinstance(conn_dict, basestring):
+            raise common.ConnectionError("Invalid source_id (%s) or target_id (port) (%s)" % (source_id, target_id))
+        else:
+            raise Exception("Internal error: type(conn_dict) == %s" % type(conn_dict))
+
 def is_number(n):
     return type(n) == types.FloatType or type(n) == types.IntType or type(n) == numpy.float64
 
@@ -319,6 +328,11 @@ def end(compatible_output=True):
 def run(simtime):
     """Run the simulation for simtime ms."""
     nest.Simulate(simtime)
+    return current_time()
+
+def current_time():
+    """Return the current time in the simulation."""
+    return nest.GetStatus([0])[0]['time']
 
 def setRNGseeds(seedList):
     """Globally set rng seeds."""
@@ -1052,6 +1066,7 @@ class Projection(common.Projection, WDManager):
         self._targets = []     # holds gids
         self._sources = []     # holds gids
         self.synapse_type = target
+        self._method = method
         
         if isinstance(method, str):
             connection_method = getattr(self,'_%s' % method)   
@@ -1193,26 +1208,6 @@ class Projection(common.Projection, WDManager):
             self._targets.append(tgt)
             self._targetPorts.append(tgt)
 
-            
-
-    def _test_delay(self,params):
-        # debug get delays from outside
-        #delay_array = parameters['delays_array']
-        #weight_array = parameters['weights_array']
-        #target_id = parameters['target_id']
-        #pre_id = parameters['pre_id']
-        print 'inside test_delay'
-        print 'delays ',params['delays_array']
-        print 'weights ',params['weights_array']
-        print 'pre_id ',params['pre_id']
-        print 'target_id ',params['target_id']
-        eval(params['eval_string'])
-        #cons=nest.divConnect(params['pre_id'],params['target_id'],params['weights_array'].tolist(),params['delays_array'].tolist())
-        #nest.divConnect(pre_id,target_id,weight_array.tolist(),delay_array.tolist())
-        print 'leaving test_delay'
-        
-
-
     
     # --- Methods for setting connection parameters ----------------------------
     
@@ -1293,8 +1288,18 @@ class Projection(common.Projection, WDManager):
     
     # --- Methods for writing/reading information to/from file. ---------------- 
     
-    def _get_connection_values(self, format, parameter_name):
-        assert format in ('list', 'array')
+    def _dump_connections(self):
+        """For debugging."""
+        print "Connections for Projection %s, connected with %s" % (self.label or '(un-labelled)', self._method)
+        print "\tsource\ttarget\tport"
+        for conn in zip(self._sources, self._targets, self._targetPorts):
+            print "\t%d\t%d\t%d" % conn
+        print "Connection data for the presynaptic population (%s)" % self.pre.label
+        for src in self.pre.cell.flat:
+            print src, nest.GetConnections([src], 'static_synapse')
+    
+    def _get_connection_values(self, format, parameter_name, gather):
+        assert format in ('list', 'array'), "`format` is '%s', should be one of 'list', 'array'" % format
         if format == 'list':
             values = []
             for src, port in self.connections():
@@ -1308,13 +1313,13 @@ class Projection(common.Projection, WDManager):
                 values[src-self.pre.id_start, tgt-self.post.id_start] = v
         return values
     
-    def getWeights(self, format='list'):
+    def getWeights(self, format='list', gather=True):
         """
         Possible formats are: a list of length equal to the number of connections
         in the projection, a 2D weight array (with zero or None for non-existent
         connections).
         """
-        weights = self._get_connection_values(format, 'weight')
+        weights = self._get_connection_values(format, 'weight', gather)
         # change of units
         if format == 'list':
             weights = [0.001*w for w in weights]
@@ -1322,13 +1327,13 @@ class Projection(common.Projection, WDManager):
             weights *= 0.001
         return weights
         
-    def getDelays(self, format='list'):
+    def getDelays(self, format='list', gather=True):
         """
         Possible formats are: a list of length equal to the number of connections
         in the projection, a 2D delay array (with None or 1e12 for non-existent
         connections).
         """
-        return self._get_connection_values(format, 'delay')
+        return self._get_connection_values(format, 'delay', gather)
         
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
@@ -1352,7 +1357,7 @@ class Projection(common.Projection, WDManager):
     
     def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""
-        weights = self.getWeights(format=format)
+        weights = self.getWeights(format=format, gather=gather)
         f = open(filename,'w',10000)
         if format == 'list':
             f.write("\n".join([str(w) for w in weights]))
@@ -1371,7 +1376,8 @@ class Projection(common.Projection, WDManager):
         """
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
-        raise Exception("Method not yet implemented")
+        bins = numpy.arange(min, max, (max-min)/nbins)
+        return numpy.histogram(self.getWeights(format='list', gather=True), bins) # returns n, bins
 
 
 # ==============================================================================

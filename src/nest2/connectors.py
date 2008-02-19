@@ -60,7 +60,7 @@ class OneToOneConnector(common.OneToOneConnector, WDManager):
             projection._sources = projection.pre.cell.flatten()
             projection._targets = projection.post.cell.flatten()
             N = len(projection._sources)
-            projection._targetPorts = range(N)
+            projection._targetPorts = [get_target_ports(pre, [None])[0] for pre in projection._sources]
             if isinstance(weight, RandomDistribution):
                 weights = list(weight.next(N))
             else:
