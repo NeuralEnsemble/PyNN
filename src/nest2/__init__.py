@@ -8,6 +8,7 @@ __version__ = "$Rev:188 $"
 import nest
 from pyNN import common
 from pyNN.random import *
+from pyNN import recording
 import numpy, types, sys, shutil, os, logging, copy, tempfile
 from math import *
 from pyNN.nest2.cells import *
@@ -475,111 +476,11 @@ def record_v(source, filename):
     # choose later whether to write to a file.
     _record('v', source, filename) 
 
-def _print(user_filename, gather=True, compatible_output=True, population=None, variable=None):
-    global recorder_dict
-    
-    if population is None:
-        recorder = recorder_dict[user_filename]
-    else:
-        assert variable in ['spikes', 'v', 'conductance']
-        recorder = population.recorders[variable]
-    
-    #print "Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder, compatible_output)
-    
-    nest.FlushDevice(recorder) 
-    status = nest.GetStatus([0])[0]
-    local_num_threads = status['local_num_threads']
-    node_list = range(nest.GetStatus([0], "num_processes")[0])
-    
-    # First combine data from different threads
-    os.system("rm -f %s" % user_filename+'_%d'%nest.Rank())
-    for nest_thread in range(local_num_threads):
-        nest.sps(recorder[0])
-        nest.sr("%i GetAddress %i append" % (recorder[0], nest_thread))
-        nest.sr("GetStatus /filename get")
-        nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
-        merged_filename = "%s/%s_%d" % (os.path.dirname(nest_filename), user_filename, nest.Rank())
-        system_line = 'cat %s >> %s' % (nest_filename, merged_filename) 
-        #print system_line
-        os.system(system_line)
-        os.remove(nest_filename)
-    if gather and len(node_list) > 1:
-        nest.sps(recorder[0])
-        nest.sr("GetStatus /filename get")
-        nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
-        if nest.Rank() == 0: # only on the master node (?)
-            for node in node_list:
-                merged_filename = "%s/%s_%d" % (os.path.dirname(nest_filename), user_filename, node)
-                system_line = 'cat %s >> %s' % (nest_filename, merged_filename)
-                #print system_line
-                os.system(system_line)
-                os.remove(nest_filename)
-   
-    if compatible_output:
-        if gather == False or nest.Rank() == 0: # if we gather, only do this on the master node
-            logging.info("Writing %s in compatible format." % user_filename)
-            
-            # Here we postprocess the file to have effectively the
-            # desired format: spiketime (in ms) cell_id-min(cell_id)
-            #if not os.path.exists(user_filename):
-            result = open(user_filename,'w',10000)
-            #else:
-            #    result = open(user_filename,'a',1000)
-                
-            ## Writing header info (e.g., dimensions of the population)
-            if population is not None:
-                result.write("# dimensions =" + "\t".join([str(d) for d in population.dim]) + "\n")
-                result.write("# first_id = %d\n" % population.cell[0])
-                result.write("# last_id = %d\n" % population.cell[-1])
-                padding = population.cell.flatten()[0]
-            else:
-                padding = 0
-            result.write("# dt = %g\n" % dt)
-                            
-            # Writing spiketimes, cell_id-min(cell_id)
-                 
-            # (Pylab has a great load() function, but it is not necessary to import
-            # it into pyNN. The fromfile() function of numpy has trouble on several
-            # machine with Python 2.5, so that's why a dedicated _readArray function
-            # has been created to load from file the raster or the membrane potentials
-            # saved by NEST).
-                    
-            # open file
-            if int(os.path.getsize(merged_filename)) > 0:
-                data = _readArray(merged_filename, sepchar=None)
-                data[:,0] = data[:,0] - padding
-                # sort
-                #indx = data.argsort(axis=0, kind='mergesort')[:,0] # will quicksort (not stable) work?
-                #data = data[indx]
-                if data.shape[1] == 4: # conductance files
-                    raise Exception("Not yet implemented")
-                elif data.shape[1] == 3: # voltage files
-                    result.write("# n = %d\n" % int(nest.GetStatus([0], "time")[0]/dt))
-                    for idx in xrange(len(data)):
-                        result.write("%g\t%d\n" % (data[idx][2], data[idx][0])) # v id
-                elif data.shape[1] == 2: # spike files
-                    for idx in xrange(len(data)):
-                        result.write("%g\t%d\n" % (data[idx][1], data[idx][0])) # time id
-                else:
-                    raise Exception("Data file should have 2,3 or 4 columns, actually has %d" % data.shape[1])
-            else:
-                logging.info("%s is empty" % merged_filename)
-            result.close()
-
-    if population is None:
-        recorder_dict.pop(user_filename)    
-
-def _get(population=None, variable=None):
-    global recorder_dict
-
-    if population is None:
-        recorder = recorder_dict[user_filename]
-    else:
-        assert variable in ['spikes', 'v', 'conductance']
-        recorder = population.recorders[variable]
-
-    #print "Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder, compatible_output)
-
+def _merge_files(recorder, gather):
+    """
+    Combine data from multiple files (one per thread and per process) into a single file.
+    Returns the filename of the merged file.
+    """
     nest.FlushDevice(recorder)
     status = nest.GetStatus([0])[0]
     local_num_threads = status['local_num_threads']
@@ -589,64 +490,62 @@ def _get(population=None, variable=None):
     nest.sps(recorder[0])
     nest.sr("%i GetAddress %i append" % (recorder[0], 0))
     nest.sr("GetStatus /filename get")
-    base_filename = nest.spp() #nest.GetStatus(recorder, "filename")
+    merged_filename = nest.spp() #nest.GetStatus(recorder, "filename")
 
-    if local_num_threads>1:
+    if local_num_threads > 1:
         for nest_thread in range(1,local_num_threads):
             nest.sps(recorder[0])
             nest.sr("%i GetAddress %i append" % (recorder[0], nest_thread))
             nest.sr("GetStatus /filename get")
             nest_filename = nest.spp() #nest.GetStatus(recorder, "filename")
-            system_line = 'cat %s >> %s' % (nest_filename, base_filename)
+            system_line = 'cat %s >> %s' % (nest_filename, merged_filename)
             os.system(system_line)
             os.remove(nest_filename)
+    if gather and len(node_list) > 1:
+        raise Exception("gather not yet implemented")
+    return merged_filename
 
-    # now we have the merged_filename
-
-    if population is not None:
-        padding = population.cell.flatten()[0]
+def _print(user_filename, gather=True, compatible_output=True, population=None, variable=None):
+    global recorder_dict
+    
+    if population is None:
+        recorder = recorder_dict[user_filename]
     else:
-        padding = 0
+        assert variable in ['spikes', 'v', 'conductance']
+        recorder = population.recorders[variable]
+    
+    logging.info("Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder, compatible_output))
+    nest_filename = _merge_files(recorder, gather)
+              
+    if compatible_output:
+        if gather == False or nest.Rank() == 0: # if we gather, only do this on the master node
+           recording.write_compatible_output(nest_filename, user_filename, population)
+    else:
+        os.system("cat %s > %s" % nest_filename, user_filename)
+    
+    os.remove(nest_filename)
+    if population is None:
+        recorder_dict.pop(user_filename)    
 
+def _get_recorded_data(population, variable=None):
+    global recorder_dict
 
-    data = _readArray(base_filename, sepchar=None)
-    os.remove(base_filename)
-
+    assert variable in ['spikes', 'v', 'conductance']
+    recorder = population.recorders[variable]
+        
+    nest_filename = _merge_files(recorder)
+    data = recording.readArray(nest_filename, sepchar=None)
+    os.remove(nest_filename)
+    
     if data.size > 0:
+        if population is not None:
+            padding = population.cell.flatten()[0]
+        else:
+            padding = 0
         data[:,0] = data[:,0] - padding
         
     return data
 
-
-def _readArray(filename, sepchar=None, skipchar='#'):
-    logging.debug(filename)
-    myfile = open(filename, "r")
-    contents = myfile.readlines()
-    myfile.close()
-    logging.debug(contents)
-    data = []
-    for line in contents:
-        stripped_line = line.lstrip()
-        if (len(stripped_line) != 0):
-            if (stripped_line[0] != skipchar):
-                items = stripped_line.split(sepchar)
-                #if len(items) != 3:
-                #    print stripped_line
-                #    print items
-                #    raise Exception()
-                data.append(map(float, items))
-    #try :
-    a = numpy.array(data)
-    #except Exception:
-    #    raise
-        # The last line has just a gid, so we have to remove it
-        #a = numpy.array(data[0:len(data)-2])
-
-    if a.size > 0:
-        (Nrow,Ncol) = a.shape
-        logging.debug(str(a.shape))
-        if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
-    return a
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -969,7 +868,7 @@ class Population(common.Population):
         NOTE: getSpikes or printSpikes should be called only once per run,
         because they mangle simulator recorder files.
         """
-        return _get(population=self, variable="spikes")
+        return _get_recorded_data(population=self, variable="spikes")
     
     def meanSpikeCount(self, gather=True):
         """
