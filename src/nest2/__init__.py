@@ -13,7 +13,7 @@ import numpy, types, sys, shutil, os, logging, copy, tempfile
 from math import *
 from pyNN.nest2.cells import *
 from pyNN.nest2.connectors import *
-
+#from pyNN.nest2.synapses import *
 
 recorder_dict  = {}
 tempdirs       = []
@@ -335,6 +335,9 @@ def current_time():
     """Return the current time in the simulation."""
     return nest.GetStatus([0])[0]['time']
 
+def get_time_step():
+    return nest.GetStatus([0])[0]['resolution']
+
 def setRNGseeds(seedList):
     """Globally set rng seeds."""
     nest.SetStatus([0],{'rng_seeds': seedList})
@@ -519,7 +522,7 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
               
     if compatible_output:
         if gather == False or nest.Rank() == 0: # if we gather, only do this on the master node
-           recording.write_compatible_output(nest_filename, user_filename, population)
+           recording.write_compatible_output(nest_filename, user_filename, population, get_time_step())
     else:
         os.system("cat %s > %s" % nest_filename, user_filename)
     

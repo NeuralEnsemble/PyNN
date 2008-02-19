@@ -1,6 +1,13 @@
+"""
+Defines classes and functions for managing recordings (spikes, membrane
+potential etc).
+$Id$
+"""
 
 import tempfile
-
+import logging
+import os.path
+import numpy
 
 class RecordingManager(object):
     
@@ -33,7 +40,7 @@ class RecordingManager(object):
         pass
 
 
-def write_compatible_output(sim_filename, user_filename, population):
+def write_compatible_output(sim_filename, user_filename, population, dt):
     """
     Rewrite simulation data in a standard format:
         spiketime (in ms) cell_id-min(cell_id)
@@ -45,7 +52,7 @@ def write_compatible_output(sim_filename, user_filename, population):
     if population is not None:
         result.write("# dimensions =" + "\t".join([str(d) for d in population.dim]) + "\n")
         result.write("# first_id = %d\n" % population.id_start)
-        result.write("# last_id = %d\n" % (population.is_start+len(population),))
+        result.write("# last_id = %d\n" % (population.id_start+len(population),))
         padding = population.id_start
     else:
         padding = 0
@@ -94,18 +101,8 @@ def readArray(filename, sepchar=None, skipchar='#'):
         if (len(stripped_line) != 0):
             if (stripped_line[0] != skipchar):
                 items = stripped_line.split(sepchar)
-                #if len(items) != 3:
-                #    print stripped_line
-                #    print items
-                #    raise Exception()
                 data.append(map(float, items))
-    #try :
     a = numpy.array(data)
-    #except Exception:
-    #    raise
-        # The last line has just a gid, so we have to remove it
-        #a = numpy.array(data[0:len(data)-2])
-
     if a.size > 0:
         (Nrow,Ncol) = a.shape
         logging.debug(str(a.shape))

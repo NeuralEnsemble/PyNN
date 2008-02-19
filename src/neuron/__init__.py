@@ -377,7 +377,14 @@ def run(simtime):
                      #'print "tstop     = ", tstop',
                      'tmp = pc.psolve(tstop)']
     hoc_execute(hoc_commands,"--- run() ---")
+    return current_time()
+
+def current_time():
+    """Return the current time in the simulation."""
     return h.t
+
+def get_time_step():
+    return h.dt
 
 def setRNGseeds(seedList):
     """Globally set rng seeds."""
@@ -1578,10 +1585,31 @@ class Projection(common.Projection):
     
     # --- Methods for writing/reading information to/from file. ----------------
     
-    def weights(self, gather=False):
-        """Not in the API, but should be."""
-        #return [HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float') for i in range(len(self))]
-        return [getattr(h, self.hoc_label).object(i).weight[0] for i in range(len(self))]
+    def getWeights(self, format='list', gather=True):
+        """
+        Possible formats are: a list of length equal to the number of connections
+        in the projection, a 2D weight array (with zero or None for non-existent
+        connections).
+        """
+        assert format in ('list', 'array'), "`format` is '%s', should be one of 'list', 'array'" % format
+        if format == 'list':
+            values = [getattr(h, self.hoc_label).object(i).weight[0] for i in range(len(self))]
+        elif format == 'array':
+            raise Exception("Not yet implemented")
+        return values
+        
+    def getDelays(self, format='list', gather=True):
+        """
+        Possible formats are: a list of length equal to the number of connections
+        in the projection, a 2D delay array (with None or 1e12 for non-existent
+        connections).
+        """
+        assert format in ('list', 'array'), "`format` is '%s', should be one of 'list', 'array'" % format
+        if format == 'list':
+            values = [getattr(h, self.hoc_label).object(i).delay for i in range(len(self))]
+        elif format == 'array':
+            raise Exception("Not yet implemented")
+        return values
     
     def saveConnections(self,filename,gather=False):
         """Save connections to file in a format suitable for reading in with the
@@ -1601,7 +1629,7 @@ class Projection(common.Projection):
             f.write(line)
         f.close()
     
-    def printWeights(self,filename,format=None,gather=True):
+    def printWeights(self,filename,format='list',gather=True):
         """Print synaptic weights to file."""
         global myid
         
@@ -1612,6 +1640,7 @@ class Projection(common.Projection):
         # Here we have to deal with the gather options. If we gather, then each
         # slave node posts its list of weights to the master node.
         if gather and myid !=0:
+            if format == 'array': raise Exception("Gather not implemented for 'array'.")
             hoc_commands += ['weight_list = new Vector()']
             for i in xrange(len(self)):
                 #weight = HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
@@ -1625,60 +1654,24 @@ class Projection(common.Projection):
                 f = filename
             else:
                 f = open(filename,'w',10000)
-            for i in xrange(len(self)):
-                #weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
-                weight = getattr(h, self.hoc_label).object(i).weight[0]
-                f.write("%f\n" % weight)
-            if gather:
-                for id in range (1, nhost):
-                    hoc_commands = ['weight_list = new Vector()']       
-                    hoc_commands += ['tmp = pc.take("%s.weight_list.node[%d]", weight_list)' %(self.hoc_label, id)]
-                    hoc_execute(hoc_commands)                
-                    #for j in xrange(HocToPy.get('weight_list.size()', 'int')):
-                    for j in xrange(int(h.weight_list.size)):
-                        #weight = "%f\n" %HocToPy.get('weight_list.x[%d]' %j, 'float')
-                        weight = h.weight_list.x[j]
-                        f.write("%f\n" % weight)
-            if not hasattr(filename, 'write'):
-                f.close()
-                
-    def printWeights1(self,filename,format=None,gather=True):
-        """Print synaptic weights to file."""
-        global myid
-        
-        hoc_execute(['objref weight_list'])
-        hoc_commands = [] 
-        hoc_comment("--- Projection[%s].__printWeights__() ---" %self.label)
-        
-        # Here we have to deal with the gather options. If we gather, then each
-        # slave node posts its list of weights to the master node.
-        if gather and myid !=0:
-            raise Exception("Not implemented.")
-            hoc_commands += ['weight_list = new Vector()']
-            for i in xrange(len(self)):
-                #weight = HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
-                weight = getattr(h, self.hoc_label).object(i).weight[0]
-                hoc_commands += ['weight_list = weight_list.append(%f)' % weight]
-            hoc_commands += ['tmp = pc.post("%s.weight_list.node[%d]", weight_list)' %(self.hoc_label, myid)]
-            hoc_execute(hoc_commands, "--- [Posting weights list to master] ---")
-
-        if not gather or myid == 0:
-            if hasattr(filename, 'write'): # filename should be renamed to file, to allow open file objects to be used
-                f = filename
+            if format == 'list':
+                for i in xrange(len(self)):
+                    #weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
+                    weight = getattr(h, self.hoc_label).object(i).weight[0]
+                    f.write("%f\n" % weight)
+            elif format == 'array':
+                weights = numpy.zeros((len(self.pre),len(self.post)), 'float')
+                fmt = "%g "*len(self.post) + "\n"
+                for i in xrange(len(self)):
+                    weight = getattr(h, self.hoc_label).object(i).weight[0]
+                    weights[self.connections[i][0]-self.pre.gid_start,
+                            self.connections[i][1]-self.post.gid_start] = weight
+                for row in weights:
+                    f.write(fmt % tuple(row))
             else:
-                f = open(filename,'w',10000)
-            weights = numpy.zeros((len(self.pre),len(self.post)), 'float')
-            fmt = "%g "*len(self.post) + "\n"
-            for i in xrange(len(self)):
-            #    #weight = "%f\n" %HocToPy.get('%s.object(%d).weight' % (self.hoc_label,i),'float')
-                weight = getattr(h, self.hoc_label).object(i).weight[0]
-                weights[self.connections[i][0]-self.pre.gid_start,
-                        self.connections[i][1]-self.post.gid_start] = weight
-            #    f.write("%d\t%d\t%f\n" % (self.connections[i][0], self.connections[i][1], weight))
-            for row in weights:
-                f.write(fmt % tuple(row))
+                raise Exception("Valid formats are 'list' and 'array'")
             if gather:
-                if nhost > 1: raise Exception("Not implemented.")
+                if format == 'array' and nhost > 1: raise Exception("Gather not implemented for array format.")
                 for id in range (1, nhost):
                     hoc_commands = ['weight_list = new Vector()']       
                     hoc_commands += ['tmp = pc.take("%s.weight_list.node[%d]", weight_list)' %(self.hoc_label, id)]
@@ -1700,7 +1693,7 @@ class Projection(common.Projection):
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
         bins = numpy.arange(min, max, (max-min)/nbins)
-        return numpy.histogram(self.weights(), bins) # returns n, bins
+        return numpy.histogram(self.getWeights(), bins) # returns n, bins
     
 # ==============================================================================
 #   Utility classes
