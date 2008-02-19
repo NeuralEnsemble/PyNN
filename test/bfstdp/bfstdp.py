@@ -25,7 +25,10 @@ Based on an original NEURON model, see:
 
 import sys
 import datetime
-import pyNN.neuron as sim
+assert len(sys.argv) > 1, "Must provide simulator as argument"
+simulator = sys.argv[-1]
+#import pyNN.nest2 as sim
+exec("import pyNN.%s as sim" % simulator)
 import pyNN.random as random
 from numpy import exp, cos, pi, sin, arcsin
 import numpy
@@ -41,7 +44,7 @@ pconnect         = 1.0         # Connection probability
 wmax             = 0.02        # Maximum synaptic weight
 f_winhib         = 0.0         # Inhibitory weight = f_winhib*wmax (fixed)
 f_wtr            = 1.0         # Max training weight = f_wtr*wmax
-min_delay        = 1e-13       # Non-zero minimum synaptic delay
+min_delay        = 0.1         # Non-zero minimum synaptic delay
 syndelay         = 0           # Synaptic delay relative to min_delay
 tauLTP           = 20          # (ms) Time constant for LTP
 tauLTD           = 20          # (ms) Time constant for LTD
@@ -185,9 +188,9 @@ def build_network():
 # Utility procedures ----------------------------------------------------------
 
 def get_fileroot():
-    global datadir, label, funcstr
+    global datadir, label, funcstr, simulator
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    fileroot = "Data/%s/%s%s" % (datadir, label, funcstr)
+    fileroot = "Data/%s/%s_%s_%s" % (datadir, label, simulator, funcstr)
     for param in k:
         fileroot += "-%3.1f" % param
     fileroot += "_%s" % timestamp
@@ -235,7 +238,8 @@ def print_rasters(fileroot):
         cellLayers[layer].printSpikes("%s.cell%s.ras" % (fileroot,layer))
 
 def print_weights(fileroot, projection_label):
-    conn[projection_label].printWeights1("%s.conn%s.w" % (fileroot, projection_label))
+    conn[projection_label].printWeights("%s.conn%s.w" % (fileroot, projection_label),
+                                        format='array')
 
 def save_connections(fileroot):
      for projection_label in conn.keys():

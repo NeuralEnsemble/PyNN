@@ -13,7 +13,7 @@ import numpy, types, sys, shutil, os, logging, copy, tempfile
 from math import *
 from pyNN.nest2.cells import *
 from pyNN.nest2.connectors import *
-#from pyNN.nest2.synapses import *
+from pyNN.nest2.synapses import *
 
 recorder_dict  = {}
 tempdirs       = []
@@ -125,11 +125,11 @@ class WDManager(object):
 
 class Connection(object):
     
-    def __init__(self, pre, post):
+    def __init__(self, pre, post, synapse_model):
         self.pre = pre
         self.post = post
         try:
-            conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+            conn_dict = nest.GetConnections([pre], synapse_model)[0] 
         except Exception:
             raise common.ConnectionError
         if (len(conn_dict['targets']) == 0):
@@ -145,7 +145,7 @@ class Connection(object):
     def _get_weight(self):
         # this needs to be modified to take account of threads
         # also see nest.GetConnection (was nest.GetSynapseStatus)
-        conn_dict = nest.GetConnections([self.pre],'static_synapse')[0]
+        conn_dict = nest.GetConnections([self.pre], synapse_model)[0] 
         if conn_dict:
             return conn_dict['weights'][self.port]
         else:
@@ -227,18 +227,17 @@ def is_number(n):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
+def setup(timestep=0.1,min_delay=0.1,max_delay=10.0,debug=False,**extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    #if min_delay > max_delay:
-    #    raise Exception("min_delay has to be less than or equal to max_delay.")
     global dt
     global tempdir
     global _min_delay
     global _max_delay
+    assert min_delay >= timestep, "min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep)
     #global hl_spike_files, hl_v_files
     dt = timestep
     _min_delay = min_delay
@@ -248,14 +247,6 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     nest.ResetKernel()
     # clear the sli stack, if this is not done --> memory leak cause the stack increases
     nest.sr('clear')
-
-#    # check if hl_spike_files , hl_v_files are empty
-#    if not len(hl_spike_files) == 0:
-#        print 'hl_spike_files still contained files, please close all open files before setup'
-#        hl_spike_files = {}
-#    if not len(hl_v_files) == 0:
-#        print 'hl_v_files still contained files, please close all open files before setup'
-#        hl_v_files = {}
     
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
@@ -265,10 +256,9 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     # set resolution
     nest.SetStatus([0], {'resolution': dt})
     
-    # Should be corrected and fixed. Should be done for all synapse type
-    #nest.SetSynapseDefaults('static_synapse',{'delay': min_delay, 'min_delay': min_delay,
-    #'max_delay' : max_delay})
-    #nest.SetSynapseDefaults('static_synapse',{'delay': min_delay})
+    # Set min_delay and max_delay for all synapse models
+    for synapse_model in NEST_SYNAPSE_TYPES:
+        nest.SetSynapseDefaults(synapse_model, {'delay': _min_delay, 'min_delay': _min_delay, 'max_delay': _max_delay})
     
     if extra_params.has_key('threads'):
         if extra_params.has_key('kernelseeds'):
@@ -394,7 +384,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
             nest.ConnectWD([source],[target],[weight],[delay])
-            connect_id = Connection(source, target)
+            connect_id = Connection(source, target,'static_synapse')
         else:
             connect_id = []
             if type(source) != types.ListType:
@@ -410,7 +400,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
                 for j,tgt in enumerate(target):
                     if p >= 1 or rarr[j] < p:
                         nest.ConnectWD([src],[tgt],[weight],[delay])
-                        connect_id += [Connection(src,tgt)]
+                        connect_id += [Connection(src,tgt,'static_synapse')]
     #except nest.SLIError:
     except Exception: # unfortunately, SLIError seems to have disappeared.Hopefully it will be reinstated.
         raise common.ConnectionError
@@ -969,16 +959,40 @@ class Projection(common.Projection, WDManager):
         self._sources = []     # holds gids
         self.synapse_type = target
         self._method = method
+        if self._plasticity_model is None:
+            self._plasticity_model = "static_synapse"
         
+        # Set synaptic plasticity parameters    
+        original_synapse_context = nest.GetSynapseContext()
+        nest.SetSynapseContext(self._plasticity_model)
+        
+        if self._stdp_parameters:
+            # NEST does not support w_min != 0
+            self._stdp_parameters.pop("w_min_always_zero_in_NEST")
+            # Tau_minus is a parameter of the post-synaptic cell, not of the connection
+            tau_minus = self._stdp_parameters.pop("Tau_minus")
+            nest.SetStatus(self.post.cell_local, [{'Tau_minus': tau_minus}])
+            
+            synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
+            synapse_defaults.update(self._stdp_parameters)
+            nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)
+        
+        # Create connections
         if isinstance(method, str):
             connection_method = getattr(self,'_%s' % method)   
             self.nconn = connection_method(methodParameters)
         elif isinstance(method,common.Connector):
             self.nconn = method.connect(self)
-
-        #assert len(self._sources) == len(self._targets) == len(self._targetPorts), "Connection error. Source and target lists are of different lengths."
-        self.connection = Projection.ConnectionDict(self)
-    
+        
+        # Reset synapse context.
+        # This is needed because low-level API does not support synapse dynamics
+        # for now. We don't just reset to 'static_synapse' in case the user has
+        # made a direct call to nest.SetSynapseContext()
+        nest.SetSynapseContext(original_synapse_context) 
+        
+        # Define a method to access individual connections
+        self.connection = Projection.ConnectionDict(self)            
+        
     def __len__(self):
         """Return the total number of connections."""
         return len(self._sources)
@@ -1116,13 +1130,13 @@ class Projection(common.Projection, WDManager):
     def _set_connection_values(self, name, value):
         if is_number(value):
             for src,port in self.connections():
-                _set_connection(src, port, 'static_synapse', **{name: value})
+                _set_connection(src, port, self._plasticity_model, **{name: value})
         elif isinstance(value,list) or isinstance(value, numpy.ndarray):
             # this is probably not the most efficient way - should sort by src and then use SetConnections?
             assert len(value) == len(self)
             for (src,port),v in zip(self.connections(), value):
                 try:
-                    _set_connection(src, port, 'static_synapse', **{name: v})
+                    _set_connection(src, port, self._plasticity_model, **{name: v})
                 except common.RoundingWarning:
                     logging.warning("Rounding occurred when setting %s to %s" % (name, v))
         else:
@@ -1167,26 +1181,7 @@ class Projection(common.Projection, WDManager):
         # This is a bit tricky, because in NEST the spike threshold is a
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
-        raise Exception("Method deprecated")
-    
-    
-    # --- Methods relating to synaptic plasticity ------------------------------
-    
-    def setupSTDP(self,stdp_model,parameterDict):
-        """Set-up STDP."""
-        raise Exception("Method deprecated")
-    
-    def toggleSTDP(self,onoff):
-        """Turn plasticity on or off."""
-        raise Exception("Method deprecated")
-    
-    def setMaxWeight(self,wmax):
-        """Note that not all STDP models have maximum or minimum weights."""
-        raise Exception("Method deprecated")
-    
-    def setMinWeight(self,wmin):
-        """Note that not all STDP models have maximum or minimum weights."""
-        raise Exception("Method deprecated")
+        raise Exception("Method deprecated")      
     
     # --- Methods for writing/reading information to/from file. ---------------- 
     
@@ -1198,18 +1193,18 @@ class Projection(common.Projection, WDManager):
             print "\t%d\t%d\t%d" % conn
         print "Connection data for the presynaptic population (%s)" % self.pre.label
         for src in self.pre.cell.flat:
-            print src, nest.GetConnections([src], 'static_synapse')
+            print src, nest.GetConnections([src], self._plasticity_model)
     
     def _get_connection_values(self, format, parameter_name, gather):
         assert format in ('list', 'array'), "`format` is '%s', should be one of 'list', 'array'" % format
         if format == 'list':
             values = []
             for src, port in self.connections():
-                values.append(_get_connection(src, port, 'static_synapse', parameter_name))
+                values.append(_get_connection(src, port, self._plasticity_model, parameter_name))
         elif format == 'array':
             values = numpy.zeros((self.pre.size, self.post.size))
             for src, port in self.connections():
-                v, tgt = _get_connection(src, port, 'static_synapse', parameter_name, 'target')
+                v, tgt = _get_connection(src, port, self._plasticity_model, parameter_name, 'target')
                 # note that we assume that Population ids are consecutive, which is the case, but we should
                 # perhaps make an assert in __init__() to really make sure
                 values[src-self.pre.id_start, tgt-self.post.id_start] = v
@@ -1243,7 +1238,7 @@ class Projection(common.Projection, WDManager):
         f = open(filename,'w',10000)
         weights = []; delays = []
         for src, port in self.connections():
-            weight, delay = _get_connection(src, port, 'static_synapse', 'weight', 'delay')
+            weight, delay = _get_connection(src, port, self._plasticity_model, 'weight', 'delay')
             # Note unit change from pA to nA or nS to uS, depending on synapse type
             weights.append(0.001*weight)
             delays.append(delay)

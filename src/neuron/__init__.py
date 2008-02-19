@@ -1119,36 +1119,9 @@ class Projection(common.Projection):
         if (method != 'fromList') and (method != 'fromFile'):
             self.setDelays(_min_delay)
         
-        # Deal with synaptic plasticity
-        if isinstance(self.synapse_dynamics, SynapseDynamics):
-            self.short_term_plasticity_mechanism = self.synapse_dynamics.fast
-            self.long_term_plasticity_mechanism = self.synapse_dynamics.slow
-        elif self.synapse_dynamics is None:
-            self.short_term_plasticity_mechanism = None
-            self.long_term_plasticity_mechanism = None
-        else:
-            print type(synapse_dynamics)
-            raise Exception("The synapse_dynamics argument, if specified, must be a SynapseDynamics object.")
-        
-        if self.short_term_plasticity_mechanism is not None:
-            raise Exception("Not yet implemented.")
+        ## Deal with synaptic plasticity
         if self.long_term_plasticity_mechanism is not None:
-            assert isinstance(self.long_term_plasticity_mechanism, STDPMechanism)
-            
-            td = self.long_term_plasticity_mechanism.timing_dependence
-            wd = self.long_term_plasticity_mechanism.weight_dependence
-            possible_models = td.possible_models.intersection(wd.possible_models)
-            if len(possible_models) == 1 :
-                plasticity_model = list(possible_models)[0]
-            elif len(possible_models) == 0 :
-                raise Exception("No available plasticity models")
-            elif len(possible_models) > 1 :
-                raise Exception("Multiple plasticity models available")
-            
-            #print "Using %s" % plasticity_model
-            all_parameters = td.parameters.copy()
-            all_parameters.update(wd.parameters)
-            self.setupSTDP(plasticity_model, all_parameters)
+            self._setupSTDP(self._plasticity_model, self._stdp_parameters)
             
         Projection.nProj += 1
 
@@ -1521,7 +1494,7 @@ class Projection(common.Projection):
     
     # --- Methods relating to synaptic plasticity ------------------------------
     
-    def setupSTDP(self,stdp_model,parameterDict):
+    def _setupSTDP(self, stdp_model, parameterDict):
         """Set-up STDP."""
         
         # Define the objref to handle plasticity
@@ -1549,39 +1522,6 @@ class Projection(common.Projection):
             
         hoc_execute(hoc_commands, "--- Projection[%s].__setupSTDP__() ---" %self.label)  
     
-    def toggleSTDP(self,onoff):
-        """Turn plasticity on or off. 
-        onoff = True => ON  and onoff = False => OFF. By defaut, it is on."""
-        # We do the loop in hoc, to speed up the code
-        loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                    '{ %s_wa[tmp].on = %d ' %(loop, self.hoc_label, onoff),
-                '}']
-        hoc_code = "".join(loop)      
-        hoc_commands = [ 'cmd="%s"' %hoc_code,
-                         'success = execute1(cmd)']
-        hoc_execute(hoc_commands, "--- Projection[%s].__toggleSTDP__() ---" %self.label)  
-    
-    def setMaxWeight(self,wmax):
-        """Note that not all STDP models have maximum or minimum weights."""
-        # We do the loop in hoc, to speed up the code
-        loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                    '{ %s_wa[tmp].wmax = %d ' %(loop, self.hoc_label, wmax),
-                '}']
-        hoc_code = "".join(loop)        
-        hoc_commands = [ 'cmd="%s"' %hoc_code,
-                         'success = execute1(cmd)']
-        hoc_execute(hoc_commands, "--- Projection[%s].__setMaxWeight__() ---" %self.label)  
-    
-    def setMinWeight(self,wmin):
-        """Note that not all STDP models have maximum or minimum weights."""
-        # We do the loop in hoc, to speed up the code
-        loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                    '{ %s_wa[tmp].wmin = %d ' %(loop, self.hoc_label, wmin),
-                '}']
-        hoc_code = "".join(loop)
-        hoc_commands = [ 'cmd="%s"' %hoc_code,
-                         'success = execute1(cmd)']
-        hoc_execute(hoc_commands, "--- Projection[%s].__setMinWeight__() ---" %self.label) 
     
     # --- Methods for writing/reading information to/from file. ----------------
     

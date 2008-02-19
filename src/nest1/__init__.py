@@ -1391,25 +1391,6 @@ class Projection(common.Projection, WDManager):
         # connection (NetCon).
         raise Exception("Method not yet implemented")
     
-    
-    # --- Methods relating to synaptic plasticity ------------------------------
-    
-    def setupSTDP(self,stdp_model,parameterDict):
-        """Set-up STDP."""
-        raise Exception("Method not yet implemented")
-    
-    def toggleSTDP(self,onoff):
-        """Turn plasticity on or off."""
-        raise Exception("Method not yet implemented")
-    
-    def setMaxWeight(self,wmax):
-        """Note that not all STDP models have maximum or minimum weights."""
-        raise Exception("Method not yet implemented")
-    
-    def setMinWeight(self,wmin):
-        """Note that not all STDP models have maximum or minimum weights."""
-        raise Exception("Method not yet implemented")
-    
     # --- Methods for writing/reading information to/from file. ----------------
     
     def saveConnections(self,filename,gather=False):

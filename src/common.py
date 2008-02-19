@@ -901,6 +901,40 @@ class Projection:
             if self.pre.label and self.post.label:
                 self.label = "%s → %s" % (self.pre.label, self.post.label)
     
+        # Deal with synaptic plasticity
+        if isinstance(self.synapse_dynamics, SynapseDynamics):
+            self.short_term_plasticity_mechanism = self.synapse_dynamics.fast
+            self.long_term_plasticity_mechanism = self.synapse_dynamics.slow
+        elif self.synapse_dynamics is None:
+            self.short_term_plasticity_mechanism = None
+            self.long_term_plasticity_mechanism = None
+        else:
+            print type(synapse_dynamics)
+            raise Exception("The synapse_dynamics argument, if specified, must be a SynapseDynamics object.")
+    
+        if self.short_term_plasticity_mechanism is not None:
+            raise Exception("Not yet implemented.")
+        
+        self._plasticity_model = None
+        self._stdp_parameters = None
+        if self.long_term_plasticity_mechanism is not None:
+            assert isinstance(self.long_term_plasticity_mechanism, STDPMechanism)
+            
+            td = self.long_term_plasticity_mechanism.timing_dependence
+            wd = self.long_term_plasticity_mechanism.weight_dependence
+            possible_models = td.possible_models.intersection(wd.possible_models)
+            if len(possible_models) == 1 :
+                self._plasticity_model = list(possible_models)[0]
+            elif len(possible_models) == 0 :
+                raise Exception("No available plasticity models")
+            elif len(possible_models) > 1 :
+                raise Exception("Multiple plasticity models available")
+            
+            #print "Using %s" % self._plasticity_model
+            self._stdp_parameters = td.parameters.copy()
+            self._stdp_parameters.update(wd.parameters)
+            
+    
     def __len__(self):
         """Return the total number of connections."""
         return self.nconn
@@ -1052,25 +1086,6 @@ class Projection:
         # This is a bit tricky, because in NEST the spike threshold is a
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
-        return _abstractMethod(self)
-    
-    
-    # --- Methods relating to synaptic plasticity ------------------------------
-    
-    def setupSTDP(self,stdp_model,parameterDict):
-        """Set-up STDP."""
-        return _abstractMethod(self)
-    
-    def toggleSTDP(self,onoff):
-        """Turn plasticity on or off."""
-        return _abstractMethod(self)
-    
-    def setMaxWeight(self,wmax):
-        """Note that not all STDP models have maximum or minimum weights."""
-        return _abstractMethod(self)
-    
-    def setMinWeight(self,wmin):
-        """Note that not all STDP models have maximum or minimum weights."""
         return _abstractMethod(self)
     
     # --- Methods for writing/reading information to/from file. ----------------
