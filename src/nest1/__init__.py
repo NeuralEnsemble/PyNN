@@ -1039,49 +1039,20 @@ class Projection(common.Projection, WDManager):
         """
         Load connections from a file.
         """
-        if type(parameters) == types.FileType:
-            fileobj = parameters
-            # should check here that fileobj is already open for reading
-            lines = fileobj.readlines()
-        elif type(parameters) == types.StringType:
-            filename = parameters
-            # now open the file...
-            f = open(filename,'r',1000)
-            lines = f.readlines()
-        elif type(parameters) == types.DictType:
-            # dict could have 'filename' key or 'file' key
-            # implement this...
-            raise "Argument type not yet implemented"
+        filename = parameters
+        c = FromFileConnector(filename)
+        return c.connect(self)
         
-        # We read the file and gather all the data in a list of tuples (one per line)
-        input_tuples = []
-        for line in lines:
-            single_line = line.rstrip()
-            src, tgt, w, d = single_line.split("\t", 4)
-            src = "[%s" % src.split("[",1)[1]
-            tgt = "[%s" % tgt.split("[",1)[1]
-            input_tuples.append((eval(src),eval(tgt),float(w),float(d)))
-        f.close()
-        
-        self._fromList(input_tuples)
-        
-    def _fromList(self,conn_list):
+    def _fromList(self, conn_list):
         """
         Read connections from a list of tuples,
         containing [pre_addr, post_addr, weight, delay]
         where pre_addr and post_addr are both neuron addresses, i.e. tuples or
         lists containing the neuron array coordinates.
         """
-        for i in xrange(len(conn_list)):
-            src, tgt, weight, delay = conn_list[i][:]
-            src = self.pre[tuple(src)]
-            tgt = self.post[tuple(tgt)]
-            pre_addr = pynest.getAddress(src)
-            post_addr = pynest.getAddress(tgt)
-            self._sources.append(src)
-            self._targets.append(tgt)
-            self._targetPorts.append(pynest.connectWD(pre_addr,post_addr, 1000*weight, delay))
-
+        c = FromListConnector(conn_list)
+        return c.connect(self)
+        
     def _2D_Gauss(self,parameters):
         """
         Source neuron is connected to a 2D targetd population with a spatial profile (Gauss).

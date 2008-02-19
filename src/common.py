@@ -1153,6 +1153,27 @@ class AllToAllConnector(Connector):
         Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
+
+
+class FromListConnector(Connector):
+    """
+    Connects all cells in the presynaptic population to all cells in the
+    postsynaptic population.
+    """
+    
+    def __init__(self, conn_list):
+        Connector.__init__(self, 0., 0.)
+        self.conn_list = conn_list        
+
+class FromFileConnector(Connector):
+    """
+    Connects all cells in the presynaptic population to all cells in the
+    postsynaptic population.
+    """
+    
+    def __init__(self, filename):
+        Connector.__init__(self, 0., 0.)
+        self.filename = filename
         
 class FixedNumberPostConnector(Connector):
     """

@@ -105,7 +105,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             if periodic_boundaries is True: 
                 dimensions = projection.post.dim
             else:
-                dimensions = periodic_boundaries
+                dimensions = [0,0,0]
             periodic_boundaries = numpy.concatenate((dimensions,numpy.zeros(3-len(dimensions))))
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
@@ -150,7 +150,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             projection._sources += source_list
             projection._targetPorts += pynest.convergentConnect(source_list,post,weights,delays)
         return len(projection._sources)
-
+    
 
 class FixedNumberPreConnector(common.FixedNumberPreConnector):
     
@@ -162,3 +162,41 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
     
     def connect(self, projection):
         raise Exception("Not implemented yet !")
+    
+
+class FromListConnector(common.FromListConnector):
+    
+    def connect(self, projection):
+        for i in xrange(len(self.conn_list)):
+            src, tgt, weight, delay = self.conn_list[i][:]
+            src = projection.pre[tuple(src)]
+            tgt = projection.post[tuple(tgt)]
+            pre_addr = pynest.getAddress(src)
+            post_addr = pynest.getAddress(tgt)
+            projection._sources.append(src)
+            projection._targets.append(tgt)
+            projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr, 1000*weight, delay))
+            
+
+class FromFileConnector(common.FromFileConnector):
+    
+    def connect(self, projection):
+        # now open the file...
+        f = open(self.filename,'r',10000)
+        lines = f.readlines()
+        f.close()
+        # We read the file and gather all the data in a list of tuples (one per line)
+        input_tuples = []
+        for line in lines:
+            single_line = line.rstrip()
+            src, tgt, w, d = single_line.split("\t", 4)
+            src = "[%s" % src.split("[",1)[1]
+            tgt = "[%s" % tgt.split("[",1)[1]
+            src, tgt, weight, delay = (eval(src),eval(tgt),float(w),float(d))
+            src = projection.pre[tuple(src)]
+            tgt = projection.post[tuple(tgt)]
+            pre_addr = pynest.getAddress(src)
+            post_addr = pynest.getAddress(tgt)
+            projection._sources.append(src)
+            projection._targets.append(tgt)
+            projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr, 1000*weight, delay))

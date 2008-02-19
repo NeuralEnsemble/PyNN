@@ -460,7 +460,8 @@ class ProjectionInitTest(unittest.TestCase):
         prj1.setDelays(0.2)
         prj1.setWeights(1.234)
         prj1.saveConnections("connections.tmp")
-        prj2 = nest.Projection(self.source22, self.target33, 'fromFile',"connections.tmp")
+        connector = nest.FromFileConnector("connections.tmp")
+        prj2 = nest.Projection(self.source22, self.target33, connector)
         w1 = []; w2 = []; d1 = []; d2 = [];
         # For a connections scheme saved and reloaded, we test if the connections, their weights and their delays
         # are equal.
