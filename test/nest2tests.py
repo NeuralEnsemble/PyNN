@@ -24,6 +24,9 @@ def get_delay(src, port):
     else:
         raise Exception("Either the source id (%s) or the port number (%s) or both is invalid." % (src, port))
 
+def arrays_almost_equal(a, b, threshold):
+    return (abs(a-b) < threshold).all()
+
 # ==============================================================================
 class CreationTest(unittest.TestCase):
     """Tests of the create() function."""
@@ -493,7 +496,7 @@ class ProjectionSetTest(unittest.TestCase):
        randomizeWeights() and randomizeDelays() methods of the Projection class."""
 
     def setUp(self):
-        nest.setup(max_delay=0.5)
+        nest.setup(min_delay=0.1)
         nest.Population.nPop = 0
         self.target33 = nest.Population((3,3),nest.IF_curr_alpha)
         self.target6  = nest.Population((6,),nest.IF_curr_alpha)
@@ -517,7 +520,16 @@ class ProjectionSetTest(unittest.TestCase):
         # Small test to see if the ID class is working
         #self.target33[0,2].set({'tau_m' : 15.1})
         #assert (self.target33[0,2].get('tau_m') == 15.1)
-        
+    
+    def testSetWeightsWithList(self):
+        for prj in self.prjlist:
+            weights_in = self.distrib_Numpy.next(len(prj))
+            prj.setWeights(weights_in)
+            weights_out = []
+            for src,tgt in prj.connections():
+                weights_out.append(0.001*get_weight(src, tgt)) # units conversion
+            self.assert_(arrays_almost_equal(weights_in, weights_out, 1e-8), "%s != %s" % (weights_in, weights_out))
+            
     def testRandomizeWeights(self):
         # The probability of having two consecutive weights vector that are equal should be 0
         prj1 = nest.Projection(self.source5, self.target33, 'allToAll')
@@ -542,6 +554,41 @@ class ProjectionSetTest(unittest.TestCase):
             d2.append(get_delay(src,tgt))
         self.assertNotEqual(d1,d2)
 
+class ProjectionGetTest(unittest.TestCase):
+    """Tests of the getWeights(), getDelays() methods of the Projection class."""
+
+    def setUp(self):
+        nest.setup(max_delay=0.5)
+        nest.Population.nPop = 0
+        self.target33 = nest.Population((3,3),nest.IF_curr_alpha)
+        self.target6  = nest.Population((6,),nest.IF_curr_alpha)
+        self.source5  = nest.Population((5,),nest.SpikeSourcePoisson)
+        self.source22 = nest.Population((2,2),nest.SpikeSourcePoisson)
+        self.prjlist = []
+        self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345),distribution='uniform',parameters=(0.1,0.5))
+        for tgtP in [self.target6, self.target33]:
+            for srcP in [self.source5, self.source22]:
+                for method in ('allToAll', 'fixedProbability'):
+                    self.prjlist.append(nest.Projection(srcP,tgtP,method,{'p_connect':0.5}) )
+
+    def testGetWeightsWithList(self):
+        for prj in self.prjlist:
+            weights_in = self.distrib_Numpy.next(len(prj))
+            prj.setWeights(weights_in)
+            weights_out = numpy.array(prj.getWeights(format='list'))
+            self.assert_(arrays_almost_equal(weights_in, weights_out, 1e-8), "%s != %s" % (weights_in, weights_out))
+            
+    def testGetWeightsWithArray(self):
+        """Making 1D and removing weights <= 0 should turn the array format of getWeights()
+        into the list format."""
+        for prj in self.prjlist:
+            weights_in = self.distrib_Numpy.next(len(prj))
+            prj.setWeights(weights_in)
+            weights_out = numpy.array(prj.getWeights(format='array')).flatten()
+            weights_out = weights_out.compress(weights_out>0)
+            self.assert_(arrays_almost_equal(weights_in, weights_out, 1e-8), "%s != %s" % (weights_in, weights_out))
+            
+            
 class IDTest(unittest.TestCase):
     """Tests of the ID class."""
     

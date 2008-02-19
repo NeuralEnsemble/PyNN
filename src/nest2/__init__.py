@@ -88,7 +88,8 @@ class WDManager(object):
         return delay
     
     def convertWeight(self, w, synapse_type):
-        
+        if isinstance(w, list):
+            w = numpy.array(w)
         if isinstance(w, RandomDistribution):
             weight = RandomDistribution(w.name, w.parameters, w.rng)
             if weight.name == "uniform":
@@ -166,6 +167,51 @@ class Connection(object):
 
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+
+def _discrepancy_due_to_rounding(parameters, output_values):
+    """NEST rounds delays to the time step."""
+    if 'delay' not in parameters:
+        return False
+    else:
+        # the logic here is not the clearest, the aim was to keep _set_connection() as simple
+        # as possible, but it might be better to refactor the whole thing.
+        dt = nest.GetStatus([0])[0]['resolution']
+        input_delay = parameters['delay']
+        if hasattr(output_values, "__len__"):
+            output_delay = output_values[parameters.keys().index('delay')]
+        else:
+            output_delay = output_values
+        return abs(input_delay - output_delay) < dt
+
+def _set_connection(source_id, target_id, synapse_type, **parameters):
+    """target_id is a port."""
+    nest.SetConnection([source_id], synapse_type, target_id, parameters)
+    # check, since NEST ignores connection errors, rather than raising an Exception
+    input_values = [v for v in parameters.values()]
+    if len(input_values)==1:
+        input_values = input_values[0]
+    output_values = _get_connection(source_id, target_id, synapse_type, *parameters.keys())
+    if input_values != output_values:
+        # The problem must be with parameter values, otherwise _get_connection() would have raised an exception
+        # There is one special case: delays are rounded to the time step precision in NEST
+        if _discrepancy_due_to_rounding(parameters, output_values):
+            raise common.RoundingWarning("delays rounded to the precision of the timestep.")
+        else:
+            raise common.ConnectionError("Invalid parameter value(s): %(parameters)s [%(input_values)s != %(output_values)s]" % locals())
+        
+def _get_connection(source_id, target_id, synapse_type, *parameter_names):
+    conn_dict = nest.GetConnection([source_id], synapse_type, target_id)
+    if isinstance(conn_dict, dict):
+        if len(parameter_names) == 1:
+            return conn_dict[parameter_names[0]]
+        else:
+            return [conn_dict[p] for p in parameter_names]
+    else:
+        raise common.ConnectionError("Invalid source_id (%(source_id)s), target_id (%(target_id)s), synapse_type(%(synapse_type)s) or parameter names (%(parameter_names)s)"
+ % locals())
+    
+def is_number(n):
+    return type(n) == types.FloatType or type(n) == types.IntType or type(n) == numpy.float64
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -1170,6 +1216,21 @@ class Projection(common.Projection, WDManager):
     
     # --- Methods for setting connection parameters ----------------------------
     
+    def _set_connection_values(self, name, value):
+        if is_number(value):
+            for src,port in self.connections():
+                _set_connection(src, port, 'static_synapse', **{name: value})
+        elif isinstance(value,list) or isinstance(value, numpy.ndarray):
+            # this is probably not the most efficient way - should sort by src and then use SetConnections?
+            assert len(value) == len(self)
+            for (src,port),v in zip(self.connections(), value):
+                try:
+                    _set_connection(src, port, 'static_synapse', **{name: v})
+                except common.RoundingWarning:
+                    logging.warning("Rounding occurred when setting %s to %s" % (name, v))
+        else:
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+
     def setWeights(self, w):
         """
         w can be a single number, in which case all weights are set to this
@@ -1179,29 +1240,13 @@ class Projection(common.Projection, WDManager):
         synapses.
         """
         w = self.convertWeight(w, self.synapse_type)
-        if type(w) == types.FloatType or type(w) == types.IntType or type(w) == numpy.float64 :
-            # set all the weights from a given node at once
-            for src in self.pre.cell.flat:
-                conn_dict = nest.GetConnections([src], 'static_synapse')[0]
-                if conn_dict:
-                    n = len(conn_dict['weights'])
-                nest.SetConnections([src], 'static_synapse', [{'weights': [w]*n}])
-        elif isinstance(w,list) or isinstance(w,numpy.ndarray):
-            raise Exception("Not yet implemented")
-        else:
-            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+        self._set_connection_values('weight', w)
     
     def randomizeWeights(self,rand_distr):
         """
         Set weights to random values taken from rand_distr.
         """
-        rand_distr = self.convertWeight(rand_distr, self.synapse_type)
-        for src in self.pre.cell.flat:
-            conn_dict = nest.GetConnections([src], 'static_synapse')[0]
-            n = len(conn_dict['weights'])
-            weights = rand_distr.next(n).tolist()
-            # if self.synapse_type == 'inhibitory', should we *= -1 ???
-            nest.SetConnections([src], 'static_synapse', [{'weights': weights}])
+        self.setWeights(rand_distr.next(len(self)))
     
     def setDelays(self,d):
         """
@@ -1209,28 +1254,13 @@ class Projection(common.Projection, WDManager):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        if type(d) == types.FloatType or type(d) == types.IntType or type(d) == numpy.float64:
-            d = float(d)
-            # set all the weights from a given node at once
-            for src in self.pre.cell.flat:
-                conn_dict = nest.GetConnections([src], 'static_synapse')[0]
-                if conn_dict:
-                    n = len(conn_dict['delays'])
-                nest.SetConnections([src], 'static_synapse', [{'delays': [d]*n}])
-        elif isinstance(d,list) or isinstance(d,numpy.ndarray):
-            raise Exception("Not yet implemented")
-        else:
-            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+        self._set_connection_values('delay', d)
     
     def randomizeDelays(self,rand_distr):
         """
         Set delays to random values taken from rand_distr.
         """
-        for src in self.pre.cell.flat:
-            conn_dict = nest.GetConnections([src], 'static_synapse')[0]
-            n = len(conn_dict['delays'])
-            delays = rand_distr.next(n).tolist()
-            nest.SetConnections([src], 'static_synapse', [{'delays': delays}])
+        self.setDelays(rand_distr.next(len(self)))
     
     def setThreshold(self,threshold):
         """
@@ -1240,44 +1270,76 @@ class Projection(common.Projection, WDManager):
         # This is a bit tricky, because in NEST the spike threshold is a
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
-        raise Exception("Method not yet implemented")
+        raise Exception("Method deprecated")
     
     
     # --- Methods relating to synaptic plasticity ------------------------------
     
     def setupSTDP(self,stdp_model,parameterDict):
         """Set-up STDP."""
-        raise Exception("Method not yet implemented")
+        raise Exception("Method deprecated")
     
     def toggleSTDP(self,onoff):
         """Turn plasticity on or off."""
-        raise Exception("Method not yet implemented")
+        raise Exception("Method deprecated")
     
     def setMaxWeight(self,wmax):
         """Note that not all STDP models have maximum or minimum weights."""
-        raise Exception("Method not yet implemented")
+        raise Exception("Method deprecated")
     
     def setMinWeight(self,wmin):
         """Note that not all STDP models have maximum or minimum weights."""
-        raise Exception("Method not yet implemented")
+        raise Exception("Method deprecated")
     
-    # --- Methods for writing/reading information to/from file. ----------------
+    # --- Methods for writing/reading information to/from file. ---------------- 
     
-    def saveConnections(self,filename,gather=False):
+    def _get_connection_values(self, format, parameter_name):
+        assert format in ('list', 'array')
+        if format == 'list':
+            values = []
+            for src, port in self.connections():
+                values.append(_get_connection(src, port, 'static_synapse', parameter_name))
+        elif format == 'array':
+            values = numpy.zeros((self.pre.size, self.post.size))
+            for src, port in self.connections():
+                v, tgt = _get_connection(src, port, 'static_synapse', parameter_name, 'target')
+                # note that we assume that Population ids are consecutive, which is the case, but we should
+                # perhaps make an assert in __init__() to really make sure
+                values[src-self.pre.id_start, tgt-self.post.id_start] = v
+        return values
+    
+    def getWeights(self, format='list'):
+        """
+        Possible formats are: a list of length equal to the number of connections
+        in the projection, a 2D weight array (with zero or None for non-existent
+        connections).
+        """
+        weights = self._get_connection_values(format, 'weight')
+        # change of units
+        if format == 'list':
+            weights = [0.001*w for w in weights]
+        elif format == 'array':
+            weights *= 0.001
+        return weights
+        
+    def getDelays(self, format='list'):
+        """
+        Possible formats are: a list of length equal to the number of connections
+        in the projection, a 2D delay array (with None or 1e12 for non-existent
+        connections).
+        """
+        return self._get_connection_values(format, 'delay')
+        
+    def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
         f = open(filename,'w',10000)
-        # Note unit change from pA to nA or nS to uS, depending on synapse type
-        def getWD(wd, src, port):
-            conn_dict = nest.GetConnection([src],'static_synapse',port)
-            if isinstance(conn_dict, dict):
-                return conn_dict[wd]
-            else:
-                raise Exception("Either the source id (%s) or the port number (%s) or both is invalid." % (src, port))
-        #weights = [0.001*nest.GetConnection([src],'static_synapse',port)['weight'] for (src,port) in self.connections()]
-        #delays = [nest.GetConnection([src],'static_synapse',port)['delay'] for (src,port) in self.connections()]
-        weights = [0.001*getWD('weight',src,port) for (src,port) in self.connections()]
-        delays = [getWD('delay',src,port) for (src,port) in self.connections()]
+        weights = []; delays = []
+        for src, port in self.connections():
+            weight, delay = _get_connection(src, port, 'static_synapse', 'weight', 'delay')
+            # Note unit change from pA to nA or nS to uS, depending on synapse type
+            weights.append(0.001*weight)
+            delays.append(delay)
         fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label,"%s",self.post.label,"%s","%g","%g")
         for i in xrange(len(self)):
             line = fmt  % (self.pre.locate(self._sources[i]),
@@ -1288,32 +1350,17 @@ class Projection(common.Projection, WDManager):
             f.write(line)
         f.close()
     
-    def printWeights(self,filename,format=None,gather=True):
+    def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""
-        file = open(filename,'w',10000)
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,)).tolist()
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,)).tolist()
-        weightArray = numpy.zeros((self.pre.size,self.post.size),dtype=float)
-        for src in self._sources:
-            src_addr = nest.getAddress(src)
-            nest.sps(src_addr)
-            nest.sr('GetTargets')
-            targetList = [nest.getGID(tgt) for tgt in nest.spp()]
-            nest.sps(src_addr)
-            nest.sr('GetWeights')
-            weightList = nest.spp()
-            
-            i = presynaptic_neurons.index(src)
-            for tgt,w in zip(targetList,weightList):
-                try:
-                    j = postsynaptic_neurons.index(tgt)
-                    weightArray[i][j] = w
-                except ValueError: # tgt is in a different population to the current postsynaptic population
-                    pass
-        fmt = "%g "*len(postsynaptic_neurons) + "\n"
-        for i in xrange(weightArray.shape[0]):
-            file.write(fmt % tuple(weightArray[i]))
-        file.close()
+        weights = self.getWeights(format=format)
+        f = open(filename,'w',10000)
+        if format == 'list':
+            f.write("\n".join([str(w) for w in weights]))
+        elif format == 'array':
+            fmt = "%g "*len(self.post) + "\n"
+            for row in weights:
+                f.write(fmt % tuple(row))
+        f.close()
             
     
     def weightHistogram(self,min=None,max=None,nbins=10):

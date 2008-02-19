@@ -16,6 +16,7 @@ class InvalidParameterValueError(Exception): pass
 class NonExistentParameterError(Exception): pass
 class InvalidDimensionsError(Exception): pass
 class ConnectionError(Exception): pass
+class RoundingWarning(Warning): pass
 
 dt = 0.1
 _min_delay = 0.1
