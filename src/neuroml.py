@@ -355,7 +355,7 @@ class Projection(common.Projection):
     n = 0
     
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 method='allToAll', methodParameters=None,
+                 method='allToAll', method_parameters=None,
                  source=None, target=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
@@ -370,17 +370,17 @@ class Projection(common.Projection):
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
         'fromFile', 'fromList'
         
-        methodParameters - dict containing parameters needed by the connection method,
+        method_parameters - dict containing parameters needed by the connection method,
         although we should allow this to be a number or string if there is only
         one parameter.
         
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
-        than within methodParameters, particularly since some methods also use
+        than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
         global projections_node
-        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,methodParameters,source,target,label,rng)
+        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,method_parameters,source,target,label,rng)
         self.label = self.label or 'Projection%d' % Projection.n
         connection_method = getattr(self,'_%s' % method)
         if target:
@@ -397,7 +397,7 @@ class Projection(common.Projection):
         synapse_node.appendChild( build_node('net:default_values', internal_delay=5, weight=1, threshold=-20) )
         projection_node.appendChild(synapse_node)
         
-        projection_node.appendChild( connection_method(methodParameters) )
+        projection_node.appendChild( connection_method(method_parameters) )
         
         projections_node.appendChild(projection_node)
         Projection.n += 1

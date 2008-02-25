@@ -482,7 +482,7 @@ def set(cells,cellclass,param,val=None):
     param_dict = checkParams(param,val)
 
     if type(cellclass) == type and issubclass(cellclass, common.StandardCellType):
-        param_dict = cellclass({}).translate1(param_dict)
+        param_dict = cellclass({}).translate(param_dict)
     if not isinstance(cells,list):
         cells = [cells]    
     hoc_commands = []
@@ -742,7 +742,7 @@ class Population(common.Population):
         """
         param_dict = checkParams(param,val)
         if isinstance(self.celltype, common.StandardCellType):
-            param_dict = self.celltype.translate1(param_dict)
+            param_dict = self.celltype.translate(param_dict)
 
         strfmt  = '%s.object(tmp).%s = "%s"' % (self.hoc_label,"%s","%s")
         numfmt  = '%s.object(tmp).%s = %s' % (self.hoc_label,"%s","%g")
@@ -774,7 +774,7 @@ class Population(common.Population):
             values = values.take(numpy.array(self.gidlist)-self.gid_start) # take just the values for cells on this machine
             assert len(values) == len(self.gidlist)
             if isinstance(self.celltype, common.StandardCellType):
-                parametername = self.celltype.translate1({parametername: values[0]}).keys()[0]
+                parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
             hoc_commands = []
             fmt = '%s.object(%s).%s = %s' % (self.hoc_label, "%d", parametername, "%g")
             for i,val in enumerate(values):
@@ -794,7 +794,7 @@ class Population(common.Population):
         """
         if isinstance(rand_distr.rng, NativeRNG):
             if isinstance(self.celltype, common.StandardCellType):
-                parametername = self.celltype.translate1({parametername: 0}).keys()[0]
+                parametername = self.celltype.translate({parametername: 0}).keys()[0]
             paramfmt = "%g,"*len(rand_distr.parameters); paramfmt = paramfmt.strip(',')
             distr_params = paramfmt % tuple(rand_distr.parameters)
             hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
@@ -1067,7 +1067,7 @@ class Projection(common.Projection):
     nProj = 0
     
     def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',
-                 methodParameters=None,source=None,target=None,
+                 method_parameters=None,source=None,target=None,
                  synapse_dynamics=None, label=None,rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
@@ -1082,7 +1082,7 @@ class Projection(common.Projection):
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
         'fromFile', 'fromList'
         
-        methodParameters - dict containing parameters needed by the connection method,
+        method_parameters - dict containing parameters needed by the connection method,
         although we should allow this to be a number or string if there is only
         one parameter.
         
@@ -1090,12 +1090,12 @@ class Projection(common.Projection):
         
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
-        than within methodParameters, particularly since some methods also use
+        than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
         global _min_delay
         common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,
-                                   methodParameters,source,target,synapse_dynamics,label,rng)
+                                   method_parameters,source,target,synapse_dynamics,label,rng)
         self.connections = []
         if not label:
             self.label = 'projection%d' % Projection.nProj
@@ -1109,7 +1109,7 @@ class Projection(common.Projection):
 
         if isinstance(method, str):
             connection_method = getattr(self,'_%s' % method)   
-            hoc_commands += connection_method(methodParameters)
+            hoc_commands += connection_method(method_parameters)
         elif isinstance(method,common.Connector):
             hoc_commands += method.connect(self)
         hoc_execute(hoc_commands, "--- Projection[%s].__init__() ---" %self.label)

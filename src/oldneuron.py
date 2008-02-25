@@ -921,7 +921,7 @@ class Projection(common.Projection):
             return address
     
     
-    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',methodParameters=None,source=None,target=None,label=None,rng=None):
+    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',method_parameters=None,source=None,target=None,label=None,rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -935,24 +935,24 @@ class Projection(common.Projection):
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
         'fromFile', 'fromList'
         
-        methodParameters - dict containing parameters needed by the connection method,
+        method_parameters - dict containing parameters needed by the connection method,
         although we should allow this to be a number or string if there is only
         one parameter.
         
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
-        than within methodParameters, particularly since some methods also use
+        than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
         global _min_delay
-        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,methodParameters,source,target,label,rng)
+        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,method_parameters,source,target,label,rng)
         if not label:
             self.label = 'projection%d' % Projection.nProj
         connection_method = getattr(self,'_%s' % method)
         if target:
-            hoc_commands = connection_method(methodParameters,synapse_type=target)
+            hoc_commands = connection_method(method_parameters,synapse_type=target)
         else:
-            hoc_commands = connection_method(methodParameters)
+            hoc_commands = connection_method(method_parameters)
         hoc_execute(hoc_commands, "--- Projection.__init__() ---")
         self.connection = Projection.ConnectionDict(self)
         self.nconn = HocToPy.get('%s.count()' % self.label,'int')

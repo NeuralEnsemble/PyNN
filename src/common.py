@@ -931,7 +931,7 @@ class Projection(object):
         
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
-        than within methodParameters, particularly since some methods also use
+        than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
         

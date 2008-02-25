@@ -555,7 +555,7 @@ class Projection(common.Projection):
     parameters of those connections, including of plasticity mechanisms.
     """
     
-    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',methodParameters=None,source=None,target=None,label=None,rng=None):
+    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',method_parameters=None,source=None,target=None,label=None,rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -569,13 +569,13 @@ class Projection(common.Projection):
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
         'fromFile', 'fromList'
         
-        methodParameters - dict containing parameters needed by the connection method,
+        method_parameters - dict containing parameters needed by the connection method,
         although we should allow this to be a number or string if there is only
         one parameter.
         
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a Random object here rather
-        than within methodParameters, particularly since some methods also use
+        than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         
         
@@ -619,7 +619,7 @@ class Projection(common.Projection):
            </projection>
        </projections>
         """
-        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,methodParameters,source,target,label,rng)
+        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,method_parameters,source,target,label,rng)
         self.connection = []
         self._targets = []
         self._sources = []
@@ -659,7 +659,7 @@ class Projection(common.Projection):
         
         connection_method = getattr(self,'_%s' % method)
         
-        projectionNode.appendChild(connection_method(methodParameters))
+        projectionNode.appendChild(connection_method(method_parameters))
         
         PrettyPrint(xmldoc)
         

@@ -979,7 +979,7 @@ class Projection(common.Projection, WDManager):
     #        return address
     #
     
-    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', methodParameters=None, source=None, target=None, synapse_dynamics=None, label=None, rng=None):
+    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', method_parameters=None, source=None, target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -993,13 +993,13 @@ class Projection(common.Projection, WDManager):
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
         'fromFile', 'fromList'
         
-        methodParameters - dict containing parameters needed by the connection method,
+        method_parameters - dict containing parameters needed by the connection method,
         although we should allow this to be a number or string if there is only
         one parameter.
         
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
-        than within methodParameters, particularly since some methods also use
+        than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
         """
@@ -1018,7 +1018,7 @@ class Projection(common.Projection, WDManager):
                    
         """
         global pcsim_globals
-        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, methodParameters, source, target, synapse_dynamics, label, rng)
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, method_parameters, source, target, synapse_dynamics, label, rng)
         
         # Determine connection decider
         if isinstance(method, str):
@@ -1028,10 +1028,10 @@ class Projection(common.Projection, WDManager):
                 decider = RandomConnections(1)
                 wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
             elif method == 'fixedProbability':
-                decider = RandomConnections(float(methodParameters))
+                decider = RandomConnections(float(method_parameters))
                 wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
             elif method == 'distanceDependentProbability':
-                decider = EuclideanDistanceRandomConnections(methodParameters[0], methodParameters[1])
+                decider = EuclideanDistanceRandomConnections(method_parameters[0], method_parameters[1])
                 wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
             elif method == 'fixedNumberPre':
                 decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.incoming)

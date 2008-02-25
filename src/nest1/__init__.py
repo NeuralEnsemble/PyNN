@@ -283,7 +283,7 @@ def set(cells,cellclass,param,val=None):
         cells = [cells]
     if not isinstance(cellclass,str):
         if issubclass(cellclass, common.StandardCellType):
-            param = cellclass({}).translate1(param)
+            param = cellclass({}).translate(param)
         else:
             raise TypeError, "cellclass must be a string or derived from commonStandardCellType"
     pynest.setDict(cells,param)
@@ -565,7 +565,7 @@ class Population(common.Population):
         else:
             raise common.InvalidParameterValueError
         if isinstance(self.celltype, common.StandardCellType):
-            param_dict = self.celltype.translate1(param_dict)
+            param_dict = self.celltype.translate(param_dict)
         pynest.setDict(numpy.reshape(self.cell,(self.size,)), param_dict)
         
 
@@ -584,7 +584,7 @@ class Population(common.Population):
             raise common.InvalidDimensionsError, "Population: %s, valueArray: %s" % (str(cells.shape), str(valueArray.shape))
         # Translate the parameter name
         if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate1({parametername: values[0]}).keys()[0]
+            parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
         # Set the values for each cell
         if len(cells) == len(values):
             for cell,val in zip(cells,values):
@@ -605,7 +605,7 @@ class Population(common.Population):
         rand_distr, which should be a RandomDistribution object.
         """
         if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate1({parametername: 0.0}).keys()[0]
+            parametername = self.celltype.translate({parametername: 0.0}).keys()[0]
         if isinstance(rand_distr.rng, NativeRNG):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
@@ -840,7 +840,7 @@ class Projection(common.Projection, WDManager):
                 assert isinstance(id, int)
                 return (pynest.getAddress(self.parent._sources[id]), self.parent._targetPorts[id])
     
-    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',methodParameters=None,source=None,target=None, synapse_dynamics=None,label=None,rng=None):
+    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',method_parameters=None,source=None,target=None, synapse_dynamics=None,label=None,rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -854,16 +854,16 @@ class Projection(common.Projection, WDManager):
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
         'fromFile', 'fromList'
         
-        methodParameters - dict containing parameters needed by the connection method,
+        method_parameters - dict containing parameters needed by the connection method,
         although we should allow this to be a number or string if there is only
         one parameter.
         
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
-        than within methodParameters, particularly since some methods also use
+        than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
-        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,methodParameters,source,target,synapse_dynamics,label,rng)
+        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,method_parameters,source,target,synapse_dynamics,label,rng)
         
         self._targetPorts = [] # holds port numbers
         self._targets = []     # holds gids
@@ -872,7 +872,7 @@ class Projection(common.Projection, WDManager):
         
         if isinstance(method, str):
             connection_method = getattr(self,'_%s' % method)   
-            self.nconn = connection_method(methodParameters)
+            self.nconn = connection_method(method_parameters)
         elif isinstance(method,common.Connector):
             self.nconn = method.connect(self)
 
