@@ -51,16 +51,16 @@ def checkParams(param, val=None):
        Called by set() and Population.set()."""
     if isinstance(param, str):
         if isinstance(val, float) or isinstance(val, int):
-            paramDict = {param:float(val)}
+            param_dict = {param:float(val)}
         elif isinstance(val, str):
-            paramDict = {param:val}
+            param_dict = {param:val}
         else:
             raise common.InvalidParameterValueError
     elif isinstance(param, dict):
-        paramDict = param
+        param_dict = param
     else:
         raise common.InvalidParameterValueError
-    return paramDict
+    return param_dict
 
 # ==============================================================================
 #   Utility classes
@@ -417,7 +417,7 @@ def setRNGseeds(seedList):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass, paramDict=None, n=1):
+def create(cellclass, param_dict=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -433,10 +433,10 @@ def create(cellclass, paramDict=None, n=1):
         except:
             raise AttributeError("ERROR: Trying to create non-existent cellclass " + cellclass.__name__ )
     if issubclass(cellclass, common.StandardCellType):
-        cellfactory = cellclass(paramDict).simObjFactory
+        cellfactory = cellclass(param_dict).simObjFactory
     else:
         if issubclass(cellclass, SimObject):
-            cellfactory = apply(cellclass, (), paramDict)
+            cellfactory = apply(cellclass, (), param_dict)
         else:
             raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
     cell_list = [ID(i) for i in pcsim_globals.net.add(cellfactory, n)]
@@ -515,12 +515,12 @@ def set(cells, cellclass, param, val=None):
     giving the parameter name, in which case val is the parameter value.
     cellclass must be supplied for doing translation of parameter names."""
     global pcsim_globals    
-    paramDict = checkParams(param, val)
+    param_dict = checkParams(param, val)
     if issubclass(cellclass, common.StandardCellType):        
-        paramDict = cellclass({}).translate(paramDict)
+        param_dict = cellclass({}).translate(param_dict)
     if isinstance(cells,ID) or isinstance(cells,long) or isinstance(cells,int):
         cells = [cells]
-    for param, value in paramDict.items():
+    for param, value in param_dict.items():
         if param in cellclass.setterMethods:
            setterMethod = cellclass.setterMethods[param]
            for id in cells:
@@ -742,14 +742,14 @@ class Population(common.Population):
              p.set({'tau_m':20,'v_rest':-65})
         """
         """PCSIM: iteration through all elements """
-        paramDict = checkParams(param, val)
+        param_dict = checkParams(param, val)
         if isinstance(self.celltype, common.StandardCellType):
-            paramDict = self.celltype.translate(paramDict)
+            param_dict = self.celltype.translate(param_dict)
                  
         for index in range(0,len(self)):
             obj = pcsim_globals.net.object(self.pcsim_population[index])
             if obj:
-                for param,value in paramDict.items():
+                for param,value in param_dict.items():
                     setattr( obj, param, value )
         
         

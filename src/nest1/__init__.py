@@ -203,7 +203,7 @@ def setRNGseeds(seedList):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass,paramDict=None,n=1):
+def create(cellclass,param_dict=None,n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -211,15 +211,15 @@ def create(cellclass,paramDict=None,n=1):
     """
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, type):
-        celltype = cellclass(paramDict)
+        celltype = cellclass(param_dict)
         cell_gids = pynest.create(celltype.nest_name,n)
         cell_gids = [ID(pynest.getGID(gid)) for gid in cell_gids]
         pynest.setDict(cell_gids,celltype.parameters)
     elif isinstance(cellclass, str):  # celltype is not a standard cell
         cell_gids = pynest.create(cellclass,n)
         cell_gids = [ID(pynest.getGID(gid)) for gid in cell_gids]
-        if paramDict:
-            pynest.setDict(cell_gids,paramDict)
+        if param_dict:
+            pynest.setDict(cell_gids,param_dict)
     else:
         raise "Invalid cell type"
     for id in cell_gids:
@@ -557,16 +557,16 @@ class Population(common.Population):
         """
         if isinstance(param,str):
             if isinstance(val,str) or isinstance(val,float) or isinstance(val,int):
-                paramDict = {param:float(val)}
+                param_dict = {param:float(val)}
             else:
                 raise common.InvalidParameterValueError
         elif isinstance(param,dict):
-            paramDict = param
+            param_dict = param
         else:
             raise common.InvalidParameterValueError
         if isinstance(self.celltype, common.StandardCellType):
-            paramDict = self.celltype.translate1(paramDict)
-        pynest.setDict(numpy.reshape(self.cell,(self.size,)), paramDict)
+            param_dict = self.celltype.translate1(param_dict)
+        pynest.setDict(numpy.reshape(self.cell,(self.size,)), param_dict)
         
 
     def tset(self,parametername,valueArray):

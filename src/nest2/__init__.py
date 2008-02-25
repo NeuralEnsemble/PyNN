@@ -344,7 +344,7 @@ def setRNGseeds(seedList):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass, paramDict=None, n=1):
+def create(cellclass, param_dict=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -352,15 +352,15 @@ def create(cellclass, paramDict=None, n=1):
     """
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, type):
-        celltype = cellclass(paramDict)
+        celltype = cellclass(param_dict)
         cell_gids = nest.Create(celltype.nest_name, n)
         cell_gids = [ID(gid) for gid in cell_gids]
         nest.SetStatus(cell_gids, [celltype.parameters])
     elif isinstance(cellclass, str):  # celltype is not a standard cell
         cell_gids = nest.Create(cellclass, n)
         cell_gids = [ID(gid) for gid in cell_gids]
-        if paramDict:
-            nest.SetStatus(cell_gids, [paramDict])
+        if param_dict:
+            nest.SetStatus(cell_gids, [param_dict])
     else:
         raise Exception("Invalid cell type")
     for id in cell_gids:

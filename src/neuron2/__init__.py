@@ -119,16 +119,16 @@ def checkParams(param,val=None):
        Called by set() and Population.set()."""
     if isinstance(param,str):
         if isinstance(val,float) or isinstance(val,int):
-            paramDict = {param:float(val)}
+            param_dict = {param:float(val)}
         elif isinstance(val,(str, list)):
-            paramDict = {param:val}
+            param_dict = {param:val}
         else:
             raise common.InvalidParameterValueError
     elif isinstance(param,dict):
-        paramDict = param
+        param_dict = param
     else:
         raise common.InvalidParameterValueError
-    return paramDict
+    return param_dict
                 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -259,7 +259,7 @@ def setRNGseeds(seedList):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass, paramDict=None, n=1):
+def create(cellclass, param_dict=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -269,12 +269,12 @@ def create(cellclass, paramDict=None, n=1):
     
     assert n > 0, 'n must be a positive integer'
     #if isinstance(cellclass, type):
-    #    celltype = cellclass(paramDict)
+    #    celltype = cellclass(param_dict)
     #    hoc_name = celltype.hoc_name
     #    hoc_commands, argstr = _hoc_arglist([celltype.parameters])
     #elif isinstance(cellclass,str):
     #    hoc_name = cellclass
-    #    hoc_commands, argstr = _hoc_arglist([paramDict])
+    #    hoc_commands, argstr = _hoc_arglist([param_dict])
     #argstr = argstr.strip().strip(',')
  
     # round-robin partitioning
@@ -287,7 +287,7 @@ def create(cellclass, paramDict=None, n=1):
         #                 'tmp = cell%d.connect2target(nil,nc)' % cell_id,
         #                 #'nc = new NetCon(cell%d.source,nil)' % cell_id,
         #                 'tmp = pc.cell(%d,nc)' % cell_id]
-        cell = cellclass(paramDict)           # create the cell object
+        cell = cellclass(param_dict)           # create the cell object
         cell.gid = cell_id                    # and assign its gid
         pc.set_gid2node(cell.gid, myid)       # assign this gid to this node
         nc = neuron.NetCon(cell.source, None) # } associate the cell spike source
@@ -356,14 +356,14 @@ def set(cells,cellclass,param,val=None):
     cellclass must be supplied for doing translation of parameter names."""
     global gidlist
     
-    paramDict = checkParams(param,val)
+    param_dict = checkParams(param,val)
 
     if type(cellclass) == type and issubclass(cellclass, common.StandardCellType):
-        paramDict = cellclass({}).translate(paramDict)
+        param_dict = cellclass({}).translate(param_dict)
     if not isinstance(cells,list):
         cells = [cells]    
     hoc_commands = []
-    for param,val in paramDict.items():
+    for param,val in param_dict.items():
         if isinstance(val,str):
             fmt = 'pc.gid2cell(%d).%s = "%s"'
         elif isinstance(val,list):
@@ -608,14 +608,14 @@ class Population(common.Population):
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
-        paramDict = checkParams(param,val)
+        param_dict = checkParams(param,val)
         if isinstance(self.celltype, common.StandardCellType):
-            paramDict = self.celltype.translate(paramDict)
+            param_dict = self.celltype.translate(param_dict)
 
         strfmt  = '%s.object(tmp).%s = "%s"' % (self.hoc_label,"%s","%s")
         numfmt  = '%s.object(tmp).%s = %s' % (self.hoc_label,"%s","%g")
         listfmt = '%s.object(tmp).%s = %s' % (self.hoc_label,"%s","%s")
-        for param,val in paramDict.items():
+        for param,val in param_dict.items():
             if isinstance(val,str):
                 fmt = strfmt
             elif isinstance(val,list):

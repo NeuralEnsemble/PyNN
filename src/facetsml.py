@@ -126,16 +126,16 @@ def checkParams(param,val=None):
        Called by set() and Population.set()."""
     if isinstance(param,str):
         if isinstance(val,float) or isinstance(val,int):
-            paramDict = {param:float(val)}
+            param_dict = {param:float(val)}
         elif isinstance(val,(str, list)):
-            paramDict = {param:val}
+            param_dict = {param:val}
         else:
             raise common.InvalidParameterValueError
     elif isinstance(param,dict):
-        paramDict = param
+        param_dict = param
     else:
         raise common.InvalidParameterValueError
-    return paramDict
+    return param_dict
 
 
 # ==============================================================================
@@ -253,7 +253,7 @@ def setRNGseeds(seedList):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(celltype,paramDict=None,n=1):
+def create(celltype,param_dict=None,n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -265,10 +265,10 @@ def create(celltype,paramDict=None,n=1):
     #must look if the cellclass is not already defined
     
     if isinstance(cellclass, type):
-        celltype = cellclass(paramDict)
+        celltype = cellclass(param_dict)
     elif isinstance(cellclass,str):
         #define a new cellType
-        celltype = FacetsmlCellType(cellclass,paramDict)
+        celltype = FacetsmlCellType(cellclass,param_dict)
  
     # round-robin partitioning
     newgidlist = [i+myid for i in range(gid,gid+n,nhost) if i < gid+n-myid]
@@ -349,7 +349,7 @@ class Population(common.Population):
             facetsml_name = self.celltype.facetsml_name
         elif isinstance(cellclass, str): # not a standard model
             #define a new cellType
-            self.celltype = FacetsmlCellType(cellclass,paramDict)
+            self.celltype = FacetsmlCellType(cellclass,param_dict)
         
         
         if not self.label:
@@ -512,9 +512,9 @@ class Population(common.Population):
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
-        paramDict = checkParams(param,val)
+        param_dict = checkParams(param,val)
 
-        for param,val in paramDict.items():
+        for param,val in param_dict.items():
             if isinstance(val,str):
                 #I have to retrieve the <cell> markup which defines the type of cells of that population
                 # self.cellType is the cellType class, which contains the corresponding domNode
