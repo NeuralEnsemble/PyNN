@@ -23,11 +23,6 @@ class IF_curr_alpha(common.IF_curr_alpha):
         ('v_init',     'u'),
     )
     nest_name = "iaf_neuron2"
-    
-    def __init__(self,parameters):
-        common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
 
 
 class IF_curr_exp(common.IF_curr_exp):
@@ -48,10 +43,6 @@ class IF_curr_exp(common.IF_curr_exp):
         ('v_init',     'u'),
     )
     nest_name = 'iaf_exp_neuron2'
-    
-    def __init__(self,parameters):
-        common.IF_curr_exp.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
 
 
 class IF_cond_alpha(common.IF_cond_alpha):
@@ -75,9 +66,8 @@ class IF_cond_alpha(common.IF_cond_alpha):
     nest_name = "iaf_cond_neuron"
     
     def __init__(self,parameters):
-        common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
+        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
         self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
 
 
@@ -103,8 +93,7 @@ class IF_cond_exp(common.IF_cond_exp):
     
     def __init__(self,parameters):
         common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
+                                                     # values for not-specified parameters.
         self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
 
 
@@ -132,7 +121,6 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
 
     def __init__(self, parameters):
         common.IF_facets_hardware1.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
         self.parameters['q_relref'] = 0.0
         self.parameters['q_sfa']    = 0.0
         self.parameters['python']   = True
@@ -150,7 +138,6 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     
     def __init__(self,parameters):
         common.SpikeSourcePoisson.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
         self.parameters['origin'] = 1.0
 
     
@@ -162,7 +149,4 @@ class SpikeSourceArray(common.SpikeSourceArray):
     )
     nest_name = 'spike_generator'
     
-    def __init__(self,parameters):
-        common.SpikeSourceArray.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)  
     

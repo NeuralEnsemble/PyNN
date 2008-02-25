@@ -22,7 +22,7 @@ _min_delay     = 0.1
 recording_device_names = {'spikes': 'spike_detector',
                           'v': 'voltmeter',
                           'conductance': 'conductancemeter'}
-
+DEFAULT_BUFFER_SIZE = 10000
 
 # ==============================================================================
 #   Utility classes and functions
@@ -37,13 +37,14 @@ class ID(common.ID):
     hit is it to replace integers with ID objects?
     """
     
-    def __getattr__(self,name):
+    def __getattr__(self, name):
         """ """
         nest_parameters = nest.GetStatus([int(self)])[0]
         if issubclass(self.cellclass, common.StandardCellType):
             #translated_name = self.cellclass.translations[name][0]
             #pname = self.cellclass.translations[name]['translated_name']
-            pval = eval(self.cellclass.translations[name]['reverse_transform'], {}, nest_parameters)
+            pval = eval(self.cellclass.translations[name]['reverse_transform'],
+                        {}, nest_parameters)
         elif isinstance(self.cellclass, str) or self.cellclass is None:
             #translated_name = name
             pval = nest_parameters[name]
@@ -52,7 +53,7 @@ class ID(common.ID):
         #return nest.GetStatus([int(self)])[0][translated_name]
         return pval
     
-    def setParameters(self,**parameters):
+    def setParameters(self, **parameters):
         # We perform a call to the low-level function set() of the API.
         # If the cellclass is not defined in the ID object :
         #if (self.cellclass == None):
@@ -66,13 +67,13 @@ class ID(common.ID):
         nest_parameters = nest.GetStatus([int(self)])[0]
         pynn_parameters = {}
         if issubclass(self.cellclass, common.StandardCellType):
-            for k,v in self.cellclass.translations.items():
-                pynn_parameters[k] = eval(self.cellclass.translations[k]['reverse_transform'], {}, nest_parameters)
+            for k in self.cellclass.translations.keys():
+                pynn_parameters[k] = eval(self.cellclass.translations[k]['reverse_transform'],
+                                          {}, nest_parameters)
         return pynn_parameters
             
 
-
-class WDManager(object):
+class WDManager(object): # should be called WDManagerMixin, to make its use clear?
     
     def getWeight(self, w=None):
         if w is not None:
@@ -94,7 +95,7 @@ class WDManager(object):
         if isinstance(w, RandomDistribution):
             weight = RandomDistribution(w.name, w.parameters, w.rng)
             if weight.name == "uniform":
-                (w_min,w_max) = weight.parameters
+                (w_min, w_max) = weight.parameters
                 weight.parameters = (1000.*w_min, 1000.*w_max)
             elif weight.name ==  "normal":
                 (w_mean,w_std) = weight.parameters
@@ -109,11 +110,11 @@ class WDManager(object):
             if isinstance(weight, RandomDistribution):
                 if weight.name == "uniform":
                     print weight.name, weight.parameters
-                    (w_min,w_max) = weight.parameters
+                    (w_min, w_max) = weight.parameters
                     if w_min >= 0 and w_max >= 0:
                         weight.parameters = (-w_max, -w_min)
                 elif weight.name ==  "normal":
-                    (w_mean,w_std) = weight.parameters
+                    (w_mean, w_std) = weight.parameters
                     if w_mean > 0:
                         weight.parameters = (-w_mean, w_std)
                 else:
@@ -124,12 +125,14 @@ class WDManager(object):
 
 
 class Connection(object):
+    """docstring needed"""
     
     def __init__(self, pre, post, synapse_model):
         self.pre = pre
         self.post = post
+        self.synapse_model = synapse_model
         try:
-            conn_dict = nest.GetConnections([pre], synapse_model)[0] 
+            conn_dict = nest.GetConnections([pre], self.synapse_model)[0] 
         except Exception:
             raise common.ConnectionError
         if (len(conn_dict['targets']) == 0):
@@ -145,7 +148,7 @@ class Connection(object):
     def _get_weight(self):
         # this needs to be modified to take account of threads
         # also see nest.GetConnection (was nest.GetSynapseStatus)
-        conn_dict = nest.GetConnections([self.pre], synapse_model)[0] 
+        conn_dict = nest.GetConnections([self.pre], self.synapse_model)[0] 
         if conn_dict:
             return conn_dict['weights'][self.port]
         else:
@@ -167,6 +170,7 @@ class Connection(object):
     delay = property(_get_delay, _set_delay)
 
 def list_standard_models():
+    """Return a list of all the StandardCellType classes available for this simulator."""
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
 
 def _discrepancy_due_to_rounding(parameters, output_values):
@@ -174,8 +178,9 @@ def _discrepancy_due_to_rounding(parameters, output_values):
     if 'delay' not in parameters:
         return False
     else:
-        # the logic here is not the clearest, the aim was to keep _set_connection() as simple
-        # as possible, but it might be better to refactor the whole thing.
+        # the logic here is not the clearest, the aim was to keep
+        # _set_connection() as simple as possible, but it might be better to
+        # refactor the whole thing.
         dt = nest.GetStatus([0])[0]['resolution']
         input_delay = parameters['delay']
         if hasattr(output_values, "__len__"):
@@ -193,7 +198,8 @@ def _set_connection(source_id, target_id, synapse_type, **parameters):
         input_values = input_values[0]
     output_values = _get_connection(source_id, target_id, synapse_type, *parameters.keys())
     if input_values != output_values:
-        # The problem must be with parameter values, otherwise _get_connection() would have raised an exception
+        # The problem must be with parameter values, otherwise _get_connection()
+        # would have raised an exception
         # There is one special case: delays are rounded to the time step precision in NEST
         if _discrepancy_due_to_rounding(parameters, output_values):
             raise common.RoundingWarning("delays rounded to the precision of the timestep.")
@@ -214,7 +220,8 @@ def _get_connection(source_id, target_id, synapse_type, *parameter_names):
         assert synapse_type in NEST_SYNAPSE_TYPES, "Invalid synapse type: '%s'" % synapse_type
         conn_dict = nest.GetConnections([source_id], synapse_type)[0]
         if isinstance(conn_dict, dict): # valid dict returned, so target_id must be the problem
-            raise common.ConnectionError("Invalid target_id (%s). Valid target_ids for source_id=%s are: %s" % (target_id, source_id, range(len(conn_dict['weights']))))
+            raise common.ConnectionError("Invalid target_id (%s). Valid target_ids for source_id=%s are: %s" % (
+                target_id, source_id, range(len(conn_dict['weights']))))
         elif isinstance(conn_dict, basestring):
             raise common.ConnectionError("Invalid source_id (%s) or target_id (port) (%s)" % (source_id, target_id))
         else:
@@ -227,7 +234,7 @@ def is_number(n):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,min_delay=0.1,max_delay=10.0,debug=False,**extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -258,18 +265,19 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=10.0,debug=False,**extra_params):
     
     # Set min_delay and max_delay for all synapse models
     for synapse_model in NEST_SYNAPSE_TYPES:
-        nest.SetSynapseDefaults(synapse_model, {'delay': _min_delay, 'min_delay': _min_delay, 'max_delay': _max_delay})
-    
+        nest.SetSynapseDefaults(synapse_model, {'delay': _min_delay,
+                                                'min_delay': _min_delay,
+                                                'max_delay': _max_delay})
     if extra_params.has_key('threads'):
         if extra_params.has_key('kernelseeds'):
             print 'params has kernelseeds ', extra_params['kernelseeds']
             kernelseeds = extra_params['kernelseeds']
         else:
             # default kernelseeds, for each thread one, to ensure same for each sim we get the rng with seed 42
-            rng = NumpyRNG(42)
+            rng = NumpyRNG(42) 
             num_processes = nest.GetStatus([0])[0]['num_processes']
             kernelseeds = (rng.rng.uniform(size=extra_params['threads']*num_processes)*100).astype('int').tolist()
-            print 'params has no kernelseeds, we use ',kernelseeds
+            print 'params has no kernelseeds, we use ', kernelseeds
             
         nest.SetStatus([0],[{'local_num_threads' : extra_params['threads'],
                              'rng_seeds'         : kernelseeds}])
@@ -330,13 +338,13 @@ def get_time_step():
 
 def setRNGseeds(seedList):
     """Globally set rng seeds."""
-    nest.SetStatus([0],{'rng_seeds': seedList})
+    nest.SetStatus([0], {'rng_seeds': seedList})
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass,paramDict=None,n=1):
+def create(cellclass, paramDict=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -345,16 +353,16 @@ def create(cellclass,paramDict=None,n=1):
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, type):
         celltype = cellclass(paramDict)
-        cell_gids = nest.Create(celltype.nest_name,n)
+        cell_gids = nest.Create(celltype.nest_name, n)
         cell_gids = [ID(gid) for gid in cell_gids]
         nest.SetStatus(cell_gids, [celltype.parameters])
     elif isinstance(cellclass, str):  # celltype is not a standard cell
-        cell_gids = nest.Create(cellclass,n)
+        cell_gids = nest.Create(cellclass, n)
         cell_gids = [ID(gid) for gid in cell_gids]
         if paramDict:
             nest.SetStatus(cell_gids, [paramDict])
     else:
-        raise "Invalid cell type"
+        raise Exception("Invalid cell type")
     for id in cell_gids:
     #    #id.setCellClass(cellclass)
         id.cellclass = cellclass
@@ -363,7 +371,7 @@ def create(cellclass,paramDict=None,n=1):
     else:
         return cell_gids
 
-def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None):
+def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
@@ -378,13 +386,14 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     if delay < _min_delay or delay > _max_delay:
         raise common.ConnectionError
     weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
-                         # Using convention in this way is not ideal. We should be able to look up the units used by each model somewhere.
+                         # Using convention in this way is not ideal. We should
+                         # be able to look up the units used by each model somewhere.
     if synapse_type == 'inhibitory' and weight > 0:
         weight *= -1
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
-            nest.ConnectWD([source],[target],[weight],[delay])
-            connect_id = Connection(source, target,'static_synapse')
+            nest.ConnectWD([source], [target], [weight], [delay])
+            connect_id = Connection(source, target, 'static_synapse')
         else:
             connect_id = []
             if type(source) != types.ListType:
@@ -394,19 +403,19 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
             for src in source:
                 if p < 1:
                     if rng: # use the supplied RNG
-                        rarr = rng.rng.uniform(0,1,len(target))
+                        rarr = rng.rng.uniform(0, 1, len(target))
                     else:   # use the default RNG
-                        rarr = numpy.random.uniform(0,1,len(target))
+                        rarr = numpy.random.uniform(0, 1, len(target))
                 for j,tgt in enumerate(target):
                     if p >= 1 or rarr[j] < p:
-                        nest.ConnectWD([src],[tgt],[weight],[delay])
-                        connect_id += [Connection(src,tgt,'static_synapse')]
+                        nest.ConnectWD([src], [tgt], [weight], [delay])
+                        connect_id += [Connection(src, tgt, 'static_synapse')]
     #except nest.SLIError:
     except Exception: # unfortunately, SLIError seems to have disappeared.Hopefully it will be reinstated.
         raise common.ConnectionError
     return connect_id
 
-def set(cells,cellclass,param,val=None):
+def set(cells, cellclass, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
@@ -414,16 +423,14 @@ def set(cells,cellclass,param,val=None):
     # we should just assume that cellclass has been defined and raise an Exception if it has not
     if val:
         param = {param:val}
-    try:
-        i = cells[0]
-    except TypeError:
+    if not hasattr(cells, '__len__'):
         cells = [cells]
-    if not (isinstance(cellclass,str) or cellclass is None):
+    if not (isinstance(cellclass, str) or cellclass is None):
         if issubclass(cellclass, common.StandardCellType):
-            param = cellclass({}).translate1(param)
+            param = cellclass({}).translate(param)
         else:
-            raise TypeError, "cellclass must be a string, None, or derived from commonStandardCellType"
-    nest.SetStatus(cells,[param])
+            raise TypeError, "cellclass must be a string, None, or derived from common.StandardCellType"
+    nest.SetStatus(cells, [param])
 
 def _connect_recording_device(recorder, record_from=None):
     #print "Connecting recorder %s to cell(s) %s" % (recorder, record_from)
@@ -446,7 +453,8 @@ def _record(variable, source, filename):
     nest.SetStatus(recording_device,
                    {"to_file" : True, "withgid" : True, "withtime" : True,
                     "interval": nest.GetStatus([0], "resolution")[0]})
-    print "Trying to record %s from cell %s using %s %s (filename=%s)" % (variable, source, device_name, recording_device, filename)
+    print "Trying to record %s from cell %s using %s %s (filename=%s)" % (variable, source, device_name,
+                                                                          recording_device, filename)
             
     if type(source) != types.ListType:
         source = [source]
@@ -486,7 +494,7 @@ def _merge_files(recorder, gather):
     merged_filename = nest.spp() #nest.GetStatus(recorder, "filename")
 
     if local_num_threads > 1:
-        for nest_thread in range(1,local_num_threads):
+        for nest_thread in range(1, local_num_threads):
             nest.sps(recorder[0])
             nest.sr("%i GetAddress %i append" % (recorder[0], nest_thread))
             nest.sr("GetStatus /filename get")
@@ -498,7 +506,8 @@ def _merge_files(recorder, gather):
         raise Exception("gather not yet implemented")
     return merged_filename
 
-def _print(user_filename, gather=True, compatible_output=True, population=None, variable=None):
+def _print(user_filename, gather=True, compatible_output=True, population=None,
+           variable=None):
     global recorder_dict
     
     if population is None:
@@ -507,12 +516,14 @@ def _print(user_filename, gather=True, compatible_output=True, population=None, 
         assert variable in ['spikes', 'v', 'conductance']
         recorder = population.recorders[variable]
     
-    logging.info("Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder, compatible_output))
+    logging.info("Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder,
+                                                                             compatible_output))
     nest_filename = _merge_files(recorder, gather)
               
     if compatible_output:
         if gather == False or nest.Rank() == 0: # if we gather, only do this on the master node
-           recording.write_compatible_output(nest_filename, user_filename, population, get_time_step())
+            recording.write_compatible_output(nest_filename, user_filename,
+                                              population, get_time_step())
     else:
         os.system("cat %s > %s" % nest_filename, user_filename)
     
@@ -552,7 +563,7 @@ class Population(common.Population):
     """
     nPop = 0
     
-    def __init__(self,dims,cellclass,cellparams=None,label=None):
+    def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
@@ -565,7 +576,7 @@ class Population(common.Population):
         label is an optional name for the population.
         """
         
-        common.Population.__init__(self,dims,cellclass,cellparams,label)  # move this to common.Population.__init__()
+        common.Population.__init__(self, dims, cellclass, cellparams, label)
         
         # Should perhaps use "LayoutNetwork"?
         
@@ -596,19 +607,19 @@ class Population(common.Population):
         self.recorders = {'spikes': None, 'v': None, 'conductance': None}
         Population.nPop += 1
     
-    def __getitem__(self,addr):
+    def __getitem__(self, addr):
         """Returns a representation of the cell with coordinates given by addr,
            suitable for being passed to other methods that require a cell id.
            Note that __getitem__ is called when using [] access, e.g.
              p = Population(...)
              p[2,3] is equivalent to p.__getitem__((2,3)).
         """
-        if isinstance(addr,int):
+        if isinstance(addr, int):
             addr = (addr,)
         if len(addr) == self.ndim:
             id = self.cell[addr]
         else:
-            raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addr))
+            raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
         if addr != self.locate(id):
             raise IndexError, 'Invalid cell address %s' % str(addr)
         return id
@@ -618,6 +629,7 @@ class Population(common.Population):
         return self.size
     
     def __iter__(self):
+        """Iterator over cell ids."""
         return self.cell.flat
 
     def __address_gen(self):
@@ -629,9 +641,11 @@ class Population(common.Population):
             yield self.locate(i)
         
     def addresses(self):
+        """Iterator over cell addresses."""
         return self.__address_gen()
     
     def ids(self):
+        """Iterator over cell ids."""
         return self.__iter__()
 
     def locate(self, id):
@@ -670,7 +684,7 @@ class Population(common.Population):
             n = numpy.array(n)
         return self.cell[n]
     
-    def set(self,param,val=None):
+    def set(self, param, val=None):
         """
         Set one or more parameters for every cell in the population. param
         can be a dict, in which case val should not be supplied, or a string
@@ -679,44 +693,47 @@ class Population(common.Population):
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
-        if isinstance(param,str):
-            if isinstance(val,str) or isinstance(val,float) or isinstance(val,int):
-                paramDict = {param:float(val)}
+        if isinstance(param, str):
+            if isinstance(val, (str, float, int)):
+                param_dict = {param: float(val)}
             else:
                 raise common.InvalidParameterValueError
         elif isinstance(param,dict):
-            paramDict = param
+            param_dict = param
         else:
             raise common.InvalidParameterValueError
         if isinstance(self.celltype, common.StandardCellType):
-            paramDict = self.celltype.translate1(paramDict)
-        nest.SetStatus(self.cell_local, [paramDict])
+            param_dict = self.celltype.translate(param_dict)
+        nest.SetStatus(self.cell_local, [param_dict])
 
-    def tset(self,parametername,valueArray):
+    def tset(self, parametername, value_array):
         """
         'Topographic' set. Sets the value of parametername to the values in
         valueArray, which must have the same dimensions as the Population.
         """
         # Convert everything to 1D arrays
-        cells = numpy.reshape(self.cell,self.cell.size)
-        if self.cell.shape == valueArray.shape: # the values are numbers or non-array objects
-            values = numpy.reshape(valueArray,self.cell.size)
-        elif len(valueArray.shape) == len(self.cell.shape)+1: # the values are themselves 1D arrays
-            values = numpy.reshape(valueArray,(self.cell.size,valueArray.size/self.cell.size))
+        cells = numpy.reshape(self.cell, self.cell.size)
+        if self.cell.shape == value_array.shape: # the values are numbers or non-array objects
+            values = numpy.reshape(value_array, self.cell.size)
+        elif len(value_array.shape) == len(self.cell.shape)+1: # the values are themselves 1D arrays
+            values = numpy.reshape(value_array, (self.cell.size, value_array.size/self.cell.size))
         else:
-            raise common.InvalidDimensionsError, "Population: %s, valueArray: %s" % (str(cells.shape), str(valueArray.shape))
+            raise common.InvalidDimensionsError, "Population: %s, value_array: %s" % (str(cells.shape),
+                                                                                      str(value_array.shape))
         # Translate the parameter name
         if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate1({parametername: values[0]}).keys()[0]
+            parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
         # Set the values for each cell
         if len(cells) == len(values):
-            for cell,val in zip(cells,values):
+            for cell,val in zip(cells, values):
                 try:
-                    if not isinstance(val,str) and hasattr(val,"__len__"):
-                        val = list(val) # tuples, arrays are all converted to lists, since this is what SpikeSourceArray expects. This is not very robust though - we might want to add things that do accept arrays.
+                    if not isinstance(val, str) and hasattr(val, "__len__"):
+                        # tuples, arrays are all converted to lists, since this is what SpikeSourceArray expects.
+                        # This is not very robust though - we might want to add things that do accept arrays.
+                        val = list(val) 
                     else:
                         if cell in self.cell_local:
-                            nest.SetStatus([cell],[{parametername: val}])
+                            nest.SetStatus([cell], [{parametername: val}])
                 #except nest.SLIError:
                 except Exception: # unfortunately, SLIError seems to have disappeared.
                     raise common.InvalidParameterValueError, "Error from SLI"
@@ -724,45 +741,27 @@ class Population(common.Population):
             raise common.InvalidDimensionsError
         
     
-    def rset(self,parametername,rand_distr):
+    def rset(self, parametername, rand_distr):
         """
         'Random' set. Sets the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
         if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate1({parametername: 0.0}).keys()[0]
+            parametername = self.celltype.translate({parametername: 0.0}).keys()[0]
         if isinstance(rand_distr.rng, NativeRNG):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
-            #cells = numpy.reshape(self.cell,self.cell.size)
+            #cells = numpy.reshape(self.cell, self.cell.size)
             #rarr = rand_distr.next(n=self.size)
             rarr = rand_distr.next(n=len(self.cell_local))
             cells = self.cell_local
             assert len(rarr) == len(cells)
-            for cell,val in zip(cells,rarr):
+            for cell,val in zip(cells, rarr):
                 try:
-                    nest.SetStatus([cell],{parametername: val})
+                    nest.SetStatus([cell], {parametername: val})
                 #except nest.SLIError:
                 except Exception: # unfortunately, SLIError seems to have disappeared.
                     raise common.InvalidParameterValueError
-            
-    def _call(self,methodname,arguments):
-        """
-        Calls the method methodname(arguments) for every cell in the population.
-        e.g. p.call("set_background","0.1") if the cell class has a method
-        set_background().
-        """
-        raise Exception("Method not yet implemented")
-    
-    def _tcall(self,methodname,objarr):
-        """
-        `Topographic' call. Calls the method methodname() for every cell in the 
-        population. The argument to the method depends on the coordinates of the
-        cell. objarr is an array with the same dimensions as the Population.
-        e.g. p.tcall("memb_init",vinitArray) calls
-        p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
-        """
-        raise Exception("Method not yet implemented")
 
     def _record(self, variable, record_from=None, rng=None):
         assert variable in ('spikes', 'v', 'conductance')
@@ -784,7 +783,7 @@ class Population(common.Population):
             elif type(record_from) == types.IntType:
                 n_rec = record_from
             else:
-                raise "record_from must be a list or an integer"
+                raise Exception("record_from must be a list or an integer")
         else:
             n_rec = self.size
             
@@ -796,8 +795,8 @@ class Population(common.Population):
             for neuron in record_from:
                 tmp_list = [neuron for neuron in record_from]
         else:
-            # should use `rng` here, if provided
-            for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
+            rng = rng or numpy.random
+            for neuron in rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]:
                 tmp_list.append(neuron)
                 
         # connect device to neurons
@@ -813,7 +812,7 @@ class Population(common.Population):
         """
         self._record('spikes', record_from, rng)
         
-    def record_v(self,record_from=None,rng=None):
+    def record_v(self, record_from=None, rng=None):
         """
         If record_from is not given, record the membrane potential for all cells in
         the Population.
@@ -823,7 +822,7 @@ class Population(common.Population):
         """
         self._record('v', record_from, rng)
     
-    def record_c(self,record_from=None,rng=None):
+    def record_c(self, record_from=None, rng=None):
         """
         If record_from is not given, record the membrane potential for all cells in
         the Population.
@@ -876,7 +875,7 @@ class Population(common.Population):
         Sets initial membrane potentials for all the cells in the population to
         random values.
         """
-        self.rset('v_init',rand_distr)
+        self.rset('v_init', rand_distr)
 
     def print_v(self, filename, gather=True, compatible_output=True):
         """
@@ -894,7 +893,7 @@ class Population(common.Population):
         _print(filename, gather=gather, compatible_output=compatible_output,
                population=self, variable="v")
                
-    def print_c(self,filename,gather=True, compatible_output=True):
+    def print_c(self, filename, gather=True, compatible_output=True):
         """
         Write conductance traces to file.
         If compatible_output is True, the format is "t g cell_id",
@@ -918,17 +917,19 @@ class Projection(common.Projection, WDManager):
     parameters of those connections, including of plasticity mechanisms.
     """    
     class ConnectionDict:
+        """docstring needed."""
             
-            def __init__(self,parent):
-                self.parent = parent
+        def __init__(self,parent):
+            self.parent = parent
     
-            def __getitem__(self,id):
-                """Returns a (source address,target port number) tuple."""
-                assert isinstance(id, int)
-                return (self.parent._sources[id], self.parent._targetPorts[id])
+        def __getitem__(self, id):
+            """Returns a (source address,target port number) tuple."""
+            assert isinstance(id, int)
+            return (self.parent._sources[id], self.parent._target_ports[id])
     
-    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',
-                 methodParameters=None,source=None,target=None,synapse_dynamics=None,label=None,rng=None):
+    def __init__(self, presynaptic_population, postsynaptic_population,
+                 method='allToAll', method_parameters=None, source=None,
+                 target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -942,19 +943,20 @@ class Projection(common.Projection, WDManager):
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
         'fromFile', 'fromList'
         
-        methodParameters - dict containing parameters needed by the connection method,
+        method_parameters - dict containing parameters needed by the connection method,
         although we should allow this to be a number or string if there is only
         one parameter.
         
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
-        than within methodParameters, particularly since some methods also use
+        than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
-        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,
-                                   method,methodParameters,source,target,synapse_dynamics,label,rng)
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
+                                   method, method_parameters, source, target,
+                                   synapse_dynamics, label, rng)
         
-        self._targetPorts = [] # holds port numbers
+        self._target_ports = [] # holds port numbers
         self._targets = []     # holds gids
         self._sources = []     # holds gids
         self.synapse_type = target
@@ -979,9 +981,9 @@ class Projection(common.Projection, WDManager):
         
         # Create connections
         if isinstance(method, str):
-            connection_method = getattr(self,'_%s' % method)   
-            self.nconn = connection_method(methodParameters)
-        elif isinstance(method,common.Connector):
+            connection_method = getattr(self, '_%s' % method)   
+            self.nconn = connection_method(method_parameters)
+        elif isinstance(method, common.Connector):
             self.nconn = method.connect(self)
         
         # Reset synapse context.
@@ -1004,7 +1006,7 @@ class Projection(common.Projection, WDManager):
     
     # --- Connection methods ---------------------------------------------------
     
-    def _allToAll(self,parameters=None):
+    def _allToAll(self, parameters=None):
         """
         Connect all cells in the presynaptic population to all cells in the postsynaptic population.
         """
@@ -1015,7 +1017,7 @@ class Projection(common.Projection, WDManager):
         c = AllToAllConnector(allow_self_connections)
         return c.connect(self)
     
-    def _oneToOne(self,parameters=None):
+    def _oneToOne(self, parameters=None):
         """
         Where the pre- and postsynaptic populations have the same size, connect
         cell i in the presynaptic population to cell i in the postsynaptic
@@ -1028,7 +1030,7 @@ class Projection(common.Projection, WDManager):
         c = OneToOneConnector()
         return c.connect(self)
 
-    def _fixedProbability(self,parameters):
+    def _fixedProbability(self, parameters):
         """
         For each pair of pre-post cells, the connection probability is constant.
         """
@@ -1042,7 +1044,7 @@ class Projection(common.Projection, WDManager):
         c = FixedProbabilityConnector(p_connect, allow_self_connections)
         return c.connect(self)
     
-    def _distanceDependentProbability(self,parameters):
+    def _distanceDependentProbability(self, parameters):
         """
         For each pair of pre-post cells, the connection probability depends on distance.
         d_expression should be the right-hand side of a valid python expression
@@ -1055,10 +1057,11 @@ class Projection(common.Projection, WDManager):
             d_expression = parameters['d_expression']
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
-        c = DistanceDependentProbabilityConnector(d_expression, allow_self_connections=allow_self_connections)
+        c = DistanceDependentProbabilityConnector(d_expression,
+                                                  allow_self_connections=allow_self_connections)
         return c.connect(self)           
                 
-    def _fixedNumberPre(self,parameters):
+    def _fixedNumberPre(self, parameters):
         """Each presynaptic cell makes a fixed number of connections."""
         n = parameters['n']
         if parameters.has_key('allow_self_connections'):
@@ -1066,7 +1069,7 @@ class Projection(common.Projection, WDManager):
         c = FixedNumberPreConnector(n, allow_self_connections)
         return c.connect(self)
     
-    def _fixedNumberPost(self,parameters):
+    def _fixedNumberPost(self, parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
         n = parameters['n']
         if parameters.has_key('allow_self_connections'):
@@ -1074,7 +1077,7 @@ class Projection(common.Projection, WDManager):
         c = FixedNumberPostConnector(n, allow_self_connections)
         return c.connect(self)
     
-    def _fromFile(self,parameters):
+    def _fromFile(self, parameters):
         """
         Load connections from a file.
         """
@@ -1085,28 +1088,28 @@ class Projection(common.Projection, WDManager):
         elif type(parameters) == types.StringType:
             filename = parameters
             # now open the file...
-            f = open(filename,'r',10000)
+            f = open(filename, 'r', DEFAULT_BUFFER_SIZE)
             lines = f.readlines()
         elif type(parameters) == types.DictType:
             # dict could have 'filename' key or 'file' key
             # implement this...
-            raise "Argument type not yet implemented"
+            raise Exception("Argument type not yet implemented")
         
         # We read the file and gather all the data in a list of tuples (one per line)
         input_tuples = []
         for line in lines:
             single_line = line.rstrip()
             src, tgt, w, d = single_line.split("\t", 4)
-            src = "[%s" % src.split("[",1)[1]
-            tgt = "[%s" % tgt.split("[",1)[1]
-            src=eval(src)
-            tgt=eval(tgt)
-            input_tuples.append((src,tgt,float(w),float(d)))
+            src = "[%s" % src.split("[", 1)[1]
+            tgt = "[%s" % tgt.split("[", 1)[1]
+            src = eval(src)
+            tgt = eval(tgt)
+            input_tuples.append((src, tgt, float(w), float(d)))
         f.close()
         
         self._fromList(input_tuples)
         
-    def _fromList(self,conn_list):
+    def _fromList(self, conn_list):
         """
         Read connections from a list of tuples,
         containing [pre_addr, post_addr, weight, delay]
@@ -1119,10 +1122,10 @@ class Projection(common.Projection, WDManager):
             tgt = eval("self.post%s" %tgt)
             pre_addr = nest.GetAddress([src])
             post_addr = nest.GetAddress([tgt])
-            nest.ConnectWD(pre_addr,post_addr, [1000*weight], [delay])
+            nest.ConnectWD(pre_addr, post_addr, [1000*weight], [delay])
             self._sources.append(src)
             self._targets.append(tgt)
-            self._targetPorts.append(tgt)
+            self._target_ports.append(tgt)
 
     
     # --- Methods for setting connection parameters ----------------------------
@@ -1131,7 +1134,7 @@ class Projection(common.Projection, WDManager):
         if is_number(value):
             for src,port in self.connections():
                 _set_connection(src, port, self._plasticity_model, **{name: value})
-        elif isinstance(value,list) or isinstance(value, numpy.ndarray):
+        elif isinstance(value, (list, numpy.ndarray)):
             # this is probably not the most efficient way - should sort by src and then use SetConnections?
             assert len(value) == len(self)
             for (src,port),v in zip(self.connections(), value):
@@ -1153,13 +1156,13 @@ class Projection(common.Projection, WDManager):
         w = self.convertWeight(w, self.synapse_type)
         self._set_connection_values('weight', w)
     
-    def randomizeWeights(self,rand_distr):
+    def randomizeWeights(self, rand_distr):
         """
         Set weights to random values taken from rand_distr.
         """
         self.setWeights(rand_distr.next(len(self)))
     
-    def setDelays(self,d):
+    def setDelays(self, d):
         """
         d can be a single number, in which case all delays are set to this
         value, or a list/1D array of length equal to the number of connections
@@ -1167,13 +1170,13 @@ class Projection(common.Projection, WDManager):
         """
         self._set_connection_values('delay', d)
     
-    def randomizeDelays(self,rand_distr):
+    def randomizeDelays(self, rand_distr):
         """
         Set delays to random values taken from rand_distr.
         """
         self.setDelays(rand_distr.next(len(self)))
     
-    def setThreshold(self,threshold):
+    def setThreshold(self, threshold):
         """
         Where the emission of a spike is determined by watching for a
         threshold crossing, set the value of this threshold.
@@ -1183,13 +1186,14 @@ class Projection(common.Projection, WDManager):
         # connection (NetCon).
         raise Exception("Method deprecated")      
     
-    # --- Methods for writing/reading information to/from file. ---------------- 
+    # --- Methods for writing/reading information to/from file. ----------------
     
     def _dump_connections(self):
         """For debugging."""
-        print "Connections for Projection %s, connected with %s" % (self.label or '(un-labelled)', self._method)
+        print "Connections for Projection %s, connected with %s" % (self.label or '(un-labelled)',
+                                                                    self._method)
         print "\tsource\ttarget\tport"
-        for conn in zip(self._sources, self._targets, self._targetPorts):
+        for conn in zip(self._sources, self._targets, self._target_ports):
             print "\t%d\t%d\t%d" % conn
         print "Connection data for the presynaptic population (%s)" % self.pre.label
         for src in self.pre.cell.flat:
@@ -1204,7 +1208,8 @@ class Projection(common.Projection, WDManager):
         elif format == 'array':
             values = numpy.zeros((self.pre.size, self.post.size))
             for src, port in self.connections():
-                v, tgt = _get_connection(src, port, self._plasticity_model, parameter_name, 'target')
+                v, tgt = _get_connection(src, port, self._plasticity_model,
+                                         parameter_name, 'target')
                 # note that we assume that Population ids are consecutive, which is the case, but we should
                 # perhaps make an assert in __init__() to really make sure
                 values[src-self.pre.id_start, tgt-self.post.id_start] = v
@@ -1235,14 +1240,16 @@ class Projection(common.Projection, WDManager):
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        f = open(filename,'w',10000)
+        f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
         weights = []; delays = []
         for src, port in self.connections():
-            weight, delay = _get_connection(src, port, self._plasticity_model, 'weight', 'delay')
+            weight, delay = _get_connection(src, port, self._plasticity_model,
+                                            'weight', 'delay')
             # Note unit change from pA to nA or nS to uS, depending on synapse type
             weights.append(0.001*weight)
             delays.append(delay)
-        fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label,"%s",self.post.label,"%s","%g","%g")
+        fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
+                                        "%s", "%g", "%g")
         for i in xrange(len(self)):
             line = fmt  % (self.pre.locate(self._sources[i]),
                            self.post.locate(self._targets[i]),
@@ -1255,7 +1262,7 @@ class Projection(common.Projection, WDManager):
     def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""
         weights = self.getWeights(format=format, gather=gather)
-        f = open(filename,'w',10000)
+        f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
         if format == 'list':
             f.write("\n".join([str(w) for w in weights]))
         elif format == 'array':
@@ -1265,7 +1272,7 @@ class Projection(common.Projection, WDManager):
         f.close()
             
     
-    def weightHistogram(self,min=None,max=None,nbins=10):
+    def weightHistogram(self, min=None, max=None, nbins=10):
         """
         Return a histogram of synaptic weights.
         If min and max are not given, the minimum and maximum weights are

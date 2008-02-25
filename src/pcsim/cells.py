@@ -27,8 +27,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
     setterMethods = {}
         
     def __init__(self, parameters):
-        common.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)                
+        common.IF_curr_alpha.__init__(self, parameters)              
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = LIFCurrAlphaNeuron(**self.parameters)
 
@@ -55,8 +54,7 @@ class IF_curr_exp(common.IF_curr_exp):
     setterMethods = {}
     
     def __init__(self, parameters):
-        common.IF_curr_exp.__init__(self, parameters)        
-        self.parameters = self.translate1(self.parameters)        
+        common.IF_curr_exp.__init__(self, parameters)                
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = LIFCurrExpNeuron(**self.parameters)
 
@@ -84,8 +82,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
     setterMethods = {}
         
     def __init__(self, parameters):
-        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)                
+        common.IF_cond_alpha.__init__(self, parameters)
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = LIFCondAlphaNeuron(**self.parameters)
 
@@ -113,8 +110,7 @@ class IF_cond_exp(common.IF_cond_alpha):
     setterMethods = {}
         
     def __init__(self, parameters):
-        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default                                               # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)                
+        common.IF_cond_alpha.__init__(self, parameters)
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = LIFCondExpNeuron(**self.parameters)
 
@@ -134,7 +130,6 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
    
     def __init__(self, parameters):
         common.SpikeSourcePoisson.__init__(self, parameters)
-        self.parameters = self.translate1(self.parameters)
         self.setterMethods = {}        
         self.simObjFactory = PoissonInputNeuron(**self.parameters)
 
@@ -151,13 +146,12 @@ class SpikeSourceArray(common.SpikeSourceArray):
     
     def __init__(self, parameters):
         common.SpikeSourceArray.__init__(self, parameters)
-        self.parameters = self.translate(self.parameters)
         self.setterMethods = {'spikeTimes':'setSpikeTimes' }  
         self.pcsim_object_handle = SpikingInputNeuron(**self.parameters)
         self.simObjFactory  = SpikingInputNeuron(**self.parameters)
      
     def translate(self,parameters):
-        translated_parameters = common.SpikeSourceArray.translate1(self,parameters)
+        translated_parameters = common.SpikeSourceArray.translate(self,parameters)
         # convert from ms to s - should really be done in common.py, but that doesn't handle lists, only arrays
         if isinstance(translated_parameters['spikeTimes'],list):
             translated_parameters['spikeTimes'] = [t*0.001 for t in translated_parameters['spikeTimes']]
@@ -204,10 +198,8 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     setterMethods = {}
     
     def __init__(self, parameters):
-        common.AdaptiveExponentialIF_alpha.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)                
+        common.AdaptiveExponentialIF_alpha.__init__(self,parameters)              
         self.parameters['Inoise'] = 0.0
-        print self.parameters
         limited_parameters = {} # problem that Trefract is not implemented
         for k in ('a','b','Vt','Vr','El','gl','Cm','tau_w','slope','Vpeak',
                   'Vinit','Inoise','Iinject', 'ErevExc', 

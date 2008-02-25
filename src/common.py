@@ -27,17 +27,21 @@ _min_delay = 0.1
 
 # The following two functions taken from
 # http://www.nedbatchelder.com/text/pythonic-interfaces.html
-def _functionId(obj, nFramesUp):
+def _function_id(obj, n_frames_up):
     """ Create a string naming the function n frames up on the stack. """
-    fr = sys._getframe(nFramesUp+1)
+    fr = sys._getframe(n_frames_up+1)
     co = fr.f_code
     return "%s.%s" % (obj.__class__, co.co_name)
 
-def _abstractMethod(obj=None):
+def _abstract_method(obj=None):
     """ Use this instead of 'pass' for the body of abstract methods. """
-    raise Exception("Unimplemented abstract method: %s" % _functionId(obj, 1))
+    # Note that there is a NotImplementedError built-in exception we could use
+    raise Exception("Unimplemented abstract method: %s" % _function_id(obj, 1))
 
 def build_translations(*translation_list):
+    """
+    Build a translation dictionary from a list of translations/transformations.
+    """
     translations = {}
     for item in translation_list:
         assert 2 <= len(item) <= 4, "Translation tuples must have between 2 and 4 items"
@@ -68,19 +72,20 @@ class ID(int):
     hit is it to replace integers with ID objects?
     """
     
-    non_parameter_attributes = ('parent','_cellclass','cellclass','_position','position','hocname')
+    non_parameter_attributes = ('parent', '_cellclass', 'cellclass',
+                                '_position', 'position', 'hocname')
     
-    def __init__(self,n):
+    def __init__(self, n):
         int.__init__(n)
         self.parent = None
         self._cellclass = None
 
-    def __getattr__(self,name):
-        return _abstractMethod(self)
+    def __getattr__(self, name):
+        return _abstract_method(self)
     
-    def __setattr__(self,name,value):
+    def __setattr__(self, name, value):
         if name in ID.non_parameter_attributes:
-            object.__setattr__(self,name,value)
+            object.__setattr__(self, name, value)
         else:
             return self.setParameters(**{name:value})
 
@@ -102,19 +107,35 @@ class ID(int):
         
     cellclass = property(_get_cellclass, _set_cellclass)
     
-    def _set_position(self,pos):
-        assert isinstance(pos, tuple) or isinstance(pos, numpy.ndarray)
+    def _set_position(self, pos):
+        """
+        Set the cell position in 3D space.
+        
+        Cell positions are stored in an array in the parent Population, if any,
+        or within the ID object otherwise.
+        """
+        assert isinstance(pos, (tuple, numpy.ndarray))
         assert len(pos) == 3
         if self.parent:
+            # the following line makes too many assumptions about the
+            # implementation of Population. Should use a public method of
+            # Population.
             index = numpy.where(self.parent.cell.flatten() == int(self))[0][0]
-            self.parent.positions[:,index] = pos
+            self.parent.positions[:, index] = pos
         else:
             self._position = pos
         
     def _get_position(self):
+        """
+        Return the cell position in 3D space.
+        
+        Cell positions are stored in an array in the parent Population, if any,
+        or within the ID object otherwise. Positions are generated the first
+        time they are requested and then cached.
+        """
         if self.parent:
             index = numpy.where(self.parent.cell.flatten() == int(self))[0][0]
-            return self.parent.positions[:,index]  
+            return self.parent.positions[:, index]  
         else:
             try:
                 return self._position
@@ -124,15 +145,16 @@ class ID(int):
 
     position = property(_get_position, _set_position)
 
-    def setParameters(self,**parameters):
+    def setParameters(self, **parameters):
         """Set cell parameters, given as a sequence of parameter=value arguments."""
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
     def getParameters(self):
         """Return a dict of all cell parameters."""
-        return _abstractMethod(self)
+        return _abstract_method(self)
 
-def distance(src, tgt, mask=None, scale_factor=1.0, offset=0., periodic_boundaries=None): # may need to add an offset parameter
+def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.,
+             periodic_boundaries=None): # may need to add an offset parameter
     """
     Return the Euclidian distance between two cells.
     `mask` allows only certain dimensions to be considered, e.g.::
@@ -145,38 +167,42 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0., periodic_boundari
     d = src.position - scale_factor*(tgt.position + offset)
     
     if not periodic_boundaries == None:
-        d = numpy.array(map(min,((x_i,y_i) for (x_i,y_i) in zip(abs(d),periodic_boundaries-abs(d)))))
+        d = numpy.array(map(min, ((x_i, y_i) for (x_i, y_i) in zip(abs(d), periodic_boundaries-abs(d)))))
     if mask is not None:
         d = d[mask]
-    return numpy.sqrt(numpy.dot(d,d))
+    return numpy.sqrt(numpy.dot(d, d))
 
 
-def distances(pre, post, mask=None, scale_factor=1.0, offset=0., periodic_boundaries=None):
-    """Calculate the entire distance matrix at once.
-       From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html"""
-    if isinstance(pre, Population): x = pre.positions
+def distances(pre, post, mask=None, scale_factor=1.0, offset=0.,
+              periodic_boundaries=None):
+    """
+    Calculate the entire distance matrix at once.
+    From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
+    """
+    # Note that `mask` is not used.
+    if isinstance(pre, Population):
+        x = pre.positions
     else: 
         x = pre.position
-        x = x.reshape(3,1)
-    if isinstance(post, Population): y = post.positions
+        x = x.reshape(3, 1)
+    if isinstance(post, Population):
+        y = post.positions
     else: 
         y = post.position
-        y = y.reshape(3,1)
+        y = y.reshape(3, 1)
     y = scale_factor*(y + offset)
-    d = numpy.zeros((x.shape[1],y.shape[1]), dtype=x.dtype)
+    d = numpy.zeros((x.shape[1], y.shape[1]), dtype=x.dtype)
     for i in xrange(x.shape[0]):
         diff2 = abs(x[i,:,None] - y[i,:])
         if not periodic_boundaries == None:
             dims  = diff2.shape
             diff2 = diff2.flatten()
-            diff2 = numpy.array(map(min,((x_i,y_i) for (x_i,y_i) in zip(diff2,periodic_boundaries[i]-diff2))))
+            diff2 = numpy.array(map(min, ((x_i, y_i) for (x_i, y_i) in zip(diff2, periodic_boundaries[i]-diff2))))
             diff2 = diff2.reshape(dims)
         diff2 **= 2
         d += diff2
-    numpy.sqrt(d,d)
+    numpy.sqrt(d, d)
     return d
-
-
 
 
 # ==============================================================================
@@ -188,6 +214,11 @@ class StandardModelType(object):
     
     translations = {}
     default_parameters = {}
+    
+    
+    def __init__(self, parameters):
+        self.parameters = self.checkParameters(parameters, with_defaults=True)
+        self.parameters = self.translate(self.parameters)
     
     def checkParameters(self, supplied_parameters, with_defaults=False):
         """
@@ -207,26 +238,30 @@ class StandardModelType(object):
             parameters = {}
         if supplied_parameters:
             for k in supplied_parameters.keys():
+                err_msg = str(type(supplied_parameters[k]), type(default_parameters[k]))
                 if default_parameters.has_key(k):
-                    if type(supplied_parameters[k]) == type(default_parameters[k]): # same type
+                    # same type
+                    if type(supplied_parameters[k]) == type(default_parameters[k]): 
                         parameters[k] = supplied_parameters[k]
-                    elif type(default_parameters[k]) == types.FloatType: # float and something that can be converted to a float
+                    # float and something that can be converted to a float
+                    elif type(default_parameters[k]) == types.FloatType: 
                         try:
                             parameters[k] = float(supplied_parameters[k]) 
                         except (ValueError, TypeError):
-                            raise InvalidParameterValueError, (type(supplied_parameters[k]), type(default_parameters[k]))
-                    elif type(default_parameters[k]) == types.ListType: # list and something that can be transformed to a list
+                            raise InvalidParameterValueError(err_msg)
+                    # list and something that can be transformed to a list
+                    elif type(default_parameters[k]) == types.ListType: 
                         try:
                             parameters[k] = list(supplied_parameters[k])
                         except TypeError:
-                            raise InvalidParameterValueError, (type(supplied_parameters[k]), type(default_parameters[k]))
+                            raise InvalidParameterValueError(err_msg)
                     else:
-                        raise InvalidParameterValueError, (type(supplied_parameters[k]), type(default_parameters[k]))
+                        raise InvalidParameterValueError(err_msg)
                 else:
                     raise NonExistentParameterError(k)
         return parameters
 
-    def translate(self,parameters):
+    def translate_old(self, parameters):
         """Translate standardized model names to simulator specific names."""
         parameters = self.checkParameters(parameters)
         translated_parameters = {}
@@ -236,7 +271,7 @@ class StandardModelType(object):
             translated_parameters[pname] = pval
         return translated_parameters
     
-    def translate1(self, parameters):
+    def translate(self, parameters):
         """Translate standardized model names to simulator specific names.
            Alternative implementation."""
         parameters = self.checkParameters(parameters)
@@ -244,22 +279,19 @@ class StandardModelType(object):
         for k in parameters.keys():
             pname = self.__class__.translations[k]['translated_name']
             try:
-                pval = eval(self.__class__.translations[k]['forward_transform'], globals(), parameters)
+                pval = eval(self.__class__.translations[k]['forward_transform'],
+                            globals(), parameters)
             except ZeroDivisionError:
                 pval = 1e300 # this is about the highest value hoc can deal with
             translated_parameters[pname] = pval
         return translated_parameters
 
-    def update_parameters(self,parameters):
+    def update_parameters(self, parameters):
         """
         update self.parameters with those in parameters 
         """
-        self.parameters.update(self.translate1(parameters, with_defaults=False))
+        self.parameters.update(self.translate(parameters, with_defaults=False))
         
-
-    def __init__(self,parameters):
-        self.parameters = self.checkParameters(parameters, with_defaults=True)
-    
 
 StandardCellType = StandardModelType
 StandardSynapseType = StandardModelType
@@ -345,7 +377,7 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
     See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
     and renewal theories. Neural Computation 19: 2958-3010.
 
-    NOTE: This is a renaming if the now depreciated 'IF_cond_exp_sfa_rr'.
+    NOTE: This is a renaming of the now deprecated 'IF_cond_exp_sfa_rr'.
 
     See also: EIF_cond_alpha_isfa_ista
 
@@ -382,8 +414,7 @@ class IF_cond_exp_sfa_rr(StandardCellType):
     See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
     and renewal theories. Neural Computation 19: 2958-3010.
 
-    Depreciated: Use the equivalent type 'IF_cond_exp_gsfa_grr' instead.
-
+    Deprecated: Use the equivalent type 'IF_cond_exp_gsfa_grr' instead.
 
     """
     
@@ -409,9 +440,9 @@ class IF_cond_exp_sfa_rr(StandardCellType):
         
     }
 
-    def __init__(self,parameters):
-        self.parameters = self.checkParameters(parameters, with_defaults=True)
-        print "Warning: the cell type name 'IF_cond_exp_sfa_rr' is depreciated."
+    def __init__(self, parameters):
+        StandardCellType.__init__(self, parameters)
+        print "Warning: the cell type name 'IF_cond_exp_sfa_rr' is deprecated."
         print "Use the name 'IF_cond_exp_gsfa_grr' instead."
         print "The 'IF_cond_exp_sfa_rr' type will be removed in future releases."
 
@@ -424,18 +455,19 @@ class IF_facets_hardware1(StandardCellType):
     """
     
     default_parameters = {
-        'cm'                :    0.2,     # nF  
-        'g_leak'            :   20.0,     # nS
-        'tau_refrac'        :    1.0,     # ms
-        'tau_syn_E'         :   20.0,     # ms
-        'tau_syn_I'         :   20.0,     # ms
-        'v_reset'           :  -80.0,     # mV
-        'e_rev_I'           :  -75.0,     # mV,
-        'v_rest'            :  -70.0,     # mV
-        'v_thresh'          :  -57.0,     # mV
-        'e_rev_E'           :    0.0,     # mV
-        'v_init'            :  -70.0,     # mV
+        'cm'        :    0.2,     # nF  
+        'g_leak'    :   20.0,     # nS
+        'tau_refrac':    1.0,     # ms
+        'tau_syn_E' :   20.0,     # ms
+        'tau_syn_I' :   20.0,     # ms
+        'v_reset'   :  -80.0,     # mV
+        'e_rev_I'   :  -75.0,     # mV,
+        'v_rest'    :  -70.0,     # mV
+        'v_thresh'  :  -57.0,     # mV
+        'e_rev_E'   :    0.0,     # mV
+        'v_init'    :  -70.0,     # mV
     }
+
 
 class HH_cond_exp(StandardCellType):
     """docstring needed here."""
@@ -457,104 +489,105 @@ class HH_cond_exp(StandardCellType):
         'v_init'    : -65.0,
     }
 
+
 class AdaptiveExponentialIF_alpha(StandardCellType):
     """adaptive exponential integrate and fire neuron according to 
     Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
     an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
-    Depreciated: Use the equivalent type 'EIF_cond_alpha_isfa_ista' instead.
+    Deprecated: Use the equivalent type 'EIF_cond_alpha_isfa_ista' instead.
 
     """
     
     default_parameters = {
-        'v_init'    : -70.6, #'V_m'        # Initial membrane potential in mV
-        'w_init'    : 0.0,   #'w'          # Spike-adaptation current in nA
-        'cm'        : 0.281, #'C_m'        # Capacity of the membrane in nF
-        'tau_refrac': 0.0,   #'t_ref'      # Duration of refractory period in ms.
-        'v_spike'   : 0.0,   #'V_peak'     # Spike detection threshold in mV.
-        'v_reset'   : -70.6, #'V_reset'    # Reset value for V_m after a spike. In mV.
-        'v_rest'    : -70.6, #'E_L'        # Resting membrane potential (Leak reversal potential) in mV.
-        'tau_m'     : 9.3667,#'g_L'        # Membrane time constant in ms (nest:Leak conductance in nS.)
-        'i_offset'  : 0.0,   #'I_e'        # Offset current in nA
-        'a'         : 4.0,                 # Subthreshold adaptation conductance in nS.
-        'b'         : 0.0805,              # Spike-triggered adaptation in nA
-        'delta_T'   : 2.0,   # Delta_T     # Slope factor in mV
-        'tau_w'     : 144.0, #'tau_w'      # Adaptation time constant in ms
-        'v_thresh'  : -50.4, #'V_t'        # Spike initiation threshold in mV (V_th can also be used for compatibility).
-        'e_rev_E'   : 0.0,   #'E_ex'       # Excitatory reversal potential in mV.
-        'tau_syn_E' : 5.0,   #'tau_ex'     # Rise time of excitatory synaptic conductance in ms (alpha function).
-        'e_rev_I'   : -80.0, #'E_in'       # Inhibitory reversal potential in mV.
-        'tau_syn_I' : 5.0,   #'tau_in'     # Rise time of the inhibitory synaptic conductance in ms (alpha function).
+        'v_init'    : -70.6,   # Initial membrane potential in mV
+        'w_init'    : 0.0,     # Spike-adaptation current in nA
+        'cm'        : 0.281,   # Capacity of the membrane in nF
+        'tau_refrac': 0.0,     # Duration of refractory period in ms.
+        'v_spike'   : 0.0,     # Spike detection threshold in mV.
+        'v_reset'   : -70.6,   # Reset value for V_m after a spike. In mV.
+        'v_rest'    : -70.6,   # Resting membrane potential (Leak reversal potential) in mV.
+        'tau_m'     : 9.3667,  # Membrane time constant in ms (nest:Leak conductance in nS.)
+        'i_offset'  : 0.0,     # Offset current in nA
+        'a'         : 4.0,     # Subthreshold adaptation conductance in nS.
+        'b'         : 0.0805,  # Spike-triggered adaptation in nA
+        'delta_T'   : 2.0,     # Slope factor in mV
+        'tau_w'     : 144.0,   # Adaptation time constant in ms
+        'v_thresh'  : -50.4,   # Spike initiation threshold in mV (V_th can also be used for compatibility).
+        'e_rev_E'   : 0.0,     # Excitatory reversal potential in mV.
+        'tau_syn_E' : 5.0,     # Rise time of excitatory synaptic conductance in ms (alpha function).
+        'e_rev_I'   : -80.0,   # Inhibitory reversal potential in mV.
+        'tau_syn_I' : 5.0,     # Rise time of the inhibitory synaptic conductance in ms (alpha function).
     }
 
-    def __init__(self,parameters):
-        self.parameters = self.checkParameters(parameters, with_defaults=True)
-        print "Warning: the cell type name 'AdaptiveExponentialIF_alpha' is depreciated."
+    def __init__(self, parameters):
+        StandardCellType.__init__(self, parameters)
+        print "Warning: the cell type name 'AdaptiveExponentialIF_alpha' is deprecated."
         print "Use the name 'EIF_cond_alpha_isfa_ista' instead."
         print "The 'AdaptiveExponentialIF_alpha' type will be removed in future releases."
 
-class EIF_cond_alpha_isfa_ista(StandardCellType):
-    """exponential integrate and fire neuron with spike triggered and sub-threshold
-    adaptation currents (isfa, ista reps.) according to:
-    
-    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
-    an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
-    NOTE: This is a renaming if the now depreciated 'AdaptiveExponentialIF_alpha'.
+class EIF_cond_alpha_isfa_ista(StandardCellType):
+    """Exponential integrate and fire neuron with spike triggered and
+    sub-threshold adaptation currents (isfa, ista reps.) according to:
+    
+    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model
+    as an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
+
+    NOTE: This is a renaming of the now deprecated 'AdaptiveExponentialIF_alpha'.
 
     See also: IF_cond_exp_gsfa_grr
 
     """
     
     default_parameters = {
-        'v_init'    : -70.6, #'V_m'        # Initial membrane potential in mV
-        'w_init'    : 0.0,   #'w'          # Spike-adaptation current in nA
-        'cm'        : 0.281, #'C_m'        # Capacity of the membrane in nF
-        'tau_refrac': 0.0,   #'t_ref'      # Duration of refractory period in ms.
-        'v_spike'   : 0.0,   #'V_peak'     # Spike detection threshold in mV.
-        'v_reset'   : -70.6, #'V_reset'    # Reset value for V_m after a spike. In mV.
-        'v_rest'    : -70.6, #'E_L'        # Resting membrane potential (Leak reversal potential) in mV.
-        'tau_m'     : 9.3667,#'g_L'        # Membrane time constant in ms (nest:Leak conductance in nS.)
-        'i_offset'  : 0.0,   #'I_e'        # Offset current in nA
-        'a'         : 4.0,                 # Subthreshold adaptation conductance in nS.
-        'b'         : 0.0805,              # Spike-triggered adaptation in nA
-        'delta_T'   : 2.0,   # Delta_T     # Slope factor in mV
-        'tau_w'     : 144.0, #'tau_w'      # Adaptation time constant in ms
-        'v_thresh'  : -50.4, #'V_t'        # Spike initiation threshold in mV (V_th can also be used for compatibility).
-        'e_rev_E'   : 0.0,   #'E_ex'       # Excitatory reversal potential in mV.
-        'tau_syn_E' : 5.0,   #'tau_ex'     # Rise time of excitatory synaptic conductance in ms (alpha function).
-        'e_rev_I'   : -80.0, #'E_in'       # Inhibitory reversal potential in mV.
-        'tau_syn_I' : 5.0,   #'tau_in'     # Rise time of the inhibitory synaptic conductance in ms (alpha function).
+        'v_init'    : -70.6,  # Initial membrane potential in mV
+        'w_init'    : 0.0,    # Spike-adaptation current in nA
+        'cm'        : 0.281,  # Capacity of the membrane in nF
+        'tau_refrac': 0.0,    # Duration of refractory period in ms.
+        'v_spike'   : 0.0,    # Spike detection threshold in mV.
+        'v_reset'   : -70.6,  # Reset value for V_m after a spike. In mV.
+        'v_rest'    : -70.6,  # Resting membrane potential (Leak reversal potential) in mV.
+        'tau_m'     : 9.3667, # Membrane time constant in ms (nest:Leak conductance in nS.)
+        'i_offset'  : 0.0,    # Offset current in nA
+        'a'         : 4.0,    # Subthreshold adaptation conductance in nS.
+        'b'         : 0.0805, # Spike-triggered adaptation in nA
+        'delta_T'   : 2.0,    # Slope factor in mV
+        'tau_w'     : 144.0,  # Adaptation time constant in ms
+        'v_thresh'  : -50.4,  # Spike initiation threshold in mV (V_th can also be used for compatibility).
+        'e_rev_E'   : 0.0,    # Excitatory reversal potential in mV.
+        'tau_syn_E' : 5.0,    # Rise time of excitatory synaptic conductance in ms (alpha function).
+        'e_rev_I'   : -80.0,  # Inhibitory reversal potential in mV.
+        'tau_syn_I' : 5.0,    # Rise time of the inhibitory synaptic conductance in ms (alpha function).
     }
-
 
 
 class SpikeSourcePoisson(StandardCellType):
     """Spike source, generating spikes according to a Poisson process."""
 
     default_parameters = {
-        'rate'     : 0.0,       # Mean spike frequency (Hz)
-        'start'    : 0.0,       # Start time (ms)
-        'duration' : 1e12        # Duration of spike sequence (ms)
+        'rate'     : 0.0,     # Mean spike frequency (Hz)
+        'start'    : 0.0,     # Start time (ms)
+        'duration' : 1e12     # Duration of spike sequence (ms)
     }  
 
-class SpikeSourceInhGamma(StandardCellType):
-    """Spike source, generating realizations of an inhomogeneous gamma process, employing
-    the thinning method.
 
-    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
-    and renewal theories. Neural Computation 19: 2958-3010.
+class SpikeSourceInhGamma(StandardCellType):
+    """Spike source, generating realizations of an inhomogeneous gamma process,
+    employing the thinning method.
+
+    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond
+    mean-adaptation and renewal theories. Neural Computation 19: 2958-3010.
     """
 
     default_parameters = {
-        'a'     : numpy.array([1.0]),# time histogram of parameter a of a gamma distribution (dimensionaless)
-        'b'     : numpy.array([1.0]),# time histogram of parameter b of a gamma distribution (seconds)
-        'tbins' : numpy.array([0]),  # time bins of the time histogram of a,b in units of ms
-        'rmax' : 1.0,           # Rate (Hz) of the Poisson process to be thinned, usually set to max(1/b)
-        'start'    : 0.0,       # Start time (ms)
-        'duration' : 1e6        # Duration of spike sequence (ms)
+        'a'        : numpy.array([1.0]), # time histogram of parameter a of a gamma distribution (dimensionless)
+        'b'        : numpy.array([1.0]), # time histogram of parameter b of a gamma distribution (seconds)
+        'tbins'    : numpy.array([0]),   # time bins of the time histogram of a,b in units of ms
+        'rmax'     : 1.0,                # Rate (Hz) of the Poisson process to be thinned, usually set to max(1/b)
+        'start'    : 0.0,                # Start time (ms)
+        'duration' : 1e6                 # Duration of spike sequence (ms)
     }  
-
 
 
 class SpikeSourceArray(StandardCellType):
@@ -567,14 +600,14 @@ class SpikeSourceArray(StandardCellType):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,
+          **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
     dt = timestep
-    pass
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
@@ -592,14 +625,15 @@ def setRNGseeds(seedList):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass,paramDict=None,n=1):
+def create(cellclass, paramDict=None, n=1):
     """Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
     If n==1, return just the single id.
     """
     pass
 
-def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None):
+def connect(source, target, weight=None, delay=None, synapse_type=None,
+            p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
@@ -607,21 +641,21 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     Weights should be in nA or µS."""
     pass
 
-def set(cells,cellclass,param,val=None):
+def set(cells, cellclass, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
     cellclass must be supplied for doing translation of parameter names."""
     pass
 
-def record(source,filename):
+def record(source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
     pass
 
-def record_v(source,filename):
+def record_v(source, filename):
     """Record membrane potential to a file. source can be an individual cell or
     a list of cells."""
     # would actually like to be able to record to an array and choose later
@@ -633,13 +667,13 @@ def record_v(source,filename):
 #   neurons.
 # ==============================================================================
 
-class Population:
+class Population(object):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
     
-    def __init__(self,dims,cellclass,cellparams=None,label=None):
+    def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
@@ -654,7 +688,6 @@ class Population:
         
         self.dim      = dims
         if isinstance(dims, int): # also allow a single integer, for a 1D population
-            #print "Converting integer dims to tuple"
             self.dim = (self.dim,)
         else:
             assert isinstance(dims, tuple), "`dims` must be an integer or a tuple."
@@ -663,12 +696,12 @@ class Population:
         self.ndim     = len(self.dim)
         self.cellparams = cellparams
         self.size = self.dim[0]
-        for i in range(1,self.ndim):
+        for i in range(1, self.ndim):
             self.size *= self.dim[i]
         self.cell = None # to be defined by child, simulator-specific classes
     
-    def __getitem__(self,addr):
-        """Returns a representation of the cell with coordinates given by addr,
+    def __getitem__(self, addr):
+        """Return a representation of the cell with coordinates given by addr,
            suitable for being passed to other methods that require a cell id.
            Note that __getitem__ is called when using [] access, e.g.
              p = Population(...)
@@ -677,19 +710,26 @@ class Population:
         pass
     
     def __iter__(self):
-        return _abstractMethod(self)
+        """Iterator over cell ids."""
+        return _abstract_method(self)
         
     def addresses(self):
-        return _abstractMethod(self)
+        """Iterator over cell addresses."""
+        return _abstract_method(self)
     
     def ids(self):
+        """Iterator over cell ids."""
         return self.__iter__()
     
-    def locate(self):
-        return _abstractMethod(self)
+    def locate(self, id):
+        """Given an element id in a Population, return the coordinates.
+               e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
+                         7 9
+        """
+        return _abstract_method(self)
     
     def __len__(self):
-        """Returns the total number of cells in the population."""
+        """Return the total number of cells in the population."""
         return self.size
     
     def _get_positions(self):
@@ -706,27 +746,29 @@ class Population:
 
     def _set_positions(self, pos_array):
         assert isinstance(pos_array, numpy.ndarray)
-        assert pos_array.shape == (3,self.size)
+        assert pos_array.shape == (3, self.size)
         self._positions = pos_array.copy() # take a copy in case pos_array is changed later
 
-    positions = property(_get_positions, _set_positions, 'A 3xN array (where N is the number of neurons in the Population) giving the x,y,z coordinates of all the neurons (soma, in the case of non-point models).')
+    positions = property(_get_positions, _set_positions,
+                         """A 3xN array (where N is the number of neurons in the Population)
+                         giving the x,y,z coordinates of all the neurons (soma, in the
+                         case of non-point models).""")
     
     def index(self, n):
         """Return the nth cell in the population."""
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
     def nearest(self, position):
         """Return the neuron closest to the specified position."""
-        # doesn't always work correctly if a position is equidistant between two neurons,
-        # i.e. 0.5 should be rounded up, but it isn't always.
+        # doesn't always work correctly if a position is equidistant between two
+        # neurons, i.e. 0.5 should be rounded up, but it isn't always.
         pos = numpy.array([position]*self.positions.shape[1]).transpose()
         dist_arr = (self.positions - pos)**2
         distances = dist_arr.sum(axis=0)
-        print distances
         nearest = distances.argmin()
         return self.index(nearest)
             
-    def set(self,param,val=None):
+    def set(self, param, val=None):
         """
         Set one or more parameters for every cell in the population. param
         can be a dict, in which case val should not be supplied, or a string
@@ -735,57 +777,57 @@ class Population:
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
 
-    def tset(self,parametername,valueArray):
+    def tset(self, parametername, value_array):
         """
-        'Topographic' set. Sets the value of parametername to the values in
+        'Topographic' set. Set the value of parametername to the values in
         valueArray, which must have the same dimensions as the Population.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def rset(self,parametername,rand_distr):
+    def rset(self, parametername, rand_distr):
         """
-        'Random' set. Sets the value of parametername to a value taken from
+        'Random' set. Set the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def _call(self,methodname,arguments):
+    def _call(self, methodname, arguments):
         """
-        Calls the method methodname(arguments) for every cell in the population.
+        Call the method methodname(arguments) for every cell in the population.
         e.g. p.call("set_background","0.1") if the cell class has a method
         set_background().
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def _tcall(self,methodname,objarr):
+    def _tcall(self, methodname, objarr):
         """
-        `Topographic' call. Calls the method methodname() for every cell in the 
+        `Topographic' call. Call the method methodname() for every cell in the 
         population. The argument to the method depends on the coordinates of the
         cell. objarr is an array with the same dimensions as the Population.
         e.g. p.tcall("memb_init",vinitArray) calls
         p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
 
-    def randomInit(self,rand_distr):
+    def randomInit(self, rand_distr):
         """
-        Sets initial membrane potentials for all the cells in the population to
+        Set initial membrane potentials for all the cells in the population to
         random values.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
 
-    def record(self,record_from=None,rng=None):
+    def record(self, record_from=None, rng=None):
         """
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
 
-    def record_v(self,record_from=None,rng=None):
+    def record_v(self, record_from=None, rng=None):
         """
         If record_from is not given, record the membrane potential for all cells in
         the Population.
@@ -793,11 +835,11 @@ class Population:
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
 
-    def printSpikes(self,filename,gather=True,compatible_output=True):
+    def printSpikes(self, filename, gather=True, compatible_output=True):
         """
-        Writes spike times to file.
+        Write spike times to file.
         If compatible_output is True, the format is "spiketime cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
@@ -813,21 +855,21 @@ class Population:
         If gather is True, the file will only be created on the master node,
         otherwise, a file will be written on each node.
         """        
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
 
     def getSpikes(self):
         """
-        returns a numpy array of the spikes of the population
+        Return a numpy array of the spikes of the population
 
         Useful for small populations, for example for single neuron Monte-Carlo.
 
         NOTE: getSpikes or printSpikes should be called only once per run,
         because they mangle simulator recorder files.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
 
-    def print_v(self,filename,gather=True, compatible_output=True):
+    def print_v(self, filename, gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
         If compatible_output is True, the format is "v cell_id",
@@ -842,18 +884,18 @@ class Population:
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def meanSpikeCount(self,gather=True):
+    def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        return _abstractMethod(self)
+        return _abstract_method(self)
 
 # ==============================================================================
 
-class Projection:
+class Projection(object):
     """
     A container for all the connections of a given type (same synapse type and
     plasticity mechanisms) between two populations, together with methods to set
@@ -861,25 +903,29 @@ class Projection:
     """
     
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 method='allToAll', methodParameters=None,
+                 method='allToAll', method_parameters=None,
                  source=None, target=None, synapse_dynamics=None,
                  label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
-        source - string specifying which attribute of the presynaptic cell signals action potentials
-        
-        target - string specifying which synapse on the postsynaptic cell to connect to
+        source - string specifying which attribute of the presynaptic cell
+                 signals action potentials
+                 
+        target - string specifying which synapse on the postsynaptic cell to
+                 connect to
+                 
         If source and/or target are not given, default values are used.
         
-        method - string indicating which algorithm to use in determining connections.
+        method - string indicating which algorithm to use in determining
+                 connections.
         Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-        'fromFile', 'fromList'
+        'fromFile', 'fromList'.
         
-        methodParameters - dict containing parameters needed by the connection method,
-        although we should allow this to be a number or string if there is only
-        one parameter.
+        method_parameters - dict containing parameters needed by the connection
+        method, although we should allow this to be a number or string if there
+        is only one parameter.
         
         synapse_dynamics - ...
         
@@ -941,7 +987,7 @@ class Projection:
     
     # --- Connection methods ---------------------------------------------------
     
-    def _allToAll(self,parameters=None):
+    def _allToAll(self, parameters=None):
         """
         Connect all cells in the presynaptic population to all cells in the postsynaptic population.
         """
@@ -950,7 +996,7 @@ class Projection:
         if parameters and parameters.has_key('allow_self_connections'):
             allow_self_connections = parameters['allow_self_connections']
     
-    def _oneToOne(self):
+    def _oneToOne(self, parameters):
         """
         Where the pre- and postsynaptic populations have the same size, connect
         cell i in the presynaptic population to cell i in the postsynaptic
@@ -960,9 +1006,9 @@ class Projection:
         cell i in a 1D pre population of size n should connect to all cells
         in row i of a 2D post population of size (n,m).
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def _fixedProbability(self,parameters):
+    def _fixedProbability(self, parameters):
         """
         For each pair of pre-post cells, the connection probability is constant.
         """
@@ -974,7 +1020,7 @@ class Projection:
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
     
-    def _distanceDependentProbability(self,parameters):
+    def _distanceDependentProbability(self, parameters):
         """
         For each pair of pre-post cells, the connection probability depends on distance.
         d_expression should be the right-hand side of a valid python expression
@@ -988,7 +1034,7 @@ class Projection:
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
     
-    def _fixedNumberPre(self,parameters):
+    def _fixedNumberPre(self, parameters):
         """Each presynaptic cell makes a fixed number of connections."""
         allow_self_connections = True
         if type(parameters) == types.IntType:
@@ -1003,7 +1049,7 @@ class Projection:
         else : # assume parameters is a rng
             rng = parameters
     
-    def _fixedNumberPost(self,parameters):
+    def _fixedNumberPost(self, parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
         allow_self_connections = True
         if type(parameters) == types.IntType:
@@ -1018,7 +1064,7 @@ class Projection:
         else : # assume parameters is a rng
             rng = parameters
     
-    def _fromFile(self,parameters):
+    def _fromFile(self, parameters):
         """
         Load connections from a file.
         """
@@ -1033,7 +1079,7 @@ class Projection:
             # implement this...
             pass
         
-    def _fromList(self,conn_list):
+    def _fromList(self, conn_list):
         """
         Read connections from a list of tuples,
         containing [pre_addr, post_addr, weight, delay]
@@ -1041,11 +1087,11 @@ class Projection:
         lists containing the neuron array coordinates.
         """
         # Need to implement parameter parsing here...
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
     # --- Methods for setting connection parameters ----------------------------
     
-    def setWeights(self,w):
+    def setWeights(self, w):
         """
         w can be a single number, in which case all weights are set to this
         value, or a list/1D array of length equal to the number of connections
@@ -1053,32 +1099,32 @@ class Projection:
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def randomizeWeights(self,rand_distr):
+    def randomizeWeights(self, rand_distr):
         """
         Set weights to random values taken from rand_distr.
         """
         # Arguably, we could merge this with set_weights just by detecting the
         # argument type. It could make for easier-to-read simulation code to
         # give it a separate name, though. Comments?
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def setDelays(self,d):
+    def setDelays(self, d):
         """
         d can be a single number, in which case all delays are set to this
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def randomizeDelays(self,rand_distr):
+    def randomizeDelays(self, rand_distr):
         """
         Set delays to random values taken from rand_distr.
         """
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def setThreshold(self,threshold):
+    def setThreshold(self, threshold):
         """
         Where the emission of a spike is determined by watching for a
         threshold crossing, set the value of this threshold.
@@ -1086,20 +1132,20 @@ class Projection:
         # This is a bit tricky, because in NEST the spike threshold is a
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
     # --- Methods for writing/reading information to/from file. ----------------
     
-    def saveConnections(self,filename,gather=False):
+    def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def printWeights(self,filename,format=None,gather=True):
+    def printWeights(self, filename, format=None, gather=True):
         """Print synaptic weights to file."""
-        return _abstractMethod(self)
+        return _abstract_method(self)
     
-    def weightHistogram(self,min=None,max=None,nbins=10):
+    def weightHistogram(self, min=None, max=None, nbins=10):
         """
         Return a histogram of synaptic weights.
         If min and max are not given, the minimum and maximum weights are
@@ -1107,7 +1153,7 @@ class Projection:
         """
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
-        return _abstractMethod(self)
+        return _abstract_method(self)
 
 
 # ==============================================================================
@@ -1123,19 +1169,19 @@ class Connector(object):
         self.weights = weights
         self.delays = delays
     
-    def connect(self,projection):
+    def connect(self, projection):
         """Connect all neurons in ``projection``"""
-        _abstractMethod(self)
+        _abstract_method(self)
         
     def getWeights(self, N):
         """
         Returns the next N weight values
         """
-        if isinstance(self.weights, random.RandomDistribution): # random
+        if isinstance(self.weights, random.RandomDistribution):
             weights = numpy.array(self.weights.next(N))
-        elif isinstance(self.weights, int) or isinstance(self.weights, float):  # int, float
+        elif isinstance(self.weights, (int, float)):
             weights = numpy.ones((N,))*float(self.weights)
-        elif hasattr(self.weights, "__len__"):                                            # numpy array
+        elif hasattr(self.weights, "__len__"):
             weights = self.weights[self.w_index:self.w_index+N]
         else:
             raise Exception("weights is of type %s" % type(self.weights))
@@ -1145,19 +1191,20 @@ class Connector(object):
     
     def getDelays(self, N, start=0):
         """
-        Returns the next N delays values
+        Returns the next N delay values
         """
-        if isinstance(self.delays, random.RandomDistribution): # random
+        if isinstance(self.delays, random.RandomDistribution):
             delays = numpy.array(self.delays.next(N))
-        elif isinstance(self.weights, int) or isinstance(self.weights, float):  # int, float
+        elif isinstance(self.delays, (int, float)):
             delays = numpy.ones((N,))*float(self.delays)
-        elif hasattr(delays, "__len__"):                           # numpy array
+        elif hasattr(self.delays, "__len__"):
             delays = self.delays[self.d_index:self.d_index+N]
         else:
             raise Exception("delays is of type %s" % type(self.delays))
-        assert numpy.all(delays>=_min_delay), "Delay values must be greater than the minimum delay"
+        assert numpy.all(delays >= _min_delay), "Delay values must be greater than the minimum delay"
         self.d_index += N
         return delays
+    
     
 class AllToAllConnector(Connector):
     """
@@ -1181,6 +1228,7 @@ class FromListConnector(Connector):
         Connector.__init__(self, 0., 0.)
         self.conn_list = conn_list        
 
+
 class FromFileConnector(Connector):
     """
     Connects all cells in the presynaptic population to all cells in the
@@ -1190,6 +1238,7 @@ class FromFileConnector(Connector):
     def __init__(self, filename):
         Connector.__init__(self, 0., 0.)
         self.filename = filename
+       
         
 class FixedNumberPostConnector(Connector):
     """
@@ -1211,6 +1260,7 @@ class FixedNumberPostConnector(Connector):
         else:
             raise Exception("n must be an integer or a RandomDistribution object")
 
+
 class FixedNumberPreConnector(Connector):
     """
     Connects all cells in the postsynaptic population to fixed number of
@@ -1230,6 +1280,7 @@ class FixedNumberPreConnector(Connector):
         else:
             raise Exception("n must be an integer or a RandomDistribution object")
 
+
 class OneToOneConnector(Connector):
     """
     Where the pre- and postsynaptic populations have the same size, connect
@@ -1244,6 +1295,7 @@ class OneToOneConnector(Connector):
     def __init__(self, weights=0.0, delays=None):
         Connector.__init__(self, weights, delays)
     
+    
 class FixedProbabilityConnector(Connector):
     """
     For each pair of pre-post cells, the connection probability is constant.
@@ -1255,6 +1307,7 @@ class FixedProbabilityConnector(Connector):
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
         assert 0 <= self.p_connect
+        
         
 class DistanceDependentProbabilityConnector(Connector):
     """
@@ -1310,12 +1363,13 @@ class SynapseDynamics(object):
         self.fast = fast
         self.slow = slow
                 
+                
 class ShortTermPlasticityMechanism(StandardModelType):
     """Abstract base class for models of short-term synaptic dynamics."""
-    # implement a translation mechanism here, as for StandardCell ?
     
     def __init__(self):
-        _abstractMethod(self)
+        _abstract_method(self)
+
 
 class STDPMechanism(object):
     """Specification of STDP models."""
@@ -1326,26 +1380,29 @@ class STDPMechanism(object):
         self.weight_dependence = weight_dependence
         self.voltage_dependence = voltage_dependence
 
+
 class TsodkysMarkramMechanism(ShortTermPlasticityMechanism):
     
     def __init__(self, U, D, F, u0, r0, f0):
-        self.U = U # use parameter
-        self.D = D # depression time constant (ms)
-        self.F = F # facilitation time constant (ms)
+        self.U = U   # use parameter
+        self.D = D   # depression time constant (ms)
+        self.F = F   # facilitation time constant (ms)
         self.u0 = u0 # } initial 
         self.r0 = r0 # } values
+
         
 class STDPWeightDependence(StandardModelType):
     """Abstract base class for models of STDP weight dependence."""
     
     def __init__(self):
-        _abstractMethod(self)
-        
+        _abstract_method(self)
+
+
 class STDPTimingDependence(StandardModelType):
     """Abstract base class for models of STDP timing dependence (triplets, etc)"""
     
     def __init__(self):
-        _abstractMethod(self)
+        _abstract_method(self)
         
 
 class AdditiveWeightDependence(STDPWeightDependence):
@@ -1363,10 +1420,12 @@ class AdditiveWeightDependence(STDPWeightDependence):
     }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
+        
         self.w_min = w_min
         self.w_max = w_max
         self.A_plus = A_plus
         self.A_minus = A_minus
+
 
 class MultiplicativeWeightDependence(STDPWeightDependence):
     """
@@ -1394,12 +1453,15 @@ class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
 
     def __init__(self, w_min=0.0, A_plus=0.01, A_minus=0.01):
         pass
+
     
 class GutigWeightDependence(STDPWeightDependence):
     pass
 
+
 class PfisterSpikeTripletRule(STDPTimingDependence):
     pass
+
 
 class SpikePairRule(STDPTimingDependence):
     

@@ -243,7 +243,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
     def __init__(self,parameters):
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.translate_old(self.parameters)
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'alpha'
 
@@ -268,7 +268,7 @@ class IF_curr_exp(common.IF_curr_exp):
     
     def __init__(self,parameters):
         common.IF_curr_exp.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.translate_old(self.parameters)
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'exp'
 
@@ -295,7 +295,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
     def __init__(self,parameters):
         common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.translate_old(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
 
@@ -322,7 +322,7 @@ class IF_cond_exp(common.IF_cond_exp):
     def __init__(self,parameters):
         common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.translate_old(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
 
@@ -338,12 +338,12 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
    
     def __init__(self,parameters):
         common.SpikeSourcePoisson.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.translate_old(self.parameters)
         self.parameters['source_type'] = 'NetStim'    
         self.parameters['noise'] = 1
 
-    def translate(self,parameters):
-        translated_parameters = common.SpikeSourcePoisson.translate(self,parameters)
+    def translate_old(self,parameters):
+        translated_parameters = common.SpikeSourcePoisson.translate_old(self,parameters)
         if parameters.has_key('rate') and parameters['rate'] != 0:
             translated_parameters['interval'] = 1000.0/parameters['rate']
         return translated_parameters
@@ -358,7 +358,7 @@ class SpikeSourceArray(common.SpikeSourceArray):
     
     def __init__(self,parameters):
         common.SpikeSourceArray.__init__(self,parameters)
-        self.parameters = self.translate(self.parameters)  
+        self.parameters = self.translate_old(self.parameters)  
         self.parameters['source_type'] = 'VecStim'
         
                         
@@ -503,7 +503,7 @@ def set(cells,cellclass,param,val=None):
     
     paramDict = checkParams(param,val)
     if isinstance(cellclass, common.StandardCellType):
-        paramDict = cellclass.translate(paramDict)
+        paramDict = cellclass.translate_old(paramDict)
     if not isinstance(cells,list):
         cells = [cells]    
     hoc_commands = []
@@ -656,7 +656,7 @@ class Population(common.Population):
         """
         paramDict = checkParams(param,val)
         if isinstance(self.celltype, common.StandardCellType):
-            paramDict = self.celltype.translate(paramDict)
+            paramDict = self.celltype.translate_old(paramDict)
         
         hoc_commands = []
         for param,val in paramDict.items():
@@ -676,7 +676,7 @@ class Population(common.Population):
         if self.dim == valueArray.shape:
             values = numpy.reshape(valueArray,valueArray.size)
             if isinstance(self.celltype, common.StandardCellType):
-                parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
+                parametername = self.celltype.translate_old({parametername: values[0]}).keys()[0]
             hoc_commands, argstr = _hoc_arglist([valueArray])
             hoc_commands += ['%s.tset("%s","%s")' % (self.label,parametername,argstr)]
             hoc_execute(hoc_commands, "--- Population.tset() ---")
@@ -689,7 +689,7 @@ class Population(common.Population):
         rand_distr, which should be a RandomDistribution object.
         """
         if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate({parametername: 0.0}).keys()[0]
+            parametername = self.celltype.translate_old({parametername: 0.0}).keys()[0]
         if isinstance(rand_distr.rng, NativeRNG):
             paramfmt = "%g,"*len(rand_distr.parameters); paramfmt = paramfmt.strip(',')
             distr_params = paramfmt % tuple(rand_distr.parameters)

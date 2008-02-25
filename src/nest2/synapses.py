@@ -53,7 +53,7 @@ class AdditiveWeightDependence(common.AdditiveWeightDependence):
         common.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = locals()
         parameters.pop('self')
-        self.parameters = self.translate1(parameters)
+        self.parameters = self.translate(parameters)
         self.parameters['mu_plus'] = 0.0
         self.parameters['mu_minus'] = 0.0
 
@@ -78,7 +78,7 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
         common.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = locals()
         parameters.pop('self') 
-        self.parameters = self.translate1(parameters)
+        self.parameters = self.translate(parameters)
         self.parameters['mu_plus'] = 1.0
         self.parameters['mu_minus'] = 1.0
 
@@ -95,5 +95,5 @@ class SpikePairRule(common.SpikePairRule):
         common.SpikePairRule.__init__(self, tau_plus, tau_minus)
         parameters = locals()
         parameters.pop('self')
-        self.parameters = self.translate1(parameters)
+        self.parameters = self.translate(parameters)
         

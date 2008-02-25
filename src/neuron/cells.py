@@ -26,7 +26,6 @@ class IF_curr_alpha(common.IF_curr_alpha):
     def __init__(self,parameters):
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'alpha'
 
@@ -52,7 +51,6 @@ class IF_curr_exp(common.IF_curr_exp):
     
     def __init__(self,parameters):
         common.IF_curr_exp.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'exp'
 
@@ -80,7 +78,6 @@ class IF_cond_alpha(common.IF_cond_alpha):
     def __init__(self,parameters):
         common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
 
@@ -108,7 +105,6 @@ class IF_cond_exp(common.IF_cond_exp):
     def __init__(self,parameters):
         common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
 
@@ -137,7 +133,6 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
 
     def __init__(self,parameters):
         common.IF_facets_hardware1.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
         self.parameters['i_offset']  = 0.0
@@ -155,7 +150,6 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
    
     def __init__(self,parameters):
         common.SpikeSourcePoisson.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
         self.parameters['source_type'] = 'NetStim'    
         self.parameters['noise'] = 1
 
@@ -170,7 +164,6 @@ class SpikeSourceArray(common.SpikeSourceArray):
     
     def __init__(self,parameters):
         common.SpikeSourceArray.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)  
         self.parameters['source_type'] = 'VecStim'
 
 
@@ -211,7 +204,6 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     
     def __init__(self,parameters):
         common.AdaptiveExponentialIF_alpha.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
 

@@ -1,7 +1,7 @@
-# ==============================================================================
-# Standard cells for nest2
-# $Id$
-# ==============================================================================
+"""
+ Standard cells for nest2
+ $Id$
+"""
 
 from pyNN import common
  
@@ -22,10 +22,6 @@ class IF_curr_alpha(common.IF_curr_alpha):
         ('v_init',     'V_m'),
     )
     nest_name = "iaf_psc_alpha"
-    def __init__(self,parameters):
-        common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
 
 
 class IF_curr_exp(common.IF_curr_exp):
@@ -46,9 +42,6 @@ class IF_curr_exp(common.IF_curr_exp):
         ('v_init',     'V_m'),
     )
     nest_name = 'iaf_psc_exp'
-    def __init__(self,parameters):
-        common.IF_curr_exp.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
 
 
 class IF_cond_alpha(common.IF_cond_alpha):
@@ -70,10 +63,6 @@ class IF_cond_alpha(common.IF_cond_alpha):
         ('v_init',     'V_m'),
     )
     nest_name = "iaf_cond_alpha"
-    def __init__(self,parameters):
-        common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
         
 
 class IF_cond_exp(common.IF_cond_exp):
@@ -95,10 +84,6 @@ class IF_cond_exp(common.IF_cond_exp):
         ('v_init',     'V_m'),
     )
     nest_name = "iaf_cond_exp"
-    def __init__(self,parameters):
-        common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
-                                                     # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
 
 
 class IF_cond_exp_gsfa_grr(common.IF_cond_exp_gsfa_grr):
@@ -134,10 +119,6 @@ class IF_cond_exp_gsfa_grr(common.IF_cond_exp_gsfa_grr):
         ('q_rr',       'q_rr')
     )
     nest_name = "iaf_cond_exp_sfa_rr"
-    def __init__(self,parameters):
-        common.IF_cond_exp_gsfa_grr.__init__(self,parameters) # checks supplied parameters and adds default
-                                                              # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
 
 
 class IF_cond_exp_sfa_rr(IF_cond_exp_gsfa_grr):
@@ -169,8 +150,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
     nest_name = "iaf_cond_exp_sfa_rr"
 
     def __init__(self, parameters):
-        common.IF_facets_hardware1.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
+        common.IF_facets_hardware1.__init__(self, parameters)
         self.parameters['q_rr']     = 0.0
         self.parameters['q_sfa']    = 0.0
         
@@ -195,11 +175,6 @@ class HH_cond_exp(common.HH_cond_exp):
         ('v_init',     'V_m'),
     )
     nest_name = "hh_cond_exp_traub"
-    
-    def __init__(self,parameters):
-        common.HH_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
-                                                     # values for not-specified parameters.
-        self.parameters = self.translate1(self.parameters)
         
         
 class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
@@ -236,10 +211,6 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
         ('tau_syn_I' , 'tau_syn_in'),
     )
     nest_name = "aeif_cond_alpha"
-    
-    def __init__(self,parameters):
-        common.EIF_cond_alpha_isfa_ista.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
 
         
 class AdaptiveExponentialIF_alpha(EIF_cond_alpha_isfa_ista):
@@ -257,9 +228,8 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     )
     nest_name = 'poisson_generator'
     
-    def __init__(self,parameters):
-        common.SpikeSourcePoisson.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
+    def __init__(self, parameters):
+        common.SpikeSourcePoisson.__init__(self, parameters)
         self.parameters['origin'] = 1.0
 
 
@@ -281,9 +251,8 @@ class SpikeSourceInhGamma(common.SpikeSourceInhGamma):
     )
     nest_name = 'inh_gamma_generator'
     
-    def __init__(self,parameters):
-        common.SpikeSourceInhGamma.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)
+    def __init__(self, parameters):
+        common.SpikeSourceInhGamma.__init__(self, parameters)
         self.parameters['origin'] = 1.0
 
 
@@ -293,9 +262,4 @@ class SpikeSourceArray(common.SpikeSourceArray):
     translations = common.build_translations(
         ('spike_times', 'spike_times'),
     )
-    nest_name = 'spike_generator'
-    
-    def __init__(self,parameters):
-        common.SpikeSourceArray.__init__(self,parameters)
-        self.parameters = self.translate1(self.parameters)  
-    
+    nest_name = 'spike_generator' 
