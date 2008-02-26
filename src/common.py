@@ -238,8 +238,8 @@ class StandardModelType(object):
             parameters = {}
         if supplied_parameters:
             for k in supplied_parameters.keys():
-                err_msg = str(type(supplied_parameters[k]), type(default_parameters[k]))
                 if default_parameters.has_key(k):
+                    err_msg = "%s, %s" % (type(supplied_parameters[k]), type(default_parameters[k]))
                     # same type
                     if type(supplied_parameters[k]) == type(default_parameters[k]): 
                         parameters[k] = supplied_parameters[k]
@@ -260,16 +260,6 @@ class StandardModelType(object):
                 else:
                     raise NonExistentParameterError(k)
         return parameters
-
-    def translate_old(self, parameters):
-        """Translate standardized model names to simulator specific names."""
-        parameters = self.checkParameters(parameters)
-        translated_parameters = {}
-        for k in parameters.keys():
-            pname = self.__class__.translations[k][0]
-            pval = eval(self.__class__.translations[k][1])
-            translated_parameters[pname] = pval
-        return translated_parameters
     
     def translate(self, parameters):
         """Translate standardized model names to simulator specific names.

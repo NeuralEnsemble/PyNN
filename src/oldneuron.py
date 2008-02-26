@@ -226,24 +226,23 @@ class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
-    translations = {
-        'tau_m'     : ('tau_m'    , "parameters['tau_m']"),
-        'cm'        : ('CM'       , "parameters['cm']"),
-        'v_rest'    : ('v_rest'   , "parameters['v_rest']"),
-        'v_thresh'  : ('v_thresh' , "parameters['v_thresh']"),
-        'v_reset'   : ('v_reset'  , "parameters['v_reset']"),
-        'tau_refrac': ('t_refrac' , "parameters['tau_refrac']"),
-        'i_offset'  : ('i_offset' , "parameters['i_offset']"),
-        'tau_syn_E' : ('tau_e'    , "parameters['tau_syn_E']"),
-        'tau_syn_I' : ('tau_i'    , "parameters['tau_syn_I']"),
-        'v_init'    : ('v_init'   , "parameters['v_init']"),
-    }
+    translations = common.build_translations(
+        ('tau_m',      'tau_m'),
+        ('cm',         'CM'),
+        ('v_rest',     'v_rest'),
+        ('v_thresh',   'v_thresh'),
+        ('v_reset',    'v_reset'),
+        ('tau_refrac', 't_refrac'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_e'),
+        ('tau_syn_I',  'tau_i'),
+        ('v_init',     'v_init'),
+    )
     hoc_name = "StandardIF"
     
     def __init__(self,parameters):
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate_old(self.parameters)
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'alpha'
 
@@ -252,23 +251,22 @@ class IF_curr_exp(common.IF_curr_exp):
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses."""
     
-    translations = {
-        'tau_m'     : ('tau_m'    , "parameters['tau_m']"),
-        'cm'        : ('CM'       , "parameters['cm']"),
-        'v_rest'    : ('v_rest'   , "parameters['v_rest']"),
-        'v_thresh'  : ('v_thresh' , "parameters['v_thresh']"),
-        'v_reset'   : ('v_reset'  , "parameters['v_reset']"),
-        'tau_refrac': ('t_refrac' , "parameters['tau_refrac']"),
-        'i_offset'  : ('i_offset' , "parameters['i_offset']"),
-        'tau_syn_E' : ('tau_e'    , "parameters['tau_syn_E']"),
-        'tau_syn_I' : ('tau_i'    , "parameters['tau_syn_I']"),
-        'v_init'    : ('v_init'   , "parameters['v_init']"),
-    }
+    translations = common.build_translations(
+        ('tau_m',      'tau_m'),
+        ('cm',         'CM'),
+        ('v_rest',     'v_rest'),
+        ('v_thresh',   'v_thresh'),
+        ('v_reset',    'v_reset'),
+        ('tau_refrac', 't_refrac'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_e'),
+        ('tau_syn_I',  'tau_i'),
+        ('v_init',     'v_init'),
+    )
     hoc_name = "StandardIF"
     
     def __init__(self,parameters):
         common.IF_curr_exp.__init__(self,parameters)
-        self.parameters = self.translate_old(self.parameters)
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'exp'
 
@@ -276,26 +274,25 @@ class IF_cond_alpha(common.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
     
-    translations = {
-        'tau_m'     : ('tau_m'    , "parameters['tau_m']"),
-        'cm'        : ('CM'       , "parameters['cm']"),
-        'v_rest'    : ('v_rest'   , "parameters['v_rest']"),
-        'v_thresh'  : ('v_thresh' , "parameters['v_thresh']"),
-        'v_reset'   : ('v_reset'  , "parameters['v_reset']"),
-        'tau_refrac': ('t_refrac' , "parameters['tau_refrac']"),
-        'i_offset'  : ('i_offset' , "parameters['i_offset']"),
-        'tau_syn_E' : ('tau_e'    , "parameters['tau_syn_E']"),
-        'tau_syn_I' : ('tau_i'    , "parameters['tau_syn_I']"),
-        'v_init'    : ('v_init'   , "parameters['v_init']"),
-        'e_rev_E'   : ('e_e'      , "parameters['e_rev_E']"),
-        'e_rev_I'   : ('e_i'      , "parameters['e_rev_I']")
-    }
+    translations = common.build_translations(
+        ('tau_m',      'tau_m'),
+        ('cm',         'CM'),
+        ('v_rest',     'v_rest'),
+        ('v_thresh',   'v_thresh'),
+        ('v_reset',    'v_reset'),
+        ('tau_refrac', 't_refrac'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_e'),
+        ('tau_syn_I',  'tau_i'),
+        ('v_init',     'v_init'),
+        ('e_rev_E',    'e_e'),
+        ('e_rev_I',    'e_i')
+    )
     hoc_name = "StandardIF"
     
     def __init__(self,parameters):
         common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate_old(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
 
@@ -303,47 +300,45 @@ class IF_cond_exp(common.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
     
-    translations = {
-        'tau_m'     : ('tau_m'    , "parameters['tau_m']"),
-        'cm'        : ('CM'       , "parameters['cm']"),
-        'v_rest'    : ('v_rest'   , "parameters['v_rest']"),
-        'v_thresh'  : ('v_thresh' , "parameters['v_thresh']"),
-        'v_reset'   : ('v_reset'  , "parameters['v_reset']"),
-        'tau_refrac': ('t_refrac' , "parameters['tau_refrac']"),
-        'i_offset'  : ('i_offset' , "parameters['i_offset']"),
-        'tau_syn_E' : ('tau_e'    , "parameters['tau_syn_E']"),
-        'tau_syn_I' : ('tau_i'    , "parameters['tau_syn_I']"),
-        'v_init'    : ('v_init'   , "parameters['v_init']"),
-        'e_rev_E'   : ('e_e'      , "parameters['e_rev_E']"),
-        'e_rev_I'   : ('e_i'      , "parameters['e_rev_I']")
-    }
+    translations = common.build_translations(
+        ('tau_m',      'tau_m'),
+        ('cm',         'CM'),
+        ('v_rest',     'v_rest'),
+        ('v_thresh',   'v_thresh'),
+        ('v_reset',    'v_reset'),
+        ('tau_refrac', 't_refrac'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_e'),
+        ('tau_syn_I',  'tau_i'),
+        ('v_init',     'v_init'),
+        ('e_rev_E',    'e_e'),
+        ('e_rev_I',    'e_i')
+    )
     hoc_name = "StandardIF"
     
     def __init__(self,parameters):
         common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate_old(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
 
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
-    translations = {
-        'start'    : ('start'  , "parameters['start']"),
-        'rate'     : ('number' , "int((parameters['rate']/1000.0)*parameters['duration'])"),
-        'duration' : ('number' , "int((parameters['rate']/1000.0)*parameters['duration'])")
-    }
+    translations = common.build_translations(
+        ('start',    'start'),
+        ('rate',     'interval',  "1000.0/rate",  "1000.0/interval"),
+        ('duration', 'number',    "int(rate/1000.0*duration)", "number*interval"), # should there be a +/1 here?
+    )
     hoc_name = 'SpikeSource'
    
     def __init__(self,parameters):
         common.SpikeSourcePoisson.__init__(self,parameters)
-        self.parameters = self.translate_old(self.parameters)
         self.parameters['source_type'] = 'NetStim'    
         self.parameters['noise'] = 1
 
-    def translate_old(self,parameters):
-        translated_parameters = common.SpikeSourcePoisson.translate_old(self,parameters)
+    def translate(self,parameters):
+        translated_parameters = common.SpikeSourcePoisson.translate(self,parameters)
         if parameters.has_key('rate') and parameters['rate'] != 0:
             translated_parameters['interval'] = 1000.0/parameters['rate']
         return translated_parameters
@@ -351,14 +346,13 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
 class SpikeSourceArray(common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
-    translations = {
-        'spike_times' : ('input_spiketimes' , "parameters['spike_times']"),
-    }
+    translations = common.build_translations(
+        ('spike_times', 'input_spiketimes'),
+    )
     hoc_name = 'SpikeSource'
     
     def __init__(self,parameters):
-        common.SpikeSourceArray.__init__(self,parameters)
-        self.parameters = self.translate_old(self.parameters)  
+        common.SpikeSourceArray.__init__(self,parameters) 
         self.parameters['source_type'] = 'VecStim'
         
                         
@@ -503,7 +497,7 @@ def set(cells,cellclass,param,val=None):
     
     param_dict = checkParams(param,val)
     if isinstance(cellclass, common.StandardCellType):
-        param_dict = cellclass.translate_old(param_dict)
+        param_dict = cellclass.translate(param_dict)
     if not isinstance(cells,list):
         cells = [cells]    
     hoc_commands = []
@@ -656,7 +650,7 @@ class Population(common.Population):
         """
         param_dict = checkParams(param,val)
         if isinstance(self.celltype, common.StandardCellType):
-            param_dict = self.celltype.translate_old(param_dict)
+            param_dict = self.celltype.translate(param_dict)
         
         hoc_commands = []
         for param,val in param_dict.items():
@@ -676,7 +670,7 @@ class Population(common.Population):
         if self.dim == valueArray.shape:
             values = numpy.reshape(valueArray,valueArray.size)
             if isinstance(self.celltype, common.StandardCellType):
-                parametername = self.celltype.translate_old({parametername: values[0]}).keys()[0]
+                parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
             hoc_commands, argstr = _hoc_arglist([valueArray])
             hoc_commands += ['%s.tset("%s","%s")' % (self.label,parametername,argstr)]
             hoc_execute(hoc_commands, "--- Population.tset() ---")
@@ -689,7 +683,7 @@ class Population(common.Population):
         rand_distr, which should be a RandomDistribution object.
         """
         if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate_old({parametername: 0.0}).keys()[0]
+            parametername = self.celltype.translate({parametername: 0.0}).keys()[0]
         if isinstance(rand_distr.rng, NativeRNG):
             paramfmt = "%g,"*len(rand_distr.parameters); paramfmt = paramfmt.strip(',')
             distr_params = paramfmt % tuple(rand_distr.parameters)
