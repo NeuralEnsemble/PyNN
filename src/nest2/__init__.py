@@ -240,6 +240,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
+    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     global dt
     global tempdir
     global _min_delay

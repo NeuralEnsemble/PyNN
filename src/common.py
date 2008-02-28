@@ -598,6 +598,12 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,
     simulator but not by others.
     """
     dt = timestep
+    if min_delay > max_delay:
+        raise Exception("min_delay has to be less than or equal to max_delay.")
+    invalid_extra_params = ('mindelay', 'maxdelay', 'dt')
+    for param in invalid_extra_params:
+        if param in extra_params:
+            raise Exception("%s is not a valid argument for setup()" % param)
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""

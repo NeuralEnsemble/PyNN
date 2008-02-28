@@ -344,6 +344,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False, **extra_param
     simulator but not by others.
     For pcsim, the possible arguments are 'construct_rng_seed' and 'simulation_rng_seed'.
     """
+    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     global pcsim_globals, dt
     pcsim_globals.dt = timestep
     dt = timestep

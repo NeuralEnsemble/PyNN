@@ -366,6 +366,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
+    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     global logfile, dt, _min_delay
     dt = timestep
     _min_delay = min_delay
@@ -408,7 +409,7 @@ def end(compatible_output=True):
             hoc_commands += ['fileobj.close()']
     hoc_execute(hoc_commands,"--- end() ---")
     logfile.close()
-    sys.exit(0)
+    #sys.exit(0)
 
 def run(simtime):
     """Run the simulation for simtime ms."""

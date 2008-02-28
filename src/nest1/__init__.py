@@ -127,8 +127,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    if min_delay > max_delay:
-        raise Exception("min_delay has to be less than or equal to max_delay.")
+    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     global dt
     global tempdir
     global _min_delay
