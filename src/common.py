@@ -454,8 +454,7 @@ class IF_facets_hardware1(StandardCellType):
         'e_rev_I'   :  -75.0,     # mV,
         'v_rest'    :  -70.0,     # mV
         'v_thresh'  :  -57.0,     # mV
-        'e_rev_E'   :    0.0,     # mV
-        'v_init'    :  -70.0,     # mV
+        'e_rev_E'   :    0.0      # mV
     }
 
 

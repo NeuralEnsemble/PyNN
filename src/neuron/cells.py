@@ -126,8 +126,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         ('tau_syn_E',  'tau_e'),
         ('tau_syn_I',  'tau_i'),
         ('e_rev_E',    'e_e'),
-        ('e_rev_I',    'e_i'),
-        ('v_init',     'v_init'),
+        ('e_rev_I',    'e_i')
     )
     hoc_name = "StandardIF"
 
