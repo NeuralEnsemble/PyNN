@@ -31,7 +31,7 @@ dt            = 0.1
 running       = False
 initialised   = False
 _min_delay    = 0.0
-
+nrn_dll_loaded = False
 
 # ==============================================================================
 #   Utility classes and functions
@@ -95,6 +95,12 @@ class ID(common.ID):
 
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+
+def load_mechanisms():
+    global nrn_dll_loaded
+    if not nrn_dll_loaded:
+        hoc.execute('nrn_load_dll("%s/hoc/i686/.libs/libnrnmech.so")' % pyNN_path[0])
+        nrn_dll_loaded = True
 
 # ==============================================================================
 #   Module-specific functions and classes (not part of the common API)
@@ -265,12 +271,11 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
     simulator but not by others.
     """
     global dt, nhost, myid, _min_delay, logger, initialised
+    load_mechanisms()
     dt = timestep
     _min_delay = min_delay
     print "min delay=", _min_delay
-    hoc.execute('nrn_load_dll("%s/hoc/i686/.libs/libnrnmech.so")' % pyNN_path[0])
-
-    
+        
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
     if debug:
@@ -334,7 +339,8 @@ def end(compatible_output=True):
     if len(vfilelist) > 0:
         hoc_commands = ['objref fileobj',
                         'fileobj = new File()']
-        for filename,cell_list in vfilelist.items():
+        while len(vfilelist):
+            filename, cell_list = vfilelist.popitem()
             #tstop = HocToPy.get('tstop','float')
             tstop = h.tstop
             header = "# dt = %g\\n# n = %d\\n" % (dt,int(tstop/dt))
@@ -348,7 +354,8 @@ def end(compatible_output=True):
         hoc_commands += ['objref fileobj',
                         'fileobj = new File()']
         header = "# dt = %g\\n"% dt
-        for filename,cell_list in spikefilelist.items():
+        while len(spikefilelist):
+            filename, cell_list = spikefilelist.popitem()
             hoc_commands += ['tmp = fileobj.wopen("%s")' % filename,
                              'tmp = fileobj.printf("%s")' % header]
             for cell in cell_list:
