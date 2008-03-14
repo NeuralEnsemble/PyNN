@@ -377,8 +377,7 @@ def run(simtime):
     if not running:
         running = True
         hoc_commands += ['tstop = 0',
-                         #'print "dt        = %f"' % dt,
-                         #'print "max step  = ", pc.set_maxstep(100)',
+                         'local_minimum_delay = pc.set_maxstep(100)',
                          'tmp = finitialize()',]
     hoc_commands += ['tstop += %f' %simtime,
                      #'print "tstop     = ", tstop',

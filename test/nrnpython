@@ -1,2 +1,0 @@
-#!/bin/bash
-../src/hoc/$HOSTTYPE/special -python "$@"
