@@ -36,7 +36,7 @@ class ID(common.ID):
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
     """
-    
+
     def __getattr__(self, name):
         """ """
         nest_parameters = nest.GetStatus([int(self)])[0]
@@ -52,7 +52,7 @@ class ID(common.ID):
             raise Exception("ID object has invalid cell class %s" % str(self.cellclass))
         #return nest.GetStatus([int(self)])[0][translated_name]
         return pval
-    
+
     def setParameters(self, **parameters):
         # We perform a call to the low-level function set() of the API.
         # If the cellclass is not defined in the ID object :
@@ -60,7 +60,7 @@ class ID(common.ID):
         #    raise Exception("Unknown cellclass")
         #else:
         #    # We use the one given by the user
-        set(self, self.cellclass, parameters) 
+        set(self, self.cellclass, parameters)
 
     def getParameters(self):
         """ """
@@ -71,24 +71,24 @@ class ID(common.ID):
                 pynn_parameters[k] = eval(self.cellclass.translations[k]['reverse_transform'],
                                           {}, nest_parameters)
         return pynn_parameters
-            
+
 
 class WDManager(object): # should be called WDManagerMixin, to make its use clear?
-    
+
     def getWeight(self, w=None):
         if w is not None:
             weight = w
         else:
             weight = 1.
         return weight
-        
+
     def getDelay(self, d=None):
         if d is not None:
             delay = d
         else:
             delay = _min_delay
         return delay
-    
+
     def convertWeight(self, w, synapse_type):
         if isinstance(w, list):
             w = numpy.array(w)
@@ -126,13 +126,13 @@ class WDManager(object): # should be called WDManagerMixin, to make its use clea
 
 class Connection(object):
     """docstring needed"""
-    
+
     def __init__(self, pre, post, synapse_model):
         self.pre = pre
         self.post = post
         self.synapse_model = synapse_model
         try:
-            conn_dict = nest.GetConnections([pre], self.synapse_model)[0] 
+            conn_dict = nest.GetConnections([pre], self.synapse_model)[0]
         except Exception:
             raise common.ConnectionError
         if (len(conn_dict['targets']) == 0):
@@ -148,12 +148,12 @@ class Connection(object):
     def _get_weight(self):
         # this needs to be modified to take account of threads
         # also see nest.GetConnection (was nest.GetSynapseStatus)
-        conn_dict = nest.GetConnections([self.pre], self.synapse_model)[0] 
+        conn_dict = nest.GetConnections([self.pre], self.synapse_model)[0]
         if conn_dict:
             return conn_dict['weights'][self.port]
         else:
             return None
-    
+
     def _set_delay(self, d):
         pass
 
@@ -165,7 +165,7 @@ class Connection(object):
             return conn_dict['delays'][self.port]
         else:
             return None
-        
+
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
 
@@ -250,20 +250,20 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     dt = timestep
     _min_delay = min_delay
     _max_delay = max_delay
-    
+
     # reset the simulation kernel
     nest.ResetKernel()
     # clear the sli stack, if this is not done --> memory leak cause the stack increases
     nest.sr('clear')
-    
+
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
-    
+
     # set tempdir
     nest.SetStatus([0], {'device_prefix':tempdir})
     # set resolution
     nest.SetStatus([0], {'resolution': dt})
-    
+
     # Set min_delay and max_delay for all synapse models
     for synapse_model in NEST_SYNAPSE_TYPES:
         nest.SetSynapseDefaults(synapse_model, {'delay': _min_delay,
@@ -275,15 +275,15 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
             kernelseeds = extra_params['kernelseeds']
         else:
             # default kernelseeds, for each thread one, to ensure same for each sim we get the rng with seed 42
-            rng = NumpyRNG(42) 
+            rng = NumpyRNG(42)
             num_processes = nest.GetStatus([0])[0]['num_processes']
             kernelseeds = (rng.rng.uniform(size=extra_params['threads']*num_processes)*100).astype('int').tolist()
             print 'params has no kernelseeds, we use ', kernelseeds
-            
+
         nest.SetStatus([0],[{'local_num_threads' : extra_params['threads'],
                              'rng_seeds'         : kernelseeds}])
 
-    
+
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning()
     if debug:
@@ -301,7 +301,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
                     filename='nest.log',
                     filemode='w')
 
-    logging.info("Initialization of Nest")    
+    logging.info("Initialization of Nest")
     return nest.Rank()
 
 def end(compatible_output=True):
@@ -311,7 +311,7 @@ def end(compatible_output=True):
 
     # NEST will soon close all its output files after the simulate function is over, therefore this step is not necessary
     global tempdirs
-    
+
     # And we postprocess the low level files opened by record()
     # and record_v() method
     #for file in ll_spike_files:
@@ -321,7 +321,7 @@ def end(compatible_output=True):
     print "Saving the following files:", recorder_dict.keys()
     for filename in recorder_dict.keys():
         _print(filename, gather=False, compatible_output=compatible_output)
-    
+
     for tempdir in tempdirs:
         os.system("rm -rf %s" %tempdir)
 
@@ -438,7 +438,7 @@ def _connect_recording_device(recorder, record_from=None):
     device = nest.GetStatus(recorder, "model")[0]
     if device == "spike_detector":
         nest.ConvergentConnect(record_from, recorder)
-    elif device in ('voltmeter', 'conductancemeter'):        
+    elif device in ('voltmeter', 'conductancemeter'):
         nest.DivergentConnect(recorder, record_from)
     else:
         raise Exception("Not a valid recording device")
@@ -449,34 +449,34 @@ def _record(variable, source, filename):
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
     device_name = recording_device_names[variable]
-    
+
     recording_device = nest.Create(device_name)
     nest.SetStatus(recording_device,
                    {"to_file" : True, "withgid" : True, "withtime" : True,
                     "interval": nest.GetStatus([0], "resolution")[0]})
     print "Trying to record %s from cell %s using %s %s (filename=%s)" % (variable, source, device_name,
                                                                           recording_device, filename)
-            
+
     if type(source) != types.ListType:
         source = [source]
     _connect_recording_device(recording_device, record_from=source)
     if filename is not None:
-        recorder_dict[filename] = recording_device 
+        recorder_dict[filename] = recording_device
 
 def record(source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
-    _record('spikes', source, filename) 
-    
+    _record('spikes', source, filename)
+
 def record_v(source, filename):
     """
     Record membrane potential to a file. source can be an individual cell or
     a list of cells."""
     # would actually like to be able to record to an array and
     # choose later whether to write to a file.
-    _record('v', source, filename) 
+    _record('v', source, filename)
 
 def _merge_files(recorder, gather):
     """
@@ -510,45 +510,46 @@ def _merge_files(recorder, gather):
 def _print(user_filename, gather=True, compatible_output=True, population=None,
            variable=None):
     global recorder_dict
-    
+
     if population is None:
         recorder = recorder_dict[user_filename]
     else:
         assert variable in ['spikes', 'v', 'conductance']
         recorder = population.recorders[variable]
-    
+
     logging.info("Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder,
                                                                              compatible_output))
     nest_filename = _merge_files(recorder, gather)
-              
+
     if compatible_output:
         if gather == False or nest.Rank() == 0: # if we gather, only do this on the master node
             recording.write_compatible_output(nest_filename, user_filename,
                                               population, get_time_step())
     else:
-        os.system("cat %s > %s" % nest_filename, user_filename)
-    
+        system_line = 'cat %s >> %s' % (nest_filename, user_filename)
+        os.system(system_line)
+
     os.remove(nest_filename)
     if population is None:
-        recorder_dict.pop(user_filename)    
+        recorder_dict.pop(user_filename)
 
 def _get_recorded_data(population, variable=None):
     global recorder_dict
 
     assert variable in ['spikes', 'v', 'conductance']
     recorder = population.recorders[variable]
-        
+
     nest_filename = _merge_files(recorder)
     data = recording.readArray(nest_filename, sepchar=None)
     os.remove(nest_filename)
-    
+
     if data.size > 0:
         if population is not None:
             padding = population.cell.flatten()[0]
         else:
             padding = 0
         data[:,0] = data[:,0] - padding
-        
+
     return data
 
 
@@ -563,7 +564,7 @@ class Population(common.Population):
     term intended to include layers, columns, nuclei, etc., of cells.
     """
     nPop = 0
-    
+
     def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
         dims should be a tuple containing the population dimensions, or a single
@@ -576,38 +577,38 @@ class Population(common.Population):
           constructor
         label is an optional name for the population.
         """
-        
+
         common.Population.__init__(self, dims, cellclass, cellparams, label)
-        
+
         # Should perhaps use "LayoutNetwork"?
-        
+
         if isinstance(cellclass, type):
             self.celltype = cellclass(cellparams)
             self.cell = nest.Create(self.celltype.nest_name, self.size)
             self.cellparams = self.celltype.parameters
         elif isinstance(cellclass, str):
             self.cell = nest.Create(cellclass, self.size)
-            
+
         self.cell_local = numpy.array(self.cell)[numpy.array(nest.GetStatus(self.cell,'local'))]
-        
+
         self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
         self.id_start = self.cell.reshape(self.size,)[0]
-        
+
         for id in self.cell:
             id.parent = self
             #id.setCellClass(cellclass)
             #id.setPosition(self.locate(id))
-            
+
         if self.cellparams:
             nest.SetStatus(self.cell_local, [self.cellparams])
-            
-        self.cell = numpy.reshape(self.cell, self.dim)    
-        
+
+        self.cell = numpy.reshape(self.cell, self.dim)
+
         if not self.label:
             self.label = 'population%d' % Population.nPop
         self.recorders = {'spikes': None, 'v': None, 'conductance': None}
         Population.nPop += 1
-    
+
     def __getitem__(self, addr):
         """Returns a representation of the cell with coordinates given by addr,
            suitable for being passed to other methods that require a cell id.
@@ -624,11 +625,11 @@ class Population(common.Population):
         if addr != self.locate(id):
             raise IndexError, 'Invalid cell address %s' % str(addr)
         return id
-    
+
     def __len__(self):
         """Returns the total number of cells in the population."""
         return self.size
-    
+
     def __iter__(self):
         """Iterator over cell ids."""
         return self.cell.flat
@@ -640,11 +641,11 @@ class Population(common.Population):
         """
         for i in self.__iter__():
             yield self.locate(i)
-        
+
     def addresses(self):
         """Iterator over cell addresses."""
         return self.__address_gen()
-    
+
     def ids(self):
         """Iterator over cell ids."""
         return self.__iter__()
@@ -659,10 +660,10 @@ class Population(common.Population):
         # The next lines are the neuron implementation of the same method. This
         # assumes that the id values in self.cell are consecutive. This should
         # always be the case, I think? A unit test is needed to check this.
-    
+
         ###assert isinstance(id,int)
         ###return tuple([a.tolist()[0] for a in numpy.where(self.cell == id)])
-        
+
         id -= self.id_start
         if self.ndim == 3:
             rows = self.dim[1]; cols = self.dim[2]
@@ -678,13 +679,13 @@ class Population(common.Population):
         else:
             raise common.InvalidDimensionsError
         return coords
-    
+
     def index(self, n):
         """Return the nth cell in the population."""
         if hasattr(n, '__len__'):
             n = numpy.array(n)
         return self.cell[n]
-    
+
     def set(self, param, val=None):
         """
         Set one or more parameters for every cell in the population. param
@@ -731,7 +732,7 @@ class Population(common.Population):
                     if not isinstance(val, str) and hasattr(val, "__len__"):
                         # tuples, arrays are all converted to lists, since this is what SpikeSourceArray expects.
                         # This is not very robust though - we might want to add things that do accept arrays.
-                        val = list(val) 
+                        val = list(val)
                     else:
                         if cell in self.cell_local:
                             nest.SetStatus([cell], [{parametername: val}])
@@ -740,8 +741,8 @@ class Population(common.Population):
                     raise common.InvalidParameterValueError, "Error from SLI"
         else:
             raise common.InvalidDimensionsError
-        
-    
+
+
     def rset(self, parametername, rand_distr):
         """
         'Random' set. Sets the value of parametername to a value taken from
@@ -766,16 +767,16 @@ class Population(common.Population):
 
     def _record(self, variable, record_from=None, rng=None):
         assert variable in ('spikes', 'v', 'conductance')
-    
+
         # create device
         device_name = recording_device_names[variable]
         if self.recorders[variable] is None:
             self.recorders[variable] = nest.Create(device_name)
             nest.SetStatus(self.recorders[variable],
                            {"to_file" : True, "withgid" : True, "withtime" : True,
-                            "interval": nest.GetStatus([0], "resolution")[0]})      
-        
-        # create list of neurons        
+                            "interval": nest.GetStatus([0], "resolution")[0]})
+
+        # create list of neurons
         fixed_list = False
         if record_from:
             if type(record_from) == types.ListType:
@@ -787,10 +788,10 @@ class Population(common.Population):
                 raise Exception("record_from must be a list or an integer")
         else:
             n_rec = self.size
-            
+
         if variable == 'spikes':
             self.n_rec = n_rec
-        
+
         tmp_list = []
         if (fixed_list == True):
             for neuron in record_from:
@@ -799,7 +800,7 @@ class Population(common.Population):
             rng = rng or numpy.random
             for neuron in rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]:
                 tmp_list.append(neuron)
-                
+
         # connect device to neurons
         _connect_recording_device(self.recorders[variable], record_from=tmp_list)
 
@@ -812,7 +813,7 @@ class Population(common.Population):
         of the cells to record.
         """
         self._record('spikes', record_from, rng)
-        
+
     def record_v(self, record_from=None, rng=None):
         """
         If record_from is not given, record the membrane potential for all cells in
@@ -822,7 +823,7 @@ class Population(common.Population):
         - or a list containing the ids of the cells to record.
         """
         self._record('v', record_from, rng)
-    
+
     def record_c(self, record_from=None, rng=None):
         """
         If record_from is not given, record the membrane potential for all cells in
@@ -832,7 +833,7 @@ class Population(common.Population):
         - or a list containing the ids of the cells to record.
         """
         self._record('conductance', record_from, rng)
-    
+
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
         Writes spike times to file.
@@ -843,7 +844,7 @@ class Population(common.Population):
         line for each cell.
         The timestep and number of data points per cell is written as a header,
         indicated by a '#' at the beginning of the line.
-        
+
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster.
         If gather is True, the file will only be created on the master node,
@@ -851,7 +852,7 @@ class Population(common.Population):
         """
         _print(filename, gather=gather, compatible_output=compatible_output,
                population=self, variable="spikes")
-    
+
     def getSpikes(self):
         """
         Returns a numpy array of the spikes of the population
@@ -862,7 +863,7 @@ class Population(common.Population):
         because they mangle simulator recorder files.
         """
         return _get_recorded_data(population=self, variable="spikes")
-    
+
     def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
@@ -886,14 +887,14 @@ class Population(common.Population):
         columns (and the extension of that for 3-D).
         The timestep and number of data points per cell is written as a header,
         indicated by a '#' at the beginning of the line.
-        
+
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
         _print(filename, gather=gather, compatible_output=compatible_output,
                population=self, variable="v")
-               
+
     def print_c(self, filename, gather=True, compatible_output=True):
         """
         Write conductance traces to file.
@@ -902,7 +903,7 @@ class Population(common.Population):
         columns (and the extension of that for 3-D).
         The timestep and number of data points per cell is written as a header,
         indicated by a '#' at the beginning of the line.
-        
+
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
@@ -910,44 +911,44 @@ class Population(common.Population):
         _print(filename, gather=gather, compatible_output=compatible_output,
                population=self, variable="conductance")
 
-    
+
 class Projection(common.Projection, WDManager):
     """
     A container for all the connections of a given type (same synapse type and
     plasticity mechanisms) between two populations, together with methods to set
     parameters of those connections, including of plasticity mechanisms.
-    """    
+    """
     class ConnectionDict:
         """docstring needed."""
-            
+
         def __init__(self,parent):
             self.parent = parent
-    
+
         def __getitem__(self, id):
             """Returns a (source address,target port number) tuple."""
             assert isinstance(id, int)
             return (self.parent._sources[id], self.parent._target_ports[id])
-    
+
     def __init__(self, presynaptic_population, postsynaptic_population,
                  method='allToAll', method_parameters=None, source=None,
                  target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
-        
+
         source - string specifying which attribute of the presynaptic cell signals action potentials
-        
+
         target - string specifying which synapse on the postsynaptic cell to connect to
         If source and/or target are not given, default values are used.
-        
+
         method - string indicating which algorithm to use in determining connections.
         Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
         'fromFile', 'fromList'
-        
+
         method_parameters - dict containing parameters needed by the connection method,
         although we should allow this to be a number or string if there is only
         one parameter.
-        
+
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
         than within method_parameters, particularly since some methods also use
@@ -956,7 +957,7 @@ class Projection(common.Projection, WDManager):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    method, method_parameters, source, target,
                                    synapse_dynamics, label, rng)
-        
+
         self._target_ports = [] # holds port numbers
         self._targets = []     # holds gids
         self._sources = []     # holds gids
@@ -964,49 +965,49 @@ class Projection(common.Projection, WDManager):
         self._method = method
         if self._plasticity_model is None:
             self._plasticity_model = "static_synapse"
-        
-        # Set synaptic plasticity parameters    
+
+        # Set synaptic plasticity parameters
         original_synapse_context = nest.GetSynapseContext()
         nest.SetSynapseContext(self._plasticity_model)
-        
+
         if self._stdp_parameters:
             # NEST does not support w_min != 0
             self._stdp_parameters.pop("w_min_always_zero_in_NEST")
             # Tau_minus is a parameter of the post-synaptic cell, not of the connection
             tau_minus = self._stdp_parameters.pop("Tau_minus")
             nest.SetStatus(self.post.cell_local, [{'Tau_minus': tau_minus}])
-            
+
             synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
             synapse_defaults.update(self._stdp_parameters)
             nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)
-        
+
         # Create connections
         if isinstance(method, str):
-            connection_method = getattr(self, '_%s' % method)   
+            connection_method = getattr(self, '_%s' % method)
             self.nconn = connection_method(method_parameters)
         elif isinstance(method, common.Connector):
             self.nconn = method.connect(self)
-        
+
         # Reset synapse context.
         # This is needed because low-level API does not support synapse dynamics
         # for now. We don't just reset to 'static_synapse' in case the user has
         # made a direct call to nest.SetSynapseContext()
-        nest.SetSynapseContext(original_synapse_context) 
-        
+        nest.SetSynapseContext(original_synapse_context)
+
         # Define a method to access individual connections
-        self.connection = Projection.ConnectionDict(self)            
-        
+        self.connection = Projection.ConnectionDict(self)
+
     def __len__(self):
         """Return the total number of connections."""
         return len(self._sources)
-    
+
     def connections(self):
         """for conn in prj.connections()..."""
         for i in xrange(len(self)):
             yield self.connection[i]
-    
+
     # --- Connection methods ---------------------------------------------------
-    
+
     def _allToAll(self, parameters=None):
         """
         Connect all cells in the presynaptic population to all cells in the postsynaptic population.
@@ -1017,7 +1018,7 @@ class Projection(common.Projection, WDManager):
             allow_self_connections = parameters['allow_self_connections']
         c = AllToAllConnector(allow_self_connections)
         return c.connect(self)
-    
+
     def _oneToOne(self, parameters=None):
         """
         Where the pre- and postsynaptic populations have the same size, connect
@@ -1044,7 +1045,7 @@ class Projection(common.Projection, WDManager):
                 allow_self_connections = parameters['allow_self_connections']
         c = FixedProbabilityConnector(p_connect, allow_self_connections)
         return c.connect(self)
-    
+
     def _distanceDependentProbability(self, parameters):
         """
         For each pair of pre-post cells, the connection probability depends on distance.
@@ -1060,8 +1061,8 @@ class Projection(common.Projection, WDManager):
                 allow_self_connections = parameters['allow_self_connections']
         c = DistanceDependentProbabilityConnector(d_expression,
                                                   allow_self_connections=allow_self_connections)
-        return c.connect(self)           
-                
+        return c.connect(self)
+
     def _fixedNumberPre(self, parameters):
         """Each presynaptic cell makes a fixed number of connections."""
         n = parameters['n']
@@ -1069,7 +1070,7 @@ class Projection(common.Projection, WDManager):
             allow_self_connections = parameters['allow_self_connections']
         c = FixedNumberPreConnector(n, allow_self_connections)
         return c.connect(self)
-    
+
     def _fixedNumberPost(self, parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
         n = parameters['n']
@@ -1077,7 +1078,7 @@ class Projection(common.Projection, WDManager):
             allow_self_connections = parameters['allow_self_connections']
         c = FixedNumberPostConnector(n, allow_self_connections)
         return c.connect(self)
-    
+
     def _fromFile(self, parameters):
         """
         Load connections from a file.
@@ -1095,7 +1096,7 @@ class Projection(common.Projection, WDManager):
             # dict could have 'filename' key or 'file' key
             # implement this...
             raise Exception("Argument type not yet implemented")
-        
+
         # We read the file and gather all the data in a list of tuples (one per line)
         input_tuples = []
         for line in lines:
@@ -1107,9 +1108,9 @@ class Projection(common.Projection, WDManager):
             tgt = eval(tgt)
             input_tuples.append((src, tgt, float(w), float(d)))
         f.close()
-        
+
         self._fromList(input_tuples)
-        
+
     def _fromList(self, conn_list):
         """
         Read connections from a list of tuples,
@@ -1128,9 +1129,9 @@ class Projection(common.Projection, WDManager):
             self._targets.append(tgt)
             self._target_ports.append(tgt)
 
-    
+
     # --- Methods for setting connection parameters ----------------------------
-    
+
     def _set_connection_values(self, name, value):
         if is_number(value):
             for src,port in self.connections():
@@ -1156,13 +1157,13 @@ class Projection(common.Projection, WDManager):
         """
         w = self.convertWeight(w, self.synapse_type)
         self._set_connection_values('weight', w)
-    
+
     def randomizeWeights(self, rand_distr):
         """
         Set weights to random values taken from rand_distr.
         """
         self.setWeights(rand_distr.next(len(self)))
-    
+
     def setDelays(self, d):
         """
         d can be a single number, in which case all delays are set to this
@@ -1170,13 +1171,13 @@ class Projection(common.Projection, WDManager):
         in the population.
         """
         self._set_connection_values('delay', d)
-    
+
     def randomizeDelays(self, rand_distr):
         """
         Set delays to random values taken from rand_distr.
         """
         self.setDelays(rand_distr.next(len(self)))
-    
+
     def setThreshold(self, threshold):
         """
         Where the emission of a spike is determined by watching for a
@@ -1185,10 +1186,10 @@ class Projection(common.Projection, WDManager):
         # This is a bit tricky, because in NEST the spike threshold is a
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
-        raise Exception("Method deprecated")      
-    
+        raise Exception("Method deprecated")
+
     # --- Methods for writing/reading information to/from file. ----------------
-    
+
     def _dump_connections(self):
         """For debugging."""
         print "Connections for Projection %s, connected with %s" % (self.label or '(un-labelled)',
@@ -1199,7 +1200,7 @@ class Projection(common.Projection, WDManager):
         print "Connection data for the presynaptic population (%s)" % self.pre.label
         for src in self.pre.cell.flat:
             print src, nest.GetConnections([src], self._plasticity_model)
-    
+
     def _get_connection_values(self, format, parameter_name, gather):
         assert format in ('list', 'array'), "`format` is '%s', should be one of 'list', 'array'" % format
         if format == 'list':
@@ -1215,7 +1216,7 @@ class Projection(common.Projection, WDManager):
                 # perhaps make an assert in __init__() to really make sure
                 values[src-self.pre.id_start, tgt-self.post.id_start] = v
         return values
-    
+
     def getWeights(self, format='list', gather=True):
         """
         Possible formats are: a list of length equal to the number of connections
@@ -1229,7 +1230,7 @@ class Projection(common.Projection, WDManager):
         elif format == 'array':
             weights *= 0.001
         return weights
-        
+
     def getDelays(self, format='list', gather=True):
         """
         Possible formats are: a list of length equal to the number of connections
@@ -1237,7 +1238,7 @@ class Projection(common.Projection, WDManager):
         connections).
         """
         return self._get_connection_values(format, 'delay', gather)
-        
+
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
@@ -1259,7 +1260,7 @@ class Projection(common.Projection, WDManager):
             line = line.replace('(','[').replace(')',']')
             f.write(line)
         f.close()
-    
+
     def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""
         weights = self.getWeights(format=format, gather=gather)
@@ -1271,8 +1272,8 @@ class Projection(common.Projection, WDManager):
             for row in weights:
                 f.write(fmt % tuple(row))
         f.close()
-            
-    
+
+
     def weightHistogram(self, min=None, max=None, nbins=10):
         """
         Return a histogram of synaptic weights.
@@ -1288,7 +1289,7 @@ class Projection(common.Projection, WDManager):
 # ==============================================================================
 #   Utility classes
 # ==============================================================================
-   
+
 Timer = common.Timer
 
 # ==============================================================================
