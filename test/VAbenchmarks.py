@@ -34,6 +34,7 @@ exec("from pyNN.%s import *" % simulator)
 
 from pyNN.random import NumpyRNG, RandomDistribution
 import pyNN.utility
+Timer = Timer()
 
 # === Define parameters ========================================================
 

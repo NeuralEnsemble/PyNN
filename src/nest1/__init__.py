@@ -80,18 +80,7 @@ class WDManager(object):
         return delay
     
     def convertWeight(self, w, synapse_type):
-        if isinstance(w, RandomDistribution):
-            weight = RandomDistribution(w.name, w.parameters, w.rng)
-            if weight.name == "uniform":
-                (w_min,w_max) = weight.parameters
-                weight.parameters = (1000.*w_min, 1000.*w_max)
-            elif weight.name ==  "normal":
-                (w_mean,w_std) = weight.parameters
-                weight.parameters = (1000.*w_mean, w_std*1000.)
-            else:
-                print "WARNING: no conversion of the weights for this particular distribution"
-        else:
-            weight = w*1000.
+        weight = w*1000.
 
         if synapse_type == 'inhibitory':
             # We have to deal with the distribution, and anticipate the
