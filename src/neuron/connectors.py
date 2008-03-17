@@ -54,10 +54,15 @@ class AllToAllConnector(common.AllToAllConnector, HocConnector):
         for tgt in projection.post.gidlist:
             for src in projection.pre.fullgidlist:
                 if self.allow_self_connections or projection.pre != projection.post or tgt != src:
-                    if isinstance(weight, RandomDistribution): w = weight.next()
-                    else: w = weight
-                    if isinstance(delay, RandomDistribution): d = delay.next()
-                    else: d = delay
+                    if isinstance(weight, RandomDistribution):
+                        w = weight.next()
+                    else:
+                        w = weight
+                    if isinstance(delay, RandomDistribution):
+                        d = delay.next()
+                    else:
+                        d = delay
+                    #print "Setting connection delay from %s to %s in %s to %g" % (src,tgt,projection.label,d)
                     hoc_commands += self.singleConnect(projection,src,tgt,w,d)
         return hoc_commands
 

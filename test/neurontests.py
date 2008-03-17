@@ -564,7 +564,13 @@ class ProjectionInitTest(unittest.TestCase):
             d2.append(hoc_list2.object(prj2.connections.index(connection_id)).delay)
         assert (w1 == w2) and (d1 == d2)
           
-
+    def testSettingDelays(self):
+        """Delays should be set correctly when using a Connector object."""
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                prj1 = neuron.Projection(srcP, tgtP, neuron.AllToAllConnector(delays=0.321))
+                hoc_list = getattr(neuron.h, prj1.label)
+                assert hoc_list.object(0).delay == 0.321, "Delay should be 0.321, actually %g" % hoc_list.object(0).delay
 
 class ProjectionSetTest(unittest.TestCase):
     """Tests of the setWeights(), setDelays(), setThreshold(),

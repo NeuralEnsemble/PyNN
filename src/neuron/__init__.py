@@ -1126,11 +1126,13 @@ class Projection(common.Projection):
             hoc_commands += connection_method(method_parameters)
         elif isinstance(method,common.Connector):
             hoc_commands += method.connect(self)
+            # delays should already be set to min_delay
         hoc_execute(hoc_commands, "--- Projection[%s].__init__() ---" %self.label)
         
         # By defaut, we set all the delays to min_delay, except if
         # the Projection data have been loaded from a file or a list.
-        if (method != 'fromList') and (method != 'fromFile'):
+        # This should already have been done if using a Connector object
+        if isinstance(method, str) and (method != 'fromList') and (method != 'fromFile'):
             self.setDelays(_min_delay)
         
         ## Deal with synaptic plasticity
