@@ -539,7 +539,7 @@ def _get_recorded_data(population, variable=None):
     assert variable in ['spikes', 'v', 'conductance']
     recorder = population.recorders[variable]
 
-    nest_filename = _merge_files(recorder)
+    nest_filename = _merge_files(recorder, gather=True)
     data = recording.readArray(nest_filename, sepchar=None)
     os.remove(nest_filename)
 

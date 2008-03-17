@@ -460,6 +460,20 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         neuron.run(simtime)
 	self.pop2.print_v("temp_neuron.v")
 
+    def testRecordWithSpikeTimesGreaterThanSimTime(self):
+        """
+        If a `SpikeSourceArray` is initialized with spike times greater than the
+        simulation time, only those spikes that actually occurred should be
+        written to file or returned by getSpikes().
+        """
+        spike_times = numpy.arange(10.0, 200.0, 10.0)
+        spike_source = neuron.Population(1, neuron.SpikeSourceArray, {'spike_times': spike_times})
+        spike_source.record()
+        neuron.running = False
+        neuron.run(100.0)
+        spikes = spike_source.getSpikes()[:,1]
+        self.assert_( max(spikes) == 100.0 )
+
 # ==============================================================================
 class PopulationOtherTest(unittest.TestCase): # to write later
     """Tests of the randomInit() method of the Population class."""

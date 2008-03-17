@@ -408,6 +408,19 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         nest.run(simtime)
         self.pop2.print_v("temp_nest.v")
 
+    def testRecordWithSpikeTimesGreaterThanSimTime(self):
+        """
+        If a `SpikeSourceArray` is initialized with spike times greater than the
+        simulation time, only those spikes that actually occurred should be
+        written to file or returned by getSpikes().
+        """
+        spike_times = numpy.arange(10.0, 200.0, 10.0)
+        spike_source = nest.Population(1, nest.SpikeSourceArray, {'spike_times': spike_times})
+        spike_source.record()
+        nest.run(100.0)
+        spikes = spike_source.getSpikes()[:,1]
+        self.assert_( max(spikes) == 100.0 )
+
 # ==============================================================================
 class ProjectionInitTest(unittest.TestCase):
     """Tests of the __init__() method of the Projection class."""

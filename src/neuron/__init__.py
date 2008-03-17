@@ -361,7 +361,7 @@ def end(compatible_output=True):
             for cell in cell_list:
                 hoc_commands += ['fmt = "%s\\t%d\\n"' % ("%.2f",cell),
                                  #'tmp = fileobj.printf("# cell%d\\n")' % cell,
-                                 'tmp = cell%d.spiketimes.printf(fileobj,fmt)' % cell]
+                                 'tmp = cell%d.spiketimes.where("<=",tstop).printf(fileobj,fmt)' % cell]
             hoc_commands += ['tmp = fileobj.close()']
     hoc_commands += ['tmp = pc.runworker()',
                      'tmp = pc.done()']
@@ -917,14 +917,19 @@ class Population(common.Population):
     def __print(self,print_what,filename,num_format,gather,header=None):
         """Private method used by printSpikes() and print_v()."""
         global myid
+        vector_operation = ''
+        if print_what == 'spiketimes':
+            vector_operation = '.where("<=", tstop)'
         if gather and myid != 0: # on slave nodes, post data
             hoc_commands = []
             for id in self.record_from[print_what]:
                 if id in self.gidlist:
-                    hoc_commands += ['tmp = pc.post("%s[%d].%s",%s.object(%d).%s)' % (self.hoc_label,id,print_what,
-                                                                                      self.hoc_label,
-                                                                                      self.gidlist.index(id),
-                                                                                      print_what)]
+                    hoc_commands += ['tmp = pc.post("%s[%d].%s",%s.object(%d).%s%s)' % (self.hoc_label,id,
+                                                                                        print_what,
+                                                                                        self.hoc_label,
+                                                                                        self.gidlist.index(id),
+                                                                                        print_what,
+                                                                                        vector_operation)]
             hoc_execute(hoc_commands,"--- Population[%s].__print()__ --- [Post objects to master]" %self.label)
 
         if myid==0 or not gather:
@@ -941,10 +946,13 @@ class Population(common.Population):
                 #hoc_commands += ['fmt = "%s\\t%s\\n"' % (num_format, "\\t".join([str(j) for j in addr]))]
                 hoc_commands += ['fmt = "%s\\t%d\\n"' % (num_format, id-padding)]
                 if id in self.gidlist:
-                    hoc_commands += ['tmp = %s.object(%d).%s.printf(fileobj,fmt)' % (self.hoc_label,self.gidlist.index(id),print_what)]
+                    hoc_commands += ['tmp = %s.object(%d).%s%s.printf(fileobj,fmt)' % (self.hoc_label,
+                                                                                       self.gidlist.index(id),
+                                                                                       print_what,
+                                                                                       vector_operation)]
                 elif gather: 
                     hoc_commands += ['gatheredvec = new Vector()']
-                    hoc_commands += ['tmp = pc.take("%s[%d].%s",gatheredvec)' %(self.hoc_label,id,print_what),
+                    hoc_commands += ['tmp = pc.take("%s[%d].%s",gatheredvec)' % (self.hoc_label,id,print_what),
                                      'tmp = gatheredvec.printf(fileobj,fmt)']
             hoc_commands += ['tmp = fileobj.close()']
             hoc_execute(hoc_commands,"--- Population[%s].__print()__ ---" %self.label)
