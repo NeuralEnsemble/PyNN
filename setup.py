@@ -7,6 +7,7 @@ setup(
     version = "0.4.0alpha",
     package_dir={'pyNN': 'src'},
     packages = ['pyNN','pyNN.nest2','pyNN.nest1','pyNN.pcsim','pyNN.neuron'],
+    package_data = {'pyNN': ['hoc/*.hoc', 'hoc/*.mod']},
     author = "The NeuralEnsemble Community",
     author_email = "pynn@neuralensemble.org",
     description = "A Python package for simulator-independent specification of neuronal network models",
