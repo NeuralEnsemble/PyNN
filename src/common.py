@@ -946,6 +946,7 @@ class Projection(object):
         if isinstance(self.synapse_dynamics, SynapseDynamics):
             self.short_term_plasticity_mechanism = self.synapse_dynamics.fast
             self.long_term_plasticity_mechanism = self.synapse_dynamics.slow
+            assert 0 <= self.long_term_plasticity_mechanism.dendritic_delay_fraction <= 1.0
         elif self.synapse_dynamics is None:
             self.short_term_plasticity_mechanism = None
             self.long_term_plasticity_mechanism = None
@@ -1370,10 +1371,11 @@ class STDPMechanism(object):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
-                 voltage_dependence=None):
+                 voltage_dependence=None, dendritic_delay_fraction=1.0):
         self.timing_dependence = timing_dependence
         self.weight_dependence = weight_dependence
         self.voltage_dependence = voltage_dependence
+        self.dendritic_delay_fraction = dendritic_delay_fraction
 
 
 class TsodkysMarkramMechanism(ShortTermPlasticityMechanism):

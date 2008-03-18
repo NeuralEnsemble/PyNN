@@ -21,8 +21,9 @@ class STDPMechanism(common.STDPMechanism):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
-                 voltage_dependence=None):
-        common.STDPMechanism.__init__(self, timing_dependence, weight_dependence, voltage_dependence)
+                 voltage_dependence=None, dendritic_delay_fraction=1.0):
+        common.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
+                                      voltage_dependence, dendritic_delay_fraction)
 
 
 class TsodkysMarkramMechanism(common.TsodkysMarkramMechanism):

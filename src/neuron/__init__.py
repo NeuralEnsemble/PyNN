@@ -1512,7 +1512,7 @@ class Projection(common.Projection):
     
     def _setupSTDP(self, stdp_model, parameterDict):
         """Set-up STDP."""
-        
+        ddf = self.long_term_plasticity_mechanism.dendritic_delay_fraction
         # Define the objref to handle plasticity
         hoc_commands =  ['objref %s_wa[%d]'      %(self.hoc_label,len(self)),
                          'objref %s_pre2wa[%d]'  %(self.hoc_label,len(self)),
@@ -1522,16 +1522,17 @@ class Projection(common.Projection):
             src = self.connections[i][0]
             tgt = self.connections[i][1]
             # we reproduce the structure of STDP that can be found in layerConn.hoc
-            hoc_commands += ['%s_wa[%d]     = new %s(0.5)' %(self.hoc_label, i, stdp_model),
-                             '%s_pre2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' % (self.hoc_label, i, src, self.hoc_label, i),  
-                             '%s_pre2wa[%d].threshold = %s.object(%d).threshold' %(self.hoc_label, i, self.hoc_label, i),
-                             '%s_pre2wa[%d].delay = %s.object(%d).delay' % (self.hoc_label, i, self.hoc_label, i),
-                             '%s_pre2wa[%d].weight = 1' %(self.hoc_label, i),
-                             '%s_post2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' %(self.hoc_label, i, tgt, self.hoc_label, i),
-                             '%s_post2wa[%d].threshold = 1' %(self.hoc_label, i),
-                             '%s_post2wa[%d].delay = 0' % (self.hoc_label, i),
-                             '%s_post2wa[%d].weight = -1' % (self.hoc_label, i),
-                             'setpointer %s_wa[%d].wsyn, %s.object(%d).weight' %(self.hoc_label, i,self.hoc_label,i)]
+            hoc_commands += [
+                '%s_wa[%d] = new %s(0.5)' %(self.hoc_label, i, stdp_model),
+                '%s_pre2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' % (self.hoc_label, i, src, self.hoc_label, i),  
+                '%s_pre2wa[%d].threshold = %s.object(%d).threshold' %(self.hoc_label, i, self.hoc_label, i),
+                '%s_pre2wa[%d].delay = %s.object(%d).delay * %g' % (self.hoc_label, i, self.hoc_label, i, (1-ddf)),
+                '%s_pre2wa[%d].weight = 1' %(self.hoc_label, i),
+                '%s_post2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' %(self.hoc_label, i, tgt, self.hoc_label, i),
+                '%s_post2wa[%d].threshold = 1' %(self.hoc_label, i),
+                '%s_post2wa[%d].delay = %s.object(%d).delay * %g' % (self.hoc_label, i, self.hoc_label, i, ddf),
+                '%s_post2wa[%d].weight = -1' % (self.hoc_label, i),
+                'setpointer %s_wa[%d].wsyn, %s.object(%d).weight' %(self.hoc_label, i,self.hoc_label,i)]
             # then update the parameters
             for param,val in parameterDict.items():
                 hoc_commands += ['%s_wa[%d].%s = %f' % (self.hoc_label, i, param, val)]
