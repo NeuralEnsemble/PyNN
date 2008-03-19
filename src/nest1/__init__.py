@@ -1443,5 +1443,3 @@ class Projection(common.Projection, WDManager):
 Timer = common.Timer
 
 # ==============================================================================
- 
- 

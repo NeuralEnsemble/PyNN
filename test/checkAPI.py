@@ -11,7 +11,7 @@ Andrew P. Davison, CNRS, UNIC, May 2006
 $Id$
 """
 
-import re, string, types, getopt, sys, shutil, os, inspect
+import re, string, types, getopt, sys, shutil, os, inspect, math
 shutil.copy('dummy_hoc.py','hoc.py')
 from pyNN import common, oldneuron, nest1, nest2, neuron, pcsim
 os.remove('hoc.py') #; os.remove('hoc.pyc')
@@ -41,11 +41,12 @@ exclude_list = ['__module__','__doc__','__builtins__','__file__','__class__',
                 '__delattr__', '__dict__', '__getattribute__', '__hash__',
                 '__new__','__reduce__','__reduce_ex__','__repr__','__setattr__',
                 '__str__','__weakref__',
-                'time','types','copy',
+                'time','types','copy', 'sys', 'numpy', 'random',
+                '_abstract_method', '_function_id',
                 'InvalidParameterValueError', 'NonExistentParameterError',
-                'InvalidDimensionsError', 'ConnectionError',
+                'InvalidDimensionsError', 'ConnectionError', 'RoundingWarning'
                 'StandardCellType',
-                ]
+                ] + dir(math)
 
 module_list = [oldneuron, nest1, nest2, neuron, pcsim]
 
@@ -71,7 +72,12 @@ def funcArgs(func):
     else:
         args = ()
         fname = func.__name__
-    return "%s(%s)" % (fname, inspect.formatargspec(*args))
+    try:
+        func_args = "%s(%s)" % (fname, inspect.formatargspec(*args))
+        return func_args
+    except TypeError:
+        print "Error with", func
+        return "%s()" % fname
 
 def checkDoc(str1,str2):
     """The __doc__ string for the simulator specific classes/functions/methods

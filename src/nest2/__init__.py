@@ -1186,7 +1186,7 @@ class Projection(common.Projection, WDManager):
         # This is a bit tricky, because in NEST the spike threshold is a
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
-        raise Exception("Method deprecated")
+        raise DeprecationWarning("This method does nothing in in nest2 and its use is deprecated")
 
     # --- Methods for writing/reading information to/from file. ----------------
 

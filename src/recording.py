@@ -60,7 +60,7 @@ def write_compatible_output(sim_filename, user_filename, population, dt):
                     
     # Writing spiketimes, cell_id-min(cell_id)                    
     # open file
-    if int(os.path.getsize(sim_filename)) > 0:
+    if os.path.getsize(sim_filename) > 0:
         data = readArray(sim_filename, sepchar=None)
         data[:,0] = data[:,0] - padding
         # sort
@@ -79,7 +79,7 @@ def write_compatible_output(sim_filename, user_filename, population, dt):
         else:
             raise Exception("Data file should have 2,3 or 4 columns, actually has %d" % data.shape[1])
     else:
-        logging.info("%s is empty" % merged_filename)
+        logging.info("%s is empty" % sim_filename)
     result.close()
     
 def readArray(filename, sepchar=None, skipchar='#'):
@@ -106,5 +106,5 @@ def readArray(filename, sepchar=None, skipchar='#'):
     if a.size > 0:
         (Nrow,Ncol) = a.shape
         logging.debug(str(a.shape))
-        if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
+        #if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
     return a

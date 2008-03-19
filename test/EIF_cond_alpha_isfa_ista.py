@@ -26,7 +26,7 @@ print ifcell.getParameters()
 if simulator == "neuron":
     hoc.execute("cell0.cell psection()")
     
-record_v(ifcell,"EIF_cond_alpha_isfa_ista.py_%s.v" % simulator)
+record_v(ifcell,"EIF_cond_alpha_isfa_ista_%s.v" % simulator)
 run(200.0)
 
 end()

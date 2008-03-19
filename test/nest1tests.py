@@ -372,10 +372,10 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         # We test the mean spike count by checking if the rate of the poissonian sources are
         # close to 20 Hz. Then we also test how the spikes are saved
         self.pop1.record()
-        simtime = 1000
+        simtime = 1000.0
         nest.run(simtime)
         self.pop1.printSpikes("temp_nest.ras")
-        rate = self.pop1.meanSpikeCount()*1000/simtime
+        rate = self.pop1.meanSpikeCount()*1000.0/simtime
         assert (20*0.8 < rate) and (rate < 20*1.2), rate
         
     def testPotentialRecording(self):
