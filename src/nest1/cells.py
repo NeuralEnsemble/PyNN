@@ -148,5 +148,16 @@ class SpikeSourceArray(common.SpikeSourceArray):
         ('spike_times', 'spike_times'),
     )
     nest_name = 'spike_generator'
+
     
-    
+class EIF_cond_alpha_isfa_ista(common.ModelNotAvailable):
+    pass
+
+class HH_cond_exp(common.ModelNotAvailable):
+    pass
+
+class SpikeSourceInhGamma(common.ModelNotAvailable):
+    pass
+
+class IF_cond_exp_gsfa_grr(common.ModelNotAvailable):
+    pass

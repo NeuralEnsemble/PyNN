@@ -168,8 +168,6 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
     an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
-    NOTE: This is a renaming of the now deprecated 'AdaptiveExponentialIF_alpha'.
-
     See also: IF_cond_exp_gsfa_grr
     """
 
@@ -198,7 +196,7 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     setterMethods = {}
     
     def __init__(self, parameters):
-        common.AdaptiveExponentialIF_alpha.__init__(self,parameters)              
+        common.EIF_cond_alpha_isfa_ista.__init__(self,parameters)              
         self.parameters['Inoise'] = 0.0
         limited_parameters = {} # problem that Trefract is not implemented
         for k in ('a','b','Vt','Vr','El','gl','Cm','tau_w','slope','Vpeak',
@@ -207,7 +205,14 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
             limited_parameters[k] = self.parameters[k]
         self.simObjFactory = CbaEIFCondAlphaNeuron(**limited_parameters)
 
+class IF_facets_hardware1(common.ModelNotAvailable):
+    pass
 
-class AdaptiveExponentialIF_alpha(EIF_cond_alpha_isfa_ista):
-    """Deprecated: Use the equivalent type 'EIF_cond_alpha_isfa_ista' instead."""
+class HH_cond_exp(common.ModelNotAvailable):
+    pass
+
+class SpikeSourceInhGamma(common.ModelNotAvailable):
+    pass
+
+class IF_cond_exp_gsfa_grr(common.ModelNotAvailable):
     pass

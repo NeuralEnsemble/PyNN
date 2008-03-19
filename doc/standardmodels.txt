@@ -139,8 +139,8 @@ Name            Default value  Units  Description
 ==============  =============  =====  =================================================== 
 
 
-AdaptiveExponentialIF_alpha
----------------------------
+EIF_cond_alpha_isfa_ista
+------------------------
 
 Adaptive exponential integrate and fire neuron according to 
   Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as

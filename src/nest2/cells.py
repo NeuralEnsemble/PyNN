@@ -93,8 +93,6 @@ class IF_cond_exp_gsfa_grr(common.IF_cond_exp_gsfa_grr):
     See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
     and renewal theories. Neural Computation 19: 2958-3010.
 
-    NOTE: This is a renaming if the now deprecated 'IF_cond_exp_sfa_rr'.
-
     See also: EIF_cond_alpha_isfa_ista
     """
     translations = common.build_translations(
@@ -118,11 +116,6 @@ class IF_cond_exp_gsfa_grr(common.IF_cond_exp_gsfa_grr):
         ('q_rr',       'q_rr')
     )
     nest_name = "iaf_cond_exp_sfa_rr"
-
-
-class IF_cond_exp_sfa_rr(IF_cond_exp_gsfa_grr):
-    """Deprecated: Use the equivalent type 'IF_cond_exp_gsfa_grr' instead."""
-    pass
 
 
 class IF_facets_hardware1(common.IF_facets_hardware1):
@@ -184,8 +177,6 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
     an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
-    NOTE: This is a renaming of the now deprecated 'AdaptiveExponentialIF_alpha'.
-
     See also: IF_cond_exp_gsfa_grr
     """
 
@@ -210,11 +201,6 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
         ('tau_syn_I' , 'tau_syn_in'),
     )
     nest_name = "aeif_cond_alpha"
-
-        
-class AdaptiveExponentialIF_alpha(EIF_cond_alpha_isfa_ista):
-    """Deprecated: Use the equivalent type 'EIF_cond_alpha_isfa_ista' instead."""
-    pass
 
 
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
