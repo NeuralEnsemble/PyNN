@@ -18,9 +18,12 @@ class IDSetGetTest(unittest.TestCase):
     
     def setUp(self):
         sim.setup()
-        self.cells = sim.create(sim.IF_curr_exp, n=2)
-        self.dummy_pop = sim.Population(83, sim.IF_curr_exp) # this is to ensure that the first_id of self.pop is not 0 or 1
-        self.pop = sim.Population(2, sim.IF_curr_exp)
+        self.cells = {}
+        self.populations = {}
+        for cell_class in sim.list_standard_models():
+            print "Creating ", cell_class
+            self.cells[cell_class.__name__] = sim.create(cell_class, n=2)
+            self.populations[cell_class.__name__] = sim.Population(2, cell_class)
     
     def tearDown(self):
         pass
@@ -28,19 +31,22 @@ class IDSetGetTest(unittest.TestCase):
     def testSetGet(self):
         """__setattr__(), __getattr__(): sanity check"""
         decimal_places = 6
-        for cell in (self.cells[0], self.pop[0]):
-            for name in sim.IF_curr_exp.default_parameters:
-                i = numpy.random.uniform()
-                cell.__setattr__(name, i)
-                o = cell.__getattr__(name)
-                self.assertAlmostEqual(i, o, decimal_places, "%s: %s != %s" % (name, i,o))
+        for cell_class in sim.list_standard_models():
+            for cell in (self.cells[cell_class.__name__][0],
+                         self.populations[cell_class.__name__][0]):
+                print "Testing ", cell_class
+                for name in cell_class.default_parameters:
+                    i = numpy.random.uniform()
+                    cell.__setattr__(name, i)
+                    o = cell.__getattr__(name)
+                    self.assertAlmostEqual(i, o, decimal_places, "%s: %s != %s" % (name, i,o))
     
     def testSetGetParameters(self):
         """setParameters(), getParameters(): sanity check"""
         # need to do for all cell types and for both single cells and cells in Populations
         # need to add similar test for native models in the sim-specific test files
         decimal_places = 6
-        for cell in (self.cells[0], self.pop[0]):
+        for cell in (self.cells['IF_curr_exp'][0], self.populations['IF_curr_exp'][0]):
             new_parameters = {}
             for name in sim.IF_curr_exp.default_parameters.keys():
                 new_parameters[name] = numpy.random.uniform()
@@ -48,9 +54,9 @@ class IDSetGetTest(unittest.TestCase):
             retrieved_parameters = cell.getParameters()
             self.assertEqual(new_parameters.keys(), retrieved_parameters.keys())
             
-            for k in new_parameters:
-                i = new_parameters[k]; o = retrieved_parameters[k]
-                self.assertAlmostEqual(i, o, decimal_places, "%s != %s" % (i,o))
+            for name in new_parameters:
+                i = new_parameters[name]; o = retrieved_parameters[name]
+                self.assertAlmostEqual(i, o, decimal_places, "%s: %s != %s" % (name,i,o))
         
 class PopulationSpikesTest(unittest.TestCase):
     

@@ -59,7 +59,8 @@ class IF_cond_alpha(common.IF_cond_alpha):
         ('v_thresh',   'V_th'),
         ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
         ('e_rev_E',    'E_ex'),
-        ('e_rev_I',    'E_in')
+        ('e_rev_I',    'E_in'),
+        ('v_init',     'V_m'),
     )
     nest_name = "iaf_cond_alpha"
         

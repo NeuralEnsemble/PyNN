@@ -167,7 +167,14 @@ class Connection(object):
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+    standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+    for cell_class in standard_cell_types:
+        try:
+            create(cell_class)
+        except Exception, e:
+            print "Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e)
+            standard_cell_types.remove(cell_class)
+    return standard_cell_types
 
 def _discrepancy_due_to_rounding(parameters, output_values):
     """NEST rounds delays to the time step."""

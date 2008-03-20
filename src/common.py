@@ -13,7 +13,24 @@ from math import *
 from pyNN import random
 
 class InvalidParameterValueError(Exception): pass
-class NonExistentParameterError(Exception): pass
+
+class NonExistentParameterError(Exception):
+    """
+    Raised when an attempt is made to access a model parameter that does not
+    exist.
+    """
+    
+    def __init__(self, parameter_name, standard_model):
+        self.parameter_name = parameter_name
+        self.model_name = standard_model.__class__.__name__
+        self.valid_parameter_names = standard_model.__class__.default_parameters.keys()
+        self.valid_parameter_names.sort()
+
+    def __str__(self):
+        return "%s (valid parameters for %s are: %s)" % (self.parameter_name,
+                                                         self.model_name,
+                                                         ", ".join(self.valid_parameter_names))
+
 class InvalidDimensionsError(Exception): pass
 class ConnectionError(Exception): pass
 class RoundingWarning(Warning): pass
@@ -258,7 +275,7 @@ class StandardModelType(object):
                     else:
                         raise InvalidParameterValueError(err_msg)
                 else:
-                    raise NonExistentParameterError(k)
+                    raise NonExistentParameterError(k, self)
         return parameters
     
     def translate(self, parameters):
@@ -267,10 +284,12 @@ class StandardModelType(object):
         parameters = self.checkParameters(parameters)
         translated_parameters = {}
         for k in parameters.keys():
-            pname = self.__class__.translations[k]['translated_name']
+            D = self.__class__.translations[k]
+            pname = D['translated_name']
             try:
-                pval = eval(self.__class__.translations[k]['forward_transform'],
-                            globals(), parameters)
+                pval = eval(D['forward_transform'], globals(), parameters)
+            except NameError:
+                raise Exception("%s. Transform: %s. Parameters: %s." % (pname, D['forward_transform'], parameters))
             except ZeroDivisionError:
                 pval = 1e300 # this is about the highest value hoc can deal with
             translated_parameters[pname] = pval
@@ -283,8 +302,10 @@ class StandardModelType(object):
         self.parameters.update(self.translate(parameters, with_defaults=False))
         
 
-StandardCellType = StandardModelType
-StandardSynapseType = StandardModelType
+class StandardCellType(StandardModelType):
+    """Base class for standardized cell model classes."""
+    pass
+
 
 class IF_curr_alpha(StandardCellType):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
