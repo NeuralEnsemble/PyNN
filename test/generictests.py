@@ -19,18 +19,38 @@ class IDSetGetTest(unittest.TestCase):
     def setUp(self):
         sim.setup()
         self.cells = sim.create(sim.IF_curr_exp, n=2)
+        self.dummy_pop = sim.Population(83, sim.IF_curr_exp) # this is to ensure that the first_id of self.pop is not 0 or 1
+        self.pop = sim.Population(2, sim.IF_curr_exp)
     
     def tearDown(self):
         pass
     
+    def testSetGet(self):
+        """__setattr__(), __getattr__(): sanity check"""
+        decimal_places = 6
+        for cell in (self.cells[0], self.pop[0]):
+            for name in sim.IF_curr_exp.default_parameters:
+                i = numpy.random.uniform()
+                cell.__setattr__(name, i)
+                o = cell.__getattr__(name)
+                self.assertAlmostEqual(i, o, decimal_places, "%s: %s != %s" % (name, i,o))
+    
     def testSetGetParameters(self):
         """setParameters(), getParameters(): sanity check"""
-        new_parameters = {}
-        for name in sim.IF_curr_exp.default_parameters.keys():
-            new_parameters[name] = numpy.random.uniform()
-        self.cells[0].setParameters(**new_parameters)
-        retrieved_parameters = self.cells[0].getParameters()
-        self.assertEqual(new_parameters, retrieved_parameters)
+        # need to do for all cell types and for both single cells and cells in Populations
+        # need to add similar test for native models in the sim-specific test files
+        decimal_places = 6
+        for cell in (self.cells[0], self.pop[0]):
+            new_parameters = {}
+            for name in sim.IF_curr_exp.default_parameters.keys():
+                new_parameters[name] = numpy.random.uniform()
+            cell.setParameters(**new_parameters)
+            retrieved_parameters = cell.getParameters()
+            self.assertEqual(new_parameters.keys(), retrieved_parameters.keys())
+            
+            for k in new_parameters:
+                i = new_parameters[k]; o = retrieved_parameters[k]
+                self.assertAlmostEqual(i, o, decimal_places, "%s != %s" % (i,o))
         
 class PopulationSpikesTest(unittest.TestCase):
     

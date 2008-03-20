@@ -51,7 +51,6 @@ class ID(common.ID):
         self.hocname = None
     
     def __getattr__(self,name):
-        """Note that this currently does not translate units."""
         # First we build a dictionary containing the hoc parameter names and values
         if type(self.cellclass) == type and issubclass(self.cellclass, common.StandardCellType):
             hoc_values = {}
@@ -60,16 +59,18 @@ class ID(common.ID):
         else:
             hoc_values[name] = None
         
-        if self.hocname:
-            cell_name = self.hocname
+        if self.parent:
+            hoc_cell_list = getattr(h, self.parent.label)
+            cell = hoc_cell_list.object(self - self.parent.gid_start)
         else:
             cell_name = "cell%d" % int(self)
+            cell = getattr(h, cell_name)
         
         for hoc_name in hoc_values.keys():
             try:
-                hoc_values[hoc_name] = HocToPy.get('%s.%s' % (cell_name, hoc_name), 'float')
+                hoc_values[hoc_name] = getattr(cell, hoc_name)
             except HocError:
-                hoc_values[hoc_name] = HocToPy.get('%s.source.%s' % (cell_name, hoc_name), 'float')
+                hoc_values[hoc_name] = getattr(cell.source, hoc_name)
         # Now we apply the reverse transform
         return eval(self.cellclass.translations[name]['reverse_transform'], {}, hoc_values)
     

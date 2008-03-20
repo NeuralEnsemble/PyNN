@@ -258,37 +258,48 @@ class ID(long):
     cellclass = common.ID.cellclass
     position = common.ID.position
     
-    def __setattr__(self,name,value):
+    def __setattr__(self, name, value):
         if name in common.ID.non_parameter_attributes:
             object.__setattr__(self,name,value)
         else:
             return self.setParameters(**{name:value})
         
-    def __getattr__(self,name):
-        """Note that this currently does not work for parameters that are computed
-        from the value of other parameters. Will need to get all parameters involved
-        in the computation."""
-        translated_name = self.cellclass.translations[name]['translated_name']
-        if self.parent:
-            pval = getattr(self.parent.pcsim_population.object(self), translated_name)
+    def __getattr__(self, name):
+        D = self.cellclass.translations[name]
+        translated_name = D['translated_name']
+        native_parameters = self._getNativeParameters()
+        if issubclass(self.cellclass, common.StandardCellType):
+            return eval(D['reverse_transform'], {}, native_parameters)
         else:
-            pval = getattr(pcsim_globals.net.object(self), translated_name)
-        return pval
+            return native_parameters[translated_name]
             
-    def setParameters(self,**parameters):
+    def setParameters(self, **parameters):
         #if hasattr(self,'in_population'):
         if self.parent:
             set(self.parent.pcsim_population[self], self.cellclass, parameters)
         else:
             set(self, self.cellclass, parameters)
     
+    def _getNativeParameters(self):
+        if self.parent:
+            pcsim_cell = self.parent.pcsim_population.object(self)
+        else:
+            pcsim_cell = pcsim_globals.net.object(self)
+        pcsim_parameters = {}
+        for name, D in self.cellclass.translations.items():
+            translated_name = D['translated_name']
+            pcsim_parameters[translated_name] = getattr(pcsim_cell, translated_name)
+        return pcsim_parameters
+    
     def getParameters(self):
         """Note that this currently does not translate units."""
-        params = {}
-        for name in self.cellclass.translations.keys():
-            params[name] = self.__getattr__(name)
-        return params
-    
+        native_parameters = self._getNativeParameters()
+        pynn_parameters = {}
+        if issubclass(self.cellclass, common.StandardCellType):
+            for name,D in self.cellclass.translations.items():
+                pynn_parameters[name] = eval(D['reverse_transform'],
+                                             {}, native_parameters)
+        return pynn_parameters
 
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]

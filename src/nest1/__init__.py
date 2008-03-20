@@ -53,11 +53,13 @@ class ID(common.ID):
 
     def getParameters(self):
         """Note that this currently does not translate units."""
-        pynest_params = pynest.getDict([int(self)])[0]
-        params = {}
-        for k,v in self.cellclass.translations.items():
-            params[k] = pynest_params[v[0]]
-        return params
+        nest_parameters = pynest.getDict([int(self)])[0]
+        pynn_parameters = {}
+        if issubclass(self.cellclass, common.StandardCellType):
+            for k in self.cellclass.translations.keys():
+                pynn_parameters[k] = eval(self.cellclass.translations[k]['reverse_transform'],
+                                          {}, nest_parameters)
+        return pynn_parameters
 
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]

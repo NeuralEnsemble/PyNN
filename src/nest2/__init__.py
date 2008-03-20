@@ -41,16 +41,12 @@ class ID(common.ID):
         """ """
         nest_parameters = nest.GetStatus([int(self)])[0]
         if issubclass(self.cellclass, common.StandardCellType):
-            #translated_name = self.cellclass.translations[name][0]
-            #pname = self.cellclass.translations[name]['translated_name']
             pval = eval(self.cellclass.translations[name]['reverse_transform'],
                         {}, nest_parameters)
         elif isinstance(self.cellclass, str) or self.cellclass is None:
-            #translated_name = name
             pval = nest_parameters[name]
         else:
             raise Exception("ID object has invalid cell class %s" % str(self.cellclass))
-        #return nest.GetStatus([int(self)])[0][translated_name]
         return pval
 
     def setParameters(self, **parameters):

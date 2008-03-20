@@ -34,7 +34,7 @@ class IF_curr_exp(common.IF_curr_exp):
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'tau_m'),
-        ('tau_refrac', 't_ref_abs',  "max(dt, tau_refrac)", "tau_ref"),
+        ('tau_refrac', 't_ref_abs',  "max(dt, tau_refrac)", "t_ref_abs"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
@@ -96,7 +96,7 @@ class IF_cond_exp_gsfa_grr(common.IF_cond_exp_gsfa_grr):
     See also: EIF_cond_alpha_isfa_ista
     """
     translations = common.build_translations(
-        ('v_rest',     'E_L')    ,
+        ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
