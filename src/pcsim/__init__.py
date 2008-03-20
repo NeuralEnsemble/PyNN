@@ -135,7 +135,7 @@ class SpikesMultiChannelRecorder(object):
             h5file.flush()
         h5file.close()
         
-    def saveSpikesText(self, filename = None, compatible_output=True):
+    def saveSpikesText(self, filename=None, compatible_output=True):
         if filename:
             self.filename = filename
         if (pcsim_globals.net.mpi_rank() != 0):    
@@ -155,6 +155,17 @@ class SpikesMultiChannelRecorder(object):
         for spike in all_spikes:
             f.write("%s\t%s\n" % spike )                
         f.close()        
+    
+    def getSpikes(self):
+        all_spikes = numpy.zeros((0,2))
+        for i, rec, src in self.recordings:            
+            spikes =  1000.0*numpy.array(pcsim_globals.net.object(rec).getSpikeTimes())
+            spikes = spikes.reshape((len(spikes),1))
+            ids = i*numpy.ones(spikes.shape)
+            ids_spikes = numpy.concatenate((ids, spikes), axis=1)
+            print all_spikes.shape, ids_spikes.shape
+            all_spikes = numpy.concatenate((all_spikes, ids_spikes), axis=0)
+        return all_spikes
     
     def meanSpikeCount(self):
         count = 0
@@ -883,7 +894,7 @@ class Population(common.Population):
         otherwise, a file will be written on each node.
         """        
         """PCSIM: implemented by corresponding recorders at python level """
-        self.spike_rec.saveSpikesText(filename,compatible_output=compatible_output)
+        self.spike_rec.saveSpikesText(filename, compatible_output=compatible_output)
         
         
     def print_v(self, filename, gather=True,compatible_output=True):
@@ -903,7 +914,17 @@ class Population(common.Population):
         """
         """PCSIM: will be implemented by corresponding analog recorders at python level object  """
         self.vm_rec.saveValuesText(filename,compatible_output=compatible_output)
-        
+    
+    def getSpikes(self):
+        """
+        Returns a numpy array of the spikes of the population
+
+        Useful for small populations, for example for single neuron Monte-Carlo.
+
+        NOTE: getSpikes or printSpikes should be called only once per run,
+        because they mangle simulator recorder files.
+        """
+        return self.spike_rec.getSpikes()
     
     def meanSpikeCount(self, gather=True):         
         """

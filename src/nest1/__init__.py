@@ -6,7 +6,7 @@ $Id:nest1.py 143 2007-10-05 14:20:16Z apdavison $
 __version__ = "$Rev$"
 
 import pynest
-from pyNN import common
+from pyNN import common, recording
 from pyNN.random import *
 import numpy, types, sys, shutil, os, logging, copy, tempfile
 from math import *
@@ -696,6 +696,11 @@ class Population(common.Population):
         recorders['%s.v' %self.label] = ("v", record_file.replace('/','_'))
         pynest.record_v(tmp_list, record_file.replace('/','_'))
     
+    def _get_tmp_file(self):
+        file_label = '%s.spikes' % self.label
+        (file_type, tmpfile) = recorders.pop(file_label)
+        pynest.sr('%s close' % file_label)
+        return tmpfile
     
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
@@ -713,9 +718,7 @@ class Population(common.Population):
         If gather is True, the file will only be created on the master node,
         otherwise, a file will be written on each node.
         """        
-        file_label = '%s.spikes' % self.label
-        (file_type, tmpfile) = recorders.pop(file_label)
-        pynest.sr('%s close' % file_label)
+        tmpfile = self._get_tmp_file()
 
         if (compatible_output):
             # Here we postprocess the file to have effectively the
@@ -746,7 +749,17 @@ class Population(common.Population):
         else:
             print "didn't go into the compatible output stuff"
             shutil.move(tmpfile, filename)
-        
+    
+    def getSpikes(self):
+        tmpfile = self._get_tmp_file()
+        data = recording.readArray(tmpfile, sepchar=None)
+        #data = _readArray(tmpfile, sepchar=" ")
+        if data.size > 0:
+            data = data[:,1:3]
+            padding = self.cell.flatten()[0]
+            data[:,0] -= padding
+            data[:,1] *= dt
+        return data
 
     def meanSpikeCount(self,gather=True):
         """
