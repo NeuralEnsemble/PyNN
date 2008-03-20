@@ -44,32 +44,30 @@ class IF_curr_exp(common.IF_curr_exp):
     )
     nest_name = 'iaf_exp_neuron2'
 
+class IF_cond_alpha(common.ModelNotAvailable):
+    pass
 
-class IF_cond_alpha(common.IF_cond_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic conductance."""
+# Note that Istim is not available in iad_cond_neuron
+#class IF_cond_alpha(common.IF_cond_alpha):
+#    """Leaky integrate and fire model with fixed threshold and alpha-function-
+#    shaped post-synaptic conductance."""
+#    
+#    translations = common.build_translations(
+#        ('v_rest',     'U0'),
+#        ('v_reset',    'Vreset'),
+#        ('cm',         'C',     1000.0), # C is in pF, cm in nF
+#        ('tau_m',      'gL',    "cm/tau_m*1000.0", "C/gL"),
+#        ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
+#        ('tau_syn_E',  'TauSyn_E'),
+#        ('tau_syn_I',  'TauSyn_I'),
+#        ('v_thresh',   'Theta'),
+#        ('i_offset',   'Istim', 1000.0), # I0 is in pA, i_offset in nA
+#        ('v_init',     'u'),
+#        ('e_rev_E',    'V_reversal_E'),
+#        ('e_rev_I',    'V_reversal_I'),
+#    )
+#    nest_name = "iaf_cond_neuron"
     
-    translations = common.build_translations(
-        ('v_rest',     'U0'),
-        ('v_reset',    'Vreset'),
-        ('cm',         'C',     1000.0), # C is in pF, cm in nF
-        ('tau_m',      'Tau'),
-        ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
-        ('tau_syn_E',  'TauSyn_E'),
-        ('tau_syn_I',  'TauSyn_I'),
-        ('v_thresh',   'Theta'),
-        ('i_offset',   'Istim',    1000.0), # I0 is in pA, i_offset in nA
-        ('v_init',     'u'),
-        ('e_rev_E',    'V_reversal_E'),
-        ('e_rev_I',    'V_reversal_I'),
-    )
-    nest_name = "iaf_cond_neuron"
-    
-    def __init__(self,parameters):
-        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
-
 
 class IF_cond_exp(common.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
@@ -79,7 +77,7 @@ class IF_cond_exp(common.IF_cond_exp):
         ('v_rest',     'U0'),
         ('v_reset',    'Vreset'),
         ('cm',         'C',     1000.0), # C is in pF, cm in nF
-        ('tau_m',      'Tau'),
+        ('tau_m',      'gL',    "cm/tau_m*1000.0", "C/gL"),
         ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
         ('tau_syn_E',  'TauSyn_E'),
         ('tau_syn_I',  'TauSyn_I'),
@@ -91,11 +89,6 @@ class IF_cond_exp(common.IF_cond_exp):
     )
     nest_name = "iaf_cond_exp"
     
-    def __init__(self,parameters):
-        common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
-                                                     # values for not-specified parameters.
-        self.parameters['gL'] = self.parameters['C']/self.parameters['Tau'] # Trick to fix the leak conductance
-
 
 class IF_facets_hardware1(common.IF_facets_hardware1):
     """Leaky integrate and fire model with conductance-based synapses and fixed
