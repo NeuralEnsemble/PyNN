@@ -14,14 +14,20 @@ def arrays_almost_equal(a, b, threshold):
 # ==============================================================================
 class IDSetGetTest(unittest.TestCase):
     """Tests of the ID.__setattr__()`, `ID.__getattr()` `ID.setParameters()`
-    and `ID.getParameters()` methods."""
+    and `ID.getParameters()` methods for all available standard cell types
+    and for both lone and in-population IDs."""
     
+    model_list = []
+    default_dp = 5
+    decimal_places = {'duration': 2, 'start': 2}
+        
     def setUp(self):
         sim.setup()
         self.cells = {}
         self.populations = {}
-        for cell_class in sim.list_standard_models():
-            print "Creating ", cell_class
+        if not IDSetGetTest.model_list:
+            IDSetGetTest.model_list = sim.list_standard_models()
+        for cell_class in IDSetGetTest.model_list:
             self.cells[cell_class.__name__] = sim.create(cell_class, n=2)
             self.populations[cell_class.__name__] = sim.Population(2, cell_class)
     
@@ -30,34 +36,52 @@ class IDSetGetTest(unittest.TestCase):
     
     def testSetGet(self):
         """__setattr__(), __getattr__(): sanity check"""
-        decimal_places = 6
-        for cell_class in sim.list_standard_models():
-            for cell in (self.cells[cell_class.__name__][0],
-                         self.populations[cell_class.__name__][0]):
-                print "Testing ", cell_class
+        for cell_class in IDSetGetTest.model_list:
+            cell_list = (self.cells[cell_class.__name__][0],
+                         self.populations[cell_class.__name__][0])
+            for cell in cell_list:
                 for name in cell_class.default_parameters:
-                    i = numpy.random.uniform()
-                    cell.__setattr__(name, i)
-                    o = cell.__getattr__(name)
-                    self.assertAlmostEqual(i, o, decimal_places, "%s: %s != %s" % (name, i,o))
+                    if name == 'spike_times':
+                        i = [1.0, 2.0]
+                        cell.__setattr__(name, i)
+                        o = cell.__getattr__(name)
+                        self.assertEqual(i, o)
+                    else:
+                        i = numpy.random.uniform(0.1, 100) # tau_refrac is always at least dt (=0.1)
+                        cell.__setattr__(name, i)
+                        o = cell.__getattr__(name)
+                        self.assertEqual(type(i), type(o), "%s: input: %s, output: %s" % (name, type(i), type(o)))
+                        self.assertAlmostEqual(i, o,
+                                               IDSetGetTest.decimal_places.get(name, IDSetGetTest.default_dp),
+                                               "%s in %s: %s != %s" % (name, cell_class.__name__, i,o))
     
     def testSetGetParameters(self):
         """setParameters(), getParameters(): sanity check"""
-        # need to do for all cell types and for both single cells and cells in Populations
         # need to add similar test for native models in the sim-specific test files
-        decimal_places = 6
-        for cell in (self.cells['IF_curr_exp'][0], self.populations['IF_curr_exp'][0]):
-            new_parameters = {}
-            for name in sim.IF_curr_exp.default_parameters.keys():
-                new_parameters[name] = numpy.random.uniform()
-            cell.setParameters(**new_parameters)
-            retrieved_parameters = cell.getParameters()
-            self.assertEqual(new_parameters.keys(), retrieved_parameters.keys())
-            
-            for name in new_parameters:
-                i = new_parameters[name]; o = retrieved_parameters[name]
-                self.assertAlmostEqual(i, o, decimal_places, "%s: %s != %s" % (name,i,o))
-        
+        default_dp = 6
+        decimal_places = {'duration': 2, 'start': 2}
+        for cell_class in IDSetGetTest.model_list:
+            cell_list = (self.cells[cell_class.__name__][0],
+                         self.populations[cell_class.__name__][0])
+            for cell in cell_list:
+                new_parameters = {}
+                for name in cell_class.default_parameters:
+                    if name == 'spike_times':
+                        new_parameters[name] = [1.0, 2.0]
+                    else:
+                        new_parameters[name] = numpy.random.uniform(0.1, 100) # tau_refrac is always at least dt (=0.1)
+                cell.set_parameters(**new_parameters)
+                retrieved_parameters = cell.get_parameters()
+                self.assertEqual(set(new_parameters.keys()), set(retrieved_parameters.keys()))
+                
+                for name in new_parameters:
+                    i = new_parameters[name]; o = retrieved_parameters[name]
+                    if name != 'spike_times':
+                        self.assertEqual(type(i), type(o), "%s: input: %s, output: %s" % (name, type(i), type(o)))
+                        self.assertAlmostEqual(i, o,
+                                               IDSetGetTest.decimal_places.get(name, IDSetGetTest.default_dp),
+                                               "%s in %s: %s != %s" % (name, cell_class.__name__, i,o))
+       
 class PopulationSpikesTest(unittest.TestCase):
     
     def setUp(self):

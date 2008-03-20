@@ -14,7 +14,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'tau_m'),
-        ('tau_refrac', 't_ref',  "max(dt, tau_refrac)", "tau_ref"),
+        ('tau_refrac', 't_ref',  "max(dt, tau_refrac)", "t_ref"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),

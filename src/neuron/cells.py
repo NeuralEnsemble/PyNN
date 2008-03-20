@@ -143,8 +143,10 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     translations = common.build_translations(
         ('start',    'start'),
         ('rate',     'interval',  "1000.0/rate",  "1000.0/interval"),
-        ('duration', 'number',    "int(rate/1000.0*duration)", "number*interval"), # should there be a +/1 here?
+        ('duration', 'number',    "rate/1000.0*duration", "number*interval"), # should there be a +/1 here?
     )
+    # note that 'number' should really be an integer, but it is better to leave it as
+    # a float for reverse translations, and NEURON doesn't complain if given a float.
     hoc_name = 'SpikeSource'
    
     def __init__(self,parameters):

@@ -7,7 +7,7 @@ $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 """
 __version__ = "$Rev$"
 
-from neuron import hoc
+from neuron import hoc, Vector
 h = hoc.HocObject()
 from pyNN import __path__ as pyNN_path
 from pyNN.random import *
@@ -37,7 +37,7 @@ nrn_dll_loaded = False
 #   Utility classes and functions
 # ==============================================================================
 
-class ID(common.ID):
+class ID(int, common.IDMixin):
     """
     Instead of storing ids as integers, we store them as ID objects,
     which allows a syntax like:
@@ -46,54 +46,64 @@ class ID(common.ID):
     hit is it to replace integers with ID objects?
     """
     
-    def __init__(self,n):
-        common.ID.__init__(self,n)
-        self.hocname = None
+    #def __init__(self,n):
+    #    common.ID.__init__(self,n)
+    #    self.hocname = None
+    def __init__(self, n):
+        int.__init__(n)
+        common.IDMixin.__init__(self)
     
-    def __getattr__(self,name):
-        # First we build a dictionary containing the hoc parameter names and values
-        if type(self.cellclass) == type and issubclass(self.cellclass, common.StandardCellType):
-            hoc_values = {}
-            for trans_dict in self.cellclass.translations.values():
-                hoc_values[trans_dict['translated_name']] = None
+    def __getattr__(self, name):
+        # Need to override the version from common due to the problem of not
+        # being able to get a list of all the parameters in a native model
+        if self.is_standard_cell():
+            return self.get_parameters()[name]
         else:
-            hoc_values[name] = None
-        
+            cell = self._hoc_cell()
+            return self._get_hoc_parameter(cell, name)
+    
+    def _hoc_cell(self):
         if self.parent:
             hoc_cell_list = getattr(h, self.parent.label)
             cell = hoc_cell_list.object(self - self.parent.gid_start)
         else:
             cell_name = "cell%d" % int(self)
             cell = getattr(h, cell_name)
-        
-        for hoc_name in hoc_values.keys():
-            try:
-                hoc_values[hoc_name] = getattr(cell, hoc_name)
-            except HocError:
-                hoc_values[hoc_name] = getattr(cell.source, hoc_name)
-        # Now we apply the reverse transform
-        return eval(self.cellclass.translations[name]['reverse_transform'], {}, hoc_values)
+        return cell
     
-    def setParameters(self,**parameters):
-        # We perform a call to the low-level function set() of the API.
-        # If the cellclass is not defined in the ID object, we have an error:
-        if (self.cellclass == None):
-            raise Exception("Unknown cellclass")
+    def _get_hoc_parameter(self, cell, name):
+        try:
+            val = getattr(cell, name)
+        except HocError:
+            val = getattr(cell.source, name)
+        return val
+    
+    def get_native_parameters(self):
+        # Construct the list of hoc parameter names to get
+        if self.is_standard_cell():
+            parameter_names = [D['translated_name'] for D in self.cellclass.translations.values()]
         else:
-            #Otherwise we use the ID one. Nevertheless, here we have a small problem in the
-            #parallel framework. Suppose a population is created, distributed among
-            #several nodes. Then a call like cell[i,j].set() should be performed only on the
-            #node who owns the cell. To do that, if the node doesn't have the cell, a call to set()
-            #does nothing...
-            set(self, self.cellclass, parameters)
+            parameter_names = None # for native cells, don't have a way to get their list of parameters
+        # Obtain the hoc object whose parameters we are going to get
+        cell = self._hoc_cell()
+        # Get the values from hoc
+        parameters = {}
+        for name in parameter_names:
+            val = self._get_hoc_parameter(cell, name)
+            if isinstance(val, hoc.HocObject):
+                val = [val.x[i] for i in range(int(val.size()))]
+            parameters[name] = val
+        return parameters
 
-    def getParameters(self):
-        params = {}
-        for k in self.cellclass.translations.keys():
-            params[k] = self.__getattr__(k)
-            #params[k] = HocToPy.get('%s.%s' % (self.hocname, v[0]),'float')
-        return params
-
+    def set_native_parameters(self, parameters):
+        cell = self._hoc_cell()
+        for name, val in parameters.items():
+            if hasattr(val, '__len__'):
+                setattr(cell, name, Vector(val).hoc_obj)
+            else:
+                setattr(cell, name, val)
+            cell.param_update()
+        
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
 

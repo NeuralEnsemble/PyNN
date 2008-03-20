@@ -129,8 +129,7 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     setterMethods = {}
    
     def __init__(self, parameters):
-        common.SpikeSourcePoisson.__init__(self, parameters)
-        self.setterMethods = {}        
+        common.SpikeSourcePoisson.__init__(self, parameters)      
         self.simObjFactory = PoissonInputNeuron(**self.parameters)
 
     
@@ -142,22 +141,35 @@ class SpikeSourceArray(common.SpikeSourceArray):
     )
     pcsim_name = 'SpikingInputNeuron'
     simObjFactory = None
-    setterMethods = {}
+    setterMethods = {'spikeTimes':'setSpikes'}
+    getterMethods = {'spikeTimes':'getSpikeTimes' }
     
     def __init__(self, parameters):
         common.SpikeSourceArray.__init__(self, parameters)
-        self.setterMethods = {'spikeTimes':'setSpikeTimes' }  
         self.pcsim_object_handle = SpikingInputNeuron(**self.parameters)
         self.simObjFactory  = SpikingInputNeuron(**self.parameters)
-     
-    def translate(self,parameters):
-        translated_parameters = common.SpikeSourceArray.translate(self,parameters)
+    
+    @classmethod
+    def translate(cls, parameters):
+        """Translate standardized model parameters to simulator-specific parameters."""
+        translated_parameters = super(SpikeSourceArray, cls).translate(parameters)
+        # for why we used 'super' here, see http://blogs.gnome.org/jamesh/2005/06/23/overriding-class-methods-in-python/
         # convert from ms to s - should really be done in common.py, but that doesn't handle lists, only arrays
         if isinstance(translated_parameters['spikeTimes'],list):
             translated_parameters['spikeTimes'] = [t*0.001 for t in translated_parameters['spikeTimes']]
         elif isinstance(translated_parameters['spikeTimes'],numpy.array):
             translated_parameters['spikeTimes'] *= 0.001 
         return translated_parameters
+    
+    @classmethod
+    def reverse_translate(cls, native_parameters):
+        """Translate simulator-specific model parameters to standardized parameters."""
+        standard_parameters = super(SpikeSourceArray, cls).reverse_translate(native_parameters)
+        if isinstance(standard_parameters['spike_times'], list):
+            standard_parameters['spike_times'] = [t*1000.0 for t in standard_parameters['spike_times']]
+        elif isinstance(standard_parameters['spike_times'], numpy.array):
+            standard_parameters['spike_times'] *= 1000.0 
+        return standard_parameters
 
 
 class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):

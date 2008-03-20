@@ -28,7 +28,7 @@ DEFAULT_BUFFER_SIZE = 10000
 #   Utility classes and functions
 # ==============================================================================
 
-class ID(common.ID):
+class ID(int, common.IDMixin):
     """
     Instead of storing ids as integers, we store them as ID objects,
     which allows a syntax like:
@@ -36,37 +36,16 @@ class ID(common.ID):
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
     """
+    
+    def __init__(self, n):
+        int.__init__(n)
+        common.IDMixin.__init__(self)
 
-    def __getattr__(self, name):
-        """ """
-        nest_parameters = nest.GetStatus([int(self)])[0]
-        if issubclass(self.cellclass, common.StandardCellType):
-            pval = eval(self.cellclass.translations[name]['reverse_transform'],
-                        {}, nest_parameters)
-        elif isinstance(self.cellclass, str) or self.cellclass is None:
-            pval = nest_parameters[name]
-        else:
-            raise Exception("ID object has invalid cell class %s" % str(self.cellclass))
-        return pval
+    def get_native_parameters(self):
+        return nest.GetStatus([int(self)])[0]
 
-    def setParameters(self, **parameters):
-        # We perform a call to the low-level function set() of the API.
-        # If the cellclass is not defined in the ID object :
-        #if (self.cellclass == None):
-        #    raise Exception("Unknown cellclass")
-        #else:
-        #    # We use the one given by the user
-        set(self, self.cellclass, parameters)
-
-    def getParameters(self):
-        """ """
-        nest_parameters = nest.GetStatus([int(self)])[0]
-        pynn_parameters = {}
-        if issubclass(self.cellclass, common.StandardCellType):
-            for k in self.cellclass.translations.keys():
-                pynn_parameters[k] = eval(self.cellclass.translations[k]['reverse_transform'],
-                                          {}, nest_parameters)
-        return pynn_parameters
+    def set_native_parameters(self, parameters):
+        nest.SetStatus([self], [parameters])
 
 
 class WDManager(object): # should be called WDManagerMixin, to make its use clear?

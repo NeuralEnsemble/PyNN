@@ -153,7 +153,7 @@ PROCEDURE fire() { LOCAL q
 		spiketimes[nspike] = t		: store spike
 		nspike = nspike + 1
                 reset = Ref			: initiate reset
-                printf("spike at %g ms\n", t)
+                :printf("spike at %g ms\n", t)
   	}
 }
 

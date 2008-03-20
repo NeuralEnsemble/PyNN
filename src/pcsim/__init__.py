@@ -163,7 +163,6 @@ class SpikesMultiChannelRecorder(object):
             spikes = spikes.reshape((len(spikes),1))
             ids = i*numpy.ones(spikes.shape)
             ids_spikes = numpy.concatenate((ids, spikes), axis=1)
-            print all_spikes.shape, ids_spikes.shape
             all_spikes = numpy.concatenate((all_spikes, ids_spikes), axis=0)
         return all_spikes
     
@@ -239,71 +238,60 @@ class FieldMultiChannelRecorder:
                 f.write("\n")
         f.close()
 
-class ID(long):
+class ID(long, common.IDMixin):
     """
     Instead of storing ids as integers, we store them as ID objects,
     which allows a syntax like:
         p[3,4].tau_m = 20.0
-    where p is a Population object. The question is, how big a memory/performance
-    hit is it to replace integers with ID objects?
+    where p is a Population object.
+    
     """
-    # Note that some of common.ID has to be reimplemented since PCSIM uses long ints
-    # for ids.
     
     def __init__(self,n):
         long.__init__(n)
-        self.parent = None
-        self._cellclass = None
-        
-    cellclass = common.ID.cellclass
-    position = common.ID.position
+        common.IDMixin.__init__(self)
     
-    def __setattr__(self, name, value):
-        if name in common.ID.non_parameter_attributes:
-            object.__setattr__(self,name,value)
-        else:
-            return self.setParameters(**{name:value})
-        
-    def __getattr__(self, name):
-        D = self.cellclass.translations[name]
-        translated_name = D['translated_name']
-        native_parameters = self._getNativeParameters()
-        if issubclass(self.cellclass, common.StandardCellType):
-            return eval(D['reverse_transform'], {}, native_parameters)
-        else:
-            return native_parameters[translated_name]
-            
-    def setParameters(self, **parameters):
-        #if hasattr(self,'in_population'):
-        if self.parent:
-            set(self.parent.pcsim_population[self], self.cellclass, parameters)
-        else:
-            set(self, self.cellclass, parameters)
-    
-    def _getNativeParameters(self):
+    def _pcsim_cell(self):
         if self.parent:
             pcsim_cell = self.parent.pcsim_population.object(self)
         else:
             pcsim_cell = pcsim_globals.net.object(self)
+        return pcsim_cell
+    
+    def get_native_parameters(self):
+        pcsim_cell = self._pcsim_cell()
         pcsim_parameters = {}
         for name, D in self.cellclass.translations.items():
             translated_name = D['translated_name']
-            pcsim_parameters[translated_name] = getattr(pcsim_cell, translated_name)
+            if hasattr(self.cellclass, 'getterMethods') and translated_name in self.cellclass.getterMethods:
+                getterMethod = self.cellclass.getterMethods[translated_name]
+                pcsim_parameters[translated_name] = getattr(pcsim_cell, getterMethod)()
+            else:
+                try:
+                    pcsim_parameters[translated_name] = getattr(pcsim_cell, translated_name)
+                except AttributeError, e:
+                    raise AttributeError("%s. Possible attributes are: %s" % (e, dir(pcsim_cell)))
         return pcsim_parameters
     
-    def getParameters(self):
-        """Note that this currently does not translate units."""
-        native_parameters = self._getNativeParameters()
-        pynn_parameters = {}
-        if issubclass(self.cellclass, common.StandardCellType):
-            for name,D in self.cellclass.translations.items():
-                pynn_parameters[name] = eval(D['reverse_transform'],
-                                             {}, native_parameters)
-        return pynn_parameters
+    def set_native_parameters(self, parameters):
+        simobj = self._pcsim_cell()
+        for name, value in parameters.items():
+            if name in self.cellclass.setterMethods:
+                setterMethod = self.cellclass.setterMethods[name]
+                getattr(simobj, setterMethod)(value)
+            else:               
+                setattr(simobj, name, value)
 
 def list_standard_models():
-    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
-
+    """Return a list of all the StandardCellType classes available for this simulator."""
+    standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+    for cell_class in standard_cell_types:
+        try:
+            create(cell_class)
+        except Exception, e:
+            print "Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e)
+            standard_cell_types.remove(cell_class)
+    return standard_cell_types
 
 class WDManager(object):
     

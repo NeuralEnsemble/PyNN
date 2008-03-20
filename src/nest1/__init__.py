@@ -23,7 +23,7 @@ _min_delay = 0.1
 #   Utility classes and functions
 # ==============================================================================
 
-class ID(common.ID):
+class ID(int, common.IDMixin):
     """
     Instead of storing ids as integers, we store them as ID objects,
     which allows a syntax like:
@@ -31,39 +31,28 @@ class ID(common.ID):
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
     """
-    
-    def __getattr__(self,name):
-        nest_parameters = pynest.getDict([int(self)])[0]
-        if issubclass(self.cellclass, common.StandardCellType):
-            pval = eval(self.cellclass.translations[name]['reverse_transform'], {}, nest_parameters)
-        elif isinstance(self.cellclass, str) or self.cellclass is None:
-            pval = nest_parameters[name]
-        else:
-            raise Exception("ID object has invalid cell class %s" % str(self.cellclass))
-        return pval
-    
-    def setParameters(self,**parameters):
-        # We perform a call to the low-level function set() of the API.
-        # If the cellclass is not defined in the ID object :
-        if (self.cellclass == None):
-            raise Exception("Unknown cellclass")
-        else:
-            # We use the one given by the user
-            set(self, self.cellclass, parameters) 
 
-    def getParameters(self):
-        """Note that this currently does not translate units."""
-        nest_parameters = pynest.getDict([int(self)])[0]
-        pynn_parameters = {}
-        if issubclass(self.cellclass, common.StandardCellType):
-            for k in self.cellclass.translations.keys():
-                pynn_parameters[k] = eval(self.cellclass.translations[k]['reverse_transform'],
-                                          {}, nest_parameters)
-        return pynn_parameters
+    def __init__(self, n):
+        int.__init__(n)
+        common.IDMixin.__init__(self)
 
+    def get_native_parameters(self):
+        return pynest.getDict([int(self)])[0]
+
+    def set_native_parameters(self, parameters):
+        pynest.setDict([self], parameters)
+       
+        
 def list_standard_models():
-    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
-
+    """Return a list of all the StandardCellType classes available for this simulator."""
+    standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+    for cell_class in standard_cell_types:
+        try:
+            create(cell_class)
+        except Exception, e:
+            print "Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e)
+            standard_cell_types.remove(cell_class)
+    return standard_cell_types
 
 class WDManager(object):
     

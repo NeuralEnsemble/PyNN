@@ -22,8 +22,8 @@ class NonExistentParameterError(Exception):
     
     def __init__(self, parameter_name, standard_model):
         self.parameter_name = parameter_name
-        self.model_name = standard_model.__class__.__name__
-        self.valid_parameter_names = standard_model.__class__.default_parameters.keys()
+        self.model_name = standard_model.__name__
+        self.valid_parameter_names = standard_model.default_parameters.keys()
         self.valid_parameter_names.sort()
 
     def __str__(self):
@@ -80,31 +80,47 @@ def build_translations(*translation_list):
     return translations
 
 
-class ID(int):
+class IDMixin(object):
     """
     Instead of storing ids as integers, we store them as ID objects,
     which allows a syntax like:
         p[3,4].tau_m = 20.0
-    where p is a Population object. The question is, how big a memory/performance
-    hit is it to replace integers with ID objects?
+    where p is a Population object.
     """
+    # Simulator ID classes should inherit both from the base type of the ID
+    # (e.g., int or long) and from IDMixin.
+    # Ideally, the base type need not be numeric, but the position property
+    # will have to be modified for that (probably break off into another Mixin
+    # class
     
     non_parameter_attributes = ('parent', '_cellclass', 'cellclass',
                                 '_position', 'position', 'hocname')
     
-    def __init__(self, n):
-        int.__init__(n)
+    def __init__(self):
         self.parent = None
         self._cellclass = None
 
     def __getattr__(self, name):
-        return _abstract_method(self)
+        return self.get_parameters()[name]
     
     def __setattr__(self, name, value):
-        if name in ID.non_parameter_attributes:
+        if name in IDMixin.non_parameter_attributes:
             object.__setattr__(self, name, value)
         else:
-            return self.setParameters(**{name:value})
+            return self.set_parameters(**{name:value})
+
+    def set_parameters(self, **parameters):
+        """Set cell parameters, given as a sequence of parameter=value arguments."""
+        if self.is_standard_cell():
+            parameters = self.cellclass.translate(parameters)
+        self.set_native_parameters(parameters)
+    
+    def get_parameters(self):
+        """Return a dict of all cell parameters."""
+        parameters  = self.get_native_parameters()
+        if self.is_standard_cell():
+            parameters = self.cellclass.reverse_translate(parameters)
+        return parameters
 
     def _set_cellclass(self, cellclass):
         if self.parent is not None:
@@ -124,6 +140,9 @@ class ID(int):
         
     cellclass = property(_get_cellclass, _set_cellclass)
     
+    def is_standard_cell(self):
+        return (type(self.cellclass) == type and issubclass(self.cellclass, StandardCellType))
+        
     def _set_position(self, pos):
         """
         Set the cell position in 3D space.
@@ -162,13 +181,7 @@ class ID(int):
 
     position = property(_get_position, _set_position)
 
-    def setParameters(self, **parameters):
-        """Set cell parameters, given as a sequence of parameter=value arguments."""
-        return _abstract_method(self)
-    
-    def getParameters(self):
-        """Return a dict of all cell parameters."""
-        return _abstract_method(self)
+
 
 def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.,
              periodic_boundaries=None): # may need to add an offset parameter
@@ -232,12 +245,12 @@ class StandardModelType(object):
     translations = {}
     default_parameters = {}
     
-    
     def __init__(self, parameters):
-        self.parameters = self.checkParameters(parameters, with_defaults=True)
-        self.parameters = self.translate(self.parameters)
+        self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
+        self.parameters = self.__class__.translate(self.parameters)
     
-    def checkParameters(self, supplied_parameters, with_defaults=False):
+    @classmethod
+    def checkParameters(cls, supplied_parameters, with_defaults=False):
         """
         Returns a parameter dictionary, checking that each
         supplied_parameter is in the default_parameters and
@@ -248,7 +261,7 @@ class StandardModelType(object):
         as in default_parameters.
 
         """
-        default_parameters = self.__class__.default_parameters
+        default_parameters = cls.default_parameters
         if with_defaults:
             parameters = copy.copy(default_parameters)
         else:
@@ -256,7 +269,9 @@ class StandardModelType(object):
         if supplied_parameters:
             for k in supplied_parameters.keys():
                 if default_parameters.has_key(k):
-                    err_msg = "%s, %s" % (type(supplied_parameters[k]), type(default_parameters[k]))
+                    err_msg = "For %s in %s, expected %s, got %s (%s)" % \
+                              (k, cls.__name__, type(default_parameters[k]),
+                               type(supplied_parameters[k]), supplied_parameters[k])
                     # same type
                     if type(supplied_parameters[k]) == type(default_parameters[k]): 
                         parameters[k] = supplied_parameters[k]
@@ -275,25 +290,37 @@ class StandardModelType(object):
                     else:
                         raise InvalidParameterValueError(err_msg)
                 else:
-                    raise NonExistentParameterError(k, self)
+                    raise NonExistentParameterError(k, cls)
         return parameters
     
-    def translate(self, parameters):
-        """Translate standardized model names to simulator specific names.
-           Alternative implementation."""
-        parameters = self.checkParameters(parameters)
-        translated_parameters = {}
-        for k in parameters.keys():
-            D = self.__class__.translations[k]
+    @classmethod
+    def translate(cls, parameters):
+        """Translate standardized model parameters to simulator-specific parameters."""
+        parameters = cls.checkParameters(parameters, with_defaults=True)
+        native_parameters = {}
+        for name,D  in cls.translations.items():
             pname = D['translated_name']
             try:
                 pval = eval(D['forward_transform'], globals(), parameters)
             except NameError:
-                raise Exception("%s. Transform: %s. Parameters: %s." % (pname, D['forward_transform'], parameters))
+                raise Exception("%s in %s. Transform: %s. Parameters: %s." \
+                                % (pname, cls.__name__, D['forward_transform'], parameters))
             except ZeroDivisionError:
                 pval = 1e300 # this is about the highest value hoc can deal with
-            translated_parameters[pname] = pval
-        return translated_parameters
+            native_parameters[pname] = pval
+        return native_parameters
+    
+    @classmethod
+    def reverse_translate(cls, native_parameters):
+        """Translate simulator-specific model parameters to standardized parameters."""
+        standard_parameters = {}
+        for name,D  in cls.translations.items():
+            try:
+                standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
+            except NameError:
+                raise Exception("%s in %s. Transform: %s. Parameters: %s." \
+                                % (name, cls.__name__, D['reverse_transform'], native_parameters))
+        return standard_parameters
 
     def update_parameters(self, parameters):
         """
@@ -493,7 +520,7 @@ class SpikeSourcePoisson(StandardCellType):
     """Spike source, generating spikes according to a Poisson process."""
 
     default_parameters = {
-        'rate'     : 0.0,     # Mean spike frequency (Hz)
+        'rate'     : 1.0,     # Mean spike frequency (Hz)
         'start'    : 0.0,     # Start time (ms)
         'duration' : 1e12     # Duration of spike sequence (ms)
     }  
