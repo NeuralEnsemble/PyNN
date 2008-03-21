@@ -529,9 +529,8 @@ class Population(common.Population):
             param_dict = param
         else:
             raise common.InvalidParameterValueError
-        if isinstance(self.celltype, common.StandardCellType):
-            param_dict = self.celltype.translate(param_dict)
-        pynest.setDict(numpy.reshape(self.cell,(self.size,)), param_dict)
+        for cell in self.cell.flat:
+            cell.set_parameters(**param_dict)
         
 
     def tset(self, parametername, value_array):
