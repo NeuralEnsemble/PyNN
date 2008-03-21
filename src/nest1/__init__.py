@@ -502,6 +502,15 @@ class Population(common.Population):
             raise common.InvalidDimensionsError
         return coords
     
+    def get(self, parameter_name, as_array=False):
+        """
+        Get the values of a parameter for every cell in the population.
+        """
+        values = [getattr(cell, parameter_name) for cell in self.cell.flat]
+        if as_array:
+            values = numpy.array(values)
+        return values
+    
     def set(self,param,val=None):
         """
         Set one or more parameters for every cell in the population. param
@@ -525,43 +534,38 @@ class Population(common.Population):
         pynest.setDict(numpy.reshape(self.cell,(self.size,)), param_dict)
         
 
-    def tset(self,parametername,valueArray):
+    def tset(self, parametername, value_array):
         """
         'Topographic' set. Sets the value of parametername to the values in
         valueArray, which must have the same dimensions as the Population.
         """
         # Convert everything to 1D arrays
-        cells = numpy.reshape(self.cell,self.cell.size)
-        if self.cell.shape == valueArray.shape: # the values are numbers or non-array objects
-            values = numpy.reshape(valueArray,self.cell.size)
-        elif len(valueArray.shape) == len(self.cell.shape)+1: # the values are themselves 1D arrays
-            values = numpy.reshape(valueArray,(self.cell.size,valueArray.size/self.cell.size))
+        cells = numpy.reshape(self.cell, self.cell.size)
+        if self.cell.shape == value_array.shape: # the values are numbers or non-array objects
+            values = numpy.reshape(value_array, self.cell.size)
+        elif len(value_array.shape) == len(self.cell.shape)+1: # the values are themselves 1D arrays
+            values = numpy.reshape(value_array, (self.cell.size, value_array.size/self.cell.size))
         else:
-            raise common.InvalidDimensionsError, "Population: %s, valueArray: %s" % (str(cells.shape), str(valueArray.shape))
-        # Translate the parameter name
-        if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
+            raise common.InvalidDimensionsError, "Population: %s, value_array: %s" % (str(cells.shape),
+                                                                                      str(value_array.shape))
         # Set the values for each cell
         if len(cells) == len(values):
-            for cell,val in zip(cells,values):
-                try:
-                    if not isinstance(val,str) and hasattr(val,"__len__"):
-                        val = list(val) # tuples, arrays are all converted to lists, since this is what SpikeSourceArray expects. This is not very robust though - we might want to add things that do accept arrays.
-                    else:
-                        pynest.setDict([cell],{parametername: val})
-                except pynest.SLIError:
-                    raise common.InvalidParameterValueError, "Error from SLI"
+            for cell,val in zip(cells, values):
+                if not isinstance(val, str) and hasattr(val, "__len__"):
+                    # tuples, arrays are all converted to lists, since this is
+                    # what SpikeSourceArray expects. This is not very robust
+                    # though - we might want to add things that do accept arrays.
+                    val = list(val)
+                if cell in self.cell.flat:
+                    setattr(cell, parametername, val)
         else:
             raise common.InvalidDimensionsError
-        
     
     def rset(self,parametername,rand_distr):
         """
         'Random' set. Sets the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-        if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate({parametername: 0.0}).keys()[0]
         if isinstance(rand_distr.rng, NativeRNG):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
@@ -569,11 +573,8 @@ class Population(common.Population):
             cells = numpy.reshape(self.cell,self.cell.size)
             assert len(rarr) == len(cells)
             for cell,val in zip(cells,rarr):
-                try:
-                    pynest.setDict([cell],{parametername: val})
-                except pynest.SLIError:
-                    raise common.InvalidParameterValueError
-            
+                setattr(cell, parametername, val)
+        
     def _call(self,methodname,arguments):
         """
         Calls the method methodname(arguments) for every cell in the population.
@@ -780,8 +781,8 @@ class Population(common.Population):
                 raster[:,0] = raster[:,0] - padding
                 for idx in xrange(len(raster)):
                     result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
-            except Exception:
-                print "Error while writing data into a compatible mode with file %s" %filename
+            except Exception, e:
+                print "Error while writing data into a compatible mode with file %s: %s" % (filename, e)
         else:
             f = open(tmpfile,'r',10000)
             lines = f.readlines()

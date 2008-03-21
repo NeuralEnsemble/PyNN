@@ -292,13 +292,11 @@ class PopulationSetTest(unittest.TestCase):
         assert nest.pynest.getDict([self.net2.cell[0]])[0]['Tau'] == 43.21
     
     def testTSet(self):
-        """The valueArray passed should be retrievable using pynest.getDict() on all nodes."""
+        """The valueArray passed should be retrievable using population.get() on all nodes."""
         array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
         self.net.tset('cm', array_in)
-        tmp = nest.pynest.getDict(list(self.net.cell.reshape((9,))))
-        tmp = [d['C'] for d in tmp]
-        array_out = numpy.array(tmp).reshape((3,3))
-        assert numpy.equal(array_in, array_out).all()
+        array_out = self.net.get('cm', as_array=True).reshape((3,3))
+        self.assert_((array_in == array_out).all(), "%s != %s" % (array_in, array_out))
     
     def testTSetArrayUnchanged(self):
         array_in1 = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
@@ -326,8 +324,7 @@ class PopulationSetTest(unittest.TestCase):
                                          distribution='uniform',
                                          parameters=[0.9,1.1])
         self.net.rset('cm',rd1)
-        tmp = nest.pynest.getDict(list(self.net.cell.reshape((9,))))
-        output_values = [d['C'] for d in tmp]
+        output_values = self.net.get('cm', as_array=True)
         input_values = rd2.next(9)
         for i in range(9):
             self.assertAlmostEqual(input_values[i],output_values[i],places=5)
@@ -374,8 +371,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         self.pop1.record()
         simtime = 1000.0
         nest.run(simtime)
-        #self.pop1.printSpikes("temp_nest.ras")
-        print self.pop1.getSpikes()
+        self.pop1.printSpikes("temp_nest.ras")
         rate = self.pop1.meanSpikeCount()*1000.0/simtime
         assert (20*0.8 < rate) and (rate < 20*1.2), rate
         
