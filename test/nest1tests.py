@@ -191,7 +191,7 @@ class PopulationIndexTest(unittest.TestCase):
         self.net2 = nest.Population((2,4,3),nest.IF_curr_exp)
         self.net3 = nest.Population((2,2,1),nest.SpikeSourceArray)
         self.net4 = nest.Population((1,2,1),nest.SpikeSourceArray)
-        self.net5 = nest.Population((3,3),nest.IF_cond_alpha)
+        self.net5 = nest.Population((3,3),nest.IF_cond_exp)
     
     def testValidIndices(self):
         for i in range(10):
@@ -229,7 +229,7 @@ class PopulationIteratorTest(unittest.TestCase):
         self.net2 = nest.Population((2,4,3),nest.IF_curr_exp)
         self.net3 = nest.Population((2,2,1),nest.SpikeSourceArray)
         self.net4 = nest.Population((1,2,1),nest.SpikeSourceArray)
-        self.net5 = nest.Population((3,3),nest.IF_cond_alpha)
+        self.net5 = nest.Population((3,3),nest.IF_cond_exp)
         
     def testIter(self):
         """This needs more thought for the distributed case."""
@@ -366,7 +366,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         record_list = []
         for i in range(0,2):
             record_list.append(self.pop1[i,1])
-        self.pop1.record(record_list)   
+        self.pop1.record(record_list) 
    
     def testSpikeRecording(self):
         # We test the mean spike count by checking if the rate of the poissonian sources are
@@ -374,7 +374,8 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         self.pop1.record()
         simtime = 1000.0
         nest.run(simtime)
-        self.pop1.printSpikes("temp_nest.ras")
+        #self.pop1.printSpikes("temp_nest.ras")
+        print self.pop1.getSpikes()
         rate = self.pop1.meanSpikeCount()*1000.0/simtime
         assert (20*0.8 < rate) and (rate < 20*1.2), rate
         

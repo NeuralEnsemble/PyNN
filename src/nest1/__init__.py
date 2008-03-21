@@ -54,49 +54,26 @@ def list_standard_models():
             standard_cell_types.remove(cell_class)
     return standard_cell_types
 
-class WDManager(object):
-    
-    def getWeight(self, w=None):
-        if w is not None:
-            weight = w
-        else:
-            weight = 1.
-        return weight
-        
-    def getDelay(self, d=None):
-        if d is not None:
-            delay = d
-        else:
-            delay = _min_delay
-        return delay
-    
-    def convertWeight(self, w, synapse_type):
-        weight = w*1000.
+def is_number(n):
+    return type(n) == types.FloatType or type(n) == types.IntType or type(n) == numpy.float64
 
+def _convertWeight(w, synapse_type):
+    weight = w*1000.0
+    if isinstance(w, numpy.ndarray):
+        all_negative = (weight<=0).all()
+        all_positive = (weight>=0).all()
+        assert all_negative or all_positive, "Weights must be either all positive or all negative"
         if synapse_type == 'inhibitory':
-            # We have to deal with the distribution, and anticipate the
-            # fact that we will need to multiply by a factor 1000 the weights
-            # in nest...
-            if isinstance(weight, RandomDistribution):
-                if weight.name == "uniform":
-                    print weight.name, weight.parameters
-                    (w_min,w_max) = weight.parameters
-                    if w_min >= 0 and w_max >= 0:
-                        weight.parameters = (-w_max, -w_min)
-                elif weight.name ==  "normal":
-                    (w_mean,w_std) = weight.parameters
-                    if w_mean > 0:
-                        weight.parameters = (-w_mean, w_std)
-                else:
-                    print "WARNING: no conversion of the weights for this particular distribution"
-            elif weight > 0:
-                weight *= -1
-        return weight
-
-
-
-
-
+            if all_negative:
+                weights *= -1
+    elif is_number(weight):
+        if synapse_type == 'inhibitory' and weight > 0:
+            weight *= -1
+    else:
+        raise TypeError("we must be either a number or a numpy array")
+    return weight
+    
+    
 # ==============================================================================
 #   Functions for simulation set-up and control
 # ==============================================================================
@@ -815,7 +792,7 @@ class Population(common.Population):
         result.close()
 
     
-class Projection(common.Projection, WDManager):
+class Projection(common.Projection):
     """
     A container for all the connections of a given type (same synapse type and
     plasticity mechanisms) between two populations, together with methods to set
@@ -1325,15 +1302,15 @@ class Projection(common.Projection, WDManager):
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-        w = self.convertWeight(w, self.synapse_type)
-        if type(w) == types.FloatType or type(w) == types.IntType or type(w) == numpy.float64 :
+        w = _convertWeight(w, self.synapse_type)
+        if is_number(w):
            # set all the weights from a given node at once
             for src in numpy.reshape(self.pre.cell,self.pre.cell.size):
                 assert isinstance(src,int), "GIDs should be integers"
                 src_addr = pynest.getAddress(src)
                 n = len(pynest.getDict([src_addr])[0]['weights'])
                 pynest.setDict([src_addr], {'weights' : [w]*n})
-        elif isinstance(w,list) or isinstance(w,numpy.ndarray):
+        elif isinstance(w, list) or isinstance(w, numpy.ndarray):
             for src, port, weight in zip(self._sources,self._targetPorts,w):
                 pynest.setWeight(pynest.getAddress(src),port,weight)
         else:
@@ -1343,9 +1320,9 @@ class Projection(common.Projection, WDManager):
         """
         Set weights to random values taken from rand_distr.
         """
-        rand_distr = self.convertWeight(rand_distr, self.synapse_type)
-        for src,port in self.connections():
-            pynest.setWeight(src, port, rand_distr.next()[0])
+        weights = _convertWeight(rand_distr.next(len(self)), self.synapse_type)
+        for ((src,port),w) in zip(self.connections(),weights):
+            pynest.setWeight(src, port, w)
     
     def setDelays(self,d):
         """
@@ -1353,7 +1330,7 @@ class Projection(common.Projection, WDManager):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        if type(d) == types.FloatType or type(d) == types.IntType:
+        if is_number(d):
             # Set all the delays from a given node at once.
             for src in numpy.reshape(self.pre.cell,self.pre.cell.size):
                 assert isinstance(src,int), "GIDs should be integers"

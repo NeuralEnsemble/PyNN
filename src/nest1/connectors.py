@@ -4,10 +4,48 @@
 # ==============================================================================
 
 from pyNN import common
-from pyNN.nest1.__init__ import pynest, WDManager, _min_delay, numpy
+from pyNN.nest1.__init__ import pynest, _min_delay, numpy
 from pyNN.random import RandomDistribution, NativeRNG
 from math import *
 
+class WDManager(object):
+    
+    def getWeight(self, w=None):
+        if w is not None:
+            weight = w
+        else:
+            weight = 1.
+        return weight
+        
+    def getDelay(self, d=None):
+        if d is not None:
+            delay = d
+        else:
+            delay = _min_delay
+        return delay
+    
+    def convertWeight(self, w, synapse_type):
+        weight = w*1000.0
+
+        if synapse_type == 'inhibitory':
+            # We have to deal with the distribution, and anticipate the
+            # fact that we will need to multiply by a factor 1000 the weights
+            # in nest...
+            if isinstance(weight, RandomDistribution):
+                if weight.name == "uniform":
+                    print weight.name, weight.parameters
+                    (w_min,w_max) = weight.parameters
+                    if w_min >= 0 and w_max >= 0:
+                        weight.parameters = (-w_max, -w_min)
+                elif weight.name ==  "normal":
+                    (w_mean,w_std) = weight.parameters
+                    if w_mean > 0:
+                        weight.parameters = (-w_mean, w_std)
+                else:
+                    print "WARNING: no conversion of the weights for this particular distribution"
+            elif weight > 0:
+                weight *= -1
+        return weight
 
 class AllToAllConnector(common.AllToAllConnector, WDManager):    
     
