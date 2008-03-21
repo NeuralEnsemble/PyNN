@@ -249,8 +249,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
 
     # Set min_delay and max_delay for all synapse models
     for synapse_model in NEST_SYNAPSE_TYPES:
-        nest.SetSynapseDefaults(synapse_model, {'delay': _min_delay,
-                                                'min_delay': _min_delay,
+        # this is done in two steps, because otherwise NEST sometimes complains
+        #   "max_delay is not compatible with default delay"
+        nest.SetSynapseDefaults(synapse_model, {'delay': _min_delay})
+        nest.SetSynapseDefaults(synapse_model, {'min_delay': _min_delay,
                                                 'max_delay': _max_delay})
     if extra_params.has_key('threads'):
         if extra_params.has_key('kernelseeds'):
@@ -399,22 +401,19 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         raise common.ConnectionError
     return connect_id
 
-def set(cells, cellclass, param, val=None):
+def set(cells, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
-    cellclass must be supplied for doing translation of parameter names."""
-    # we should just assume that cellclass has been defined and raise an Exception if it has not
+    """
     if val:
         param = {param:val}
     if not hasattr(cells, '__len__'):
         cells = [cells]
-    if not (isinstance(cellclass, str) or cellclass is None):
-        if issubclass(cellclass, common.StandardCellType):
-            param = cellclass({}).translate(param)
-        else:
-            raise TypeError, "cellclass must be a string, None, or derived from common.StandardCellType"
-    nest.SetStatus(cells, [param])
+    # see comment in Population.set() below about the efficiency of the
+    # following
+    for cell in cells:
+        cell.set_parameters(**param)
 
 def _connect_recording_device(recorder, record_from=None):
     #print "Connecting recorder %s to cell(s) %s" % (recorder, record_from)
@@ -572,9 +571,8 @@ class Population(common.Population):
         elif isinstance(cellclass, str):
             self.cell = nest.Create(cellclass, self.size)
 
-        self.cell_local = numpy.array(self.cell)[numpy.array(nest.GetStatus(self.cell,'local'))]
-
         self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
+        self.cell_local = self.cell[numpy.array(nest.GetStatus(self.cell.tolist(),'local'))]
         self.id_start = self.cell.reshape(self.size,)[0]
 
         for id in self.cell:
@@ -670,6 +668,15 @@ class Population(common.Population):
             n = numpy.array(n)
         return self.cell[n]
 
+    def get(self, parameter_name, as_array=False):
+        """
+        Get the values of a parameter for every cell in the population.
+        """
+        values = [getattr(cell, parameter_name) for cell in self.cell_local]
+        if as_array:
+            values = numpy.array(values)
+        return values
+
     def set(self, param, val=None):
         """
         Set one or more parameters for every cell in the population. param
@@ -688,9 +695,15 @@ class Population(common.Population):
             param_dict = param
         else:
             raise common.InvalidParameterValueError
-        if isinstance(self.celltype, common.StandardCellType):
-            param_dict = self.celltype.translate(param_dict)
-        nest.SetStatus(self.cell_local, [param_dict])
+        # This is not very efficient for simple and scaled parameters.
+        # Should call nest.SetStatus(self.cell_local,...) for the parameters in
+        # self.celltype.__class__.simple_parameters() and .scaled_parameters()
+        # and keep the loop below just for the computed parameters. Even in this
+        # case, it may be quicker to test whether the parameters participating
+        # in the computation vary between cells, since if this is not the case
+        # we can do the computation here and use nest.SetStatus.
+        for cell in self.cell_local:
+            cell.set_parameters(**param_dict)
 
     def tset(self, parametername, value_array):
         """
@@ -706,48 +719,31 @@ class Population(common.Population):
         else:
             raise common.InvalidDimensionsError, "Population: %s, value_array: %s" % (str(cells.shape),
                                                                                       str(value_array.shape))
-        # Translate the parameter name
-        if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
         # Set the values for each cell
         if len(cells) == len(values):
             for cell,val in zip(cells, values):
-                try:
-                    if not isinstance(val, str) and hasattr(val, "__len__"):
-                        # tuples, arrays are all converted to lists, since this is what SpikeSourceArray expects.
-                        # This is not very robust though - we might want to add things that do accept arrays.
-                        val = list(val)
-                    else:
-                        if cell in self.cell_local:
-                            nest.SetStatus([cell], [{parametername: val}])
-                #except nest.SLIError:
-                except Exception: # unfortunately, SLIError seems to have disappeared.
-                    raise common.InvalidParameterValueError, "Error from SLI"
+                if not isinstance(val, str) and hasattr(val, "__len__"):
+                    # tuples, arrays are all converted to lists, since this is
+                    # what SpikeSourceArray expects. This is not very robust
+                    # though - we might want to add things that do accept arrays.
+                    val = list(val)
+                if cell in self.cell_local:
+                    setattr(cell, parametername, val)
         else:
             raise common.InvalidDimensionsError
-
 
     def rset(self, parametername, rand_distr):
         """
         'Random' set. Sets the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-        if isinstance(self.celltype, common.StandardCellType):
-            parametername = self.celltype.translate({parametername: 0.0}).keys()[0]
         if isinstance(rand_distr.rng, NativeRNG):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
-            #cells = numpy.reshape(self.cell, self.cell.size)
-            #rarr = rand_distr.next(n=self.size)
             rarr = rand_distr.next(n=len(self.cell_local))
-            cells = self.cell_local
-            assert len(rarr) == len(cells)
-            for cell,val in zip(cells, rarr):
-                try:
-                    nest.SetStatus([cell], {parametername: val})
-                #except nest.SLIError:
-                except Exception: # unfortunately, SLIError seems to have disappeared.
-                    raise common.InvalidParameterValueError
+            assert len(rarr) == len(self.cell_local)
+            for cell,val in zip(self.cell_local, rarr):
+                setattr(cell, parametername, val)
 
     def _record(self, variable, record_from=None, rng=None):
         assert variable in ('spikes', 'v', 'conductance')
