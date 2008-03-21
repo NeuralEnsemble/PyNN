@@ -101,7 +101,11 @@ class IDMixin(object):
         self._cellclass = None
 
     def __getattr__(self, name):
-        return self.get_parameters()[name]
+        try:
+            val = self.get_parameters()[name]
+        except KeyError:
+            raise NonExistentParameterError(name, self.cellclass)
+        return val
     
     def __setattr__(self, name, value):
         if name in IDMixin.non_parameter_attributes:
@@ -321,6 +325,25 @@ class StandardModelType(object):
                 raise Exception("%s in %s. Transform: %s. Parameters: %s." \
                                 % (name, cls.__name__, D['reverse_transform'], native_parameters))
         return standard_parameters
+
+    @classmethod
+    def simple_parameters(cls):
+        """Return a list of parameters for which there is a one-to-one
+        correspondance between standard and native parameter values."""
+        return [name for name in cls.translations if cls.translations[name]['forward_transform'] == name]
+
+    @classmethod
+    def scaled_parameters(cls):
+        """Return a list of parameters for which there is a unit change between
+        standard and native parameter values."""
+        return [name for name in cls.translations if "float" in cls.translations[name]['forward_transform']]
+    
+    @classmethod
+    def computed_parameters(cls):
+        """Return a list of parameters whose values must be computed from
+        more than one other parameter."""
+        return [name for name in cls.translations if name not in cls.simple_parameters()+cls.scaled_parameters()]
+        
 
     def update_parameters(self, parameters):
         """
