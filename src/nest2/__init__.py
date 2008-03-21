@@ -14,6 +14,7 @@ from math import *
 from pyNN.nest2.cells import *
 from pyNN.nest2.connectors import *
 from pyNN.nest2.synapses import *
+Set = set
 
 recorder_dict  = {}
 tempdirs       = []
@@ -589,6 +590,7 @@ class Population(common.Population):
         if not self.label:
             self.label = 'population%d' % Population.nPop
         self.recorders = {'spikes': None, 'v': None, 'conductance': None}
+        self.recorded = {'spikes': Set(), 'v': Set(), 'conductance': Set()}
         Population.nPop += 1
 
     def __getitem__(self, addr):
@@ -776,13 +778,17 @@ class Population(common.Population):
 
         tmp_list = []
         if (fixed_list == True):
-            for neuron in record_from:
-                tmp_list = [neuron for neuron in record_from]
+            #for neuron in record_from:
+            #    tmp_list = [neuron for neuron in record_from]
+            tmp_list = record_from
         else:
             rng = rng or numpy.random
             for neuron in rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]:
                 tmp_list.append(neuron)
 
+        tmp_set = Set(tmp_list)
+        tmp_list = list( tmp_set.difference(self.recorded[variable]) )
+        self.recorded[variable] = self.recorded[variable].union(tmp_set)
         # connect device to neurons
         _connect_recording_device(self.recorders[variable], record_from=tmp_list)
 

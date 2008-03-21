@@ -89,6 +89,8 @@ proc init() {
     stim.dur = 1e12
     stim.amp = i_offset
   }
+  recording_spikes = 0
+  recording_v = 0
 }
 
 proc param_update() {
@@ -111,22 +113,30 @@ proc param_update() {
 
 proc record() {
   if ($1 == 1) {
-    spiketimes = new Vector()
-    //cell rec = new NetCon(&v(0.5),nil)
-    cell rec = new NetCon(source, nil)
-    rec.record(spiketimes)
+    if (!recording_spikes) {
+        spiketimes = new Vector()
+        //cell rec = new NetCon(&v(0.5),nil)
+        cell rec = new NetCon(source, nil)
+        rec.record(spiketimes)
+        recording_spikes = 1
+    }
   } else {
     objref rec
     objref spiketimes
+    recording_spikes = 0
   }
 }
 
 proc record_v() {
   if ($1 == 1) {
-    vtrace = new Vector()
-    cell vtrace.record(&v(0.5))
+    if (!recording_v) {
+        vtrace = new Vector()
+        cell vtrace.record(&v(0.5))
+        recording_v = 1
+    }
   } else {
     objref vtrace
+    recording_v = 0
   }
 }
 
@@ -210,8 +220,10 @@ begintemplate SpikeSource
   proc record() {
     if (!has_input_spikes) { // for VecStims, etc, recording doesn't make sense as we already have the spike times
       if ($1 == 1) {
-        rec = new NetCon(source,nil)
-        rec.record(spiketimes)
+        if (!recording) {
+            rec = new NetCon(source,nil)
+            rec.record(spiketimes)
+        }
       } else {
         objref rec
       }

@@ -91,18 +91,27 @@ class PopulationSpikesTest(unittest.TestCase):
         self.input_spike_array = numpy.concatenate((numpy.zeros(spiketimes_2D.shape, 'float'), spiketimes_2D),
                                                    axis=1)
         self.p1 = sim.Population(1, sim.SpikeSourceArray, {'spike_times': self.spiketimes})
-        self.p1.record()
-        sim.run(100.0)
     
     def tearDown(self):
         pass
     
     def testGetSpikes(self):
+        self.p1.record()
+        sim.run(100.0)
         output_spike_array = self.p1.getSpikes()
         err_msg = "%s != %s" % (self.input_spike_array, output_spike_array)
         self.assert_(arrays_almost_equal(self.input_spike_array, output_spike_array, 1e-13), err_msg)
     
-    
+    def testPopulationRecordTwice(self):
+        """Neurons should not be recorded twice.
+        Multiple calls to `Population.record()` are ok, but a given neuron will only be
+        recorded once."""
+        self.p1.record()
+        self.p1.record()
+        sim.run(100.0)
+        output_spike_array = self.p1.getSpikes()
+        self.assertEqual(self.input_spike_array.shape, (10,2))
+        self.assertEqual(self.input_spike_array.shape, output_spike_array.shape)
 
 if __name__ == "__main__":
     simulator = sys.argv[1]

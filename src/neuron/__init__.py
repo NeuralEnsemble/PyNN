@@ -21,6 +21,7 @@ import types
 import sys
 import numpy
 import logging
+Set = set
 
 gid           = 0
 ncid          = 0
@@ -581,7 +582,7 @@ class Population(common.Population):
     """
     nPop = 0
     
-    def __init__(self,dims,cellclass,cellparams=None,label=None):
+    def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
@@ -596,10 +597,6 @@ class Population(common.Population):
         global gid, myid, nhost, gidlist, fullgidlist
         
         common.Population.__init__(self,dims,cellclass,cellparams,label)
-        #if self.ndim > 1:
-        #    for i in range(1,self.ndim):
-        #        if self.dim[i] != self.dim[0]:
-        #            raise common.InvalidDimensionsError, "All dimensions must be the same size (temporary restriction)."
 
         # set the steps list, used by the __getitem__() method.
         self.steps = [1]*self.ndim
@@ -625,7 +622,7 @@ class Population(common.Population):
             self.label = 'population%d' % Population.nPop
         self.hoc_label = self.label.replace(" ","_")
         
-        self.record_from = { 'spiketimes': [], 'vtrace': [] }
+        self.record_from = { 'spiketimes': Set(), 'vtrace': Set() }
         
         
         # Now the gid and cellclass are stored as instance of the ID class, which will allow a syntax like
@@ -880,7 +877,7 @@ class Population(common.Population):
                 hoc_commands += ['tmp = %s.object(%d).record%s(1)' % (self.hoc_label,self.gidlist.index(id),suffix)]
 
         # note that self.record_from is not the same on all nodes, like self.gidlist, for example.
-        self.record_from[record_what] += list(record_from)
+        self.record_from[record_what].update(Set(record_from))
         hoc_commands += ['objref record_from']
         hoc_execute(hoc_commands)
 
@@ -899,10 +896,8 @@ class Population(common.Population):
                     hoc_commands = ['record_from = new Vector()']
                     hoc_commands += ['tmp = pc.take("%s.record_from[%s].node[%d]", record_from)' %(self.hoc_label, record_what, id)]
                     hoc_execute(hoc_commands)
-                    #for j in xrange(HocToPy.get('record_from.size()', 'int')):
                     for j in xrange(h.record_from.size()):
-                        #self.record_from[record_what] += [HocToPy.get('record_from.x[%d]' %j, 'int')]
-                        self.record_from[record_what] += [h.record_from.x[j]]
+                        self.record_from[record_what].add(h.record_from.x[j])
 
     def record(self,record_from=None,rng=None):
         """
