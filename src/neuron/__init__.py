@@ -745,6 +745,16 @@ class Population(common.Population):
         """Returns the total number of cells in the population."""
         return self.size
 
+    def get(self, parameter_name, as_array=False):
+        """
+        Get the values of a parameter for every cell in the population.
+        """
+        # Arguably we should reshape to the shape of the Population
+        values = [getattr(cell, parameter_name) for cell in self.gidlist]
+        if as_array:
+            values = numpy.array(values)
+        return values
+
     def set(self,param,val=None):
         """
         Set one or more parameters for every cell in the population. param
@@ -754,52 +764,43 @@ class Population(common.Population):
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
-        param_dict = checkParams(param,val)
-        if isinstance(self.celltype, common.StandardCellType):
-            param_dict = self.celltype.translate(param_dict)
-
-        strfmt  = '%s.object(tmp).%s = "%s"' % (self.hoc_label,"%s","%s")
-        numfmt  = '%s.object(tmp).%s = %s' % (self.hoc_label,"%s","%g")
-        listfmt = '%s.object(tmp).%s = %s' % (self.hoc_label,"%s","%s")
-        for param,val in param_dict.items():
-            if isinstance(val,str):
-                fmt = strfmt
-            elif isinstance(val,list):
-                cmds,argstr = _hoc_arglist([val])
-                hoc_commands += cmds
-                fmt = listfmt
-                val = argstr
+        if isinstance(param, str):
+            if isinstance(val, (str, float, int)):
+                param_dict = {param: float(val)}
             else:
-                fmt = numfmt
-            # We do the loop in hoc, to speed up the code
-            loop = "for tmp = 0, %d" %(len(self.gidlist)-1)
-            cmd  = fmt % (param,val)
-            hoc_commands = ['cmd="%s { %s success = %s.object(tmp).param_update()}"' %(loop, cmd, self.hoc_label),
-                            'success = execute1(cmd)']
-        hoc_execute(hoc_commands, "--- Population[%s].__set()__ ---" %self.label)
+                raise common.InvalidParameterValueError
+        elif isinstance(param,dict):
+            param_dict = param
+        else:
+            raise common.InvalidParameterValueError
+        for cell in self.gidlist:
+            cell.set_parameters(**param_dict)
 
-    def tset(self,parametername,valueArray):
+    def tset(self, parametername, value_array):
         """
         'Topographic' set. Sets the value of parametername to the values in
         valueArray, which must have the same dimensions as the Population.
         """
-        if self.dim == valueArray.shape:
-            values = numpy.reshape(valueArray,valueArray.size)
-            values = values.take(numpy.array(self.gidlist)-self.gid_start) # take just the values for cells on this machine
-            assert len(values) == len(self.gidlist)
-            if isinstance(self.celltype, common.StandardCellType):
-                parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
-            hoc_commands = []
-            fmt = '%s.object(%s).%s = %s' % (self.hoc_label, "%d", parametername, "%g")
-            for i,val in enumerate(values):
-                try:
-                    hoc_commands += [fmt % (i,val),
-                                     'success = %s.object(%d).param_update()' % (self.hoc_label, i)]
-                except TypeError:
-                    raise common.InvalidParameterValueError, "%s is not a numeric value" % str(val)
-            hoc_execute(hoc_commands, "--- Population[%s].__tset()__ ---" %self.label)
+        # Convert everything to 1D arrays
+        if self.dim == value_array.shape: # the values are numbers or non-array objects
+            values = value_array.flatten()
+        elif len(value_array.shape) == len(self.dim)+1: # the values are themselves 1D arrays
+            values = numpy.reshape(value_array, (self.dim, value_array.size/self.cell.size))
         else:
-            raise common.InvalidDimensionsError
+            raise common.InvalidDimensionsError, "Population: %s, value_array: %s" % (str(self.dim),
+                                                                                      str(value_array.shape))
+        values = values.take(numpy.array(self.gidlist)-self.gid_start) # take just the values for cells on this machine
+        assert len(values) == len(self.gidlist)
+        
+        # Set the values for each cell
+        for cell,val in zip(self.gidlist, values):
+            if not isinstance(val, str) and hasattr(val, "__len__"):
+                # tuples, arrays are all converted to lists, since this is
+                # what SpikeSourceArray expects. This is not very robust
+                # though - we might want to add things that do accept arrays.
+                val = list(val)
+            if cell in self.gidlist:
+                setattr(cell, parametername, val)
 
     def rset(self,parametername,rand_distr):
         """

@@ -578,8 +578,7 @@ class ProjectionSetTest(unittest.TestCase):
 
     def setUp(self):
         self.target   = neuron.Population((3,3),neuron.IF_curr_alpha)
-        self.target   = neuron.Population((3,3),neuron.IF_curr_alpha)
-        self.source   = neuron.Population((3,3),neuron.SpikeSourcePoisson,{'rate': 100})
+        self.source   = neuron.Population((3,3),neuron.SpikeSourcePoisson,{'rate': 200})
         self.distrib_Numpy = RandomDistribution(rng=NumpyRNG(12345),distribution='uniform',parameters=(0,1)) 
         self.distrib_Native= RandomDistribution(rng=NativeRNG(12345),distribution='uniform',parameters=(0,1)) 
         
@@ -653,13 +652,20 @@ class ProjectionSetTest(unittest.TestCase):
                
         
     # If STDP works, a strong stimulation with only LTP should increase the mean weight
-    def testSetupSTDP(self):
-        prj1 = neuron.Projection(self.source, self.target, 'allToAll')
+    def testSTDP(self):
+        self.target.record()
+        self.source.record()
+        self.target.record_v()
+        stdp_model = neuron.STDPMechanism(
+            timing_dependence=neuron.SpikePairRule(tau_plus=20.0, tau_minus=20.0),
+            weight_dependence=neuron.AdditiveWeightDependence(w_min=0, w_max=2.0,
+                                                              A_plus=0.1, A_minus=0.0)
+        )
+        
+        prj1 = neuron.Projection(self.source, self.target, 'allToAll',
+                                 synapse_dynamics=neuron.SynapseDynamics(slow=stdp_model))
         prj1.setDelays(2)
-        prj1.setWeights(0.5)
-        STDP_params = {'aLTP'       : 1,
-                       'aLTD'       : 0}
-        prj1.setupSTDP("StdwaSA", STDP_params)
+        prj1.setWeights(1.0)
         mean_weight_before = 0
         hoc_list = getattr(h, prj1.label)
         for connection_id in prj1.connections:
@@ -670,6 +676,9 @@ class ProjectionSetTest(unittest.TestCase):
         neuron.running = False
         run(simtime)
         mean_weight_after = 0
+        self.target.print_v("tmp.v")
+        assert self.source.meanSpikeCount() > 0
+        assert self.target.meanSpikeCount() > 0
         for connection_id in prj1.connections:
             #mean_weight_after += HocToPy.get('%s.object(%d).weight' % (prj1.label,prj1.connections.index(connection_id)), 'float')
             mean_weight_after += hoc_list.object(prj1.connections.index(connection_id)).weight[0]
@@ -760,7 +769,7 @@ class IDTest(unittest.TestCase):
         self.assert_((self.pop2[0,2].position == (0.5,1.5,0.0)).all())
         
 if __name__ == "__main__":
-    sys.argv = ['./nrnpython']
+    #sys.argv = ['./nrnpython']
     neuron.setup()
     unittest.main()
     neuron.end()
