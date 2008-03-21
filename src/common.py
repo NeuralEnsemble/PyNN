@@ -545,7 +545,7 @@ class SpikeSourcePoisson(StandardCellType):
     default_parameters = {
         'rate'     : 1.0,     # Mean spike frequency (Hz)
         'start'    : 0.0,     # Start time (ms)
-        'duration' : 1e12     # Duration of spike sequence (ms)
+        'duration' : 1e6      # Duration of spike sequence (ms)
     }  
 
 
