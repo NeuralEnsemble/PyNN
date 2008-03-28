@@ -348,7 +348,7 @@ class WDManager(object):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False, **extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -521,7 +521,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         raise common.ConnectionError(e)
     
 
-def set(cells, cellclass, param, val=None):
+def set(cells, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
@@ -765,7 +765,7 @@ class Population(common.Population):
                     setattr( obj, param, value )
         
         
-    def tset(self, parametername, valueArray):
+    def tset(self, parametername, value_array):
         """
         'Topographic' set. Sets the value of parametername to the values in
         valueArray, which must have the same dimensions as the Population.
@@ -915,7 +915,7 @@ class Population(common.Population):
         """PCSIM: will be implemented by corresponding analog recorders at python level object  """
         self.vm_rec.saveValuesText(filename,compatible_output=compatible_output)
     
-    def getSpikes(self):
+    def getSpikes(self, gather=True):
         """
         Returns a numpy array of the spikes of the population
 
@@ -1198,7 +1198,7 @@ class Projection(common.Projection, WDManager):
         raise Exception("Method not yet implemented")
         
     
-    def printWeights(self, filename, format=None, gather=True):
+    def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""
         raise Exception("Method not yet implemented")
     

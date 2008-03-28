@@ -583,7 +583,7 @@ class ModelNotAvailable(object):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,
           **extra_params):
     """
     Should be called at the very beginning of a script.
@@ -630,11 +630,10 @@ def connect(source, target, weight=None, delay=None, synapse_type=None,
     Weights should be in nA or µS."""
     pass
 
-def set(cells, cellclass, param, val=None):
+def set(cells, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
-    giving the parameter name, in which case val is the parameter value.
-    cellclass must be supplied for doing translation of parameter names."""
+    giving the parameter name, in which case val is the parameter value."""
     pass
 
 def record(source, filename):
@@ -847,7 +846,7 @@ class Population(object):
         return _abstract_method(self)
     
 
-    def getSpikes(self):
+    def getSpikes(self, gather=True):
         """
         Return a numpy array of the spikes of the population
 
@@ -986,7 +985,7 @@ class Projection(object):
         if parameters and parameters.has_key('allow_self_connections'):
             allow_self_connections = parameters['allow_self_connections']
     
-    def _oneToOne(self, parameters):
+    def _oneToOne(self, parameters=None):
         """
         Where the pre- and postsynaptic populations have the same size, connect
         cell i in the presynaptic population to cell i in the postsynaptic
@@ -1131,7 +1130,7 @@ class Projection(object):
         'fromFile' method."""
         return _abstract_method(self)
     
-    def printWeights(self, filename, format=None, gather=True):
+    def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""
         return _abstract_method(self)
     
@@ -1308,7 +1307,7 @@ class DistanceDependentProbabilityConnector(Connector):
     axes should be a string containing the axes to be used, e.g. 'x', or 'yz'
     axes='xyz' is the same as axes=None.
     It may be that the pre and post populations use different units for position, e.g.
-    degrees and Âµm. In this case, `scale_factor` can be specified, which is applied
+    degrees and µm. In this case, `scale_factor` can be specified, which is applied
     to the positions in the post-synaptic population. An offset can also be included.
     """
     
@@ -1375,15 +1374,15 @@ class STDPMechanism(object):
 class TsodkysMarkramMechanism(ShortTermPlasticityMechanism):
     """ """
     default_parameters = {
-        'U': ?,  # use parameter
-        'D': ?,  # depression time constant (ms)
-        'F': ?,  # facilitation time constant (ms)
-        'u0': ?, # }
-        'r0': ?, # } initial values
-        'f0': ?  # }
+        'U': 0.5,   # use parameter
+        'D': 100.0, # depression time constant (ms)
+        'F': 0.0,   # facilitation time constant (ms)
+        'u0': 0.0,  # }
+        'r0': 1.0,  # } initial values
+        'f0': 0.0   # }
     }
     
-    def __init__(self, U=?, D=?, F=?, u0=?, r0=?, f0=?):
+    def __init__(self, U=0.5, D=100.0, F=0.0, u0=0.0, r0=1.0, f0=0.0):
         _abstract_method(self)
 
         
@@ -1416,7 +1415,7 @@ class AdditiveWeightDependence(STDPWeightDependence):
     }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
-        _abstract_method(self)
+        pass #_abstract_method(self)
 
 
 class MultiplicativeWeightDependence(STDPWeightDependence):
@@ -1463,7 +1462,7 @@ class SpikePairRule(STDPTimingDependence):
     }
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
-        _abstract_method(self)
+        pass #_abstract_method(self)
 
 
 # ==============================================================================

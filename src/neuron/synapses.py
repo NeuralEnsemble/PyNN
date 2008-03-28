@@ -28,7 +28,7 @@ class STDPMechanism(common.STDPMechanism):
 
 class TsodkysMarkramMechanism(common.TsodkysMarkramMechanism):
     
-    def __init__(self, U, D, F, u0, r0, f0):
+    def __init__(self, U=0.5, D=100.0, F=0.0, u0=0.0, r0=1.0, f0=0.0):
         common.TsodkysMarkramMechanism.__init__(self, U, D, F, u0, r0, f0)
 
 
@@ -84,7 +84,7 @@ class SpikePairRule(common.SpikePairRule):
     )
     possible_models = set(['StdwaSA','StdwaSoft'])
     
-    def __init__(self, tau_plus, tau_minus):
+    def __init__(self, tau_plus=20.0, tau_minus=20.0):
         common.SpikePairRule.__init__(self, tau_plus, tau_minus)
         parameters = locals()
         parameters.pop('self')

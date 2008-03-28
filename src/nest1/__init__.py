@@ -78,7 +78,7 @@ def _convertWeight(w, synapse_type):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
+def setup(timestep=0.1,min_delay=0.1,max_delay=10.0,debug=False,**extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -225,11 +225,10 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
         raise common.ConnectionError
     return connect_id
 
-def set(cells,cellclass,param,val=None):
+def set(cells,param,val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
-    giving the parameter name, in which case val is the parameter value.
-    cellclass must be supplied for doing translation of parameter names."""
+    giving the parameter name, in which case val is the parameter value."""
     # we should just assume that cellclass has been defined and raise an Exception if it has not
     if val:
         param = {param:val}
@@ -710,15 +709,15 @@ class Population(common.Population):
                 raster[:,1] = raster[:,1]*dt
                 for idx in xrange(len(raster)):
                     result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
-            except Exception:
-                print "Error while writing data into a compatible mode with file %s" %filename
+            except Exception, e:
+                print "Error while writing data into a compatible mode with file %s: %s" % (filename,e)
             result.close()
             os.system("rm %s" %tmpfile)
         else:
             print "didn't go into the compatible output stuff"
             shutil.move(tmpfile, filename)
     
-    def getSpikes(self):
+    def getSpikes(self,  gather=True):
         tmpfile = self._get_tmp_file()
         data = recording.readArray(tmpfile, sepchar=None)
         #data = _readArray(tmpfile, sepchar=" ")
@@ -1165,7 +1164,7 @@ class Projection(common.Projection):
             f.write(line)
         f.close()
     
-    def printWeights(self,filename,format=None,gather=True):
+    def printWeights(self,filename,format='list',gather=True):
         """Print synaptic weights to file."""
         file = open(filename,'w',10000)
         postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,)).tolist()

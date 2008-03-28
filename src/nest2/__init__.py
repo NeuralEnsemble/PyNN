@@ -101,7 +101,7 @@ class WDManager(object): # should be called WDManagerMixin, to make its use clea
 
 
 class Connection(object):
-    """docstring needed"""
+    """Not part of the API as of 0.4."""
 
     def __init__(self, pre, post, synapse_model):
         self.pre = pre
@@ -837,7 +837,7 @@ class Population(common.Population):
         _print(filename, gather=gather, compatible_output=compatible_output,
                population=self, variable="spikes")
 
-    def getSpikes(self):
+    def getSpikes(self, gather=True):
         """
         Returns a numpy array of the spikes of the population
 
