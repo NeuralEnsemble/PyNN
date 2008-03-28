@@ -1373,13 +1373,18 @@ class STDPMechanism(object):
 
 
 class TsodkysMarkramMechanism(ShortTermPlasticityMechanism):
+    """ """
+    default_parameters = {
+        'U': ?,  # use parameter
+        'D': ?,  # depression time constant (ms)
+        'F': ?,  # facilitation time constant (ms)
+        'u0': ?, # }
+        'r0': ?, # } initial values
+        'f0': ?  # }
+    }
     
-    def __init__(self, U, D, F, u0, r0, f0):
-        self.U = U   # use parameter
-        self.D = D   # depression time constant (ms)
-        self.F = F   # facilitation time constant (ms)
-        self.u0 = u0 # } initial 
-        self.r0 = r0 # } values
+    def __init__(self, U=?, D=?, F=?, u0=?, r0=?, f0=?):
+        _abstract_method(self)
 
         
 class STDPWeightDependence(StandardModelType):
@@ -1404,18 +1409,14 @@ class AdditiveWeightDependence(STDPWeightDependence):
     be greater than `w_max` it is set to `w_max`.
     """
     default_parameters = {
-        'w_min':  20.0,
-        'w_max': 20.0,
-        'A_plus': 0.01,
+        'w_min':   0.0,
+        'w_max':   1.0,
+        'A_plus':  0.01,
         'A_minus': 0.01
     }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
-        
-        self.w_min = w_min
-        self.w_max = w_max
-        self.A_plus = A_plus
-        self.A_minus = A_minus
+        _abstract_method(self)
 
 
 class MultiplicativeWeightDependence(STDPWeightDependence):
@@ -1461,9 +1462,8 @@ class SpikePairRule(STDPTimingDependence):
         'tau_minus': 20.0,
     }
     
-    def __init__(self, tau_plus, tau_minus):
-        self.tau_plus = tau_plus
-        self.tau_minus = tau_minus
+    def __init__(self, tau_plus=20.0, tau_minus=20.0):
+        _abstract_method(self)
 
 
 # ==============================================================================
