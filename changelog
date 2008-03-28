@@ -1,0 +1,1290 @@
+===========
+Release 0.4
+===========
+
+------------------------------------------------------------------------
+r268 | apdavison | 2008-03-21 17:15:50 +0100 (Fri, 21 Mar 2008) | 1 line
+
+Reimplemented `Population.set()`, `tset()`, `rset()` in `neuron`, added `Population.get()`
+------------------------------------------------------------------------
+r267 | apdavison | 2008-03-21 16:27:55 +0100 (Fri, 21 Mar 2008) | 1 line
+
+Reimplemented `Population.set()` in `nest1`.
+------------------------------------------------------------------------
+r266 | apdavison | 2008-03-21 16:24:17 +0100 (Fri, 21 Mar 2008) | 1 line
+
+Fixed some bugs in `Population.tset()` and `rset()` in `nest1`. Added a `Population.get()` method.
+------------------------------------------------------------------------
+r265 | apdavison | 2008-03-21 16:23:37 +0100 (Fri, 21 Mar 2008) | 1 line
+
+The default value for the `duration` parameter in `SpikeSourcePoisson` (1e12 ms) was causing overflow problems in `nest1`, and setting the duration to a negative value. Changed it to 1e6 ms.
+------------------------------------------------------------------------
+r264 | apdavison | 2008-03-21 15:52:47 +0100 (Fri, 21 Mar 2008) | 1 line
+
+Removed `Projection._3D_Gauss` from `nest1` as it was a _very_ long method and not in the API. If it is still needed it should be rewritten as a `Connector` class.
+------------------------------------------------------------------------
+r263 | apdavison | 2008-03-21 15:50:41 +0100 (Fri, 21 Mar 2008) | 1 line
+
+Fixed bug with `Projection.randomizeWeights()` in `nest1`
+------------------------------------------------------------------------
+r262 | apdavison | 2008-03-21 15:23:41 +0100 (Fri, 21 Mar 2008) | 1 line
+
+Reimplemented `Population.set()`, `tset()`, `rset()` in a more consistent way which avoids exposing the translation machinery and fixes various bugs with computed parameters. The new implementation is likely to be slower, but several optimisations are possible.
+------------------------------------------------------------------------
+r261 | apdavison | 2008-03-21 15:20:18 +0100 (Fri, 21 Mar 2008) | 1 line
+
+Added `simple_parameters()`, `scaled_parameters()` and `computed_parameters()` methods to the `StandardModelType` class. Their intended use is in making `set()` methods/functions more efficient for non-computed parameters when setting on many nodes.
+------------------------------------------------------------------------
+r260 | apdavison | 2008-03-21 10:06:35 +0100 (Fri, 21 Mar 2008) | 1 line
+
+Extracted `pcsim/connectors.py` from `pcsim/__init__.py`
+------------------------------------------------------------------------
+r259 | apdavison | 2008-03-21 09:39:42 +0100 (Fri, 21 Mar 2008) | 1 line
+
+Fixed bug #36 for `nest2` and `neuron` (did not occur with `nest1` and `pcsim`). If you mix `Population.record()` and the function `record()`, I think it is still possible to record a cell twice, but this is unlikely to be done by accident.
+------------------------------------------------------------------------
+r258 | apdavison | 2008-03-20 19:13:08 +0100 (Thu, 20 Mar 2008) | 15 lines
+
+The previous commit should have had all these changes as well...
+
+Significant refactoring of parameter setting and getting:
+
+* Changed `common.ID` to `common.IDMixin`, which allows the type used for the id to vary (int for `neuron` and `nest1/2`, long for pcsim).
+
+* In `common.StandardModelType`, changed most of the methods to be classmethods, since they do not act on instance data.
+
+* Greatly simplified the parameter translation mechanism, by moving most of the code into `common.ID`. This allowed me to find lots of bugs in the various `cells.py`. `set()` and the various `Population` set methods have not yet been updated.
+
+* made `list_standard_models()` more robust. It now lists only those it is able to instantiate.
+
+* commented out `IF_cond_alpha` in `nest1.cells.py` because the `iaf_cond_neuron` model does not have an offset current parameter. Need to add a model to pynest to fix this.
+
+A few of the unittests have been broken, but it seemed best to commit at this point.
+------------------------------------------------------------------------
+r257 | apdavison | 2008-03-20 19:12:11 +0100 (Thu, 20 Mar 2008) | 13 lines
+
+Significant refactoring of parameter setting and getting:
+
+* Changed `common.ID` to `common.IDMixin`, which allows the type used for the id to vary (int for `neuron` and `nest1/2`, long for pcsim).
+
+* In `common.StandardModelType`, changed most of the methods to be classmethods, since they do not act on instance data.
+
+* Greatly simplified the parameter translation mechanism, by moving most of the code into `common.ID`. This allowed me to find lots of bugs in the various `cells.py`. `set()` and the various `Population` set methods have not yet been updated.
+
+* made `list_standard_models()` more robust. It now lists only those it is able to instantiate.
+
+* commented out `IF_cond_alpha` in `nest1.cells.py` because the `iaf_cond_neuron` model does not have an offset current parameter. Need to add a model to pynest to fix this.
+
+A few of the unittests have been broken, but it seemed best to commit at this point.
+------------------------------------------------------------------------
+r256 | apdavison | 2008-03-20 14:10:19 +0100 (Thu, 20 Mar 2008) | 1 line
+
+Improved error checking/error messages. A couple of bug fixes. Fixed #53.
+------------------------------------------------------------------------
+r255 | apdavison | 2008-03-20 13:06:53 +0100 (Thu, 20 Mar 2008) | 1 line
+
+Improvements to the `__getattr__()` and `getParameters()` methods of the ID class (in all four simulators).
+------------------------------------------------------------------------
+r254 | apdavison | 2008-03-20 10:46:35 +0100 (Thu, 20 Mar 2008) | 1 line
+
+Implemented `Population.getSpikes()` for `nest1` and `pcsim`. Wrote a unittest for it in `generictests.py`.
+------------------------------------------------------------------------
+r253 | apdavison | 2008-03-19 19:18:20 +0100 (Wed, 19 Mar 2008) | 1 line
+
+Assorted minor modifications and bug-fixes
+------------------------------------------------------------------------
+r252 | apdavison | 2008-03-19 19:15:24 +0100 (Wed, 19 Mar 2008) | 1 line
+
+Added CeCILL licence file
+------------------------------------------------------------------------
+r251 | apdavison | 2008-03-19 19:00:29 +0100 (Wed, 19 Mar 2008) | 3 lines
+
+Removed deprecated cell types
+
+Added a `ModelNotAvailable` class to allow more informative error messages when people try to use a model with a simulator that doesn't support it.
+------------------------------------------------------------------------
+r250 | apdavison | 2008-03-19 17:04:57 +0100 (Wed, 19 Mar 2008) | 1 line
+
+`python setup.py install` now runs `nrnivmodl` to compile the NEURON .mod files and puts the result in `pyNN.hoc`.
+------------------------------------------------------------------------
+r249 | apdavison | 2008-03-18 17:31:32 +0100 (Tue, 18 Mar 2008) | 1 line
+
+hoc and mod files are now correctly packaged and installed with `distutils`. Nest step - compile the mod files.
+------------------------------------------------------------------------
+r248 | apdavison | 2008-03-18 14:32:49 +0100 (Tue, 18 Mar 2008) | 5 lines
+
+Added a `dendritic_delay_fraction` argument (float between 0 and 1) to the `STDPMechanism` class. For point neurons and purely spike-based STDP rules, if we assume that the total delay between a spike occuring at the presynaptic cell soma/axon initial segment and the beginning of the EPSC at the postsynaptic soma is the sum of `d_axon`, `d_transmission` and `d_dendrite`, then `dendritic_delay_fraction=0` is equivalent to assuming that the back-propagating postsynaptic spike is felt instantaneously at the synapse (i.e. `d_dendrite` is zero) and `dendritic_delay_fraction=1` is equivalent to assuming that `d_axon` and `d_transmission` are both zero. In both cases we assume that forward transmission of the EPSP has the same delay as the back-propagating action potential, i.e. `d_dendrite==d_BPAP`.
+
+Ideally, `dendritic_delay_fraction` should be able to vary on a per-connection basis (since `d_dendrite` should be more-or-less constant for a given cell class whereas `d_axon` is a function of the distance between the neurons), but until the underlying simulators support storing separate values for the axonal, transmission and dendritic delays, rather than a single 'synaptic' delay value, we make this value constant for all connections in a `Projection`.
+
+Added a test to check that the `neuron` and `nest2` STDP implementations give comparable results.
+------------------------------------------------------------------------
+r247 | apdavison | 2008-03-17 16:38:57 +0100 (Mon, 17 Mar 2008) | 1 line
+
+Fix for defect #48 ("In `neuron`, delays set using a `Connector` object are incorrectly set back to `min_delay`")
+------------------------------------------------------------------------
+r246 | apdavison | 2008-03-17 11:54:27 +0100 (Mon, 17 Mar 2008) | 1 line
+
+Fixed defect #47 (plus a small, related bug in the `_get_recorded_data()` function in `nest2`).
+------------------------------------------------------------------------
+r245 | LaurentPerrinet | 2008-03-14 18:29:50 +0100 (Fri, 14 Mar 2008) | 1 line
+
+workaround for ticket 46
+------------------------------------------------------------------------
+r244 | apdavison | 2008-03-14 17:33:28 +0100 (Fri, 14 Mar 2008) | 1 line
+
+Fixed #44. The call to `pc.set_maxstep()` had been commented out by mistake.
+------------------------------------------------------------------------
+r243 | Pierre | 2008-03-14 10:21:23 +0100 (Fri, 14 Mar 2008) | 1 line
+
+Minors modifications to deal with the Timer instance in the test files. Nobody want to use pyNN.nest1, but still some modifications
+------------------------------------------------------------------------
+r242 | apdavison | 2008-03-13 10:36:10 +0100 (Thu, 13 Mar 2008) | 1 line
+
+In the `neuron.__init__` module, filenames are now popped from the spikefilelist and vfilelist when writing to file in `end()`. This addresses the problem noted in #43, but still does not allow the example script attached to that issue to run. The root problem is that the `neuron` module was really designed to have `setup()` and `end()` run only once per script. I have opened a new ticket (#45) to address this.
+------------------------------------------------------------------------
+r241 | bruederle | 2008-03-12 11:22:03 +0100 (Wed, 12 Mar 2008) | 3 lines
+
+for the stage1 hardware, v_init is not a free parameter at all, thus it should not be
+visible and/or adjustable
+
+------------------------------------------------------------------------
+r240 | apdavison | 2008-02-28 10:17:39 +0100 (Thu, 28 Feb 2008) | 1 line
+
+Added a check that argument names to `setup()` are not mis-spelled. This is possible because of `extra_params`.
+------------------------------------------------------------------------
+r239 | apdavison | 2008-02-26 09:44:20 +0100 (Tue, 26 Feb 2008) | 3 lines
+
+Fixed a bug introducuced during yesterday's commits.
+
+Finished the elimination of the old translate code.
+------------------------------------------------------------------------
+r238 | apdavison | 2008-02-25 21:10:15 +0100 (Mon, 25 Feb 2008) | 1 line
+
+It is now possible to instantiate Timer objects, i.e. to have multiple, independent Timers
+------------------------------------------------------------------------
+r237 | apdavison | 2008-02-25 18:10:02 +0100 (Mon, 25 Feb 2008) | 1 line
+
+Renamed `methodParameters` to `method_parameters`
+------------------------------------------------------------------------
+r236 | apdavison | 2008-02-25 17:58:33 +0100 (Mon, 25 Feb 2008) | 1 line
+
+Renamed `paramDict` to `param_dict`
+------------------------------------------------------------------------
+r235 | apdavison | 2008-02-25 17:26:31 +0100 (Mon, 25 Feb 2008) | 6 lines
+
+Finally moved `StandardCellType.translate1()` to `translate()`.
+
+Added call of `self.translate()` to `StandardCellType.__init__()`, which allows the __init__() method of derived classes to be undefined unless extra, non-standard parameters need to be added to `self.parameters` (I think - I haven't tested this yet, due to working on a machine with no simulators installed).
+
+A multitude of small, cosmetic (coding-style) changes, like adding spaces after commas, to reduce the number of complaints from pylint!
+
+------------------------------------------------------------------------
+r234 | apdavison | 2008-02-19 15:56:43 +0100 (Tue, 19 Feb 2008) | 1 line
+
+New STDP API implemented in `nest2`. Not thoroughly tested yet, but this seems like a good time to check it in.
+------------------------------------------------------------------------
+r233 | apdavison | 2008-02-19 13:50:22 +0100 (Tue, 19 Feb 2008) | 2 lines
+
+* Fixes to recording.py
+* A few changes to make `nest2` and `neuron` modules more consistent.
+------------------------------------------------------------------------
+r232 | apdavison | 2008-02-19 13:24:33 +0100 (Tue, 19 Feb 2008) | 1 line
+
+Beginning of an attempt to make writing spikes/membrane potential to file more robust, including factoring out common code into a non-simulator-specific `recording.py`. Not yet tested.
+------------------------------------------------------------------------
+r231 | apdavison | 2008-02-19 13:22:03 +0100 (Tue, 19 Feb 2008) | 2 lines
+
+Fixed a bug in  `nest2.OneToOneConnector` 
+Minor tidying up
+------------------------------------------------------------------------
+r230 | apdavison | 2008-02-19 11:15:22 +0100 (Tue, 19 Feb 2008) | 5 lines
+
+Changes in `nest2`:
+ * Added `getWeights()` and `getDelays()` methods. These reduce duplicate code in `printWeight()` and `saveConnections()`, and are also useful in their own right: to be added to API.
+ * Created private functions `_get_connection()` and `set_connection()` as wrappers around `nest.GetConnection()` and `nest.SetConnection()`. These are needed as PyNEST does not raise an Exception if cell ids, parameter names or parameter values are invalid. Now we can be sure that if we set a value, it actually gets set. `_get_connections()` and `set_connections()` might also be useful, but first we need to resolve the problem that `Population`s (and therefore cells) can belong to multiple `Projection`s, and so the connections returned with `GetConnections()` not specific to the `Projection` we are interested in (also see #42).
+* Added a RoundingWarning exception to `common` - it's nice to be warned when this is occurring.
+* Added a few more tests to exercise `GetWeights()`, etc
+------------------------------------------------------------------------
+r229 | pierre | 2008-02-19 10:20:03 +0100 (Tue, 19 Feb 2008) | 1 line
+
+Addition of the FromFile and FromList connector in the common file. implementation only done in nest1 (nest2 is straightforward). All tests are passed
+------------------------------------------------------------------------
+r228 | Pierre | 2008-02-15 16:52:47 +0100 (Fri, 15 Feb 2008) | 1 line
+
+Minor error in nest1.connectors
+------------------------------------------------------------------------
+r227 | apdavison | 2008-02-15 16:51:10 +0100 (Fri, 15 Feb 2008) | 1 line
+
+A little reorganisation of the bfstdp code
+------------------------------------------------------------------------
+r226 | apdavison | 2008-02-15 14:26:12 +0100 (Fri, 15 Feb 2008) | 1 line
+
+Minor tidying up: removed multiple `return` points in `nest2._get()` and `nest2._readArray()`, added more information error message in `random`.
+------------------------------------------------------------------------
+r225 | apdavison | 2008-02-15 14:22:16 +0100 (Fri, 15 Feb 2008) | 1 line
+
+Replaced NEURON-specific `IntFire4nc` cell with standard `IF_curr_exp`. The simulation runs more than twice as slowly, but seems to give the same (or at least similar) results.
+------------------------------------------------------------------------
+r224 | apdavison | 2008-02-15 14:20:39 +0100 (Fri, 15 Feb 2008) | 1 line
+
+I think IF_facets_hardware1 should have a `v_init` parameter
+------------------------------------------------------------------------
+r223 | apdavison | 2008-02-15 14:19:00 +0100 (Fri, 15 Feb 2008) | 1 line
+
+Implemented reverse translation in `neuron` module.
+------------------------------------------------------------------------
+r222 | apdavison | 2008-02-15 14:18:02 +0100 (Fri, 15 Feb 2008) | 1 line
+
+SpikeSources in NEURON were causing a lot of problems with getting and setting parameters. Hopefully this has fixed the problem.
+------------------------------------------------------------------------
+r221 | apdavison | 2008-02-15 14:08:04 +0100 (Fri, 15 Feb 2008) | 1 line
+
+Added some more tests
+------------------------------------------------------------------------
+r220 | apdavison | 2008-02-15 14:05:16 +0100 (Fri, 15 Feb 2008) | 1 line
+
+Fixed (I think) a bug in recording spikes with the `neuron` module (see #39)
+------------------------------------------------------------------------
+r219 | apdavison | 2008-02-14 13:52:26 +0100 (Thu, 14 Feb 2008) | 1 line
+
+bfstdp: Improved documentation, and tidied up the code a little.
+------------------------------------------------------------------------
+r218 | apdavison | 2008-02-13 18:34:12 +0100 (Wed, 13 Feb 2008) | 1 line
+
+[source:trunk/test/bfstdp/bfstdp.py bfstdp.py] test model is now working with the Python `babble` module (source:trunk/test/bfstdp/babble.py) rather than the NEURON-specific `NetStimVR2` mechanism.
+------------------------------------------------------------------------
+r217 | emuller | 2008-02-13 16:09:37 +0100 (Wed, 13 Feb 2008) | 3 lines
+
+Fixed bug in getSpikes for NONempty spike list
+
+
+------------------------------------------------------------------------
+r216 | apdavison | 2008-02-13 13:56:26 +0100 (Wed, 13 Feb 2008) | 1 line
+
+Kept getting segmentation faults with the new 'pingable' `VecStim` NEURON mechanism. Seems to work ok now.
+------------------------------------------------------------------------
+r215 | apdavison | 2008-02-12 16:26:44 +0100 (Tue, 12 Feb 2008) | 1 line
+
+Modified the SpikeSource template in `standardCells.hoc` so that it records all spikes, even if spiketimes is modified during the simulation.
+------------------------------------------------------------------------
+r214 | apdavison | 2008-02-12 16:25:01 +0100 (Tue, 12 Feb 2008) | 1 line
+
+Implemented `Populaton.getSpikes()` for `neuron`
+------------------------------------------------------------------------
+r213 | apdavison | 2008-02-12 14:28:57 +0100 (Tue, 12 Feb 2008) | 1 line
+
+Modification to [source:src/hoc/vecstim.mod vecstim.mod] to allow changing the spike_times during a simulation without reinitialising. Mechanism (mechanism pings itself at intervals to check if the spike vector has changed) is rather wasteful and can also drop spikes following changes if the ping interval is too large, but I think the gain outweighs these problems.
+------------------------------------------------------------------------
+r212 | apdavison | 2008-02-12 14:25:17 +0100 (Tue, 12 Feb 2008) | 1 line
+
+Modification to the implementation of `set()` in the `neuron` module, so that it works better with spike sources (cell models that are not associated with a membrane section - gid2cell() does not work in this case). Not tested for the parallel case.
+------------------------------------------------------------------------
+r211 | apdavison | 2008-02-12 09:35:19 +0100 (Tue, 12 Feb 2008) | 1 line
+
+`test/bfstdp` model now works with the `neuron` module. Next step is to get it working with `nest2`.
+------------------------------------------------------------------------
+r210 | emuller | 2008-02-08 17:48:53 +0100 (Fri, 08 Feb 2008) | 3 lines
+
+fixed bug in getSpikes when neuron did not spike  
+
+
+------------------------------------------------------------------------
+r209 | apdavison | 2008-02-07 17:41:00 +0100 (Thu, 07 Feb 2008) | 1 line
+
+bfstdp implementation seems to be working for `neuron` module plus some hoc-specific code. Needs further testing.
+------------------------------------------------------------------------
+r208 | apdavison | 2008-02-07 16:07:14 +0100 (Thu, 07 Feb 2008) | 1 line
+
+Mostly converted the `neuron` module (and unit tests) to use the `HocObject` class for communication with hoc, rather than the `HocToPy` class. There is still one case where `HocToPy` is used (in `ID.__getattr__()`, because it is rather tricky to do it with `HocObject`.
+------------------------------------------------------------------------
+r207 | apdavison | 2008-02-07 16:04:40 +0100 (Thu, 07 Feb 2008) | 1 line
+
+`runtests.py` now uses python, rather than nrnpython, to run `neuron` scripts (still use nrnpython for `oldneuron`).
+------------------------------------------------------------------------
+r206 | apdavison | 2008-02-07 16:03:38 +0100 (Thu, 07 Feb 2008) | 1 line
+
+Somehow an `from NeuroTools.stgen import StGen` went missing from these files?
+------------------------------------------------------------------------
+r205 | apdavison | 2008-02-07 16:02:38 +0100 (Thu, 07 Feb 2008) | 1 line
+
+Fixed bug introduced by moving `pcsim` cell definitions into a separate `cells.py`
+------------------------------------------------------------------------
+r204 | Pierre | 2008-02-06 15:08:03 +0100 (Wed, 06 Feb 2008) | 1 line
+
+Changes translations errors in nest1.py
+------------------------------------------------------------------------
+r203 | Pierre | 2008-02-05 10:49:24 +0100 (Tue, 05 Feb 2008) | 1 line
+
+Harmonise projection syntax in brunel.py and fix a minor bug in _printSpikes method() in nest1 for low level connections
+------------------------------------------------------------------------
+r202 | apdavison | 2008-02-04 17:38:16 +0100 (Mon, 04 Feb 2008) | 1 line
+
+Started working on a PyNN re-implementation of my bfstdp model, as an in-depth test of the STDP API.
+------------------------------------------------------------------------
+r201 | apdavison | 2008-02-04 16:38:11 +0100 (Mon, 04 Feb 2008) | 1 line
+
+Further development of the new STDP API implementation in `neuron`
+------------------------------------------------------------------------
+r200 | apdavison | 2008-02-04 16:07:07 +0100 (Mon, 04 Feb 2008) | 1 line
+
+Missed a few `translate()` --> `translate1()` in r198.
+------------------------------------------------------------------------
+r199 | apdavison | 2008-02-02 18:43:05 +0100 (Sat, 02 Feb 2008) | 1 line
+
+Modified `ID.__getattr__()` for `nest1`. Added `test/generictests.py` - tests that should be run on all simulators
+------------------------------------------------------------------------
+r198 | apdavison | 2008-02-02 16:47:40 +0100 (Sat, 02 Feb 2008) | 1 line
+
+Switched all cells in `nest`, `nest2`, `pcsim` and `neuron` to the new translation mechanism (see ticket:33)
+------------------------------------------------------------------------
+r197 | apdavison | 2008-02-01 17:42:58 +0100 (Fri, 01 Feb 2008) | 1 line
+
+Making progress with `neuron2` (still not working, though)
+------------------------------------------------------------------------
+r196 | emuller | 2008-02-01 13:31:17 +0100 (Fri, 01 Feb 2008) | 7 lines
+
+Adapting cell type name changes:
+AdaptiveExponentialIF_alpha->EIF_cond_alpha_isfa_ista
+IF_cond_exp_sfa_rr->IF_cond_exp_gsfa_grr
+
+Old types are still present, with depreciation warnings.
+
+
+------------------------------------------------------------------------
+r195 | apdavison | 2008-01-31 17:04:51 +0100 (Thu, 31 Jan 2008) | 1 line
+
+Minor improvements to `neuron2`, although its still not functional.
+------------------------------------------------------------------------
+r194 | apdavison | 2008-01-31 16:21:54 +0100 (Thu, 31 Jan 2008) | 1 line
+
+Further work on the `neuron2` module, mainly trying to replace `standardCells.hoc` with Python code within `neuron2/cells.py`.
+------------------------------------------------------------------------
+r193 | apdavison | 2008-01-31 13:11:51 +0100 (Thu, 31 Jan 2008) | 1 line
+
+Began new implementation of the `neuron` module, called `neuron2` for now, using the new features in NEURON 6.1
+------------------------------------------------------------------------
+r192 | Pierre | 2008-01-29 15:03:55 +0100 (Tue, 29 Jan 2008) | 1 line
+
+Merging of some local modifications into the new pyNN structure. Hope everthing is ok, at least tests are passed and brunel and VAbenchmarks are still ok.
+------------------------------------------------------------------------
+r191 | apdavison | 2008-01-29 11:36:00 +0100 (Tue, 29 Jan 2008) | 1 line
+
+Added Id and Rev keyword substitution to recently-created files.
+------------------------------------------------------------------------
+r190 | apdavison | 2008-01-29 11:10:14 +0100 (Tue, 29 Jan 2008) | 1 line
+
+A couple of deletions got missed during the last commit.
+------------------------------------------------------------------------
+r188 | apdavison | 2008-01-29 11:03:59 +0100 (Tue, 29 Jan 2008) | 5 lines
+
+MAJOR CHANGES: merged multifile branch to trunk. The main changes:
+
+(1) Simulator modules have been moved to a `src` subdirectory - this is to make distribution/installation of PyNN easier.
+
+(2) Several of the modules have been split into multiple files, in their own subdirectories, e.g.: `nest2.py` --> `nest2/__init__.py`, `nest2/cells.py` and `nest2/connectors.py`. The reason for this is that the individual files were getting very long and difficult to navigate. It is not required, though. For example, I have kept `neuroml.py` as a single file because it was not too long. This change has broken a couple of the `neuron` unittests`, and I haven't run the `VAbenchmarks` test, but otherwise everything seems to work.
+------------------------------------------------------------------------
+r184 | apdavison | 2008-01-28 15:20:48 +0100 (Mon, 28 Jan 2008) | 4 lines
+
+Tidying up before merging multifile branch
+* implemented `Population.index()` method in `nest2`. 
+* Added more header information in 'compatible_output' mode (in `nest2`, needs to be changed in the other modules as well. 
+* Small bug-fix in `neuron` implementation of new STDP API
+------------------------------------------------------------------------
+r174 | emuller | 2008-01-24 17:27:20 +0100 (Thu, 24 Jan 2008) | 7 lines
+
+Added better description for StandardCellType.checkParameters
+Added StandardCellType.update_parameters ...
+but not sure what I'm going to do with it yet
+
+
+
+
+------------------------------------------------------------------------
+r173 | emuller | 2008-01-23 17:45:49 +0100 (Wed, 23 Jan 2008) | 6 lines
+
+Added Population member getSpikes for Monte-Carlo type simulations
+-> implemented for nest2 backend
+Added SpikeSourceInhGamma to standard models
+
+
+
+------------------------------------------------------------------------
+r172 | emuller | 2008-01-23 14:21:24 +0100 (Wed, 23 Jan 2008) | 3 lines
+
+Added IF_cond_exp_sfa_rr to standard cell types
+
+
+------------------------------------------------------------------------
+r171 | dejan | 2008-01-22 08:56:31 +0100 (Tue, 22 Jan 2008) | 3 lines
+
+Updated the pyNN.pcsim module to reflect recent changes in pcsim:
+Changed the names of PoissonSpikeTrainGenerator in pcsim to PoissonInputNeuron.
+   
+------------------------------------------------------------------------
+r170 | pierre | 2008-01-21 09:20:57 +0100 (Mon, 21 Jan 2008) | 1 line
+
+Minors modifications to try to deal with the nest2.py when running on a cluster with mpirun command
+------------------------------------------------------------------------
+r169 | apdavison | 2008-01-18 17:39:54 +0100 (Fri, 18 Jan 2008) | 2 lines
+
+The implementations of `FixedNumberPreConnector` and `FixedNumberPostConnector` (see r166, r167) were broken (notably for the case of multiple projections between two populations). Here is a new implementation, which I haven't thoroughly thought through, let alone tested, but I think the `start_ports`, `end_ports` idea could be a generic mechanism (i.e. move out of `Connector` and into `Projection`) for storing connection information (replacing `_sources`, `_targets`, `_targetPorts`).
+Need to (a) write a unit test for the non-parallel case, (b) test the parallel case.
+------------------------------------------------------------------------
+r168 | bruederle | 2008-01-18 15:51:05 +0100 (Fri, 18 Jan 2008) | 2 lines
+
+a model for the stage 1 hardware neuron was added
+
+------------------------------------------------------------------------
+r167 | apdavison | 2008-01-17 17:20:04 +0100 (Thu, 17 Jan 2008) | 2 lines
+
+* Implemented `nest2.FixedNumberPreConnector` 
+* Connected new connectors to string methods in `nest2.Projection`
+------------------------------------------------------------------------
+r166 | apdavison | 2008-01-17 17:08:25 +0100 (Thu, 17 Jan 2008) | 2 lines
+
+* Implemented `FixedNumberPostConnector` class in `nest2`, experimenting with putting some of the functionality of the `WDManager` class and the `connect()` methods into the `common` module. 
+* Changed the default weight to zero (was 1.0 nA)
+------------------------------------------------------------------------
+r165 | apdavison | 2008-01-17 15:58:15 +0100 (Thu, 17 Jan 2008) | 1 line
+
+Modifications due to the fact that PyNEST Version 1.9-6751 does not provide GetWeight() and GetDelay().
+------------------------------------------------------------------------
+r162 | pierre | 2008-01-17 10:40:06 +0100 (Thu, 17 Jan 2008) | 1 line
+
+Add the FixedNumberPre Post connector to the common.py API and implement them only for PCSIM (easy to do for nest, code is already there). Modification of the connectors objects to receive weights and delays as arguments on the command line, and an object WDManager has been created to automatically deal with all the conversions that should be made with those weights and delays, in all simulators. Now only used within the projection class, but could be extended to the low-level api and therefore catch all the conversion there in a connect() call. Modification also of common.distances() to allow the calculus of the distances between one cell and all the others. Tests are passed and VAbenchmarks.py, adapted to the new Connectors, works
+------------------------------------------------------------------------
+r161 | apdavison | 2008-01-15 14:03:12 +0100 (Tue, 15 Jan 2008) | 1 line
+
+Modified the  class docstring, following Eilif's comment at the CodeSprint
+------------------------------------------------------------------------
+r160 | apdavison | 2008-01-13 18:25:08 +0100 (Sun, 13 Jan 2008) | 1 line
+
+First attempt at a new STDP API, based on discussions at the CodeSprint, with a partial implementation in the `neuron` module.
+------------------------------------------------------------------------
+r159 | bruederle | 2008-01-12 11:43:20 +0100 (Sat, 12 Jan 2008) | 2 lines
+
+just a test of commiting 
+
+------------------------------------------------------------------------
+r158 | apdavison | 2008-01-08 16:33:17 +0100 (Tue, 08 Jan 2008) | 1 line
+
+Added AdaptiveExponentialIF standard cell to pcsim module. Not yet well tested
+------------------------------------------------------------------------
+r157 | apdavison | 2008-01-08 11:41:00 +0100 (Tue, 08 Jan 2008) | 1 line
+
+Began updating documentation to reflect the changes since release 0.3.0
+------------------------------------------------------------------------
+r156 | Pierre | 2008-01-03 18:06:32 +0100 (Thu, 03 Jan 2008) | 1 line
+
+Add a periodic boundary condition for the distances, and therefore nest1.py, nest2.py and neuron.py have been modified to take those modification into account in the DistanceDependentProbabilityConnector. A boolean can now be given to have a torus and avoid border effects. Others minors modifications to enhance the compatibility of the outputs between nest1, nest2, neuron and pcsim
+------------------------------------------------------------------------
+r155 | pierre | 2007-12-30 13:58:10 +0100 (Sun, 30 Dec 2007) | 1 line
+
+Modification of the Connector objects to allow handling of weights and delays directly in the connector, without the need to call setWeights and setDelays after the building of the connections. Fix also almost all the bugs in nest2tests.py, but those fixes need a modification of hl_api.py in pynest2. The VAbenchmark network is now working in a similar manner for nest1 and nest2, expect if the threads are enable
+------------------------------------------------------------------------
+r154 | apdavison | 2007-12-19 16:11:51 +0100 (Wed, 19 Dec 2007) | 1 line
+
+The traces produced by `test/AdaptiveExponentialIF.py` look very similar in NEST and NEURON, but the NEURON version is very fragile and is not numerically stable if `v_spike` is too high.
+------------------------------------------------------------------------
+r153 | apdavison | 2007-12-18 17:16:52 +0100 (Tue, 18 Dec 2007) | 1 line
+
+Added `AdaptiveExponentialIF_alpha` model to `neuron` module, and added a test for this model (which does not yet pass).
+------------------------------------------------------------------------
+r152 | apdavison | 2007-12-18 17:15:31 +0100 (Tue, 18 Dec 2007) | 1 line
+
+Fixed a bug (I think) in `_print()`
+------------------------------------------------------------------------
+r151 | apdavison | 2007-12-18 17:14:33 +0100 (Tue, 18 Dec 2007) | 1 line
+
+Added `nest2tests.py`
+------------------------------------------------------------------------
+r150 | apdavison | 2007-12-17 16:43:50 +0100 (Mon, 17 Dec 2007) | 1 line
+
+`Projection` class now more fully implemented in the `neuroml` module
+------------------------------------------------------------------------
+r149 | apdavison | 2007-12-17 16:39:59 +0100 (Mon, 17 Dec 2007) | 1 line
+
+Started implementing improved parameter translation system
+------------------------------------------------------------------------
+r148 | JensKremkow | 2007-12-10 14:44:54 +0100 (Mon, 10 Dec 2007) | 1 line
+
+nest2.py: debug: printSpike
+------------------------------------------------------------------------
+r147 | JensKremkow | 2007-11-29 16:40:42 +0100 (Thu, 29 Nov 2007) | 1 line
+
+changes in nest2.py. Removed old,unused Gauss2d and 3d Projections.
+------------------------------------------------------------------------
+r146 | JensKremkow | 2007-11-29 16:27:01 +0100 (Thu, 29 Nov 2007) | 1 line
+
+added population.cell_local, which contains only the neurons that are on one node. Fixed _print, now each file gets the mpi-rank appended to its name.
+------------------------------------------------------------------------
+r145 | apdavison | 2007-11-15 14:16:19 +0100 (Thu, 15 Nov 2007) | 1 line
+
+Fixes to neuroml.py, mainly to change the order in which nodes appear in order to pass the validator
+------------------------------------------------------------------------
+r144 | apdavison | 2007-10-05 17:07:45 +0200 (Fri, 05 Oct 2007) | 1 line
+
+Added `list_standard_models()` function to all modules.
+------------------------------------------------------------------------
+r143 | apdavison | 2007-10-05 16:20:16 +0200 (Fri, 05 Oct 2007) | 1 line
+
+Renamed the `nest` module to `nest1`, closing ticket #31
+------------------------------------------------------------------------
+r142 | apdavison | 2007-10-05 15:46:37 +0200 (Fri, 05 Oct 2007) | 2 lines
+
+* So it turns out that the record/print refactoring in `nest2` did still have lots of bugs, at least some of which have now been fixed. 
+ * Most of the `Projection` class now works in `nest2`.
+------------------------------------------------------------------------
+r141 | apdavison | 2007-10-05 11:09:44 +0200 (Fri, 05 Oct 2007) | 4 lines
+
+* Added new standard cell: `AdaptiveExponentialIF_alpha` - only available in `nest2` for now. 
+* Refactored recording and printing in `nest2` to reduce/eliminate duplicated code. This has not yet been well tested, and may be broken. 
+* Fixed several of the standard cells in `nest2` so the IF_curr_alpha* and IF_curr_exp tests now pass. 
+* Fixed the `connect()` function in `nest2` so it returns something useful rather than just `None`. It now returns a `Connection` object, which has a (partially implemented) `weight` property, and will have a `delay` property. Should consider making this object available in all modules, since the low-level API currently lacks a way of accessing/changing weights/delays of individual connections.
+------------------------------------------------------------------------
+r140 | apdavison | 2007-10-03 18:32:02 +0200 (Wed, 03 Oct 2007) | 1 line
+
+Changes to Population.printSpikes()
+------------------------------------------------------------------------
+r139 | JensKremkow | 2007-08-20 14:21:31 +0200 (Mon, 20 Aug 2007) | 1 line
+
+collectdata added. function to merge files when simulated in mpi-mode. problem: printSpikes etc. can not do it. On Process has to wait until ALL data is written to disk. We should think about it. This is just a simple workaround. 
+------------------------------------------------------------------------
+r138 | JensKremkow | 2007-08-14 12:53:37 +0200 (Tue, 14 Aug 2007) | 1 line
+
+added record_c and print_c for the Population, be aware that only conductancebased neurons can record conductances, and that the iaf_cond_exp neuron model from nest2
+------------------------------------------------------------------------
+r137 | apdavison | 2007-08-08 16:46:31 +0200 (Wed, 08 Aug 2007) | 1 line
+
+Some fixes to the ID class
+------------------------------------------------------------------------
+r136 | apdavison | 2007-08-02 21:03:44 +0200 (Thu, 02 Aug 2007) | 1 line
+
+Tiny bug introduced by previous commit
+------------------------------------------------------------------------
+r135 | apdavison | 2007-08-02 20:57:38 +0200 (Thu, 02 Aug 2007) | 1 line
+
+Improved implementation of the `_distance()` function, moved it to `common`, and modified the various distance-dependent stuff appropriately.
+------------------------------------------------------------------------
+r134 | JensKremkow | 2007-07-26 13:46:58 +0200 (Thu, 26 Jul 2007) | 1 line
+
+printSpikes, print_v should work now with mpi, so far the data is gathered for all threads on each rank, and copied into target folder. the last step would include merging these files to one
+------------------------------------------------------------------------
+r132 | apdavison | 2007-07-25 11:19:04 +0200 (Wed, 25 Jul 2007) | 1 line
+
+Merged connector branch with trunk. This now allows procedures for connecting `Population`s to be defined as classes rather than given as strings, although we keep the string specification for backwards compatibility. This should make it easier for users to add their own connection methods.
+------------------------------------------------------------------------
+r131 | apdavison | 2007-07-25 10:28:02 +0200 (Wed, 25 Jul 2007) | 2 lines
+
+* Starting adding Hodgkin-Huxley standard model 
+ * Couple of fixes to low-level API in `nest2`
+------------------------------------------------------------------------
+r130 | JensKremkow | 2007-07-20 18:26:29 +0200 (Fri, 20 Jul 2007) | 1 line
+
+nest2.py; you can now create Populations, record, record_v, prinSpike, print_v, setup - min_dealy and max_delay are not needed anymore; end - NEST2 will soon close all streams as soon as simulate is over - therefore we dont need to close remaing open files, cause they done exist; to set parameters in nodes --> getDict - GetStatus and setDict - SetStatus, have started to change that in Populations, not yet tested. 
+------------------------------------------------------------------------
+r129 | JensKremkow | 2007-07-19 19:21:30 +0200 (Thu, 19 Jul 2007) | 1 line
+
+
+------------------------------------------------------------------------
+r128 | JensKremkow | 2007-07-19 19:19:29 +0200 (Thu, 19 Jul 2007) | 1 line
+
+
+------------------------------------------------------------------------
+r127 | JensKremkow | 2007-07-19 18:57:51 +0200 (Thu, 19 Jul 2007) | 1 line
+
+
+------------------------------------------------------------------------
+r126 | JensKremkow | 2007-07-19 11:51:55 +0200 (Thu, 19 Jul 2007) | 1 line
+
+
+------------------------------------------------------------------------
+r125 | eppler | 2007-07-09 14:38:53 +0200 (Mon, 09 Jul 2007) | 2 lines
+
+Some more porting to nest2, still far from complete.
+
+------------------------------------------------------------------------
+r115 | Pierre | 2007-06-29 14:03:31 +0200 (Fri, 29 Jun 2007) | 1 line
+
+Avoid errors while writing in the compatible mode, if the files are empty (no spikes or no Vm to write).
+------------------------------------------------------------------------
+r107 | pierre | 2007-06-16 16:10:43 +0200 (Sat, 16 Jun 2007) | 1 line
+
+Correction of a bug in the compatible ouput of the Vm in NEST, due to a problem with the numpy.fromfile() function, not working in the same way according to Python version. To simplify all the print() functions of pyNN.nest, a _readArray() function has been added to allow the compatible output modes to load files saved by nest efficiently in order to modify their format
+------------------------------------------------------------------------
+r106 | apdavison | 2007-06-13 13:56:15 +0200 (Wed, 13 Jun 2007) | 1 line
+
+Added `neuroml` module. This is another attempt to implement PyNN-->NeuroML/FacetsML. It is called `neuroml` so as not to clash with the `facetsml` module, although they both have the same aim.
+------------------------------------------------------------------------
+r105 | Pierre | 2007-06-12 13:57:33 +0200 (Tue, 12 Jun 2007) | 1 line
+
+Modification of several bugs concerning the poisson spike sources due to their initialization (nest, pcsim), and fixation of the leak conductances in the NEST models. The Voggels Abott benchmark is now fully working in both mode (CUBA/COBA) for the three simulators with pretty nice similar result
+------------------------------------------------------------------------
+r103 | apdavison | 2007-06-08 14:49:03 +0200 (Fri, 08 Jun 2007) | 3 lines
+
+Changed the order of arguments in `random.RandomDistribution.__init__()` to put `rng` last, since this is the argument for which the default is most often used (moving it lets positional arguments be used for `distribution` and `parameters` when `rng` is not specified).
+
+This uncovered various bugs, which have been fixed.
+------------------------------------------------------------------------
+r102 | apdavison | 2007-06-08 13:41:23 +0200 (Fri, 08 Jun 2007) | 1 line
+
+Small modification to refrac.mod, allowing the elimination of one NetCon, although it makes essentially no difference to performance.
+------------------------------------------------------------------------
+r100 | apdavison | 2007-06-07 17:14:33 +0200 (Thu, 07 Jun 2007) | 16 lines
+
+Merged [source:/branches/improved-ID@99 improved-ID branch] changes !r93:99 to trunk.
+
+Changes to `ID` class:
+  * `_cellclass` attribute renamed to `cellclass` and is now a [http://www.geocities.com/foetsch/python/new_style_classes.htm property].
+  * Ditto for `_position` --> `position`
+  * Methods `setPosition()`, `getPosition()`, `setCellClass()` removed (just use the `position` or `cellclass` properties).
+  * `set(param,val=None)` changed to `setParameters(**parameters)`.
+  * Added `getParameters()`
+  * `__setattr__()` and `__getattr__()` overridden, so that cell parameters can be read/changed using dot notation, e.g. `id.tau_m = 20.0`
+
+Note that one of the reasons for using properties is that it allows attributes to be created only when needed, hopefully saving on memory.
+
+Changes to `Population` class:
+  * Added `positions` property, which allows the positions of all cells in a population to be set/read at once as a numpy array.
+
+Also note that all positions are now in 3D space.
+------------------------------------------------------------------------
+r98 | Pierre | 2007-06-07 15:12:09 +0200 (Thu, 07 Jun 2007) | 1 line
+
+Addition of the tests files for SpikeSourcePoisson and IF_cond_exp, and minors modifications in oldneurontest
+------------------------------------------------------------------------
+r97 | Pierre | 2007-06-07 14:09:56 +0200 (Thu, 07 Jun 2007) | 1 line
+
+Several changes performed in nest.py, pcsim.py and neuron.py. The threads can now be used in nest and pcsim, via the extra_param option of the setup() function. Moreover, the full classes IF_cond/curr_exp/alpha are now working with the three simulators, but to performed this you have to UPDATE pynest and to fix the CompositeLifNeuron.h file in pcsim. Others small bugs are corrected in the SpikeSourcePoisson in nest (duration pb), and to check the impact of all those changes on the tests. To do that, a uniformization of all the tests have been made, to check be sure to stress all the parameters for the models. A very rough test have also been added to test the SpikeSourcePoisson model, but is still not finished
+------------------------------------------------------------------------
+r92 | eppler | 2007-06-05 15:27:56 +0200 (Tue, 05 Jun 2007) | 2 lines
+
+Removed illegal character mu (\xc2), which provoked an error on my system
+
+------------------------------------------------------------------------
+r91 | eppler | 2007-06-05 15:20:39 +0200 (Tue, 05 Jun 2007) | 3 lines
+
+Re-added logging, which has been disabled due to problems in PyNEST.
+The problem is fixed as of revision 6223 in NEST SVN.
+
+------------------------------------------------------------------------
+r87 | apdavison | 2007-06-05 08:59:00 +0200 (Tue, 05 Jun 2007) | 1 line
+
+More minor refactoring of `neuron.py`
+------------------------------------------------------------------------
+r86 | apdavison | 2007-06-04 17:23:07 +0200 (Mon, 04 Jun 2007) | 24 lines
+
+Added some iterators to the Population class. Best illustrated by an example:
+{{{
+#!python
+>>> p = Population((2,3), IF_curr_exp)
+>>> p[1,1].set('tau_m',15.0)
+>>> for id in p:
+...   print id, id.tau_m
+...
+1 20.0
+2 20.0
+3 20.0
+4 20.0
+5 15.0
+6 20.0
+>>> for addr in p.addresses():
+...   print addr
+...
+(0, 0)
+(0, 1)
+(0, 2)
+(1, 0)
+(1, 1)
+(1, 2)
+}}}
+------------------------------------------------------------------------
+r85 | debeissat | 2007-06-04 17:15:45 +0200 (Mon, 04 Jun 2007) | 1 line
+
+update method with neuron.py model and implement some projection method
+------------------------------------------------------------------------
+r83 | apdavison | 2007-05-25 17:44:48 +0200 (Fri, 25 May 2007) | 1 line
+
+A little refactoring of `neuron.py`: created a `Projection.__connect()` method which factors out some of the common code from the connection methods.
+------------------------------------------------------------------------
+r82 | apdavison | 2007-05-25 15:34:47 +0200 (Fri, 25 May 2007) | 1 line
+
+Added Hodgkin-Huxley point model to hoc/standardCells.hoc
+------------------------------------------------------------------------
+r81 | apdavison | 2007-05-24 17:26:08 +0200 (Thu, 24 May 2007) | 1 line
+
+Trunk is now version 0.4alpha
+------------------------------------------------------------------------
+r79 | apdavison | 2007-05-24 15:03:29 +0200 (Thu, 24 May 2007) | 4 lines
+
+Ported documentation changes from branches/0.3/doc
+{{{
+svn merge -r 76:HEAD https://neuralensemble.kip.uni-heidelberg.de/svn/PyNN/branches/0.3/doc
+}}}
+
+===========
+Release 0.3
+===========
+
+------------------------------------------------------------------------
+r75 | apdavison | 2007-05-24 11:39:45 +0200 (Thu, 24 May 2007) | 1 line
+
+docstring changes to ensure consistency between modules
+------------------------------------------------------------------------
+r74 | apdavison | 2007-05-24 11:30:20 +0200 (Thu, 24 May 2007) | 1 line
+
+Renamed the PCSIM unit test scripts to have the same naming scheme as the other simulators.
+------------------------------------------------------------------------
+r73 | apdavison | 2007-05-24 11:03:58 +0200 (Thu, 24 May 2007) | 1 line
+
+Multiple bug-fixes/method implementations to `neuron.py` to make it run all the doctests.
+------------------------------------------------------------------------
+r72 | emuller | 2007-05-23 19:01:15 +0200 (Wed, 23 May 2007) | 3 lines
+
+fix to sim.set
+
+
+------------------------------------------------------------------------
+r71 | Pierre | 2007-05-23 09:11:16 +0200 (Wed, 23 May 2007) | 1 line
+
+Modification of the VA benchmarks that is now also working with the Conductance Based synapses (alpha).
+------------------------------------------------------------------------
+r70 | apdavison | 2007-05-22 17:32:59 +0200 (Tue, 22 May 2007) | 8 lines
+
+* Improvements to the doc/testdocs.py script. 
+* Changed `printSpikes()` back to `_printSpikes()`, since it is not part of the API (this can be discussed). If you need to use it, do something like
+{{{
+#!python
+from pyNN.nest import _printSpikes
+}}}
+* Minor additions to the documentation
+* Implemented a half-working `__getattr__()` method for the `ID` class in `nest`.
+------------------------------------------------------------------------
+r69 | JensKremkow | 2007-05-18 18:51:48 +0200 (Fri, 18 May 2007) | 1 line
+
+changed _printSpike to printSpike_ because the first one could not call, and also added # line in t the output to have same format as printSpike from Population
+------------------------------------------------------------------------
+r68 | eppler | 2007-05-18 16:08:43 +0200 (Fri, 18 May 2007) | 2 lines
+
+Fixed Population(). The rest is still not working...
+
+------------------------------------------------------------------------
+r67 | JensKremkow | 2007-05-18 13:55:09 +0200 (Fri, 18 May 2007) | 1 line
+
+added nest2.py for pynest of NEST2, I does not work yet.
+------------------------------------------------------------------------
+r66 | apdavison | 2007-05-18 12:35:38 +0200 (Fri, 18 May 2007) | 1 line
+
+Continued writing doc/highlevel.txt, and improved  the implementation of various methods in the `nest.Projection` class.
+------------------------------------------------------------------------
+r65 | apdavison | 2007-05-16 20:05:37 +0200 (Wed, 16 May 2007) | 3 lines
+
+* Wrote a large part of doc/highlevelapi.txt
+
+* Numerous bug fixes due to bugs discovered by running doctest on doc/highlevelapi.txt (see doc/testdocs.py)
+------------------------------------------------------------------------
+r64 | apdavison | 2007-05-15 15:31:51 +0200 (Tue, 15 May 2007) | 1 line
+
+Added trac format as an output option for wikidoc.py
+------------------------------------------------------------------------
+r63 | apdavison | 2007-05-15 14:21:26 +0200 (Tue, 15 May 2007) | 1 line
+
+`ID.set()` now works in the `pcsim` module.
+------------------------------------------------------------------------
+r62 | apdavison | 2007-05-15 13:43:17 +0200 (Tue, 15 May 2007) | 2 lines
+
+* Added some unit tests relating to the ID class 
+* Added an (as yet non-functioning) ID class to the `pcsim` module.
+------------------------------------------------------------------------
+r61 | apdavison | 2007-05-14 16:33:51 +0200 (Mon, 14 May 2007) | 5 lines
+
+VAbenchmarks.py now runs with NEURON, NEST and PCSIM. Yay!
+
+PCSIM does not yet support using a `NumpyRNG` instance to determine the connections, so the connectivity is not the same as in NEURON and NEST, but the spike statistics look convincingly similar.
+
+Note that I have also added a `utility` module, which at the moment just contains a `notify()` function to send yourself an e-mail when the simulation has finished. Maybe this should go in NeuroTools?
+------------------------------------------------------------------------
+r60 | apdavison | 2007-05-14 16:26:16 +0200 (Mon, 14 May 2007) | 1 line
+
+The behaviour of the `run()` function in the `neuron` module has been changed to match the `nest` and `pcsim` modules, i.e., calling `run(simtime)` several times in succession will advance the simulation by `simtime` ms each time, whereas before, `neuron` would reset time to zero each time.
+------------------------------------------------------------------------
+r59 | apdavison | 2007-05-14 11:26:11 +0200 (Mon, 14 May 2007) | 1 line
+
+The nest module now deals properly with synaptic weights, i.e. ensures that weights are negative if synapse_type == 'inhibitory'
+------------------------------------------------------------------------
+r58 | apdavison | 2007-05-14 11:24:18 +0200 (Mon, 14 May 2007) | 1 line
+
+The pcsim module now has the IF_cond_alpha model, and does weight unit conversions correctly for both current- and conductance-based synapses.
+------------------------------------------------------------------------
+r57 | apdavison | 2007-05-14 10:22:18 +0200 (Mon, 14 May 2007) | 1 line
+
+Assorted fixes to pcsim.py, notably in Population.locate(), and Population.tset().
+------------------------------------------------------------------------
+r56 | JensKremkow | 2007-05-12 10:12:35 +0200 (Sat, 12 May 2007) | 1 line
+
+added test_delay in nest.py
+------------------------------------------------------------------------
+r55 | JensKremkow | 2007-05-12 00:12:16 +0200 (Sat, 12 May 2007) | 1 line
+
+3D Gauss edited, problems with the delays, somehow they are set to min_delay and not to the desired values??
+------------------------------------------------------------------------
+r53 | apdavison | 2007-05-11 15:58:32 +0200 (Fri, 11 May 2007) | 2 lines
+
+Some progress on harmonising header information in text files. All modules now put `dt` and `n` in the header. Putting the population dimensions in the header is more difficult, because then there is a format difference between files produced by Population.recordX() and files produced by recordX(). 
+Also converted some tabs to spaces.
+------------------------------------------------------------------------
+r52 | apdavison | 2007-05-11 15:14:16 +0200 (Fri, 11 May 2007) | 1 line
+
+Minor changes to ensure API and docstring consistency between modules.
+------------------------------------------------------------------------
+r51 | apdavison | 2007-05-11 13:54:50 +0200 (Fri, 11 May 2007) | 1 line
+
+Made PyTables optional in pcsim.py
+------------------------------------------------------------------------
+r50 | apdavison | 2007-05-11 13:42:50 +0200 (Fri, 11 May 2007) | 1 line
+
+The recent changes to pcsim.py had broken some of the unit tests. These have been fixed, although pcsim.py doesn't yet implement an ID class.
+------------------------------------------------------------------------
+r49 | debeissat | 2007-05-11 12:46:13 +0200 (Fri, 11 May 2007) | 1 line
+
+implementing Projection constructor, a writeDocument(url) function which dumps the xml in a file, and adding facetsmsltest.py test class
+------------------------------------------------------------------------
+r47 | apdavison | 2007-05-11 11:06:16 +0200 (Fri, 11 May 2007) | 3 lines
+
+More small bug-fixes and corrections to docstrings. 
+runtests.py has been improved so that it runs all tests even if there is an Exception in one of them. 
+All the current runtests pass except IF_cond_alpha.py, since we are missing this neuron type in PCSIM.
+------------------------------------------------------------------------
+r46 | debeissat | 2007-05-10 16:44:55 +0200 (Thu, 10 May 2007) | 1 line
+
+changing tabs to 4 spaces, no other conventions broken I think?
+------------------------------------------------------------------------
+r45 | apdavison | 2007-05-10 16:14:54 +0200 (Thu, 10 May 2007) | 1 line
+
+Numerous bug-fixes to pcsim.py. It now runs the IF_curr_exp.py test correctly. The main changes involve units. PCSIM seems to use SI units for everything (V,A, s, etc) whereas PyNN uses mV, nA, ms, etc. The conversions were not being done within PyNN. There is still (probably) a problem for synaptic weights, as the conversion factor from A to nA is 1e9 while that from S to uS is 1e6, but I haven't tested conductance-based synapses yet.
+------------------------------------------------------------------------
+r44 | apdavison | 2007-05-10 16:09:08 +0200 (Thu, 10 May 2007) | 1 line
+
+Change to neuron and oldneuron to match more closely the behaviour of nest and pcsim when the synapse_type argument is not given in connect(). Before, neuron would by default choose an excitatory synapse. Now, it chooses an inhibitory synapse if the weight is negative. None of this is very satisfactory. A thorough overall of synapse types is needed.
+------------------------------------------------------------------------
+r43 | apdavison | 2007-05-10 16:06:33 +0200 (Thu, 10 May 2007) | 1 line
+
+runtests.py now runs tests for pcsim as well as nest, neuron and oldneuron (not that the tests all pass yet...)
+------------------------------------------------------------------------
+r42 | debeissat | 2007-05-10 15:41:00 +0200 (Thu, 10 May 2007) | 1 line
+
+implementing Population constructor in order to output a valid neuroML, still lots of things to discuss. Usage : from pyNN.facetsml import * then pop1 = Population((3,3),"IF_curr_alpha","cellGroupA")
+------------------------------------------------------------------------
+r41 | Pierre | 2007-05-10 12:00:56 +0200 (Thu, 10 May 2007) | 1 line
+
+Modification of .hoc file to fix a bug concerning the v_init parameter, and of the IF_cond_alpha test to be sure to adress excitatory and inhibitory synapses with different properties. All the tests are passed, but modification of nest-1.0.13/nest/iaf_cond_neuron.cpp is needed to be able to set v_init for this model in nest : near line 230, add the two following lines of code #if (updateValue<double>(d,u,y[0])) and #y[0] -= U0_;. Then recompile nest and it should works.
+------------------------------------------------------------------------
+r40 | apdavison | 2007-05-09 22:39:01 +0200 (Wed, 09 May 2007) | 1 line
+
+Wrote first draft of docs/standardmodels.txt
+------------------------------------------------------------------------
+r39 | JensKremkow | 2007-05-09 11:11:17 +0200 (Wed, 09 May 2007) | 1 line
+
+corrected rng bug in connect, self.rng.uniform --> rng.rng.uniform
+------------------------------------------------------------------------
+r38 | apdavison | 2007-05-08 11:45:05 +0200 (Tue, 08 May 2007) | 1 line
+
+doc/lowlevelapi.txt is now almost complete, just needs a commented example to be added and a couple of things checked. Note that this is in reStructuredText format, which can be converted to HTML, LaTeX, etc using docutils, and is also an accepted format for the Trac wiki.
+------------------------------------------------------------------------
+r36 | apdavison | 2007-05-07 14:15:08 +0200 (Mon, 07 May 2007) | 1 line
+
+Removed the dependency of common.py on pypcsim.py, by overwriting the translate method of the SpikeSourcePoisson class.
+------------------------------------------------------------------------
+r35 | apdavison | 2007-05-07 14:07:14 +0200 (Mon, 07 May 2007) | 1 line
+
+Minor improvements to checkAPI.py: now checks for consistency of default argument values.
+------------------------------------------------------------------------
+r34 | apdavison | 2007-05-07 14:05:47 +0200 (Mon, 07 May 2007) | 1 line
+
+Minor changes to arg names and doc-strings, to improve API-consistency between modules.
+------------------------------------------------------------------------
+r33 | apdavison | 2007-05-07 13:39:53 +0200 (Mon, 07 May 2007) | 1 line
+
+Changed indentation from 5 to 4 spaces in pcsim.Population and pcsim.Projection
+------------------------------------------------------------------------
+r32 | JensKremkow | 2007-05-03 17:22:04 +0200 (Thu, 03 May 2007) | 1 line
+
+removed Projection _2D_rcf; added _3D_Gauss
+------------------------------------------------------------------------
+r31 | apdavison | 2007-05-03 15:51:21 +0200 (Thu, 03 May 2007) | 1 line
+
+Fixed a bug in the Population.locate() function.
+------------------------------------------------------------------------
+r30 | apdavison | 2007-05-03 14:31:46 +0200 (Thu, 03 May 2007) | 1 line
+
+Moved the checkAPI.py script to the tests directory, as that seems to be a more natural place for it.
+------------------------------------------------------------------------
+r29 | apdavison | 2007-05-02 22:49:45 +0200 (Wed, 02 May 2007) | 1 line
+
+Began writing doc/lowlevelapi.txt
+------------------------------------------------------------------------
+r28 | apdavison | 2007-05-01 08:20:04 +0200 (Tue, 01 May 2007) | 1 line
+
+Added some (mostmy empty) documentation files in reStructuredText format
+------------------------------------------------------------------------
+r27 | dejan | 2007-04-30 16:26:28 +0200 (Mon, 30 Apr 2007) | 1 line
+
+Yet another commit: Put pypcsim in try catch so that users without pypcsim can run common.py
+------------------------------------------------------------------------
+r26 | dejan | 2007-04-30 16:24:52 +0200 (Mon, 30 Apr 2007) | 1 line
+
+Another update so the new changes in common and random are compatible with pyNN.pcsim
+------------------------------------------------------------------------
+r25 | dejan | 2007-04-30 16:01:16 +0200 (Mon, 30 Apr 2007) | 1 line
+
+Corrected some minor errors in the PyNN.pcsim unittests
+------------------------------------------------------------------------
+r24 | apdavison | 2007-04-30 15:51:45 +0200 (Mon, 30 Apr 2007) | 1 line
+
+Minor fix to tests/runtests.py: the glob pattern didn't work any more now that neuron->oldneuron and neuron2->neuron
+------------------------------------------------------------------------
+r23 | apdavison | 2007-04-30 15:20:10 +0200 (Mon, 30 Apr 2007) | 1 line
+
+Renamed "neuron2" module to "neuron"
+------------------------------------------------------------------------
+r22 | apdavison | 2007-04-30 15:10:32 +0200 (Mon, 30 Apr 2007) | 1 line
+
+neuron.py did not get deleted in the last commit
+------------------------------------------------------------------------
+r21 | apdavison | 2007-04-30 15:09:33 +0200 (Mon, 30 Apr 2007) | 1 line
+
+Renamed "neuron" module to "oldneuron"
+------------------------------------------------------------------------
+r20 | apdavison | 2007-04-30 13:36:50 +0200 (Mon, 30 Apr 2007) | 2 lines
+
+Significant change to neuron2.py, making use of the hoc gid2cell() function rather than storing hoc_name in python. This makes it much easier to mix the high- and low-level APIs, e.g. to connect() cells that are in Populations.
+IMPORTANT: all the unit tests pass, but it is possible that some bug not covered by the tests has been introduced, so please check all your neuron2 simulations.
+------------------------------------------------------------------------
+r19 | apdavison | 2007-04-30 13:12:44 +0200 (Mon, 30 Apr 2007) | 1 line
+
+Fixed a couple of bugs in pcsim.py and test/pyNNPcsimLowLevelTest.py
+------------------------------------------------------------------------
+r18 | apdavison | 2007-04-27 11:49:21 +0200 (Fri, 27 Apr 2007) | 1 line
+
+Added a MANIFEST.in file, so that the hoc and test directories are added to the source distribution. I can't yet get the hoc files to be installed, though.
+------------------------------------------------------------------------
+r17 | apdavison | 2007-04-27 11:00:12 +0200 (Fri, 27 Apr 2007) | 1 line
+
+Added an experimental script to detect existing Python-enabled NEURON installations and download/install NEURON if necessary.
+------------------------------------------------------------------------
+r16 | Pierre | 2007-04-25 16:43:19 +0200 (Wed, 25 Apr 2007) | 1 line
+
+Modifications for the compatible outputs of pyNN.nest and pyNN.neuron, even for the low level API. The syntax of those compatible formats is still open, but a compatible_output parameter allow the user to keep the previous outputs of pyNN.nest. Note that you HAVE TO UPDATE your pynest version to deal with membrane potentials recordings. Morevoer, there is an attemp to add into pyNN the conductance based IF with alpha synapses, as it is defined in iaf_cond_neuron, but for the moment this type has not been too much tested. pyNN.nest does not allow to address excitatory or inhibitory synapses. Minors changed have also been performed to change the loop in range() into in xrange(), to save memory.
+------------------------------------------------------------------------
+r15 | apdavison | 2007-04-25 14:14:29 +0200 (Wed, 25 Apr 2007) | 1 line
+
+Added additional type checks and more informative docstrings and error messages to the RandomDistribution class
+------------------------------------------------------------------------
+r14 | apdavison | 2007-04-24 15:10:15 +0200 (Tue, 24 Apr 2007) | 2 lines
+
+* Temporary files used for saving spikes and membrane potential are now created using the tempfile module, which means it should be safe to run multiple PyNN simulations at the same time (before, they would all overwrite the same file). Thanks to Jens for this fix. 
+* Jens also added '2D_Gauss' and 'rcf_2D' connection methods.
+------------------------------------------------------------------------
+r13 | LaurentPerrinet | 2007-04-23 18:29:55 +0200 (Mon, 23 Apr 2007) | 1 line
+
+ test 
+------------------------------------------------------------------------
+r12 | apdavison | 2007-04-23 17:53:43 +0200 (Mon, 23 Apr 2007) | 1 line
+
+Fixed a bug in the record() function in nest.py (thanks to Daniel Bruederle for pointing it out), and wrote some simple unit tests for it.
+------------------------------------------------------------------------
+r11 | Thierry.Vieville | 2007-04-20 19:09:09 +0200 (Fri, 20 Apr 2007) | 1 line
+
+
+------------------------------------------------------------------------
+r10 | emuller | 2007-04-20 18:56:41 +0200 (Fri, 20 Apr 2007) | 3 lines
+
+README contains Trac URL
+
+
+------------------------------------------------------------------------
+r9 | emuller | 2007-04-19 17:10:53 +0200 (Thu, 19 Apr 2007) | 3 lines
+
+README contains svn instructions
+
+
+------------------------------------------------------------------------
+r8 | davison | 2007-04-16 18:49:03 +0200 (Mon, 16 Apr 2007) | 1 line
+
+Changed the implementation of the nest.Population.locate() method to match the same method in neuron2. This implementation is much faster, and its speed no longer depends on Population size, but is less foolproof as it makes the assumption that the gids (returned by NEST) in the Population.cell array are always consecutive. I think this assumption is always valid, but a unit test is needed to check it.
+------------------------------------------------------------------------
+r7 | davison | 2007-04-16 17:24:55 +0200 (Mon, 16 Apr 2007) | 1 line
+
+Started working on distutils setup script (not yet working).
+------------------------------------------------------------------------
+r6 | davison | 2007-04-16 17:24:06 +0200 (Mon, 16 Apr 2007) | 1 line
+
+Fixed indentation and a few API inconsistencies in pcsim module.
+------------------------------------------------------------------------
+r5 | davison | 2007-04-16 17:01:24 +0200 (Mon, 16 Apr 2007) | 1 line
+
+Set EOL-style to native on all files
+------------------------------------------------------------------------
+r4 | davison | 2007-04-16 16:59:26 +0200 (Mon, 16 Apr 2007) | 1 line
+
+Set ID and Revision keyword substitution on all files.
+------------------------------------------------------------------------
+r3 | davison | 2007-04-16 16:58:22 +0200 (Mon, 16 Apr 2007) | 1 line
+
+Synchronised with FACETSCOMMON (r163) repository (post Code-Jam).
+------------------------------------------------------------------------
+r2 | davison | 2007-04-16 16:56:43 +0200 (Mon, 16 Apr 2007) | 1 line
+
+Imported pcsim module and tests from the FACETSCOMMON repository (r163).
+------------------------------------------------------------------------
+r1 | davison | 2007-04-03 16:07:27 +0200 (Tue, 03 Apr 2007) | 3 lines
+
+initial import of PyNN to neuralensemble svn
+
+
+------------------------------------------------------------------------
+
+
+-- From GForge ---
+------------------------------------------------------------------------
+r20 | apdavison | 2007-04-16 17:09:11 +0200 (Mon, 16 Apr 2007) | 1 line
+
+Synchronised with neuralensemble repository, r5
+------------------------------------------------------------------------
+r19 | apdavison | 2007-03-31 17:02:36 +0200 (Sat, 31 Mar 2007) | 1 line
+
+Couple of minor fixes
+------------------------------------------------------------------------
+r18 | apdavison | 2007-03-31 15:26:43 +0200 (Sat, 31 Mar 2007) | 1 line
+
+Changed random.py so pygsl is not an absolute requirement but can be used if available
+------------------------------------------------------------------------
+r17 | apdavison | 2007-02-15 15:15:07 +0100 (Thu, 15 Feb 2007) | 1 line
+
+Changed the behaviour of Population indexing in the nest module to be more consistent with the neuron2 module, in two ways. (i) Previously, addresses with negative addresses were accepted in nest.py, giving a wrap-around behaviour. Now, they raise an IndexError. (neuron2 raises an AssertionError, so we are not totally consistent yet). (ii) Previously, an integer index n signified the (n+1)th neuron in the population, e.g., p[99] would be the same as p[10,10] for a 10x10 population. Now, p[99] is the same as p[99,] and is only valid for a 1D population. The previous behaviour was quite nice, but it was perhaps confusing to have two different possibly types of argument.
+------------------------------------------------------------------------
+r16 | apdavison | 2007-01-30 14:49:40 +0100 (Tue, 30 Jan 2007) | 2 lines
+
+* Changed version number to 0.3
+* Committed some changes to nest.py (filling out the implementation of the API) which were missed in the initial import (presumably because the FACETSCOMMON repos was not synchronised with my local repository).
+------------------------------------------------------------------------
+r15 | apdavison | 2007-01-30 14:10:19 +0100 (Tue, 30 Jan 2007) | 1 line
+
+Tagged release 0.2.0
+------------------------------------------------------------------------
+r14 | apdavison | 2007-01-30 14:09:03 +0100 (Tue, 30 Jan 2007) | 1 line
+
+Removed ID class from the 0.2 branch. Possibly some things related to distance-dependence may have been broken. Presence of the ID class now defines API version >= 0.3.
+------------------------------------------------------------------------
+r13 | apdavison | 2007-01-26 13:37:50 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Fixed a few inconsistencies in the API between common, neuron, nest, neuron2 modules. Still need to harmonize set() function, which has an extra argument in neuron2.
+------------------------------------------------------------------------
+r12 | apdavison | 2007-01-26 11:43:06 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Deleted branches/0.2/facetsml.py
+------------------------------------------------------------------------
+r11 | apdavison | 2007-01-26 11:41:57 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Deleted branches/0.2/misc
+------------------------------------------------------------------------
+r10 | apdavison | 2007-01-26 11:41:08 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Created a branch for API version 0.2
+------------------------------------------------------------------------
+r9 | apdavison | 2007-01-26 11:40:41 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Deleted branches/0.2
+------------------------------------------------------------------------
+r8 | apdavison | 2007-01-26 11:40:15 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Created a branch for API version 0.2
+------------------------------------------------------------------------
+r7 | apdavison | 2007-01-26 11:39:29 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Deleted branches/0.2/trunk
+------------------------------------------------------------------------
+r6 | apdavison | 2007-01-26 11:38:24 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Created a branch for API version 0.2
+------------------------------------------------------------------------
+r5 | apdavison | 2007-01-26 11:36:54 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Created directory branches/0.2
+----------------avison | 2007-01-26 11:36:35 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Deleted branches/stable
+------------------------------------------------------------------------
+r3 | apdavison | 2007-01-26 11:33:44 +0100 (Fri, 26 Jan 2007) | 1 line
+
+Created directory branches/stable
+------------------------------------------------------------------------
+r2 | apdavison | 2007-01-25 13:05:02 +0100 (Thu, 25 Jan 2007) | 1 line
+
+Forgot to add STDP mod files
+------------------------------------------------------------------------
+r1 | apdavison | 2007-01-25 12:55:07 +0100 (Thu, 25 Jan 2007) | 1 line
+
+Imported revision number 78 from https://www.kip.uni-heidelberg.de/repos/FACETSCOMMON/pyNN/trunk (equivalent to revision 284 in Andrew's local repository)
+------------------------------------------------------------------------
+
+
+
+-- From FACETSCOMMON --
+------------------------------------------------------------------------
+r152 | Pierre | 2007-04-04 17:43:10 +0200 (Wed, 04 Apr 2007) | 1 line
+
+Correction of a minor bug in record() method
+------------------------------------------------------------------------
+r146 | Pierre | 2007-04-03 18:19:16 +0200 (Tue, 03 Apr 2007) | 1 line
+
+Tentative for unifying the outputs of NEST and neuron concerning the spikes and the membrane potential. Now outputs of the two simulators should be identical. Addition of tests methods to validate this unification. Should be improved or continued during the CodeJam meeting
+------------------------------------------------------------------------
+r145 | dejan | 2007-04-03 14:57:21 +0200 (Tue, 03 Apr 2007) | 3 lines
+
+Added first experimental version of pcsim implementation of pyNN api.
+- passed unittests as they were specified for neuron2 implementation
+- VABenchmarks still not tested.
+------------------------------------------------------------------------
+r144 | apdavison | 2007-03-31 17:07:49 +0200 (Sat, 31 Mar 2007) | 1 line
+
+Synchronised with INRIA GForge revision 19
+------------------------------------------------------------------------
+r80 | apdavison | 2007-01-25 13:06:01 +0100 (Thu, 25 Jan 2007) | 1 line
+
+Forgot to add STDP mod files
+------------------------------------------------------------------------
+r78 | apdavison | 2007-01-25 11:36:59 +0100 (Thu, 25 Jan 2007) | 6 lines
+
+* Addition of ID class (inherits from int), allowing syntax like p[3,4].set('tau_m',20.0) where p is a Population object.
+* Many, many optimisations to neuron2.
+* Improved logging facilities.
+* Change to the storage of connection information in nest.Projection, to allow the implementation of saveConnections().
+* Some bug-fixes (notably in refrac.mod).
+* Many minor improvements.
+------------------------------------------------------------------------
+r46 | apdavison | 2006-12-08 13:23:12 +0100 (Fri, 08 Dec 2006) | 1 line
+
+Fixed a bug in  nest.Projection.setWeights() (it was only working for 1D populations, not 2D).
+------------------------------------------------------------------------
+r43 | apdavison | 2006-12-08 11:17:30 +0100 (Fri, 08 Dec 2006) | 1 line
+
+Considerable work on the neuron2 module to get print and record functions working properly when run on multiple nodes, plus minor changes,fixes,improvements elsewhere.
+------------------------------------------------------------------------
+r39 | apdavison | 2006-11-24 14:33:09 +0100 (Fri, 24 Nov 2006) | 1 line
+
+Implemented Population._oneToOne() method in neuron2 module.
+------------------------------------------------------------------------
+r37 | apdavison | 2006-11-11 12:24:13 +0100 (Sat, 11 Nov 2006) | 8 lines
+
+The major change is that the neuron2 module now supports distributed simulations using NEURON compiled with both MPI and Python support. Note that a patch to the current version of NEURON is needed for this (contact Andrew for this).
+
+Minor changes/fixes:
+* Population[xx] syntax for getting individual cell ids improved. You can now write p[2,3] instead of p[(2,3)].
+* v_init added as a parameter to the IF_curr_alpha, etc, models.
+* Improvements to the HocToPy class in the neuron and neuron2 modules: notably, if you try to get a variable that doesn't exist, a Python exception, HocError, will be raised.
+* Some refactoring of the neuron module to remove redundancies and make it easier to put comments in the log file.
+* If synaptic delay is not specified, delays are now set to min_delay, not zero (d'oh!).
+------------------------------------------------------------------------
+r32 | apdavison | 2006-11-01 15:45:15 +0100 (Wed, 01 Nov 2006) | 2 lines
+
+* A few small fixes due to updating to the latest version of pynest, which requires numpy version >= 1.0rc1.
+* Improvements to wikidoc.py
+------------------------------------------------------------------------
+r31 | apdavison | 2006-11-01 13:04:41 +0100 (Wed, 01 Nov 2006) | 1 line
+
+Random number API allows keeping control of the random numbers used in simulations, by passing an RNG object as an argument to functions that use RNGs. random module has wrappers for NumPy RNGs and GSL RNGs, as well as a stub class to indicate the simulator's native RNG should be used (i.e., the Random class in hoc).
+------------------------------------------------------------------------
+r30 | apdavison | 2006-10-31 15:09:35 +0100 (Tue, 31 Oct 2006) | 1 line
+
+Added some files that were missed from the last commit.
+------------------------------------------------------------------------
+r29 | apdavison | 2006-10-31 15:07:41 +0100 (Tue, 31 Oct 2006) | 1 line
+
+Assorted changes: filling-in unimplemented bits of the API, some bug-fixes in the hoc files, beginnings of a project to make the use of random number generators more consistent.
+------------------------------------------------------------------------
+r28 | apdavison | 2006-10-25 11:20:36 +0200 (Wed, 25 Oct 2006) | 1 line
+
+Changed the version number to 0.2, to reflect the API change (models passed as classes instead of strings).
+------------------------------------------------------------------------
+r27 | apdavison | 2006-10-25 11:18:02 +0200 (Wed, 25 Oct 2006) | 7 lines
+
+Major change: translation of model and parameter names from standardised names to simulator-specific names now uses one class per neuron model, rather than a single class with one method per model.
+For users, the only difference is that you have to use, e.g.,
+create(IF_curr_alpha)
+instead of
+create('IF_curr_alpha')
+i.e., pass the class instead of a string.
+For developers, it should now be easier to add new standard models. Much of the code has now been factored out into common.py, for a saving of about 100 lines of code overall.
+------------------------------------------------------------------------
+r26 | apdavison | 2006-10-23 17:44:39 +0200 (Mon, 23 Oct 2006) | 2 lines
+
+* Can now use simulator-native cell types, not just 'Standard Cells'.
+* A few other small changes.
+------------------------------------------------------------------------
+r23 | apdavison | 2006-09-29 11:39:12 +0200 (Fri, 29 Sep 2006) | 1 line
+
+More error checking and minor changes for compatibility with recent versions of numpy.
+------------------------------------------------------------------------
+r22 | apdavison | 2006-09-28 15:31:49 +0200 (Thu, 28 Sep 2006) | 1 line
+
+Added some error checking to tset()
+------------------------------------------------------------------------
+r21 | apdavison | 2006-09-28 14:17:50 +0200 (Thu, 28 Sep 2006) | 2 lines
+
+* Changed calls to numpy.shape(), since this has changed between numpy version 0.9.6. and 1.0rc1
+* Set $Id:$ substitution for all files
+------------------------------------------------------------------------
+r20 | apdavison | 2006-09-28 13:15:12 +0200 (Thu, 28 Sep 2006) | 1 line
+
+Added IF_curr_exp.py test, together with Vogels-Abbott benchmarks
+------------------------------------------------------------------------
+r14 | apdavison | 2006-09-21 13:05:20 +0200 (Thu, 21 Sep 2006) | 3 lines
+
+* Added IF_curr_exp standard model, and associated test.
+* Large changes related to the need to be able to have both excitatory and inhibitory synapses in the same cell, and the need to be able to specify which of these a given presynaptic cell connects to.
+Note that previous versions of VAbenchmark2 were incorrect, because of the above.
+------------------------------------------------------------------------
+r13 | emuller | 2006-09-17 00:26:03 +0200 (Sun, 17 Sep 2006) | 3 lines
+
+sorry not better
+
+
+------------------------------------------------------------------------
+r12 | emuller | 2006-09-16 23:20:01 +0200 (Sat, 16 Sep 2006) | 3 lines
+
+that seems better
+
+
+------------------------------------------------------------------------
+r10 | apdavison | 2006-08-17 16:17:27 +0200 (Thu, 17 Aug 2006) | 1 line
+
+Forgot to delete these files (because they were moved to misc) in the last commit.
+------------------------------------------------------------------------
+r9 | apdavison | 2006-08-17 16:14:11 +0200 (Thu, 17 Aug 2006) | 12 lines
+
+* One minor change to the API:
+-    def randomInit(self,randobj):
++    def randomInit(self,func,*params):
+
+* Added unit tests for nest and neuron modules
+
+* Added various functional tests, which test the equivalence of NEURON and NEST.
+
+* Implemented some more of the API in nest and neuron modules
+
+* Assorted bugfixes
+
+------------------------------------------------------------------------
+r8 | apdavison | 2006-05-29 22:43:50 +0200 (Mon, 29 May 2006) | 2 lines
+
+Import of pyNN release 0.1alpha
+
+------------------------------------------------------------------------
+r7 | apdavison | 2006-05-29 22:39:49 +0200 (Mon, 29 May 2006) | 2 lines
+
+Layout of pyNN project
+
+------------------------------------------------------------------------
+
