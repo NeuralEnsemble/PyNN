@@ -495,41 +495,14 @@ def set(cells,param,val=None):
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
     cellclass must be supplied for doing translation of parameter names."""
-    global gidlist
-    
-    param_dict = checkParams(param,val)
-
-    if type(cellclass) == type and issubclass(cellclass, common.StandardCellType):
-        param_dict = cellclass({}).translate(param_dict)
-    if not isinstance(cells,list):
-        cells = [cells]    
-    hoc_commands = []
-    if cells[0].parent:
-        prefix = "%s.object(%s)" % (cells[0].parent.hoc_label, "%d")
-    else:
-        prefix = "cell%d"
-    for param,val in param_dict.items():
-        if isinstance(val,str):
-            #fmt = 'pc.gid2cell(%d).%s = "%s"'
-            fmt = prefix + '.%s = "%s"'
-        elif isinstance(val,list):
-            cmds,argstr = _hoc_arglist([val])
-            hoc_commands += cmds
-            #fmt = 'pc.gid2cell(%d).%s = %s'
-            fmt = prefix + '.%s = %s'
-            val = argstr
-        else:
-            #fmt = 'pc.gid2cell(%d).%s = %g'
-            fmt = prefix + '.%s = %g'
-        for cell in cells:
-            if cell in gidlist:
-                id = int(cell)
-                if cell.parent:
-                    id = list(cell.parent.cell).index(id) # id=cell.parent.locate(cell)[0]) ??
-                hoc_commands += [fmt % (id, param, val),
-                                 "tmp = %s.param_update()" % prefix % id,]
-                                 #'if (pc.gid2cell(%d) != pc.gid2obj(%d)) { tmp = pc.gid2cell(%d).param_update() }' % (cell,cell,cell)]
-    hoc_execute(hoc_commands, "--- set() ---")
+    if val:
+        param = {param:val}
+    if not hasattr(cells, '__len__'):
+        cells = [cells]
+    # see comment in Population.set() below about the efficiency of the
+    # following
+    for cell in cells:
+        cell.set_parameters(**param)
 
 def record(source,filename):
     """Record spikes to a file. source can be an individual cell or a list of
