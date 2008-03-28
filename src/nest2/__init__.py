@@ -905,11 +905,11 @@ class Projection(common.Projection, WDManager):
     class ConnectionDict:
         """docstring needed."""
 
-        def __init__(self,parent):
+        def __init__(self, parent):
             self.parent = parent
 
         def __getitem__(self, id):
-            """Returns a (source address,target port number) tuple."""
+            """Returns a (source address, target port number) tuple."""
             assert isinstance(id, int)
             return (self.parent._sources[id], self.parent._target_ports[id])
 
@@ -1011,7 +1011,7 @@ class Projection(common.Projection, WDManager):
         In fact, despite the name, this should probably be generalised to the
         case where the pre and post populations have different dimensions, e.g.,
         cell i in a 1D pre population of size n should connect to all cells
-        in row i of a 2D post population of size (n,m).
+        in row i of a 2D post population of size (n, m).
         """
         c = OneToOneConnector()
         return c.connect(self)
@@ -1118,7 +1118,7 @@ class Projection(common.Projection, WDManager):
 
     def _set_connection_values(self, name, value):
         if is_number(value):
-            for src,port in self.connections():
+            for src, port in self.connections():
                 _set_connection(src, port, self._plasticity_model, **{name: value})
         elif isinstance(value, (list, numpy.ndarray)):
             # this is probably not the most efficient way - should sort by src and then use SetConnections?

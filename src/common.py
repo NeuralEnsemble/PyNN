@@ -187,7 +187,7 @@ class IDMixin(object):
 
 
 
-def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.,
+def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
              periodic_boundaries=None): # may need to add an offset parameter
     """
     Return the Euclidian distance between two cells.
@@ -207,7 +207,7 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.,
     return numpy.sqrt(numpy.dot(d, d))
 
 
-def distances(pre, post, mask=None, scale_factor=1.0, offset=0.,
+def distances(pre, post, mask=None, scale_factor=1.0, offset=0.0,
               periodic_boundaries=None):
     """
     Calculate the entire distance matrix at once.
@@ -674,14 +674,14 @@ class Population(object):
         label is an optional name for the population.
         """
         
-        self.dim      = dims
+        self.dim = dims
         if isinstance(dims, int): # also allow a single integer, for a 1D population
             self.dim = (self.dim,)
         else:
             assert isinstance(dims, tuple), "`dims` must be an integer or a tuple."
-        self.label    = label
+        self.label = label
         self.celltype = cellclass
-        self.ndim     = len(self.dim)
+        self.ndim = len(self.dim)
         self.cellparams = cellparams
         self.size = self.dim[0]
         for i in range(1, self.ndim):
@@ -794,7 +794,7 @@ class Population(object):
         `Topographic' call. Call the method methodname() for every cell in the 
         population. The argument to the method depends on the coordinates of the
         cell. objarr is an array with the same dimensions as the Population.
-        e.g. p.tcall("memb_init",vinitArray) calls
+        e.g. p.tcall("memb_init", vinitArray) calls
         p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
         """
         return _abstract_method(self)

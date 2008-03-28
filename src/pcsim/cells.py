@@ -155,9 +155,9 @@ class SpikeSourceArray(common.SpikeSourceArray):
         translated_parameters = super(SpikeSourceArray, cls).translate(parameters)
         # for why we used 'super' here, see http://blogs.gnome.org/jamesh/2005/06/23/overriding-class-methods-in-python/
         # convert from ms to s - should really be done in common.py, but that doesn't handle lists, only arrays
-        if isinstance(translated_parameters['spikeTimes'],list):
+        if isinstance(translated_parameters['spikeTimes'], list):
             translated_parameters['spikeTimes'] = [t*0.001 for t in translated_parameters['spikeTimes']]
-        elif isinstance(translated_parameters['spikeTimes'],numpy.array):
+        elif isinstance(translated_parameters['spikeTimes'], numpy.array):
             translated_parameters['spikeTimes'] *= 0.001 
         return translated_parameters
     
@@ -208,7 +208,7 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     setterMethods = {}
     
     def __init__(self, parameters):
-        common.EIF_cond_alpha_isfa_ista.__init__(self,parameters)              
+        common.EIF_cond_alpha_isfa_ista.__init__(self, parameters)              
         self.parameters['Inoise'] = 0.0
         limited_parameters = {} # problem that Trefract is not implemented
         for k in ('a','b','Vt','Vr','El','gl','Cm','tau_w','slope','Vpeak',

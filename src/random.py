@@ -58,7 +58,7 @@ class NumpyRNG(AbstractRNG):
     def __init__(self, seed=None):
         AbstractRNG.__init__(self, seed)
         self.rng = numpy.random.RandomState()
-        if self.seed  :
+        if self.seed:
             self.rng.seed(self.seed)
         else:
             self.rng.seed()

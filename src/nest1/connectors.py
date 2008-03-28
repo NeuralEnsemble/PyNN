@@ -34,11 +34,11 @@ class WDManager(object):
             if isinstance(weight, RandomDistribution):
                 if weight.name == "uniform":
                     print weight.name, weight.parameters
-                    (w_min,w_max) = weight.parameters
+                    (w_min, w_max) = weight.parameters
                     if w_min >= 0 and w_max >= 0:
                         weight.parameters = (-w_max, -w_min)
                 elif weight.name ==  "normal":
-                    (w_mean,w_std) = weight.parameters
+                    (w_mean, w_std) = weight.parameters
                     if w_mean > 0:
                         weight.parameters = (-w_mean, w_std)
                 else:
@@ -71,7 +71,7 @@ class AllToAllConnector(common.AllToAllConnector, WDManager):
                 delays = [float(delay)]*N
             projection._targets += [post]*N
             projection._sources += source_list
-            projection._targetPorts +=  pynest.convergentConnect(source_list,post,weights,delays)
+            projection._targetPorts +=  pynest.convergentConnect(source_list, post, weights, delays)
         return len(projection._targets)
 
 class OneToOneConnector(common.OneToOneConnector, WDManager):
@@ -92,10 +92,10 @@ class OneToOneConnector(common.OneToOneConnector, WDManager):
                 delays = list(delay.next(N))
             else:
                 delays = [float(delay)]*N
-            for pre,post,w,d in zip(projection._sources,projection._targets,weights, delays):
+            for pre, post, w, d in zip(projection._sources, projection._targets, weights, delays):
                 pre_addr = pynest.getAddress(pre)
                 post_addr = pynest.getAddress(post)
-                projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr,w,d))
+                projection._targetPorts.append(pynest.connectWD(pre_addr, post_addr, w, d))
             return projection.pre.size
         else:
             raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
@@ -114,7 +114,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, WDManager):
                 rarr = projection.rng.uniform(0,1,(npre,)) # what about NativeRNG?
             else:
                 rarr = numpy.random.uniform(0,1,(npre,))
-            source_list = numpy.compress(numpy.less(rarr,self.p_connect),presynaptic_neurons).tolist()
+            source_list = numpy.compress(numpy.less(rarr, self.p_connect), presynaptic_neurons).tolist()
             # if self connections are not allowed, check whether pre and post are the same
             if not self.allow_self_connections and post in source_list:
                 source_list.remove(post)
@@ -129,7 +129,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, WDManager):
                 delays = [float(delay)]*N
             projection._targets += [post]*N
             projection._sources += source_list
-            projection._targetPorts += pynest.convergentConnect(source_list,post,weights,delays)
+            projection._targetPorts += pynest.convergentConnect(source_list, post, weights, delays)
         return len(projection._sources)
     
 class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector, WDManager):
@@ -144,7 +144,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 dimensions = projection.post.dim
             else:
                 dimensions = [0,0,0]
-            periodic_boundaries = numpy.concatenate((dimensions,numpy.zeros(3-len(dimensions))))
+            periodic_boundaries = numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions))))
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         # what about NativeRNG?
@@ -172,7 +172,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                     if p >= 1 or (0 < p < 1 and rarr[j] < p):
                         source_list.append(pre)
                         #projection._targets.append(post)
-                        #projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr,weight,delay)) 
+                        #projection._targetPorts.append(pynest.connectWD(pre_addr, post_addr, weight, delay)) 
                 j += 1
                 idx_pre += 1
             N = len(source_list)
@@ -186,7 +186,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 delays = [float(delay)]*N
             projection._targets += [post]*N
             projection._sources += source_list
-            projection._targetPorts += pynest.convergentConnect(source_list,post,weights,delays)
+            projection._targetPorts += pynest.convergentConnect(source_list, post, weights, delays)
         return len(projection._sources)
     
 
@@ -213,7 +213,7 @@ class FromListConnector(common.FromListConnector):
             post_addr = pynest.getAddress(tgt)
             projection._sources.append(src)
             projection._targets.append(tgt)
-            projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr, 1000*weight, delay))
+            projection._targetPorts.append(pynest.connectWD(pre_addr, post_addr, 1000*weight, delay))
             
 
 class FromFileConnector(common.FromFileConnector):
@@ -230,11 +230,11 @@ class FromFileConnector(common.FromFileConnector):
             src, tgt, w, d = single_line.split("\t", 4)
             src = "[%s" % src.split("[",1)[1]
             tgt = "[%s" % tgt.split("[",1)[1]
-            src, tgt, weight, delay = (eval(src),eval(tgt),float(w),float(d))
+            src, tgt, weight, delay = (eval(src), eval(tgt), float(w), float(d))
             src = projection.pre[tuple(src)]
             tgt = projection.post[tuple(tgt)]
             pre_addr = pynest.getAddress(src)
             post_addr = pynest.getAddress(tgt)
             projection._sources.append(src)
             projection._targets.append(tgt)
-            projection._targetPorts.append(pynest.connectWD(pre_addr,post_addr, 1000*weight, delay))
+            projection._targetPorts.append(pynest.connectWD(pre_addr, post_addr, 1000*weight, delay))

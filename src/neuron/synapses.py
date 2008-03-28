@@ -8,7 +8,7 @@ from pyNN import common
 
 class SynapseDynamics(common.SynapseDynamics):
     """
-    For specifying synapse short-term (faciliation,depression) and long-term
+    For specifying synapse short-term (faciliation, depression) and long-term
     (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
     `Projection.__init__()` or `connect()`.
     """

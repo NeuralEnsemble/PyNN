@@ -28,7 +28,7 @@ class OneToOneConnector(common.OneToOneConnector):
 
 class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
-    def connect(self,projection):
+    def connect(self, projection):
         
         decider = RandomConnections(float(self.p_connect))
         wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)

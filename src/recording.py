@@ -104,7 +104,7 @@ def readArray(filename, sepchar=None, skipchar='#'):
                 data.append(map(float, items))
     a = numpy.array(data)
     if a.size > 0:
-        (Nrow,Ncol) = a.shape
+        (Nrow, Ncol) = a.shape
         logging.debug(str(a.shape))
         #if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
     return a

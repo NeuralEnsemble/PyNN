@@ -20,7 +20,7 @@ def _new_property(obj_hierarchy, attr_name):
     For example, suppose that an object of class A has an attribute b which
     itself has an attribute c which itself has an attribute d. Then placing
       e = _new_property('b.c', 'd')
-    in the class definition of A makes A.e an alias for A.d
+    in the class definition of A makes A.e an alias for A.b.c.d
     """
     def set(self, value):
         obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
@@ -187,8 +187,8 @@ class IF_curr_exp(common.IF_curr_exp):
     )
     hoc_name = "StandardIF"
     
-    def __init__(self,parameters):
-        common.IF_curr_exp.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.IF_curr_exp.__init__(self, parameters)
         self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'exp'
@@ -214,8 +214,8 @@ class IF_cond_alpha(common.IF_cond_alpha):
     )
     hoc_name = "StandardIF"
     
-    def __init__(self,parameters):
-        common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
+    def __init__(self, parameters):
+        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'conductance'
@@ -242,8 +242,8 @@ class IF_cond_exp(common.IF_cond_exp):
     )
     hoc_name = "StandardIF"
     
-    def __init__(self,parameters):
-        common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
+    def __init__(self, parameters):
+        common.IF_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'conductance'
@@ -271,8 +271,8 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
     ) # v_init?
     hoc_name = "StandardIF"
 
-    def __init__(self,parameters):
-        common.IF_facets_hardware1.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.IF_facets_hardware1.__init__(self, parameters)
         self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
@@ -289,8 +289,8 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     )
     hoc_name = 'SpikeSource'
    
-    def __init__(self,parameters):
-        common.SpikeSourcePoisson.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.SpikeSourcePoisson.__init__(self, parameters)
         self.parameters = self.translate(self.parameters)
         self.parameters['source_type'] = 'NetStim'    
         self.parameters['noise'] = 1
@@ -304,8 +304,8 @@ class SpikeSourceArray(SpikeSource, common.SpikeSourceArray):
     )
     #hoc_name = 'SpikeSource'
     
-    def __init__(self,parameters):
-        common.SpikeSourceArray.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.SpikeSourceArray.__init__(self, parameters)
         self.parameters = self.translate(self.parameters)  
         #self.parameters['source_type'] = 'VecStim'
         SpikeSource.__init__(self, source_type=VecStim, spiketimes=self.parameters['spiketimes'])
@@ -344,8 +344,8 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     )
     hoc_name = "IF_BG_alpha"
     
-    def __init__(self,parameters):
-        common.EIF_cond_alpha_isfa_ista.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.EIF_cond_alpha_isfa_ista.__init__(self, parameters)
         self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'

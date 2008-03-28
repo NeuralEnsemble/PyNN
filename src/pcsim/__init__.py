@@ -69,8 +69,8 @@ def checkParams(param, val=None):
 
 # Implementation of the NativeRNG
 class NativeRNG(pyNN.random.NativeRNG):
-    def __init__(self,seed=None,type='MersenneTwister19937'):
-        pyNN.random.AbstractRNG.__init__(self,seed)
+    def __init__(self, seed=None, type='MersenneTwister19937'):
+        pyNN.random.AbstractRNG.__init__(self, seed)
         self.rndEngine = eval(type + '()')
         if not self.seed:
             self.seed = int(datetime.today().microsecond)
@@ -114,7 +114,7 @@ class SpikesMultiChannelRecorder(object):
         global pcsim_globals
         if type(sources) != types.ListType:
             sources = [sources]        
-        for i,src in zip(src_indices, sources):
+        for i, src in zip(src_indices, sources):
             src_id = SimObject.ID(src)    
             rec = pcsim_globals.net.create(SpikeTimeRecorder(), SimEngine.ID(src_id.node, src_id.eng))            
             pcsim_globals.net.connect(src, rec, Time.sec(0))            
@@ -177,7 +177,7 @@ class SpikesMultiChannelRecorder(object):
 
 class FieldMultiChannelRecorder:
     
-    def __init__(self,sources,filename = None,src_indices = None, gather = False, fieldname = "Vm"):        
+    def __init__(self, sources, filename = None, src_indices = None, gather = False, fieldname = "Vm"):        
         self.filename = filename
         self.fieldname = fieldname
         self.gather = gather
@@ -194,7 +194,7 @@ class FieldMultiChannelRecorder:
         if not src_indices:
             src_indices = range(len(self.recordings), len(self.recordings) + len(sources))
         global pcsim_globals
-        for i,src in zip(src_indices, sources):
+        for i, src in zip(src_indices, sources):
             src_id = SimObject.ID(src)
             rec = pcsim_globals.net.create(AnalogRecorder(), SimEngine.ID(src_id.node, src_id.eng))
             pcsim_globals.net.connect(src, self.fieldname, rec, 0, Time.sec(0))
@@ -229,7 +229,7 @@ class FieldMultiChannelRecorder:
             for i, rec, src in self.recordings:
                 analog_values =  pcsim_globals.net.object(rec).getRecordedValues()
                 for v in analog_values:
-                    f.write("%g\t%d\n" % (float(v)*1000.0,i)) # convert from mV to V
+                    f.write("%g\t%d\n" % (float(v)*1000.0, i)) # convert from mV to V
             
         else:
             for i, rec, src in self.recordings:
@@ -248,7 +248,7 @@ class ID(long, common.IDMixin):
     
     """
     
-    def __init__(self,n):
+    def __init__(self, n):
         long.__init__(n)
         common.IDMixin.__init__(self)
     
@@ -318,10 +318,10 @@ class WDManager(object):
         if isinstance(w, pyNN.random.RandomDistribution):
             weight = pyNN.random.RandomDistribution(w.name, w.parameters, w.rng)
             if weight.name == "uniform":
-                (w_min,w_max) = weight.parameters
+                (w_min, w_max) = weight.parameters
                 weight.parameters = (w_factor*w_min, w_factor*w_max)
             elif weight.name ==  "normal":
-                (w_mean,w_std) = weight.parameters
+                (w_mean, w_std) = weight.parameters
                 weight.parameters = (w_factor*w_mean, w_factor*w_std)
             else:
                 print "WARNING: no conversion of the weights for this particular distribution"
@@ -334,10 +334,10 @@ class WDManager(object):
         if isinstance(d, pyNN.random.RandomDistribution):
             delay = pyNN.random.RandomDistribution(d.name, d.parameters, d.rng)
             if delay.name == "uniform":
-                (d_min,d_max) = delay.parameters
+                (d_min, d_max) = delay.parameters
                 delay.parameters = (d_min/1000., d_max/1000.)
             elif delay.name ==  "normal":
-                (d_mean,d_std) = delay.parameters
+                (d_mean, d_std) = delay.parameters
                 delay.parameters = (d_mean/1000., w_std)
         else:
             delay = d/1000.
@@ -470,7 +470,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     if delay  is None:  delay = pcsim_globals.minDelay
     # Convert units
     delay = delay / 1000 # Delays in pcsim are specified in seconds
-    if isinstance(target,list):
+    if isinstance(target, list):
         firsttarget = target[0]
     else:
         firsttarget = target
@@ -530,7 +530,7 @@ def set(cells, param, val=None):
     param_dict = checkParams(param, val)
     if issubclass(cellclass, common.StandardCellType):        
         param_dict = cellclass({}).translate(param_dict)
-    if isinstance(cells,ID) or isinstance(cells,long) or isinstance(cells,int):
+    if isinstance(cells, ID) or isinstance(cells, long) or isinstance(cells, int):
         cells = [cells]
     for param, value in param_dict.items():
         if param in cellclass.setterMethods:
@@ -552,7 +552,7 @@ def record(source, filename):
     global pcsim_globals
     if filename in pcsim_globals.spikes_multi_rec:
         pcsim_globals.spikes_multi_rec[filename].record(source)    
-    pcsim_globals.spikes_multi_rec[filename] = SpikesMultiChannelRecorder(source,filename)
+    pcsim_globals.spikes_multi_rec[filename] = SpikesMultiChannelRecorder(source, filename)
             
     
 
@@ -565,7 +565,7 @@ def record_v(source, filename):
     global pcsim_globals
     if filename in pcsim_globals.vm_multi_rec:
         pcsim_globals.vm_multi_rec[filename].record(source)
-    pcsim_globals.vm_multi_rec[filename] = FieldMultiChannelRecorder(source,filename)
+    pcsim_globals.vm_multi_rec[filename] = FieldMultiChannelRecorder(source, filename)
 
             
 
@@ -659,14 +659,14 @@ class Population(common.Population):
         if isinstance(addr, int):
             addr = (addr,)
         if len(addr) != self.actual_ndim:
-           raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.actual_ndim,str(addr))
+           raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.actual_ndim, str(addr))
         orig_addr = addr;
         while len(addr) < 3:
             addr += (0,)                  
         index = 0
         for i, s in zip(addr, self.steps):
             index += i*s 
-        pcsim_index = self.pcsim_population.getIndex(addr[0],addr[1],addr[2])
+        pcsim_index = self.pcsim_population.getIndex(addr[0], addr[1], addr[2])
         assert index == pcsim_index, " index = %s, pcsim_index = %s" % (index, pcsim_index)
         id = ID(pcsim_index)
         id.parent = self
@@ -726,13 +726,13 @@ class Population(common.Population):
             else:
                 coords = (coords[0],)
         elif self.actual_ndim == 2:
-            coords = (coords[0],coords[1],)
+            coords = (coords[0], coords[1],)
         pcsim_coords = self.pcsim_population.getLocation(id)
         pcsim_coords = (pcsim_coords.x(), pcsim_coords.y(), pcsim_coords.z())
         if self.actual_ndim == 1:
             pcsim_coords = (pcsim_coords[0],)
         elif self.actual_ndim == 2:
-            pcsim_coords = (pcsim_coords[0],pcsim_coords[1],)
+            pcsim_coords = (pcsim_coords[0], pcsim_coords[1],)
         if coords:
             assert coords == pcsim_coords, " coords = %s, pcsim_coords = %s " % (coords, pcsim_coords)
         return coords
@@ -758,10 +758,10 @@ class Population(common.Population):
         if isinstance(self.celltype, common.StandardCellType):
             param_dict = self.celltype.translate(param_dict)
                  
-        for index in range(0,len(self)):
+        for index in range(0, len(self)):
             obj = pcsim_globals.net.object(self.pcsim_population[index])
             if obj:
-                for param,value in param_dict.items():
+                for param, value in param_dict.items():
                     setattr( obj, param, value )
         
         
@@ -811,7 +811,7 @@ class Population(common.Population):
         """
         """ This works nicely for PCSIM for simulator specific cells, 
             because cells (SimObject classes) are directly wrapped in python """
-        for i in xrange(0,len(self)):
+        for i in xrange(0, len(self)):
             obj = pcsim_globals.net.object(self.pcsim_population[i])
             if obj: apply( obj, methodname, (), arguments)
         
@@ -822,11 +822,11 @@ class Population(common.Population):
         `Topographic' call. Calls the method methodname() for every cell in the 
         population. The argument to the method depends on the coordinates of the
         cell. objarr is an array with the same dimensions as the Population.
-        e.g. p.tcall("memb_init",vinitArray) calls
-        p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
+        e.g. p.tcall("memb_init", vinitArray) calls
+        p.cell[i][j].memb_init(vInitArray[i][j]) for all i, j.
         """
         """ PCSIM: iteration at the python level and apply"""
-        for i in xrange(0,len(self)):
+        for i in xrange(0, len(self)):
             obj = pcsim_globals.net.object(self.pcsim_population[i])
             if obj: apply( obj, methodname, (), arguments)
         
@@ -845,7 +845,7 @@ class Population(common.Population):
         if isinstance(record_from, int):
             if not rng:   rng = pyNN.random.RandomDistribution(rng=NativeRNG(seed = datetime.today().microsecond),
                                                                distribution='UniformInteger',
-                                                               parameters=(0,len(self)-1))
+                                                               parameters=(0, len(self)-1))
             src_indices = [ int(i) for i in rng.next(record_from) ]            
         elif record_from:
             src_indices = record_from
@@ -866,7 +866,7 @@ class Population(common.Population):
         if isinstance(record_from, int):             
             if not rng:   rng = pyNN.random.RandomDistribution(rng=NativeRNG(seed = datetime.today().microsecond),
                                                                distribution='UniformInteger',
-                                                               parameters=(0,len(self)-1))
+                                                               parameters=(0, len(self)-1))
             src_indices = [ int(i) for i in rng.next(record_from) ]             
         elif record_from:
             src_indices = record_from
@@ -875,7 +875,7 @@ class Population(common.Population):
         sources = [ self.pcsim_population[i] for i in src_indices ]
         self.vm_rec = FieldMultiChannelRecorder(sources, None, src_indices)
      
-    def printSpikes(self, filename, gather=True,compatible_output=True):
+    def printSpikes(self, filename, gather=True, compatible_output=True):
         """
         Writes spike times to file.
         If compatible_output is True, the format is "spiketime cell_id",
@@ -897,7 +897,7 @@ class Population(common.Population):
         self.spike_rec.saveSpikesText(filename, compatible_output=compatible_output)
         
         
-    def print_v(self, filename, gather=True,compatible_output=True):
+    def print_v(self, filename, gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
         If compatible_output is True, the format is "v cell_id",
@@ -913,7 +913,7 @@ class Population(common.Population):
         voltage files.
         """
         """PCSIM: will be implemented by corresponding analog recorders at python level object  """
-        self.vm_rec.saveValuesText(filename,compatible_output=compatible_output)
+        self.vm_rec.saveValuesText(filename, compatible_output=compatible_output)
     
     def getSpikes(self, gather=True):
         """
@@ -961,10 +961,10 @@ class Projection(common.Projection, WDManager):
     
     #class ConnectionDict:
     #        
-    #    def __init__(self,parent):
+    #    def __init__(self, parent):
     #        self.parent = parent
     #
-    #    def __getitem__(self,id):
+    #    def __getitem__(self, id):
     #        """Returns a connection id.
     #        Suppose we have a 2D Population (5x3) projecting to a 3D Population (4x5x7).
     #        Total number of possible connections is 5x3x4x5x7 = 2100.
@@ -976,16 +976,16 @@ class Projection(common.Projection, WDManager):
     #        """
     #        if isinstance(id, int): # linear mapping
     #            preID = id/self.parent.post.size; postID = id%self.parent.post.size
-    #            return self.__getitem__((preID,postID))
-    #        elif isinstance(id, tuple): # (pre,post)
+    #            return self.__getitem__((preID, postID))
+    #        elif isinstance(id, tuple): # (pre, post)
     #            if len(id) == 2:
     #                pre = id[0]
     #                post = id[1]
-    #                if isinstance(pre,int) and isinstance(post,int):
+    #                if isinstance(pre, int) and isinstance(post, int):
     #                    pre_coords = self.parent.pre.locate(pre)
     #                    post_coords = self.parent.post.locate(post)
-    #                    return self.__getitem__((pre_coords,post_coords))
-    #                elif isinstance(pre,tuple) and isinstance(post,tuple): # should also allow lists
+    #                    return self.__getitem__((pre_coords, post_coords))
+    #                elif isinstance(pre, tuple) and isinstance(post, tuple): # should also allow lists
     #                    if len(pre) == self.parent.pre.ndim and len(post) == self.parent.post.ndim:
     #                        fmt = "[%d]"*(len(pre)+len(post))
     #                        address = fmt % (pre+post)
@@ -1066,7 +1066,7 @@ class Projection(common.Projection, WDManager):
                 wiring_method = OneToOneWiringMethod(pcsim_globals.net) 
             else:
                 raise Exception("METHOD NOT YET IMPLEMENTED")
-        elif isinstance(method,common.Connector):
+        elif isinstance(method, common.Connector):
             decider, wiring_method, weight, delay = method.connect(self)
         
         weight = self.getWeight(weight)
@@ -1191,7 +1191,7 @@ class Projection(common.Projection, WDManager):
     
     # --- Methods for writing/reading information to/from file. ----------------
     
-    def saveConnections(self, filename,gather=False):
+    def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
         # should think about adding a 'gather' option.

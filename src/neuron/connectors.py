@@ -16,7 +16,7 @@ from math import *
 
 class HocConnector(object):
     
-    def singleConnect(self,projection,src,tgt,weight,delay):
+    def singleConnect(self, projection, src, tgt, weight, delay):
         """
         Write hoc commands to connect a single pair of neurons.
         """
@@ -27,7 +27,7 @@ class HocConnector(object):
                 'nc.weight = %f' % weight,
                 'nc.delay  = %f' % delay,
                 'tmp = %s.append(nc)' % projection.hoc_label]
-        projection.connections.append((src,tgt))
+        projection.connections.append((src, tgt))
         return cmdlist
     
     def getWeight(self, w):
@@ -62,8 +62,8 @@ class AllToAllConnector(common.AllToAllConnector, HocConnector):
                         d = delay.next()
                     else:
                         d = delay
-                    #print "Setting connection delay from %s to %s in %s to %g" % (src,tgt,projection.label,d)
-                    hoc_commands += self.singleConnect(projection,src,tgt,w,d)
+                    #print "Setting connection delay from %s to %s in %s to %g" % (src, tgt, projection.label, d)
+                    hoc_commands += self.singleConnect(projection, src, tgt, w, d)
         return hoc_commands
 
 
@@ -80,7 +80,7 @@ class OneToOneConnector(common.OneToOneConnector, HocConnector):
                 else: w = weight
                 if isinstance(delay, RandomDistribution): d = delay.next()
                 else: d = delay
-                hoc_commands += self.singleConnect(projection,src,tgt,w,d)
+                hoc_commands += self.singleConnect(projection, src, tgt, w, d)
         else:
             raise Exception("Method '%s' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes." % sys._getframe().f_code.co_name)
         return hoc_commands
@@ -100,7 +100,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
             #rarr = [HocToPy.get('rng.repick()','float') for j in xrange(projection.pre.size*projection.post.size)]
             rarr = [h.rng.repick() for j in xrange(projection.pre.size*projection.post.size)]
         else:
-            rarr = projection.rng.uniform(0,1,projection.pre.size*projection.post.size)
+            rarr = projection.rng.uniform(0,1, projection.pre.size*projection.post.size)
         hoc_commands = []
         j = 0        
         for tgt in projection.post.gidlist:
@@ -111,7 +111,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
                         else: w = weight
                         if isinstance(delay, RandomDistribution): d = delay.next()
                         else: d = delay
-                        hoc_commands += self.singleConnect(projection,src,tgt,w,d)
+                        hoc_commands += self.singleConnect(projection, src, tgt, w, d)
                 j += 1
         return hoc_commands
 
@@ -124,7 +124,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         periodic_boundaries = self.periodic_boundaries
         if periodic_boundaries is not None:
             dimensions = projection.post.dim
-            periodic_boundaries = numpy.concatenate((dimensions,numpy.zeros(3-len(dimensions))))
+            periodic_boundaries = numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions))))
         if isinstance(projection.rng, NativeRNG):
             hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
                             'tmp = rng.uniform(0,1)']
@@ -134,7 +134,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             #rarr = [HocToPy.get('rng.repick()','float') for j in xrange(projection.pre.size*projection.post.size)]
             rarr = [h.rng.repick() for j in xrange(projection.pre.size*projection.post.size)]
         else:
-            rarr = projection.rng.uniform(0,1,projection.pre.size*projection.post.size)
+            rarr = projection.rng.uniform(0,1, projection.pre.size*projection.post.size)
         # We need to use the gid stored as ID, so we should modify the loop to scan the global gidlist (containing ID)
         hoc_commands = []
         j = 0
@@ -151,7 +151,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                         else: w = weight
                         if isinstance(delay, RandomDistribution): d = delay.next()
                         else: d = delay
-                        hoc_commands += self.singleConnect(projection,src,tgt,w,d)
+                        hoc_commands += self.singleConnect(projection, src, tgt, w, d)
                 j += 1
                 idx_pre += 1
         return hoc_commands

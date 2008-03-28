@@ -31,8 +31,8 @@ class ID(common.ID):
     hit is it to replace integers with ID objects?
     """
     
-    def __init__(self,n):
-        common.ID.__init__(self,n)
+    def __init__(self, n):
+        common.ID.__init__(self, n)
 
 # ==============================================================================
 #   Module-specific functions and classes (not part of the common API)
@@ -42,10 +42,10 @@ def build_node(name_, text=None, **attributes):
     # we call the node name 'name_' because 'name' is a common attribute name (confused? I am)
     ns, name_ = name_.split(':')
     if ns:
-        node = xmldoc.createElementNS(namespace[ns], "%s:%s" % (ns,name_))
+        node = xmldoc.createElementNS(namespace[ns], "%s:%s" % (ns, name_))
     else:
         node = xmldoc.createElement(name_)
-    for attr,value in attributes.items():
+    for attr, value in attributes.items():
         node.setAttribute(attr, str(value))
     if text:
         node.appendChild(xmldoc.createTextNode(text))
@@ -64,7 +64,7 @@ class IF_base(object):
     
     def define_morphology(self):
         segments_node = build_node('mml:segments')
-        soma_node = build_node('mml:segment',id=0, name="Soma", cable=0)
+        soma_node = build_node('mml:segment', id=0, name="Soma", cable=0)
         # L = 100  diam = 1000/PI: gives area = 10³ cm²
         soma_node.appendChild(build_node('mml:proximal', x=0, y=0, z=0, diameter=1000/math.pi))
         soma_node.appendChild(build_node('mml:distal', x=0, y=0, z=100, diameter=1000/math.pi))
@@ -160,14 +160,14 @@ class IF_curr_exp(common.IF_curr_exp):
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses"""
     
-    def __init__(self,parameters):
+    def __init__(self, parameters):
         raise Exception('Cell type %s is not available in NeuroML' % self.__class__.__name__)
 
 class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
-    def __init__(self,parameters):
+    def __init__(self, parameters):
         raise Exception('Cell type %s is not available in NeuroML' % self.__class__.__name__)
 
 class IF_cond_exp(common.IF_cond_exp, IF_base):
@@ -176,8 +176,8 @@ class IF_cond_exp(common.IF_cond_exp, IF_base):
     
     n = 0
     
-    def __init__(self,parameters):
-        common.IF_cond_exp.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.IF_cond_exp.__init__(self, parameters)
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.synapse_type = "doub_exp_syn"
         self.__class__.n += 1
@@ -188,8 +188,8 @@ class IF_cond_alpha(common.IF_cond_alpha, IF_base):
     
     n = 0
     
-    def __init__(self,parameters):
-        common.IF_cond_alpha.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.IF_cond_alpha.__init__(self, parameters)
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.synapse_type = "alpha_syn"
         self.__class__.n += 1
@@ -197,15 +197,15 @@ class IF_cond_alpha(common.IF_cond_alpha, IF_base):
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
-    def __init__(self,parameters):
-        common.SpikeSourcePoisson.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.SpikeSourcePoisson.__init__(self, parameters)
         raise Exception('Cell type %s not yet implemented' % self.__class__.__name__)
 
 class SpikeSourceArray(common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
-    def __init__(self,parameters):
-        common.SpikeSourceArray.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.SpikeSourceArray.__init__(self, parameters)
         raise Exception('Cell type %s not yet implemented' % self.__class__.__name__)
 
 
@@ -213,7 +213,7 @@ class SpikeSourceArray(common.SpikeSourceArray):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,min_delay=0.1,max_delay=0.1,debug=False,**extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -262,14 +262,14 @@ def setRNGseeds(seedList):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass,param_dict=None,n=1):
+def create(cellclass, param_dict=None, n=1):
     """Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
     If n==1, return just the single id.
     """
     raise Exception('Not yet implemented')
 
-def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None):
+def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
@@ -277,19 +277,19 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
     Weights should be in nA or uS."""
     raise Exception('Not yet implemented')
 
-def set(cells,cellclass,param,val=None):
+def set(cells, cellclass, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
     cellclass must be supplied for doing translation of parameter names."""
     raise Exception('Not yet implemented')
 
-def record(source,filename):
+def record(source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     pass # put a comment in the NeuroML file?
 
-def record_v(source,filename):
+def record_v(source, filename):
     """Record membrane potential to a file. source can be an individual cell or
     a list of cells."""
     pass # put a comment in the NeuroML file?
@@ -307,7 +307,7 @@ class Population(common.Population):
     
     n = 0
     
-    def __init__(self,dims,cellclass,cellparams=None,label=None):
+    def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
@@ -320,7 +320,7 @@ class Population(common.Population):
         label is an optional name for the population.
         """
         global populations_node, cells_node, channels_node
-        common.Population.__init__(self,dims,cellclass,cellparams,label)
+        common.Population.__init__(self, dims, cellclass, cellparams, label)
         self.label = self.label or 'Population%d' % Population.n
         self.celltype = cellclass(cellparams)
         Population.n += 1
@@ -330,7 +330,7 @@ class Population(common.Population):
         celltype_node = build_node('net:cell_type', self.celltype.label)
         instances_node = build_node('net:instances')
         for i in range(self.size):
-            x,y,z = self.positions[:,i]
+            x, y, z = self.positions[:, i]
             instance_node = build_node('net:instance', id=i)
             instance_node.appendChild( build_node('net:location', x=x, y=y, z=z) )
             instances_node.appendChild(instance_node)
@@ -380,7 +380,7 @@ class Projection(common.Projection):
         random numbers to give variability in the number of connections per cell.
         """
         global projections_node
-        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,method_parameters,source,target,label,rng)
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, method_parameters, source, target, label, rng)
         self.label = self.label or 'Projection%d' % Projection.n
         connection_method = getattr(self,'_%s' % method)
         if target:
@@ -403,7 +403,7 @@ class Projection(common.Projection):
         Projection.n += 1
         
         
-    def _allToAll(self,parameters=None):
+    def _allToAll(self, parameters=None):
         """
         Connect all cells in the presynaptic population to all cells in the
         postsynaptic population.
@@ -416,7 +416,7 @@ class Projection(common.Projection):
         connectivity_node.appendChild( build_node('net:all_to_all', allow_self_connections=int(allow_self_connections)) )
         return connectivity_node
     
-    def _oneToOne(self,parameters=None):
+    def _oneToOne(self, parameters=None):
         """
         Where the pre- and postsynaptic populations have the same size, connect
         cell i in the presynaptic population to cell i in the postsynaptic
@@ -424,13 +424,13 @@ class Projection(common.Projection):
         In fact, despite the name, this should probably be generalised to the
         case where the pre and post populations have different dimensions, e.g.,
         cell i in a 1D pre population of size n should connect to all cells
-        in row i of a 2D post population of size (n,m).
+        in row i of a 2D post population of size (n, m).
         """
         connectivity_node = build_node('net:connectivity_pattern')
         connectivity_node.appendChild( build_node('net:one_to_one') )
         return connectivity_node
     
-    def _fixedProbability(self,parameters,synapse_type=None):
+    def _fixedProbability(self, parameters, synapse_type=None):
         """
         For each pair of pre-post cells, the connection probability is constant.
         """
@@ -447,7 +447,7 @@ class Projection(common.Projection):
                                                   allow_self_conections=int(allow_self_connections)) )
         return connectivity_node
     
-    def _distanceDependentProbability(self,parameters,synapse_type=None):
+    def _distanceDependentProbability(self, parameters, synapse_type=None):
         """
         For each pair of pre-post cells, the connection probability depends on distance.
         d_expression should be the right-hand side of a valid python expression
@@ -455,7 +455,7 @@ class Projection(common.Projection):
         """
         raise Exception("Method not yet implemented")
     
-    def __fixedNumber(self,parameters,direction):
+    def __fixedNumber(self, parameters, direction):
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
@@ -468,7 +468,7 @@ class Projection(common.Projection):
                 fixed = True
             elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
                 rand_distr = parameters['rand_distr']
-                assert isinstance(rand_distr,RandomDistribution)
+                assert isinstance(rand_distr, RandomDistribution)
                 fixed = False
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
@@ -486,15 +486,15 @@ class Projection(common.Projection):
         else:
             raise Exception('Connection with variable connection number not implemented.')
     
-    def _fixedNumberPre(self,parameters):
+    def _fixedNumberPre(self, parameters):
         """Each presynaptic cell makes a fixed number of connections."""
         return self.__fixedNumber(parameters,"PreToPost")
 
-    def _fixedNumberPost(self,parameters):
+    def _fixedNumberPost(self, parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
         return self.__fixedNumber(parameters,"PostToPre")
     
-    def _fromFile(self,parameters):
+    def _fromFile(self, parameters):
         """
         Load connections from a file.
         """
@@ -520,11 +520,11 @@ class Projection(common.Projection):
             src, tgt, w, d = single_line.split("\t", 4)
             src = "[%s" % src.split("[",1)[1]
             tgt = "[%s" % tgt.split("[",1)[1]
-            input_tuples.append((eval(src),eval(tgt),float(w),float(d)))
+            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
         f.close()
         return self._fromList(input_tuples)
     
-    def _fromList(self,conn_list):
+    def _fromList(self, conn_list):
         """
         Read connections from a list of tuples,
         containing [pre_addr, post_addr, weight, delay]

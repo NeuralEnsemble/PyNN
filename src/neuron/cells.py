@@ -23,8 +23,8 @@ class IF_curr_alpha(common.IF_curr_alpha):
     )
     hoc_name = "StandardIF"
     
-    def __init__(self,parameters):
-        common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
+    def __init__(self, parameters):
+        common.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'alpha'
@@ -49,8 +49,8 @@ class IF_curr_exp(common.IF_curr_exp):
     )
     hoc_name = "StandardIF"
     
-    def __init__(self,parameters):
-        common.IF_curr_exp.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.IF_curr_exp.__init__(self, parameters)
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'exp'
 
@@ -75,8 +75,8 @@ class IF_cond_alpha(common.IF_cond_alpha):
     )
     hoc_name = "StandardIF"
     
-    def __init__(self,parameters):
-        common.IF_cond_alpha.__init__(self,parameters) # checks supplied parameters and adds default
+    def __init__(self, parameters):
+        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
@@ -102,8 +102,8 @@ class IF_cond_exp(common.IF_cond_exp):
     )
     hoc_name = "StandardIF"
     
-    def __init__(self,parameters):
-        common.IF_cond_exp.__init__(self,parameters) # checks supplied parameters and adds default
+    def __init__(self, parameters):
+        common.IF_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
@@ -130,8 +130,8 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
     )
     hoc_name = "StandardIF"
 
-    def __init__(self,parameters):
-        common.IF_facets_hardware1.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.IF_facets_hardware1.__init__(self, parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
         self.parameters['i_offset']  = 0.0
@@ -149,8 +149,8 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     # a float for reverse translations, and NEURON doesn't complain if given a float.
     hoc_name = 'SpikeSource'
    
-    def __init__(self,parameters):
-        common.SpikeSourcePoisson.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.SpikeSourcePoisson.__init__(self, parameters)
         self.parameters['source_type'] = 'NetStim'    
         self.parameters['noise'] = 1
 
@@ -163,8 +163,8 @@ class SpikeSourceArray(common.SpikeSourceArray):
     )
     hoc_name = 'SpikeSource'
     
-    def __init__(self,parameters):
-        common.SpikeSourceArray.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.SpikeSourceArray.__init__(self, parameters)
         self.parameters['source_type'] = 'VecStim'
 
 class SpikeSourceInhGamma(common.ModelNotAvailable):
@@ -209,7 +209,7 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     )
     hoc_name = "IF_BG_alpha"
     
-    def __init__(self,parameters):
-        common.EIF_cond_alpha_isfa_ista.__init__(self,parameters)
+    def __init__(self, parameters):
+        common.EIF_cond_alpha_isfa_ista.__init__(self, parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'

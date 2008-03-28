@@ -78,7 +78,7 @@ def _convertWeight(w, synapse_type):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1,min_delay=0.1,max_delay=10.0,debug=False,**extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -105,7 +105,7 @@ def setup(timestep=0.1,min_delay=0.1,max_delay=10.0,debug=False,**extra_params):
         else:
             rng = NumpyRNG(42)
             kernelseeds = (rng.rng.uniform(size=extra_params['threads'])*100).astype('int').tolist()
-            print 'params has no kernelseeds, we use ',kernelseeds
+            print 'params has no kernelseeds, we use ', kernelseeds
         update_modes = {'fixed':1, 'serial':3, 'dynamic':0}
         # number of nodes to give to each thread at a time
         # some small fraction of your total nodes to be simulated
@@ -159,7 +159,7 @@ def setRNGseeds(seedList):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass,param_dict=None,n=1):
+def create(cellclass, param_dict=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -168,14 +168,14 @@ def create(cellclass,param_dict=None,n=1):
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, type):
         celltype = cellclass(param_dict)
-        cell_gids = pynest.create(celltype.nest_name,n)
+        cell_gids = pynest.create(celltype.nest_name, n)
         cell_gids = [ID(pynest.getGID(gid)) for gid in cell_gids]
-        pynest.setDict(cell_gids,celltype.parameters)
+        pynest.setDict(cell_gids, celltype.parameters)
     elif isinstance(cellclass, str):  # celltype is not a standard cell
-        cell_gids = pynest.create(cellclass,n)
+        cell_gids = pynest.create(cellclass, n)
         cell_gids = [ID(pynest.getGID(gid)) for gid in cell_gids]
         if param_dict:
-            pynest.setDict(cell_gids,param_dict)
+            pynest.setDict(cell_gids, param_dict)
     else:
         raise "Invalid cell type"
     for id in cell_gids:
@@ -186,7 +186,7 @@ def create(cellclass,param_dict=None,n=1):
     else:
         return cell_gids
 
-def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None):
+def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
@@ -203,7 +203,7 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
         weight *= -1
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
-            connect_id = pynest.connectWD(pynest.getAddress(source),pynest.getAddress(target),weight,delay)
+            connect_id = pynest.connectWD(pynest.getAddress(source), pynest.getAddress(target), weight, delay)
         else:
             connect_id = []
             if type(source) != types.ListType:
@@ -214,18 +214,18 @@ def connect(source,target,weight=None,delay=None,synapse_type=None,p=1,rng=None)
                 src = pynest.getAddress(src)
                 if p < 1:
                     if rng: # use the supplied RNG
-                        rarr = rng.rng.uniform(0,1,len(target))
+                        rarr = rng.rng.uniform(0, 1, len(target))
                     else:   # use the default RNG
-                        rarr = numpy.random.uniform(0,1,len(target))
+                        rarr = numpy.random.uniform(0, 1, len(target))
                 for j,tgt in enumerate(target):
                     tgt = pynest.getAddress(tgt)
                     if p >= 1 or rarr[j] < p:
-                        connect_id += [pynest.connectWD(src,tgt,weight,delay)]
+                        connect_id += [pynest.connectWD(src, tgt, weight, delay)]
     except pynest.SLIError:
         raise common.ConnectionError
     return connect_id
 
-def set(cells,param,val=None):
+def set(cells, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value."""
@@ -236,14 +236,14 @@ def set(cells,param,val=None):
         i = cells[0]
     except TypeError:
         cells = [cells]
-    if not isinstance(cellclass,str):
+    if not isinstance(cellclass, str):
         if issubclass(cellclass, common.StandardCellType):
             param = cellclass({}).translate(param)
         else:
             raise TypeError, "cellclass must be a string or derived from commonStandardCellType"
-    pynest.setDict(cells,param)
+    pynest.setDict(cells, param)
 
-def record(source,filename):
+def record(source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     # would actually like to be able to record to an array and choose later
@@ -256,14 +256,14 @@ def record(source,filename):
     else:
         source = [pynest.getAddress(source)]
     for src in source:
-        pynest.connect(src,spike_detector[0])
+        pynest.connect(src, spike_detector[0])
         tmpfile = "%s/%s" %(tempdir, filename)
         pynest.sr('/%s (%s) (w) file def' % (filename, tmpfile))
-        pynest.sr('%s << /output_stream %s >> SetStatus' % (pynest.getGID(spike_detector[0]),filename))
+        pynest.sr('%s << /output_stream %s >> SetStatus' % (pynest.getGID(spike_detector[0]), filename))
     recorders[filename] = ("spikes", tmpfile)
 
 
-def record_v(source,filename):
+def record_v(source, filename):
     """
     Record membrane potential to a file. source can be an individual cell or
     a list of cells."""
@@ -276,7 +276,7 @@ def record_v(source,filename):
     record_file = tempdir+'/'+filename
     tmpfile = record_file.replace('/','_')
     recorders[filename] = ("v", tmpfile)
-    pynest.record_v(source,tmpfile)
+    pynest.record_v(source, tmpfile)
 
 
 def _printSpikes(tmpfile, filename, compatible_output=True):
@@ -322,7 +322,7 @@ def _print_v(tmpfile, filename, compatible_output=True):
     result = open(filename,'w',10000)
     dt = pynest.getNESTStatus()['resolution']
     n = int(pynest.getNESTStatus()['time']/dt)
-    result.write("# dt = %f\n# n = %d\n" % (dt,n))
+    result.write("# dt = %f\n# n = %d\n" % (dt, n))
     if (compatible_output):
         # Here we postprocess the file to have effectively the
         # desired format :
@@ -372,7 +372,7 @@ def _readArray(filename, sepchar = " ", skipchar = '#'):
     except Exception:
         # The last line has just a gid, so we has to remove it
         a = numpy.array(data[0:len(data)-2])
-    (Nrow,Ncol) = a.shape
+    (Nrow, Ncol) = a.shape
     if ((Nrow == 1) or (Ncol == 1)): a = ravel(a)
     return(a)
 
@@ -388,7 +388,7 @@ class Population(common.Population):
     """
     nPop = 0
     
-    def __init__(self,dims,cellclass,cellparams=None,label=None):
+    def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
@@ -401,7 +401,7 @@ class Population(common.Population):
         label is an optional name for the population.
         """
         
-        common.Population.__init__(self,dims,cellclass,cellparams,label)  # move this to common.Population.__init__()
+        common.Population.__init__(self, dims, cellclass, cellparams, label)  # move this to common.Population.__init__()
         
         # Should perhaps use "LayoutNetwork"?
         
@@ -429,19 +429,19 @@ class Population(common.Population):
             self.label = 'population%d' % Population.nPop
         Population.nPop += 1
     
-    def __getitem__(self,addr):
+    def __getitem__(self, addr):
         """Returns a representation of the cell with coordinates given by addr,
            suitable for being passed to other methods that require a cell id.
            Note that __getitem__ is called when using [] access, e.g.
              p = Population(...)
              p[2,3] is equivalent to p.__getitem__((2,3)).
         """
-        if isinstance(addr,int):
+        if isinstance(addr, int):
             addr = (addr,)
         if len(addr) == self.ndim:
             id = self.cell[addr]
         else:
-            raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim,str(addr))
+            raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
         if addr != self.locate(id):
             raise IndexError, 'Invalid cell address %s' % str(addr)
         return id
@@ -482,7 +482,7 @@ class Population(common.Population):
         # assumes that the id values in self.cell are consecutive. This should
         # always be the case, I think? A unit test is needed to check this.
     
-        ###assert isinstance(id,int)
+        ###assert isinstance(id, int)
         ###return tuple([a.tolist()[0] for a in numpy.where(self.cell == id)])
         
         id -= self.id_start
@@ -510,7 +510,7 @@ class Population(common.Population):
             values = numpy.array(values)
         return values
     
-    def set(self,param,val=None):
+    def set(self, param, val=None):
         """
         Set one or more parameters for every cell in the population. param
         can be a dict, in which case val should not be supplied, or a string
@@ -519,12 +519,12 @@ class Population(common.Population):
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
-        if isinstance(param,str):
-            if isinstance(val,str) or isinstance(val,float) or isinstance(val,int):
+        if isinstance(param, str):
+            if isinstance(val, str) or isinstance(val, float) or isinstance(val, int):
                 param_dict = {param:float(val)}
             else:
                 raise common.InvalidParameterValueError
-        elif isinstance(param,dict):
+        elif isinstance(param, dict):
             param_dict = param
         else:
             raise common.InvalidParameterValueError
@@ -559,7 +559,7 @@ class Population(common.Population):
         else:
             raise common.InvalidDimensionsError
     
-    def rset(self,parametername,rand_distr):
+    def rset(self, parametername, rand_distr):
         """
         'Random' set. Sets the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
@@ -568,12 +568,12 @@ class Population(common.Population):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
             rarr = rand_distr.next(n=self.size)
-            cells = numpy.reshape(self.cell,self.cell.size)
+            cells = numpy.reshape(self.cell, self.cell.size)
             assert len(rarr) == len(cells)
-            for cell,val in zip(cells,rarr):
+            for cell,val in zip(cells, rarr):
                 setattr(cell, parametername, val)
         
-    def _call(self,methodname,arguments):
+    def _call(self, methodname, arguments):
         """
         Calls the method methodname(arguments) for every cell in the population.
         e.g. p.call("set_background","0.1") if the cell class has a method
@@ -581,17 +581,17 @@ class Population(common.Population):
         """
         raise Exception("Method not yet implemented")
     
-    def _tcall(self,methodname,objarr):
+    def _tcall(self, methodname, objarr):
         """
         `Topographic' call. Calls the method methodname() for every cell in the 
         population. The argument to the method depends on the coordinates of the
         cell. objarr is an array with the same dimensions as the Population.
-        e.g. p.tcall("memb_init",vinitArray) calls
+        e.g. p.tcall("memb_init", vinitArray) calls
         p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
         """
         raise Exception("Method not yet implemented")
 
-    def record(self,record_from=None,rng=None):
+    def record(self, record_from=None, rng=None):
         """
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
@@ -614,25 +614,25 @@ class Population(common.Population):
                 raise "record_from must be a list or an integer"
         else:
             n_rec = self.size
-        pynest.resCons(self.spike_detector[0],n_rec)
+        pynest.resCons(self.spike_detector[0], n_rec)
 
         if (fixed_list == True):
             for neuron in record_from:
-                pynest.connect(pynest.getAddress(neuron),self.spike_detector[0])
+                pynest.connect(pynest.getAddress(neuron), self.spike_detector[0])
         else:
-            for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
-                pynest.connect(pynest.getAddress(neuron),self.spike_detector[0])
+            for neuron in numpy.random.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]:
+                pynest.connect(pynest.getAddress(neuron), self.spike_detector[0])
                 
         # Open temporary output file & register file with detectors
         # This should be redone now that Eilif has implemented the pythondatum datum type
-        # pynest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label,self.label)) # old
+        # pynest.sr('/tmpfile_%s (tmpfile_%s) (w) file def' % (self.label, self.label)) # old
         file = "%s/%s.spikes" %(tempdir, self.label)
         pynest.sr('/%s.spikes (%s) (w) file def' %  (self.label, file))
-        pynest.sr('%s << /output_stream %s.spikes >> SetStatus' % (pynest.getGID(self.spike_detector[0]),self.label))
+        pynest.sr('%s << /output_stream %s.spikes >> SetStatus' % (pynest.getGID(self.spike_detector[0]), self.label))
         recorders['%s.spikes' %self.label] = ("spikes", file)
         self.n_rec = n_rec
 
-    def record_v(self,record_from=None,rng=None):
+    def record_v(self, record_from=None, rng=None):
         """
         If record_from is not given, record the membrane potential for all cells in
         the Population.
@@ -694,14 +694,14 @@ class Population(common.Population):
             # Writing dimensions of the population:
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
             # Writing spiketimes, cell_id-min(cell_id)
-            padding = numpy.reshape(self.cell,self.cell.size)[0]
+            padding = numpy.reshape(self.cell, self.cell.size)[0]
             # Pylab has a great load() function, but it is not necessary to import
             # it into pyNN. The fromfile() function of numpy has trouble on several
             # machine with Python 2.5, so that's why a dedicated _readArray function
             # has been created to load from file the raster or the membrane potentials
             # saved by NEST
             try :
-                raster = _readArray(tmpfile,sepchar=" ")
+                raster = _readArray(tmpfile, sepchar=" ")
                 #Sometimes, nest doesn't write the last line entirely, so we need
                 #to trunk it to avoid errors
                 raster = raster[:,1:3]
@@ -710,7 +710,7 @@ class Population(common.Population):
                 for idx in xrange(len(raster)):
                     result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
             except Exception, e:
-                print "Error while writing data into a compatible mode with file %s: %s" % (filename,e)
+                print "Error while writing data into a compatible mode with file %s: %s" % (filename, e)
             result.close()
             os.system("rm %s" %tmpfile)
         else:
@@ -728,7 +728,7 @@ class Population(common.Population):
             data[:,1] *= dt
         return data
 
-    def meanSpikeCount(self,gather=True):
+    def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
@@ -737,15 +737,15 @@ class Population(common.Population):
         n_spikes = status["events"]
         return float(n_spikes)/self.n_rec
 
-    def randomInit(self,rand_distr):
+    def randomInit(self, rand_distr):
         """
         Sets initial membrane potentials for all the cells in the population to
         random values.
         """
-        self.rset('v_init',rand_distr)
-        #cells = numpy.reshape(self.cell,self.cell.size)
+        self.rset('v_init', rand_distr)
+        #cells = numpy.reshape(self.cell, self.cell.size)
         #rvals = rand_distr.next(n=self.cell.size)
-        #for node, v_init in zip(cells,rvals):
+        #for node, v_init in zip(cells, rvals):
         #    pynest.setDict([node],{'u': v_init})
     
     def print_v(self, filename, gather=True, compatible_output=True):
@@ -770,12 +770,12 @@ class Population(common.Population):
         result = open(filename,'w',10000)
         dt = pynest.getNESTStatus()['resolution']
         n = int(pynest.getNESTStatus()['time']/dt)
-        result.write("# dt = %f\n# n = %d\n" % (dt,n))
+        result.write("# dt = %f\n# n = %d\n" % (dt, n))
         if (compatible_output):
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
-            padding = numpy.reshape(self.cell,self.cell.size)[0]
+            padding = numpy.reshape(self.cell, self.cell.size)[0]
             try:
-                raster = _readArray(tmpfile,sepchar="\t")
+                raster = _readArray(tmpfile, sepchar="\t")
                 raster[:,0] = raster[:,0] - padding
                 for idx in xrange(len(raster)):
                     result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
@@ -800,15 +800,15 @@ class Projection(common.Projection):
     
     class ConnectionDict:
             
-            def __init__(self,parent):
+            def __init__(self, parent):
                 self.parent = parent
     
-            def __getitem__(self,id):
-                """Returns a (source address,target port number) tuple."""
+            def __getitem__(self, id):
+                """Returns a (source address, target port number) tuple."""
                 assert isinstance(id, int)
                 return (pynest.getAddress(self.parent._sources[id]), self.parent._targetPorts[id])
     
-    def __init__(self,presynaptic_population,postsynaptic_population,method='allToAll',method_parameters=None,source=None,target=None, synapse_dynamics=None,label=None,rng=None):
+    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', method_parameters=None, source=None, target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -831,7 +831,7 @@ class Projection(common.Projection):
         than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
-        common.Projection.__init__(self,presynaptic_population,postsynaptic_population,method,method_parameters,source,target,synapse_dynamics,label,rng)
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, method_parameters, source, target, synapse_dynamics, label, rng)
         
         self._targetPorts = [] # holds port numbers
         self._targets = []     # holds gids
@@ -841,7 +841,7 @@ class Projection(common.Projection):
         if isinstance(method, str):
             connection_method = getattr(self,'_%s' % method)   
             self.nconn = connection_method(method_parameters)
-        elif isinstance(method,common.Connector):
+        elif isinstance(method, common.Connector):
             self.nconn = method.connect(self)
 
         assert len(self._sources) == len(self._targets) == len(self._targetPorts), "Connection error. Source and target lists are of different lengths."
@@ -863,7 +863,7 @@ class Projection(common.Projection):
     
     # --- Connection methods ---------------------------------------------------
     
-    def _allToAll(self,parameters=None):
+    def _allToAll(self, parameters=None):
         """
         Connect all cells in the presynaptic population to all cells in the postsynaptic population.
         """
@@ -874,7 +874,7 @@ class Projection(common.Projection):
         c = AllToAllConnector(allow_self_connections)
         return c.connect(self)
     
-    def _oneToOne(self,parameters=None):
+    def _oneToOne(self, parameters=None):
         """
         Where the pre- and postsynaptic populations have the same size, connect
         cell i in the presynaptic population to cell i in the postsynaptic
@@ -887,7 +887,7 @@ class Projection(common.Projection):
         c = OneToOneConnector()
         return c.connect(self)
 
-    def _fixedProbability(self,parameters):
+    def _fixedProbability(self, parameters):
         """
         For each pair of pre-post cells, the connection probability is constant.
         """
@@ -901,7 +901,7 @@ class Projection(common.Projection):
         c = FixedProbabilityConnector(p_connect, allow_self_connections)
         return c.connect(self)
     
-    def _distanceDependentProbability(self,parameters):
+    def _distanceDependentProbability(self, parameters):
         """
         For each pair of pre-post cells, the connection probability depends on distance.
         d_expression should be the right-hand side of a valid python expression
@@ -917,7 +917,7 @@ class Projection(common.Projection):
         c = DistanceDependentProbabilityConnector(d_expression, allow_self_connections=allow_self_connections)
         return c.connect(self)           
                 
-    def _fixedNumberPre(self,parameters):
+    def _fixedNumberPre(self, parameters):
         """Each presynaptic cell makes a fixed number of connections."""
         allow_self_connections = True
         if type(parameters) == types.IntType:
@@ -931,7 +931,7 @@ class Projection(common.Projection):
                 fixed = True
             elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
                 rand_distr = parameters['rand_distr']
-                assert isinstance(rand_distr,RandomDistribution)
+                assert isinstance(rand_distr, RandomDistribution)
                 fixed = False
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
@@ -952,15 +952,15 @@ class Projection(common.Projection):
             # Reserve space for connections
             if not fixed:
                 n = rand_distr.next()
-            pynest.resCons(pre_addr,n)                
+            pynest.resCons(pre_addr, n)                
             # pick n neurons at random
             for post in rng.permutation(postsynaptic_neurons)[0:n]:
                 if allow_self_connections or (pre != post):
                     self._sources.append(pre)
                     self._targets.append(post)
-                    self._targetPorts.append(pynest.connect(pre_addr,pynest.getAddress(post)))
+                    self._targetPorts.append(pynest.connect(pre_addr, pynest.getAddress(post)))
     
-    def _fixedNumberPost(self,parameters):
+    def _fixedNumberPost(self, parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
         allow_self_connections = True
         if type(parameters) == types.IntType:
@@ -974,7 +974,7 @@ class Projection(common.Projection):
                 fixed = True
             elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
                 rand_distr = parameters['rand_distr']
-                assert isinstance(rand_distr,RandomDistribution)
+                assert isinstance(rand_distr, RandomDistribution)
                 fixed = False
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
@@ -995,15 +995,15 @@ class Projection(common.Projection):
             # Reserve space for connections
             if not fixed:
                 n = rand_distr.next()
-            pynest.resCons(post_addr,n)                
+            pynest.resCons(post_addr, n)                
             # pick n neurons at random
             for pre in rng.permutation(presynaptic_neurons)[0:n]:
                 if allow_self_connections or (pre != post):
                     self._sources.append(pre)
                     self._targets.append(post)
-                    self._targetPorts.append(pynest.connect(pynest.getAddress(pre),post_addr))
+                    self._targetPorts.append(pynest.connect(pynest.getAddress(pre), post_addr))
     
-    def _fromFile(self,parameters):
+    def _fromFile(self, parameters):
         """
         Load connections from a file.
         """
@@ -1021,7 +1021,7 @@ class Projection(common.Projection):
         c = FromListConnector(conn_list)
         return c.connect(self)
         
-    def _2D_Gauss(self,parameters):
+    def _2D_Gauss(self, parameters):
         """
         Source neuron is connected to a 2D targetd population with a spatial profile (Gauss).
         parameters should have:
@@ -1041,7 +1041,7 @@ class Projection(common.Projection):
             delay = parameters['delay']
             
             phi = rng.uniform(size=n)*(2.0*pi)
-            r = rng.normal(scale=sigma,size=n)
+            r = rng.normal(scale=sigma, size=n)
             target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi))
             target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi))
             target_id = []
@@ -1049,37 +1049,37 @@ class Projection(common.Projection):
                 #print syn_nr
                 try:
                     # print target_position_x[syn_nr]
-                    target_id.append(self.post[(target_position_x[syn_nr],target_position_y[syn_nr])])
+                    target_id.append(self.post[(target_position_x[syn_nr], target_position_y[syn_nr])])
                     # print target_id
                 except IndexError:
                     target_id.append(False)
             
-            pynest.divConnect(pre_id,target_id,[weight],[delay])
+            pynest.divConnect(pre_id, target_id,[weight],[delay])
         
         
         n = parameters['n']
                 
         if n > 0:
             ratio_dim_pre_post = ((1.*self.pre.dim[0])/(1.*self.post.dim[0]))
-            print 'ratio_dim_pre_post',ratio_dim_pre_post
+            print 'ratio_dim_pre_post', ratio_dim_pre_post
             run_id = 0
 
             for pre in numpy.reshape(self.pre.cell,(self.pre.cell.size)):
-                #print 'pre',pre
+                #print 'pre', pre
                 run_id +=1
-                #print 'run_id',run_id
+                #print 'run_id', run_id
                 if numpy.mod(run_id,500) == 0:
-                    print 'run_id',run_id
+                    print 'run_id', run_id
                 
                 pre_position_tmp = self.pre.locate(pre)
-                parameters['pre_position'] = numpy.divide(pre_position_tmp,ratio_dim_pre_post)
+                parameters['pre_position'] = numpy.divide(pre_position_tmp, ratio_dim_pre_post)
                 parameters['pre_id'] = pre
-                #a=Projection(self.pre,self.post,'rcf_2D',parameters)
+                #a=Projection(self.pre, self.post,'rcf_2D', parameters)
                 rcf_2D(parameters)
     
     # --- Methods for setting connection parameters ----------------------------
     
-    def setWeights(self,w):
+    def setWeights(self, w):
         """
         w can be a single number, in which case all weights are set to this
         value, or a list/1D array of length equal to the number of connections
@@ -1090,26 +1090,26 @@ class Projection(common.Projection):
         w = _convertWeight(w, self.synapse_type)
         if is_number(w):
            # set all the weights from a given node at once
-            for src in numpy.reshape(self.pre.cell,self.pre.cell.size):
-                assert isinstance(src,int), "GIDs should be integers"
+            for src in numpy.reshape(self.pre.cell, self.pre.cell.size):
+                assert isinstance(src, int), "GIDs should be integers"
                 src_addr = pynest.getAddress(src)
                 n = len(pynest.getDict([src_addr])[0]['weights'])
                 pynest.setDict([src_addr], {'weights' : [w]*n})
         elif isinstance(w, list) or isinstance(w, numpy.ndarray):
-            for src, port, weight in zip(self._sources,self._targetPorts,w):
-                pynest.setWeight(pynest.getAddress(src),port,weight)
+            for src, port, weight in zip(self._sources, self._targetPorts, w):
+                pynest.setWeight(pynest.getAddress(src), port, weight)
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
     
-    def randomizeWeights(self,rand_distr):
+    def randomizeWeights(self, rand_distr):
         """
         Set weights to random values taken from rand_distr.
         """
         weights = _convertWeight(rand_distr.next(len(self)), self.synapse_type)
-        for ((src,port),w) in zip(self.connections(),weights):
+        for ((src, port), w) in zip(self.connections(), weights):
             pynest.setWeight(src, port, w)
     
-    def setDelays(self,d):
+    def setDelays(self, d):
         """
         d can be a single number, in which case all delays are set to this
         value, or a list/1D array of length equal to the number of connections
@@ -1117,25 +1117,25 @@ class Projection(common.Projection):
         """
         if is_number(d):
             # Set all the delays from a given node at once.
-            for src in numpy.reshape(self.pre.cell,self.pre.cell.size):
-                assert isinstance(src,int), "GIDs should be integers"
+            for src in numpy.reshape(self.pre.cell, self.pre.cell.size):
+                assert isinstance(src, int), "GIDs should be integers"
                 src_addr = pynest.getAddress(src)
                 n = len(pynest.getDict([src_addr])[0]['delays'])
                 pynest.setDict([src_addr], {'delays' : [d]*n})
-        elif isinstance(d,list) or isinstance(d,numpy.ndarray):
-            for src, port, delay in zip(self._sources,self._targetPorts,d):
-                pynest.setDelay(pynest.getAddress(src),port,delay)
+        elif isinstance(d, list) or isinstance(d, numpy.ndarray):
+            for src, port, delay in zip(self._sources, self._targetPorts, d):
+                pynest.setDelay(pynest.getAddress(src), port, delay)
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
     
-    def randomizeDelays(self,rand_distr):
+    def randomizeDelays(self, rand_distr):
         """
         Set delays to random values taken from rand_distr.
         """
-        for src,port in self.connections():
+        for src, port in self.connections():
             pynest.setDelay(src, port, rand_distr.next()[0])
     
-    def setThreshold(self,threshold):
+    def setThreshold(self, threshold):
         """
         Where the emission of a spike is determined by watching for a
         threshold crossing, set the value of this threshold.
@@ -1147,14 +1147,14 @@ class Projection(common.Projection):
     
     # --- Methods for writing/reading information to/from file. ----------------
     
-    def saveConnections(self,filename,gather=False):
+    def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
         f = open(filename,'w',10000)
         # Note unit change from pA to nA or nS to uS, depending on synapse type
-        weights = [0.001*pynest.getWeight(src,port) for (src,port) in self.connections()]
-        delays = [pynest.getDelay(src,port) for (src,port) in self.connections()] 
-        fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label,"%s",self.post.label,"%s","%g","%g")
+        weights = [0.001*pynest.getWeight(src, port) for (src, port) in self.connections()]
+        delays = [pynest.getDelay(src, port) for (src, port) in self.connections()] 
+        fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label,"%s", self.post.label,"%s","%g","%g")
         for i in xrange(len(self)):
             line = fmt  % (self.pre.locate(self._sources[i]),
                            self.post.locate(self._targets[i]),
@@ -1164,12 +1164,12 @@ class Projection(common.Projection):
             f.write(line)
         f.close()
     
-    def printWeights(self,filename,format='list',gather=True):
+    def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""
         file = open(filename,'w',10000)
         postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,)).tolist()
         presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,)).tolist()
-        weightArray = numpy.zeros((self.pre.size,self.post.size),dtype=float)
+        weightArray = numpy.zeros((self.pre.size, self.post.size), dtype=float)
         for src in self._sources:
             src_addr = pynest.getAddress(src)
             pynest.sps(src_addr)
@@ -1180,7 +1180,7 @@ class Projection(common.Projection):
             weightList = pynest.spp()
             
             i = presynaptic_neurons.index(src)
-            for tgt,w in zip(targetList,weightList):
+            for tgt, w in zip(targetList, weightList):
                 try:
                     j = postsynaptic_neurons.index(tgt)
                     weightArray[i][j] = 0.001*w
@@ -1192,7 +1192,7 @@ class Projection(common.Projection):
         file.close()
             
     
-    def weightHistogram(self,min=None,max=None,nbins=10):
+    def weightHistogram(self, min=None, max=None, nbins=10):
         """
         Return a histogram of synaptic weights.
         If min and max are not given, the minimum and maximum weights are

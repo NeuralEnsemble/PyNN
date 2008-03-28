@@ -29,7 +29,7 @@ class CreationTest(unittest.TestCase):
     def testCreateStandardCells(self):
         """create(): Creating multiple cells should return a list of integers"""
         neuron.hoc_comment('=== CreationTest.testCreateStandardCells ===')
-        ifcells = neuron.create(neuron.IF_curr_alpha,n=10)
+        ifcells = neuron.create(neuron.IF_curr_alpha, n=10)
         assert ifcells == range(0,10), 'Failed to create 10 standard cells'
        
     def testCreateStandardCellsWithNegative_n(self):
@@ -66,8 +66,8 @@ class ConnectionTest(unittest.TestCase):
     
     def setUp(self):
         neuron.hoc_comment("=== ConnectionTest.setUp() ===")
-        self.postcells = neuron.create(neuron.IF_curr_alpha,n=3)
-        self.precells = neuron.create(neuron.SpikeSourcePoisson,n=5)
+        self.postcells = neuron.create(neuron.IF_curr_alpha, n=3)
+        self.precells = neuron.create(neuron.SpikeSourcePoisson, n=5)
         
     def tearDown(self):
         neuron.hoc_comment("=== ConnectionTest.tearDown() ===")
@@ -81,42 +81,42 @@ class ConnectionTest(unittest.TestCase):
     def testConnectTwoCells(self):
         """connect(): The first connection created should have id 0."""
         neuron.hoc_comment("=== ConnectionTest.testConnectTwoCells ===")
-        conn = neuron.connect(self.precells[0],self.postcells[0])
+        conn = neuron.connect(self.precells[0], self.postcells[0])
         assert conn == [0], 'Error creating connection'
         
     def testConnectTwoCellsWithWeight(self):
         """connect(): Weight set should match weight retrieved."""
         neuron.hoc_comment("=== ConnectionTest.testConnectTwoCellsWithWeight() ===")
-        conn_id = neuron.connect(self.precells[0],self.postcells[0],weight=0.1234)
+        conn_id = neuron.connect(self.precells[0], self.postcells[0], weight=0.1234)
         #weight = HocToPy.get('netconlist.object(%d).weight' % conn_id[0], 'float')
         weight = h.netconlist.object(conn_id[0]).weight[0]
         assert weight == 0.1234, "Weight set (0.1234) does not match weight retrieved (%s)" % weight
     
     def testConnectTwoCellsWithDelay(self):
         """connect(): Delay set should match delay retrieved."""
-        conn_id = neuron.connect(self.precells[0],self.postcells[0],delay=4.321)
+        conn_id = neuron.connect(self.precells[0], self.postcells[0], delay=4.321)
         #delay = HocToPy.get('netconlist.object(%d).delay' % conn_id[0], 'float')
         delay = h.netconlist.object(conn_id[0]).delay
         assert delay == 4.321, "Delay set (4.321) does not match delay retrieved (%s)." % delay
     
     def testConnectManyToOne(self):
         """connect(): Connecting n sources to one target should return a list of size n, each element being the id number of a netcon."""
-        connlist = neuron.connect(self.precells,self.postcells[0])
-        assert connlist == range(0,len(self.precells))
+        connlist = neuron.connect(self.precells, self.postcells[0])
+        assert connlist == range(0, len(self.precells))
         
     def testConnectOneToMany(self):
         """connect(): Connecting one source to n targets should return a list of target ports."""
-        connlist = neuron.connect(self.precells[0],self.postcells)
-        assert connlist == range(0,len(self.postcells))
+        connlist = neuron.connect(self.precells[0], self.postcells)
+        assert connlist == range(0, len(self.postcells))
         
     def testConnectManyToMany(self):
         """connect(): Connecting m sources to n targets should return a list of length m x n"""
-        connlist = neuron.connect(self.precells,self.postcells)
-        assert connlist == range(0,len(self.postcells)*len(self.precells))
+        connlist = neuron.connect(self.precells, self.postcells)
+        assert connlist == range(0, len(self.postcells)*len(self.precells))
         
     def testConnectWithProbability(self):
         """connect(): If p=0.5, it is very unlikely that either zero or the maximum number of connections should be created."""
-        connlist = neuron.connect(self.precells,self.postcells,p=0.5)
+        connlist = neuron.connect(self.precells, self.postcells, p=0.5)
         assert 0 < len(connlist) < len(self.precells)*len(self.postcells), 'Number of connections is %d: this is very unlikely (although possible).' % len(connlist)
     
     def testConnectNonExistentPreCell(self):
@@ -141,24 +141,24 @@ class ConnectionTest(unittest.TestCase):
 class SetValueTest(unittest.TestCase):
     
     def setUp(self):
-        self.cells = neuron.create(neuron.IF_curr_exp,n=10)
+        self.cells = neuron.create(neuron.IF_curr_exp, n=10)
         
     def testSetFloat(self):
         neuron.hoc_comment("=== SetValueTest.testSetFloat() ===")
-        neuron.set(self.cells,neuron.IF_curr_exp,'tau_m',35.7)
+        neuron.set(self.cells, 'tau_m',35.7)
         for cell in self.cells:
             #assert HocToPy.get('cell%d.tau_m' % cell, 'float') == 35.7
             assert getattr(h, 'cell%d' % cell).tau_m == 35.7
             
     #def testSetString(self):
-    #    neuron.set(self.cells,neuron.IF_curr_exp,'param_name','string_value')
+    #    neuron.set(self.cells, neuron.IF_curr_exp,'param_name','string_value')
     ## note we don't currently have any models with string parameters, so
     ## this is all commented out
     #    for cell in self.cells:
     #        assert HocToPy.get('cell%d.param_name' % cell, 'string') == 'string_value'
 
     def testSetDict(self):
-        neuron.set(self.cells,neuron.IF_curr_exp,{'tau_m':35.7,'tau_syn_E':5.432})
+        neuron.set(self.cells, {'tau_m':35.7, 'tau_syn_E':5.432})
         for cell in self.cells:
             hoc_cell = getattr(h, 'cell%d' % cell)
             assert hoc_cell.tau_e == 5.432
@@ -169,7 +169,7 @@ class SetValueTest(unittest.TestCase):
     def testSetNonExistentParameter(self):
         # note that although syn_shape is added to the parameter dict when creating
         # an IF_curr_exp, it is not a valid parameter to be changed later.
-        self.assertRaises(common.NonExistentParameterError,neuron.set,self.cells,neuron.IF_curr_exp,'syn_shape','alpha')
+        self.assertRaises(common.NonExistentParameterError, neuron.set, self.cells, 'syn_shape', 'alpha')
 
 # ==============================================================================
 class RecordTest(unittest.TestCase): pass # to do later
@@ -186,20 +186,20 @@ class PopulationInitTest(unittest.TestCase):
         
     def testSimpleInit(self):
         """Population.__init__(): the cell list in hoc should have the same length as the population size."""
-        net = neuron.Population((3,3),neuron.IF_curr_alpha)
+        net = neuron.Population((3,3), neuron.IF_curr_alpha)
         #assert HocToPy.get('%s.count()' % net.label, 'integer') == 9
         assert int(getattr(h, net.label).count()) == 9
     
     def testInitWithParams(self):
         """Population.__init__(): Parameters set on creation should be the same as retrieved with the top-level HocObject"""
-        net = neuron.Population((3,3),neuron.IF_curr_alpha,{'tau_syn_E':3.141592654})
+        net = neuron.Population((3,3), neuron.IF_curr_alpha,{'tau_syn_E':3.141592654})
         #tau_syn = HocToPy.get('%s.object(8).esyn.tau' % net.label)
         tau_syn = getattr(h, net.label).object(8).esyn.tau
         self.assertAlmostEqual(tau_syn, 3.141592654, places=5)
     
     def testInitWithLabel(self):
         """Population.__init__(): A label set on initialisation should be retrievable with the Population.label attribute."""
-        net = neuron.Population((3,3),neuron.IF_curr_alpha,label='iurghiushrg')
+        net = neuron.Population((3,3), neuron.IF_curr_alpha, label='iurghiushrg')
         assert net.label == 'iurghiushrg'
     
 #    def testInvalidCellType(self):
@@ -218,15 +218,15 @@ class PopulationIndexTest(unittest.TestCase):
     
     def setUp(self):
         neuron.Population.nPop = 0
-        self.net1 = neuron.Population((10,),neuron.IF_curr_alpha)
-        self.net2 = neuron.Population((2,4,3),neuron.IF_curr_exp)
-        self.net3 = neuron.Population((2,2,1),neuron.SpikeSourceArray)
-        self.net4 = neuron.Population((1,2,1),neuron.SpikeSourceArray)
-        self.net5 = neuron.Population((3,3),neuron.IF_cond_alpha)
+        self.net1 = neuron.Population((10,), neuron.IF_curr_alpha)
+        self.net2 = neuron.Population((2,4,3), neuron.IF_curr_exp)
+        self.net3 = neuron.Population((2,2,1), neuron.SpikeSourceArray)
+        self.net4 = neuron.Population((1,2,1), neuron.SpikeSourceArray)
+        self.net5 = neuron.Population((3,3), neuron.IF_cond_alpha)
     
     def testValidIndices(self):
         for i in range(10):
-            self.assertEqual((i,),self.net1.locate(self.net1[i]))
+            self.assertEqual((i,), self.net1.locate(self.net1[i]))
 
     def testValidAddresses(self):
         for addr in ( (0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1), (0,1,2), (0,2,0), (0,2,1), (0,2,2), (0,3,0), (0,3,1), (0,3,2),
@@ -255,11 +255,11 @@ class PopulationIteratorTest(unittest.TestCase):
     
     def setUp(self):
         neuron.Population.nPop = 0
-        self.net1 = neuron.Population((10,),neuron.IF_curr_alpha)
-        self.net2 = neuron.Population((2,4,3),neuron.IF_curr_exp)
-        self.net3 = neuron.Population((2,2,1),neuron.SpikeSourceArray)
-        self.net4 = neuron.Population((1,2,1),neuron.SpikeSourceArray)
-        self.net5 = neuron.Population((3,3),neuron.IF_cond_alpha)
+        self.net1 = neuron.Population((10,), neuron.IF_curr_alpha)
+        self.net2 = neuron.Population((2,4,3), neuron.IF_curr_exp)
+        self.net3 = neuron.Population((2,2,1), neuron.SpikeSourceArray)
+        self.net4 = neuron.Population((1,2,1), neuron.SpikeSourceArray)
+        self.net5 = neuron.Population((3,3), neuron.IF_cond_alpha)
         
     def testIter(self):
         """This needs more thought for the distributed case."""
@@ -270,7 +270,7 @@ class PopulationIteratorTest(unittest.TestCase):
             
     def testAddressIter(self):
         for net in self.net1, self.net2:
-            for id,addr in zip(net.ids(),net.addresses()):
+            for id, addr in zip(net.ids(), net.addresses()):
                 self.assertEqual(id, net[addr])
                 self.assertEqual(addr, net.locate(id))
             
@@ -280,7 +280,7 @@ class PopulationSetTest(unittest.TestCase):
         
     def setUp(self):
         neuron.Population.nPop = 0
-        self.net = neuron.Population((3,3),neuron.IF_curr_alpha)
+        self.net = neuron.Population((3,3), neuron.IF_curr_alpha)
         self.net2 = neuron.Population((5,),'StandardIF',{'syn_type':'current','syn_shape':'exp'})
     
     def testSetFromDict(self):
@@ -290,7 +290,7 @@ class PopulationSetTest(unittest.TestCase):
         assert getattr(h, self.net.label).object(7).tau_m == 43.21
     
     def testSetFromPair(self):
-        """Population.set(): A parameter set as a string,value pair should be retrievable using the top-level HocObject"""
+        """Population.set(): A parameter set as a string, value pair should be retrievable using the top-level HocObject"""
         self.net.set('tau_m',12.34)
         #ssert HocToPy.get('%s.object(6).tau_m' % self.net.label, 'float') == 12.34
         assert getattr(h, self.net.label).object(6).tau_m == 12.34
@@ -323,13 +323,13 @@ class PopulationSetTest(unittest.TestCase):
         """Population.tset(): The valueArray passed should be retrievable using the top-level HocObject on all nodes."""
         array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
         self.net.tset('i_offset', array_in)
-        array_out = numpy.zeros((3,3),float)
+        array_out = numpy.zeros((3,3), float)
         hoc_net = getattr(h, self.net.label)
         for i in 0,1,2:
             for j in 0,1,2:
-                #array_out[i,j]= HocToPy.get('%s.object(%d).stim.amp' % (self.net.label,3*i+j),'float')
+                #array_out[i, j]= HocToPy.get('%s.object(%d).stim.amp' % (self.net.label,3*i+j),'float')
                 #print i, j, 3*i+j, hoc_net, hoc_net.object(3*i+j), hoc_net.object(3*i+j).stim
-                array_out[i,j] = hoc_net.object(3*i+j).stim.amp
+                array_out[i, j] = hoc_net.object(3*i+j).stim.amp
         assert numpy.equal(array_in, array_out).all()
     
     def testTSetInvalidDimensions(self):
@@ -362,17 +362,17 @@ class PopulationSetTest(unittest.TestCase):
         rd2 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
                                          distribution='uniform',
                                          parameters=[0.9,1.1])
-        self.net.rset('cm',rd1)
-        output_values = numpy.zeros((3,3),numpy.float)
+        self.net.rset('cm', rd1)
+        output_values = numpy.zeros((3,3), numpy.float)
         hoc_net = getattr(h, self.net.label)
         for i in 0,1,2:
             for j in 0,1,2:
-                #output_values[i,j] = HocToPy.get('%s.object(%d).cell.cm' % (self.net.label,3*i+j),'float')
-                output_values[i,j] = hoc_net.object(3*i+j).cell(0.5).cm
+                #output_values[i, j] = HocToPy.get('%s.object(%d).cell.cm' % (self.net.label,3*i+j),'float')
+                output_values[i, j] = hoc_net.object(3*i+j).cell(0.5).cm
         input_values = rd2.next(9)
         output_values = output_values.reshape((9,))
         for i in range(9):
-            self.assertAlmostEqual(input_values[i],output_values[i],places=5)
+            self.assertAlmostEqual(input_values[i], output_values[i], places=5)
         
     def testRSetNative(self):
         """Population.rset(): with native rng."""
@@ -382,23 +382,23 @@ class PopulationSetTest(unittest.TestCase):
         rd2 = random.RandomDistribution(rng=random.NativeRNG(seed=98765),
                                          distribution='uniform',
                                          parameters=[0.9,1.1])
-        self.net.rset('cm',rd1)
-        output_values_1 = numpy.zeros((3,3),numpy.float)
-        output_values_2 = numpy.zeros((3,3),numpy.float)
+        self.net.rset('cm', rd1)
+        output_values_1 = numpy.zeros((3,3), numpy.float)
+        output_values_2 = numpy.zeros((3,3), numpy.float)
         hoc_net = getattr(h, self.net.label)
         for i in 0,1,2:
             for j in 0,1,2:
-                #output_values_1[i,j] = HocToPy.get('%s.object(%d).cell.cm' % (self.net.label,3*i+j),'float')
-                output_values_1[i,j] = hoc_net.object(3*i+j).cell(0.5).cm
-        self.net.rset('cm',rd2)
+                #output_values_1[i, j] = HocToPy.get('%s.object(%d).cell.cm' % (self.net.label,3*i+j),'float')
+                output_values_1[i, j] = hoc_net.object(3*i+j).cell(0.5).cm
+        self.net.rset('cm', rd2)
         for i in 0,1,2:
             for j in 0,1,2:
-                #output_values_2[i,j] = HocToPy.get('%s.object(%d).cell.cm' % (self.net.label,3*i+j),'float')
-                output_values_2[i,j] = hoc_net.object(3*i+j).cell(0.5).cm
+                #output_values_2[i, j] = HocToPy.get('%s.object(%d).cell.cm' % (self.net.label,3*i+j),'float')
+                output_values_2[i, j] = hoc_net.object(3*i+j).cell(0.5).cm
         output_values_1 = output_values_1.reshape((9,))
         output_values_2 = output_values_2.reshape((9,))
         for i in range(9):
-            self.assertAlmostEqual(output_values_1[i],output_values_2[i],places=5)    
+            self.assertAlmostEqual(output_values_1[i], output_values_2[i], places=5)    
         
 # ==============================================================================
 class PopulationCallTest(unittest.TestCase): # to write later
@@ -424,8 +424,8 @@ class PopulationRecordTest(unittest.TestCase): # to write later
 	self.pop1.record(5)
 	
     def testRecordWithRNG(self):
-        """Population.record(n,rng): not a full test, just checking there are no Exceptions raised."""
-	self.pop1.record(5,random.NumpyRNG())
+        """Population.record(n, rng): not a full test, just checking there are no Exceptions raised."""
+	self.pop1.record(5, random.NumpyRNG())
         
     def testRecordList(self):
         """Population.record(list): not a full test, just checking there are no Exceptions raised."""
@@ -452,7 +452,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
 	rng = NumpyRNG(123)
 	v_reset  = -65.0
 	v_thresh = -50.0
-	uniformDistr = RandomDistribution(rng=rng,distribution='uniform',parameters=[v_reset,v_thresh])
+	uniformDistr = RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])
 	self.pop2.randomInit(uniformDistr)
 	self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
 	simtime = 10.0
@@ -486,12 +486,12 @@ class ProjectionInitTest(unittest.TestCase):
     def setUp(self):
         neuron.Population.nPop = 0
         neuron.Projection.nProj = 0
-        self.target33    = neuron.Population((3,3),neuron.IF_curr_alpha)
-        self.target6     = neuron.Population((6,),neuron.IF_curr_alpha)
-        self.source5     = neuron.Population((5,),neuron.SpikeSourcePoisson)
-        self.source22    = neuron.Population((2,2),neuron.SpikeSourcePoisson)
-        self.source33    = neuron.Population((3,3),neuron.SpikeSourcePoisson)
-        self.expoisson33 = neuron.Population((3,3),neuron.SpikeSourcePoisson,{'rate': 100})
+        self.target33    = neuron.Population((3,3), neuron.IF_curr_alpha)
+        self.target6     = neuron.Population((6,), neuron.IF_curr_alpha)
+        self.source5     = neuron.Population((5,), neuron.SpikeSourcePoisson)
+        self.source22    = neuron.Population((2,2), neuron.SpikeSourcePoisson)
+        self.source33    = neuron.Population((3,3), neuron.SpikeSourcePoisson)
+        self.expoisson33 = neuron.Population((3,3), neuron.SpikeSourcePoisson,{'rate': 100})
         
     def testAllToAll(self):
         """For all connections created with "allToAll" it should be possible to obtain the weight using the top-level HocObject"""
@@ -501,11 +501,11 @@ class ProjectionInitTest(unittest.TestCase):
                 prj2 = neuron.Projection(srcP, tgtP, neuron.AllToAllConnector())
                 prj1.setWeights(1.234)
                 prj2.setWeights(1.234)
-                for prj in prj1,prj2:
+                for prj in prj1, prj2:
                     hoc_list = getattr(h, prj.label)
                     weights = []
                     for connection_id in prj.connections:
-                        #weights.append(HocToPy.get('%s.object(%d).weight' % (prj.label,prj.connections.index(connection_id)), 'float'))
+                        #weights.append(HocToPy.get('%s.object(%d).weight' % (prj.label, prj.connections.index(connection_id)), 'float'))
                         weights.append(hoc_list.object(prj.connections.index(connection_id)).weight[0])
                     assert weights == [1.234]*len(prj)
             
@@ -534,7 +534,7 @@ class ProjectionInitTest(unittest.TestCase):
             for expr in ('exp(-d)', 'd < 0.5'):
                 prj1 = neuron.Projection(self.source33, self.target33,
                                          'distanceDependentProbability',
-                                         {'d_expression' : expr},rng=rngclass(12345))
+                                         {'d_expression' : expr}, rng=rngclass(12345))
                 prj2 = neuron.Projection(self.source33, self.target33,
                                          neuron.DistanceDependentProbabilityConnector(d_expression=expr),
                                          rng=rngclass(12345))
@@ -554,10 +554,10 @@ class ProjectionInitTest(unittest.TestCase):
         hoc_list1 = getattr(h, prj1.label)
         hoc_list2 = getattr(h, prj2.label)
         for connection_id in prj1.connections:
-            #w1.append(HocToPy.get('%s.object(%d).weight' % (prj1.label,prj1.connections.index(connection_id))))
-            #w2.append(HocToPy.get('%s.object(%d).weight' % (prj2.label,prj2.connections.index(connection_id))))
-            #d1.append(HocToPy.get('%s.object(%d).delay' % (prj1.label,prj1.connections.index(connection_id))))
-            #d2.append(HocToPy.get('%s.object(%d).delay' % (prj2.label,prj2.connections.index(connection_id))))
+            #w1.append(HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id))))
+            #w2.append(HocToPy.get('%s.object(%d).weight' % (prj2.label, prj2.connections.index(connection_id))))
+            #d1.append(HocToPy.get('%s.object(%d).delay' % (prj1.label, prj1.connections.index(connection_id))))
+            #d2.append(HocToPy.get('%s.object(%d).delay' % (prj2.label, prj2.connections.index(connection_id))))
             w1.append(hoc_list1.object(prj1.connections.index(connection_id)).weight[0])
             w2.append(hoc_list2.object(prj2.connections.index(connection_id)).weight[0])
             d1.append(hoc_list1.object(prj1.connections.index(connection_id)).delay)
@@ -577,10 +577,10 @@ class ProjectionSetTest(unittest.TestCase):
 #       randomizeWeights() and randomizeDelays() methods of the Projection class."""
 
     def setUp(self):
-        self.target   = neuron.Population((3,3),neuron.IF_curr_alpha)
-        self.source   = neuron.Population((3,3),neuron.SpikeSourcePoisson,{'rate': 200})
-        self.distrib_Numpy = RandomDistribution(rng=NumpyRNG(12345),distribution='uniform',parameters=(0,1)) 
-        self.distrib_Native= RandomDistribution(rng=NativeRNG(12345),distribution='uniform',parameters=(0,1)) 
+        self.target   = neuron.Population((3,3), neuron.IF_curr_alpha)
+        self.source   = neuron.Population((3,3), neuron.SpikeSourcePoisson,{'rate': 200})
+        self.distrib_Numpy = RandomDistribution(rng=NumpyRNG(12345), distribution='uniform', parameters=(0,1)) 
+        self.distrib_Native= RandomDistribution(rng=NativeRNG(12345), distribution='uniform', parameters=(0,1)) 
         
     def testsetWeights(self):
         prj1 = neuron.Projection(self.source, self.target, 'allToAll')
@@ -588,7 +588,7 @@ class ProjectionSetTest(unittest.TestCase):
         weights = []
         hoc_list = getattr(h, prj1.label)
         for connection_id in prj1.connections:
-            #weights.append(HocToPy.get('%s.object(%d).weight' % (prj1.label,prj1.connections.index(connection_id))))
+            #weights.append(HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id))))
             weights.append(hoc_list.object(prj1.connections.index(connection_id)).weight[0])
         result = 2.345*numpy.ones(len(prj1.connections))
         assert (weights == result.tolist())
@@ -599,7 +599,7 @@ class ProjectionSetTest(unittest.TestCase):
         delays = []
         hoc_list = getattr(h, prj1.label)
         for connection_id in prj1.connections:
-            #delays.append(HocToPy.get('%s.object(%d).delay' % (prj1.label,prj1.connections.index(connection_id))))
+            #delays.append(HocToPy.get('%s.object(%d).delay' % (prj1.label, prj1.connections.index(connection_id))))
             delays.append(hoc_list.object(prj1.connections.index(connection_id)).delay)
         result = 2.345*numpy.ones(len(prj1.connections))
         assert (delays == result.tolist())
@@ -614,18 +614,18 @@ class ProjectionSetTest(unittest.TestCase):
         hoc_list1 = getattr(h, prj1.label)
         hoc_list2 = getattr(h, prj2.label)
         for connection_id in prj1.connections:
-            #w1.append(HocToPy.get('%s.object(%d).weight' % (prj1.label,prj1.connections.index(connection_id))))
-            #w2.append(HocToPy.get('%s.object(%d).weight' % (prj2.label,prj1.connections.index(connection_id))))
+            #w1.append(HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id))))
+            #w2.append(HocToPy.get('%s.object(%d).weight' % (prj2.label, prj1.connections.index(connection_id))))
             w1.append(hoc_list1.object(prj1.connections.index(connection_id)).weight[0])
             w2.append(hoc_list2.object(prj2.connections.index(connection_id)).weight[0])
         prj1.randomizeWeights(self.distrib_Numpy)
         prj2.randomizeWeights(self.distrib_Native)
         for connection_id in prj1.connections:
-            #w3.append(HocToPy.get('%s.object(%d).weight' % (prj1.label,prj1.connections.index(connection_id))))
-            #w4.append(HocToPy.get('%s.object(%d).weight' % (prj2.label,prj1.connections.index(connection_id))))
+            #w3.append(HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id))))
+            #w4.append(HocToPy.get('%s.object(%d).weight' % (prj2.label, prj1.connections.index(connection_id))))
             w3.append(hoc_list1.object(prj1.connections.index(connection_id)).weight[0])
             w4.append(hoc_list2.object(prj2.connections.index(connection_id)).weight[0])
-        self.assertNotEqual(w1,w3) and self.assertNotEqual(w2,w4) 
+        self.assertNotEqual(w1, w3) and self.assertNotEqual(w2, w4) 
         
     def testrandomizeDelays(self):
         # The probability of having two consecutive delays vector that are equal should be 0
@@ -637,18 +637,18 @@ class ProjectionSetTest(unittest.TestCase):
         hoc_list1 = getattr(h, prj1.label)
         hoc_list2 = getattr(h, prj2.label)
         for connection_id in prj1.connections:
-            #d1.append(HocToPy.get('%s.object(%d).delay' % (prj1.label,prj1.connections.index(connection_id))))
-            #d2.append(HocToPy.get('%s.object(%d).delay' % (prj2.label,prj1.connections.index(connection_id))))
+            #d1.append(HocToPy.get('%s.object(%d).delay' % (prj1.label, prj1.connections.index(connection_id))))
+            #d2.append(HocToPy.get('%s.object(%d).delay' % (prj2.label, prj1.connections.index(connection_id))))
             d1.append(hoc_list1.object(prj1.connections.index(connection_id)).delay)
             d2.append(hoc_list2.object(prj2.connections.index(connection_id)).delay)
         prj1.randomizeDelays(self.distrib_Numpy)
         prj2.randomizeDelays(self.distrib_Native)
         for connection_id in prj1.connections:
-            #d3.append(HocToPy.get('%s.object(%d).delay' % (prj1.label,prj1.connections.index(connection_id))))
-            #d4.append(HocToPy.get('%s.object(%d).delay' % (prj2.label,prj1.connections.index(connection_id))))
+            #d3.append(HocToPy.get('%s.object(%d).delay' % (prj1.label, prj1.connections.index(connection_id))))
+            #d4.append(HocToPy.get('%s.object(%d).delay' % (prj2.label, prj1.connections.index(connection_id))))
             d3.append(hoc_list1.object(prj1.connections.index(connection_id)).delay)
             d4.append(hoc_list2.object(prj2.connections.index(connection_id)).delay)
-        self.assertNotEqual(d1,d3) and self.assertNotEqual(d2,d4) 
+        self.assertNotEqual(d1, d3) and self.assertNotEqual(d2, d4) 
                
         
     # If STDP works, a strong stimulation with only LTP should increase the mean weight
@@ -669,7 +669,7 @@ class ProjectionSetTest(unittest.TestCase):
         mean_weight_before = 0
         hoc_list = getattr(h, prj1.label)
         for connection_id in prj1.connections:
-            #mean_weight_before += HocToPy.get('%s.object(%d).weight' % (prj1.label,prj1.connections.index(connection_id)), 'float')
+            #mean_weight_before += HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id)), 'float')
             mean_weight_before += hoc_list.object(prj1.connections.index(connection_id)).weight[0]
         mean_weight_before = float(mean_weight_before/len(prj1.connections))  
         simtime = 100
@@ -680,7 +680,7 @@ class ProjectionSetTest(unittest.TestCase):
         assert self.source.meanSpikeCount() > 0
         assert self.target.meanSpikeCount() > 0
         for connection_id in prj1.connections:
-            #mean_weight_after += HocToPy.get('%s.object(%d).weight' % (prj1.label,prj1.connections.index(connection_id)), 'float')
+            #mean_weight_after += HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id)), 'float')
             mean_weight_after += hoc_list.object(prj1.connections.index(connection_id)).weight[0]
         mean_weight_after = float(mean_weight_after/len(prj1.connections))
         assert (mean_weight_before < mean_weight_after), "%g !< %g" % (mean_weight_before, mean_weight_after)
@@ -698,7 +698,7 @@ class ProjectionSetTest(unittest.TestCase):
             src = prj1.connections[connection_id][0]
             tgt = prj1.connections[connection_id][1]
             if (src == self.source[0,0]) and (tgt == self.target[2,2]):
-                #delay = HocToPy.get('%s.object(%d).delay' % (prj1.label,prj1.connections.index(prj1.connections[connection_id])), 'float')
+                #delay = HocToPy.get('%s.object(%d).delay' % (prj1.label, prj1.connections.index(prj1.connections[connection_id])), 'float')
                 delay = hoc_list.object(prj1.connections.index(prj1.connections[connection_id])).delay
         assert (delay == 54.32), delay
 
@@ -707,11 +707,11 @@ class ProjectionSetTest(unittest.TestCase):
 #    
 #    def setUp(self):
 #        neuron.Population.nPop = 0
-#        self.pop1 = neuron.Population((5,),neuron.IF_curr_alpha)
-#        self.pop2 = neuron.Population((4,4),neuron.IF_curr_alpha)    
-#        self.pop3 = neuron.Population((3,3,3),neuron.IF_curr_alpha)
-#        self.prj23 = neuron.Projection(self.pop2,self.pop3,"allToAll")
-#        self.prj11 = neuron.Projection(self.pop1,self.pop1,"fixedProbability",0.5)
+#        self.pop1 = neuron.Population((5,), neuron.IF_curr_alpha)
+#        self.pop2 = neuron.Population((4,4), neuron.IF_curr_alpha)    
+#        self.pop3 = neuron.Population((3,3,3), neuron.IF_curr_alpha)
+#        self.prj23 = neuron.Projection(self.pop2, self.pop3,"allToAll")
+#        self.prj11 = neuron.Projection(self.pop1, self.pop1,"fixedProbability",0.5)
 #        
 #    def testFullAddress(self):
 #        assert self.prj23.connection[(3,1),(2,0,1)] == "[3][1][2][0][1]"
@@ -743,8 +743,8 @@ class IDTest(unittest.TestCase):
     
     def setUp(self):
         neuron.Population.nPop = 0
-        self.pop1 = neuron.Population((5,),neuron.IF_curr_alpha,{'tau_m':10.0})
-        self.pop2 = neuron.Population((5,4),neuron.IF_curr_exp,{'v_reset':-60.0})
+        self.pop1 = neuron.Population((5,), neuron.IF_curr_alpha,{'tau_m':10.0})
+        self.pop2 = neuron.Population((5,4), neuron.IF_curr_exp,{'v_reset':-60.0})
     
     def testIDSetAndGet(self):
         self.pop1[3].tau_m = 20.0

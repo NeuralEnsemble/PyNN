@@ -7,7 +7,7 @@ from pyNN import common
 
 class SynapseDynamics(common.SynapseDynamics):
     """
-    For specifying synapse short-term (faciliation,depression) and long-term
+    For specifying synapse short-term (faciliation, depression) and long-term
     (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
     `Projection.__init__()` or `connect()`.
     """
@@ -36,7 +36,7 @@ class AdditiveWeightDependence(common.AdditiveWeightDependence):
     """
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
-        common.AdditiveWeightDependence.__init__(self,w_min, w_max, A_plus, A_minus)
+        common.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
 
 class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
     """
