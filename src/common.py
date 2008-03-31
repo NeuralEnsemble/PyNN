@@ -1160,7 +1160,7 @@ class Projection(object):
 class Connector(object):
     """Base class for Connector classes."""
     
-    def __init__(self, weights, delays):
+    def __init__(self, weights=0.0, delays=_min_delay):
         self.w_index = 0 # should probably use a generator
         self.d_index = 0 # rather than storing these values
         self.weights = weights
@@ -1182,7 +1182,7 @@ class Connector(object):
             weights = self.weights[self.w_index:self.w_index+N]
         else:
             raise Exception("weights is of type %s" % type(self.weights))
-        assert numpy.all(weights>=0), "Weight values must be positive"
+        #assert numpy.all(weights>=0), "Weight values must be positive"
         self.w_index += N
         return weights
     
@@ -1289,7 +1289,7 @@ class OneToOneConnector(Connector):
     in row i of a 2D post population of size (n,m).
     """
     
-    def __init__(self, weights=0.0, delays=None):
+    def __init__(self, weights=0.0, delays=_min_delay):
         Connector.__init__(self, weights, delays)
     
     

@@ -4,13 +4,30 @@
 """
 
 from pyNN import common
-from pyNN.nest2.__init__ import nest, WDManager
+from pyNN.nest2.__init__ import nest
 import numpy
 # note that WDManager is defined in __init__.py imported here, then imported
 # into __init__ through `from connectors import *`. This circularity can't be a
 # good thing. Better to define WDManager here?
 from pyNN.random import RandomDistribution, NativeRNG
 from math import *
+
+def _convertWeight(w, synapse_type):
+    weight = w*1000.0
+    if isinstance(w, numpy.ndarray):
+        all_negative = (weight<=0).all()
+        all_positive = (weight>=0).all()
+        assert all_negative or all_positive, "Weights must be either all positive or all negative"
+        if synapse_type == 'inhibitory':
+            if all_positive:
+                weight *= -1
+    elif is_number(weight):
+        if synapse_type == 'inhibitory' and weight > 0:
+            weight *= -1
+    else:
+        raise TypeError("we must be either a number or a numpy array")
+    return weight
+
 
 def get_target_ports(pre, target_list):
     # The connection dict returned by NEST contains a list of target ids,
@@ -25,12 +42,9 @@ def get_target_ports(pre, target_list):
         first_port = 0
     return range(first_port, first_port+len(target_list))
 
-class AllToAllConnector(common.AllToAllConnector, WDManager):    
+class AllToAllConnector(common.AllToAllConnector):    
 
     def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
         postsynaptic_neurons  = projection.post.cell.flatten()
         target_list = postsynaptic_neurons.tolist()
         for pre in projection.pre.cell.flat:
@@ -40,50 +54,34 @@ class AllToAllConnector(common.AllToAllConnector, WDManager):
                 if pre in target_list:
                     target_list.remove(pre)
             N = len(target_list)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
+            weights = self.getWeights(N)
+            weights = _convertWeight(weights, projection.synapse_type).tolist()
+            delays = self.getDelays(N).tolist()
             projection._targets += target_list
             projection._sources += [pre]*N
             projection._target_ports += get_target_ports(pre, target_list)
             nest.DivergentConnectWD([pre], target_list, weights, delays)
         return len(projection._targets)
 
-class OneToOneConnector(common.OneToOneConnector, WDManager):
+class OneToOneConnector(common.OneToOneConnector):
     
     def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
         if projection.pre.dim == projection.post.dim:
             projection._sources = projection.pre.cell.flatten()
             projection._targets = projection.post.cell.flatten()
             N = len(projection._sources)
             projection._target_ports = [get_target_ports(pre, [None])[0] for pre in projection._sources]
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
+            weights = self.getWeights(N)
+            weights = _convertWeight(weights, projection.synapse_type).tolist()
+            delays = self.getDelays(N).tolist()
             nest.ConnectWD(projection._sources, projection._targets, weights, delays)
             return projection.pre.size
         else:
             raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
     
-class FixedProbabilityConnector(common.FixedProbabilityConnector, WDManager):
+class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
     def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
         postsynaptic_neurons  = projection.post.cell.flatten()
         npost = projection.post.size
         for pre in projection.pre.cell.flat:
@@ -96,26 +94,18 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, WDManager):
             if not self.allow_self_connections and pre in target_list:
                 target_list.remove(pre)
             N = len(target_list)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
+            weights = self.getWeights(N)
+            weights = _convertWeight(weights, projection.synapse_type).tolist()
+            delays = self.getDelays(N).tolist()
             projection._targets += target_list
             projection._sources += [pre]*N
             projection._target_ports += get_target_ports(pre, target_list)
             nest.DivergentConnectWD([pre], target_list, weights, delays)
         return len(projection._sources)
     
-class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector, WDManager):
+class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector):
     
     def connect(self, projection):
-        weight = self.getWeight(self.weights)
-        weight = self.convertWeight(weight, projection.synapse_type)
-        delay  = self.getDelay(self.delays)
         periodic_boundaries = self.periodic_boundaries
         if periodic_boundaries is not None:
             dimensions = projection.post.dim
@@ -153,14 +143,9 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 j += 1
                 idx_post += 1
             N = len(target_list)
-            if isinstance(weight, RandomDistribution):
-                weights = list(weight.next(N))
-            else:
-                weights = [weight]*N
-            if isinstance(delay, RandomDistribution):
-                delays = list(delay.next(N))
-            else:
-                delays = [float(delay)]*N
+            weights = self.getWeights(N)
+            weights = _convertWeight(weights, projection.synapse_type).tolist()
+            delays = self.getDelays(N).tolist()
             projection._targets += target_list
             projection._sources += [pre]*N 
             projection._target_ports += get_target_ports(pre, target_list)
@@ -187,12 +172,11 @@ class FixedNumberPreConnector(common.FixedNumberPreConnector):
                 target_list.remove(pre)
 
             N = len(target_list)
-            weights = 1000.0*self.getWeights(N)
-            if projection.synapse_type == 'inhibitory':
-                weights *= -1
-            delays = self.getDelays(N)
+            weights = self.getWeights(N)
+            weights = _convertWeight(weights, projection.synapse_type).tolist()
+            delays = self.getDelays(N).tolist()
 
-            nest.DivergentConnectWD([pre], target_list.tolist(), weights.tolist(), delays.tolist())
+            nest.DivergentConnectWD([pre], target_list.tolist(), weights, delays)
 
             projection._sources += [pre]*N
             conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
@@ -235,13 +219,12 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
                 source_list.remove(pre)
 
             N = len(source_list)
-            weights = 1000.0*self.getWeights(N)
-            if projection.synapse_type == 'inhibitory':
-                weights *= -1
-            delays = self.getDelays(N)
+            weights = self.getWeights(N)
+            weights = _convertWeight(weights, projection.synapse_type).tolist()
+            delays = self.getDelays(N).tolist()
 
             nest.ConvergentConnectWD(source_list.tolist(), [post],
-                                     weights.tolist(), delays.tolist())
+                                     weights, delays)
 
         end_ports = _n_connections(projection.pre)
         for pre, start_port, end_port in zip(presynaptic_neurons, start_ports, end_ports):

@@ -49,57 +49,6 @@ class ID(int, common.IDMixin):
         nest.SetStatus([self], [parameters])
 
 
-class WDManager(object): # should be called WDManagerMixin, to make its use clear?
-
-    def getWeight(self, w=None):
-        if w is not None:
-            weight = w
-        else:
-            weight = 1.
-        return weight
-
-    def getDelay(self, d=None):
-        if d is not None:
-            delay = d
-        else:
-            delay = _min_delay
-        return delay
-
-    def convertWeight(self, w, synapse_type):
-        if isinstance(w, list):
-            w = numpy.array(w)
-        if isinstance(w, RandomDistribution):
-            weight = RandomDistribution(w.name, w.parameters, w.rng)
-            if weight.name == "uniform":
-                (w_min, w_max) = weight.parameters
-                weight.parameters = (1000.*w_min, 1000.*w_max)
-            elif weight.name ==  "normal":
-                (w_mean,w_std) = weight.parameters
-                weight.parameters = (1000.*w_mean, w_std*1000.)
-        else:
-            weight = w*1000.
-
-        if synapse_type == 'inhibitory':
-            # We have to deal with the distribution, and anticipate the
-            # fact that we will need to multiply by a factor 1000 the weights
-            # in nest...
-            if isinstance(weight, RandomDistribution):
-                if weight.name == "uniform":
-                    print weight.name, weight.parameters
-                    (w_min, w_max) = weight.parameters
-                    if w_min >= 0 and w_max >= 0:
-                        weight.parameters = (-w_max, -w_min)
-                elif weight.name ==  "normal":
-                    (w_mean, w_std) = weight.parameters
-                    if w_mean > 0:
-                        weight.parameters = (-w_mean, w_std)
-                else:
-                    print "WARNING: no conversion of the inhibitory weights for this particular distribution"
-            elif weight > 0:
-                weight *= -1
-        return weight
-
-
 class Connection(object):
     """Not part of the API as of 0.4."""
 
@@ -212,6 +161,22 @@ def _get_connection(source_id, target_id, synapse_type, *parameter_names):
 
 def is_number(n):
     return type(n) == types.FloatType or type(n) == types.IntType or type(n) == numpy.float64
+
+def _convertWeight(w, synapse_type):
+    weight = w*1000.0
+    if isinstance(w, numpy.ndarray):
+        all_negative = (weight<=0).all()
+        all_positive = (weight>=0).all()
+        assert all_negative or all_positive, "Weights must be either all positive or all negative"
+        if synapse_type == 'inhibitory':
+            if all_positive:
+                weights *= -1
+    elif is_number(weight):
+        if synapse_type == 'inhibitory' and weight > 0:
+            weight *= -1
+    else:
+        raise TypeError("we must be either a number or a numpy array")
+    return weight
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -904,7 +869,7 @@ class Population(common.Population):
                population=self, variable="conductance")
 
 
-class Projection(common.Projection, WDManager):
+class Projection(common.Projection):
     """
     A container for all the connections of a given type (same synapse type and
     plasticity mechanisms) between two populations, together with methods to set
@@ -1154,7 +1119,7 @@ class Projection(common.Projection, WDManager):
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-        w = self.convertWeight(w, self.synapse_type)
+        w = _convertWeight(w, self.synapse_type)
         self._set_connection_values('weight', w)
 
     def randomizeWeights(self, rand_distr):

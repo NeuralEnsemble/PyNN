@@ -18,6 +18,7 @@ tempdirs   = []
 dt         = 0.1
 _min_delay = 0.1
 
+DEFAULT_BUFFER_SIZE = 10000
 
 # ==============================================================================
 #   Utility classes and functions
@@ -64,7 +65,7 @@ def _convertWeight(w, synapse_type):
         all_positive = (weight>=0).all()
         assert all_negative or all_positive, "Weights must be either all positive or all negative"
         if synapse_type == 'inhibitory':
-            if all_negative:
+            if all_positive:
                 weights *= -1
     elif is_number(weight):
         if synapse_type == 'inhibitory' and weight > 0:
@@ -290,7 +291,7 @@ def _printSpikes(tmpfile, filename, compatible_output=True):
         # desired format :
         # First line: # dimensions of the population
         # Then spiketime (in ms) cell_id-min(cell_id)
-        result = open(filename,'w',10000)
+        result = open(filename,'w',DEFAULT_BUFFER_SIZE)
         # Writing # such that Population.printSpikes and this have same output format
         result.write("# "+"\n")
         # Writing spiketimes, cell_id-min(cell_id)
@@ -308,7 +309,7 @@ def _printSpikes(tmpfile, filename, compatible_output=True):
         except Exception:
             print "Error while writing data into a compatible mode"
         result.close()
-        os.system("rm %s" %tmpfile)
+        #os.system("rm %s" %tmpfile)
     else:
         shutil.move(tmpfile, filename)
 
@@ -319,7 +320,7 @@ def _print_v(tmpfile, filename, compatible_output=True):
     Should actually work with record_v() and allow to dissociate the recording of the
     writing process, which is not the case for the moment"""
     pynest.sr('%s close' %tmpfile) 
-    result = open(filename,'w',10000)
+    result = open(filename,'w',DEFAULT_BUFFER_SIZE)
     dt = pynest.getNESTStatus()['resolution']
     n = int(pynest.getNESTStatus()['time']/dt)
     result.write("# dt = %f\n# n = %d\n" % (dt, n))
@@ -341,7 +342,7 @@ def _print_v(tmpfile, filename, compatible_output=True):
         except Exception:
             print "Error while writing data into a compatible mode"
     else:
-        f = open(tmpfile,'r',10000)
+        f = open(tmpfile,'r',DEFAULT_BUFFER_SIZE)
         lines = f.readlines()
         f.close()
         for line in lines:
@@ -350,7 +351,7 @@ def _print_v(tmpfile, filename, compatible_output=True):
     os.system("rm %s" %tmpfile)
 
 def _readArray(filename, sepchar = " ", skipchar = '#'):
-    myfile = open(filename, "r", 10000)
+    myfile = open(filename, "r", DEFAULT_BUFFER_SIZE)
     contents = myfile.readlines()
     myfile.close() 
     data = []
@@ -614,10 +615,10 @@ class Population(common.Population):
 
         if (fixed_list == True):
             for neuron in record_from:
-                pynest.connect(pynest.getAddress(neuron), self.spike_detector[0])
+                pynest.connect([neuron], self.spike_detector[0])
         else:
             for neuron in numpy.random.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]:
-                pynest.connect(pynest.getAddress(neuron), self.spike_detector[0])
+                pynest.connect([neuron], self.spike_detector[0])
                 
         # Open temporary output file & register file with detectors
         # This should be redone now that Eilif has implemented the pythondatum datum type
@@ -652,10 +653,10 @@ class Population(common.Population):
         filename    = '%s.v' % self.label
         record_file = tempdir+'/'+filename
         if (fixed_list == True):
-            tmp_list = [pynest.getAddress(neuron) for neuron in record_from]
+            tmp_list = [[neuron] for neuron in record_from]
         else:
             for neuron in numpy.random.permutation(numpy.reshape(self.cell,(self.cell.size,)))[0:n_rec]:
-                tmp_list.append(pynest.getAddress(neuron))
+                tmp_list.append([neuron])
         recorders['%s.v' %self.label] = ("v", record_file.replace('/','_'))
         pynest.record_v(tmp_list, record_file.replace('/','_'))
     
@@ -691,7 +692,7 @@ class Population(common.Population):
         if (compatible_output):
             # Here we postprocess the file to have effectively the
             # desired format: spiketime (in ms) cell_id-min(cell_id)
-            result = open(filename,'w',10000)
+            result = open(filename,'w',DEFAULT_BUFFER_SIZE)
             # Writing dimensions of the population:
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
             # Writing spiketimes, cell_id-min(cell_id)
@@ -778,7 +779,7 @@ class Population(common.Population):
         file_label = '%s.v' % self.label
         (file_type, tmpfile) = recorders.pop(file_label)
         pynest.sr('%s close' % tmpfile)
-        result = open(filename,'w',10000)
+        result = open(filename,'w',DEFAULT_BUFFER_SIZE)
         dt = pynest.getNESTStatus()['resolution']
         n = int(pynest.getNESTStatus()['time']/dt)
         result.write("# dt = %f\n# n = %d\n" % (dt, n))
@@ -793,7 +794,7 @@ class Population(common.Population):
             except Exception, e:
                 print "Error while writing data into a compatible mode with file %s: %s" % (filename, e)
         else:
-            f = open(tmpfile,'r',10000)
+            f = open(tmpfile,'r',DEFAULT_BUFFER_SIZE)
             lines = f.readlines()
             f.close()
             for line in lines:
@@ -1110,7 +1111,6 @@ class Projection(common.Projection):
            # set all the weights from a given node at once
             for src in numpy.reshape(self.pre.cell, self.pre.cell.size):
                 assert isinstance(src, int), "GIDs should be integers"
-                src_addr = pynest.getAddress(src)
                 n = len(pynest.getDict([src_addr])[0]['weights'])
                 pynest.setDict([src_addr], {'weights' : [w]*n})
         elif isinstance(w, list) or isinstance(w, numpy.ndarray):
@@ -1168,7 +1168,7 @@ class Projection(common.Projection):
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        f = open(filename,'w',10000)
+        f = open(filename,'w',DEFAULT_BUFFER_SIZE)
         # Note unit change from pA to nA or nS to uS, depending on synapse type
         weights = [0.001*pynest.getWeight(src, port) for (src, port) in self.connections()]
         delays = [pynest.getDelay(src, port) for (src, port) in self.connections()] 
@@ -1184,7 +1184,7 @@ class Projection(common.Projection):
     
     def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""
-        file = open(filename,'w',10000)
+        file = open(filename,'w',DEFAULT_BUFFER_SIZE)
         postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,)).tolist()
         presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,)).tolist()
         weightArray = numpy.zeros((self.pre.size, self.post.size), dtype=float)
