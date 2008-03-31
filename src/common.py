@@ -115,8 +115,10 @@ class IDMixin(object):
 
     def set_parameters(self, **parameters):
         """Set cell parameters, given as a sequence of parameter=value arguments."""
+        all_parameters = self.get_parameters()
+        all_parameters.update(parameters)
         if self.is_standard_cell():
-            parameters = self.cellclass.translate(parameters)
+            parameters = self.cellclass.translate(all_parameters)
         self.set_native_parameters(parameters)
     
     def get_parameters(self):
@@ -300,7 +302,7 @@ class StandardModelType(object):
     @classmethod
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
-        parameters = cls.checkParameters(parameters, with_defaults=True)
+        parameters = cls.checkParameters(parameters, with_defaults=False)
         native_parameters = {}
         for name,D  in cls.translations.items():
             pname = D['translated_name']
@@ -349,7 +351,7 @@ class StandardModelType(object):
         """
         update self.parameters with those in parameters 
         """
-        self.parameters.update(self.translate(parameters, with_defaults=False))
+        self.parameters.update(self.translate(parameters))
         
 
 class StandardCellType(StandardModelType):

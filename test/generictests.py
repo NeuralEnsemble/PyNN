@@ -113,6 +113,29 @@ class PopulationSpikesTest(unittest.TestCase):
         self.assertEqual(self.input_spike_array.shape, (10,2))
         self.assertEqual(self.input_spike_array.shape, output_spike_array.shape)
 
+class PopulationSetTest(unittest.TestCase):
+    
+    def setUp(self):
+        sim.setup()
+        cell_params = {
+            'tau_m' : 20.,  'tau_syn_E' : 2.3,   'tau_syn_I': 4.5,
+            'v_rest': -55., 'v_reset'   : -62.3, 'v_thresh' : -50.2,
+            'cm'    : 1.,   'tau_refrac': 2.3}
+        self.p1 = sim.Population((10,), sim.IF_curr_exp, cell_params)
+        
+    def testSetOnlyChangesTheDesiredParameters(self):
+        before = [cell.get_parameters() for cell in self.p1]
+        self.p1.set('v_init', -78.9)
+        after = [cell.get_parameters() for cell in self.p1]
+        for name in self.p1.celltype.__class__.default_parameters:
+            if name == 'v_init':
+                for a in after:
+                    self.assertAlmostEqual(a[name], -78.9, places=5)
+            else:
+                for b,a in zip(before,after):
+                    self.assert_(b[name] == a[name], "%s: %s != %s" % (name, b[name], a[name]))
+                
+# ==============================================================================
 if __name__ == "__main__":
     simulator = sys.argv[1]
     sys.argv.remove(simulator) # because unittest.main() processes sys.argv

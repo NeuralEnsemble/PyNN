@@ -693,7 +693,9 @@ class Population(common.Population):
         """
         ids = self.pcsim_population.idVector()
         for i in ids:
-            yield ID(i-ids[0])
+            id = ID(i-ids[0])
+            id.parent = self
+            yield id
             
     def addresses(self):
         return self.__address_gen()
@@ -755,15 +757,17 @@ class Population(common.Population):
         """
         """PCSIM: iteration through all elements """
         param_dict = checkParams(param, val)
-        if isinstance(self.celltype, common.StandardCellType):
-            param_dict = self.celltype.translate(param_dict)
-                 
-        for index in range(0, len(self)):
-            obj = pcsim_globals.net.object(self.pcsim_population[index])
-            if obj:
-                for param, value in param_dict.items():
-                    setattr( obj, param, value )
         
+        #if isinstance(self.celltype, common.StandardCellType):
+        #    param_dict = self.celltype.translate(param_dict)
+                 
+        #for index in range(0, len(self)):
+        #    obj = pcsim_globals.net.object(self.pcsim_population[index])
+        #    if obj:
+        #        for param, value in param_dict.items():
+        #            setattr( obj, param, value )
+        for cell in self:
+            cell.set_parameters(**param_dict)
         
     def tset(self, parametername, value_array):
         """

@@ -84,7 +84,7 @@ class ID(int, common.IDMixin):
         if self.is_standard_cell():
             parameter_names = [D['translated_name'] for D in self.cellclass.translations.values()]
         else:
-            parameter_names = None # for native cells, don't have a way to get their list of parameters
+            parameter_names = [] # for native cells, don't have a way to get their list of parameters
         # Obtain the hoc object whose parameters we are going to get
         cell = self._hoc_cell()
         # Get the values from hoc
@@ -780,7 +780,9 @@ class Population(common.Population):
         """
         if isinstance(rand_distr.rng, NativeRNG):
             if isinstance(self.celltype, common.StandardCellType):
-                parametername = self.celltype.translate({parametername: 0}).keys()[0]
+                parametername = self.celltype.__class__.translations[parametername]['translated_name']
+                if parametername in self.celltype.__class__.computed_parameters():
+                    raise Exception("rset() with NativeRNG not (yet) supported for computed parameters.")
             paramfmt = "%g,"*len(rand_distr.parameters); paramfmt = paramfmt.strip(',')
             distr_params = paramfmt % tuple(rand_distr.parameters)
             hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
