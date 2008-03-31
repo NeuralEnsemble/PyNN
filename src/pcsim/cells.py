@@ -89,7 +89,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
 
 class IF_cond_exp(common.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and 
-    exponential-decaying post-synaptic conductance."""
+    exponentially-decaying post-synaptic conductance."""
     
     translations = common.build_translations(
         ('tau_m',      'taum',      1e-3),

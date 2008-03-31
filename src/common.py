@@ -413,7 +413,7 @@ class IF_cond_alpha(StandardCellType):
     
 class IF_cond_exp(StandardCellType):
     """Leaky integrate and fire model with fixed threshold and 
-    decaying-exponential post-synaptic conductance."""
+    exponentially-decaying post-synaptic conductance."""
     
     default_parameters = {
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
@@ -743,7 +743,7 @@ class Population(object):
                          case of non-point models).""")
     
     def index(self, n):
-        """Return the nth cell in the population."""
+        """Return the nth cell in the population (Indexing starts at 0)."""
         return _abstract_method(self)
     
     def nearest(self, position):
@@ -770,7 +770,7 @@ class Population(object):
     def tset(self, parametername, value_array):
         """
         'Topographic' set. Set the value of parametername to the values in
-        valueArray, which must have the same dimensions as the Population.
+        value_array, which must have the same dimensions as the Population.
         """
         return _abstract_method(self)
     
@@ -828,6 +828,7 @@ class Population(object):
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
         Write spike times to file.
+        
         If compatible_output is True, the format is "spiketime cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
@@ -840,37 +841,41 @@ class Population(object):
         is used. This may be faster, since it avoids any post-processing of the
         spike files.
         
-        If gather is True, the file will only be created on the master node,
-        otherwise, a file will be written on each node.
+        For parallel simulators, if gather is True, all data will be gathered
+        to the master node and a single output file created there. Otherwise, a
+        file will be written on each node, containing only the cells simulated
+        on that node.
         """        
         return _abstract_method(self)
     
 
     def getSpikes(self, gather=True):
         """
-        Return a numpy array of the spikes of the population
+        Return a 2-column numpy array containing cell ids and spike times for
+        recorded cells.
 
         Useful for small populations, for example for single neuron Monte-Carlo.
-
-        NOTE: getSpikes or printSpikes should be called only once per run,
-        because they mangle simulator recorder files.
         """
         return _abstract_method(self)
 
     def print_v(self, filename, gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
+        
         If compatible_output is True, the format is "v cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
-        This allows easy plotting of a `raster' plot of spiketimes, with one
-        line for each cell.
         The timestep and number of data points per cell is written as a header,
         indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
+        
+        For parallel simulators, if gather is True, all data will be gathered
+        to the master node and a single output file created there. Otherwise, a
+        file will be written on each node, containing only the cells simulated
+        on that node.
         """
         return _abstract_method(self)
     
@@ -915,7 +920,8 @@ class Projection(object):
         method, although we should allow this to be a number or string if there
         is only one parameter.
         
-        synapse_dynamics - ...
+        synapse_dynamics - a `SynapseDynamics` object specifying which
+        synaptic plasticity mechanisms to use.
         
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
@@ -1343,7 +1349,7 @@ class DistanceDependentProbabilityConnector(Connector):
 
 class SynapseDynamics(object):
     """
-    For specifying synapse short-term (faciliation,depression) and long-term
+    For specifying synapse short-term (faciliation, depression) and long-term
     (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
     `Projection.__init__()` or `connect()`.
     """
@@ -1449,9 +1455,9 @@ class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
 class GutigWeightDependence(STDPWeightDependence):
     pass
 
-
-class PfisterSpikeTripletRule(STDPTimingDependence):
-    pass
+# Not yet implemented for any module
+#class PfisterSpikeTripletRule(STDPTimingDependence):
+#    pass
 
 
 class SpikePairRule(STDPTimingDependence):

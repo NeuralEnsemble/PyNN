@@ -42,10 +42,14 @@ exclude_list = ['__module__','__doc__','__builtins__','__file__','__class__',
                 '__new__','__reduce__','__reduce_ex__','__repr__','__setattr__',
                 '__str__','__weakref__',
                 'time','types','copy', 'sys', 'numpy', 'random',
-                '_abstract_method', '_function_id',
+                '_abstract_method', '_function_id', 'distance', 'distances',
+                'build_translations',
                 'InvalidParameterValueError', 'NonExistentParameterError',
-                'InvalidDimensionsError', 'ConnectionError', 'RoundingWarning'
-                'StandardCellType', 'Connector', 'StandardModelType'
+                'InvalidDimensionsError', 'ConnectionError', 'RoundingWarning',
+                'StandardCellType', 'Connector', 'StandardModelType',
+                'STDPTimingDependence', 'STDPWeightDependence', 'ShortTermPlasticityMechanism',
+                'ModelNotAvailable', 'IDMixin',
+                '_tcall', '_call',
                 ] + dir(math)
 
 module_list = [nest1, nest2, neuron, pcsim]
@@ -139,16 +143,21 @@ def checkMethod(meth,classname):
     differences = ""
     common_args = funcArgs(meth.im_func)
     common_doc  = meth.im_func.__doc__
-    for cls in [getattr(m,classname) for m in module_list if hasattr(m,classname)]:
-        if hasattr(cls, meth.im_func.func_name): #dir(cls).__contains__(meth.im_func.func_name):
-            modulemeth = getattr(cls,meth.im_func.func_name)
-            module_args = funcArgs(modulemeth)
-            module_doc  = modulemeth.im_func.__doc__
-            if common_args == module_args:
-                str += checkDoc(common_doc,module_doc)
+    #for cls in [getattr(m,classname) for m in module_list if hasattr(m,classname)]:
+    for m in module_list:
+        if hasattr(m, classname):
+            cls = getattr(m,classname)
+            if hasattr(cls, meth.im_func.func_name): #dir(cls).__contains__(meth.im_func.func_name):
+                modulemeth = getattr(cls,meth.im_func.func_name)
+                module_args = funcArgs(modulemeth)
+                module_doc  = modulemeth.im_func.__doc__
+                if common_args == module_args:
+                    str += checkDoc(common_doc,module_doc)
+                else:
+                    str += inconsistent_args
+                    differences += common_args + " != " + module_args + "\n           "
             else:
-                str += inconsistent_args
-                differences += common_args + " != " + module_args + "\n           "
+                str += notfound
         else:
             str += notfound
     return str, differences
@@ -199,9 +208,8 @@ if __name__ == "__main__":
 
     header = "   ".join(m.__name__.replace('pyNN.','') for m in module_list)
     print "\n%s%s" % (" "*(indent+3),header)
-    exclude_pattern = re.compile('^' + '$|^'.join(exclude_list) + '$')
     for item in dir(common):
-        if not exclude_pattern.match(item):
+        if item not in exclude_list:
             fmt = "%s-%ds " % ("%",indent)
             line = ""
             difference = ""
@@ -219,7 +227,7 @@ if __name__ == "__main__":
                     if inconsistency: print inconsistency.strip("\n")
                     inconsistency = ""
                 for subitem in dir(fm):
-                    if not exclude_pattern.match(subitem):
+                    if subitem not in exclude_list:
                         line = ""; difference = ""
                         fmt = "  %s-%ds " % ("%",(indent-2))
                         fm1 = getattr(fm,subitem)
@@ -231,7 +239,9 @@ if __name__ == "__main__":
                         elif type(fm1) == types.FunctionType:
                             line += colour(yellow+bright,fmt % subitem) #+ '(staticmethod)'
                             line += checkStaticMethod(fm1,item)
-                        #else: # class data, should add check
+                        else: # class data, should add check
+                            line += colour(red+bright,fmt % subitem) #+ '(class data)'
+                            line += "     (not checked)"
                         if line:
                             print line
                             if difference:

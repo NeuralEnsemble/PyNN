@@ -464,7 +464,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     both be individual cells or lists of cells, in which case all possible
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
-    Weights should be in nA or uS."""
+    Weights should be in nA or µS."""
     global pcsim_globals
     if weight is None:  weight = 0.0
     if delay  is None:  delay = pcsim_globals.minDelay
@@ -650,7 +650,7 @@ class Population(common.Population):
         
         
     def __getitem__(self, addr):
-        """Returns a representation of the cell with coordinates given by addr,
+        """Return a representation of the cell with coordinates given by addr,
            suitable for being passed to other methods that require a cell id.
            Note that __getitem__ is called when using [] access, e.g.
              p = Population(...)
@@ -741,7 +741,7 @@ class Population(common.Population):
         return self.pcsim_population[index]
     
     def __len__(self):
-        """Returns the total number of cells in the population."""
+        """Return the total number of cells in the population."""
         return self.pcsim_population.size()
         
     def set(self, param, val=None):
@@ -767,8 +767,8 @@ class Population(common.Population):
         
     def tset(self, parametername, value_array):
         """
-        'Topographic' set. Sets the value of parametername to the values in
-        valueArray, which must have the same dimensions as the Population.
+        'Topographic' set. Set the value of parametername to the values in
+        value_array, which must have the same dimensions as the Population.
         """
         """PCSIM: iteration and set """
         if self.dim[0:self.actual_ndim] == valueArray.shape:
@@ -792,7 +792,7 @@ class Population(common.Population):
         
     def rset(self, parametername, rand_distr):
         """
-        'Random' set. Sets the value of parametername to a value taken from
+        'Random' set. Set the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
         """
@@ -877,7 +877,8 @@ class Population(common.Population):
      
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
-        Writes spike times to file.
+        Write spike times to file.
+        
         If compatible_output is True, the format is "spiketime cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
@@ -890,8 +891,10 @@ class Population(common.Population):
         is used. This may be faster, since it avoids any post-processing of the
         spike files.
         
-        If gather is True, the file will only be created on the master node,
-        otherwise, a file will be written on each node.
+        For parallel simulators, if gather is True, all data will be gathered
+        to the master node and a single output file created there. Otherwise, a
+        file will be written on each node, containing only the cells simulated
+        on that node.
         """        
         """PCSIM: implemented by corresponding recorders at python level """
         self.spike_rec.saveSpikesText(filename, compatible_output=compatible_output)
@@ -900,29 +903,31 @@ class Population(common.Population):
     def print_v(self, filename, gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
+        
         If compatible_output is True, the format is "v cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
-        This allows easy plotting of a `raster' plot of spiketimes, with one
-        line for each cell.
         The timestep and number of data points per cell is written as a header,
         indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
+        
+        For parallel simulators, if gather is True, all data will be gathered
+        to the master node and a single output file created there. Otherwise, a
+        file will be written on each node, containing only the cells simulated
+        on that node.
         """
         """PCSIM: will be implemented by corresponding analog recorders at python level object  """
         self.vm_rec.saveValuesText(filename, compatible_output=compatible_output)
     
     def getSpikes(self, gather=True):
         """
-        Returns a numpy array of the spikes of the population
+        Return a 2-column numpy array containing cell ids and spike times for
+        recorded cells.
 
         Useful for small populations, for example for single neuron Monte-Carlo.
-
-        NOTE: getSpikes or printSpikes should be called only once per run,
-        because they mangle simulator recorder files.
         """
         return self.spike_rec.getSpikes()
     
@@ -943,7 +948,7 @@ class Population(common.Population):
 
     def randomInit(self, rand_distr):
         """
-        Sets initial membrane potentials for all the cells in the population to
+        Set initial membrane potentials for all the cells in the population to
         random values.
         """
         """ PCSIM: can be reduced to rset() where parameterName is Vinit"""
@@ -1005,19 +1010,26 @@ class Projection(common.Projection, WDManager):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
-        source - string specifying which attribute of the presynaptic cell signals action potentials
-        
-        target - string specifying which synapse on the postsynaptic cell to connect to
+        source - string specifying which attribute of the presynaptic cell
+                 signals action potentials
+                 
+        target - string specifying which synapse on the postsynaptic cell to
+                 connect to
+                 
         If source and/or target are not given, default values are used.
         
-        method - string indicating which algorithm to use in determining connections.
+        method - string indicating which algorithm to use in determining
+                 connections.
         Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-        'fromFile', 'fromList'
+        'fromFile', 'fromList'.
         
-        method_parameters - dict containing parameters needed by the connection method,
-        although we should allow this to be a number or string if there is only
-        one parameter.
+        method_parameters - dict containing parameters needed by the connection
+        method, although we should allow this to be a number or string if there
+        is only one parameter.
+        
+        synapse_dynamics - a `SynapseDynamics` object specifying which
+        synaptic plasticity mechanisms to use.
         
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
