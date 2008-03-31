@@ -137,8 +137,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
-        ('g_leak',     'g_L'),
-        ('v_init',     'V_m'),
+        ('g_leak',     'g_L')
     )
     nest_name = "iaf_cond_exp_sfa_rr"
 
