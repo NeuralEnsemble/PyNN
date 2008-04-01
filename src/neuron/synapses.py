@@ -28,7 +28,7 @@ class STDPMechanism(common.STDPMechanism):
 
 class TsodkysMarkramMechanism(common.TsodkysMarkramMechanism):
     
-    def __init__(self, U=0.5, D=100.0, F=0.0, u0=0.0, r0=1.0, f0=0.0):
+    def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
         common.TsodkysMarkramMechanism.__init__(self, U, D, F, u0, r0, f0)
 
 

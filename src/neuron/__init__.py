@@ -1127,7 +1127,7 @@ class Projection(common.Projection):
         
         ## Deal with synaptic plasticity
         if self.long_term_plasticity_mechanism is not None:
-            self._setupSTDP(self._plasticity_model, self._stdp_parameters)
+            self._setupSTDP(self.long_term_plasticity_mechanism, self._stdp_parameters)
             
         Projection.nProj += 1
 
@@ -1502,7 +1502,7 @@ class Projection(common.Projection):
     
     def _setupSTDP(self, stdp_model, parameterDict):
         """Set-up STDP."""
-        ddf = self.long_term_plasticity_mechanism.dendritic_delay_fraction
+        ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
         # Define the objref to handle plasticity
         hoc_commands =  ['objref %s_wa[%d]'      %(self.hoc_label, len(self)),
                          'objref %s_pre2wa[%d]'  %(self.hoc_label, len(self)),

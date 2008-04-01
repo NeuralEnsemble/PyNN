@@ -944,38 +944,34 @@ class Projection(object):
                 self.label = "%s → %s" % (self.pre.label, self.post.label)
     
         # Deal with synaptic plasticity
-        if isinstance(self.synapse_dynamics, SynapseDynamics):
-            self.short_term_plasticity_mechanism = self.synapse_dynamics.fast
-            self.long_term_plasticity_mechanism = self.synapse_dynamics.slow
-            assert 0 <= self.long_term_plasticity_mechanism.dendritic_delay_fraction <= 1.0
-        elif self.synapse_dynamics is None:
-            self.short_term_plasticity_mechanism = None
-            self.long_term_plasticity_mechanism = None
-        else:
-            print type(synapse_dynamics)
-            raise Exception("The synapse_dynamics argument, if specified, must be a SynapseDynamics object.")
-    
-        if self.short_term_plasticity_mechanism is not None:
-            raise Exception("Not yet implemented.")
+        self.short_term_plasticity_mechanism = None
+        self.long_term_plasticity_mechanism = None
+        if self.synapse_dynamics:
+            if isinstance(self.synapse_dynamics, SynapseDynamics):
+                if self.synapse_dynamics.fast:
+                    assert isinstance(self.synapse_dynamics.fast, ShortTermPlasticityMechanism)
+                if self.synapse_dynamics.slow:
+                    assert isinstance(self.synapse_dynamics.slow, STDPMechanism)
+                    assert 0 <= self.synapse_dynamics.slow.dendritic_delay_fraction <= 1.0
+            else:
+                print type(synapse_dynamics)
+                raise Exception("The synapse_dynamics argument, if specified, must be a SynapseDynamics object.")
         
-        self._plasticity_model = None
-        self._stdp_parameters = None
-        if self.long_term_plasticity_mechanism is not None:
-            assert isinstance(self.long_term_plasticity_mechanism, STDPMechanism)
-            
-            td = self.long_term_plasticity_mechanism.timing_dependence
-            wd = self.long_term_plasticity_mechanism.weight_dependence
-            possible_models = td.possible_models.intersection(wd.possible_models)
-            if len(possible_models) == 1 :
-                self._plasticity_model = list(possible_models)[0]
-            elif len(possible_models) == 0 :
-                raise Exception("No available plasticity models")
-            elif len(possible_models) > 1 :
-                raise Exception("Multiple plasticity models available")
-            
-            #print "Using %s" % self._plasticity_model
-            self._stdp_parameters = td.parameters.copy()
-            self._stdp_parameters.update(wd.parameters)
+            self._stdp_parameters = None
+            if self.synapse_dynamics.slow is not None:
+                td = self.synapse_dynamics.slow.timing_dependence
+                wd = self.synapse_dynamics.slow.weight_dependence
+                possible_models = td.possible_models.intersection(wd.possible_models)
+                if len(possible_models) == 1 :
+                    self.long_term_plasticity_mechanism = list(possible_models)[0]
+                elif len(possible_models) == 0 :
+                    raise Exception("No available plasticity models")
+                elif len(possible_models) > 1 :
+                    raise Exception("Multiple plasticity models available")
+                
+                #print "Using %s" % self._plasticity_model
+                self._stdp_parameters = td.parameters.copy()
+                self._stdp_parameters.update(wd.parameters)
             
     
     def __len__(self):
@@ -1383,15 +1379,15 @@ class TsodkysMarkramMechanism(ShortTermPlasticityMechanism):
     """ """
     default_parameters = {
         'U': 0.5,   # use parameter
-        'D': 100.0, # depression time constant (ms)
-        'F': 0.0,   # facilitation time constant (ms)
+        'tau_rec': 100.0, # depression time constant (ms)
+        'tau_facil': 0.0,   # facilitation time constant (ms)
         'u0': 0.0,  # }
-        'r0': 1.0,  # } initial values
-        'f0': 0.0   # }
+        'x0': 1.0,  # } initial values
+        'y0': 0.0   # }
     }
     
-    def __init__(self, U=0.5, D=100.0, F=0.0, u0=0.0, r0=1.0, f0=0.0):
-        _abstract_method(self)
+    def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
+        pass
 
         
 class STDPWeightDependence(StandardModelType):

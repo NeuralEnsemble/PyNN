@@ -927,14 +927,18 @@ class Projection(common.Projection):
         self._sources = []     # holds gids
         self.synapse_type = target
         self._method = method
-        if self._plasticity_model is None:
-            self._plasticity_model = "static_synapse"
+        
+        if synapse_dynamics and synapse_dynamics.fast and synapse_dynamics.slow:
+                raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
+        self._plasticity_model = self.short_term_plasticity_mechanism or \
+                                 self.long_term_plasticity_mechanism or \
+                                 "static_synapse"
 
         # Set synaptic plasticity parameters
         original_synapse_context = nest.GetSynapseContext()
         nest.SetSynapseContext(self._plasticity_model)
 
-        if self._stdp_parameters:
+        if hasattr(self, '_stdp_parameters') and self._stdp_parameters:
             # NEST does not support w_min != 0
             self._stdp_parameters.pop("w_min_always_zero_in_NEST")
             # Tau_minus is a parameter of the post-synaptic cell, not of the connection
