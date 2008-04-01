@@ -26,11 +26,24 @@ class STDPMechanism(common.STDPMechanism):
                                       voltage_dependence, dendritic_delay_fraction)
 
 
-class TsodyksMarkramMechanism(common.TsodkysMarkramMechanism):
+class TsodyksMarkramMechanism(common.TsodyksMarkramMechanism):
+    
+    translations = common.build_translations(
+        ('U', 'U'),
+        ('tau_rec', 'tau_rec'),
+        ('tau_facil', 'tau_facil'),
+        ('u0', 'u0'),  
+        ('x0', 'x' ), # } note that these two values
+        ('y0', 'y')   # } are not used
+    )
+    native_name = 'tsodkys-markram'
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
-        common.TsodyksMarkramMechanism.__init__(self, U, D, F, u0, r0, f0)
-
+        assert (x0 == 1 and y0 == 0), "It is not currently possible to set x0 and y0"
+        common.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
+        parameters = locals()
+        parameters.pop('self')
+        self.parameters = self.translate(parameters)
 
 class AdditiveWeightDependence(common.AdditiveWeightDependence):
     """

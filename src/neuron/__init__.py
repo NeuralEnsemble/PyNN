@@ -214,6 +214,8 @@ def _translate_synapse_type(synapse_type, weight=None):
             syn_objref = "esyn"
         elif synapse_type == 'inhibitory':
             syn_objref = "isyn"
+        elif synapse_type == 'tsodkys-markram':
+            syn_objref = "esyn_tm"
         else:
             # More sophisticated treatment needed once we have more sophisticated synapse
             # models, e.g. NMDA...
@@ -1109,8 +1111,22 @@ class Projection(common.Projection):
         hoc_commands = ['objref %s' % self.hoc_label,
                         '%s = new List()' % self.hoc_label]
         self.synapse_type = target
+        
+        ## Deal with short-term synaptic plasticity
+        if self.short_term_plasticity_mechanism:
+            self.synapse_type = self.short_term_plasticity_mechanism
+            U = self._short_term_plasticity_parameters['U']
+            tau_rec = self._short_term_plasticity_parameters['tau_rec']
+            tau_facil = self._short_term_plasticity_parameters['tau_facil']
+            u0 = self._short_term_plasticity_parameters['u0']
+            for cell in self.post:
+                hoc_cell = cell._hoc_cell()
+                hoc_cell.use_Tsodyks_Markram_synapses(U, tau_rec, tau_facil, u0)
+                
         self._syn_objref = _translate_synapse_type(self.synapse_type)
+        print "Using", self._syn_objref
 
+        ## Create connections
         if isinstance(method, str):
             connection_method = getattr(self,'_%s' % method)   
             hoc_commands += connection_method(method_parameters)
@@ -1124,9 +1140,9 @@ class Projection(common.Projection):
         # This should already have been done if using a Connector object
         if isinstance(method, str) and (method != 'fromList') and (method != 'fromFile'):
             self.setDelays(_min_delay)
-        
-        ## Deal with synaptic plasticity
-        if self.long_term_plasticity_mechanism is not None:
+                
+        ## Deal with long-term synaptic plasticity
+        if self.long_term_plasticity_mechanism:
             self._setupSTDP(self.long_term_plasticity_mechanism, self._stdp_parameters)
             
         Projection.nProj += 1
