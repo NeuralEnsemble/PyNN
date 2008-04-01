@@ -1111,8 +1111,8 @@ class Projection(common.Projection):
            # set all the weights from a given node at once
             for src in numpy.reshape(self.pre.cell, self.pre.cell.size):
                 assert isinstance(src, int), "GIDs should be integers"
-                n = len(pynest.getDict([src_addr])[0]['weights'])
-                pynest.setDict([src_addr], {'weights' : [w]*n})
+                n = len(pynest.getDict([src])[0]['weights'])
+                pynest.setDict([src], {'weights' : [w]*n})
         elif isinstance(w, list) or isinstance(w, numpy.ndarray):
             for src, port, weight in zip(self._sources, self._targetPorts, w):
                 pynest.setWeight(pynest.getAddress(src), port, weight)
