@@ -147,7 +147,7 @@ class SetValueTest(unittest.TestCase):
         
     def testSetFloat(self):
         global pcsim_globals        
-        set(self.cells,IF_curr_exp,'tau_m',35.7)
+        set(self.cells, 'tau_m', 35.7)
         for cell in self.cells:
             self.assertAlmostEqual( pcsim_globals.net.object(cell).taum*1000.0 , 35.7, places = 5 )
             
@@ -160,7 +160,7 @@ class SetValueTest(unittest.TestCase):
 
     def testSetDict(self):
         global pcsim_globals
-        set(self.cells, IF_curr_exp,{'tau_m':35.7,'tau_syn_E':5.432})
+        set(self.cells,{'tau_m':35.7,'tau_syn_E':5.432})
         for cell in self.cells:
             self.assertAlmostEqual( pcsim_globals.net.object(cell).taum*1000.0, 35.7, places = 5     )
             self.assertAlmostEqual( pcsim_globals.net.object(cell).TauSynExc*1000.0, 5.432, places = 6 )
@@ -168,7 +168,7 @@ class SetValueTest(unittest.TestCase):
     def testSetNonExistentParameter(self):
         # note that although syn_shape is added to the parameter dict when creating
         # an IF_curr_exp, it is not a valid parameter to be changed later.
-        self.assertRaises(common.NonExistentParameterError, set, self.cells, IF_curr_exp,'some_param','some_value')
+        self.assertRaises(common.NonExistentParameterError, set, self.cells, 'some_param','some_value')
 
 # ==============================================================================
 class RecordTest(unittest.TestCase):

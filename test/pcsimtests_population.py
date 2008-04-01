@@ -415,10 +415,10 @@ class IDTest(unittest.TestCase):
         self.pop1[3].tau_m = 20.0
         self.pop2[3,2].v_reset = -70.0
         self.assertAlmostEqual( self.pop1.pcsim_population.object(self.pop1[3]).taum, 0.02, places = 5) 
-        self.assertAlmostEqual(0.02, self.pop1[3].tau_m, places = 5)
-        self.assertAlmostEqual(0.01, self.pop1[0].tau_m, places = 5)
-        self.assertAlmostEqual(-0.07, self.pop2[3,2].v_reset, places = 5)
-        self.assertAlmostEqual(-0.06, self.pop2[0,0].v_reset, places = 5)
+        self.assertAlmostEqual(20.0, self.pop1[3].tau_m, places = 5)
+        self.assertAlmostEqual(10.0, self.pop1[0].tau_m, places = 5)
+        self.assertAlmostEqual(-70, self.pop2[3,2].v_reset, places = 5)
+        self.assertAlmostEqual(-60, self.pop2[0,0].v_reset, places = 5)
 
     def testGetCellClass(self):
         self.assertEqual(IF_curr_alpha, self.pop1[0].cellclass)

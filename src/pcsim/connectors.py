@@ -5,6 +5,7 @@
 
 from pyNN import common
 from pypcsim import *
+from pyNN.pcsim.pcsim_globals import pcsim_globals
 
 class AllToAllConnector(common.AllToAllConnector):    
     

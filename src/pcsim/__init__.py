@@ -29,22 +29,23 @@ import exceptions
 from datetime import datetime
 import operator
 
+from pyNN.pcsim.pcsim_globals import pcsim_globals
 
-
-# global pypcsim objects used throughout simulation
-class PyPCSIM_GLOBALS:    
-    net = None
-    dt = None
-    minDelay = None
-    maxDelay = None
-    constructRNGSeed = None
-    simulationRNGSeed = None
-    spikes_multi_rec = {}
-    vm_multi_rec = {}
-    pass
-
-pcsim_globals = PyPCSIM_GLOBALS()
-dt = PyPCSIM_GLOBALS.dt
+## global pypcsim objects used throughout simulation
+#class PyPCSIM_GLOBALS:    
+#    net = None
+#    dt = None
+#    minDelay = None
+#    maxDelay = None
+#    constructRNGSeed = None
+#    simulationRNGSeed = None
+#    spikes_multi_rec = {}
+#    vm_multi_rec = {}
+#    pass
+#
+#pcsim_globals = PyPCSIM_GLOBALS()
+#dt = PyPCSIM_GLOBALS.dt
+dt = pcsim_globals.dt
 
 def checkParams(param, val=None):
     """Check parameters are of valid types, normalise the different ways of
@@ -262,22 +263,29 @@ class ID(long, common.IDMixin):
     def get_native_parameters(self):
         pcsim_cell = self._pcsim_cell()
         pcsim_parameters = {}
-        for name, D in self.cellclass.translations.items():
-            translated_name = D['translated_name']
+        if self.is_standard_cell():
+            parameter_names = [D['translated_name'] for D in self.cellclass.translations.values()]
+        else:
+            parameter_names = [] # for native cells, is there a way to get their list of parameters?
+        
+        for translated_name in parameter_names:
             if hasattr(self.cellclass, 'getterMethods') and translated_name in self.cellclass.getterMethods:
                 getterMethod = self.cellclass.getterMethods[translated_name]
-                pcsim_parameters[translated_name] = getattr(pcsim_cell, getterMethod)()
+                pcsim_parameters[translated_name] = getattr(pcsim_cell, getterMethod)()    
             else:
                 try:
                     pcsim_parameters[translated_name] = getattr(pcsim_cell, translated_name)
                 except AttributeError, e:
                     raise AttributeError("%s. Possible attributes are: %s" % (e, dir(pcsim_cell)))
+        for k,v in pcsim_parameters.items():
+            if isinstance(v, StdVectorDouble):
+                pcsim_parameters[k] = list(v)
         return pcsim_parameters
     
     def set_native_parameters(self, parameters):
         simobj = self._pcsim_cell()
         for name, value in parameters.items():
-            if name in self.cellclass.setterMethods:
+            if hasattr(self.cellclass, 'setterMethods') and name in self.cellclass.setterMethods:
                 setterMethod = self.cellclass.setterMethods[name]
                 getattr(simobj, setterMethod)(value)
             else:               
@@ -525,23 +533,10 @@ def set(cells, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
-    cellclass must be supplied for doing translation of parameter names."""
-    global pcsim_globals    
+    cellclass must be supplied for doing translation of parameter names."""   
     param_dict = checkParams(param, val)
-    if issubclass(cellclass, common.StandardCellType):        
-        param_dict = cellclass({}).translate(param_dict)
-    if isinstance(cells, ID) or isinstance(cells, long) or isinstance(cells, int):
-        cells = [cells]
-    for param, value in param_dict.items():
-        if param in cellclass.setterMethods:
-           setterMethod = cellclass.setterMethods[param]
-           for id in cells:
-               simobj = pcsim_globals.net.object(id)
-               getattr(simobj, setterMethod)( value )
-        else:            
-            for id in cells:
-                simobj = pcsim_globals.net.object(id)                
-                setattr( simobj, param, value )
+    for cell in cells:
+        cell.set_parameters(**param_dict)
     
 
 def record(source, filename):
@@ -757,15 +752,6 @@ class Population(common.Population):
         """
         """PCSIM: iteration through all elements """
         param_dict = checkParams(param, val)
-        
-        #if isinstance(self.celltype, common.StandardCellType):
-        #    param_dict = self.celltype.translate(param_dict)
-                 
-        #for index in range(0, len(self)):
-        #    obj = pcsim_globals.net.object(self.pcsim_population[index])
-        #    if obj:
-        #        for param, value in param_dict.items():
-        #            setattr( obj, param, value )
         for cell in self:
             cell.set_parameters(**param_dict)
         
@@ -775,22 +761,10 @@ class Population(common.Population):
         value_array, which must have the same dimensions as the Population.
         """
         """PCSIM: iteration and set """
-        if self.dim[0:self.actual_ndim] == valueArray.shape:
-            values = numpy.copy(valueArray) # we do not wish to change the original valueArray in case it needs to be reused in user code
-            values = numpy.reshape(values, values.size)                          
-            if isinstance(self.celltype, common.StandardCellType):
-                try:
-                    unit_scale_factor = self.celltype.translate({parametername: values[0]}).values()[0]/values[0]
-                except TypeError:
-                    raise common.InvalidParameterValueError(values[0])
-                parametername = self.celltype.translate({parametername: values[0]}).keys()[0]
-                values *= unit_scale_factor
-            for i, val in enumerate(values):
-                try:
-                    obj = pcsim_globals.net.object(self.pcsim_population[i])                 
-                    if obj: setattr(obj, parametername, val)
-                except TypeError:
-                    raise common.InvalidParameterValueError, "%s is not a numeric value" % str(val)             
+        if self.dim[0:self.actual_ndim] == value_array.shape:
+            values = numpy.copy(value_array) # we do not wish to change the original value_array in case it needs to be reused in user code
+            for cell, val in zip(self, values.flat):
+                cell.set_parameters(**{parametername: val})
         else:
             raise common.InvalidDimensionsError
         

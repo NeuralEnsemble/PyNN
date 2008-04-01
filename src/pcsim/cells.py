@@ -5,6 +5,7 @@
 
 from pyNN import common
 from pypcsim import *
+import numpy
 
 class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
@@ -167,7 +168,7 @@ class SpikeSourceArray(common.SpikeSourceArray):
         standard_parameters = super(SpikeSourceArray, cls).reverse_translate(native_parameters)
         if isinstance(standard_parameters['spike_times'], list):
             standard_parameters['spike_times'] = [t*1000.0 for t in standard_parameters['spike_times']]
-        elif isinstance(standard_parameters['spike_times'], numpy.array):
+        elif isinstance(standard_parameters['spike_times'], numpy.ndarray):
             standard_parameters['spike_times'] *= 1000.0 
         return standard_parameters
 
