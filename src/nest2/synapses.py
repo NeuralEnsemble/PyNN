@@ -29,7 +29,7 @@ class STDPMechanism(common.STDPMechanism):
                                       voltage_dependence, dendritic_delay_fraction)
 
 
-class TsodkysMarkramMechanism(common.TsodkysMarkramMechanism):
+class TsodyksMarkramMechanism(common.TsodyksMarkramMechanism):
     
     translations = common.build_translations(
         ('U', 'U'),
@@ -39,11 +39,13 @@ class TsodkysMarkramMechanism(common.TsodkysMarkramMechanism):
         ('x0', 'x' ), # (as for V_m) in cell models, since the initial value
         ('y0', 'y')   # is not stored, only set.
     )
-    nest_name = 'tsodkys_synapse'
+    native_name = 'tsodyks_synapse'
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
-        common.TsodkysMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
-
+        common.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
+        parameters = locals()
+        parameters.pop('self')
+        self.parameters = self.translate(parameters)
 
 class AdditiveWeightDependence(common.AdditiveWeightDependence):
     """

@@ -933,10 +933,17 @@ class Projection(common.Projection):
         self._plasticity_model = self.short_term_plasticity_mechanism or \
                                  self.long_term_plasticity_mechanism or \
                                  "static_synapse"
+        assert self._plasticity_model in NEST_SYNAPSE_TYPES, self._plasticity_model
 
         # Set synaptic plasticity parameters
         original_synapse_context = nest.GetSynapseContext()
         nest.SetSynapseContext(self._plasticity_model)
+
+        if hasattr(self, '_short_term_plasticity_parameters') and self._short_term_plasticity_parameters:
+            synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
+            synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
+            synapse_defaults.update(self._short_term_plasticity_parameters)
+            nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)    
 
         if hasattr(self, '_stdp_parameters') and self._stdp_parameters:
             # NEST does not support w_min != 0
@@ -946,6 +953,7 @@ class Projection(common.Projection):
             nest.SetStatus(self.post.cell_local, [{'Tau_minus': tau_minus}])
 
             synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
+            synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
             synapse_defaults.update(self._stdp_parameters)
             nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)
 

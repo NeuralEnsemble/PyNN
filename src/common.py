@@ -574,6 +574,10 @@ class SpikeSourceArray(StandardCellType):
     
     default_parameters = { 'spike_times' : [] } # list or numpy array containing spike times in milliseconds.
            
+    def __init__(self, parameters):
+        if parameters and 'spike_times' in parameters:
+            parameters['spike_times'] = numpy.array(parameters['spike_times'], 'float')
+        StandardCellType.__init__(self, parameters)
 
 class ModelNotAvailable(object):
     """Not available for this simulator."""
@@ -947,18 +951,15 @@ class Projection(object):
         self.short_term_plasticity_mechanism = None
         self.long_term_plasticity_mechanism = None
         if self.synapse_dynamics:
-            if isinstance(self.synapse_dynamics, SynapseDynamics):
-                if self.synapse_dynamics.fast:
-                    assert isinstance(self.synapse_dynamics.fast, ShortTermPlasticityMechanism)
-                if self.synapse_dynamics.slow:
-                    assert isinstance(self.synapse_dynamics.slow, STDPMechanism)
-                    assert 0 <= self.synapse_dynamics.slow.dendritic_delay_fraction <= 1.0
-            else:
-                print type(synapse_dynamics)
-                raise Exception("The synapse_dynamics argument, if specified, must be a SynapseDynamics object.")
-        
-            self._stdp_parameters = None
-            if self.synapse_dynamics.slow is not None:
+            assert isinstance(self.synapse_dynamics, SynapseDynamics), \
+              "The synapse_dynamics argument, if specified, must be a SynapseDynamics object, not a %s" % type(synapse_dynamics)
+            if self.synapse_dynamics.fast:
+                assert isinstance(self.synapse_dynamics.fast, ShortTermPlasticityMechanism)
+                self.short_term_plasticity_mechanism = self.synapse_dynamics.fast.native_name
+                self._short_term_plasticity_parameters = self.synapse_dynamics.fast.parameters.copy()
+            if self.synapse_dynamics.slow:
+                assert isinstance(self.synapse_dynamics.slow, STDPMechanism)
+                assert 0 <= self.synapse_dynamics.slow.dendritic_delay_fraction <= 1.0
                 td = self.synapse_dynamics.slow.timing_dependence
                 wd = self.synapse_dynamics.slow.weight_dependence
                 possible_models = td.possible_models.intersection(wd.possible_models)
@@ -973,7 +974,6 @@ class Projection(object):
                 self._stdp_parameters = td.parameters.copy()
                 self._stdp_parameters.update(wd.parameters)
             
-    
     def __len__(self):
         """Return the total number of connections."""
         return self.nconn
@@ -1375,7 +1375,7 @@ class STDPMechanism(object):
         self.dendritic_delay_fraction = dendritic_delay_fraction
 
 
-class TsodkysMarkramMechanism(ShortTermPlasticityMechanism):
+class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):
     """ """
     default_parameters = {
         'U': 0.5,   # use parameter
