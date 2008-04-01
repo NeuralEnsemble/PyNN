@@ -578,7 +578,7 @@ class SpikeSourceArray(StandardCellType):
 class ModelNotAvailable(object):
     """Not available for this simulator."""
     
-    def __init__(self, parameters):
+    def __init__(self, *args, **kwargs):
         raise NotImplementedError("The %s model is not available for this simulator." % self.__class__.__name__)
 
 # ==============================================================================

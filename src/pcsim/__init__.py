@@ -21,6 +21,8 @@ import numpy
 from pypcsim import *
 from pyNN.pcsim.cells import *
 from pyNN.pcsim.connectors import *
+from pyNN.pcsim.synapses import *
+
 try:
     import tables
 except ImportError:
@@ -31,20 +33,6 @@ import operator
 
 from pyNN.pcsim.pcsim_globals import pcsim_globals
 
-## global pypcsim objects used throughout simulation
-#class PyPCSIM_GLOBALS:    
-#    net = None
-#    dt = None
-#    minDelay = None
-#    maxDelay = None
-#    constructRNGSeed = None
-#    simulationRNGSeed = None
-#    spikes_multi_rec = {}
-#    vm_multi_rec = {}
-#    pass
-#
-#pcsim_globals = PyPCSIM_GLOBALS()
-#dt = PyPCSIM_GLOBALS.dt
 dt = pcsim_globals.dt
 
 def checkParams(param, val=None):
