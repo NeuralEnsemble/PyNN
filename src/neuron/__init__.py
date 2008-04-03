@@ -201,7 +201,7 @@ def get_min_delay():
     global _min_delay
     return _min_delay
 
-def _translate_synapse_type(synapse_type, weight=None):
+def _translate_synapse_type(synapse_type, weight=None, extra_mechanism=None):
     """
     If synapse_type is given (not None), it is used to determine whether the
     synapse is excitatory or inhibitory.
@@ -214,8 +214,6 @@ def _translate_synapse_type(synapse_type, weight=None):
             syn_objref = "esyn"
         elif synapse_type == 'inhibitory':
             syn_objref = "isyn"
-        elif synapse_type == 'tsodkys-markram':
-            syn_objref = "esyn_tm"
         else:
             # More sophisticated treatment needed once we have more sophisticated synapse
             # models, e.g. NMDA...
@@ -226,6 +224,8 @@ def _translate_synapse_type(synapse_type, weight=None):
             syn_objref = "esyn"
         else:
             syn_objref = "isyn"
+    if extra_mechanism == 'tsodkys-markram':
+            syn_objref += "_tm"
     return syn_objref
 
 def checkParams(param, val=None):
@@ -1114,17 +1114,18 @@ class Projection(common.Projection):
         
         ## Deal with short-term synaptic plasticity
         if self.short_term_plasticity_mechanism:
-            self.synapse_type = self.short_term_plasticity_mechanism
             U = self._short_term_plasticity_parameters['U']
             tau_rec = self._short_term_plasticity_parameters['tau_rec']
             tau_facil = self._short_term_plasticity_parameters['tau_facil']
             u0 = self._short_term_plasticity_parameters['u0']
+            syn_code = {None: 1,
+                        'excitatory': 1,
+                        'inhibitory' :2}
             for cell in self.post:
                 hoc_cell = cell._hoc_cell()
-                hoc_cell.use_Tsodyks_Markram_synapses(U, tau_rec, tau_facil, u0)
+                hoc_cell.use_Tsodyks_Markram_synapses(syn_code[self.synapse_type], U, tau_rec, tau_facil, u0)
                 
-        self._syn_objref = _translate_synapse_type(self.synapse_type)
-        print "Using", self._syn_objref
+        self._syn_objref = _translate_synapse_type(self.synapse_type, extra_mechanism=self.short_term_plasticity_mechanism)
 
         ## Create connections
         if isinstance(method, str):

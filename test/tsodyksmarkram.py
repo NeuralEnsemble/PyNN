@@ -25,9 +25,10 @@ synapse_dynamics = {
 populations = {}
 projections = {}
 for label in 'static', 'depressing', 'facilitating':
-    populations[label] = sim.Population(1, sim.IF_cond_exp, label=label)
+    populations[label] = sim.Population(1, sim.IF_cond_exp, {'e_rev_I': -75}, label=label)
     populations[label].record_v()
     projections[label] = sim.Projection(spike_source, populations[label], connector,
+                                        target='inhibitory',
                                         synapse_dynamics=synapse_dynamics[label])
     
 spike_source.record()

@@ -5,14 +5,14 @@
 
 begintemplate StandardIF
 
-public cell, spike_reset, isyn, esyn
+public cell, spike_reset, isyn, esyn, esyn_tm, isyn_tm
 public spiketimes, memb_init, record, source, vtrace
 public syn_type, syn_shape, record_v, stim, v_init
 public tau_m, CM, v_rest, v_thresh, v_reset, t_refrac, i_offset
 public tau_e, tau_i, e_e, e_i
 public param_update, connect2target
 create cell
-objref spike_reset, esyn, isyn, source
+objref spike_reset, esyn, isyn, source, esyn_tm, isyn_tm
 objref spiketimes, rec, nil, fih, fih2, this, vtrace, stim
 strdef syn_type, syn_shape
 
@@ -149,6 +149,30 @@ proc memb_init() {
 
 proc connect2target() {
   $o2 = new NetCon(source, $o1)
+}
+
+proc use_Tsodyks_Markram_synapses() {
+    if (current_based) {
+        print "Tsodyks-Markram mechanism only available for conductance-based synapses."
+    } else if ($1 == 1) {
+        cell esyn_tm = new tmgsyn(0.5)
+        esyn_tm.U = $2
+        esyn_tm.tau_rec = $3
+        esyn_tm.tau_facil =  $4
+        esyn_tm.u0 = $5
+        esyn_tm.tau_1 = tau_e
+        esyn_tm.e = e_e
+    } else if ($1 == 2) {
+        cell isyn_tm = new tmgsyn(0.5)
+        isyn_tm.U = $2
+        isyn_tm.tau_rec = $3
+        isyn_tm.tau_facil =  $4
+        isyn_tm.u0 = $5
+        isyn_tm.tau_1 = tau_i
+        isyn_tm.e = e_i
+    } else {
+        print "First arg must be 1 for excitatory, 2 for inhibitory synapses"
+    }
 }
 
 endtemplate StandardIF
