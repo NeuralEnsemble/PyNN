@@ -884,7 +884,8 @@ class Projection(common.Projection):
         
         # By defaut, we set all the delays to min_delay, except if
         # the Projection data have been loaded from a file or a list.
-        if (method != 'fromList') and (method != 'fromFile'):
+        # This should already have been done if using a Connector object
+        if isinstance(method, str) and (method != 'fromList') and (method != 'fromFile'):
             self.setDelays(pynest.getLimits()['min_delay'])
     
     def __len__(self):
