@@ -12,7 +12,7 @@ import numpy, types, sys, shutil, os, logging, copy, tempfile
 from math import *
 from pyNN.nest1.cells import *
 from pyNN.nest1.connectors import *
-#from pyNN.nest1.synapses import *
+from pyNN.nest1.synapses import *
 
 recorders  = {}
 tempdirs   = []
