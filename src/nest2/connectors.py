@@ -4,7 +4,7 @@
 """
 
 from pyNN import common
-from pyNN.nest2.__init__ import nest
+from pyNN.nest2.__init__ import nest, is_number
 import numpy
 # note that WDManager is defined in __init__.py imported here, then imported
 # into __init__ through `from connectors import *`. This circularity can't be a
@@ -237,3 +237,42 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
         print start_ports
         print end_ports
         return len(projection._sources)
+
+
+def _connect_from_list(conn_list, projection):
+    # slow: should maybe sort by pre and use DivergentConnect?
+    # or at least convert everything to a numpy array at the start
+    weights = []; delays = []
+    for i in xrange(len(conn_list)):
+        src, tgt, weight, delay = conn_list[i][:]
+        src = projection.pre[tuple(src)]
+        tgt = projection.post[tuple(tgt)]
+        projection._sources.append(src)
+        projection._targets.append(tgt)
+        projection._target_ports.append(get_target_ports(src, [tgt], projection._plasticity_model)[0])
+        weights.append(_convertWeight(weight, projection.synapse_type))
+        delays.append(delay)
+    nest.ConnectWD(projection._sources, projection._targets, weights, delays)
+    return projection.pre.size
+
+
+class FromListConnector(common.FromListConnector):
+    
+    def connect(self, projection):
+        return _connect_from_list(self.conn_list, projection)
+
+
+class FromFileConnector(common.FromFileConnector):
+    
+    def connect(self, projection):
+        f = open(self.filename, 'r', 10000)
+        lines = f.readlines()
+        f.close()
+        input_tuples = []
+        for line in lines:
+            single_line = line.rstrip()
+            src, tgt, w, d = single_line.split("\t", 4)
+            src = "[%s" % src.split("[",1)[1]
+            tgt = "[%s" % tgt.split("[",1)[1]
+            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
+        return _connect_from_list(input_tuples, projection)

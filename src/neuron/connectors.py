@@ -200,5 +200,4 @@ class FromFileConnector(common.FromFileConnector, HocConnector):
             src = "[%s" % src.split("[",1)[1]
             tgt = "[%s" % tgt.split("[",1)[1]
             input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
-        f.close()
         return self._process_conn_list(input_tuples, projection)
