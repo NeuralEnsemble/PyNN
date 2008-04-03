@@ -12,7 +12,7 @@ import numpy, types, sys, shutil, os, logging, copy, tempfile
 from math import *
 from pyNN.nest1.cells import *
 from pyNN.nest1.connectors import *
-from pyNN.nest1.synapses import *
+#from pyNN.nest1.synapses import *
 
 recorders  = {}
 tempdirs   = []
@@ -802,6 +802,21 @@ class Population(common.Population):
                 result.write(line)
         os.system("rm %s" %tmpfile)
         result.close()
+     
+    def describe(self):
+        """
+        Returns a human readable description of the population
+        """
+        print "\n------- Population description -------"
+        print "Population called %s is made of %d cells" %(self.label, len(self.cell))
+        print "-> Cells are aranged on a %dD grid of size %s" %(len(self.dim), self.dim)
+        print "-> Celltype is %s" %self.celltype
+        print "-> Cell Parameters used for cell[0] (during initialization and now) are: " 
+        for key, value in self.cellparams.items():
+          print "\t|", key, "\t: ", "init->", value, "\t now->", pynest.getDict([self.cell[0]])[0][key]
+        print "--- End of Population description ----"
+        
+         
 
     
 class Projection(common.Projection):
@@ -1163,6 +1178,19 @@ class Projection(common.Projection):
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
         raise Exception("Method not yet implemented")
+    
+    def setSynapseDynamics(self, param, value):
+        """
+        Set parameters of the synapse dynamics linked with the projection
+        """
+        raise Exception("Method not available ! Nest 1 does not support dynamical synapses")
+    
+    
+    def randomizeSynapseDynamics(self, param, rand_distr):
+        """
+        Set parameters of the synapse dynamics to values taken from rand_distr
+        """
+        raise Exception("Method not available ! Nest 1 does not support dynamical synapses")
     
     # --- Methods for writing/reading information to/from file. ----------------
     

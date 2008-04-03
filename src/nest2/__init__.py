@@ -867,6 +867,19 @@ class Population(common.Population):
         """
         _print(filename, gather=gather, compatible_output=compatible_output,
                population=self, variable="conductance")
+               
+    def describe(self):
+        """
+        Return a human readable description of the population"
+        """
+        print "\n------- Population description -------"
+        print "Population called %s is made of %d cells [%d being local]" %(self.label, len(self.cell), len(self.cell_local))
+        print "-> Cells are aranged on a %dD grid of size %s" %(len(self.dim), self.dim)
+        print "-> Celltype is %s" %self.celltype
+        print "-> Cell Parameters used for cell[0] (during initialization and now) are: " 
+        for key, value in self.cellparams.items():
+          print "\t|", key, "\t: ", "init->", value, "\t now->", nest.GetStatus([self.cell[0]])[0][key]
+        print "--- End of Population description ----"
 
 
 class Projection(common.Projection):
@@ -1163,6 +1176,20 @@ class Projection(common.Projection):
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
         raise DeprecationWarning("This method does nothing in in nest2 and its use is deprecated")
+
+    def setSynapseDynamics(self, param, value):
+        """
+        Set parameters of the synapse dynamics linked with the projection
+        """
+        self._set_connection_values(param, value)
+    
+    
+    def randomizeSynapseDynamics(self, param, rand_distr):
+        """
+        Set parameters of the synapse dynamics to values taken from rand_distr
+        """
+        self.setSynapseDynamics(param,rand_distr.next(len(self)))
+
 
     # --- Methods for writing/reading information to/from file. ----------------
 

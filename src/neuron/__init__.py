@@ -1056,6 +1056,19 @@ class Population(common.Population):
         """
         hoc_comment("--- Population[%s].__randomInit()__ ---" %self.label)
         self.rset("v_init", rand_distr)
+    
+    def describe(self):
+        """
+        Return a human readable description of the population"
+        """
+        print "\n------- Population description -------"
+        print "Population called %s is made of %d cells [%d being local]" %(self.label, len(self.fullgidlist), len(self.gidlist))
+        print "-> Cells are aranged on a %dD grid of size %s" %(len(self.dim), self.dim)
+        print "-> Celltype is %s" %self.celltype
+        print "-> Cell Parameters used for cell[0] (during initialization and now) are: " 
+        for key, value in self.cellparams.items():
+          print "\t|", key, "\t: ", "init->", value, "\t now->", getattr(self.cell[0],key)
+        print "--- End of Population description ----"
 
 
 class Projection(common.Projection):
@@ -1447,6 +1460,19 @@ class Projection(common.Projection):
             for i in xrange(len(self)):
                 hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(rand_distr.next()))]
         hoc_execute(hoc_commands, "--- Projection[%s].__randomizeDelays__() ---" %self.label)
+    
+    def setSynapseDynamics(self, param, value):
+        """
+        Set parameters of the synapse dynamics linked with the projection
+        """
+        raise Exception("Method not yet implemented !")
+    
+    
+    def randomizeSynapseDynamics(self, param, rand_distr):
+        """
+        Set parameters of the synapse dynamics to values taken from rand_distr
+        """
+        raise Exception("Method not yet implemented !")
         
     def setTopographicDelays(self, delay_rule, rand_distr=None, mask=None, scale_factor=1.0):
         """

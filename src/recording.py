@@ -9,6 +9,8 @@ import logging
 import os.path
 import numpy
 
+DEFAULT_BUFFER_SIZE = 10000
+
 class RecordingManager(object):
     
     def __init__(self, setup_function, get_function):
@@ -46,7 +48,7 @@ def write_compatible_output(sim_filename, user_filename, population, dt):
         spiketime (in ms) cell_id-min(cell_id)
     """
     logging.info("Writing %s in compatible format." % user_filename)       
-    result = open(user_filename,'w',10000)
+    result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)
         
     # Write header info (e.g., dimensions of the population)
     if population is not None:
@@ -81,7 +83,8 @@ def write_compatible_output(sim_filename, user_filename, population, dt):
     else:
         logging.info("%s is empty" % sim_filename)
     result.close()
-    
+
+
 def readArray(filename, sepchar=None, skipchar='#'):
     """
     (Pylab has a great load() function, but it is not necessary to import
@@ -91,7 +94,7 @@ def readArray(filename, sepchar=None, skipchar='#'):
     saved by the simulators).
     """
     logging.debug(filename)
-    myfile = open(filename, "r")
+    myfile = open(filename, "r", DEFAULT_BUFFER_SIZE)
     contents = myfile.readlines()
     myfile.close()
     logging.debug(contents)

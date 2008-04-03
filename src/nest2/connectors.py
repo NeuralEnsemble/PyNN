@@ -29,18 +29,19 @@ def _convertWeight(w, synapse_type):
     return weight
 
 
-def get_target_ports(pre, target_list):
+def get_target_ports(pre, target_list, synapse_type):
     # The connection dict returned by NEST contains a list of target ids,
     # so it is possible to obtain the target port by finding the index of
     # the target in this list. For now, we stick with saving the target port
     # in Python (faster, but more memory needed), but PyNEST should soon have
     # a function to do the lookup, at which point we will switch to using that.
-    conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+    conn_dict = nest.GetConnections([pre], synapse_type)[0]
     if conn_dict:
         first_port = len(conn_dict['targets'])
     else:
         first_port = 0
     return range(first_port, first_port+len(target_list))
+
 
 class AllToAllConnector(common.AllToAllConnector):    
 
@@ -59,7 +60,7 @@ class AllToAllConnector(common.AllToAllConnector):
             delays = self.getDelays(N).tolist()
             projection._targets += target_list
             projection._sources += [pre]*N
-            projection._target_ports += get_target_ports(pre, target_list)
+            projection._target_ports += get_target_ports(pre, target_list, projection._plasticity_model)
             nest.DivergentConnectWD([pre], target_list, weights, delays)
         return len(projection._targets)
 
@@ -70,7 +71,7 @@ class OneToOneConnector(common.OneToOneConnector):
             projection._sources = projection.pre.cell.flatten()
             projection._targets = projection.post.cell.flatten()
             N = len(projection._sources)
-            projection._target_ports = [get_target_ports(pre, [None])[0] for pre in projection._sources]
+            projection._target_ports = [get_target_ports(pre, [None], projection._plasticity_model)[0] for pre in projection._sources]
             weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()
             delays = self.getDelays(N).tolist()
@@ -99,7 +100,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
             delays = self.getDelays(N).tolist()
             projection._targets += target_list
             projection._sources += [pre]*N
-            projection._target_ports += get_target_ports(pre, target_list)
+            projection._target_ports += get_target_ports(pre, target_list, projection._plasticity_model)
             nest.DivergentConnectWD([pre], target_list, weights, delays)
         return len(projection._sources)
     
@@ -148,7 +149,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             delays = self.getDelays(N).tolist()
             projection._targets += target_list
             projection._sources += [pre]*N 
-            projection._target_ports += get_target_ports(pre, target_list)
+            projection._target_ports += get_target_ports(pre, target_list, projection._plasticity_model)
             nest.DivergentConnectWD([pre], target_list, weights, delays)
         return len(projection._sources)
 
@@ -179,7 +180,7 @@ class FixedNumberPreConnector(common.FixedNumberPreConnector):
             nest.DivergentConnectWD([pre], target_list.tolist(), weights, delays)
 
             projection._sources += [pre]*N
-            conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+            conn_dict = nest.GetConnections([pre], projection._plasticity_model)[0]
             if isinstance(conn_dict, dict):
                 all_targets = conn_dict['targets']
                 total_targets = len(all_targets)
@@ -193,7 +194,7 @@ def _n_connections(population):
     population.
     """
     n = numpy.zeros((len(population),),'int')
-    conn_dict_list = nest.GetConnections([id for id in population], 'static_synapse')
+    conn_dict_list = nest.GetConnections([id for id in population], projection._plasticity_model)
     for i, conn_dict in enumerate(conn_dict_list):
         assert isinstance(conn_dict, dict)
         n[i] = len(conn_dict['targets'])
@@ -230,7 +231,7 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
         for pre, start_port, end_port in zip(presynaptic_neurons, start_ports, end_ports):
             projection._target_ports += range(start_port, end_port)
             projection._sources += [pre]*(end_port-start_port)
-            conn_dict = nest.GetConnections([pre], 'static_synapse')[0]
+            conn_dict = nest.GetConnections([pre], projection._plasticity_model)[0]
             if isinstance(conn_dict, dict):
                 projection._targets += conn_dict['targets'][start_port:end_port]
         print start_ports

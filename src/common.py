@@ -186,6 +186,7 @@ class IDMixin(object):
                 return self._position
 
     position = property(_get_position, _set_position)
+      
 
 
 
@@ -891,6 +892,12 @@ class Population(object):
         """
         # gather is not relevant, but is needed for API consistency
         return _abstract_method(self)
+    
+    def describe(self):
+        """
+        Returns a human readable description of the population
+        """
+        return _abstract_method(self)
 
 # ==============================================================================
 
@@ -1125,6 +1132,18 @@ class Projection(object):
         # This is a bit tricky, because in NEST the spike threshold is a
         # property of the cell model, whereas in NEURON it is a property of the
         # connection (NetCon).
+        return _abstract_method(self)
+    
+    def setSynapseDynamics(self, param, value):
+        """
+        Set parameters of the synapse dynamics linked with the projection
+        """
+        return _abstract_method(self)
+    
+    def randomizeSynapseDynamics(self, param, rand_distr):
+        """
+        Set parameters of the synapse dynamics to values taken from rand_distr
+        """
         return _abstract_method(self)
     
     # --- Methods for writing/reading information to/from file. ----------------
