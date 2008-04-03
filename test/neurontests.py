@@ -548,21 +548,21 @@ class ProjectionInitTest(unittest.TestCase):
         prj1.setWeights(1.234)
         prj1.saveConnections("connections.tmp")
         prj2 = neuron.Projection(self.source33, self.target33, 'fromFile',"connections.tmp")
-        w1 = []; w2 = []; d1 = []; d2 = [];
+        prj3 = neuron.Projection(self.source33, self.target33, neuron.FromFileConnector("connections.tmp"))
+        w1 = []; w2 = []; w3 = []; d1 = []; d2 = []; d3 = []
         # For a connections scheme saved and reloaded, we test if the connections, their weights and their delays
         # are equal.
         hoc_list1 = getattr(h, prj1.label)
         hoc_list2 = getattr(h, prj2.label)
+        hoc_list3 = getattr(h, prj3.label)
         for connection_id in prj1.connections:
-            #w1.append(HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id))))
-            #w2.append(HocToPy.get('%s.object(%d).weight' % (prj2.label, prj2.connections.index(connection_id))))
-            #d1.append(HocToPy.get('%s.object(%d).delay' % (prj1.label, prj1.connections.index(connection_id))))
-            #d2.append(HocToPy.get('%s.object(%d).delay' % (prj2.label, prj2.connections.index(connection_id))))
             w1.append(hoc_list1.object(prj1.connections.index(connection_id)).weight[0])
             w2.append(hoc_list2.object(prj2.connections.index(connection_id)).weight[0])
+            w3.append(hoc_list3.object(prj3.connections.index(connection_id)).weight[0])
             d1.append(hoc_list1.object(prj1.connections.index(connection_id)).delay)
             d2.append(hoc_list2.object(prj2.connections.index(connection_id)).delay)
-        assert (w1 == w2) and (d1 == d2)
+            d3.append(hoc_list3.object(prj3.connections.index(connection_id)).delay)
+        assert (w1 == w2 == w3) and (d1 == d2 == d3)
           
     def testSettingDelays(self):
         """Delays should be set correctly when using a Connector object."""

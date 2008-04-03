@@ -44,6 +44,16 @@ class HocConnector(object):
             delay = get_min_delay()
         return delay
 
+    def _process_conn_list(self, conn_list, projection):
+        """Extract fields from list of tuples and construct the hoc commands."""
+        hoc_commands = []
+        for i in xrange(len(conn_list)):
+            src, tgt, weight, delay = conn_list[i][:]
+            src = projection.pre[tuple(src)]
+            tgt = projection.post[tuple(tgt)]
+            hoc_commands += self.singleConnect(projection, src, tgt, weight, delay)
+        return hoc_commands
+
 
 class AllToAllConnector(common.AllToAllConnector, HocConnector):    
     
@@ -157,13 +167,38 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         return hoc_commands
 
 
-class FixedNumberPreConnector(common.FixedNumberPreConnector):
+class FixedNumberPreConnector(common.FixedNumberPreConnector, HocConnector):
     
     def connect(self, projection):
         raise Exception("Not implemented yet !")
 
 
-class FixedNumberPostConnector(common.FixedNumberPostConnector):
+class FixedNumberPostConnector(common.FixedNumberPostConnector, HocConnector):
     
     def connect(self, projection):
         raise Exception("Not implemented yet !")
+
+
+class FromListConnector(common.FromListConnector, HocConnector):
+    
+    def connect(self, projection):
+        return self._process_conn_list(self.conn_list, projection)
+
+    
+class FromFileConnector(common.FromFileConnector, HocConnector):
+    
+    def connect(self, projection):
+        # open the file...
+        f = open(self.filename, 'r', 10000)
+        lines = f.readlines()
+        f.close()
+        # gather all the data in a list of tuples (one per line)
+        input_tuples = []
+        for line in lines:
+            single_line = line.rstrip()
+            src, tgt, w, d = single_line.split("\t", 4)
+            src = "[%s" % src.split("[",1)[1]
+            tgt = "[%s" % tgt.split("[",1)[1]
+            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
+        f.close()
+        return self._process_conn_list(input_tuples, projection)
