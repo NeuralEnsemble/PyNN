@@ -28,10 +28,8 @@ ncid          = 0
 gidlist       = []
 vfilelist     = {}
 spikefilelist = {}
-dt            = 0.1
 running       = False
 initialised   = False
-_min_delay    = 0.0
 nrn_dll_loaded = False
 
 # ==============================================================================
@@ -197,10 +195,6 @@ def _hoc_arglist(paramlist):
             nvar += 1
     return hoc_commands, argstr.strip().strip(',')
 
-def get_min_delay():
-    global _min_delay
-    return _min_delay
-
 def _translate_synapse_type(synapse_type, weight=None, extra_mechanism=None):
     """
     If synapse_type is given (not None), it is used to determine whether the
@@ -208,7 +202,6 @@ def _translate_synapse_type(synapse_type, weight=None, extra_mechanism=None):
     Otherwise, the synapse type is inferred from the sign of the weight.
     Much testing needed to check if this behaviour matches nest and pcsim.
     """
-    
     if synapse_type:
         if synapse_type == 'excitatory':
             syn_objref = "esyn"
@@ -284,11 +277,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global dt, nhost, myid, _min_delay, logger, initialised
+    global nhost, myid, logger, initialised
     load_mechanisms()
-    dt = timestep
-    _min_delay = min_delay
-    print "min delay=", _min_delay
         
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
@@ -307,14 +297,16 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     
     # All the objects that will be used frequently in the hoc code are declared in the setup
     if initialised:
-        hoc_commands = ['dt = %f' % dt]    
+        hoc_commands = ['dt = %f' % timestep,
+                        'min_delay = %f' % min_delay]    
     else:
         hoc_commands = [
             'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','standardCells.hoc'),
             'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','odict.hoc'),
             'objref pc',
             'pc = new ParallelContext()',
-            'dt = %f' % dt,
+            'dt = %f' % timestep,
+            'min_delay = %f' % min_delay,
             'create dummy_section',
             'access dummy_section',
             'objref netconlist, nil',
@@ -357,7 +349,7 @@ def end(compatible_output=True):
             filename, cell_list = vfilelist.popitem()
             #tstop = HocToPy.get('tstop','float')
             tstop = h.tstop
-            header = "# dt = %g\\n# n = %d\\n" % (dt, int(tstop/dt))
+            header = "# dt = %g\\n# n = %d\\n" % (get_time_step(), int(tstop/get_time_step()))
             hoc_commands += ['tmp = fileobj.wopen("%s")' % filename,
                              'tmp = fileobj.printf("%s")' % header]
             for cell in cell_list:
@@ -367,7 +359,7 @@ def end(compatible_output=True):
     if len(spikefilelist) > 0:
         hoc_commands += ['objref fileobj',
                         'fileobj = new File()']
-        header = "# dt = %g\\n"% dt
+        header = "# dt = %g\\n"% get_time_step()
         while len(spikefilelist):
             filename, cell_list = spikefilelist.popitem()
             hoc_commands += ['tmp = fileobj.wopen("%s")' % filename,
@@ -397,18 +389,23 @@ def run(simtime):
                      #'print "tstop     = ", tstop',
                      'tmp = pc.psolve(tstop)']
     hoc_execute(hoc_commands,"--- run() ---")
-    return current_time()
+    return get_current_time()
 
-def current_time():
+def setRNGseeds(seedList):
+    """Globally set rng seeds."""
+    pass # not applicable to NEURON?
+
+def get_current_time():
     """Return the current time in the simulation."""
     return h.t
 
 def get_time_step():
     return h.dt
+common.get_time_step = get_time_step
 
-def setRNGseeds(seedList):
-    """Globally set rng seeds."""
-    pass # not applicable to NEURON?
+def get_min_delay():
+    return h.min_delay
+common.get_min_delay = get_min_delay
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -458,13 +455,13 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
     Weights should be in nA or µS."""
-    global ncid, gid, gidlist, _min_delay
+    global ncid, gid, gidlist
     if type(source) != types.ListType:
         source = [source]
     if type(target) != types.ListType:
         target = [target]
     if weight is None:  weight = 0.0
-    if delay  is None:  delay = _min_delay
+    if delay  is None:  delay = get_min_delay()
     syn_objref = _translate_synapse_type(synapse_type, weight)
     nc_start = ncid
     hoc_commands = []
@@ -537,7 +534,7 @@ def record_v(source, filename):
         vfilelist[filename] = []
     for src in source:
         if src in gidlist:
-            hoc_commands += ['tmp = cell%d.record_v(1,%g)' % (src, dt)]
+            hoc_commands += ['tmp = cell%d.record_v(1,%g)' % (src, get_time_step())]
             vfilelist[filename] += [src] # writing to file is done in end()
     hoc_execute(hoc_commands, "---record_v() ---")
 
@@ -987,7 +984,7 @@ class Population(common.Population):
         """
         #tstop = HocToPy.get('tstop','float')
         tstop = h.tstop
-        header = "# dt = %f\\n# n = %d\\n" % (dt, int(tstop/dt))
+        header = "# dt = %f\\n# n = %d\\n" % (get_time_step(), int(tstop/get_time_step()))
         header = "%s# %d" %(header, self.dim[0])
         for dimension in list(self.dim)[1:]:
                 header = "%s\t%d" %(header, dimension)
@@ -1112,7 +1109,6 @@ class Projection(common.Projection):
         than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
-        global _min_delay
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    method_parameters, source, target, synapse_dynamics, label, rng)
         self.connections = []
@@ -1153,7 +1149,7 @@ class Projection(common.Projection):
         # the Projection data have been loaded from a file or a list.
         # This should already have been done if using a Connector object
         if isinstance(method, str) and (method != 'fromList') and (method != 'fromFile'):
-            self.setDelays(_min_delay)
+            self.setDelays(get_min_delay())
                 
         ## Deal with long-term synaptic plasticity
         if self.long_term_plasticity_mechanism:

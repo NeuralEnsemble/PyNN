@@ -18,12 +18,12 @@ Set = set
 
 recorder_dict  = {}
 tempdirs       = []
-dt             = 0.1
-_min_delay     = 0.1
 recording_device_names = {'spikes': 'spike_detector',
                           'v': 'voltmeter',
                           'conductance': 'conductancemeter'}
 DEFAULT_BUFFER_SIZE = 10000
+NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
+                      "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse"]
 
 # ==============================================================================
 #   Utility classes and functions
@@ -113,13 +113,12 @@ def _discrepancy_due_to_rounding(parameters, output_values):
         # the logic here is not the clearest, the aim was to keep
         # _set_connection() as simple as possible, but it might be better to
         # refactor the whole thing.
-        dt = nest.GetStatus([0])[0]['resolution']
         input_delay = parameters['delay']
         if hasattr(output_values, "__len__"):
             output_delay = output_values[parameters.keys().index('delay')]
         else:
             output_delay = output_values
-        return abs(input_delay - output_delay) < dt
+        return abs(input_delay - output_delay) < get_time_step()
 
 def _set_connection(source_id, target_id, synapse_type, **parameters):
     """target_id is a port."""
@@ -138,11 +137,15 @@ def _set_connection(source_id, target_id, synapse_type, **parameters):
         else:
             raise common.ConnectionError("Invalid parameter value(s): %(parameters)s [%(input_values)s != %(output_values)s]" % locals())
 
-NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
-                      "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse"]
+
 
 def _get_connection(source_id, target_id, synapse_type, *parameter_names):
-    conn_dict = nest.GetConnection([source_id], synapse_type, target_id)
+    try:
+        conn_dict = nest.GetConnection([source_id], synapse_type, target_id)
+    except Exception, e:
+        err_msg = str(e) + "\n  Problem getting connection from %s to %s with synapse type '%s'." % (source_id, target_id, synapse_type)
+        err_msg += "\n  Valid connections for source %s: %s" % (source_id, nest.GetConnections([source_id], synapse_type)[0])
+        raise common.ConnectionError(err_msg)
     if isinstance(conn_dict, dict):
         if len(parameter_names) == 1:
             return conn_dict[parameter_names[0]]
@@ -189,15 +192,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     simulator but not by others.
     """
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
-    global dt
     global tempdir
-    global _min_delay
-    global _max_delay
     assert min_delay >= timestep, "min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep)
-    #global hl_spike_files, hl_v_files
-    dt = timestep
-    _min_delay = min_delay
-    _max_delay = max_delay
 
     # reset the simulation kernel
     nest.ResetKernel()
@@ -208,17 +204,17 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     tempdirs.append(tempdir) # append tempdir to tempdirs list
 
     # set tempdir
-    nest.SetStatus([0], {'device_prefix':tempdir})
+    nest.SetStatus([0], {'device_prefix':tempdir,})
     # set resolution
-    nest.SetStatus([0], {'resolution': dt})
+    nest.SetStatus([0], {'resolution': timestep})
 
     # Set min_delay and max_delay for all synapse models
     for synapse_model in NEST_SYNAPSE_TYPES:
         # this is done in two steps, because otherwise NEST sometimes complains
         #   "max_delay is not compatible with default delay"
-        nest.SetSynapseDefaults(synapse_model, {'delay': _min_delay})
-        nest.SetSynapseDefaults(synapse_model, {'min_delay': _min_delay,
-                                                'max_delay': _max_delay})
+        nest.SetSynapseDefaults(synapse_model, {'delay': min_delay})
+        nest.SetSynapseDefaults(synapse_model, {'min_delay': min_delay,
+                                                'max_delay': max_delay})
     if extra_params.has_key('threads'):
         if extra_params.has_key('kernelseeds'):
             print 'params has kernelseeds ', extra_params['kernelseeds']
@@ -264,10 +260,6 @@ def end(compatible_output=True):
 
     # And we postprocess the low level files opened by record()
     # and record_v() method
-    #for file in ll_spike_files:
-    #    _printSpikes(file, compatible_output)
-    #for file, nest_file in ll_v_files:
-    #    _print_v(file, nest_file, compatible_output)
     print "Saving the following files:", recorder_dict.keys()
     for filename in recorder_dict.keys():
         _print(filename, gather=False, compatible_output=compatible_output)
@@ -278,14 +270,22 @@ def end(compatible_output=True):
 def run(simtime):
     """Run the simulation for simtime ms."""
     nest.Simulate(simtime)
-    return current_time()
+    return get_current_time()
 
-def current_time():
+def get_current_time():
     """Return the current time in the simulation."""
     return nest.GetStatus([0])[0]['time']
 
 def get_time_step():
     return nest.GetStatus([0])[0]['resolution']
+common.get_time_step = get_time_step
+
+def get_min_delay():
+    return nest.GetSynapseDefaults('static_synapse')['min_delay']
+common.get_min_delay = get_min_delay
+
+def get_max_delay():
+    return nest.GetSynapseDefaults('static_synapse')['max_delay']
 
 def setRNGseeds(seedList):
     """Globally set rng seeds."""
@@ -328,13 +328,12 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
     Weights should be in nA or µS."""
-    global dt
     if weight is None:
         weight = 0.0
     if delay is None:
-        delay = _min_delay
+        delay = get_min_delay()
     # If the delay is too small , we have to throw an error
-    if delay < _min_delay or delay > _max_delay:
+    if delay < get_min_delay() or delay > get_max_delay():
         raise common.ConnectionError
     weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                          # Using convention in this way is not ideal. We should

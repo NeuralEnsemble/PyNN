@@ -33,8 +33,6 @@ import operator
 
 from pyNN.pcsim.pcsim_globals import pcsim_globals
 
-dt = pcsim_globals.dt
-
 def checkParams(param, val=None):
     """Check parameters are of valid types, normalise the different ways of
        specifying parameters and values by putting everything in a dict.
@@ -354,7 +352,6 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     global pcsim_globals, dt
     pcsim_globals.dt = timestep
-    dt = timestep
     pcsim_globals.minDelay = min_delay
     pcsim_globals.maxDelay = max_delay
     if pcsim_globals.constructRNGSeed is None:
@@ -420,6 +417,18 @@ def setRNGseeds(seedList):
     pcsim_globals.constructionRNGSeed = seedList[0]
     pcsim_globals.simulationRNGSeed = seedList[1]    
     pass
+
+def get_current_time():
+    """Return the current time in the simulation."""
+    raise NotImplementedError()
+
+def get_time_step():
+    return pcsim_globals.dt
+common.get_time_step = get_time_step
+
+def get_min_delay():
+    return pcsim_globals.min_delay
+common.get_min_delay = get_min_delay
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons

@@ -14,7 +14,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'tau_m'),
-        ('tau_refrac', 't_ref',  "max(dt, tau_refrac)", "t_ref"),
+        ('tau_refrac', 't_ref',  "max(get_time_step(), tau_refrac)", "t_ref"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
@@ -34,7 +34,7 @@ class IF_curr_exp(common.IF_curr_exp):
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'tau_m'),
-        ('tau_refrac', 't_ref_abs',  "max(dt, tau_refrac)", "t_ref_abs"),
+        ('tau_refrac', 't_ref_abs',  "max(get_time_step(), tau_refrac)", "t_ref_abs"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
@@ -53,7 +53,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
-        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
+        ('tau_refrac', 't_ref',      "max(get_time_step(), tau_refrac)", "t_ref"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
@@ -74,7 +74,7 @@ class IF_cond_exp(common.IF_cond_exp):
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
-        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
+        ('tau_refrac', 't_ref',      "max(get_time_step(), tau_refrac)", "t_ref"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
@@ -101,7 +101,7 @@ class IF_cond_exp_gsfa_grr(common.IF_cond_exp_gsfa_grr):
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
-        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
+        ('tau_refrac', 't_ref',      "max(get_time_step(), tau_refrac)", "t_ref"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
@@ -134,7 +134,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
         ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
-        ('tau_refrac', 't_ref',      "max(dt, tau_refrac)", "t_ref"),
+        ('tau_refrac', 't_ref',      "max(get_time_step(), tau_refrac)", "t_ref"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('g_leak',     'g_L')

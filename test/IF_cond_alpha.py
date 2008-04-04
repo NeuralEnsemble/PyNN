@@ -32,7 +32,7 @@ connE = connect(spike_sourceE, ifcell, weight=0.006, synapse_type='excitatory',d
 connI = connect(spike_sourceI, ifcell, weight=0.02, synapse_type='inhibitory',delay=4.0)
     
 record_v(ifcell,"IF_cond_alpha_%s.v" % simulator)
-Timer.start()
+
 run(200.0)
 
 end()

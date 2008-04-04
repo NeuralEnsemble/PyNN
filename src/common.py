@@ -35,8 +35,8 @@ class InvalidDimensionsError(Exception): pass
 class ConnectionError(Exception): pass
 class RoundingWarning(Warning): pass
 
-dt = 0.1
-_min_delay = 0.1
+#dt = 0.1
+#min_delay = 0.1
 
 # ==============================================================================
 #   Utility classes and functions
@@ -617,6 +617,16 @@ def setRNGseeds(seedList):
     """Globally set rng seeds."""
     pass
 
+def get_current_time():
+    """Return the current time in the simulation."""
+    pass
+
+def get_time_step():
+    pass
+
+def get_min_delay():
+    pass
+
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
@@ -1181,11 +1191,11 @@ class Projection(object):
 class Connector(object):
     """Base class for Connector classes."""
     
-    def __init__(self, weights=0.0, delays=_min_delay):
+    def __init__(self, weights=0.0, delays=None):
         self.w_index = 0 # should probably use a generator
         self.d_index = 0 # rather than storing these values
         self.weights = weights
-        self.delays = delays
+        self.delays = delays or get_min_delay()
     
     def connect(self, projection):
         """Connect all neurons in ``projection``"""
@@ -1219,7 +1229,7 @@ class Connector(object):
             delays = self.delays[self.d_index:self.d_index+N]
         else:
             raise Exception("delays is of type %s" % type(self.delays))
-        assert numpy.all(delays >= _min_delay), "Delay values must be greater than the minimum delay"
+        assert numpy.all(delays >= get_min_delay()), "Delay values must be greater than the minimum delay"
         self.d_index += N
         return delays
     
@@ -1230,7 +1240,7 @@ class AllToAllConnector(Connector):
     postsynaptic population.
     """
     
-    def __init__(self, allow_self_connections=True, weights=0.0, delays=_min_delay):
+    def __init__(self, allow_self_connections=True, weights=0.0, delays=None):
         Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
@@ -1264,7 +1274,7 @@ class FixedNumberPostConnector(Connector):
     randomly from the presynaptic cells.
     """
     
-    def __init__(self, n, allow_self_connections=True, weights=0.0, delays=_min_delay):
+    def __init__(self, n, allow_self_connections=True, weights=0.0, delays=None):
         Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
@@ -1284,7 +1294,7 @@ class FixedNumberPreConnector(Connector):
     Connects all cells in the postsynaptic population to fixed number of
     cells in the presynaptic population, randomly choosen.
     """
-    def __init__(self, n, allow_self_connections=True, weights=0.0, delays=_min_delay):
+    def __init__(self, n, allow_self_connections=True, weights=0.0, delays=None):
         Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
@@ -1310,7 +1320,7 @@ class OneToOneConnector(Connector):
     in row i of a 2D post population of size (n,m).
     """
     
-    def __init__(self, weights=0.0, delays=_min_delay):
+    def __init__(self, weights=0.0, delays=None):
         Connector.__init__(self, weights, delays)
     
     
@@ -1319,7 +1329,7 @@ class FixedProbabilityConnector(Connector):
     For each pair of pre-post cells, the connection probability is constant.
     """
     
-    def __init__(self, p_connect, allow_self_connections=True, weights=0.0, delays=_min_delay):
+    def __init__(self, p_connect, allow_self_connections=True, weights=0.0, delays=None):
         Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
@@ -1345,7 +1355,7 @@ class DistanceDependentProbabilityConnector(Connector):
     
     def __init__(self, d_expression, axes=None, scale_factor=1.0, offset=0.,
                  periodic_boundaries=False, allow_self_connections=True,
-                 weights=0.0, delays=_min_delay):
+                 weights=0.0, delays=None):
         Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         assert isinstance(d_expression, str)

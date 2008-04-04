@@ -15,7 +15,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
         ('v_reset',    'Vreset'),
         ('cm',         'C',     1000.0), # C is in pF, cm in nF
         ('tau_m',      'Tau'),
-        ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
+        ('tau_refrac', 'TauR',  "max(get_time_step(), tau_refrac)", "TauR"),
         ('tau_syn_E',  'TauSynE'),
         ('tau_syn_I',  'TauSynI'),
         ('v_thresh',   'Theta'),
@@ -35,7 +35,7 @@ class IF_curr_exp(common.IF_curr_exp):
         ('v_reset',    'Vreset'),
         ('cm',         'C',     1000.0), # C is in pF, cm in nF
         ('tau_m',      'Tau'),
-        ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
+        ('tau_refrac', 'TauR',  "max(get_time_step(), tau_refrac)", "TauR"),
         ('tau_syn_E',  'TauSynE'),
         ('tau_syn_I',  'TauSynI'),
         ('v_thresh',   'Theta'),
@@ -57,7 +57,7 @@ class IF_cond_alpha(common.ModelNotAvailable):
 #        ('v_reset',    'Vreset'),
 #        ('cm',         'C',     1000.0), # C is in pF, cm in nF
 #        ('tau_m',      'gL',    "cm/tau_m*1000.0", "C/gL"),
-#        ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
+#        ('tau_refrac', 'TauR',  "max(get_time_step(), tau_refrac)", "TauR"),
 #        ('tau_syn_E',  'TauSyn_E'),
 #        ('tau_syn_I',  'TauSyn_I'),
 #        ('v_thresh',   'Theta'),
@@ -78,7 +78,7 @@ class IF_cond_exp(common.IF_cond_exp):
         ('v_reset',    'Vreset'),
         ('cm',         'C',     1000.0), # C is in pF, cm in nF
         ('tau_m',      'gL',    "cm/tau_m*1000.0", "C/gL"),
-        ('tau_refrac', 'TauR',  "max(dt, tau_refrac)", "TauR"),
+        ('tau_refrac', 'TauR',  "max(get_time_step(), tau_refrac)", "TauR"),
         ('tau_syn_E',  'TauSyn_E'),
         ('tau_syn_I',  'TauSyn_I'),
         ('v_thresh',   'Theta'),
@@ -105,7 +105,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         ('e_rev_E',    'V_reversal_E'),
         ('e_rev_I',    'V_reversal_I'),
         ('cm',         'C',             1000.0),
-        ('tau_refrac', 'TauR',          "max(dt, tau_refrac)", "TauR"),
+        ('tau_refrac', 'TauR',          "max(get_time_step(), tau_refrac)", "TauR"),
         ('tau_syn_E',  'TauSyn_E'),
         ('tau_syn_I',  'TauSyn_I'),
         ('g_leak',     'gL'),

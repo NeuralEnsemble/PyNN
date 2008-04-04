@@ -16,8 +16,6 @@ from pyNN.nest1.synapses import *
 
 recorders  = {}
 tempdirs   = []
-dt         = 0.1
-_min_delay = 0.1
 
 DEFAULT_BUFFER_SIZE = 10000
 
@@ -75,7 +73,7 @@ def _convertWeight(w, synapse_type):
         raise TypeError("we must be either a number or a numpy array")
     return weight
     
-    
+
 # ==============================================================================
 #   Functions for simulation set-up and control
 # ==============================================================================
@@ -87,19 +85,13 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     simulator but not by others.
     """
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
-    global dt
     global tempdir
-    global _min_delay
-    global _max_delay
-    dt = timestep
-    _min_delay = min_delay
-    _max_delay = max_delay
     
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
     
     pynest.destroy()
-    pynest.setDict([0],{'resolution': dt, 'min_delay' : min_delay, 'max_delay' : max_delay})
+    pynest.setDict([0],{'resolution': timestep, 'min_delay' : min_delay, 'max_delay' : max_delay})
     if extra_params.has_key('threads'):
         if extra_params.has_key('kernelseeds'):
             print 'params has kernelseeds ', extra_params['kernelseeds']
@@ -157,6 +149,17 @@ def setRNGseeds(seedList):
     """Globally set rng seeds."""
     pynest.setDict([0],{'rng_seeds': seedList})
 
+def get_min_delay():
+    return pynest.getLimits()['min_delay']
+common.get_min_delay = get_min_delay
+
+def get_time_step():
+    return pynest.getNESTStatus()['resolution']
+common.get_time_step = get_time_step
+
+def get_current_time():
+    return pynest.getNESTStatus()['time']
+
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
@@ -194,11 +197,10 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
     Weights should be in nA or µS."""
-    global dt
     if weight is None:
         weight = 0.0
     if delay is None:
-        delay = pynest.getLimits()['min_delay']
+        delay = get_min_delay()
     weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                          # Using convention in this way is not ideal. We should be able to look up the units used by each model somewhere.
     if synapse_type == 'inhibitory' and weight > 0:
@@ -304,7 +306,7 @@ def _printSpikes(tmpfile, filename, compatible_output=True):
         try:
             raster = _readArray(tmpfile, sepchar=" ")
             raster = raster[:,1:3]
-            raster[:,1] = raster[:,1]*dt
+            raster[:,1] = raster[:,1]*get_time_step() # since dt might change, should really store the value of dt used
             for idx in xrange(len(raster)):
                 result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
         except Exception:
@@ -322,8 +324,8 @@ def _print_v(tmpfile, filename, compatible_output=True):
     writing process, which is not the case for the moment"""
     pynest.sr('%s close' %tmpfile) 
     result = open(filename,'w',DEFAULT_BUFFER_SIZE)
-    dt = pynest.getNESTStatus()['resolution']
-    n = int(pynest.getNESTStatus()['time']/dt)
+    dt = get_time_step()
+    n = int(get_current_time()/dt)
     result.write("# dt = %f\n# n = %d\n" % (dt, n))
     if (compatible_output):
         # Here we postprocess the file to have effectively the
@@ -709,7 +711,7 @@ class Population(common.Population):
                 #to trunk it to avoid errors
                 raster = raster[:,1:3]
                 raster[:,0] = raster[:,0] - padding
-                raster[:,1] = raster[:,1]*dt
+                raster[:,1] = raster[:,1]*get_time_step()
                 for idx in xrange(len(raster)):
                     result.write("%g\t%d\n" %(raster[idx][1], raster[idx][0]))
             except Exception, e:
@@ -734,7 +736,7 @@ class Population(common.Population):
             data = data[:,1:3]
             padding = self.cell.flatten()[0]
             data[:,0] -= padding
-            data[:,1] *= dt
+            data[:,1] *= get_time_step()
         return data
 
     def meanSpikeCount(self, gather=True):
@@ -781,8 +783,8 @@ class Population(common.Population):
         (file_type, tmpfile) = recorders.pop(file_label)
         pynest.sr('%s close' % tmpfile)
         result = open(filename,'w',DEFAULT_BUFFER_SIZE)
-        dt = pynest.getNESTStatus()['resolution']
-        n = int(pynest.getNESTStatus()['time']/dt)
+        dt = get_time_step()
+        n = int(get_current_time()/dt)
         result.write("# dt = %f\n# n = %d\n" % (dt, n))
         if (compatible_output):
             result.write("# " + "\t".join([str(d) for d in self.dim]) + "\n")
@@ -888,7 +890,7 @@ class Projection(common.Projection):
         # the Projection data have been loaded from a file or a list.
         # This should already have been done if using a Connector object
         if isinstance(method, str) and (method != 'fromList') and (method != 'fromFile'):
-            self.setDelays(pynest.getLimits()['min_delay'])
+            self.setDelays(get_min_delay())
     
     def __len__(self):
         """Return the total number of connections."""

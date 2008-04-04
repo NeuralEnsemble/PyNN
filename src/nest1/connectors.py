@@ -4,7 +4,7 @@
 # ==============================================================================
 
 from pyNN import common
-from pyNN.nest1.__init__ import pynest, _min_delay, numpy
+from pyNN.nest1.__init__ import pynest, numpy
 from pyNN.random import RandomDistribution, NativeRNG
 from math import *
 

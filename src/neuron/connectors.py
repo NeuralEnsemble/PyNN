@@ -5,7 +5,7 @@
 
 from pyNN import common
 from pyNN.random import RandomDistribution, NativeRNG
-from pyNN.neuron.__init__ import hoc_execute, get_min_delay, h #, HocToPy
+from pyNN.neuron.__init__ import hoc_execute, h
 import numpy
 from math import *
 
@@ -41,7 +41,7 @@ class HocConnector(object):
         if d is not None:
             delay = d
         else:
-            delay = get_min_delay()
+            delay = common.min_delay
         return delay
 
     def _process_conn_list(self, conn_list, projection):
