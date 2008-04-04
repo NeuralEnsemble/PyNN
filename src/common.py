@@ -35,8 +35,6 @@ class InvalidDimensionsError(Exception): pass
 class ConnectionError(Exception): pass
 class RoundingWarning(Warning): pass
 
-#dt = 0.1
-#min_delay = 0.1
 
 # ==============================================================================
 #   Utility classes and functions
