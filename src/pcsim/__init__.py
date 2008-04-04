@@ -427,7 +427,7 @@ def get_time_step():
 common.get_time_step = get_time_step
 
 def get_min_delay():
-    return pcsim_globals.min_delay
+    return pcsim_globals.minDelay
 common.get_min_delay = get_min_delay
 
 # ==============================================================================
