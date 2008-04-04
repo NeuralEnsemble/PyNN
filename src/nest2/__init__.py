@@ -1288,6 +1288,32 @@ class Projection(common.Projection):
         bins = numpy.arange(min, max, (max-min)/nbins)
         return numpy.histogram(self.getWeights(format='list', gather=True), bins) # returns n, bins
 
+    def describe(self):
+        """
+        Return a human readable description of the projection
+        """
+        print "\n------- Projection description -------"
+        print "Projection %s from %s [%d cells] to %s [%d cells]" %(self.label, self.pre.label, len(self.pre.cell),self.post.label, len(self.post.cell))
+        print "Connector used is %s : " %self._method
+        if isinstance(self._method.weights,RandomDistribution):
+          print "\t| Weights are drawn from %s distribution with parameters %s "%(self._method.weights.name, self._method.weights.parameters)
+        else:
+          print "\t| Weights: ", self._method.weights
+        if isinstance(self._method.delays,RandomDistribution):
+          print "\t| Delays are drawn from %s distribution with parameters %s " %(self._method.delays.name, self._method.delays.parameters)
+        else:
+          print "\t| Delays: ", self._method.delays
+        print "\t| Plasticity: ", self._plasticity_model
+        print "\t --> %d connections have been created for this projection" %len(self)
+        print "To check, here are the parameters of one connection from this projection"
+        print "\tsource\ttarget\tport"
+        print "\t%d\t%d\t%d" %(self._sources[0], self._targets[0], self._target_ports[0])
+        dict = nest.GetConnections([self.pre.cell.flat[0]], self._plasticity_model)[0]
+        idx = numpy.where(numpy.array(dict['targets']) == self._targets[0])[0]
+        for key, value in dict.items():
+          print "\t| ", key, ": ", value[idx]
+        
+        print "---- End of Projection description -----"
 
 # ==============================================================================
 #   Utility classes

@@ -98,8 +98,8 @@ elif benchmark == "CUBA":
 
 # === Build the network ========================================================
 
-extra = {'threads' : 2}
-#extra={}
+#extra = {'threads' : 2}
+extra={}
 
 node_id = setup(timestep=dt, min_delay=dt, max_delay=dt, **extra)
 

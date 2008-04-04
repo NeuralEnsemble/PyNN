@@ -1166,6 +1166,12 @@ class Projection(object):
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
         return _abstract_method(self)
+    
+    def describe(self):
+        """
+        Returns a human readable description of the projection
+        """
+        return _abstract_method(self)
 
 
 # ==============================================================================
