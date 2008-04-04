@@ -5,6 +5,16 @@ $Id$
 
 import subprocess, sys, glob, os, re
 import numpy as N
+import logging
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s',
+                    filename='runtests.log',
+                    filemode='w')
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+console.setFormatter(logging.Formatter('%(message)s'))
+logging.getLogger('').addHandler(console)
 
 nrnheader = re.compile(r'(?P<header>NEURON.*Additional mechanisms from files(\s+\w+.mod)+\s+)(?P<body>.*)', re.S)
 
@@ -16,7 +26,7 @@ def run(cmd,engine):
     elif engine == 'oldneuron':
         cmd = '../src/hoc/i686/special -python ' + cmd + '.py %s' % engine
     else:
-        print 'Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", "oldneuron" and "neuron"' % engine
+        logging.error('Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", and "neuron"' % engine)
         
     p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
     p.wait()
@@ -28,9 +38,9 @@ def run(cmd,engine):
         errorMsg = match.groupdict()['body']
     
     if len(errorMsg) > 0:
-        print "\n=== %s Error =======================" % engine.upper()
-        print "  " + errorMsg.replace("\n","\n   ")
-        print "======================================="
+        logging.error("\n=== %s Error =======================" % engine.upper())
+        logging.error("  " + errorMsg.replace("\n","\n   "))
+        logging.error("=======================================")
         sys.exit(2)
 
 def sortTracesByCells(traces, gids):
@@ -49,15 +59,16 @@ def sortTracesByCells(traces, gids):
     return result
 
 
-def compare_traces(script,mse_threshold,engines):
+def compare_traces(script, mse_threshold, engines):
     """For scripts that write a voltage trace to file."""
     
-    print script, ": ",
+    #print script, ": ",
     traces = {}
     fail = False
     fail_message = ""
     
     for engine in engines:
+        logging.debug("Running %s with %s" % (script, engine))
         traces[engine] = []
         try:
             run(script, engine)
@@ -112,25 +123,25 @@ def compare_traces(script,mse_threshold,engines):
                         fail_message = "%s produce an empty file for %s" %(engine2.upper(), script)
     if not fail:
         if mse < mse_threshold:
-            print " Pass (mse = %f, threshold = %f)" % (mse, mse_threshold)
+            logging.info("%s: Pass (mse = %f, threshold = %f)" % (script, mse, mse_threshold))
         else:
-            print " Fail (mse = %f, threshold = %f)" % (mse, mse_threshold)
+            logging.info("%s:  Fail (mse = %f, threshold = %f)" % (script, mse, mse_threshold))
     else:
-        print "Fail - ", fail_message
+        logging.info("%s: Fail - %s" % (script, fail_message))
 
 
 def compare_rasters(script,mse_threshold,engines):
     """For scripts that write a voltage trace to file."""
     
-    print script, ": ",
+    #print script, ": ",
     rasters = {}
     fail = False
     fail_message = ""
     
     for engine in engines:
         rasters[engine] = []
-        #try:
-        if (True):
+        try:
+        #if (True):
             run(script, engine)
             filenames = glob.glob('%s_*_%s.ras' % (script, engine))
             if len(filenames) == 0:
@@ -155,9 +166,9 @@ def compare_rasters(script,mse_threshold,engines):
                     rasters[engine].append(raster)
             else:
                 fail = True; fail_message += "No files match glob pattern. "
-        #except Exception:
-        #    fail = True
-        #    fail_message += "Exception raised in %s. " % engine.upper()
+        except Exception:
+            fail = True
+            fail_message += "Exception raised in %s. " % engine.upper()
 
     if not fail:
         mse  = 0.0
@@ -176,18 +187,18 @@ def compare_rasters(script,mse_threshold,engines):
                         fail_message = "%s produce an empty file for %s" %(engine1.upper(), script)
                     if (l2 == 0):
                         fail_message = "%s produce an empty file for %s" %(engine2.upper(), script)
+
     if not fail:
         if mse < mse_threshold:
-            print " Pass (mse = %f, threshold = %f)" % (mse, mse_threshold)
+            logging.info("%s: Pass (mse = %f, threshold = %f)" % (script, mse, mse_threshold))
         else:
-            print " Fail (mse = %f, threshold = %f)" % (mse, mse_threshold)
+            logging.info("%s:  Fail (mse = %f, threshold = %f)" % (script, mse, mse_threshold))
     else:
-        print "Fail - ", fail_message
-    
-
+        logging.info("%s: Fail - %s" % (script, fail_message))
+        
 if __name__ == "__main__":
     
-    engine_list = ("nest1", "oldneuron", "neuron", "pcsim", "nest2")
+    engine_list = ("nest1", "neuron", "pcsim", "nest2")
     
     thresholds_v = {"IF_curr_alpha"  : 0.26,
                     "IF_curr_exp"    : 0.25, 
@@ -215,6 +226,8 @@ if __name__ == "__main__":
         scripts_v   = thresholds_v.keys()
         scripts_ras = thresholds_ras.keys()
 
+    logging.debug("Running the following tests: %s,%s using engines %s" % (scripts_v, scripts_ras,engine_list))
+    
     for script in scripts_v:
         compare_traces(script, thresholds_v[script]*(len(engine_list)-1), engine_list)
 
@@ -222,4 +235,4 @@ if __name__ == "__main__":
         compare_rasters(script, thresholds_ras[script]*(len(engine_list)-1), engine_list)
     
     if len(scripts_v)+len(scripts_ras) == 0:
-        print "Invalid test name(s)."
+        logging.error("Invalid test name(s).")
