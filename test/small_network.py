@@ -58,11 +58,12 @@ input_conns.setDelays(syn_delay)
 
 run(simtime)
 
-cells.printSpikes("small_network_%s.ras" % simulator)
-cells.print_v("small_network_%s.v" % simulator)
+cells.printSpikes("small_network_%s_%d.ras" % (simulator, num_processes()))
+cells.print_v("small_network_%s_%d.v" % (simulator, num_processes()))
 
 print "Mean firing rate: ", cells.meanSpikeCount()*1000.0/simtime, "Hz"
 
 # === Clean up and quit ========================================================
 
 end()
+sys.exit(0)

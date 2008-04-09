@@ -182,9 +182,10 @@ I_rate = inh_cells.meanSpikeCount()*1000./tstop
 
 print "%d Writing data to file..." % node_id
 Timer.reset()
-exc_cells.printSpikes("VAbenchmark_%s_exc_%s.ras" % (benchmark,simulator))
-inh_cells.printSpikes("VAbenchmark_%s_inh_%s.ras" % (benchmark,simulator))
-exc_cells.print_v("VAbenchmark_%s_exc_%s.v" % (benchmark,simulator),compatible_output=True)
+np = num_processes()
+exc_cells.printSpikes("VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator, np))
+inh_cells.printSpikes("VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator, np))
+exc_cells.print_v("VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, np), compatible_output=True)
 writeCPUTime = Timer.elapsedTime()
 
 tmp_string = "%d e→e  %d e→i  %d i→e  %d i→i" % (len(connections['e2e']), len(connections['e2i']), len(connections['i2e']), len(connections['i2i']))

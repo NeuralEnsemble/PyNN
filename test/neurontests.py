@@ -42,7 +42,10 @@ class CreationTest(unittest.TestCase):
         neuron.hoc_comment('=== CreationTest.testCreateStandardCellWithParams ===')
         ifcell = neuron.create(neuron.IF_curr_alpha,{'tau_syn_E':3.141592654})
         #self.assertAlmostEqual(HocToPy.get('cell%d.esyn.tau' % ifcell, 'float'), 3.141592654, places=5)
-        self.assertAlmostEqual(getattr(h, 'cell%d' % ifcell).esyn.tau, 3.141592654, places=5)
+        try:
+            self.assertAlmostEqual(getattr(h, 'cell%d' % ifcell).esyn.tau, 3.141592654, places=5)
+        except AttributeError: # if the cell is not on that node
+            pass
         
     
     def testCreateNEURONCell(self):
@@ -51,9 +54,10 @@ class CreationTest(unittest.TestCase):
         ifcell = neuron.create('StandardIF',{'syn_type':'current','syn_shape':'exp'})
         assert ifcell == 0, 'Failed to create NEURON-specific cell'
     
-#    def testCreateNonStandardCell(self):
-#        """create(): Trying to create a cell type which is not a method of StandardCells should raise an AttributeError."""
-#        self.assertRaises(AttributeError, neuron.create, 'qwerty')
+    def testCreateInvalidCell(self):
+        """create(): Trying to create a cell type which is not a standard cell or
+        valid native cell should raise a HocError."""
+        self.assertRaises(HocError, neuron.create, 'qwerty', n=10)
     
     def testCreateWithInvalidParameter(self):
         """create(): Creating a cell with an invalid parameter should raise an Exception."""
@@ -82,42 +86,49 @@ class ConnectionTest(unittest.TestCase):
         """connect(): The first connection created should have id 0."""
         neuron.hoc_comment("=== ConnectionTest.testConnectTwoCells ===")
         conn = neuron.connect(self.precells[0], self.postcells[0])
-        assert conn == [0], 'Error creating connection'
+        # conn will be an empty list if it does not exist on that node
+        assert conn == [0] or conn == [], 'Error creating connection, conn=%s' % conn
         
     def testConnectTwoCellsWithWeight(self):
         """connect(): Weight set should match weight retrieved."""
         neuron.hoc_comment("=== ConnectionTest.testConnectTwoCellsWithWeight() ===")
         conn_id = neuron.connect(self.precells[0], self.postcells[0], weight=0.1234)
-        #weight = HocToPy.get('netconlist.object(%d).weight' % conn_id[0], 'float')
-        weight = h.netconlist.object(conn_id[0]).weight[0]
-        assert weight == 0.1234, "Weight set (0.1234) does not match weight retrieved (%s)" % weight
+        if conn_id:
+            weight = h.netconlist.object(conn_id[0]).weight[0]
+            assert weight == 0.1234, "Weight set (0.1234) does not match weight retrieved (%s)" % weight
     
     def testConnectTwoCellsWithDelay(self):
         """connect(): Delay set should match delay retrieved."""
         conn_id = neuron.connect(self.precells[0], self.postcells[0], delay=4.321)
-        #delay = HocToPy.get('netconlist.object(%d).delay' % conn_id[0], 'float')
-        delay = h.netconlist.object(conn_id[0]).delay
-        assert delay == 4.321, "Delay set (4.321) does not match delay retrieved (%s)." % delay
+        if conn_id:
+            delay = h.netconlist.object(conn_id[0]).delay
+            assert delay == 4.321, "Delay set (4.321) does not match delay retrieved (%s)." % delay
     
     def testConnectManyToOne(self):
-        """connect(): Connecting n sources to one target should return a list of size n, each element being the id number of a netcon."""
+        """connect(): Connecting n sources to one target should return a list of size n,
+        each element being the id number of a netcon."""
         connlist = neuron.connect(self.precells, self.postcells[0])
-        assert connlist == range(0, len(self.precells))
+        # connections are only created on the node containing the post-syn
+        assert connlist == range(0, len(self.precells)) or connlist == [], connlist
         
     def testConnectOneToMany(self):
         """connect(): Connecting one source to n targets should return a list of target ports."""
         connlist = neuron.connect(self.precells[0], self.postcells)
-        assert connlist == range(0, len(self.postcells))
+        cells_on_this_node = len([i for i in self.postcells if i in neuron.gidlist])
+        assert connlist == range(cells_on_this_node)
         
     def testConnectManyToMany(self):
         """connect(): Connecting m sources to n targets should return a list of length m x n"""
         connlist = neuron.connect(self.precells, self.postcells)
-        assert connlist == range(0, len(self.postcells)*len(self.precells))
+        cells_on_this_node = len([i for i in self.postcells if i in neuron.gidlist])
+        expected_connlist = range(cells_on_this_node*len(self.precells))
+        self.assert_(connlist == expected_connlist, "%s != %s" % (connlist, expected_connlist))
         
     def testConnectWithProbability(self):
         """connect(): If p=0.5, it is very unlikely that either zero or the maximum number of connections should be created."""
         connlist = neuron.connect(self.precells, self.postcells, p=0.5)
-        assert 0 < len(connlist) < len(self.precells)*len(self.postcells), 'Number of connections is %d: this is very unlikely (although possible).' % len(connlist)
+        cells_on_this_node = len([i for i in self.postcells if i in neuron.gidlist])
+        assert 0 < len(connlist) < len(self.precells)*cells_on_this_node, 'Number of connections is %d: this is very unlikely (although possible).' % len(connlist)
     
     def testConnectNonExistentPreCell(self):
         """connect(): Connecting from non-existent cell should raise a ConnectionError."""
@@ -147,9 +158,11 @@ class SetValueTest(unittest.TestCase):
         neuron.hoc_comment("=== SetValueTest.testSetFloat() ===")
         neuron.set(self.cells, 'tau_m',35.7)
         for cell in self.cells:
-            #assert HocToPy.get('cell%d.tau_m' % cell, 'float') == 35.7
-            assert getattr(h, 'cell%d' % cell).tau_m == 35.7
-            
+            try:
+                assert getattr(h, 'cell%d' % cell).tau_m == 35.7
+            except AttributeError: # if cell is not on this node
+                pass
+  
     #def testSetString(self):
     #    neuron.set(self.cells, neuron.IF_curr_exp,'param_name','string_value')
     ## note we don't currently have any models with string parameters, so
@@ -160,12 +173,13 @@ class SetValueTest(unittest.TestCase):
     def testSetDict(self):
         neuron.set(self.cells, {'tau_m':35.7, 'tau_syn_E':5.432})
         for cell in self.cells:
-            hoc_cell = getattr(h, 'cell%d' % cell)
-            assert hoc_cell.tau_e == 5.432
-            assert hoc_cell.tau_m == 35.7
-            #assert HocToPy.get('cell%d.tau_e' % cell, 'float') == 5.432
-            #assert HocToPy.get('cell%d.tau_m' % cell, 'float') == 35.7
-
+            try:
+                hoc_cell = getattr(h, 'cell%d' % cell)
+                assert hoc_cell.tau_e == 5.432
+                assert hoc_cell.tau_m == 35.7
+            except AttributeError: # if cell is not on this node
+                pass
+            
     def testSetNonExistentParameter(self):
         # note that although syn_shape is added to the parameter dict when creating
         # an IF_curr_exp, it is not a valid parameter to be changed later.
@@ -187,30 +201,38 @@ class PopulationInitTest(unittest.TestCase):
     def testSimpleInit(self):
         """Population.__init__(): the cell list in hoc should have the same length as the population size."""
         net = neuron.Population((3,3), neuron.IF_curr_alpha)
-        #assert HocToPy.get('%s.count()' % net.label, 'integer') == 9
-        assert int(getattr(h, net.label).count()) == 9
+        n_cells = getattr(h, net.label).count()
+        n_cells_lower = int(getattr(h, net.label).count())
+        # round-robin distribution
+        assert 9/neuron.nhost <= n_cells_lower <= 9/neuron.nhost+1, "%d not between %d and %d" % (n_cells_lower, 9/neuron.nhost, 9/neuron.nhost+1)
     
     def testInitWithParams(self):
-        """Population.__init__(): Parameters set on creation should be the same as retrieved with the top-level HocObject"""
+        """Population.__init__(): Parameters set on creation should be the same as
+        retrieved with the top-level HocObject"""
         net = neuron.Population((3,3), neuron.IF_curr_alpha,{'tau_syn_E':3.141592654})
-        #tau_syn = HocToPy.get('%s.object(8).esyn.tau' % net.label)
-        tau_syn = getattr(h, net.label).object(8).esyn.tau
-        self.assertAlmostEqual(tau_syn, 3.141592654, places=5)
+        cell_list = getattr(h, net.label)
+        for i in range(int(cell_list.count())):
+            tau_syn = cell_list.object(i).esyn.tau
+            self.assertAlmostEqual(tau_syn, 3.141592654, places=5)
     
     def testInitWithLabel(self):
         """Population.__init__(): A label set on initialisation should be retrievable with the Population.label attribute."""
         net = neuron.Population((3,3), neuron.IF_curr_alpha, label='iurghiushrg')
         assert net.label == 'iurghiushrg'
     
-#    def testInvalidCellType(self):
-#        """Population.__init__(): Trying to create a cell type which is not a method of StandardCells should raise an AttributeError."""
-#        self.assertRaises(AttributeError, neuron.Population, (3,3), 'qwerty', {})
+    def testInvalidCellType(self):
+        """Population.__init__(): Trying to create a cell type which is not a StandardCell
+        or a valid neuron model should raise a HocError."""
+        self.assertRaises(neuron.HocError, neuron.Population, (3,3), 'qwerty', {})
         
     def testInitWithNonStandardModel(self):
         """Population.__init__(): the cell list in hoc should have the same length as the population size."""
-        net = neuron.Population((3,3),'StandardIF',{'syn_type':'current','syn_shape':'exp'})
-        #assert HocToPy.get('%s.count()' % net.label, 'integer') == 9
-        assert int(getattr(h, net.label).count()) == 9
+        net = neuron.Population((3,3), 'StandardIF', {'syn_type':'current', 'syn_shape':'exp'})
+        n_cells = getattr(h, net.label).count()
+        n_cells_lower = int(getattr(h, net.label).count())
+        # round-robin distribution
+        assert 9/neuron.nhost <= n_cells_lower <= 9/neuron.nhost+1, "%d not between %d and %d" % (n_cells_lower, 9/neuron.nhost, 9/neuron.nhost+1)
+    
 
 # ==============================================================================
 class PopulationIndexTest(unittest.TestCase):
@@ -286,14 +308,16 @@ class PopulationSetTest(unittest.TestCase):
     def testSetFromDict(self):
         """Population.set(): Parameters set in a dict should all be retrievable using the top-level HocObject"""
         self.net.set({'tau_m':43.21})
-        #assert HocToPy.get('%s.object(7).tau_m' % self.net.label, 'float') == 43.21
-        assert getattr(h, self.net.label).object(7).tau_m == 43.21
+        cell_list = getattr(h, self.net.label)
+        for i in range(int(cell_list.count())):
+            assert cell_list.object(i).tau_m == 43.21
     
     def testSetFromPair(self):
         """Population.set(): A parameter set as a string, value pair should be retrievable using the top-level HocObject"""
         self.net.set('tau_m',12.34)
-        #ssert HocToPy.get('%s.object(6).tau_m' % self.net.label, 'float') == 12.34
-        assert getattr(h, self.net.label).object(6).tau_m == 12.34
+        cell_list = getattr(h, self.net.label)
+        for i in range(int(cell_list.count())):
+            assert cell_list.object(i).tau_m == 12.34
     
     def testSetInvalidFromPair(self):
         """Population.set(): Trying to set an invalid value for a parameter should raise an exception."""
@@ -316,8 +340,9 @@ class PopulationSetTest(unittest.TestCase):
     def testSetWithNonStandardModel(self):
         """Population.set(): Parameters set in a dict should all be retrievable using the top-level HocObject"""
         self.net2.set({'tau_m':43.21})
-        #assert HocToPy.get('%s.object(2).tau_m' % self.net2.label, 'float') == 43.21
-        assert getattr(h, self.net2.label).object(2).tau_m == 43.21
+        cell_list = getattr(h, self.net2.label)
+        for i in range(int(cell_list.count())):
+            assert cell_list.object(i).tau_m == 43.21
         
     def testTSet(self):
         """Population.tset(): The valueArray passed should be retrievable using the top-level HocObject on all nodes."""
@@ -327,10 +352,14 @@ class PopulationSetTest(unittest.TestCase):
         hoc_net = getattr(h, self.net.label)
         for i in 0,1,2:
             for j in 0,1,2:
-                #array_out[i, j]= HocToPy.get('%s.object(%d).stim.amp' % (self.net.label,3*i+j),'float')
-                #print i, j, 3*i+j, hoc_net, hoc_net.object(3*i+j), hoc_net.object(3*i+j).stim
-                array_out[i, j] = hoc_net.object(3*i+j).stim.amp
-        assert numpy.equal(array_in, array_out).all()
+                id = 3*i+j
+                if id in self.net.gidlist:
+                    list_index = self.net.gidlist.index(id)
+                    cell = hoc_net.object(list_index)
+                    array_out[i, j] = cell.stim.amp
+                else:
+                    array_out[i, j] = array_in[i, j]
+        assert numpy.equal(array_in, array_out).all(), array_out
     
     def testTSetInvalidDimensions(self):
         """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
@@ -339,20 +368,21 @@ class PopulationSetTest(unittest.TestCase):
     
     def testTSetInvalidValues(self):
         """Population.tset(): If some of the values in the valueArray are invalid, should raise an exception."""
-        array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,'apples']])
+        array_in = numpy.array([['potatoes','carrots','peas'],['dogs','cats','mice'],['oranges','bananas','apples']])
         self.assertRaises(common.InvalidParameterValueError, self.net.tset, 'i_offset', array_in)
         
-    def testRSetNative(self):
-        """Population.rset(): with native rng. This is difficult to test, so for now just require that all values retrieved should be different. Later, could calculate distribution and assert that the difference between sample and theoretical distribution is less than some threshold."""
+    def testRSetNative1(self):
+        """Population.rset(): with native rng. This is difficult to test, so for
+        now just require that all values retrieved should be different.
+        Later, could calculate distribution and assert that the difference between
+        sample and theoretical distribution is less than some threshold."""
         self.net.rset('tau_m',
                       random.RandomDistribution(rng=random.NativeRNG(),
                                                 distribution='uniform',
                                                 parameters=(10.0,30.0)))
-        #self.assertNotEqual(HocToPy.get('%s.object(5).tau_m' % self.net.label),
-        #                    HocToPy.get('%s.object(6).tau_m' % self.net.label))
         hoc_net = getattr(h, self.net.label)
-        self.assertNotEqual(hoc_net.object(5).tau_m,
-                            hoc_net.object(6).tau_m)
+        self.assertNotEqual(hoc_net.object(0).tau_m,
+                            hoc_net.object(1).tau_m)
         
     def testRSetNumpy(self):
         """Population.rset(): with numpy rng."""
@@ -367,14 +397,17 @@ class PopulationSetTest(unittest.TestCase):
         hoc_net = getattr(h, self.net.label)
         for i in 0,1,2:
             for j in 0,1,2:
-                #output_values[i, j] = HocToPy.get('%s.object(%d).cell.cm' % (self.net.label,3*i+j),'float')
-                output_values[i, j] = hoc_net.object(3*i+j).cell(0.5).cm
+                id = 3*i+j
+                if id in self.net.gidlist:
+                    list_index = self.net.gidlist.index(id)
+                    output_values[i, j] = hoc_net.object(list_index).cell(0.5).cm
         input_values = rd2.next(9)
         output_values = output_values.reshape((9,))
         for i in range(9):
-            self.assertAlmostEqual(input_values[i], output_values[i], places=5)
+            if i in self.net.gidlist:
+                self.assertAlmostEqual(input_values[i], output_values[i], places=5)
         
-    def testRSetNative(self):
+    def testRSetNative2(self):
         """Population.rset(): with native rng."""
         rd1 = random.RandomDistribution(rng=random.NativeRNG(seed=98765),
                                          distribution='uniform',
@@ -386,24 +419,24 @@ class PopulationSetTest(unittest.TestCase):
         output_values_1 = numpy.zeros((3,3), numpy.float)
         output_values_2 = numpy.zeros((3,3), numpy.float)
         hoc_net = getattr(h, self.net.label)
+        print hoc_net.count()
         for i in 0,1,2:
             for j in 0,1,2:
-                #output_values_1[i, j] = HocToPy.get('%s.object(%d).cell.cm' % (self.net.label,3*i+j),'float')
-                output_values_1[i, j] = hoc_net.object(3*i+j).cell(0.5).cm
+                id = 3*i+j
+                if id in self.net.gidlist:
+                    list_index = self.net.gidlist.index(id)
+                    output_values_1[i, j] = hoc_net.object(list_index).cell(0.5).cm
         self.net.rset('cm', rd2)
         for i in 0,1,2:
             for j in 0,1,2:
-                #output_values_2[i, j] = HocToPy.get('%s.object(%d).cell.cm' % (self.net.label,3*i+j),'float')
-                output_values_2[i, j] = hoc_net.object(3*i+j).cell(0.5).cm
+                id = 3*i+j
+                if id in self.net.gidlist:
+                    list_index = self.net.gidlist.index(id)
+                    output_values_2[i, j] = hoc_net.object(list_index).cell(0.5).cm
         output_values_1 = output_values_1.reshape((9,))
         output_values_2 = output_values_2.reshape((9,))
         for i in range(9):
             self.assertAlmostEqual(output_values_1[i], output_values_2[i], places=5)    
-        
-# ==============================================================================
-class PopulationCallTest(unittest.TestCase): # to write later
-    """Tests of the _call() and _tcall() methods of the Population class."""
-    pass
 
 # ==============================================================================
 class PopulationRecordTest(unittest.TestCase): # to write later
@@ -442,9 +475,10 @@ class PopulationRecordTest(unittest.TestCase): # to write later
 	simtime = 1000.0
         neuron.running = False
 	neuron.run(simtime)
-	self.pop1.printSpikes("temp_neuron.ras")
-	rate = self.pop1.meanSpikeCount()*1000/simtime
-	assert (20*0.8 < rate) and (rate < 20*1.2)
+	self.pop1.printSpikes("temp_neuron.ras", gather=True)
+        rate = self.pop1.meanSpikeCount()*1000/simtime
+        if neuron.myid == 0: # only on master node
+            assert (20*0.8 < rate) and (rate < 20*1.2), "rate is %s" % rate
 
     def testPotentialRecording(self):
 	"""Population.record_v() and Population.print_v(): not a full test, just checking 
@@ -458,7 +492,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
 	simtime = 10.0
         neuron.running = False
         neuron.run(simtime)
-	self.pop2.print_v("temp_neuron.v")
+	self.pop2.print_v("temp_neuron.v", gather=True)
 
     def testRecordWithSpikeTimesGreaterThanSimTime(self):
         """
@@ -472,7 +506,8 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         neuron.running = False
         neuron.run(100.0)
         spikes = spike_source.getSpikes()[:,1]
-        self.assert_( max(spikes) == 100.0 )
+        if neuron.myid == 0:
+            self.assert_( max(spikes) == 100.0 )
 
 # ==============================================================================
 class PopulationOtherTest(unittest.TestCase): # to write later
@@ -770,6 +805,12 @@ class IDTest(unittest.TestCase):
         
 if __name__ == "__main__":
     #sys.argv = ['./nrnpython']
+    if '-python' in sys.argv:
+        sys.argv.remove('-python')
+    for arg in sys.argv:
+        if 'bin/nrniv' in arg:
+            sys.argv.remove(arg)
+    #print sys.argv
     neuron.setup()
     unittest.main()
     neuron.end()

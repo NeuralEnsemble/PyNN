@@ -62,9 +62,21 @@ class ID(int, common.IDMixin):
             return self._get_hoc_parameter(cell, name)
     
     def _hoc_cell(self):
+        assert self in gidlist, "Cell %d does not exist on this node" % self
         if self.parent:
             hoc_cell_list = getattr(h, self.parent.label)
-            cell = hoc_cell_list.object(self - self.parent.gid_start)
+            try:
+                #cell = hoc_cell_list.object(self - self.parent.gid_start)
+                list_index = self.parent.gidlist.index(self)
+                cell = hoc_cell_list.object(list_index)
+            except RuntimeError:
+                print "id:", self
+                print "parent.gid_start:", self.parent.gid_start
+                print "len(parent):", len(self.parent)
+                print "hoc_cell_list.count():", hoc_cell_list.count()
+                print "parent.gidlist.index(id):", self.parent.gidlist.index(self)
+                print "id.hocname:", self.hocname
+                raise
         else:
             cell_name = "cell%d" % int(self)
             cell = getattr(h, cell_name)
@@ -82,7 +94,7 @@ class ID(int, common.IDMixin):
         if self.is_standard_cell():
             parameter_names = [D['translated_name'] for D in self.cellclass.translations.values()]
         else:
-            parameter_names = [] # for native cells, don't have a way to get their list of parameters
+            parameter_names = [] # for native cells, don't have a way to get their list of parameters 
         # Obtain the hoc object whose parameters we are going to get
         cell = self._hoc_cell()
         # Get the values from hoc
@@ -372,7 +384,7 @@ def end(compatible_output=True):
     hoc_commands += ['tmp = pc.runworker()',
                      'tmp = pc.done()']
     hoc_execute(hoc_commands,"--- end() ---")
-    #hoc.execute('tmp = quit()')
+    ##hoc.execute('tmp = quit()') # sometimes needed, sometimes not wanted. Maybe a 'quit_on_end' kwarg for setup?
     #logging.info("Finishing up with NEURON.")
     #sys.exit(0)
 
@@ -383,10 +395,9 @@ def run(simtime):
     if not running:
         running = True
         hoc_commands += ['tstop = 0',
-                         'local_minimum_delay = pc.set_maxstep(100)',
+                         'local_minimum_delay = pc.set_maxstep(10)',
                          'tmp = finitialize()',]
-    hoc_commands += ['tstop += %f' %simtime,
-                     #'print "tstop     = ", tstop',
+    hoc_commands += ['tstop += %f' % simtime,
                      'tmp = pc.psolve(tstop)']
     hoc_execute(hoc_commands,"--- run() ---")
     return get_current_time()
@@ -406,6 +417,9 @@ common.get_time_step = get_time_step
 def get_min_delay():
     return h.min_delay
 common.get_min_delay = get_min_delay
+
+def num_processes():
+    return int(h.pc.nhost())
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -431,6 +445,7 @@ def create(cellclass, param_dict=None, n=1):
  
     # round-robin partitioning
     newgidlist = [i+myid for i in range(gid, gid+n, nhost) if i < gid+n-myid]
+    logging.debug("Creating cells %s on host %d" % (newgidlist, myid))
     for cell_id in newgidlist:
         hoc_commands += ['tmp = pc.set_gid2node(%d,%d)' % (cell_id, myid),
                          'objref cell%d' % cell_id,
@@ -455,7 +470,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
     Weights should be in nA or µS."""
-    global ncid, gid, gidlist
+    global ncid, gid, gidlist, myid
     if type(source) != types.ListType:
         source = [source]
     if type(target) != types.ListType:
@@ -465,6 +480,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     syn_objref = _translate_synapse_type(synapse_type, weight)
     nc_start = ncid
     hoc_commands = []
+    logging.debug("connecting %s to %s on host %d" % (source, target, myid))
     for tgt in target:
         if tgt > gid or tgt < 0 or not isinstance(tgt, int):
             raise common.ConnectionError, "Postsynaptic cell id %s does not exist." % str(tgt)
@@ -486,6 +502,10 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
                                              'nc.weight = %g' % weight,
                                              'tmp = netconlist.append(nc)']
                             ncid += 1
+            else:
+                for j, src in enumerate(source):
+                    if src > gid or src < 0 or not isinstance(src, int):
+                        raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src)
     hoc_execute(hoc_commands, "--- connect(%s,%s) ---" % (str(source), str(target)))
     return range(nc_start, ncid)
 
@@ -500,6 +520,7 @@ def set(cells, param, val=None):
         cells = [cells]
     # see comment in Population.set() below about the efficiency of the
     # following
+    cells = [cell for cell in cells if cell in gidlist]
     for cell in cells:
         cell.set_parameters(**param)
 
@@ -620,7 +641,7 @@ class Population(common.Population):
                              #'nc = new NetCon(cell.source, nil)',
                              'tmp = cell.connect2target(nil, nc)',
                              'tmp = pc.cell(%d, nc)' % cell_id,
-                             'tmp = %s.append(cell)' %(self.hoc_label)]       
+                             'tmp = %s.append(cell)' %(self.hoc_label)]
         hoc_execute(hoc_commands, "--- Population[%s].__init__() ---" %self.label)
         Population.nPop += 1
         gid = gid+self.size
@@ -869,8 +890,8 @@ class Population(common.Population):
                     hoc_commands = ['record_from = new Vector()']
                     hoc_commands += ['tmp = pc.take("%s.record_from[%s].node[%d]", record_from)' %(self.hoc_label, record_what, id)]
                     hoc_execute(hoc_commands)
-                    for j in xrange(h.record_from.size()):
-                        self.record_from[record_what].add(h.record_from.x[j])
+                    for j in xrange(int(h.record_from.size())):
+                        self.record_from[record_what].add(int(h.record_from.x[j]))
 
     def record(self, record_from=None, rng=None):
         """
@@ -911,6 +932,9 @@ class Population(common.Population):
                                                                                         vector_operation)]
             hoc_execute(hoc_commands,"--- Population[%s].__print()__ --- [Post objects to master]" %self.label)
 
+        if not gather:
+            filename += ".%d" % myid
+            
         if myid==0 or not gather:
             hoc_commands = ['objref fileobj',
                             'fileobj = new File()',
@@ -960,7 +984,7 @@ class Population(common.Population):
         hoc_comment("--- Population[%s].__printSpikes()__ ---" %self.label)
         header = "# %d" %self.dim[0]
         for dimension in list(self.dim)[1:]:
-                header = "%s\t%d" %(header, dimension)
+            header = "%s\t%d" %(header, dimension)
         self.__print('spiketimes', filename,"%.2f", gather, header)
 
     def print_v(self, filename, gather=True, compatible_output=True):
@@ -1001,13 +1025,18 @@ class Population(common.Population):
         # This is a bit of a hack implemetation
         tmpfile = "neuron_tmpfile" # should really use tempfile module
         self.__print('spiketimes', tmpfile, "%.2f", gather)
-        f = open(tmpfile, 'r')
-        lines = [line for line in f.read().split('\n') if line] # remove blank lines
-        line2spike = lambda s: (int(s[1]), float(s[0]))
-        spikes = numpy.array([line2spike(line.split()) for line in lines])
-        f.close()
-        os.remove("neuron_tmpfile")
-        return spikes
+        if not gather:
+            tmpfile += '%d' % myid
+        if myid==0 or not gather:
+            f = open(tmpfile, 'r')
+            lines = [line for line in f.read().split('\n') if line] # remove blank lines
+            line2spike = lambda s: (int(s[1]), float(s[0]))
+            spikes = numpy.array([line2spike(line.split()) for line in lines])
+            f.close()
+            #os.remove(tmpfile)
+            return spikes
+        else:
+            return numpy.array([[],[]]).transpose() # anyone know a better way to get an empty array with shape (0,2)?
         
     def meanSpikeCount(self, gather=True):
         """
@@ -1044,7 +1073,7 @@ class Population(common.Population):
                     hoc_execute(['tmp = pc.take("%s.node[%d].ncells",&ncells)' % (self.hoc_label, id)])
                     #ncells  += HocToPy.get('ncells','int')
                     ncells += int(h.ncells)
-            return float(nspikes/ncells)
+            return float(nspikes)/ncells
 
     def randomInit(self, rand_distr):
         """
