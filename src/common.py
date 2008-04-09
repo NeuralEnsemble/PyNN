@@ -1227,7 +1227,7 @@ class Connector(object):
             delays = self.delays[self.d_index:self.d_index+N]
         else:
             raise Exception("delays is of type %s" % type(self.delays))
-        assert numpy.all(delays >= get_min_delay()), "Delay values must be greater than the minimum delay"
+        assert numpy.all(delays >= get_min_delay()), "Delay values must be greater than the minimum delay %g" %get_min_delay()
         self.d_index += N
         return delays
     

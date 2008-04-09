@@ -207,14 +207,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     nest.SetStatus([0], {'device_prefix':tempdir,})
     # set resolution
     nest.SetStatus([0], {'resolution': timestep})
-
-    # Set min_delay and max_delay for all synapse models
-    for synapse_model in NEST_SYNAPSE_TYPES:
-        # this is done in two steps, because otherwise NEST sometimes complains
-        #   "max_delay is not compatible with default delay"
-        nest.SetSynapseDefaults(synapse_model, {'delay': min_delay})
-        nest.SetSynapseDefaults(synapse_model, {'min_delay': min_delay,
-                                                'max_delay': max_delay})
+    
     if extra_params.has_key('threads'):
         if extra_params.has_key('kernelseeds'):
             print 'params has kernelseeds ', extra_params['kernelseeds']
@@ -228,7 +221,13 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
 
         nest.SetStatus([0],[{'local_num_threads' : extra_params['threads'],
                              'rng_seeds'         : kernelseeds}])
-
+    # Set min_delay and max_delay for all synapse models
+    for synapse_model in NEST_SYNAPSE_TYPES:
+        # this is done in two steps, because otherwise NEST sometimes complains
+        #   "max_delay is not compatible with default delay"
+        nest.SetSynapseDefaults(synapse_model, {'delay': min_delay})
+        nest.SetSynapseDefaults(synapse_model, {'min_delay': min_delay,
+                                                'max_delay': max_delay})
 
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning()
