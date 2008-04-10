@@ -529,7 +529,8 @@ class ProjectionInitTest(unittest.TestCase):
         self.expoisson33 = neuron.Population((3,3), neuron.SpikeSourcePoisson,{'rate': 100})
         
     def testAllToAll(self):
-        """For all connections created with "allToAll" it should be possible to obtain the weight using the top-level HocObject"""
+        """For all connections created with "allToAll" it should be possible to
+        obtain the weight using the top-level HocObject"""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 prj1 = neuron.Projection(srcP, tgtP, 'allToAll')
@@ -540,7 +541,6 @@ class ProjectionInitTest(unittest.TestCase):
                     hoc_list = getattr(h, prj.label)
                     weights = []
                     for connection_id in prj.connections:
-                        #weights.append(HocToPy.get('%s.object(%d).weight' % (prj.label, prj.connections.index(connection_id)), 'float'))
                         weights.append(hoc_list.object(prj.connections.index(connection_id)).weight[0])
                     assert weights == [1.234]*len(prj)
             
@@ -555,14 +555,14 @@ class ProjectionInitTest(unittest.TestCase):
                        and (0 < len(prj2) < len(srcP)*len(tgtP)) \
                        and (0 < len(prj3) < len(srcP)*len(tgtP))
                 
-    def testoneToOne(self):
+    def testOneToOne(self):
         """For all connections created with "OneToOne" ..."""
         prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
         prj2 = neuron.Projection(self.source33, self.target33, neuron.OneToOneConnector())
-        assert len(prj1.connections) == self.source33.size
-        assert len(prj2.connections) == self.source33.size
+        assert len(prj1.connections) == len(self.target33.gidlist), prj1.connections
+        assert len(prj2.connections) == len(self.target33.gidlist), prj2.connections
      
-    def testdistantDependentProbability(self):
+    def testDistanceDependentProbability(self):
         """For all connections created with "distanceDependentProbability"..."""
         # Test should be improved..."
         for rngclass in (NumpyRNG, NativeRNG):
@@ -581,23 +581,25 @@ class ProjectionInitTest(unittest.TestCase):
         prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
         prj1.setDelays(1)
         prj1.setWeights(1.234)
-        prj1.saveConnections("connections.tmp")
-        prj2 = neuron.Projection(self.source33, self.target33, 'fromFile',"connections.tmp")
-        prj3 = neuron.Projection(self.source33, self.target33, neuron.FromFileConnector("connections.tmp"))
+        prj1.saveConnections("connections.tmp", gather=False)
+        #prj2 = neuron.Projection(self.source33, self.target33, 'fromFile',"connections.tmp")
+        prj3 = neuron.Projection(self.source33, self.target33, neuron.FromFileConnector("connections.tmp",
+                                                                                        distributed=True))
         w1 = []; w2 = []; w3 = []; d1 = []; d2 = []; d3 = []
         # For a connections scheme saved and reloaded, we test if the connections, their weights and their delays
         # are equal.
         hoc_list1 = getattr(h, prj1.label)
-        hoc_list2 = getattr(h, prj2.label)
+        #hoc_list2 = getattr(h, prj2.label)
         hoc_list3 = getattr(h, prj3.label)
         for connection_id in prj1.connections:
             w1.append(hoc_list1.object(prj1.connections.index(connection_id)).weight[0])
-            w2.append(hoc_list2.object(prj2.connections.index(connection_id)).weight[0])
+            #w2.append(hoc_list2.object(prj2.connections.index(connection_id)).weight[0])
             w3.append(hoc_list3.object(prj3.connections.index(connection_id)).weight[0])
             d1.append(hoc_list1.object(prj1.connections.index(connection_id)).delay)
-            d2.append(hoc_list2.object(prj2.connections.index(connection_id)).delay)
+            #d2.append(hoc_list2.object(prj2.connections.index(connection_id)).delay)
             d3.append(hoc_list3.object(prj3.connections.index(connection_id)).delay)
-        assert (w1 == w2 == w3) and (d1 == d2 == d3)
+        #assert (w1 == w2 == w3) and (d1 == d2 == d3)
+        assert (w1 == w3) and (d1 == d3)
           
     def testSettingDelays(self):
         """Delays should be set correctly when using a Connector object."""
@@ -617,7 +619,7 @@ class ProjectionSetTest(unittest.TestCase):
         self.distrib_Numpy = RandomDistribution(rng=NumpyRNG(12345), distribution='uniform', parameters=(0,1)) 
         self.distrib_Native= RandomDistribution(rng=NativeRNG(12345), distribution='uniform', parameters=(0,1)) 
         
-    def testsetWeights(self):
+    def testSetWeights(self):
         prj1 = neuron.Projection(self.source, self.target, 'allToAll')
         prj1.setWeights(2.345)
         weights = []
@@ -628,7 +630,7 @@ class ProjectionSetTest(unittest.TestCase):
         result = 2.345*numpy.ones(len(prj1.connections))
         assert (weights == result.tolist())
         
-    def testsetDelays(self):
+    def testSetDelays(self):
         prj1 = neuron.Projection(self.source, self.target, 'allToAll')
         prj1.setDelays(2.345)
         delays = []
@@ -639,7 +641,7 @@ class ProjectionSetTest(unittest.TestCase):
         result = 2.345*numpy.ones(len(prj1.connections))
         assert (delays == result.tolist())
         
-    def testrandomizeWeights(self):
+    def testRandomizeWeights(self):
         # The probability of having two consecutive weights vector that are equal should be 0
         prj1 = neuron.Projection(self.source, self.target, 'allToAll')
         prj2 = neuron.Projection(self.source, self.target, 'allToAll')
@@ -662,7 +664,7 @@ class ProjectionSetTest(unittest.TestCase):
             w4.append(hoc_list2.object(prj2.connections.index(connection_id)).weight[0])
         self.assertNotEqual(w1, w3) and self.assertNotEqual(w2, w4) 
         
-    def testrandomizeDelays(self):
+    def testRandomizeDelays(self):
         # The probability of having two consecutive delays vector that are equal should be 0
         prj1 = neuron.Projection(self.source, self.target, 'allToAll')
         prj2 = neuron.Projection(self.source, self.target, 'allToAll')
@@ -694,17 +696,17 @@ class ProjectionSetTest(unittest.TestCase):
         stdp_model = neuron.STDPMechanism(
             timing_dependence=neuron.SpikePairRule(tau_plus=20.0, tau_minus=20.0),
             weight_dependence=neuron.AdditiveWeightDependence(w_min=0, w_max=2.0,
-                                                              A_plus=0.1, A_minus=0.0)
+                                                              A_plus=0.1, A_minus=0.0),
+            dendritic_delay_fraction=0.0
         )
-        
-        prj1 = neuron.Projection(self.source, self.target, 'allToAll',
+        connector = neuron.AllToAllConnector(weights=1.0, delays=2.0)
+        prj1 = neuron.Projection(self.source, self.target, connector,
                                  synapse_dynamics=neuron.SynapseDynamics(slow=stdp_model))
-        prj1.setDelays(2)
-        prj1.setWeights(1.0)
+        #prj1.setDelays(2)
+        #prj1.setWeights(1.0)
         mean_weight_before = 0
         hoc_list = getattr(h, prj1.label)
         for connection_id in prj1.connections:
-            #mean_weight_before += HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id)), 'float')
             mean_weight_before += hoc_list.object(prj1.connections.index(connection_id)).weight[0]
         mean_weight_before = float(mean_weight_before/len(prj1.connections))  
         simtime = 100
@@ -712,10 +714,12 @@ class ProjectionSetTest(unittest.TestCase):
         run(simtime)
         mean_weight_after = 0
         self.target.print_v("tmp.v")
-        assert self.source.meanSpikeCount() > 0
-        assert self.target.meanSpikeCount() > 0
+        source_spikes = self.source.meanSpikeCount()
+        target_spikes = self.target.meanSpikeCount()
+        if neuron.myid == 0:
+            assert source_spikes > 0
+            assert target_spikes > 0
         for connection_id in prj1.connections:
-            #mean_weight_after += HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id)), 'float')
             mean_weight_after += hoc_list.object(prj1.connections.index(connection_id)).weight[0]
         mean_weight_after = float(mean_weight_after/len(prj1.connections))
         assert (mean_weight_before < mean_weight_after), "%g !< %g" % (mean_weight_before, mean_weight_after)
@@ -733,45 +737,8 @@ class ProjectionSetTest(unittest.TestCase):
             src = prj1.connections[connection_id][0]
             tgt = prj1.connections[connection_id][1]
             if (src == self.source[0,0]) and (tgt == self.target[2,2]):
-                #delay = HocToPy.get('%s.object(%d).delay' % (prj1.label, prj1.connections.index(prj1.connections[connection_id])), 'float')
                 delay = hoc_list.object(prj1.connections.index(prj1.connections[connection_id])).delay
-        assert (delay == 54.32), delay
-
-#class ProjectionConnectionTest(unittest.TestCase):
-#    """Tests of the connection attribute and connections() method of the Projection class."""
-#    
-#    def setUp(self):
-#        neuron.Population.nPop = 0
-#        self.pop1 = neuron.Population((5,), neuron.IF_curr_alpha)
-#        self.pop2 = neuron.Population((4,4), neuron.IF_curr_alpha)    
-#        self.pop3 = neuron.Population((3,3,3), neuron.IF_curr_alpha)
-#        self.prj23 = neuron.Projection(self.pop2, self.pop3,"allToAll")
-#        self.prj11 = neuron.Projection(self.pop1, self.pop1,"fixedProbability",0.5)
-#        
-#    def testFullAddress(self):
-#        assert self.prj23.connection[(3,1),(2,0,1)] == "[3][1][2][0][1]"
-#        assert self.prj23.connection[(3,3),(2,2,2)] == "[3][3][2][2][2]"
-#        
-#    def testPreIDPostID(self):
-#        assert self.prj23.connection[0,0] == "[0][0][0][0][0]"
-#        assert self.prj23.connection[0,26] == "[0][0][2][2][2]"
-#        assert self.prj23.connection[0,25] == "[0][0][2][2][1]"
-#        assert self.prj23.connection[15,0] == "[3][3][0][0][0]"
-#        assert self.prj23.connection[14,0] == "[3][2][0][0][0]"
-#        assert self.prj23.connection[13,19] == "[3][1][2][0][1]"
-#        
-#    def testSingleID(self):
-#        assert self.prj23.connection[0] == "[0][0][0][0][0]"
-#        assert self.prj23.connection[26] == "[0][0][2][2][2]"
-#        assert self.prj23.connection[25] == "[0][0][2][2][1]"
-#        assert self.prj23.connection[27] == "[0][1][0][0][0]"
-#        assert self.prj23.connection[53] == "[0][1][2][2][2]"
-#        assert self.prj23.connection[52] == "[0][1][2][2][1]"
-#        assert self.prj23.connection[431] == "[3][3][2][2][2]"
-#        assert self.prj23.connection[377] == "[3][1][2][2][2]"
-#        assert self.prj23.connection[370] == "[3][1][2][0][1]"
-#        
-#        assert self.prj11.connection[0] == "[0][0]"
+                assert (delay == 54.32), delay
 
 class IDTest(unittest.TestCase):
     """Tests of the ID class."""
@@ -782,14 +749,16 @@ class IDTest(unittest.TestCase):
         self.pop2 = neuron.Population((5,4), neuron.IF_curr_exp,{'v_reset':-60.0})
     
     def testIDSetAndGet(self):
-        self.pop1[3].tau_m = 20.0
-        self.pop2[3,2].v_reset = -70.0
-        #self.assertEqual(HocToPy.get('%s.object(3).tau_m' % self.pop1.label, 'float'), 20.0)
-        self.assertEqual(getattr(h, self.pop1.label).object(3).tau_m, 20.0)
-        self.assertEqual(20.0, self.pop1[3].tau_m)
-        self.assertEqual(10.0, self.pop1[0].tau_m)
-        self.assertEqual(-70.0, self.pop2[3,2].v_reset)
-        self.assertEqual(-60.0, self.pop2[0,0].v_reset)
+        if self.pop1[3] in self.pop1.gidlist:
+            self.pop1[3].tau_m = 20.0
+            self.assertEqual(20.0, self.pop1[3].tau_m)
+        if self.pop1[0] in self.pop1.gidlist:
+            self.assertEqual(10.0, self.pop1[0].tau_m)
+        if self.pop2[3,2] in self.pop2.gidlist:
+            self.pop2[3,2].v_reset = -70.0
+            self.assertEqual(-70.0, self.pop2[3,2].v_reset)
+        if self.pop2[0,0] in self.pop2.gidlist:
+            self.assertEqual(-60.0, self.pop2[0,0].v_reset)
 
     def testGetCellClass(self):
         self.assertEqual(neuron.IF_curr_alpha, self.pop1[0].cellclass)

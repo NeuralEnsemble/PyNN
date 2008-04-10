@@ -1262,9 +1262,10 @@ class FromFileConnector(Connector):
     postsynaptic population.
     """
     
-    def __init__(self, filename):
+    def __init__(self, filename, distributed=False):
         Connector.__init__(self, 0., 0.)
         self.filename = filename
+        self.distributed = distributed
        
         
 class FixedNumberPostConnector(Connector):

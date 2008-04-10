@@ -397,6 +397,10 @@ def run(simtime):
         hoc_commands += ['tstop = 0',
                          'local_minimum_delay = pc.set_maxstep(10)',
                          'tmp = finitialize()',]
+        hoc_execute(hoc_commands,"--- run() ---")
+        if nhost > 1:
+            assert h.local_minimum_delay >= get_min_delay(),\
+                   "There are connections with delays (%g) shorter than the minimum delay (%g)" % (h.local_minimum_delay, get_min_delay())
     hoc_commands += ['tstop += %f' % simtime,
                      'tmp = pc.psolve(tstop)']
     hoc_execute(hoc_commands,"--- run() ---")
@@ -1036,7 +1040,7 @@ class Population(common.Population):
             #os.remove(tmpfile)
             return spikes
         else:
-            return numpy.array([[],[]]).transpose() # anyone know a better way to get an empty array with shape (0,2)?
+            return numpy.empty((0,2))
         
     def meanSpikeCount(self, gather=True):
         """
@@ -1444,6 +1448,7 @@ class Projection(common.Projection):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
+        # if we have STDP, need to update pre2wa and post2wa delays as well
         if isinstance(d, float) or isinstance(d, int):
             if d < get_min_delay():
                 raise Exception("Delays must be greater than or equal to the minimum delay, currently %g ms" % get_min_delay())
@@ -1468,7 +1473,8 @@ class Projection(common.Projection):
         Set delays to random values taken from rand_distr.
         """   
         # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
-        # Python  
+        # Python
+        # if we have STDP, need to update pre2wa and post2wa delays as well
         if isinstance(rand_distr.rng, NativeRNG):
             paramfmt = "%f,"*len(rand_distr.parameters); paramfmt = paramfmt.strip(',')
             distr_params = paramfmt % tuple(rand_distr.parameters)
@@ -1505,7 +1511,8 @@ class Projection(common.Projection):
         on the delay distance 'd' and an (optional) rng 'rng'. For example,
         the rule can be "rng*d + 0.5", with "a" extracted from the rng and
         d being the distance.
-        """  
+        """
+        # if we have STDP, need to update pre2wa and post2wa delays as well
         hoc_commands = []
         
         if rand_distr==None:
@@ -1571,6 +1578,13 @@ class Projection(common.Projection):
     def _setupSTDP(self, stdp_model, parameterDict):
         """Set-up STDP."""
         ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
+        if ddf > 0.5 and nhost > 1:
+            # depending on delays, can run into problems with the delay from the
+            # pre-synaptic neuron to the weight-adjuster mechanism being zero.
+            # The best (only?) solution would be to create connections on the
+            # node with the pre-synaptic neurons for ddf>0.5 and on the node
+            # with the post-synaptic neuron (as is done now) for ddf<0.5
+            raise Exception("STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
         # Define the objref to handle plasticity
         hoc_commands =  ['objref %s_wa[%d]'      %(self.hoc_label, len(self)),
                          'objref %s_pre2wa[%d]'  %(self.hoc_label, len(self)),
@@ -1582,21 +1596,29 @@ class Projection(common.Projection):
             # we reproduce the structure of STDP that can be found in layerConn.hoc
             hoc_commands += [
                 '%s_wa[%d] = new %s(0.5)' %(self.hoc_label, i, stdp_model),
-                '%s_pre2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' % (self.hoc_label, i, src, self.hoc_label, i),  
+                '%s_pre2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' % (self.hoc_label, i, src, self.hoc_label, i),
                 '%s_pre2wa[%d].threshold = %s.object(%d).threshold' %(self.hoc_label, i, self.hoc_label, i),
                 '%s_pre2wa[%d].delay = %s.object(%d).delay * %g' % (self.hoc_label, i, self.hoc_label, i, (1-ddf)),
                 '%s_pre2wa[%d].weight = 1' %(self.hoc_label, i),
-                '%s_post2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' %(self.hoc_label, i, tgt, self.hoc_label, i),
+                #'%s_post2wa[%d] = pc.gid_connect(%d, %s_wa[%d])' %(self.hoc_label, i, tgt, self.hoc_label, i),
+                # directly create NetCon as wa is on the same machine as the post-synaptic cell
+                '%s_post2wa[%d] = new NetCon(%s.object(%d).source, %s_wa[%d])' % (self.hoc_label, i, self.post.hoc_label, self.post.gidlist.index(tgt), self.hoc_label,i),
                 '%s_post2wa[%d].threshold = 1' %(self.hoc_label, i),
                 '%s_post2wa[%d].delay = %s.object(%d).delay * %g' % (self.hoc_label, i, self.hoc_label, i, ddf),
                 '%s_post2wa[%d].weight = -1' % (self.hoc_label, i),
-                'setpointer %s_wa[%d].wsyn, %s.object(%d).weight' %(self.hoc_label, i, self.hoc_label, i)]
-            # then update the parameters
-            for param, val in parameterDict.items():
-                hoc_commands += ['%s_wa[%d].%s = %f' % (self.hoc_label, i, param, val)]
-            
+                'setpointer %s_wa[%d].wsyn, %s.object(%d).weight' %(self.hoc_label, i, self.hoc_label, i)]   
+        # then update the parameters
+        for param, val in parameterDict.items():
+            hoc_commands += ['%s_wa[%d].%s = %f' % (self.hoc_label, i, param, val)]
         hoc_execute(hoc_commands, "--- Projection[%s].__setupSTDP__() ---" %self.label)  
-    
+        # debugging
+        #pre2wa_array = getattr(h, "%s_pre2wa" % self.hoc_label)
+        #for i in xrange(len(self)):
+        #    print pre2wa_array[i].delay,
+        #print
+        #post2wa_array = getattr(h, "%s_post2wa" % self.hoc_label)
+        #for i in xrange(len(self)):
+        #    print post2wa_array[i].delay,
     
     # --- Methods for writing/reading information to/from file. ----------------
     
@@ -1629,8 +1651,12 @@ class Projection(common.Projection):
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        hoc_comment("--- Projection[%s].__saveConnections__() ---" %self.label)  
-        f = open(filename,'w',10000)
+        if gather:
+            raise Exception("saveConnections() with gather=True not yet implemented")
+        hoc_comment("--- Projection[%s].__saveConnections__() ---" % self.label)
+        if not gather:
+            filename += '.%d' % myid
+        f = open(filename, 'w', 10000)
         for i in xrange(len(self)):
             src = self.connections[i][0]
             tgt = self.connections[i][1]

@@ -188,6 +188,9 @@ class FromListConnector(common.FromListConnector, HocConnector):
 class FromFileConnector(common.FromFileConnector, HocConnector):
     
     def connect(self, projection):
+        if self.distributed:
+            myid = int(h.pc.id())
+            self.filename += ".%d" % myid
         # open the file...
         f = open(self.filename, 'r', 10000)
         lines = f.readlines()
