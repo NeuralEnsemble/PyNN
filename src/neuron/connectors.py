@@ -39,7 +39,7 @@ class HocConnector(object):
     
     def getDelay(self, d):
         if d is not None:
-            delay = d
+            delay = max((d, get_min_delay()))
         else:
             delay = get_min_delay()
         return delay

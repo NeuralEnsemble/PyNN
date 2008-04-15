@@ -48,7 +48,7 @@ rate     = 100.  # (Hz) frequency of the random stimulation
 
 dt       = 0.1   # (ms) simulation timestep
 tstop    = 1000  # (ms) simulaton duration
-delay    = dt
+delay    = 0.2
 
 # Cell parameters
 area     = 20000. # (µm²)
@@ -102,11 +102,14 @@ elif benchmark == "CUBA":
 extra={}
 
 node_id = setup(timestep=dt, min_delay=dt, max_delay=dt, **extra)
+import socket
+host_name = socket.gethostname()
+print "Host #%d is on %s" % (node_id+1, host_name)
 
 if extra.has_key('threads'):
-    print "%d Initialising the simulator with %d threads..." %(node_id, extra['threads'])
+    print "%s Initialising the simulator with %d threads..." %(node_id, extra['threads'])
 else:
-    print "%d Initialising the simulator with single thread..." %(node_id)
+    print "%s Initialising the simulator with single thread..." %(node_id)
     
 # Small function to display information only on node 1
 def nprint(s):
@@ -124,7 +127,7 @@ if (benchmark == "COBA"):
     
 Timer.start()
 
-print "%d Creating cell populations..." % node_id
+print "%s Creating cell populations..." % node_id
 exc_cells = Population((n_exc,), celltype, cell_params, "Excitatory_Cells")
 inh_cells = Population((n_inh,), celltype, cell_params, "Inhibitory_Cells")
 if benchmark == "COBA":
@@ -134,13 +137,13 @@ if benchmark == "COBA":
 
 
 
-print "%d Initialising membrane potential to random values..." % node_id
+print "%s Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(rngseed+node_id)
 uniformDistr = RandomDistribution('uniform',[v_reset,v_thresh],rng)
 exc_cells.randomInit(uniformDistr)
 inh_cells.randomInit(uniformDistr)
 
-print "%d Connecting populations..." % node_id
+print "%s Connecting populations..." % node_id
 exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay)
 inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay)
 
@@ -158,7 +161,7 @@ if (benchmark == "COBA"):
 #    connections[prj].saveConnections('VAbenchmark_%s_%s_%s.conn' % (benchmark,prj,simulator))
 
 # === Setup recording ==========================================================
-print "%d Setting up recording..." % node_id
+print "%s Setting up recording..." % node_id
 exc_cells.record()
 inh_cells.record()
 vrecord_list = [exc_cells[0],exc_cells[1]]
@@ -207,4 +210,4 @@ nprint("Writing time           : %g s" %writeCPUTime)
 
 #if "neuron" in simulator: # send e-mail when simulation finished, since it takes ages.
 #    pyNN.utility.notify("Simulation of Vogels-Abbott %s benchmark with pyNN.%s finished." % (benchmark,simulator))
-#end()
+end()

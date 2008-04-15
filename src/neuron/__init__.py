@@ -308,9 +308,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     logging.info("Initialization of NEURON (use setup(.., debug=True) to see a full logfile)")
     
     # All the objects that will be used frequently in the hoc code are declared in the setup
+    
     if initialised:
         hoc_commands = ['dt = %f' % timestep,
-                        'min_delay = %f' % min_delay]    
+                        'min_delay = %g' % min_delay]
     else:
         hoc_commands = [
             'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','standardCells.hoc'),
@@ -318,7 +319,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
             'objref pc',
             'pc = new ParallelContext()',
             'dt = %f' % timestep,
-            'min_delay = %f' % min_delay,
+            'min_delay = %g' % min_delay,
             'create dummy_section',
             'access dummy_section',
             'objref netconlist, nil',
@@ -338,6 +339,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
                 'cvode.active(1)']   
         
     hoc_execute(hoc_commands,"--- setup() ---")
+    
     #nhost = HocToPy.get('pc.nhost()','int')
     nhost = int(h.pc.nhost())
     if nhost < 2:
@@ -384,7 +386,7 @@ def end(compatible_output=True):
     hoc_commands += ['tmp = pc.runworker()',
                      'tmp = pc.done()']
     hoc_execute(hoc_commands,"--- end() ---")
-    ##hoc.execute('tmp = quit()') # sometimes needed, sometimes not wanted. Maybe a 'quit_on_end' kwarg for setup?
+    hoc.execute('tmp = quit()') # sometimes needed, sometimes not wanted. Maybe a 'quit_on_end' kwarg for setup?
     #logging.info("Finishing up with NEURON.")
     #sys.exit(0)
 
@@ -398,6 +400,7 @@ def run(simtime):
                          'local_minimum_delay = pc.set_maxstep(10)',
                          'tmp = finitialize()',]
         hoc_execute(hoc_commands,"--- run() ---")
+        logging.debug("local_minimum_delay on host #%d = %g" % (myid, h.local_minimum_delay))
         if nhost > 1:
             assert h.local_minimum_delay >= get_min_delay(),\
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (h.local_minimum_delay, get_min_delay())
