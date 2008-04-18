@@ -850,8 +850,8 @@ class Population(object):
         columns (and the extension of that for 3-D).
         This allows easy plotting of a `raster' plot of spiketimes, with one
         line for each cell.
-        The timestep and number of data points per cell is written as a header,
-        indicated by a '#' at the beginning of the line.
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
@@ -881,8 +881,8 @@ class Population(object):
         If compatible_output is True, the format is "v cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
-        The timestep and number of data points per cell is written as a header,
-        indicated by a '#' at the beginning of the line.
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the

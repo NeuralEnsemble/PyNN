@@ -54,7 +54,7 @@ def write_compatible_output(sim_filename, user_filename, population, dt):
     if population is not None:
         result.write("# dimensions =" + "\t".join([str(d) for d in population.dim]) + "\n")
         result.write("# first_id = %d\n" % population.id_start)
-        result.write("# last_id = %d\n" % (population.id_start+len(population),))
+        result.write("# last_id = %d\n" % (population.id_start+len(population)-1,))
         padding = population.id_start
     else:
         padding = 0

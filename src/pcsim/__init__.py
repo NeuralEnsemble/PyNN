@@ -82,12 +82,12 @@ class NativeRNG(pyNN.random.NativeRNG):
         
 class SpikesMultiChannelRecorder(object):
     
-    def __init__(self, source, filename = None, source_indices = None, gather = False):        
+    def __init__(self, source, filename=None, source_indices=None, gather=False, parent=None):        
         self.filename = filename
         self.gather = gather
         self.recordings = []        
-        self.record(source, source_indices)        
-        
+        self.record(source, source_indices)
+        self.parent = parent
                 
     def record(self, sources, src_indices = None):
         """
@@ -140,6 +140,8 @@ class SpikesMultiChannelRecorder(object):
                 all_spikes += zip( [ i for k in xrange(len(spikes)) ], spikes)
         all_spikes = sorted(all_spikes, key=operator.itemgetter(1))
         f.write("# dt = %g\n" % pcsim_globals.dt)
+        if self.parent:
+            f.write("# first_id = %d\n# last_id = %d\n" % (self.parent.cell[0], self.parent.cell[-1]))
         for spike in all_spikes:
             f.write("%s\t%s\n" % spike )                
         f.close()        
@@ -429,6 +431,9 @@ common.get_time_step = get_time_step
 def get_min_delay():
     return pcsim_globals.minDelay
 common.get_min_delay = get_min_delay
+
+def num_processes():
+    return pcsim_globals.net.mpi_size()
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -827,7 +832,7 @@ class Population(common.Population):
         else:
             src_indices  = range(self.pcsim_population.size())
         sources = [ self.pcsim_population[i] for i in src_indices ]
-        self.spike_rec = SpikesMultiChannelRecorder(sources, None, src_indices)
+        self.spike_rec = SpikesMultiChannelRecorder(sources, None, src_indices, parent=self)
         
     def record_v(self, record_from=None, rng=None):
         """
@@ -859,8 +864,8 @@ class Population(common.Population):
         columns (and the extension of that for 3-D).
         This allows easy plotting of a `raster' plot of spiketimes, with one
         line for each cell.
-        The timestep and number of data points per cell is written as a header,
-        indicated by a '#' at the beginning of the line.
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
@@ -882,8 +887,8 @@ class Population(common.Population):
         If compatible_output is True, the format is "v cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
-        The timestep and number of data points per cell is written as a header,
-        indicated by a '#' at the beginning of the line.
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the

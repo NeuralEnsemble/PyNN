@@ -364,6 +364,7 @@ def end(compatible_output=True):
             #tstop = HocToPy.get('tstop','float')
             tstop = h.tstop
             header = "# dt = %g\\n# n = %d\\n" % (get_time_step(), int(tstop/get_time_step()))
+            header += "# first_id = %d\\n# last_id = %d\\n" % (cell_list[0], cell_list[-1])
             hoc_commands += ['tmp = fileobj.wopen("%s")' % filename,
                              'tmp = fileobj.printf("%s")' % header]
             for cell in cell_list:
@@ -374,6 +375,7 @@ def end(compatible_output=True):
         hoc_commands += ['objref fileobj',
                         'fileobj = new File()']
         header = "# dt = %g\\n"% get_time_step()
+        header += "# first_id = %d\\n #last_id = %d\\n" % (cell_list[0], cell_list[-1])
         while len(spikefilelist):
             filename, cell_list = spikefilelist.popitem()
             hoc_commands += ['tmp = fileobj.wopen("%s")' % filename,
@@ -976,8 +978,8 @@ class Population(common.Population):
         columns (and the extension of that for 3-D).
         This allows easy plotting of a `raster' plot of spiketimes, with one
         line for each cell.
-        The timestep and number of data points per cell is written as a header,
-        indicated by a '#' at the beginning of the line.
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
@@ -992,6 +994,7 @@ class Population(common.Population):
         header = "# %d" %self.dim[0]
         for dimension in list(self.dim)[1:]:
             header = "%s\t%d" %(header, dimension)
+        header += "\\n# first_id = %d\\n# last_id = %d\\n" % (self.fullgidlist[0], self.fullgidlist[-1])
         self.__print('spiketimes', filename,"%.2f", gather, header)
 
     def print_v(self, filename, gather=True, compatible_output=True):
@@ -1001,8 +1004,8 @@ class Population(common.Population):
         If compatible_output is True, the format is "v cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
-        The timestep and number of data points per cell is written as a header,
-        indicated by a '#' at the beginning of the line.
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
         
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
@@ -1019,6 +1022,7 @@ class Population(common.Population):
         header = "%s# %d" %(header, self.dim[0])
         for dimension in list(self.dim)[1:]:
                 header = "%s\t%d" %(header, dimension)
+        header += "\\n# first_id = %d\\n# last_id = %d\\n" % (self.fullgidlist[0], self.fullgidlist[-1])
         hoc_comment("--- Population[%s].__print_v()__ ---" %self.label)
         self.__print('vtrace', filename,"%.4g", gather, header)
 
