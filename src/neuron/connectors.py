@@ -110,9 +110,16 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
             #rarr = [HocToPy.get('rng.repick()','float') for j in xrange(projection.pre.size*projection.post.size)]
             rarr = [h.rng.repick() for j in xrange(projection.pre.size*projection.post.size)]
         else:
-            rarr = projection.rng.next(projection.pre.size*projection.post.size, 'uniform', (0,1))
+            # We use concatenate, rather than just creating
+            # n=projection.pre.size*projection.post.size random numbers,
+            # in case of uneven distribution of neurons between MPI nodes
+            rarr = numpy.concatenate([projection.rng.next(projection.post.size, 'uniform', (0,1)) \
+                                      for src in projection.pre.fullgidlist])
         hoc_commands = []
         j = 0
+        required_rarr_length = len(projection.pre.fullgidlist) * len(projection.post.gidlist)
+        assert len(rarr) >= required_rarr_length, \
+               "Random array is too short (%d elements, needs %d)" % (len(rarr), required_rarr_length)
         for src in projection.pre.fullgidlist:
             for tgt in projection.post.gidlist:
                 if self.allow_self_connections or projection.pre != projection.post or tgt != src:

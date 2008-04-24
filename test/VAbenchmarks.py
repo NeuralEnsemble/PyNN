@@ -21,15 +21,12 @@ import sys
 from copy import copy
 from math import *
 
-if hasattr(sys,"argv"):     # run using python
-    if len(sys.argv) < 3:
-        print "Usage: python VAbenchmarks.py <simulator> <benchmark>\n\n<simulator> is either neuron, nest1, nest2 or pcsim\n<benchmark> is either CUBA or COBA."
-        sys.exit(1)
-    simulator = sys.argv[-2]
-    benchmark = sys.argv[-1]
-else:
-    benchmark = "CUBA"
-    simulator = "oldneuron"    # run using nrngui -python
+if len(sys.argv) < 3:
+    print "Usage: python VAbenchmarks.py <simulator> <benchmark>\n\n<simulator> is either neuron, nest1, nest2 or pcsim\n<benchmark> is either CUBA or COBA."
+    sys.exit(1)
+simulator = sys.argv[-2]
+benchmark = sys.argv[-1]
+
 exec("from pyNN.%s import *" % simulator)
 
 from pyNN.random import NumpyRNG, RandomDistribution
@@ -112,7 +109,7 @@ if extra.has_key('threads'):
 else:
     print "%s Initialising the simulator with single thread..." % (node_id)
     
-# Small function to display information only on node 1
+# Small function to display information only on node 0
 def nprint(s):
     if (node_id == 0):
         print s
@@ -136,11 +133,9 @@ if benchmark == "COBA":
     rconn = 0.01
     ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
 
-
-
 print "%s Initialising membrane potential to random values..." % node_id
-rng = NumpyRNG(rngseed+node_id)
-uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng)
+rng = NumpyRNG(seed=rngseed, parallel_safe=True, rank=node_id, num_processes=np)
+uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
 exc_cells.randomInit(uniformDistr)
 inh_cells.randomInit(uniformDistr)
 
@@ -149,16 +144,15 @@ exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay)
 inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay)
 
 connections={}
-conn_rng = NumpyRNG(seed=764756387, parallel_safe=True, rank=node_id, num_processes=np)
-connections['e2e'] = Projection(exc_cells, exc_cells, exc_conn, target='excitatory', rng=conn_rng)
-connections['e2i'] = Projection(exc_cells, inh_cells, exc_conn, target='excitatory', rng=conn_rng)
-connections['i2e'] = Projection(inh_cells, exc_cells, inh_conn, target='inhibitory', rng=conn_rng)
-connections['i2i'] = Projection(inh_cells, inh_cells, inh_conn, target='inhibitory', rng=conn_rng)
+connections['e2e'] = Projection(exc_cells, exc_cells, exc_conn, target='excitatory', rng=rng)
+connections['e2i'] = Projection(exc_cells, inh_cells, exc_conn, target='excitatory', rng=rng)
+connections['i2e'] = Projection(inh_cells, exc_cells, inh_conn, target='inhibitory', rng=rng)
+connections['i2i'] = Projection(inh_cells, inh_cells, inh_conn, target='inhibitory', rng=rng)
 if (benchmark == "COBA"):
     connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, target='excitatory')
     connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
 
-np = num_processes()
+
 for prj in connections.keys():
     connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator, np))
 
@@ -211,6 +205,4 @@ nprint("Writing time           : %g s" % writeCPUTime)
 
 # === Finished with simulator ==================================================
 
-#if "neuron" in simulator: # send e-mail when simulation finished, since it takes ages.
-#    pyNN.utility.notify("Simulation of Vogels-Abbott %s benchmark with pyNN.%s finished." % (benchmark,simulator))
 end()

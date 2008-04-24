@@ -21,6 +21,7 @@ import types
 import sys
 import numpy
 import logging
+import platform
 Set = set
 
 gid           = 0
@@ -121,8 +122,15 @@ def list_standard_models():
 def load_mechanisms():
     global nrn_dll_loaded
     if not nrn_dll_loaded:
-        hoc.execute('nrn_load_dll("%s/hoc/i686/.libs/libnrnmech.so")' % pyNN_path[0])
-        nrn_dll_loaded = True
+        arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc']
+        # in case NEURON is assuming a different architecture to Python, we try multiple possibilities
+        for arch in arch_list:
+            path = os.path.join(pyNN_path[0], 'hoc', arch, '.libs', 'libnrnmech.so')
+            if os.path.exists(path):
+                h.nrn_load_dll(path)
+                nrn_dll_loaded = True
+                return
+        raise Exception("NEURON mechanisms not found.")
 
 # ==============================================================================
 #   Module-specific functions and classes (not part of the common API)
@@ -804,7 +812,7 @@ class Population(common.Population):
                 # what SpikeSourceArray expects. This is not very robust
                 # though - we might want to add things that do accept arrays.
                 val = list(val)
-            if cell in self.gidlist:
+            if cell in self.gidlist: # this is not necessary, surely?
                 setattr(cell, parametername, val)
 
     def rset(self, parametername, rand_distr):
@@ -829,9 +837,9 @@ class Population(common.Population):
             hoc_execute(hoc_commands, "--- Population[%s].__rset()__ ---" %self.label)   
         else:
             rarr = rand_distr.next(n=self.size)
-            rarr = rarr.reshape(self.dim)
             hoc_comment("--- Population[%s].__rset()__ --- " %self.label)
-            self.tset(parametername, rarr)
+            for cell,val in zip(self.gidlist, rarr):
+                setattr(cell, parametername, val)
 
     def _call(self, methodname, arguments):
         """

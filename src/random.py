@@ -73,7 +73,7 @@ class NumpyRNG(AbstractRNG):
     def next(self, n=1, distribution='uniform', parameters=[]):
         """Return n random numbers from the distribution.
         
-        If n is 1, return a float, if n > 1, return a numpy array,
+        If n >= 0, return a numpy array,
         if n < 0, raise an Exception."""      
         if n == 0:
             rarr = numpy.random.rand(0) # We return an empty array
@@ -85,8 +85,6 @@ class NumpyRNG(AbstractRNG):
                 # (assuming round-robin distribution of cells between processors)
                 n = n/self.num_processes + 1 
             rarr = getattr(self.rng, distribution)(size=n, *parameters)
-        #elif n == 1:
-        #    rarr = getattr(self.rng, distribution)(size=1, *parameters)[0]
         else:
             raise ValueError, "The sample number must be positive"
         if self.parallel_safe and self.num_processes > 1:

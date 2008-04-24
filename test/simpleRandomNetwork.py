@@ -30,7 +30,7 @@ output_population = Population(20, IF_curr_alpha, cell_params, "output")
 spikeGenerator = StGen()
 spike_times = list(spikeGenerator.poisson_generator(100.0/1000.0,tstop)) # rate in spikes/ms
 
-input_population  = Population(1, SpikeSourceArray, {'spike_times': spike_times }, "input")
+input_population  = Population(3, SpikeSourceArray, {'spike_times': spike_times }, "input")
 
 connector = FixedProbabilityConnector(0.5, weights=1.0)
 rng = NumpyRNG(seed=764756387, parallel_safe=True, rank=myid, num_processes=num_processes())
