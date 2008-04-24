@@ -188,13 +188,13 @@ class FixedNumberPreConnector(common.FixedNumberPreConnector):
                 projection._target_ports += range(total_targets-N, total_targets)
         return len(projection._sources)
 
-def _n_connections(population):
+def _n_connections(population, synapse_type):
     """
     Get a list of the total number of connections made by each neuron in a
     population.
     """
     n = numpy.zeros((len(population),),'int')
-    conn_dict_list = nest.GetConnections([id for id in population], projection._plasticity_model)
+    conn_dict_list = nest.GetConnections([id for id in population], synapse_type)
     for i, conn_dict in enumerate(conn_dict_list):
         assert isinstance(conn_dict, dict)
         n[i] = len(conn_dict['targets'])
@@ -203,12 +203,12 @@ def _n_connections(population):
 class FixedNumberPostConnector(common.FixedNumberPostConnector):
     
     def connect(self, projection):
-        presynaptic_neurons  = projection.pre.cell.flatten()
+        presynaptic_neurons = projection.pre.cell.flatten()
         if projection.rng:
             rng = projection.rng
         else:
             rng = numpy.random
-        start_ports = _n_connections(projection.pre)
+        start_ports = _n_connections(projection.pre, projection._plasticity_model)
         for post in projection.post.cell.flat:
             if hasattr(self, 'rand_distr'):
                 n = self.rand_distr.next()
@@ -216,8 +216,8 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
                 n = self.n
             source_list = rng.permutation(presynaptic_neurons)[0:n]
             # if self connections are not allowed, check whether pre and post are the same
-            if not self.allow_self_connections and pre in source_list:
-                source_list.remove(pre)
+            if not self.allow_self_connections and post in source_list:
+                source_list.remove(post)
 
             N = len(source_list)
             weights = self.getWeights(N)
@@ -227,7 +227,7 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
             nest.ConvergentConnectWD(source_list.tolist(), [post],
                                      weights, delays)
 
-        end_ports = _n_connections(projection.pre)
+        end_ports = _n_connections(projection.pre, projection._plasticity_model)
         for pre, start_port, end_port in zip(presynaptic_neurons, start_ports, end_ports):
             projection._target_ports += range(start_port, end_port)
             projection._sources += [pre]*(end_port-start_port)
