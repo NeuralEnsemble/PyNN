@@ -161,6 +161,10 @@ def get_current_time():
 def num_processes():
     return 1
 
+def rank():
+    """Return the MPI rank."""
+    return 0
+
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================

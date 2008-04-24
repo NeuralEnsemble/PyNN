@@ -407,6 +407,10 @@ common.get_min_delay = get_min_delay
 def num_processes():
     return pcsim_globals.net.mpi_size()
 
+def rank():
+    """Return the MPI rank."""
+    return pcsim_globals.net.mpi_rank()
+
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================

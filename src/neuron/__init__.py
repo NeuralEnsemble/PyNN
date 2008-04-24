@@ -434,7 +434,7 @@ common.get_min_delay = get_min_delay
 def num_processes():
     return int(h.pc.nhost())
 
-def get_rank():
+def rank():
     """Return the MPI rank."""
     myid = int(h.pc.id())
     return myid

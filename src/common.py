@@ -625,6 +625,13 @@ def get_time_step():
 def get_min_delay():
     pass
 
+def num_processes():
+    pass
+
+def rank():
+    """Return the MPI rank."""
+    pass
+
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================

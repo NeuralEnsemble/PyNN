@@ -288,6 +288,10 @@ def get_max_delay():
 def num_processes():
     return nest.GetStatus([0])[0]['num_processes']
 
+def rank():
+    """Return the MPI rank."""
+    return nest.Rank()
+
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
