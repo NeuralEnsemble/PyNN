@@ -208,19 +208,18 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     # set resolution
     nest.SetStatus([0], {'resolution': timestep})
     
-    if extra_params.has_key('threads'):
-        if extra_params.has_key('kernelseeds'):
-            print 'params has kernelseeds ', extra_params['kernelseeds']
-            kernelseeds = extra_params['kernelseeds']
-        else:
-            # default kernelseeds, for each thread one, to ensure same for each sim we get the rng with seed 42
-            rng = NumpyRNG(42)
-            num_processes = nest.GetStatus([0])[0]['num_processes']
-            kernelseeds = (rng.rng.uniform(size=extra_params['threads']*num_processes)*100).astype('int').tolist()
-            print 'params has no kernelseeds, we use ', kernelseeds
-
-        nest.SetStatus([0],[{'local_num_threads' : extra_params['threads'],
-                             'rng_seeds'         : kernelseeds}])
+    # set kernel RNG seeds
+    num_threads = extra_params.get('threads') or 1
+    if 'rng_seeds' in extra_params:
+        rng_seeds = extra_params['rng_seeds']
+    else:
+        rng = NumpyRNG(42)
+        rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100).astype('int').tolist()
+    logging.debug("rng_seeds = %s" % rng_seeds)
+    
+    nest.SetStatus([0],[{'local_num_threads': num_threads,
+                         'rng_seeds'        : rng_seeds}])
+        
     # Set min_delay and max_delay for all synapse models
     for synapse_model in NEST_SYNAPSE_TYPES:
         # this is done in two steps, because otherwise NEST sometimes complains
@@ -285,10 +284,6 @@ common.get_min_delay = get_min_delay
 
 def get_max_delay():
     return nest.GetSynapseDefaults('static_synapse')['max_delay']
-
-def setRNGseeds(seedList):
-    """Globally set rng seeds."""
-    nest.SetStatus([0], {'rng_seeds': seedList})
 
 def num_processes():
     return nest.GetStatus([0])[0]['num_processes']

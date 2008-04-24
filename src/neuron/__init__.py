@@ -419,10 +419,6 @@ def run(simtime):
     hoc_execute(hoc_commands,"--- run() ---")
     return get_current_time()
 
-def setRNGseeds(seedList):
-    """Globally set rng seeds."""
-    pass # not applicable to NEURON?
-
 def get_current_time():
     """Return the current time in the simulation."""
     return h.t

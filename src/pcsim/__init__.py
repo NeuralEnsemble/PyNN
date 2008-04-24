@@ -392,34 +392,6 @@ def run(simtime):
     global pcsim_globals
     pcsim_globals.net.advance(int(simtime / pcsim_globals.dt ))
 
-def setRNGseeds(seedList):
-    """Globally set rng seeds."""
-    """ For pcsim this function should receive a list of two seed values, 
-        one seed is used for construction of the network, and one for noise 
-        generation during simulation. 
-        Using same values of the construction seed ensures producing 
-        the same network structure and simobjects parameters. 
-        Using the same values of the simulation rng seed ensures producing 
-        identical simulation results, provided that the network is the same and
-        it is simulated on the same number of nodes """
-    """ ISSUE: There is an issue here for PCSIM:
-               the seedList should be provided before construction of the network object
-               since the seeds are used in the construction for initialization.
-               However the network is actually constructed in the setup method.
-               So for this method to work, a constraint should be imposed 
-               that this method always gets called before setup. 
-               Even better solution is to put seedList as an optional argument
-               in setup() instead of separate method"""               
-    global pcsim_globals
-            
-    if len(seedList) != 2:
-        raise Exception("ERROR: setRNGseeds: the seedList should be of length 2")
-    if not pcsim_globals.net is None:
-        raise Exception("ERROR: setRNGseeds should be called before setup() : This is a PCSIM constraint to PyNN")
-    pcsim_globals.constructionRNGSeed = seedList[0]
-    pcsim_globals.simulationRNGSeed = seedList[1]    
-    pass
-
 def get_current_time():
     """Return the current time in the simulation."""
     raise NotImplementedError()

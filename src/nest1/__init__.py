@@ -92,22 +92,24 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     
     pynest.destroy()
     pynest.setDict([0],{'resolution': timestep, 'min_delay' : min_delay, 'max_delay' : max_delay})
-    if extra_params.has_key('threads'):
-        if extra_params.has_key('kernelseeds'):
-            print 'params has kernelseeds ', extra_params['kernelseeds']
-            kernelseeds = extra_params['kernelseeds']
-        else:
-            rng = NumpyRNG(42)
-            kernelseeds = (rng.rng.uniform(size=extra_params['threads'])*100).astype('int').tolist()
-            print 'params has no kernelseeds, we use ', kernelseeds
-        update_modes = {'fixed':1, 'serial':3, 'dynamic':0}
-        # number of nodes to give to each thread at a time
-        # some small fraction of your total nodes to be simulated
-        batchsize   = 10
-        pynest.setDict([0],{'threads'     : extra_params['threads'],
-                            'update_mode' : update_modes['fixed'],
-                            'rng_seeds'   : kernelseeds[0:extra_params['threads']],
-                            'buffsize'    : batchsize})
+    
+    # set kernel RNG seeds
+    num_threads = extra_params.get('threads') or 1
+    if 'rng_seeds' in extra_params:
+        rng_seeds = extra_params['rng_seeds']
+    else:
+        rng = NumpyRNG(42)
+        rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100).astype('int').tolist()
+    logging.debug("rng_seeds = %s" % rng_seeds)
+    
+    update_modes = {'fixed':1, 'serial':3, 'dynamic':0}
+    # number of nodes to give to each thread at a time
+    # some small fraction of your total nodes to be simulated
+    batchsize = 10
+    pynest.setDict([0],{'threads'     : num_threads,
+                        'update_mode' : update_modes['fixed'],
+                        'rng_seeds'   : rng_seeds[0:num_threads],
+                        'buffsize'    : batchsize})
     
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
@@ -144,10 +146,6 @@ def end(compatible_output=True):
 def run(simtime):
     """Run the simulation for simtime ms."""
     pynest.simulate(simtime)
-
-def setRNGseeds(seedList):
-    """Globally set rng seeds."""
-    pynest.setDict([0],{'rng_seeds': seedList})
 
 def get_min_delay():
     return pynest.getLimits()['min_delay']
