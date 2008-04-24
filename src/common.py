@@ -5,7 +5,6 @@ The simulator-specific classes should inherit from these and have the same
 arguments.
 $Id$
 """
-__version__ = "$Revision$"
 
 import types, time, copy, sys
 import numpy
