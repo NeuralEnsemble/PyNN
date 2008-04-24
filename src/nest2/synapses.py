@@ -103,7 +103,7 @@ class SpikePairRule(common.SpikePairRule):
     
     translations = common.build_translations(
         ('tau_plus',  'tau_plus'),
-        ('tau_minus', 'Tau_minus'), # defined in post-synaptic neuron??!! help!
+        ('tau_minus', 'tau_minus'), # defined in post-synaptic neuron
     )
     possible_models = set(['stdp_synapse',]) #'stdp_synapse_hom'
     

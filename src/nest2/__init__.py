@@ -963,8 +963,14 @@ class Projection(common.Projection):
             # NEST does not support w_min != 0
             self._stdp_parameters.pop("w_min_always_zero_in_NEST")
             # Tau_minus is a parameter of the post-synaptic cell, not of the connection
-            tau_minus = self._stdp_parameters.pop("Tau_minus")
-            nest.SetStatus(self.post.cell_local, [{'Tau_minus': tau_minus}])
+            tau_minus = self._stdp_parameters.pop("tau_minus")
+            # The following is a temporary workaround until the NEST guys stop renaming parameters!
+            if 'tau_minus' in nest.GetStatus([self.post.cell_local[0]])[0]:
+                nest.SetStatus(self.post.cell_local, [{'tau_minus': tau_minus}])
+            elif 'Tau_minus' in nest.GetStatus([self.post.cell_local[0]])[0]:
+                nest.SetStatus(self.post.cell_local, [{'Tau_minus': tau_minus}])
+            else:
+                raise Exception("Postsynaptic cell model does not support STDP.")
 
             synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
             synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
