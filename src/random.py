@@ -55,13 +55,16 @@ class AbstractRNG:
 class NumpyRNG(AbstractRNG):
     """Wrapper for the numpy.random.RandomState class (Mersenne Twister PRNG)."""
     
-    def __init__(self, seed=None):
+    def __init__(self, seed=None, rank=0, num_processes=1, parallel_safe=False):
         AbstractRNG.__init__(self, seed)
         self.rng = numpy.random.RandomState()
         if self.seed:
             self.rng.seed(self.seed)
         else:
             self.rng.seed()
+        self.rank = rank # MPI rank
+        self.num_processes = num_processes # total number of MPI processes
+        self.parallel_safe = parallel_safe
             
     def __getattr__(self, name):
         """This is to give NumpyRNG the same methods as numpy.random.RandomState."""
@@ -71,16 +74,25 @@ class NumpyRNG(AbstractRNG):
         """Return n random numbers from the distribution.
         
         If n is 1, return a float, if n > 1, return a numpy array,
-        if n < 0, raise an Exception."""
+        if n < 0, raise an Exception."""      
         if n == 0:
-            return numpy.random.rand(0) # We return an empty array
-        if n > 0:
-            return getattr(self.rng, distribution)(size=n, *parameters)
+            rarr = numpy.random.rand(0) # We return an empty array
+        elif n > 0:
+            if self.num_processes > 1 and not self.parallel_safe:
+                # n is the number for the whole model, so if we do not care about
+                # having exactly the same random numbers independent of the
+                # number of processors (m), we only need generate n/m+1 per node
+                # (assuming round-robin distribution of cells between processors)
+                n = n/self.num_processes + 1 
+            rarr = getattr(self.rng, distribution)(size=n, *parameters)
         #elif n == 1:
-        #    return getattr(self.rng, distribution)(size=1, *parameters)[0]
+        #    rarr = getattr(self.rng, distribution)(size=1, *parameters)[0]
         else:
             raise ValueError, "The sample number must be positive"
-
+        if self.parallel_safe and self.num_processes > 1:
+            # strip out the random numbers that should be used on other processors
+            rarr = rarr[numpy.arange(self.rank, len(rarr), self.num_processes)]
+        return rarr
 
 class GSLRNG(AbstractRNG):
     """Wrapper for the GSL random number generators."""

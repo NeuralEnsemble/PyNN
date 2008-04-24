@@ -5,7 +5,7 @@
 
 from pyNN import common
 from pyNN.random import RandomDistribution, NativeRNG
-from pyNN.neuron.__init__ import hoc_execute, h, get_min_delay
+from pyNN.neuron.__init__ import hoc_execute, h, get_min_delay, num_processes, get_rank
 import numpy
 from math import *
 
@@ -110,18 +110,18 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
             #rarr = [HocToPy.get('rng.repick()','float') for j in xrange(projection.pre.size*projection.post.size)]
             rarr = [h.rng.repick() for j in xrange(projection.pre.size*projection.post.size)]
         else:
-            rarr = projection.rng.uniform(0,1, projection.pre.size*projection.post.size)
+            rarr = projection.rng.next(projection.pre.size*projection.post.size, 'uniform', (0,1))
         hoc_commands = []
-        j = 0        
-        for tgt in projection.post.gidlist:
-            for src in projection.pre.fullgidlist:
+        j = 0
+        for src in projection.pre.fullgidlist:
+            for tgt in projection.post.gidlist:
                 if self.allow_self_connections or projection.pre != projection.post or tgt != src:
                     if rarr[j] < self.p_connect:  
                         if isinstance(weight, RandomDistribution): w = weight.next()
                         else: w = weight
                         if isinstance(delay, RandomDistribution): d = delay.next()
                         else: d = delay
-                        hoc_commands += self.singleConnect(projection, src, tgt, w, d)
+                        hoc_commands += self.singleConnect(projection, src, tgt, w, d) 
                 j += 1
         return hoc_commands
 

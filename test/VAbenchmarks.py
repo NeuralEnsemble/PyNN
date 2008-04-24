@@ -102,14 +102,15 @@ elif benchmark == "CUBA":
 extra={}
 
 node_id = setup(timestep=dt, min_delay=dt, max_delay=dt, **extra)
+np = num_processes()
 import socket
 host_name = socket.gethostname()
 print "Host #%d is on %s" % (node_id+1, host_name)
 
 if extra.has_key('threads'):
-    print "%s Initialising the simulator with %d threads..." %(node_id, extra['threads'])
+    print "%s Initialising the simulator with %d threads..." % (node_id, extra['threads'])
 else:
-    print "%s Initialising the simulator with single thread..." %(node_id)
+    print "%s Initialising the simulator with single thread..." % (node_id)
     
 # Small function to display information only on node 1
 def nprint(s):
@@ -139,7 +140,7 @@ if benchmark == "COBA":
 
 print "%s Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(rngseed+node_id)
-uniformDistr = RandomDistribution('uniform',[v_reset,v_thresh],rng)
+uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng)
 exc_cells.randomInit(uniformDistr)
 inh_cells.randomInit(uniformDistr)
 
@@ -148,17 +149,18 @@ exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay)
 inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay)
 
 connections={}
-
-connections['e2e']=Projection(exc_cells, exc_cells, exc_conn, target='excitatory',rng=rng)
-connections['e2i']=Projection(exc_cells, inh_cells, exc_conn, target='excitatory',rng=rng)
-connections['i2e']=Projection(inh_cells, exc_cells, inh_conn, target='inhibitory',rng=rng)
-connections['i2i']=Projection(inh_cells, inh_cells, inh_conn, target='inhibitory',rng=rng)
+conn_rng = NumpyRNG(seed=764756387, parallel_safe=True, rank=node_id, num_processes=np)
+connections['e2e'] = Projection(exc_cells, exc_cells, exc_conn, target='excitatory', rng=conn_rng)
+connections['e2i'] = Projection(exc_cells, inh_cells, exc_conn, target='excitatory', rng=conn_rng)
+connections['i2e'] = Projection(inh_cells, exc_cells, inh_conn, target='inhibitory', rng=conn_rng)
+connections['i2i'] = Projection(inh_cells, inh_cells, inh_conn, target='inhibitory', rng=conn_rng)
 if (benchmark == "COBA"):
-    connections['ext2e']=Projection(ext_stim, exc_cells, ext_conn, target='excitatory')
-    connections['ext2i']=Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
+    connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, target='excitatory')
+    connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
 
-#for prj in connections.keys():
-#    connections[prj].saveConnections('VAbenchmark_%s_%s_%s.conn' % (benchmark,prj,simulator))
+np = num_processes()
+for prj in connections.keys():
+    connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator, np))
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id
@@ -185,7 +187,7 @@ I_rate = inh_cells.meanSpikeCount()*1000./tstop
 
 print "%d Writing data to file..." % node_id
 Timer.reset()
-np = num_processes()
+
 exc_cells.printSpikes("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator, np))
 inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator, np))
 exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, np), compatible_output=True)
@@ -194,16 +196,17 @@ writeCPUTime = Timer.elapsedTime()
 tmp_string = "%d e→e  %d e→i  %d i→e  %d i→i" % (len(connections['e2e']), len(connections['e2i']), len(connections['i2e']), len(connections['i2i']))
 
 nprint("\n--- Vogels-Abbott Network Simulation ---")
-nprint("Simulation type        : %s" %benchmark)
-nprint("Number of Neurons      : %d" %n)
-nprint("Number of Synapses     : %s" %tmp_string)
-nprint("Excitatory conductance : %g nS" %Gexc)
-nprint("Inhibitory conductance : %g nS" %Ginh)
-nprint("Excitatory rate        : %g Hz (may be wrong for MPI/threads mode)" %E_rate)
-nprint("Inhibitory rate        : %g Hz (may be wrong for MPI/threads mode)" %I_rate)
-nprint("Build time             : %g s" %buildCPUTime) 
-nprint("Simulation time        : %g s" %simCPUTime)
-nprint("Writing time           : %g s" %writeCPUTime)
+nprint("Nodes                  : %d" % np)
+nprint("Simulation type        : %s" % benchmark)
+nprint("Number of Neurons      : %d" % n)
+nprint("Number of Synapses     : %s" % tmp_string)
+nprint("Excitatory conductance : %g nS" % Gexc)
+nprint("Inhibitory conductance : %g nS" % Ginh)
+nprint("Excitatory rate        : %g Hz (may be wrong for MPI/threads mode)" % E_rate)
+nprint("Inhibitory rate        : %g Hz (may be wrong for MPI/threads mode)" % I_rate)
+nprint("Build time             : %g s" % buildCPUTime) 
+nprint("Simulation time        : %g s" % simCPUTime)
+nprint("Writing time           : %g s" % writeCPUTime)
 
 
 # === Finished with simulator ==================================================

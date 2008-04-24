@@ -430,6 +430,11 @@ common.get_min_delay = get_min_delay
 def num_processes():
     return int(h.pc.nhost())
 
+def get_rank():
+    """Return the MPI rank."""
+    myid = int(h.pc.id())
+    return myid
+
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
