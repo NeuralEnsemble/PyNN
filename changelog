@@ -1,8 +1,23 @@
 ===========
-Release 0.4
+Release 0.4 (r307)
 ===========
 
 
+* The `NumpyRNG` class now has some extra options for running parallel simulations. If `parallel_safe` is `True`
+ (and if the MPI rank and number of processes are correctly supplied), then the sequence of random numbers see
+n by the simulation script should be independent of the number of MPI processes (although not yet the number of threads).
+
+* Added `num_processes()` and `rank()` functions to provide a uniform access.
+to MPI information.
+
+* The headers of output files now contain the first and last ids in the Population (not fully implemented yet 
+for recording with the low-level API)
+
+* Global variables such as the time step and minimum delay have been replaced
+with functions `get_time_step()`, `get_min_delay()` and `get_current_time()`. This
+ensures that values are always up-to-date.
+
+* Removed `cellclass` arg from `set()` function. All cells should now know their own cellclass.
 
 * Added `get()` method to `Population` class.
 

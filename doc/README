@@ -10,10 +10,10 @@ API documentation is generated using the ``wikidoc.py`` script, which can produc
 
 Many of the files contain examples of interactive python sessions. The validity of this code can be tested by running::
 
-    $ python testdocs.py nest1
-    $ python testdocs.py nest2
-    $ python testdocs.py pcsim
-    $ nrnpython testdocs.py neuron
+    $ python testdocs.py -s nest1 FILE.txt
+    $ python testdocs.py -s nest2 FILE.txt
+    $ python testdocs.py -s pcsim FILE.txt
+    $ python testdocs.py -s neuron FILE.txt
     
 Error messages due to differences in neuron id numbers between simulators can be ignored.
 

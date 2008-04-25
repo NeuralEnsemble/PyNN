@@ -19,23 +19,48 @@ Compile Interviews and NEURON according to the instructions given at `<http://ww
 Make sure that you add the Interviews and NEURON bin directories to your path. Test that the Python support has been enabled by running::
 
     $ nrniv -python
-    NEURON -- Release 5.9.9 (1529) 2006-09-11
-    by John W. Moore, Michael Hines, and Ted Carnevale
-    Duke and Yale University -- Copyright 1984-2006
+    NEURON -- Release 6.1.2 (1927) 2007-12-30
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2007
+    See http://www.neuron.yale.edu/credits.html
 
     >>> import hoc
     >>> import nrn   
+
+Now you can compile and install NEURON as a Python package::
+
+    $ cd src/nrnpython
+    # python setup.py install
+
+Note that the latter step requires running as root and will install to your global python ``site-packages`` directory.
+If you would prefer to install it locally, replace the last step with::
+
+    $ python setup.py install --prefix=~
+
+which will install into ``~/lib/python2.5/site-packages/`` (or the equivalent for other Python versions; for more fine-grained control over where the package is installed, see the `distutils`_ documentation), then add this directory to your ``PYTHONPATH``::
+
+    $ export PYTHONPATH=$PYTHONPATH:~/lib/python2.5/site-packages
+
+Now test everything worked::
+
+    $ python
+    >>> import neuron
+    NEURON -- Release 6.1.1 (1894) 2007-11-24
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2007
+    See http://www.neuron.yale.edu/credits.html
+
+    >>> 
+
 
 Installing NEST and PyNEST
 ==========================
 
 NEST can be downloaded from `<http://www.nest-initiative.org/?page=Software&subpage=Download>`_.
-Installation instructions are available from `<http://www.nest-initiative.uni-freiburg.de/helpdesk/synod2/doc/install.html>`_.
+Installation instructions are available in the file INSTALL, which you can find in the source package.
 
-Download PyNEST from `<http://www.nest-initiative.org/index.php/Image:Pynest1.tgz>`_, change to the directory to which you downloaded it, then::
+Checkout PyNEST from the following Subversion repository (contact the NEST developers for access)::
 
-    $ tar xzf Pynest1.tgz
-    $ cd pynest1
+    $ svn co svn+ssh://facets@www.nest-initiative.uni-freiburg.de/facets/trunk pynest
+    $ cd pynest
     
 Set the ``SLIHOME`` environment variable to your NEST source installation and ``SLIBUILD`` to your NEST build directory, e.g. (for bash)::
 
@@ -80,11 +105,11 @@ Installing PyNN
 
 The easiest way to get PyNN is to download the latest source distribution from the `PyNN download page`_, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.3.0.tar.gz
-    $ cd PyNN-0.3.0
+    $ tar xzf PyNN-0.4.0.tar.gz
+    $ cd PyNN-0.4.0
     $ python setup.py install
     
-This will install it to your python ``site-packages`` directory, and may require root privileges. If you wish to install it elsewhere use the ``--prefix`` option, and set the ``PYTHONPATH`` environment variable accordingly (see above).
+This will install it to your python ``site-packages`` directory, and may require root privileges. If you wish to install it elsewhere use the ``--prefix`` or ``--home`` option, and set the ``PYTHONPATH`` environment variable accordingly (see above).
 
 Test it using something like the following::
 
@@ -94,42 +119,23 @@ Test it using something like the following::
     
 (This assumes you have PyNEST installed).
 
-If you wish to use NEURON, there is are some additional steps.
-
-1. Copy the ``hoc`` directory of the source distribution to the pyNN installation directory, e.g.::
-
-    $ cp hoc /usr/lib/python/site-packages/pyNN
-
-2. Move to this directory, and compile the mod files::
-
-    $ cd /usr/lib/python/site-packages/pyNN/hoc
-    $ nrnivmodl
-    $ alias nrnpython='/usr/lib/python/site-packages/pyNN/hoc/i686/special -python'
-    
-Again, you are likely to need root privileges.
-
-You should now be able to run PyNN with NEURON as the simulator::
-
-    $ nrnpython
+With NEURON as the simulator, PyNN-specific membrane mechanisms are loaded on `setup()`::
+   
+    >>> from pyNN.neuron import *
     NEURON -- Release 5.9.9 (1529) 2006-09-11
     by John W. Moore, Michael Hines, and Ted Carnevale
     Duke and Yale University -- Copyright 1984-2006
 
-    loading membrane mechanisms from /usr/lib/python/site-packages/pyNN/hoc/i686/.libs/libnrnmech.so
+	>>> setup()
+	loading membrane mechanisms from /usr/lib/python/site-packages/pyNN/hoc/i686/.libs/libnrnmech.so
     Additional mechanisms from files
      alphaisyn.mod alphasyn.mod expisyn.mod refrac.mod reset.mod stdwa_softlimits.mod
      stdwa_songabbott.mod stdwa_symm.mod vecstim.mod
-    >>> from pyNN.neuron import *
-    
-If your model relies on other NMODL mechanisms, copy the mod files from pyNN/hoc to the directory in which they are contained, run ``nrnivmodl`` again, and modify the ``nrnpython`` alias accordingly.
 
-
-Running PyNN on a parallel machine
-==================================
-
-[to write - mention both threads and MPI]
+If your model relies on other NMODL mechanisms, call the `load_mechanisms()` function with the path to the directory containing the ``.mod`` files.
 
 .. _PyNN: http://neuralensemble.kip.uni-heidelberg.de/trac/PyNN
 .. _numpy: http://numpy.scipy.org/
 .. _PCSIM: http://sourceforge.net/projects/pcsim/
 .. _`PyNN download page`: https://neuralensemble.kip.uni-heidelberg.de/trac/PyNN/wiki/Download
+.. _`distutils`: http://docs.python.org/inst/inst.html

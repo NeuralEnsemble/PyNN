@@ -6,15 +6,22 @@ PyNN (pronounced 'pine' ) is a Python package for simulator-independent specific
 
 In other words, you can write the code for a model once, using the PyNN API, and then run it without modification on any simulator that PyNN supports (currently NEURON_, NEST_ and PCSIM_). 
 
-The API has two parts, a low-level, procedural API, similar to that in PyNEST (functions ``create()``, ``connect()``, ``set()``, ``record()``, ``record_v()``), and a [wiki:HighLevelAPI high-level, object-oriented API] (classes ``Population`` and ``Projection``, which have methods like ``set()``, ``record()``, ``setWeights()``, etc.). 
+The API has two parts, a low-level, procedural API (functions ``create()``, ``connect()``, ``set()``, ``record()``, ``record_v()``), and a [wiki:HighLevelAPI high-level, object-oriented API] (classes ``Population`` and ``Projection``, which have methods like ``set()``, ``record()``, ``setWeights()``, etc.). 
 
 The low-level API is good for small networks, and perhaps gives more flexibility. The high-level API is good for hiding the details and the book-keeping.
 
-The other thing that is required to write a model once and run it on multiple simulators is standard cell models. PyNN translates standard cell-model names and parameter names into simulator-specific names, e.g. standard model ``IF_curr_alpha`` is ``iaf_neuron`` in NEST and ``StandardIF`` in NEURON, while ``SpikeSourcePoisson`` is a ``poisson_generator`` in NEST and a ``NetStim`` in NEURON. Only a few cell models have been implemented so far.
+The other thing that is required to write a model once and run it on multiple simulators is standard cell and synapse models. PyNN translates standard cell-model names and parameter names into simulator-specific names, e.g. standard model ``IF_curr_alpha`` is ``iaf_neuron`` in NEST and ``StandardIF`` in NEURON, while ``SpikeSourcePoisson`` is a ``poisson_generator`` in NEST and a ``NetStim`` in NEURON.
 
-Please note that PyNN is currently very experimental. The code is released under the CeCILL_ licence.
- 
+PyNN is a work in progress, but is already being used for several large-scale simulation projects. The [wiki:Download current stable release] of the API is 0.4, but we recommend using the latest version from the `Subversion repository`_ since new features are continually being added. The code is released under the CeCILL_ licence.
+
+If you find a bug in PyNN, or wish to request a new feature, please go the `PyNN website`_, click on "New Ticket", and fill in the form.
+
+If you have questions or comments about PyNN, please post a message in the "pynn-users" or "pynn-developers" forums in the `NeuralEnsemble Google group`_.
+
 .. _CeCILL: http://www.cecill.info/
 .. _NEURON: http://www.neuron.yale.edu/neuron/
 .. _NEST:   http://www.nest-initiative.org/?page=Software
 .. _PCSIM:  http://sourceforge.net/projects/pcsim/
+.. _`Subversion repository`: https://neuralensemble.org/svn/PyNN/trunk
+.. _`PyNN website`: https://neuralensemble.org/PyNN/
+.. _`NeuralEnsemble Google group`: http://groups.google.com/group/neuralensemble
