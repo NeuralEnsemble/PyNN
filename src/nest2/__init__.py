@@ -37,7 +37,7 @@ class ID(int, common.IDMixin):
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
     """
-    
+
     def __init__(self, n):
         int.__init__(n)
         common.IDMixin.__init__(self)
@@ -207,7 +207,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     nest.SetStatus([0], {'device_prefix':tempdir,})
     # set resolution
     nest.SetStatus([0], {'resolution': timestep})
-    
+
     # set kernel RNG seeds
     num_threads = extra_params.get('threads') or 1
     if 'rng_seeds' in extra_params:
@@ -216,10 +216,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
         rng = NumpyRNG(42)
         rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100).astype('int').tolist()
     logging.debug("rng_seeds = %s" % rng_seeds)
-    
+
     nest.SetStatus([0],[{'local_num_threads': num_threads,
                          'rng_seeds'        : rng_seeds}])
-        
+
     # Set min_delay and max_delay for all synapse models
     for synapse_model in NEST_SYNAPSE_TYPES:
         # this is done in two steps, because otherwise NEST sometimes complains
@@ -399,8 +399,8 @@ def _record(variable, source, filename):
 
     recording_device = nest.Create(device_name)
     nest.SetStatus(recording_device,
-                   {"to_file" : True, "withgid" : True, "withtime" : True,
-                    "interval": nest.GetStatus([0], "resolution")[0]})
+                   {"to_file" : True, "withgid" : True, "withtime" : True})
+                    #,"interval": nest.GetStatus([0],"resolution")[0]})
     print "Trying to record %s from cell %s using %s %s (filename=%s)" % (variable, source, device_name,
                                                                           recording_device, filename)
 
@@ -714,8 +714,8 @@ class Population(common.Population):
         if self.recorders[variable] is None:
             self.recorders[variable] = nest.Create(device_name)
             nest.SetStatus(self.recorders[variable],
-                           {"to_file" : True, "withgid" : True, "withtime" : True,
-                            "interval": nest.GetStatus([0], "resolution")[0]})
+                           {"to_file" : True, "withgid" : True, "withtime" : True})#,
+#                            "interval": nest.GetStatus([0], "resolution")[0]})
 
         # create list of neurons
         fixed_list = False
@@ -782,7 +782,7 @@ class Population(common.Population):
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
         Write spike times to file.
-        
+
         If compatible_output is True, the format is "spiketime cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
@@ -790,11 +790,11 @@ class Population(common.Population):
         line for each cell.
         The timestep, first id, last id, and number of data points per cell are
         written in a header, indicated by a '#' at the beginning of the line.
-        
+
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
         spike files.
-        
+
         For parallel simulators, if gather is True, all data will be gathered
         to the master node and a single output file created there. Otherwise, a
         file will be written on each node, containing only the cells simulated
@@ -833,17 +833,17 @@ class Population(common.Population):
     def print_v(self, filename, gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
-        
+
         If compatible_output is True, the format is "v cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
         The timestep, first id, last id, and number of data points per cell are
         written in a header, indicated by a '#' at the beginning of the line.
-        
+
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
-        
+
         For parallel simulators, if gather is True, all data will be gathered
         to the master node and a single output file created there. Otherwise, a
         file will be written on each node, containing only the cells simulated
@@ -867,7 +867,7 @@ class Population(common.Population):
         """
         _print(filename, gather=gather, compatible_output=compatible_output,
                population=self, variable="conductance")
-               
+
     def describe(self):
         """
         Return a human readable description of the population"
@@ -876,7 +876,7 @@ class Population(common.Population):
         print "Population called %s is made of %d cells [%d being local]" %(self.label, len(self.cell), len(self.cell_local))
         print "-> Cells are aranged on a %dD grid of size %s" %(len(self.dim), self.dim)
         print "-> Celltype is %s" %self.celltype
-        print "-> Cell Parameters used for cell[0] (during initialization and now) are: " 
+        print "-> Cell Parameters used for cell[0] (during initialization and now) are: "
         for key, value in self.cellparams.items():
           print "\t|", key, "\t: ", "init->", value, "\t now->", nest.GetStatus([self.cell[0]])[0][key]
         print "--- End of Population description ----"
@@ -904,28 +904,28 @@ class Projection(common.Projection):
                  target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
-        
+
         source - string specifying which attribute of the presynaptic cell
                  signals action potentials
-                 
+
         target - string specifying which synapse on the postsynaptic cell to
                  connect to
-                 
+
         If source and/or target are not given, default values are used.
-        
+
         method - string indicating which algorithm to use in determining
                  connections.
         Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
         'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
         'fromFile', 'fromList'.
-        
+
         method_parameters - dict containing parameters needed by the connection
         method, although we should allow this to be a number or string if there
         is only one parameter.
-        
+
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
-        
+
         rng - since most of the connection methods need uniform random numbers,
         it is probably more convenient to specify a RNG object here rather
         than within method_parameters, particularly since some methods also use
@@ -940,7 +940,7 @@ class Projection(common.Projection):
         self._sources = []     # holds gids
         self.synapse_type = target
         self._method = method
-        
+
         if synapse_dynamics and synapse_dynamics.fast and synapse_dynamics.slow:
                 raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
         self._plasticity_model = self.short_term_plasticity_mechanism or \
@@ -956,7 +956,7 @@ class Projection(common.Projection):
             synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
             synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
             synapse_defaults.update(self._short_term_plasticity_parameters)
-            nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)    
+            nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)
 
         if hasattr(self, '_stdp_parameters') and self._stdp_parameters:
             # NEST does not support w_min != 0
@@ -1188,8 +1188,8 @@ class Projection(common.Projection):
         Set parameters of the synapse dynamics linked with the projection
         """
         self._set_connection_values(param, value)
-    
-    
+
+
     def randomizeSynapseDynamics(self, param, rand_distr):
         """
         Set parameters of the synapse dynamics to values taken from rand_distr
@@ -1318,7 +1318,7 @@ class Projection(common.Projection):
         idx = numpy.where(numpy.array(dict['targets']) == self._targets[0])[0]
         for key, value in dict.items():
           print "\t| ", key, ": ", value[idx]
-        
+
         print "---- End of Projection description -----"
 
 # ==============================================================================
