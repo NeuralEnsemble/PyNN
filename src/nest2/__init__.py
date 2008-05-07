@@ -398,9 +398,18 @@ def _record(variable, source, filename):
     device_name = recording_device_names[variable]
 
     recording_device = nest.Create(device_name)
-    nest.SetStatus(recording_device,
-                   {"to_file" : True, "withgid" : True, "withtime" : True})
-                    #,"interval": nest.GetStatus([0],"resolution")[0]})
+    
+    ss_dict = {"to_file" : True, "withgid" : True, "withtime" : True}
+    
+    # check for older nest2 with need for interval
+    if "interval" in nest.GetStatus(recording_device)[0]:
+        print "PyNN Warning: nest2 recording_device.interval detected."
+        print "Please upgrade to a more recent version of nest 2"
+        print "Transition code only temporarily supported."
+        ss_dict['interval'] = nest.GetStatus([0],"resolution")[0]
+        
+    nest.SetStatus(recording_device,ss_dict)
+
     print "Trying to record %s from cell %s using %s %s (filename=%s)" % (variable, source, device_name,
                                                                           recording_device, filename)
 
@@ -713,9 +722,17 @@ class Population(common.Population):
         device_name = recording_device_names[variable]
         if self.recorders[variable] is None:
             self.recorders[variable] = nest.Create(device_name)
-            nest.SetStatus(self.recorders[variable],
-                           {"to_file" : True, "withgid" : True, "withtime" : True})#,
-#                            "interval": nest.GetStatus([0], "resolution")[0]})
+
+            ss_dict = {"to_file" : True, "withgid" : True, "withtime" : True}
+    
+            # check for older nest2 with need for interval
+            if "interval" in nest.GetStatus(self.recorders[variable])[0]:
+                print "PyNN Warning: nest2 recording_device.interval detected."
+                print "Please upgrade to a more recent version of nest 2"
+                print "Transition code only temporarily supported."
+                ss_dict['interval'] = nest.GetStatus([0],"resolution")[0]
+
+            nest.SetStatus(self.recorders[variable],ss_dict)
 
         # create list of neurons
         fixed_list = False
