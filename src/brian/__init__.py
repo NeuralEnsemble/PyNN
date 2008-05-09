@@ -17,6 +17,7 @@ from pyNN.brian.synapses import *
 
 net      = None
 simclock = None
+DEFAULT_BUFFER_SIZE = 10000
 
 # ==============================================================================
 #   Utility classes and functions
@@ -50,7 +51,7 @@ def list_standard_models():
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1*brian.ms, min_delay=0.1*brian.ms, max_delay=10.0*brian.ms, debug=False, **extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -73,6 +74,9 @@ def setup(timestep=0.1*brian.ms, min_delay=0.1*brian.ms, max_delay=10.0*brian.ms
                     filemode='w')
 
     logging.info("Initialization of Brian")
+    timestep  = 0.001*timestep
+    min_delay = 0.001*min_delay
+    max_delay = 0.001*max_delay
     net      = brian.Network()
     simclock = brian.Clock(dt=timestep)
     return 0
@@ -83,7 +87,8 @@ def end(compatible_output=True):
 def run(simtime):
     """Run the simulation for simtime ms."""
     global net
-    net.run(simtime)
+    # The run() command of brian accept second
+    net.run(0.001*simtime)
 
 def setRNGseeds(seedList):
     """Globally set rng seeds."""
@@ -220,11 +225,16 @@ class Population(common.Population):
         
         if isinstance(cellclass, type):
             self.celltype = cellclass(cellparams)
-            v_thresh   = self.celltype.parameters['v_thresh']
-            v_reset    = self.celltype.parameters['v_reset']
-            tau_refrac = self.celltype.parameters['tau_refrac']
-            self.cell = brian.NeuronGroup(self.size,model=cellclass.eqs,threshold=v_thresh,reset=v_reset, refractory=tau_refrac, clock=simclock)
             self.cellparams = self.celltype.parameters
+            if isinstance(self.celltype,SpikeSourcePoisson):
+                rate       = self.cellparams['rate']
+                self.cell  = brian.PoissonGroup(self.size, rates = rate, clock=simclock)
+            else:
+                v_thresh   = self.cellparams['v_thresh']
+                v_reset    = self.cellparams['v_reset']
+                tau_refrac = self.cellparams['tau_refrac']
+                self.cell = brian.NeuronGroup(self.size,model=cellclass.eqs,threshold=v_thresh,reset=v_reset, refractory=tau_refrac, clock=simclock)
+
         elif isinstance(cellclass, str):
             self.cell = brian.NeuronGroup(self.size,model=cellclass.eqs,threshold=v_thresh,reset=v_reset, clock=simclock)
             self.cellparams = self.celltype.parameters
@@ -234,7 +244,6 @@ class Population(common.Population):
             for key, value in self.cellparams.items():
                 if not key in unchangeable_params:
                     setattr(self.cell,key,value)
-                    
         self.cell_id = numpy.arange(len(self.cell))
         self.cell_id = numpy.reshape(self.cell_id, self.dim)
         self.spike_recorder = None
@@ -409,7 +418,15 @@ class Population(common.Population):
         of the cells to record._printSpikes(tmpfile, filename, compatible_output=True)
         """
         global net
-        self.spike_recorder = brian.SpikeMonitor(self.cell,True)
+        if record_from:
+            if isinstance(record_from,list):
+                N = len(record_from)
+            if isinstance(record_from,int):
+                N = record_from
+            print "Warning: Brian can record only the %d first cells of the population" %N
+            self.spike_recorder = brian.SpikeMonitor(self.cell[0:N],True)
+        else:
+            self.spike_recorder = brian.SpikeMonitor(self.cell,True)
         net.add(self.spike_recorder)
 
     def record_v(self, record_from=None, rng=None):
@@ -420,11 +437,17 @@ class Population(common.Population):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        
-        #global net
-        #self.vm_recorder = brian.StateMonitor(self.cell,'v',record=True)
-        #net.add(self.vm_recorder)
-        pass
+        global net
+        if record_from:
+            if isinstance(record_from,list):
+                N = len(record_from)
+            if isinstance(record_from,int):
+                N = record_from
+            print "Warning: Brian can record only the %d first cells of the population" %N
+            self.vm_recorder = brian.StateMonitor(self.cell[0:N],'v',record=True)
+        else:
+            self.vm_recorder = brian.StateMonitor(self.cell,'v',record=True)
+        net.add(self.vm_recorder)
     
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
@@ -447,10 +470,13 @@ class Population(common.Population):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
+        dt = get_time_step()*1000
         if self.spike_recorder:
-            f = open(filename,"w")
+            f = open(filename,"w", DEFAULT_BUFFER_SIZE)
+            f.write("# dimensions =" + "\t".join([str(d) for d in self.dim]) + "\n")
+            f.write("# dt = %g\n" % dt)
             for item in self.spike_recorder.spikes:
-                f.write("%d\t%g\n" %(item[0],item[1]*1000.))
+                f.write("%g\t%d\n" %(1000*item[1], item[0]))
             f.close()
     
     def getSpikes(self,  gather=True):
@@ -496,7 +522,18 @@ class Population(common.Population):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-
+        dt = get_time_step()*1000
+        if self.vm_recorder:
+            f = open(filename,"w", DEFAULT_BUFFER_SIZE)
+            N = len(self.vm_recorder[0])
+            f.write("# dimensions =" + "\t".join([str(d) for d in self.dim]) + "\n")
+            f.write("# dt = %g\n" % dt)
+            f.write("# n = %d\n" % N)
+            cells = self.vm_recorder.get_record_indices()
+            for cell in cells:
+                for idx in xrange(N):
+                    f.write("%g\t%g\n" %(self.vm_recorder[cell][idx]*1000.,cell))
+            f.close()
         pass
      
     def describe(self):
@@ -660,13 +697,13 @@ class Projection(common.Projection):
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-        pass
+        raise Exception("With Brian, weights should be specified in the connector object and can not be changed afterwards !")
     
     def randomizeWeights(self, rand_distr):
         """
         Set weights to random values taken from rand_distr.
         """
-        pass
+        raise Exception("With Brian, weights should be specified in the connector object and can not be changed afterwards !")
     
     def setDelays(self, d):
         """
@@ -674,13 +711,13 @@ class Projection(common.Projection):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        pass
+        raise Exception("With Brian, delays should be specified in the connector object and can not be changed afterwards !")
     
     def randomizeDelays(self, rand_distr):
         """
         Set delays to random values taken from rand_distr.
         """
-        raise Exception("Brian does not support non homogeneous delays!")
+        raise Exception("Method not available ! Brian does not support non homogeneous delays!")
     
     def setThreshold(self, threshold):
         """

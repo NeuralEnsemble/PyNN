@@ -37,15 +37,15 @@ Timer = Timer()
 
 rngseed  = 98765
 
-n        = 5000  # number of cells
+n        = 4000  # number of cells
 r_ei     = 4.0   # number of excitatory cells:number of inhibitory cells
 pconn    = 0.02  # connection probability
 stim_dur = 50.   # (ms) duration of random stimulation
 rate     = 100.  # (Hz) frequency of the random stimulation
 
 dt       = 0.1   # (ms) simulation timestep
-tstop    = 1000  # (ms) simulaton duration
-delay    = 0.2
+tstop    = 500  # (ms) simulaton duration
+delay    = 0.1
 
 # Cell parameters
 area     = 20000. # (µm²)
@@ -91,6 +91,10 @@ elif benchmark == "CUBA":
     celltype = IF_curr_exp
     w_exc = 1e-3*Gexc*(Erev_exc - v_mean) # (nA) weight of excitatory synapses
     w_inh = 1e-3*Ginh*(Erev_inh - v_mean) # (nA)
+    if simulator == "brian":
+        w_exc = w_exc*0.1
+        w_inh = w_inh*0.1
+    print w_exc, w_inh
     assert w_exc > 0; assert w_inh < 0
 
 # === Build the network ========================================================
@@ -98,7 +102,7 @@ elif benchmark == "CUBA":
 #extra = {'threads' : 2}
 extra={}
 
-node_id = setup(timestep=dt, min_delay=dt, max_delay=dt, **extra)
+node_id = setup(timestep=dt, min_delay=delay, max_delay=delay, **extra)
 np = num_processes()
 import socket
 host_name = socket.gethostname()
@@ -136,6 +140,8 @@ if benchmark == "COBA":
 print "%s Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(seed=rngseed, parallel_safe=True, rank=node_id, num_processes=np)
 uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
+if simulator == "brian":
+    uniformDistr = RandomDistribution('uniform', [v_reset*0.001,v_thresh*0.001], rng=rng)
 exc_cells.randomInit(uniformDistr)
 inh_cells.randomInit(uniformDistr)
 
@@ -153,8 +159,8 @@ if (benchmark == "COBA"):
     connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
 
 
-for prj in connections.keys():
-    connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator, np))
+#for prj in connections.keys():
+    #connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator, np))
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id

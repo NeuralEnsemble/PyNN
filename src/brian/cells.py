@@ -12,7 +12,30 @@ import brian
 class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
-    pass
+    translations = common.build_translations(
+        ('v_rest',     'v_rest', 0.001),
+        ('v_reset',    'v_reset', 0.001),
+        ('cm',         'cm'), # C is in pF, cm in nF
+        ('tau_m',      'tau_m', 0.001),
+        ('tau_refrac', 'tau_refrac', "max(get_time_step(), tau_refrac)", "tau_refrac"),
+        ('tau_syn_E',  'tau_syn_E', 0.001),
+        ('tau_syn_I',  'tau_syn_I', 0.001),
+        ('v_thresh',   'v_thresh', 0.001),
+        ('i_offset',   'i_offset'), # I0 is in pA, i_offset in nA
+        ('v_init',     'v', 0.001),
+    )
+    eqs= brian.Equations('''
+        dv/dt  = (ge + gi-(v-v_rest))/tau_m : volt
+        dge/dt = (y-ge)/tau_syn_E           : volt 
+        dy/dt = -y/tau_syn_E                : volt
+        dgi/dt = (y-gi)/tau_syn_I           : volt 
+        dy/dt = -y/tau_syn_I                : volt
+        tau_syn_E : second
+        tau_syn_I : second
+        tau_m     : second
+        v_rest    : volt
+        '''
+        )
 
 
 class IF_curr_exp(common.IF_curr_exp):
@@ -25,7 +48,7 @@ class IF_curr_exp(common.IF_curr_exp):
         ('v_reset',    'v_reset', 0.001),
         ('cm',         'cm'), # C is in pF, cm in nF
         ('tau_m',      'tau_m', 0.001),
-        ('tau_refrac', 'tau_refrac',  "max(get_time_step(), tau_refrac)", "tau_refrac"),
+        ('tau_refrac', 'tau_refrac',  "max(get_time_step(), tau_refrac)*0.001", "tau_refrac"),
         ('tau_syn_E',  'tau_syn_E', 0.001),
         ('tau_syn_I',  'tau_syn_I', 0.001),
         ('v_thresh',   'v_thresh', 0.001),
@@ -66,7 +89,11 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
 
 class SpikeSourcePoisson(common.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
-    pass
+    translations = common.build_translations(
+        ('rate',     'rate'),
+        ('start',    'start'),
+        ('duration', 'duration'),
+    )
     
 class SpikeSourceArray(common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""

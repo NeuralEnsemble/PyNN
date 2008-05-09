@@ -14,9 +14,9 @@ class AllToAllConnector(common.AllToAllConnector):
     
     def connect(self, projection):
         if projection.synapse_type == "excitatory":
-            projection._connections = brian.Connection(projection.pre.cell, projection.post.cell,'ge', delay=self.delays)
+            projection._connections = brian.Connection(projection.pre.cell, projection.post.cell,'ge', delay=self.delays*0.001)
         else:
-            projection._connections = brian.Connection(projection.pre.cell, projection.post.cell,'gi', delay=self.delays)
+            projection._connections = brian.Connection(projection.pre.cell, projection.post.cell,'gi', delay=self.delays*0.001)
         projection._connections.connect_full(projection.pre.cell,projection.post.cell, weight=self.weights)
         return projection._connections.W.getnnz()
 
@@ -29,9 +29,9 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
     def connect(self, projection):
         if projection.synapse_type == "excitatory":
-            projection._connections = brian.Connection(projection.pre.cell,projection.post.cell,'ge', delay=self.delays)
+            projection._connections = brian.Connection(projection.pre.cell,projection.post.cell,'ge', delay=self.delays*0.001)
         else:
-            projection._connections = brian.Connection(projection.pre.cell,projection.post.cell,'gi', delay=self.delays)
+            projection._connections = brian.Connection(projection.pre.cell,projection.post.cell,'gi', delay=self.delays*0.001)
         projection._connections.connect_random(projection.pre.cell,projection.post.cell, self.p_connect, weight=self.weights)
         return projection._connections.W.getnnz()
     
