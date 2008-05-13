@@ -837,7 +837,7 @@ class Population(common.Population):
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        n_spikes = nest.GetStatus(self.recorders['spikes'], "events")[0]
+        n_spikes = nest.GetStatus(self.recorders['spikes'], "n_events")[0]
         return float(n_spikes)/self.n_rec
 
     def randomInit(self, rand_distr):
