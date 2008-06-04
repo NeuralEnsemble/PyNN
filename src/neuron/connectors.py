@@ -31,15 +31,21 @@ class HocConnector(object):
         return cmdlist
     
     def getWeight(self, w):
-        if w is not None: 
-            weight = w
+        if w is not None:
+            if hasattr(w, '__len__'): # d is an array
+                weight = w.__iter__()
+            else:
+                weight = w
         else: 
             weight = 1.
         return weight
     
     def getDelay(self, d):
         if d is not None:
-            delay = max((d, get_min_delay()))
+            if hasattr(d, '__len__'): # d is an array
+                delay = d.__iter__()
+            else:
+                delay = max((d, get_min_delay()))
         else:
             delay = get_min_delay()
         return delay
@@ -64,11 +70,11 @@ class AllToAllConnector(common.AllToAllConnector, HocConnector):
         for tgt in projection.post.gidlist:
             for src in projection.pre.fullgidlist:
                 if self.allow_self_connections or projection.pre != projection.post or tgt != src:
-                    if isinstance(weight, RandomDistribution):
+                    if hasattr(weight, 'next'):
                         w = weight.next()
                     else:
                         w = weight
-                    if isinstance(delay, RandomDistribution):
+                    if hasattr(delay, 'next'):
                         d = delay.next()
                     else:
                         d = delay
@@ -86,10 +92,14 @@ class OneToOneConnector(common.OneToOneConnector, HocConnector):
             hoc_commands = []
             for tgt in projection.post.gidlist:
                 src = tgt - projection.post.gid_start + projection.pre.gid_start
-                if isinstance(weight, RandomDistribution): w = weight.next()
-                else: w = weight
-                if isinstance(delay, RandomDistribution): d = delay.next()
-                else: d = delay
+                if hasattr(weight, 'next'):
+                    w = weight.next()
+                else:
+                    w = weight
+                if hasattr(delay, 'next'):
+                    d = delay.next()
+                else:
+                    d = delay
                 hoc_commands += self.singleConnect(projection, src, tgt, w, d)
         else:
             raise Exception("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
@@ -124,10 +134,14 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
             for tgt in projection.post.gidlist:
                 if self.allow_self_connections or projection.pre != projection.post or tgt != src:
                     if rarr[j] < self.p_connect:  
-                        if isinstance(weight, RandomDistribution): w = weight.next()
-                        else: w = weight
-                        if isinstance(delay, RandomDistribution): d = delay.next()
-                        else: d = delay
+                        if hasattr(weight, 'next'):
+                            w = weight.next()
+                        else:
+                            w = weight
+                        if hasattr(delay, 'next'):
+                            d = delay.next()
+                        else:
+                            d = delay
                         hoc_commands += self.singleConnect(projection, src, tgt, w, d) 
                 j += 1
         return hoc_commands
@@ -164,10 +178,14 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                     d = distances[idx_pre][0]
                     p = eval(self.d_expression)
                     if p >= 1 or (0 < p < 1 and rarr[j] < p):
-                        if isinstance(weight, RandomDistribution): w = weight.next()
-                        else: w = weight
-                        if isinstance(delay, RandomDistribution): d = delay.next()
-                        else: d = delay
+                        if hasattr(weight, 'next'):
+                            w = weight.next()
+                        else:
+                            w = weight
+                        if hasattr(delay, 'next'):
+                            d = delay.next()
+                        else:
+                            d = delay
                         hoc_commands += self.singleConnect(projection, src, tgt, w, d)
                 j += 1
                 idx_pre += 1
