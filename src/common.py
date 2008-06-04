@@ -1222,7 +1222,9 @@ class Connector(object):
         self.w_index = 0 # should probably use a generator
         self.d_index = 0 # rather than storing these values
         self.weights = weights
-        self.delays = delays or get_min_delay()
+        self.delays = delays
+        if delays is None:
+            self.delays = get_min_delay()
     
     def connect(self, projection):
         """Connect all neurons in ``projection``"""
@@ -1335,7 +1337,7 @@ class FixedNumberPreConnector(Connector):
         elif isinstance(n, random.RandomDistribution):
             self.rand_distr = n
             # weak check that the random distribution is ok
-            assert numpy.all(numpy.array(n.next(100)) > 0), "the random distribution produces negative numbers"
+            assert numpy.all(numpy.array(n.next(100)) >= 0), "the random distribution produces negative numbers"
         else:
             raise Exception("n must be an integer or a RandomDistribution object")
 

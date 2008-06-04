@@ -1675,9 +1675,9 @@ class Projection(common.Projection):
         'fromFile' method."""
         if gather:
             raise Exception("saveConnections() with gather=True not yet implemented")
+        elif num_processes() > 1:
+            filename += '.%d' % rank()
         hoc_comment("--- Projection[%s].__saveConnections__() ---" % self.label)
-        if not gather:
-            filename += '.%d' % myid
         f = open(filename, 'w', 10000)
         for i in xrange(len(self)):
             src = self.connections[i][0]

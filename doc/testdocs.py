@@ -29,7 +29,7 @@ class MyOutputChecker(doctest.OutputChecker):
                 return True
             else:
                 try:
-                    int(want) and int(got)
+                    int(want) and int(got) # where the output is an id
                     return True
                 except ValueError:
                     return doctest.OutputChecker.check_output(self, want, got, optionflags)
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     
     # Run test
     exec("from pyNN.%s import *" % options.simulator)
-    setup(max_delay=1.0,debug=True)
+    setup(max_delay=10.0,debug=True)
     mytestfile(docfile, globs=globals(), optionflags=optionflags, strict=options.strict)
 
     sys.exit(0)

@@ -639,7 +639,7 @@ class Population(common.Population):
         """Return the nth cell in the population (Indexing starts at 0)."""
         if hasattr(n, '__len__'):
             n = numpy.array(n)
-        return self.cell[n]
+        return self.cell.flatten()[n]
 
     def get(self, parameter_name, as_array=False):
         """
@@ -843,7 +843,7 @@ class Population(common.Population):
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        n_spikes = nest.GetStatus(self.recorders['spikes'], "n_events")[0]
+        n_spikes = nest.GetStatus(self.recorders['spikes'], "events")[0]
         return float(n_spikes)/self.n_rec
 
     def randomInit(self, rand_distr):
@@ -1276,7 +1276,7 @@ class Projection(common.Projection):
         'fromFile' method."""
         if gather == True:
             raise Exception("saveConnections(gather=True) not yet supported")
-        else:
+        elif num_processes() > 1:
             filename += '.%d' % rank()
         f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
         weights = []; delays = []
