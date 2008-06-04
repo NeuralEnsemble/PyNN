@@ -4,6 +4,7 @@
 import sys
 import pyNN.common
 import types, string, re, logging
+import math
 
 #-- Set up logging -------------------------------------------------------------
 logging.basicConfig(level=logging.DEBUG,
@@ -26,7 +27,7 @@ logging.getLogger('').addHandler(console)
 exclude = set(['__module__','__doc__','__builtins__','__file__','__class__',
                '__delattr__', '__dict__', '__getattribute__', '__hash__',
                '__new__','__reduce__','__reduce_ex__','__repr__','__setattr__',
-               '__str__','__weakref__',] + dir(int)
+               '__str__','__weakref__',] + dir(int) + dir(math)
              )
 #               'time','types','copy',]
 exclude.remove('__init__')

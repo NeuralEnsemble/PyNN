@@ -34,7 +34,7 @@ class MyOutputChecker(doctest.OutputChecker):
                 except ValueError:
                     return doctest.OutputChecker.check_output(self, want, got, optionflags)
 
-def mytestfile(filename,globs,optionflags,strict=False):
+def mytestfile(filename, globs, optionflags, strict=False):
     parser = doctest.DocTestParser()
     if globs is None:
         globs = {}
@@ -57,7 +57,8 @@ if __name__ == "__main__":
     parser = OptionParser(usage="usage: %prog [options] FILE")
     parser.add_option("-s", "--simulator", dest="simulator",
                       type="choice", choices=('nest1','nest2', 'neuron','oldneuron','pcsim'),
-                      help="run doctests with SIMULATOR", metavar="SIMULATOR")
+                      help="run doctests with SIMULATOR", metavar="SIMULATOR",
+                      default='nest2')
     parser.add_option("--strict", action="store_true", dest="strict", default=False,
                   help="Use the original doctest output checker, not the more lax local version.")
 

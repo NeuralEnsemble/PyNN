@@ -126,8 +126,8 @@ With NEURON as the simulator, PyNN-specific membrane mechanisms are loaded on `s
     by John W. Moore, Michael Hines, and Ted Carnevale
     Duke and Yale University -- Copyright 1984-2006
 
-	>>> setup()
-	loading membrane mechanisms from /usr/lib/python/site-packages/pyNN/hoc/i686/.libs/libnrnmech.so
+    >>> setup()
+    loading membrane mechanisms from /usr/lib/python/site-packages/pyNN/hoc/i686/.libs/libnrnmech.so
     Additional mechanisms from files
      alphaisyn.mod alphasyn.mod expisyn.mod refrac.mod reset.mod stdwa_softlimits.mod
      stdwa_songabbott.mod stdwa_symm.mod vecstim.mod
