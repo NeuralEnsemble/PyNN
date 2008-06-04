@@ -67,8 +67,8 @@ class AllToAllConnector(common.AllToAllConnector, HocConnector):
         weight = self.getWeight(self.weights)
         delay = self.getDelay(self.delays)
         hoc_commands = []
-        for tgt in projection.post.gidlist:
-            for src in projection.pre.fullgidlist:
+        for src in projection.pre.fullgidlist:
+            for tgt in projection.post.gidlist:    
                 if self.allow_self_connections or projection.pre != projection.post or tgt != src:
                     if hasattr(weight, 'next'):
                         w = weight.next()

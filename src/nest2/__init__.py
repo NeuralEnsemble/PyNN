@@ -122,7 +122,6 @@ def _discrepancy_due_to_rounding(parameters, output_values):
 
 def _set_connection(source_id, target_id, synapse_type, **parameters):
     """target_id is a port."""
-    print "_set_connection(%s, ...)" % source_id
     nest.SetConnection([source_id], synapse_type, target_id, parameters)
     # check, since NEST ignores connection errors, rather than raising an Exception
     input_values = [v for v in parameters.values()]
@@ -1200,7 +1199,7 @@ class Projection(common.Projection):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        self._set_connection_values('delay', d)
+        self._set_connection_values('delay', d, optimized=True)
 
     def randomizeDelays(self, rand_distr):
         """

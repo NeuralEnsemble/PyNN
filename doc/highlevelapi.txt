@@ -423,52 +423,55 @@ After creating the ``Projection``, to set the weights of all synaptic connection
     
 [Note: synaptic weights in PyNN are in nA for current-based synapses and µS for conductance-based synapses)].
 
-#To set different weights to different values, use ``setWeights()`` with a list or 1D numpy array argument, where the length of the list/array is equal to the number of synapses, e.g.::
-#
-#    >>> weight_list = 0.1*numpy.ones(len(prj2_1))
-#    >>> weight_list[0:5] = 0.2
-#    >>> prj2_1.setWeights(weight_list)
-#    
-#To set weights to random values, use the ``randomizeWeights()`` method::
-#
-#    >>> weight_distr = RandomDistribution(distribution='gamma',parameters=[1,0.1])
-#    >>> prj1_1.randomizeWeights(weight_distr)
-#    
-#Setting delays works similarly::
-#
-#    >>> prj1_1.setDelays(0.6)
-#    >>> delay_list = 0.3*numpy.ones(len(prj2_1))
-#    >>> delay_list[0:5] = 0.4
-#    >>> prj2_1.setDelays(delay_list)
-#    >>> delay_distr = RandomDistribution(distribution='gamma',parameters=[2,0.2])
-#    >>> prj1_1.randomizeDelays(delay_distr)
-#
-#
-#Accessing weights and delays
-#============================
-#
-#To get the weights of all connections in the ``Projection``, use the ``getWeights()`` method.
-#Two formats are available. ``'list'`` returns a list of length equal to the number of connections
-#in the projection, ``'array'`` returns a 2D weight array (with zero or None for non-existent
-#connections)::
-#
-#    >>> prj2_1e.getWeights(format='list')
-#    fsgs
-#    >>> prj2_1e.getWeights(format='array')
-#    fdsg
-#
-#``getDelays()`` is analogous. ``printWeights()`` writes the weights to a file.
-#
-#The ``weightHistogram()`` method returns a histogram of the synaptic weights, with bins
-#determined by the ``min``, ``max`` and ``nbins`` arguments passed to the method.
-#
-#Synaptic plasticity
-#===================
-#
-#So far we have discussed only the case whether the synaptic weight is fixed.
-#Dynamic synapses (short-term and long-term plasticity) are discussed in the next chapter.
-#
-#Examples
-#========
-#
-#There are several examples of networks built with the high-level API in the ``test`` directory of the source distribution.
+To set different weights to different values, use ``setWeights()`` with a list or 1D numpy array argument, where the length of the list/array is equal to the number of synapses, e.g.::
+
+    >>> weight_list = 0.1*numpy.ones(len(prj2_1))
+    >>> weight_list[0:5] = 0.2
+    >>> prj2_1.setWeights(weight_list)
+    
+To set weights to random values, use the ``randomizeWeights()`` method::
+
+    >>> weight_distr = RandomDistribution(distribution='gamma',parameters=[1,0.1])
+    >>> prj1_1.randomizeWeights(weight_distr)
+    
+Setting delays works similarly::
+
+    >>> prj1_1.setDelays(0.6)
+
+    >>> delay_list = 0.3*numpy.ones(len(prj2_1))
+    >>> delay_list[0:5] = 0.4
+    >>> prj2_1.setDelays(delay_list)
+    >>> delay_distr = RandomDistribution(distribution='gamma',parameters=[2,0.2])
+    >>> prj1_1.randomizeDelays(delay_distr)
+
+
+Accessing weights and delays
+============================
+
+To get the weights of all connections in the ``Projection``, use the ``getWeights()`` method.
+Two formats are available. ``'list'`` returns a list of length equal to the number of connections
+in the projection, ``'array'`` returns a 2D weight array (with zero or None for non-existent
+connections)::
+
+    >>> prj2_1.getWeights(format='list')[3:7]
+    [0.20000000000000001, 0.20000000000000001, 0.10000000000000001, 0.10000000000000001]
+    >>> prj2_1.getWeights(format='array')[:3,:3]
+    array([[ 0.2,  0.2,  0.2],
+           [ 0.1,  0.1,  0.1],
+           [ 0.1,  0.1,  0.1]])
+
+``getDelays()`` is analogous. ``printWeights()`` writes the weights to a file.
+
+The ``weightHistogram()`` method returns a histogram of the synaptic weights, with bins
+determined by the ``min``, ``max`` and ``nbins`` arguments passed to the method.
+
+Synaptic plasticity
+===================
+
+So far we have discussed only the case whether the synaptic weight is fixed.
+Dynamic synapses (short-term and long-term plasticity) are discussed in the next chapter.
+
+Examples
+========
+
+There are several examples of networks built with the high-level API in the ``test`` directory of the source distribution.
