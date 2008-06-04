@@ -4,7 +4,7 @@
 """
 
 from pyNN import common
-from pyNN.nest2.__init__ import nest, is_number
+from pyNN.nest2.__init__ import nest, is_number, get_max_delay, get_min_delay
 import numpy
 # note that WDManager is defined in __init__.py imported here, then imported
 # into __init__ through `from connectors import *`. This circularity can't be a
@@ -78,18 +78,20 @@ class OneToOneConnector(common.OneToOneConnector):
             nest.ConnectWD(projection._sources, projection._targets, weights, delays)
             return projection.pre.size
         else:
-            raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
+            raise Exception("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
     
 class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
     def connect(self, projection):
-        postsynaptic_neurons  = projection.post.cell.flatten()
+        postsynaptic_neurons = projection.post.cell_local.flatten()
         npost = projection.post.size
-        for pre in projection.pre.cell.flat:
+        for pre in projection.pre.cell:
             if projection.rng:
                 rarr = projection.rng.uniform(0, 1, (npost,)) # what about NativeRNG?
             else:
                 rarr = numpy.random.uniform(0, 1, (npost,))
+            if len(rarr) > len(postsynaptic_neurons):
+                rarr = rarr[:len(postsynaptic_neurons)]
             target_list = numpy.compress(numpy.less(rarr, self.p_connect), postsynaptic_neurons).tolist()
             # if self connections are not allowed, check whether pre and post are the same
             if not self.allow_self_connections and pre in target_list:

@@ -92,7 +92,7 @@ class OneToOneConnector(common.OneToOneConnector, HocConnector):
                 else: d = delay
                 hoc_commands += self.singleConnect(projection, src, tgt, w, d)
         else:
-            raise Exception("Method '%s' not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes." % sys._getframe().f_code.co_name)
+            raise Exception("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
         return hoc_commands
 
 

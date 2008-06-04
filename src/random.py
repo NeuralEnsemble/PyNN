@@ -15,6 +15,7 @@ try:
 except ImportError:
     print "Warning: GSL random number generators not available"
 import time
+import logging
 
 # The following two functions taken from
 # http://www.nedbatchelder.com/text/pythonic-interfaces.html
@@ -59,6 +60,10 @@ class NumpyRNG(AbstractRNG):
         AbstractRNG.__init__(self, seed)
         self.rng = numpy.random.RandomState()
         if self.seed:
+            if not parallel_safe:
+                self.seed += rank # ensure different nodes get different sequences
+                if rank != 0:
+                    logging.warning("Changing the seed to %s on node %d" % (self.seed, rank))
             self.rng.seed(self.seed)
         else:
             self.rng.seed()
@@ -88,7 +93,10 @@ class NumpyRNG(AbstractRNG):
         else:
             raise ValueError, "The sample number must be positive"
         if self.parallel_safe and self.num_processes > 1:
-            # strip out the random numbers that should be used on other processors
+            # strip out the random numbers that should be used on other processors.
+            # This assumes that the first neuron in a population is always created on
+            # the node with rank 0, and that neurons are distributed in a round-robin
+            # This assumption is not true for NEST
             rarr = rarr[numpy.arange(self.rank, len(rarr), self.num_processes)]
         return rarr
 

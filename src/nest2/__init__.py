@@ -284,6 +284,7 @@ common.get_min_delay = get_min_delay
 
 def get_max_delay():
     return nest.GetSynapseDefaults('static_synapse')['max_delay']
+common.get_max_delay = get_max_delay
 
 def num_processes():
     return nest.GetStatus([0])[0]['num_processes']
@@ -478,7 +479,9 @@ def _print(user_filename, gather=True, compatible_output=True, population=None,
     nest_filename = _merge_files(recorder, gather)
 
     if compatible_output:
-        if gather == False or nest.Rank() == 0: # if we gather, only do this on the master node
+        if gather == False:
+            user_filename += '.%d' % rank()
+        if gather == False or rank() == 0: # if we gather, only do this on the master node
             recording.write_compatible_output(nest_filename, user_filename,
                                               population, get_time_step())
     else:
@@ -710,8 +713,11 @@ class Population(common.Population):
         if isinstance(rand_distr.rng, NativeRNG):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
-            rarr = rand_distr.next(n=len(self.cell_local))
-            assert len(rarr) == len(self.cell_local)
+            #rarr = rand_distr.next(n=len(self.cell_local))
+            rarr = rand_distr.next(n=self.size)
+            print rank(), self.cell_local[:5], self.cell_local[-5:], len(rarr), len(self.cell_local)
+            assert len(rarr) >= len(self.cell_local), "The length of rarr (%d) must be greater than that of cell_local (%d)" % (len(rarr), len(self.cell_local))
+            rarr = rarr[:len(self.cell_local)]
             for cell,val in zip(self.cell_local, rarr):
                 setattr(cell, parametername, val)
 
@@ -1268,6 +1274,10 @@ class Projection(common.Projection):
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
+        if gather == True:
+            raise Exception("saveConnections(gather=True) not yet supported")
+        else:
+            filename += '.%d' % rank()
         f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
         weights = []; delays = []
         for src, port in self.connections():

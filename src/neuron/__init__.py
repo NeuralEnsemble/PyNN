@@ -327,6 +327,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
             'objref pc',
             'pc = new ParallelContext()',
             'dt = %f' % timestep,
+            'tstop = 0',
             'min_delay = %g' % min_delay,
             'create dummy_section',
             'access dummy_section',
@@ -406,8 +407,7 @@ def run(simtime):
     hoc_commands = []
     if not running:
         running = True
-        hoc_commands += ['tstop = 0',
-                         'local_minimum_delay = pc.set_maxstep(10)',
+        hoc_commands += ['local_minimum_delay = pc.set_maxstep(10)',
                          'tmp = finitialize()',]
         hoc_execute(hoc_commands,"--- run() ---")
         logging.debug("local_minimum_delay on host #%d = %g" % (myid, h.local_minimum_delay))
@@ -751,6 +751,12 @@ class Population(common.Population):
         else:
             raise common.InvalidDimensionsError
         return coords
+
+    def index(self, n):
+        """Return the nth cell in the population (Indexing starts at 0)."""
+        if hasattr(n, '__len__'):
+            n = numpy.array(n)
+        return self.fullgidlist[n]
 
     def get(self, parameter_name, as_array=False):
         """
@@ -1165,7 +1171,7 @@ class Projection(common.Projection):
             self.label = 'projection%d' % Projection.nProj
         self.hoc_label = self.label.replace(" ","_")
         if not rng:
-            self.rng = numpy.random.RandomState()
+            self.rng = NumpyRNG()
         hoc_commands = ['objref %s' % self.hoc_label,
                         '%s = new List()' % self.hoc_label]
         self.synapse_type = target

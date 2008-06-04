@@ -99,10 +99,13 @@ class IDMixin(object):
         self._cellclass = None
 
     def __getattr__(self, name):
-        try:
-            val = self.get_parameters()[name]
-        except KeyError:
-            raise NonExistentParameterError(name, self.cellclass)
+        if name in IDMixin.non_parameter_attributes:
+            val = self.__getattribute__(name)
+        else:
+            try:
+                val = self.get_parameters()[name]
+            except KeyError:
+                raise NonExistentParameterError(name, self.cellclass)
         return val
     
     def __setattr__(self, name, value):
@@ -367,7 +370,7 @@ class IF_curr_alpha(StandardCellType):
         'cm'         :   1.0,   # Capacity of the membrane in nF
         'tau_m'      :  20.0,   # Membrane time constant in ms.
         'tau_refrac' :   0.0,   # Duration of refractory period in ms. 
-        'tau_syn_E'  :   0.3,   # Rise time of the excitatory synaptic alpha function in ms.
+        'tau_syn_E'  :   0.5,   # Rise time of the excitatory synaptic alpha function in ms.
         'tau_syn_I'  :   0.5,   # Rise time of the inhibitory synaptic alpha function in ms.
         'i_offset'   :   0.0,   # Offset current in nA
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
@@ -623,7 +626,10 @@ def get_time_step():
     pass
 
 def get_min_delay():
-    pass
+    return 1e12
+
+def get_max_delay():
+    return -1e12
 
 def num_processes():
     pass
@@ -1163,6 +1169,22 @@ class Projection(object):
     
     # --- Methods for writing/reading information to/from file. ----------------
     
+    def getWeights(self, format='list', gather=True):
+        """
+        Possible formats are: a list of length equal to the number of connections
+        in the projection, a 2D weight array (with zero or None for non-existent
+        connections).
+        """
+        return _abstract_method(self)
+    
+    def getDelays(self, format='list', gather=True):
+        """
+        Possible formats are: a list of length equal to the number of connections
+        in the projection, a 2D delay array (with None or 1e12 for non-existent
+        connections).
+        """
+        return _abstract_method(self)
+    
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
@@ -1234,7 +1256,10 @@ class Connector(object):
             delays = self.delays[self.d_index:self.d_index+N]
         else:
             raise Exception("delays is of type %s" % type(self.delays))
-        assert numpy.all(delays >= get_min_delay()), "Delay values must be greater than the minimum delay %g" %get_min_delay()
+        assert numpy.all(delays >= get_min_delay()), \
+               "Delay values must be greater than or equal to the minimum delay %g. The smallest delay is %g." % (get_min_delay(), delays.min())
+        assert numpy.all(delays <= get_max_delay()), \
+               "Delay values must be less than or equal to the maximum delay %s. The largest delay is %s" % (get_max_delay(), delays.max())                                                                                              
         self.d_index += N
         return delays
     
@@ -1359,7 +1384,7 @@ class DistanceDependentProbabilityConnector(Connector):
     AXES = {'x' : [0],    'y': [1],    'z': [2],
             'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': None, None: None}
     
-    def __init__(self, d_expression, axes=None, scale_factor=1.0, offset=0.,
+    def __init__(self, d_expression, axes=None, scale_factor=1.0, offset=0.0,
                  periodic_boundaries=False, allow_self_connections=True,
                  weights=0.0, delays=None):
         Connector.__init__(self, weights, delays)
