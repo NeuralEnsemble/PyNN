@@ -31,7 +31,7 @@ vfilelist     = {}
 spikefilelist = {}
 running       = False
 initialised   = False
-nrn_dll_loaded = False
+nrn_dll_loaded = []
 
 # ==============================================================================
 #   Utility classes and functions
@@ -121,14 +121,14 @@ def list_standard_models():
 
 def load_mechanisms(path=pyNN_path[0]):
     global nrn_dll_loaded
-    if not nrn_dll_loaded:
+    if path not in nrn_dll_loaded:
         arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc']
         # in case NEURON is assuming a different architecture to Python, we try multiple possibilities
         for arch in arch_list:
             lib_path = os.path.join(path, 'hoc', arch, '.libs', 'libnrnmech.so')
             if os.path.exists(lib_path):
                 h.nrn_load_dll(lib_path)
-                nrn_dll_loaded = True
+                nrn_dll_loaded.append(path)
                 return
         raise Exception("NEURON mechanisms not found in %s." % os.path.join(path, 'hoc'))
 
