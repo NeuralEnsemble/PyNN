@@ -119,18 +119,18 @@ class ID(int, common.IDMixin):
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
 
-def load_mechanisms():
+def load_mechanisms(path=pyNN_path[0]):
     global nrn_dll_loaded
     if not nrn_dll_loaded:
         arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc']
         # in case NEURON is assuming a different architecture to Python, we try multiple possibilities
         for arch in arch_list:
-            path = os.path.join(pyNN_path[0], 'hoc', arch, '.libs', 'libnrnmech.so')
-            if os.path.exists(path):
-                h.nrn_load_dll(path)
+            lib_path = os.path.join(path, 'hoc', arch, '.libs', 'libnrnmech.so')
+            if os.path.exists(lib_path):
+                h.nrn_load_dll(lib_path)
                 nrn_dll_loaded = True
                 return
-        raise Exception("NEURON mechanisms not found.")
+        raise Exception("NEURON mechanisms not found in %s." % os.path.join(path, 'hoc'))
 
 # ==============================================================================
 #   Module-specific functions and classes (not part of the common API)
@@ -1654,7 +1654,11 @@ class Projection(common.Projection):
         if format == 'list':
             values = [getattr(h, self.hoc_label).object(i).weight[0] for i in range(len(self))]
         elif format == 'array':
-            raise Exception("Not yet implemented")
+            values = numpy.zeros((len(self.pre), len(self.post)), 'float')
+            for i in xrange(len(self)):
+                weight = getattr(h, self.hoc_label).object(i).weight[0]
+                values[self.connections[i][0]-self.pre.gid_start,
+                       self.connections[i][1]-self.post.gid_start] = weight
         return values
         
     def getDelays(self, format='list', gather=True):
