@@ -10,6 +10,18 @@ try:
 except ImportError:
     SMTPHOST = None
     EMAIL = None
+import sys
+
+red     = 0010; green  = 0020; yellow = 0030; blue = 0040;
+magenta = 0050; cyan   = 0060; bright = 0100
+try:
+    import ll.ansistyle
+    def colour(col, text):
+        return str(ll.ansistyle.Text(col,str(text)))
+except ImportError:
+    def colour(col, text):
+            return text
+
 
 def notify(msg="Simulation finished.", subject="Simulation finished.", smtphost=SMTPHOST, address=EMAIL):
         """Send an e-mail stating that the simulation has finished."""
@@ -22,3 +34,11 @@ def notify(msg="Simulation finished.", subject="Simulation finished.", smtphost=
             server = smtplib.SMTP(smtphost)
             server.sendmail(address, address, msg)
             server.quit()
+
+def get_script_args(script, n_args):
+    script_index = sys.argv.index(script)
+    args = sys.argv[script_index+1:script_index+1+n_args]
+    if len(args) != n_args:
+        raise Exception("Script requires %d arguments, you supplied %d" % (n_args, len(args)))
+    return args
+    
