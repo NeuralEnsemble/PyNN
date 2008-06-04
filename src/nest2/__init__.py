@@ -122,6 +122,7 @@ def _discrepancy_due_to_rounding(parameters, output_values):
 
 def _set_connection(source_id, target_id, synapse_type, **parameters):
     """target_id is a port."""
+    print "_set_connection(%s, ...)" % source_id
     nest.SetConnection([source_id], synapse_type, target_id, parameters)
     # check, since NEST ignores connection errors, rather than raising an Exception
     input_values = [v for v in parameters.values()]
@@ -137,7 +138,14 @@ def _set_connection(source_id, target_id, synapse_type, **parameters):
         else:
             raise common.ConnectionError("Invalid parameter value(s): %(parameters)s [%(input_values)s != %(output_values)s]" % locals())
 
-
+def _set_connections(source_id, synapse_type, **parameters):
+    n = len( nest.GetConnections([source_id], synapse_type)[0]['targets'] )
+    for name, value in parameters.items():
+        name += 's'
+        if is_number(value):
+            value = [value]*n
+        nest.SetConnections([source_id], synapse_type, [{name:value}])
+    # need to check that the value has been set    
 
 def _get_connection(source_id, target_id, synapse_type, *parameter_names):
     try:
@@ -178,7 +186,7 @@ def _convertWeight(w, synapse_type):
         if synapse_type == 'inhibitory' and weight > 0:
             weight *= -1
     else:
-        raise TypeError("we must be either a number or a numpy array")
+        raise TypeError("w must be either a number or a numpy array")
     return weight
 
 # ==============================================================================
@@ -1150,10 +1158,14 @@ class Projection(common.Projection):
 
     # --- Methods for setting connection parameters ----------------------------
 
-    def _set_connection_values(self, name, value):
+    def _set_connection_values(self, name, value, optimized=False):
         if is_number(value):
-            for src, port in self.connections():
-                _set_connection(src, port, self._plasticity_model, **{name: value})
+            if optimized:
+                for src in self.pre.cell.flat:
+                    _set_connections(src, self._plasticity_model, **{name: value})
+            else:
+                for src, port in self.connections():
+                    _set_connection(src, port, self._plasticity_model, **{name: value})
         elif isinstance(value, (list, numpy.ndarray)):
             # this is probably not the most efficient way - should sort by src and then use SetConnections?
             assert len(value) == len(self)
@@ -1174,7 +1186,7 @@ class Projection(common.Projection):
         synapses.
         """
         w = _convertWeight(w, self.synapse_type)
-        self._set_connection_values('weight', w)
+        self._set_connection_values('weight', w, optimized=True)
 
     def randomizeWeights(self, rand_distr):
         """
