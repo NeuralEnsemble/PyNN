@@ -134,7 +134,7 @@ If the neuron model has more than one synapse mechanism, or more than one synapt
 
     >>> connect(source_list, target_list, weight=1.5, delay=0.5, synapse_type='inhibitory')
 
-[How to find out what synapse types a standard cell has?]
+(the attribute ``synapse_types`` of all standard cell objects contains a list of the synapse types for that cell type).
 
 Setting neuron parameters
 =========================

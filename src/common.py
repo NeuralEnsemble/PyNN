@@ -358,7 +358,8 @@ class StandardModelType(object):
 
 class StandardCellType(StandardModelType):
     """Base class for standardized cell model classes."""
-    pass
+
+    synapse_types = ('excitatory', 'inhibitory')
 
 
 class IF_curr_alpha(StandardCellType):
@@ -551,7 +552,7 @@ class SpikeSourcePoisson(StandardCellType):
         'start'    : 0.0,     # Start time (ms)
         'duration' : 1e6      # Duration of spike sequence (ms)
     }  
-
+    synapse_types = ()
 
 class SpikeSourceInhGamma(StandardCellType):
     """Spike source, generating realizations of an inhomogeneous gamma process,
@@ -569,12 +570,13 @@ class SpikeSourceInhGamma(StandardCellType):
         'start'    : 0.0,                # Start time (ms)
         'duration' : 1e6                 # Duration of spike sequence (ms)
     }  
-
+    synapse_types = ()
 
 class SpikeSourceArray(StandardCellType):
     """Spike source generating spikes at the times given in the spike_times array."""
     
     default_parameters = { 'spike_times' : [] } # list or numpy array containing spike times in milliseconds.
+    synapse_types = ()    
            
     def __init__(self, parameters):
         if parameters and 'spike_times' in parameters:
