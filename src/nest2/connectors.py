@@ -85,7 +85,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
     def connect(self, projection):
         postsynaptic_neurons = projection.post.cell_local.flatten()
         npost = projection.post.size
-        for pre in projection.pre.cell:
+        for pre in projection.pre.cell.flat:
             if projection.rng:
                 rarr = projection.rng.uniform(0, 1, (npost,)) # what about NativeRNG?
             else:
