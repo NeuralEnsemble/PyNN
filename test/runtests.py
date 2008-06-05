@@ -148,10 +148,7 @@ def compare_rasters(script,mse_threshold,engines):
                     f.close()
                     raster = [line for line in raster if line] # ignore blank lines
                     try:
-                        if engine == 'oldneuron':
-                            position = N.zeros(len(raster))
-                        else:
-                            position = N.array([int(line.split()[1]) for line in raster]) # take second column
+                        position = N.array([int(line.split()[1]) for line in raster]) # take second column
                     except IndexError:
                         print engine
                         print line

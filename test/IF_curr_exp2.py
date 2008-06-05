@@ -10,7 +10,7 @@ from pyNN.random import NumpyRNG
 if hasattr(sys,"argv"):     # run using python
     simulator = sys.argv[-1]
 else:
-    simulator = "oldneuron"    # run using nrngui -python
+    simulator = "neuron"    # run using nrngui -python
 
 
 exec("from pyNN.%s import *" % simulator)
