@@ -727,7 +727,50 @@ class ProjectionSetTest(unittest.TestCase):
             mean_weight_after += hoc_list.object(prj1.connections.index(connection_id)).weight[0]
         mean_weight_after = float(mean_weight_after/len(prj1.connections))
         assert (mean_weight_before < mean_weight_after), "%g !< %g" % (mean_weight_before, mean_weight_after)
-        
+    
+    def testSetDelaysWithSTDP(self):
+        stdp_model = neuron.STDPMechanism(
+            timing_dependence=neuron.SpikePairRule(tau_plus=20.0, tau_minus=20.0),
+            weight_dependence=neuron.AdditiveWeightDependence(w_min=0, w_max=2.0,
+                                                              A_plus=0.1, A_minus=0.0),
+            dendritic_delay_fraction=0.0
+        )
+        connector = neuron.AllToAllConnector(weights=1.0, delays=2.0)
+        prj1 = neuron.Projection(self.source, self.target, connector,
+                                 synapse_dynamics=neuron.SynapseDynamics(slow=stdp_model))
+        pre2wa = getattr(h, '%s_pre2wa'  % prj1.hoc_label)
+        post2wa = getattr(h, '%s_post2wa'  % prj1.hoc_label)
+        assert pre2wa[0].delay == 2.0
+        assert post2wa[0].delay == 0.0
+        prj1.setDelays(3.0)
+        assert pre2wa[0].delay == 3.0
+        assert post2wa[0].delay == 0.0
+    
+    def testRandomizeDelaysWithSTDP(self):
+        stdp_model = neuron.STDPMechanism(
+            timing_dependence=neuron.SpikePairRule(tau_plus=20.0, tau_minus=20.0),
+            weight_dependence=neuron.AdditiveWeightDependence(w_min=0, w_max=2.0,
+                                                              A_plus=0.1, A_minus=0.0),
+            dendritic_delay_fraction=0.0
+        )
+        connector = neuron.AllToAllConnector(weights=1.0, delays=2.0)
+        prj1 = neuron.Projection(self.source, self.target, connector,
+                                 synapse_dynamics=neuron.SynapseDynamics(slow=stdp_model))
+        pre2wa = getattr(h, '%s_pre2wa'  % prj1.hoc_label)
+        post2wa = getattr(h, '%s_post2wa'  % prj1.hoc_label)
+        nc_list = getattr(h, prj1.label)
+        assert pre2wa[0].delay == 2.0
+        assert post2wa[0].delay == 0.0
+        prj1.randomizeDelays(self.distrib_Native)
+        assert pre2wa[0].delay != 2.0 # check it is equal to the actual synaptic delay
+        assert post2wa[0].delay == 0.0
+        delay0 = nc_list.object(0).delay
+        assert pre2wa[0].delay == delay0
+        prj1.randomizeDelays(self.distrib_Numpy)
+        assert pre2wa[0].delay != delay0 # check it is equal to the actual synaptic delay
+        assert post2wa[0].delay == 0.0
+        assert pre2wa[0].delay == nc_list.object(0).delay
+    
     def testSetTopographicDelay(self):
         # We fix arbitrarily the positions of 2 cells in 2 populations and check 
         # the topographical delay between them is linked to the distance

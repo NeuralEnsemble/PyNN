@@ -1471,22 +1471,36 @@ class Projection(common.Projection):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        # if we have STDP, need to update pre2wa and post2wa delays as well
         if isinstance(d, float) or isinstance(d, int):
             if d < get_min_delay():
                 raise Exception("Delays must be greater than or equal to the minimum delay, currently %g ms" % get_min_delay())
             loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                        '%s.object(tmp).delay = %f ' %(self.hoc_label, float(d)),
+                        '%s.object(tmp).delay = %f ' % (self.hoc_label, float(d)),
                     '}']
             hoc_code = "".join(loop)
             hoc_commands = [ 'cmd = "%s"' %hoc_code,
+                             'success = execute1(cmd)']
+            # if we have STDP, need to update pre2wa and post2wa delays as well
+            if self.synapse_dynamics and self.synapse_dynamics.slow:
+                ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
+                loop = ['for i = 0, %d {' %(len(self)-1), 
+                            '%s_pre2wa[i].delay = %f ' % (self.hoc_label, float(d)*(1-ddf)),
+                            '%s_post2wa[i].delay = %f ' % (self.hoc_label, float(d)*ddf),
+                        '}']
+            hoc_commands = [ 'cmd = "%s"' % "".join(loop),
                              'success = execute1(cmd)']
         elif isinstance(d, list) or isinstance(d, numpy.ndarray):
             # need check for min_delay here
             hoc_commands = []
             assert len(d) == len(self), "List of delays has length %d, Projection %s has length %d" % (len(d), self.label, len(self))
             for i, delay in enumerate(d):
-                hoc_commands += ['%s.object(tmp).delay = %f' % (self.hoc_label, delay)]
+                hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, delay)]
+            # if we have STDP, need to update pre2wa and post2wa delays as well
+            if self.synapse_dynamics and self.synapse_dynamics.slow:
+                ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
+                for i, delay in enumerate(d):
+                    hoc_commands += ['%s_pre2wa[%d].delay = %f' % (self.hoc_label, i, delay*(1-ddf)),
+                                     '%s_post2wa[%d].delay = %f' % (self.hoc_label, i, delay*ddf)]
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
         hoc_execute(hoc_commands, "--- Projection[%s].__setDelays__() ---" %self.label)
@@ -1503,16 +1517,34 @@ class Projection(common.Projection):
             distr_params = paramfmt % tuple(rand_distr.parameters)
             hoc_commands = ['rng = new Random(%d)' % 0 or distribution.rng.seed,
                             'tmp = rng.%s(%s)' % (rand_distr.name, distr_params)]
-            loop = ['for tmp = 0, %d {' %(len(self)-1), 
-                        '%s.object(tmp).delay = rng.repick() ' %(self.hoc_label),
-                    '}']
+            if self.synapse_dynamics and self.synapse_dynamics.slow:
+                ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
+                hoc_commands += ['ddf = %g' % ddf]
+                loop = ['for i = 0, %d {' % (len(self)-1),
+                            'rr = rng.repick()',
+                            '%s.object(i).delay = rr ' % (self.hoc_label),
+                            '%s_pre2wa[i].delay = rr*(1-ddf)' % (self.hoc_label),
+                            '%s_post2wa[i].delay = rr*ddf' % (self.hoc_label),
+                        '}']    
+            else:
+                loop = ['for tmp = 0, %d {' % (len(self)-1), 
+                            '%s.object(tmp).delay = rng.repick() ' %(self.hoc_label),
+                        '}']
             hoc_code = "".join(loop)
-            hoc_commands += ['cmd = "%s"' %hoc_code,
+            hoc_commands += ['cmd = "%s"' % hoc_code,
                              'success = execute1(cmd)']    
         else:
-            hoc_commands = [] 
-            for i in xrange(len(self)):
-                hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(rand_distr.next()))]
+            hoc_commands = []
+            if self.synapse_dynamics and self.synapse_dynamics.slow:
+                ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
+                for i in xrange(len(self)):
+                    rr = float(rand_distr.next())
+                    hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, rr),
+                                     '%s_pre2wa[%d].delay = %f' % (self.hoc_label, i, rr*(1-ddf)),
+                                     '%s_post2wa[%d].delay = %f' % (self.hoc_label, i, rr*ddf)]
+            else:
+                for i in xrange(len(self)):
+                    hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(rand_distr.next()))]
         hoc_execute(hoc_commands, "--- Projection[%s].__randomizeDelays__() ---" %self.label)
     
     def setSynapseDynamics(self, param, value):
@@ -1535,6 +1567,8 @@ class Projection(common.Projection):
         d being the distance.
         """
         # if we have STDP, need to update pre2wa and post2wa delays as well
+        if self.synapse_dynamics and self.synapse_dynamics.slow:
+            raise Exception("setTopographicDelays() does not currently work with STDP")
         hoc_commands = []
         
         if rand_distr==None:
