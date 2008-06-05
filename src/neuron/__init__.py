@@ -408,7 +408,8 @@ def run(simtime):
     if not running:
         running = True
         hoc_commands += ['local_minimum_delay = pc.set_maxstep(10)',
-                         'tmp = finitialize()',]
+                         'tmp = finitialize()',
+                         'tstop = 0']
         hoc_execute(hoc_commands,"--- run() ---")
         logging.debug("local_minimum_delay on host #%d = %g" % (myid, h.local_minimum_delay))
         if nhost > 1:
@@ -1519,7 +1520,6 @@ class Projection(common.Projection):
         Set parameters of the synapse dynamics linked with the projection
         """
         raise Exception("Method not yet implemented !")
-    
     
     def randomizeSynapseDynamics(self, param, rand_distr):
         """

@@ -507,7 +507,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         neuron.run(100.0)
         spikes = spike_source.getSpikes()[:,1]
         if neuron.myid == 0:
-            self.assert_( max(spikes) == 100.0 )
+            self.assert_( max(spikes) == 100.0, str(spikes) )
 
 # ==============================================================================
 class PopulationOtherTest(unittest.TestCase): # to write later
@@ -583,8 +583,12 @@ class ProjectionInitTest(unittest.TestCase):
         prj1.setWeights(1.234)
         prj1.saveConnections("connections.tmp", gather=False)
         #prj2 = neuron.Projection(self.source33, self.target33, 'fromFile',"connections.tmp")
+        if neuron.num_processes() > 1:
+            distributed = True
+        else:
+            distributed = False
         prj3 = neuron.Projection(self.source33, self.target33, neuron.FromFileConnector("connections.tmp",
-                                                                                        distributed=True))
+                                                                                        distributed=distributed))
         w1 = []; w2 = []; w3 = []; d1 = []; d2 = []; d3 = []
         # For a connections scheme saved and reloaded, we test if the connections, their weights and their delays
         # are equal.
