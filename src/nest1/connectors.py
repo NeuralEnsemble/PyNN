@@ -4,9 +4,12 @@
 # ==============================================================================
 
 from pyNN import common
-from pyNN.nest1.__init__ import pynest, numpy
+from pyNN.nest1.__init__ import pynest, numpy, get_min_delay, get_max_delay
 from pyNN.random import RandomDistribution, NativeRNG
 from math import *
+
+common.get_min_delay = get_min_delay
+common.get_max_delay = get_max_delay
 
 def _convertWeight(w, synapse_type):
     weight = w*1000.0

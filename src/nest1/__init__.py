@@ -151,6 +151,10 @@ def get_min_delay():
     return pynest.getLimits()['min_delay']
 common.get_min_delay = get_min_delay
 
+def get_max_delay():
+    return pynest.getLimits()['max_delay']
+common.get_max_delay = get_max_delay
+
 def get_time_step():
     return pynest.getNESTStatus()['resolution']
 common.get_time_step = get_time_step
