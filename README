@@ -10,7 +10,7 @@ SVN instructions
 
 Fetching the source:
 
-svn co https://neuralensemble.org/svn/PyNN pyNN  
+svn co https://neuralensemble.org/svn/PyNN/trunk pyNN  
 
 ** Anonymous checkout is allowed
 
