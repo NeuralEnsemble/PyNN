@@ -343,7 +343,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         delay = get_min_delay()
     # If the delay is too small , we have to throw an error
     if delay < get_min_delay() or delay > get_max_delay():
-        raise common.ConnectionError
+        raise common.ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, get_min_delay(), get_max_delay()))
     weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                          # Using convention in this way is not ideal. We should
                          # be able to look up the units used by each model somewhere.

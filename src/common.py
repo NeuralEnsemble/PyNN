@@ -492,7 +492,7 @@ class IF_facets_hardware1(StandardCellType):
 
 
 class HH_cond_exp(StandardCellType):
-    """docstring needed here."""
+    """Single-compartment Hodgkin-Huxley model."""
     
     default_parameters = {
         'gbar_Na'   : 20000.0,
@@ -616,24 +616,24 @@ def run(simtime):
     """Run the simulation for simtime ms."""
     pass
 
-def setRNGseeds(seedList):
-    """Globally set rng seeds."""
-    pass
-
 def get_current_time():
     """Return the current time in the simulation."""
     pass
 
 def get_time_step():
+    """Return the integration time step being used in the simulation.""" 
     pass
 
 def get_min_delay():
+    """Return the minimum allowed synaptic delay."""
     return 1e12
 
 def get_max_delay():
+    """Return the maximum allowed synaptic delay."""
     return -1e12
 
 def num_processes():
+    """When running a parallel simulation with MPI, return the number of processors being used."""
     pass
 
 def rank():

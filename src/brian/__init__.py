@@ -90,10 +90,6 @@ def run(simtime):
     # The run() command of brian accept second
     net.run(0.001*simtime)
 
-def setRNGseeds(seedList):
-    """Globally set rng seeds."""
-    pass
-
 def get_min_delay():
     return 0.1*brian.ms
 common.get_min_delay = get_min_delay

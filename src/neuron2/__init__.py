@@ -251,10 +251,6 @@ def run(simtime):
     neuron.h('tstop = %g' % simtime)
     pc.psolve(simtime)
 
-def setRNGseeds(seedList):
-    """Globally set rng seeds."""
-    pass # not applicable to NEURON?
-
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================

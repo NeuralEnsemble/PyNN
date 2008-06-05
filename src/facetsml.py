@@ -243,10 +243,6 @@ def end():
 
 def run(simtime):
     PrettyPrint(xmldoc)
-
-def setRNGseeds(seedList):
-    """Globally set rng seeds."""
-    raise "Not yet implemented"
     
 
 # ==============================================================================
