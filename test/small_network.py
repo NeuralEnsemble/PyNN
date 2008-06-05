@@ -11,10 +11,8 @@ $Id$
 
 import sys
 
-if hasattr(sys,"argv"):     # run using python
-    simulator = sys.argv[-1]
-else:
-    simulator = "oldneuron"    # run using nrngui -python
+simulator = sys.argv[-1]
+
 exec("from pyNN.%s import *" % simulator)
 from NeuroTools.stgen import StGen
 
@@ -58,8 +56,8 @@ input_conns.setDelays(syn_delay)
 
 run(simtime)
 
-cells.printSpikes("small_network_%s_%d.ras" % (simulator, num_processes()))
-cells.print_v("small_network_%s_%d.v" % (simulator, num_processes()))
+cells.printSpikes("small_network_%s.ras" % (simulator, ))
+cells.print_v("small_network_%s.v" % (simulator, ))
 
 print "Mean firing rate: ", cells.meanSpikeCount()*1000.0/simtime, "Hz"
 

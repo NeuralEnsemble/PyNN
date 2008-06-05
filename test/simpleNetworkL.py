@@ -11,10 +11,7 @@ $Id$
 
 import sys
 
-if hasattr(sys,"argv"):     # run using python
-    simulator = sys.argv[-1]
-else:
-    simulator = "oldneuron"    # run using nrngui -python
+simulator = sys.argv[-1]
 
 exec("from pyNN.%s import *" % simulator)
 
@@ -22,7 +19,7 @@ from NeuroTools.stgen import StGen
 
 tstop = 1000.0 # all times in milliseconds
 
-setup(timestep=0.025,min_delay=0.025)
+setup(timestep=0.1,min_delay=0.2)
 
 cell_params = {'tau_refrac':2.0, 'v_thresh':-50.0, 'tau_syn_E':2.0, 'tau_syn_I' : 4.0}
 ifcell1 = create(IF_curr_alpha, cell_params)

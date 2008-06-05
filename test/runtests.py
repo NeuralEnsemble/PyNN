@@ -23,8 +23,6 @@ def run(cmd,engine):
     logfile = open("%s_%s.log" % (cmd,engine), 'w')
     if engine in ('nest1', 'pcsim', 'nest2', 'neuron'):
         cmd = 'python ' + cmd + '.py ' + engine
-    elif engine == 'oldneuron':
-        cmd = '../src/hoc/i686/special -python ' + cmd + '.py %s' % engine
     else:
         logging.error('Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", and "neuron"' % engine)
         
@@ -84,10 +82,7 @@ def compare_traces(script, mse_threshold, engines):
                     f.close()
                     trace = [line for line in trace if line] # ignore blank lines
                     try:
-                        if engine == 'oldneuron':
-                            position = N.zeros(len(trace))
-                        else:
-                            position = N.array([int(line.split()[1]) for line in trace]) # take second column
+                        position = N.array([int(line.split()[1]) for line in trace]) # take second column
                     except IndexError:
                         print engine
                         print line

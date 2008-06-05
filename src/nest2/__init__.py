@@ -410,7 +410,7 @@ def _record(variable, source, filename):
     ss_dict = {"to_file" : True, "withgid" : True, "withtime" : True}
     
     # check for older nest2 with need for interval
-    if "interval" in nest.GetStatus(recording_device)[0]:
+    if len(nest.GetStatus(recording_device, 'interval')) == 1: # returns a list of length 1 if 'interval' is present, otherwise returns the whole dict 
         print "PyNN Warning: nest2 recording_device.interval detected."
         print "Please upgrade to a more recent version of nest 2"
         print "Transition code only temporarily supported."
@@ -739,7 +739,7 @@ class Population(common.Population):
             ss_dict = {"to_file" : True, "withgid" : True, "withtime" : True}
     
             # check for older nest2 with need for interval
-            if "interval" in nest.GetStatus(self.recorders[variable])[0]:
+            if len(nest.GetStatus(self.recorders[variable], 'interval')) == 1:
                 print "PyNN Warning: nest2 recording_device.interval detected."
                 print "Please upgrade to a more recent version of nest 2"
                 print "Transition code only temporarily supported."
