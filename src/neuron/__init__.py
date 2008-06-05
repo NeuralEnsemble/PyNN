@@ -32,6 +32,7 @@ spikefilelist = {}
 running       = False
 initialised   = False
 nrn_dll_loaded = []
+quit_on_end   = True
 
 # ==============================================================================
 #   Utility classes and functions
@@ -297,9 +298,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global nhost, myid, logger, initialised
+    global nhost, myid, logger, initialised, quit_on_end
     load_mechanisms()
-        
+    if 'quit_on_end' in extra_params:
+        quit_on_end = extra_params['quit_on_end']
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
     if debug:
@@ -397,9 +399,10 @@ def end(compatible_output=True):
     hoc_commands += ['tmp = pc.runworker()',
                      'tmp = pc.done()']
     hoc_execute(hoc_commands,"--- end() ---")
-    hoc.execute('tmp = quit()') # sometimes needed, sometimes not wanted. Maybe a 'quit_on_end' kwarg for setup?
-    #logging.info("Finishing up with NEURON.")
-    #sys.exit(0)
+    if quit_on_end:
+        hoc.execute('tmp = quit()') # sometimes needed, sometimes not wanted. Maybe a 'quit_on_end' kwarg for setup?
+        logging.info("Finishing up with NEURON.")
+        sys.exit(0)
 
 def run(simtime):
     """Run the simulation for simtime ms."""

@@ -47,7 +47,7 @@ def write_compatible_output(sim_filename, user_filename, population, dt):
     Rewrite simulation data in a standard format:
         spiketime (in ms) cell_id-min(cell_id)
     """
-    logging.info("Writing %s in compatible format." % user_filename)       
+    logging.info("Writing %s in compatible format (was %s)" % (user_filename, sim_filename))
     result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)
         
     # Write header info (e.g., dimensions of the population)

@@ -486,7 +486,7 @@ def _print(user_filename, gather=True, compatible_output=True, population=None,
     nest_filename = _merge_files(recorder, gather)
 
     if compatible_output:
-        if gather == False:
+        if gather == False and num_processes() > 1:
             user_filename += '.%d' % rank()
         if gather == False or rank() == 0: # if we gather, only do this on the master node
             recording.write_compatible_output(nest_filename, user_filename,
