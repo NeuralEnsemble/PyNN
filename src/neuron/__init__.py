@@ -503,6 +503,8 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     for tgt in target:
         if tgt > gid or tgt < 0 or not isinstance(tgt, int):
             raise common.ConnectionError, "Postsynaptic cell id %s does not exist." % str(tgt)
+        if "cond" in tgt.cellclass.__name__:
+            weight = abs(weight) # weights must be positive for conductance-based synapses
         else:
             if tgt in gidlist: # only create connections to cells that exist on this machine
                 if p < 1:
@@ -574,7 +576,10 @@ def record_v(source, filename):
         vfilelist[filename] = []
     for src in source:
         if src in gidlist:
-            hoc_commands += ['tmp = cell%d.record_v(1,%g)' % (src, get_time_step())]
+            if src.parent:
+                raise Exception("The record_v() function does not work with cells in a Population. Please use the record_v() method of the Population object.")
+            else:
+                hoc_commands += ['tmp = cell%d.record_v(1,%g)' % (src, get_time_step())]
             vfilelist[filename] += [src] # writing to file is done in end()
     hoc_execute(hoc_commands, "---record_v() ---")
 

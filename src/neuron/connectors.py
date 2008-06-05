@@ -9,6 +9,7 @@ from pyNN.neuron.__init__ import hoc_execute, h, get_min_delay
 import numpy
 from math import *
 
+common.get_min_delay = get_min_delay
 
 # ==============================================================================
 #   Connection method classes
@@ -20,6 +21,8 @@ class HocConnector(object):
         """
         Write hoc commands to connect a single pair of neurons.
         """
+        if "cond" in tgt.cellclass.__name__:
+            weight = abs(weight) # Weights must be positive for conductance-based synapses
         cmdlist = ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
                                                                  projection.post.hoc_label,
                                                                  projection.post.gidlist.index(tgt),
