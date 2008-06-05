@@ -610,8 +610,8 @@ class ProjectionInitTest(unittest.TestCase):
                 assert hoc_list.object(0).delay == 0.321, "Delay should be 0.321, actually %g" % hoc_list.object(0).delay
 
 class ProjectionSetTest(unittest.TestCase):
-    """Tests of the setWeights(), setDelays(), setThreshold(),
-#       randomizeWeights() and randomizeDelays() methods of the Projection class."""
+    """Tests of the setWeights(), setDelays(), randomizeWeights() and
+    randomizeDelays() methods of the Projection class."""
 
     def setUp(self):
         self.target   = neuron.Population((3,3), neuron.IF_curr_alpha)

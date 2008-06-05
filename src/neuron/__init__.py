@@ -1583,17 +1583,6 @@ class Projection(common.Projection):
                     hoc_commands += ['%s.object(%d).delay = %f' % (self.hoc_label, i, float(delay))]        
         
         hoc_execute(hoc_commands, "--- Projection[%s].__setTopographicDelays__() ---" %self.label)
-        
-    def setThreshold(self, threshold):
-        """
-        Where the emission of a spike is determined by watching for a
-        threshold crossing, set the value of this threshold.
-        """
-        # This is a bit tricky, because in NEST the spike threshold is a
-        # property of the cell model, whereas in NEURON it is a property of the
-        # connection (NetCon).
-        raise Exception("Method not yet implemented")
-    
     
     # --- Methods relating to synaptic plasticity ------------------------------
     

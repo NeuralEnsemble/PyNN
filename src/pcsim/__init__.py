@@ -1147,16 +1147,6 @@ class Projection(common.Projection, WDManager):
         for i in range(len(self)):
             pcsim_globals.net.object(self.pcsim_projection[i]).delay = delays[i]
     
-    def setThreshold(self, threshold):
-        """
-        Where the emission of a spike is determined by watching for a
-        threshold crossing, set the value of this threshold.
-        """
-        # This is a bit tricky, because in NEST and PCSIM the spike threshold is a
-        # property of the cell model, whereas in NEURON it is a property of the
-        # connection (NetCon).
-        raise Exception("Method  not applicable to PCSIM")
-    
     # --- Methods for writing/reading information to/from file. ----------------
     
     def saveConnections(self, filename, gather=False):

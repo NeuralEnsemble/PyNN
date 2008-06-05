@@ -991,16 +991,6 @@ class Projection(common.Projection):
         d being the distance.
         """
         raise Exception("Method not yet implemented")
-        
-    def setThreshold(self,threshold):
-        """
-        Where the emission of a spike is determined by watching for a
-        threshold crossing, set the value of this threshold.
-        """
-        # This is a bit tricky, because in NEST the spike threshold is a
-        # property of the cell model, whereas in NEURON it is a property of the
-        # connection (NetCon).
-        raise Exception("Method not yet implemented")
     
     # --- Methods relating to synaptic plasticity ------------------------------
     

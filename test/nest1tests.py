@@ -471,8 +471,8 @@ class ProjectionInitTest(unittest.TestCase):
         assert (w1 == w2) and (d1 == d2)
 
 class ProjectionSetTest(unittest.TestCase):
-    """Tests of the setWeights(), setDelays(), setThreshold(),
-       randomizeWeights() and randomizeDelays() methods of the Projection class."""
+    """Tests of the setWeights(), setDelays(), randomizeWeights() and
+    randomizeDelays() methods of the Projection class."""
 
     def setUp(self):
         nest.setup(max_delay=0.5)

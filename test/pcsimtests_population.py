@@ -352,8 +352,8 @@ class ProjectionInitTest(unittest.TestCase):
 
 
 class ProjectionSetTest(unittest.TestCase):
-    """Tests of the setWeights(), setDelays(), setThreshold(),
-       randomizeWeights() and randomizeDelays() methods of the Projection class."""
+    """Tests of the setWeights(), setDelays(), randomizeWeights() and
+    randomizeDelays() methods of the Projection class."""
 
     def setUp(self):
         setup()

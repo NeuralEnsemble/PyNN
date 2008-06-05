@@ -1145,16 +1145,6 @@ class Projection(object):
         """
         return _abstract_method(self)
     
-    def setThreshold(self, threshold):
-        """
-        Where the emission of a spike is determined by watching for a
-        threshold crossing, set the value of this threshold.
-        """
-        # This is a bit tricky, because in NEST the spike threshold is a
-        # property of the cell model, whereas in NEURON it is a property of the
-        # connection (NetCon).
-        return _abstract_method(self)
-    
     def setSynapseDynamics(self, param, value):
         """
         Set parameters of the synapse dynamics linked with the projection
