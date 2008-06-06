@@ -1,14 +1,20 @@
 ===========
-Release 0.4 (r307)
+Release 0.4 (r342)
 ===========
 
+* Added a `quit_on_end` extra argument to `neuron.setup()`
 
-* The `NumpyRNG` class now has some extra options for running parallel simulations. If `parallel_safe` is `True`
- (and if the MPI rank and number of processes are correctly supplied), then the sequence of random numbers see
-n by the simulation script should be independent of the number of MPI processes (although not yet the number of threads).
+* Added a `synapse_types` attribute to all standard cell classes.
 
-* Added `num_processes()` and `rank()` functions to provide a uniform access.
-to MPI information.
+* Removed `Projection.setThreshold()` from API
+
+* In the `neuron` module, `load_mechanisms()` now takes a path to search from as an optional argument, in order to allow loading user-defined mechanisms
+
+* Added `get_script_args()` (process command line arguments) and `colour()` (print coloured output) functions to the `utility` module.
+
+* Added `rank()` to the API (returns the MPI rank)
+
+* Removed `setRNGseeds()` from the API, since each simulator is so different in its requirements. The seeds may be provided using the `extra_params` argument to `setup()`.
 
 * The headers of output files now contain the first and last ids in the Population (not fully implemented yet 
 for recording with the low-level API)

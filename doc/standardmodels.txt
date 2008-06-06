@@ -7,11 +7,9 @@ PyNN performs automatic translation of parameter names, types and units.
 Only a handful of models are currently available, but the list will be expanded in future releases.
 To obtain a list of all the standard models available in a given simulator, use the ``list_standard_models()`` function, e.g.::
 
-    >>> from pyNN import nest2, neuron
-    >>> nest2.list_standard_models()
-    []
+    >>> from pyNN import neuron
     >>> neuron.list_standard_models()
-    []
+    [<class 'pyNN.neuron.cells.IF_cond_alpha'>, <class 'pyNN.neuron.cells.IF_curr_exp'>, <class 'pyNN.neuron.cells.SpikeSourceArray'>, <class 'pyNN.neuron.cells.IF_cond_exp'>, <class 'pyNN.neuron.cells.IF_facets_hardware1'>, <class 'pyNN.neuron.cells.SpikeSourcePoisson'>, <class 'pyNN.neuron.cells.EIF_cond_alpha_isfa_ista'>, <class 'pyNN.neuron.cells.IF_curr_alpha'>]
 
 Integrate-and-fire neurons
 ==========================
@@ -100,9 +98,9 @@ Name            Default value  Units  Description
 ``v_rest``      -65.0          mV     Resting membrane potential
 ``cm``            1.0          nF     Capacity of the membrane
 ``tau_m``        20.0          ms     Membrane time constant
-``tau_refrac      0.0          ms     Duration of refractory period
-``tau_syn_E`      5.0          ms     Decay time of the excitatory synaptic conductance
-``tau_syn_I`      5.0          ms     Decay time of the inhibitory synaptic conductance
+``tau_refrac``    0.0          ms     Duration of refractory period
+``tau_syn_E``     5.0          ms     Decay time of the excitatory synaptic conductance
+``tau_syn_I``     5.0          ms     Decay time of the inhibitory synaptic conductance
 ``e_rev_E``       0.0          mV     Reversal potential for excitatory input
 ``e_rev_I``     -70.0          mV     Reversal potential for inhibitory input
 ``v_thresh``    -50.0          mV     Spike threshold

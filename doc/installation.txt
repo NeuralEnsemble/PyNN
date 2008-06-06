@@ -122,9 +122,9 @@ Test it using something like the following::
 With NEURON as the simulator, PyNN-specific membrane mechanisms are loaded on `setup()`::
    
     >>> from pyNN.neuron import *
-    NEURON -- Release 5.9.9 (1529) 2006-09-11
-    by John W. Moore, Michael Hines, and Ted Carnevale
-    Duke and Yale University -- Copyright 1984-2006
+    NEURON -- Release 6.1.1 (1894) 2007-11-24
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2007
+    See http://www.neuron.yale.edu/credits.html
 
     >>> setup()
     loading membrane mechanisms from /usr/lib/python/site-packages/pyNN/hoc/i686/.libs/libnrnmech.so
@@ -134,7 +134,7 @@ With NEURON as the simulator, PyNN-specific membrane mechanisms are loaded on `s
 
 If your model relies on other NMODL mechanisms, call the `load_mechanisms()` function with the path to the directory containing the ``.mod`` files.
 
-.. _PyNN: http://neuralensemble.kip.uni-heidelberg.de/trac/PyNN
+.. _PyNN: http://neuralensemble.org/trac/PyNN
 .. _numpy: http://numpy.scipy.org/
 .. _PCSIM: http://sourceforge.net/projects/pcsim/
 .. _`PyNN download page`: https://neuralensemble.kip.uni-heidelberg.de/trac/PyNN/wiki/Download

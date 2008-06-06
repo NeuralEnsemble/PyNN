@@ -30,7 +30,7 @@ PyNN interface depending on the experience with composite synapse models.
 
 To set the model of synapse dynamics to use for the connections of a given
 ``Projection``, we pass a ``SynapseDynamics`` object as the ``synapse_dynamics``
-keyword argument to the ``Projection``constructor.
+keyword argument to the ``Projection`` constructor.
 
 The ``SynapseDynamics`` object is simply a container that has attributes ``fast``,
 which, if set, is an instance of a subclass of the abstract class

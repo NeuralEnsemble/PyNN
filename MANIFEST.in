@@ -7,4 +7,6 @@ include test/VAbenchmarks.py
 include test/IF_curr_*.py
 include test/small_network.py
 include doc/*.txt
+include COPYING
+include changelog
 
