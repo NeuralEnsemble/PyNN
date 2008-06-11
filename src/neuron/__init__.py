@@ -298,7 +298,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global nhost, myid, logger, initialised, quit_on_end
+    global nhost, myid, logger, initialised, quit_on_end, running
     load_mechanisms()
     if 'quit_on_end' in extra_params:
         quit_on_end = extra_params['quit_on_end']
@@ -322,6 +322,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     if initialised:
         hoc_commands = ['dt = %f' % timestep,
                         'min_delay = %g' % min_delay]
+        running = False
     else:
         hoc_commands = [
             'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','standardCells.hoc'),
@@ -358,7 +359,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     else:
         #myid = HocToPy.get('pc.id()','int')
         myid = int(h.pc.id())
-    print "\nHost #%d of %d" % (myid+1, nhost)
+    #print "\nHost #%d of %d" % (myid+1, nhost)
+    vfilelist = {}
+    spikefilelist = {}
     
     initialised = True
     return int(myid)
