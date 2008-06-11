@@ -110,6 +110,7 @@ class ID(int, common.IDMixin):
 
     def set_native_parameters(self, parameters):
         cell = self._hoc_cell()
+        logging.debug("Setting %s in %s" % (parameters, cell))
         for name, val in parameters.items():
             if hasattr(val, '__len__'):
                 setattr(cell, name, Vector(val).hoc_obj)
@@ -789,6 +790,7 @@ class Population(common.Population):
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
+
         if isinstance(param, str):
             if isinstance(val, (str, float, int)):
                 param_dict = {param: float(val)}
@@ -800,6 +802,7 @@ class Population(common.Population):
             param_dict = param
         else:
             raise common.InvalidParameterValueError
+        logging.debug("Setting %s in %s" % (param_dict, self.label))
         for cell in self.gidlist:
             cell.set_parameters(**param_dict)
 

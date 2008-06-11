@@ -314,7 +314,7 @@ class StandardModelType(object):
                 raise Exception("%s in %s. Transform: %s. Parameters: %s." \
                                 % (pname, cls.__name__, D['forward_transform'], parameters))
             except ZeroDivisionError:
-                pval = 1e300 # this is about the highest value hoc can deal with
+                pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
         return native_parameters
     
