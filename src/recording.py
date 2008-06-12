@@ -41,7 +41,21 @@ class RecordingManager(object):
     def write(self, recording_id, filename_or_obj, format="compatible", gather=True):
         pass
 
-
+def convert_compatible_output(data, population, variable):
+    """
+    !!! NEST specific !!!
+    """
+    if population is not None:
+        padding = population.id_start
+        
+    if variable == 'spikes':
+        return numpy.array((data['times'],data['senders']- padding)).T
+    elif variable == 'v':
+        return numpy.array((data['times'],data['senders']- padding,data['potentials'])).T
+    elif variable == 'conductance':
+        return numpy.array((data['times'],data['senders']- padding,data['exc_conductance'],data['inh_conductance'])).T
+            
+    
 def write_compatible_output(sim_filename, user_filename, population, dt):
     """
     Rewrite simulation data in a standard format:

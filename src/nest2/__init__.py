@@ -502,23 +502,28 @@ def _print(user_filename, gather=True, compatible_output=True, population=None,
     if population is None:
         recorder_dict.pop(user_filename)
 
-def _get_recorded_data(population, variable=None):
+def _get_recorded_data(population=None, variable=None):
     global recorder_dict
 
     assert variable in ['spikes', 'v', 'conductance']
     recorder = population.recorders[variable]
 
-    nest_filename = _merge_files(recorder, gather=True)
-    data = recording.readArray(nest_filename, sepchar=None)
-    os.remove(nest_filename)
-
-    if data.size > 0:
-        if population is not None:
-            padding = population.cell.flatten()[0]
-        else:
-            padding = 0
-        data[:,0] = data[:,0] - padding
-
+    if nest.GetStatus(recorder,'to_file')[0]:
+        nest_filename = _merge_files(recorder, gather=True)
+        data = recording.readArray(nest_filename, sepchar=None)
+        os.remove(nest_filename)
+        
+        if data.size > 0:
+            if population is not None:
+                padding = population.cell.flatten()[0]
+            else:
+                padding = 0
+            data[:,0] = data[:,0] - padding
+            
+    elif nest.GetStatus(recorder,'to_memory')[0]:
+        data = nest.GetStatus(recorder,'events')[0]
+        data = recording.convert_compatible_output(data, population, variable)
+         
     return data
 
 
@@ -731,7 +736,7 @@ class Population(common.Population):
             for cell,val in zip(self.cell_local, rarr):
                 setattr(cell, parametername, val)
 
-    def _record(self, variable, record_from=None, rng=None):
+    def _record(self, variable, record_from=None, rng=None,to_file=True):
         assert variable in ('spikes', 'v', 'conductance')
 
         # create device
@@ -739,7 +744,8 @@ class Population(common.Population):
         if self.recorders[variable] is None:
             self.recorders[variable] = nest.Create(device_name)
 
-            ss_dict = {"to_file" : True, "withgid" : True, "withtime" : True}
+            ss_dict = {"to_file" : to_file, "to_memory":False,"withgid" : True, "withtime" : True}
+            if to_file == False: ss_dict.update({'to_memory':True})
     
             # check for older nest2 with need for interval
             try:
@@ -750,6 +756,7 @@ class Population(common.Population):
                     ss_dict['interval'] = nest.GetStatus([0],"resolution")[0]
             except nest.hl_api.NESTError:
                 pass
+
             nest.SetStatus(self.recorders[variable],ss_dict)
 
         # create list of neurons
@@ -784,7 +791,7 @@ class Population(common.Population):
         # connect device to neurons
         _connect_recording_device(self.recorders[variable], record_from=tmp_list)
 
-    def record(self, record_from=None, rng=None):
+    def record(self, record_from=None, rng=None, to_file=True):
         """
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
@@ -792,9 +799,9 @@ class Population(common.Population):
         - or a list containing the ids
         of the cells to record.
         """
-        self._record('spikes', record_from, rng)
+        self._record('spikes', record_from, rng, to_file)
 
-    def record_v(self, record_from=None, rng=None):
+    def record_v(self, record_from=None, rng=None, to_file=True):
         """
         If record_from is not given, record the membrane potential for all cells in
         the Population.
@@ -802,9 +809,9 @@ class Population(common.Population):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        self._record('v', record_from, rng)
+        self._record('v', record_from, rng, to_file)
 
-    def record_c(self, record_from=None, rng=None):
+    def record_c(self, record_from=None, rng=None, to_file=True):
         """
         If record_from is not given, record the membrane potential for all cells in
         the Population.
@@ -812,7 +819,7 @@ class Population(common.Population):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        self._record('conductance', record_from, rng)
+        self._record('conductance', record_from, rng, to_file)
 
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
@@ -850,6 +857,30 @@ class Population(common.Population):
         """
         return _get_recorded_data(population=self, variable="spikes")
 
+    def get_v(self, gather=True):
+        """
+        Return a 2-column numpy array containing cell ids and spike times for
+        recorded cells.
+
+        Useful for small populations, for example for single neuron Monte-Carlo.
+
+        NOTE: getSpikes or printSpikes should be called only once per run,
+        because they mangle simulator recorder files.
+        """
+        return _get_recorded_data(population=self, variable="v")
+            
+    def get_c(self, gather=True):
+        """
+        Return a 2-column numpy array containing cell ids and spike times for
+        recorded cells.
+
+        Useful for small populations, for example for single neuron Monte-Carlo.
+
+        NOTE: getSpikes or printSpikes should be called only once per run,
+        because they mangle simulator recorder files.
+        """
+        return _get_recorded_data(population=self, variable="conductance")
+    
     def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
