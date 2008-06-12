@@ -1304,81 +1304,34 @@ class Projection(common.Projection):
                                                   allow_self_connections=allow_self_connections)
         return c.connect(self)
     
-    def _fixedNumberPre(self, parameters):
-        """Each presynaptic cell makes a fixed number of connections."""
+    def _fixedNumber(self, parameters, connector_class):
         allow_self_connections = True
         if type(parameters) == types.IntType:
             n = parameters
             assert n > 0
-            fixed = True
         elif type(parameters) == types.DictType:
             if parameters.has_key('n'): # all cells have same number of connections
                 n = int(parameters['n'])
                 assert n > 0
-                fixed = True
             elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
-                rand_distr = parameters['rand_distr']
-                assert isinstance(rand_distr, RandomDistribution)
-                fixed = False
+                n = parameters['rand_distr']
+                assert isinstance(n, RandomDistribution)
             if parameters.has_key('allow_self_connections'):
                 allow_self_connections = parameters['allow_self_connections']
         elif isinstance(parameters, RandomDistribution):
-            rand_distr = parameters
-            fixed = False
+            n = parameters
         else:
             raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-        hoc_commands = []
-        
-        if self.rng:
-            rng = self.rng
-        else:
-            rng = numpy.random
-        for src in self.pre.gidlist:            
-            # pick n neurons at random
-            if not fixed:
-                n = rand_distr.next()
-            for tgt in rng.permutation(self.post.gidlist)[0:n]:
-                if allow_self_connections or (src != tgt):
-                    hoc_commands += self.__connect(src, tgt)
-        return hoc_commands
+        c = connector_class(n=n, allow_self_connections=allow_self_connections)
+        return c.connect(self)
+    
+    def _fixedNumberPre(self, parameters):
+        """Each presynaptic cell makes a fixed number of connections."""
+        return self._fixedNumber(parameters, FixedNumberPreConnector)
             
     def _fixedNumberPost(self, parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-            assert n > 0
-            fixed = True
-        elif type(parameters) == types.DictType:
-            if parameters.has_key('n'): # all cells have same number of connections
-                n = int(parameters['n'])
-                assert n > 0
-                fixed = True
-            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
-                rand_distr = parameters['rand_distr']
-                assert isinstance(rand_distr, RandomDistribution)
-                fixed = False
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        elif isinstance(parameters, RandomDistribution):
-            rand_distr = parameters
-            fixed = False
-        else:
-            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-        hoc_commands = []
-        
-        if self.rng:
-            rng = self.rng
-        else:
-            rng = numpy.random
-        for tgt in self.post.gidlist:            
-            # pick n neurons at random
-            if not fixed:
-                n = rand_distr.next()
-            for src in rng.permutation(self.pre.gidlist)[0:n]:
-                if allow_self_connections or (src != tgt):
-                    hoc_commands += self.__connect(src, tgt)
-        return hoc_commands
+        return self._fixedNumber(parameters, FixedNumberPostConnector)
     
     def _fromFile(self, parameters):
         """

@@ -577,6 +577,28 @@ class ProjectionInitTest(unittest.TestCase):
                    and (0 < len(prj2) < len(self.source33)*len(self.target33)) 
                 assert prj1.connections == prj2.connections, "%s %s" % (rngclass, expr)
 
+    def testFixedNumberPre(self):
+        c1 = neuron.FixedNumberPreConnector(10)
+        c2 = neuron.FixedNumberPreConnector(3)
+        c3 = neuron.FixedNumberPreConnector(random.RandomDistribution('poisson',[5]))
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                for c in c1, c2:
+                    prj1 = neuron.Projection(srcP, tgtP, c)
+                    self.assertEqual(len(prj1.connections), c.n*len(tgtP))
+                prj3 = neuron.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
+
+    def testFixedNumberPost(self):
+        c1 = neuron.FixedNumberPostConnector(10)
+        c2 = neuron.FixedNumberPostConnector(3)
+        c3 = neuron.FixedNumberPostConnector(random.RandomDistribution('poisson',[5]))
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                for c in c1, c2:
+                    prj1 = neuron.Projection(srcP, tgtP, c)
+                    self.assertEqual(len(prj1.connections), c.n*len(srcP))
+                prj2 = neuron.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
+
     def testSaveAndLoad(self):
         prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
         prj1.setDelays(1)
