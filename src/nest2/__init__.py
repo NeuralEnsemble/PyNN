@@ -993,6 +993,8 @@ class Projection(common.Projection):
         if hasattr(self, '_short_term_plasticity_parameters') and self._short_term_plasticity_parameters:
             synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
             synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
+            if 'num_connectors' in synapse_defaults:
+                synapse_defaults.pop('num_connectors')
             synapse_defaults.update(self._short_term_plasticity_parameters)
             nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)
 
