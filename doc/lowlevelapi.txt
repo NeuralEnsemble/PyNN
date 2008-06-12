@@ -189,7 +189,7 @@ To record action potentials use the ``record()`` function and to record membrane
 The arguments for both functions are a cell id or list of ids, and a filename, e.g.::
 
     >>> record(cell, "spikes.dat")
-    >>> record_v(cell_list, "allspikes.dat")
+    >>> record_v(cell_list, "Vm.dat")
     
 By default, all simulators write data files in the same format.
 

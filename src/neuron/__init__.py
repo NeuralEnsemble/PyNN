@@ -110,6 +110,7 @@ class ID(int, common.IDMixin):
 
     def set_native_parameters(self, parameters):
         cell = self._hoc_cell()
+        logging.debug("Setting %s in %s" % (parameters, cell))
         for name, val in parameters.items():
             if hasattr(val, '__len__'):
                 setattr(cell, name, Vector(val).hoc_obj)
@@ -298,7 +299,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global nhost, myid, logger, initialised, quit_on_end
+    global nhost, myid, logger, initialised, quit_on_end, running
     load_mechanisms()
     if 'quit_on_end' in extra_params:
         quit_on_end = extra_params['quit_on_end']
@@ -322,6 +323,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     if initialised:
         hoc_commands = ['dt = %f' % timestep,
                         'min_delay = %g' % min_delay]
+        running = False
     else:
         hoc_commands = [
             'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','standardCells.hoc'),
@@ -358,7 +360,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     else:
         #myid = HocToPy.get('pc.id()','int')
         myid = int(h.pc.id())
-    print "\nHost #%d of %d" % (myid+1, nhost)
+    #print "\nHost #%d of %d" % (myid+1, nhost)
+    vfilelist = {}
+    spikefilelist = {}
     
     initialised = True
     return int(myid)
@@ -786,6 +790,7 @@ class Population(common.Population):
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
+
         if isinstance(param, str):
             if isinstance(val, (str, float, int)):
                 param_dict = {param: float(val)}
@@ -797,6 +802,7 @@ class Population(common.Population):
             param_dict = param
         else:
             raise common.InvalidParameterValueError
+        logging.debug("Setting %s in %s" % (param_dict, self.label))
         for cell in self.gidlist:
             cell.set_parameters(**param_dict)
 

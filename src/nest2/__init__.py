@@ -410,11 +410,14 @@ def _record(variable, source, filename):
     ss_dict = {"to_file" : True, "withgid" : True, "withtime" : True}
     
     # check for older nest2 with need for interval
-    if len(nest.GetStatus(recording_device, 'interval')) == 1: # returns a list of length 1 if 'interval' is present, otherwise returns the whole dict 
-        print "PyNN Warning: nest2 recording_device.interval detected."
-        print "Please upgrade to a more recent version of nest 2"
-        print "Transition code only temporarily supported."
-        ss_dict['interval'] = nest.GetStatus([0],"resolution")[0]
+    try:
+        if len(nest.GetStatus(recording_device, 'interval')) == 1: # returns a list of length 1 if 'interval' is present, otherwise returns the whole dict 
+            print "PyNN Warning: nest2 recording_device.interval detected."
+            print "Please upgrade to a more recent version of nest 2"
+            print "Transition code only temporarily supported."
+            ss_dict['interval'] = nest.GetStatus([0],"resolution")[0]
+    except nest.hl_api.NESTError:
+        pass
         
     nest.SetStatus(recording_device,ss_dict)
 
@@ -739,12 +742,14 @@ class Population(common.Population):
             ss_dict = {"to_file" : True, "withgid" : True, "withtime" : True}
     
             # check for older nest2 with need for interval
-            if len(nest.GetStatus(self.recorders[variable], 'interval')) == 1:
-                print "PyNN Warning: nest2 recording_device.interval detected."
-                print "Please upgrade to a more recent version of nest 2"
-                print "Transition code only temporarily supported."
-                ss_dict['interval'] = nest.GetStatus([0],"resolution")[0]
-
+            try:
+                if len(nest.GetStatus(self.recorders[variable], 'interval')) == 1:
+                    print "PyNN Warning: nest2 recording_device.interval detected."
+                    print "Please upgrade to a more recent version of nest 2"
+                    print "Transition code only temporarily supported."
+                    ss_dict['interval'] = nest.GetStatus([0],"resolution")[0]
+            except nest.hl_api.NESTError:
+                pass
             nest.SetStatus(self.recorders[variable],ss_dict)
 
         # create list of neurons
@@ -850,8 +855,11 @@ class Population(common.Population):
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        n_spikes = nest.GetStatus(self.recorders['spikes'], "events")[0]
-        return float(n_spikes)/self.n_rec
+        events = nest.GetStatus(self.recorders['spikes'], "events")[0]
+        if is_number(events):
+            return float(events)/self.n_rec
+        else:
+            return len(events['times'])
 
     def randomInit(self, rand_distr):
         """
@@ -985,6 +993,8 @@ class Projection(common.Projection):
         if hasattr(self, '_short_term_plasticity_parameters') and self._short_term_plasticity_parameters:
             synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
             synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
+            if 'num_connectors' in synapse_defaults:
+                synapse_defaults.pop('num_connectors')
             synapse_defaults.update(self._short_term_plasticity_parameters)
             nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)
 

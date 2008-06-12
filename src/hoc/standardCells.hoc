@@ -270,6 +270,10 @@ begintemplate SpikeSource
       if (recording == 1) {
         spiketimes.append(input_spiketimes)
       }
+    } else {
+      source.start = start
+      source.interval = interval
+      source.number = number
     }
   }
 
