@@ -194,17 +194,61 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 idx_pre += 1
         return hoc_commands
 
+class _FixedNumberConnector(common.FixedNumberPreConnector, HocConnector):
+    
+    def _connect(self, projection, x_list, y_list, type):
+        weight = self.getWeight(self.weights)
+        delay = self.getDelay(self.delays)
+        hoc_commands = []
+        
+        if projection.rng:
+            if isinstance(projection.rng, NativeRNG):
+                raise Exception("NativeRNG not yet supported for the FixedNumberPreConnector")
+            rng = projection.rng
+        else:
+            rng = numpy.random
+        for y in y_list:            
+            # pick n neurons at random
+            if hasattr(self, 'rand_distr'):
+                n = self.rand_distr.next()
+            elif hasattr(self, 'n'):
+                n = self.n
+            candidates = x_list
+            xs = []
+            while len(xs) < n: # if the number of requested cells is larger than the size of the
+                                    # presynaptic population, we allow multiple connections for a given cell
+                xs += [candidates[candidates.index(id)] for id in rng.permutation(candidates)[0:n]]
+                # have to use index() because rng.permutation returns ints, not ID objects
+            xs = xs[:n]
+            for x in xs:
+                if self.allow_self_connections or (x != y):
+                    if hasattr(weight, 'next'):
+                        w = weight.next()
+                    else:
+                        w = weight
+                    if hasattr(delay, 'next'):
+                        d = delay.next()
+                    else:
+                        d = delay
+                    if type == 'pre':
+                        hoc_commands += self.singleConnect(projection, x, y, w, d)
+                    elif type == 'post':
+                        hoc_commands += self.singleConnect(projection, y, x, w, d)
+                    else:
+                        raise Exception('Problem in _FixedNumberConnector')
+        return hoc_commands
 
-class FixedNumberPreConnector(common.FixedNumberPreConnector, HocConnector):
+
+class FixedNumberPreConnector(_FixedNumberConnector):
     
     def connect(self, projection):
-        raise Exception("Not implemented yet !")
+        return self._connect(projection, projection.pre.gidlist, projection.post.gidlist, 'pre')
 
 
-class FixedNumberPostConnector(common.FixedNumberPostConnector, HocConnector):
-    
+class FixedNumberPostConnector(_FixedNumberConnector):
+     
     def connect(self, projection):
-        raise Exception("Not implemented yet !")
+        return self._connect(projection, projection.post.gidlist, projection.pre.gidlist, 'post')
 
 
 class FromListConnector(common.FromListConnector, HocConnector):
