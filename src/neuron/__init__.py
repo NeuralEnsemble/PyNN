@@ -47,10 +47,7 @@ class ID(int, common.IDMixin):
     where p is a Population object. The question is, how big a memory/performance
     hit is it to replace integers with ID objects?
     """
-    
-    #def __init__(self, n):
-    #    common.ID.__init__(self, n)
-    #    self.hocname = None
+
     def __init__(self, n):
         int.__init__(n)
         common.IDMixin.__init__(self)
@@ -65,11 +62,11 @@ class ID(int, common.IDMixin):
             return self._get_hoc_parameter(cell, name)
     
     def _hoc_cell(self):
+        """Returns the hoc object corresponding to the cell with this id."""
         assert self in gidlist, "Cell %d does not exist on this node" % self
         if self.parent:
             hoc_cell_list = getattr(h, self.parent.label)
             try:
-                #cell = hoc_cell_list.object(self - self.parent.gid_start)
                 list_index = self.parent.gidlist.index(self)
                 cell = hoc_cell_list.object(list_index)
             except RuntimeError:
@@ -312,23 +309,18 @@ class Recorder(object):
         ids = Set([id for id in ids if id in self.population.gidlist])
         new_ids = list( ids.difference(self.recorded) )
         self.recorded = self.recorded.union(ids)
-        if self.population is None:
-            cell_template = "cell%d"
-            id_list = new_ids
-        else:
-            cell_template = "%s.object(%s)" % (self.population.hoc_label, "%d")
-            id_list = self.population.gidlist
+        
         if self.variable == 'spikes':
-            template = 'tmp = %s.record(1)' % cell_template
-        elif self.variable == 'v': 
-            template = 'tmp = %s.record_v(1,%g)' % (cell_template, get_time_step())
-        hoc_commands = []
-        for src in new_ids:
-            hoc_commands += [template % id_list.index(src)]
-        hoc_execute(hoc_commands, "---Recorder.record() ---")
+            for cell in new_ids:
+                cell._hoc_cell().record(1)
+        elif self.variable == 'v':
+            dt = get_time_step()
+            for cell in new_ids:
+                cell._hoc_cell().record_v(1, dt)    
         
     def get(self, gather=False):
         """Returns the recorded data."""
+        # not implemented yet
         data = recording.readArray(filename, sepchar=None)
         data = recording.convert_compatible_output(data, self.population, variable)
         return data
@@ -439,48 +431,38 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     # All the objects that will be used frequently in the hoc code are declared in the setup
     
     if initialised:
-        hoc_commands = ['dt = %f' % timestep,
-                        'min_delay = %g' % min_delay]
+        h.dt = timestep
+        h.min_delay = min_delay
         running = False
     else:
-        hoc_commands = [
-            'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','standardCells.hoc'),
-            'tmp = xopen("%s")' % os.path.join(pyNN_path[0],'hoc','odict.hoc'),
-            'objref pc',
-            'pc = new ParallelContext()',
-            'dt = %f' % timestep,
-            'tstop = 0',
-            'min_delay = %g' % min_delay,
-            'create dummy_section',
-            'access dummy_section',
-            'objref netconlist, nil',
-            'netconlist = new List()', 
-            'strdef cmd',
-            'strdef fmt', 
-            'objref nc', 
-            'objref rng',
-            'objref cell']    
+        tmp = h.xopen(os.path.join(pyNN_path[0],'hoc','standardCells.hoc'))
+        tmp = h.xopen(os.path.join(pyNN_path[0],'hoc','odict.hoc'))
+        h('objref pc')
+        h('pc = new ParallelContext()')
+        h.dt = timestep
+        h('tstop = 0')
+        h('min_delay = %f' % min_delay)
+        #'create dummy_section',
+        #    'access dummy_section',
+        h('objref netconlist, nil')
+        h('netconlist = new List()') 
+        h('strdef cmd')
+        h('strdef fmt') 
+        h('objref nc') 
+        h('objref rng')
+        h('objref cell')    
         #---Experimental--- Optimize the simulation time ? / Reduce inter-processors exchanges ?
-        hoc_commands += [
-            'tmp   = pc.spike_compress(1,0)']
+        tmp = h.pc.spike_compress(1,0)
         if extra_params.has_key('use_cvode') and extra_params['use_cvode'] == True:
-            hoc_commands += [
-                'objref cvode',
-                'cvode = new CVode()',
-                'cvode.active(1)']   
+            h('objref cvode')
+            h('cvode = new CVode()')
+            h.cvode.active(1)
         
-    hoc_execute(hoc_commands,"--- setup() ---")
-    
-    #nhost = HocToPy.get('pc.nhost()','int')
     nhost = int(h.pc.nhost())
     if nhost < 2:
         nhost = 1; myid = 0
     else:
-        #myid = HocToPy.get('pc.id()','int')
         myid = int(h.pc.id())
-    #print "\nHost #%d of %d" % (myid+1, nhost)
-    vfilelist = {}
-    spikefilelist = {}
     
     initialised = True
     return int(myid)
@@ -491,32 +473,28 @@ def end(compatible_output=True):
     
     for recorder in recorder_list:
         recorder.write(gather=False, compatible_output=compatible_output)
-    hoc_commands = []
-    hoc_commands += ['tmp = pc.runworker()',
-                     'tmp = pc.done()']
-    hoc_execute(hoc_commands,"--- end() ---")
+    h.pc.runworker()
+    h.pc.done()
     if quit_on_end:
-        hoc.execute('tmp = quit()') # sometimes needed, sometimes not wanted. Maybe a 'quit_on_end' kwarg for setup?
+        h.quit()
         logging.info("Finishing up with NEURON.")
         sys.exit(0)
 
 def run(simtime):
     """Run the simulation for simtime ms."""
     global running
-    hoc_commands = []
+
     if not running:
         running = True
-        hoc_commands += ['local_minimum_delay = pc.set_maxstep(10)',
-                         'tmp = finitialize()',
-                         'tstop = 0']
-        hoc_execute(hoc_commands,"--- run() ---")
+        h('local_minimum_delay = pc.set_maxstep(10)')
+        h.finitialize()
+        h.tstop = 0
         logging.debug("local_minimum_delay on host #%d = %g" % (myid, h.local_minimum_delay))
         if nhost > 1:
             assert h.local_minimum_delay >= get_min_delay(),\
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (h.local_minimum_delay, get_min_delay())
-    hoc_commands += ['tstop += %f' % simtime,
-                     'tmp = pc.psolve(tstop)']
-    hoc_execute(hoc_commands,"--- run() ---")
+    h.tstop = simtime
+    h.pc.psolve(h.tstop)
     return get_current_time()
 
 def get_current_time():
@@ -571,6 +549,11 @@ def create(cellclass, param_dict=None, n=1):
                          'tmp = cell%d.connect2target(nil, nc)' % cell_id,
                          #'nc = new NetCon(cell%d.source, nil)' % cell_id,
                          'tmp = pc.cell(%d, nc)' % cell_id]
+        #h('tmp = pc.set_gid2node(%d,%d)' % (cell_id, myid))
+        #h('objref cell%d' % cell_id)
+        #h('cell%d = new %s(%s)' % (cell_id, hoc_name, argstr))
+        #h('tmp = cell%d.connect2target(nil, nc)' % cell_id)
+        #h('tmp = pc.cell(%d, nc)' % cell_id)
     hoc_execute(hoc_commands, "--- create() ---")
 
     gidlist.extend(newgidlist)
@@ -970,13 +953,11 @@ class Population(common.Population):
         elif isinstance(record_from, int): # record from a number of cells, selected at random  
             # Each node will record N/nhost cells...
             nrec = int(record_from/nhost)
-            if rng:
-                record_from = rng.permutation(self.gidlist)
-            else:
-                record_from = numpy.random.permutation(self.gidlist)
-            # Taken as random in self.gidlist
-            record_from = record_from[0:nrec]
-            record_from = numpy.array(record_from) # is this line necessary?
+            if not rng:
+                rng = numpy.random
+            record_from = rng.permutation(self.gidlist)[0:nrec] # need ID objects, permutation returns integers
+            # need ID objects, permutation returns integers
+            record_from = [self.gidlist.index(i) for i in record_from]
         else:
             raise Exception("record_from must be either a list of cells or the number of cells to record from")
         # record_from is now a list or numpy array
