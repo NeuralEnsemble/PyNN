@@ -16,9 +16,9 @@ from pyNN.nest2.connectors import *
 from pyNN.nest2.synapses import *
 Set = set
 
-recorder_dict  = {}
+recorder_list = []
 tempdirs       = []
-recording_device_names = {'spikes': 'spike_detector',
+RECORDING_DEVICE_NAMES = {'spikes': 'spike_detector',
                           'v': 'voltmeter',
                           'conductance': 'conductancemeter'}
 DEFAULT_BUFFER_SIZE = 10000
@@ -93,6 +93,78 @@ class Connection(object):
 
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
+
+
+class Recorder(object):
+    """Encapsulates data and functions related to recording model variables."""
+    
+    def __init__(self, variable, population=None, file=None):
+        """
+        `file` should be one of:
+            a file-name,
+            `None` (write to a temporary file)
+            `False` (write to memory).
+        """
+        assert variable in RECORDING_DEVICE_NAMES
+        self.variable = variable
+        self.filename = file or None
+        self.population = population # needed for writing header information
+        self.recorded = Set([])        
+        # create device
+        device_name = RECORDING_DEVICE_NAMES[variable]
+        self._device = nest.Create(device_name)
+        device_parameters = {"withgid": True, "withtime": True,
+                             "to_file": True, "to_memory": False}
+        if file is False:
+            device_parameters.update(to_file=False, to_memory=True)
+        nest.SetStatus(self._device, device_parameters)
+
+    def record(self, ids):
+        """Add the cells in `ids` to the set of recorded cells."""
+        ids = Set(ids)
+        new_ids = list( ids.difference(self.recorded) )
+        self.recorded = self.recorded.union(ids)
+        
+        device_name = nest.GetStatus(self._device, "model")[0]
+        if device_name == "spike_detector":
+            nest.ConvergentConnect(new_ids, self._device)
+        elif device_name in ('voltmeter', 'conductancemeter'):
+            nest.DivergentConnect(self._device, new_ids)
+        else:
+            raise Exception("%s is not a valid recording device" % device_name)
+    
+    def get(self, gather=False):
+        """Returns the recorded data."""
+        if nest.GetStatus(self._device, 'to_file')[0]:
+            nest_filename = _merge_files(self._device, gather)
+            data = recording.readArray(nest_filename, sepchar=None)
+            os.remove(nest_filename)
+            if data.size > 0:
+                if self.population is not None:
+                    padding = self.population.cell.flatten()[0]
+                else:
+                    padding = 0
+                data[:,0] = data[:,0] - padding
+        elif nest.GetStatus(recorder,'to_memory')[0]:
+            data = nest.GetStatus(recorder,'events')[0]
+            data = recording.convert_compatible_output(data, self.population, variable)
+        return data
+    
+    def write(self, file=None, gather=False, compatible_output=True):
+        user_filename = file or self.filename
+        nest_filename = _merge_files(self._device, gather)
+        if compatible_output:
+            if gather == False and num_processes() > 1:
+                user_filename += '.%d' % rank()
+            if gather == False or rank() == 0: # if we gather, only do this on the master node
+                recording.write_compatible_output(nest_filename, user_filename,
+                                                  self.population, get_time_step())
+        else:
+            system_line = 'cat %s >> %s' % (nest_filename, user_filename)
+            os.system(system_line)
+        # don't want to remove nest_filename at this point in case the user wants to access the data
+        # a second time (e.g. with both getSpikes() and printSpikes()), but we should
+        # maintain a list of temporary files to be deleted at the end of the simulation
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
@@ -265,9 +337,8 @@ def end(compatible_output=True):
 
     # And we postprocess the low level files opened by record()
     # and record_v() method
-    print "Saving the following files:", recorder_dict.keys()
-    for filename in recorder_dict.keys():
-        _print(filename, gather=False, compatible_output=compatible_output)
+    for recorder in recorder_list:
+        recorder.write(gather=False, compatible_output=compatible_output)
 
     for tempdir in tempdirs:
         os.system("rm -rf %s" %tempdir)
@@ -388,54 +459,16 @@ def set(cells, param, val=None):
     for cell in cells:
         cell.set_parameters(**param)
 
-def _connect_recording_device(recorder, record_from=None):
-    #print "Connecting recorder %s to cell(s) %s" % (recorder, record_from)
-    device = nest.GetStatus(recorder, "model")[0]
-    if device == "spike_detector":
-        nest.ConvergentConnect(record_from, recorder)
-    elif device in ('voltmeter', 'conductancemeter'):
-        nest.DivergentConnect(recorder, record_from)
-    else:
-        raise Exception("Not a valid recording device")
-
-def _record(variable, source, filename):
-    """Record spikes to a file. source can be an individual cell or a list of
-    cells."""
-    # would actually like to be able to record to an array and choose later
-    # whether to write to a file.
-    device_name = recording_device_names[variable]
-
-    recording_device = nest.Create(device_name)
-    
-    ss_dict = {"to_file" : True, "withgid" : True, "withtime" : True}
-    
-    # check for older nest2 with need for interval
-    try:
-        if len(nest.GetStatus(recording_device, 'interval')) == 1: # returns a list of length 1 if 'interval' is present, otherwise returns the whole dict 
-            print "PyNN Warning: nest2 recording_device.interval detected."
-            print "Please upgrade to a more recent version of nest 2"
-            print "Transition code only temporarily supported."
-            ss_dict['interval'] = nest.GetStatus([0],"resolution")[0]
-    except nest.hl_api.NESTError:
-        pass
-        
-    nest.SetStatus(recording_device,ss_dict)
-
-    print "Trying to record %s from cell %s using %s %s (filename=%s)" % (variable, source, device_name,
-                                                                          recording_device, filename)
-
-    if type(source) != types.ListType:
-        source = [source]
-    _connect_recording_device(recording_device, record_from=source)
-    if filename is not None:
-        recorder_dict[filename] = recording_device
-
 def record(source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
-    _record('spikes', source, filename)
+    if not hasattr(source, '__len__'):
+        source = [source]
+    recorder = Recorder('spikes', file=filename)
+    recorder.record(source)
+    recorder_list.append(recorder)
 
 def record_v(source, filename):
     """
@@ -443,7 +476,11 @@ def record_v(source, filename):
     a list of cells."""
     # would actually like to be able to record to an array and
     # choose later whether to write to a file.
-    _record('v', source, filename)
+    if not hasattr(source, '__len__'):
+        source = [source]
+    recorder = Recorder('v', file=filename)
+    recorder.record(source)
+    recorder_list.append(recorder)
 
 def _merge_files(recorder, gather):
     """
@@ -473,58 +510,6 @@ def _merge_files(recorder, gather):
     if gather and len(node_list) > 1:
         raise Exception("gather not yet implemented")
     return merged_filename
-
-def _print(user_filename, gather=True, compatible_output=True, population=None,
-           variable=None):
-    global recorder_dict
-
-    if population is None:
-        recorder = recorder_dict[user_filename]
-    else:
-        assert variable in ['spikes', 'v', 'conductance']
-        recorder = population.recorders[variable]
-
-    logging.info("Printing to %s from recorder %s (compatible_output=%s)" % (user_filename, recorder,
-                                                                             compatible_output))
-    nest_filename = _merge_files(recorder, gather)
-
-    if compatible_output:
-        if gather == False and num_processes() > 1:
-            user_filename += '.%d' % rank()
-        if gather == False or rank() == 0: # if we gather, only do this on the master node
-            recording.write_compatible_output(nest_filename, user_filename,
-                                              population, get_time_step())
-    else:
-        system_line = 'cat %s >> %s' % (nest_filename, user_filename)
-        os.system(system_line)
-
-    os.remove(nest_filename)
-    if population is None:
-        recorder_dict.pop(user_filename)
-
-def _get_recorded_data(population=None, variable=None):
-    global recorder_dict
-
-    assert variable in ['spikes', 'v', 'conductance']
-    recorder = population.recorders[variable]
-
-    if nest.GetStatus(recorder,'to_file')[0]:
-        nest_filename = _merge_files(recorder, gather=True)
-        data = recording.readArray(nest_filename, sepchar=None)
-        os.remove(nest_filename)
-        
-        if data.size > 0:
-            if population is not None:
-                padding = population.cell.flatten()[0]
-            else:
-                padding = 0
-            data[:,0] = data[:,0] - padding
-            
-    elif nest.GetStatus(recorder,'to_memory')[0]:
-        data = nest.GetStatus(recorder,'events')[0]
-        data = recording.convert_compatible_output(data, population, variable)
-         
-    return data
 
 
 # ==============================================================================
@@ -579,8 +564,9 @@ class Population(common.Population):
 
         if not self.label:
             self.label = 'population%d' % Population.nPop
-        self.recorders = {'spikes': None, 'v': None, 'conductance': None}
-        self.recorded = {'spikes': Set(), 'v': Set(), 'conductance': Set()}
+        self.recorders = {}
+        for variable in RECORDING_DEVICE_NAMES:
+            self.recorders[variable] = Recorder(variable, population=self)
         Population.nPop += 1
 
     def __getitem__(self, addr):
@@ -737,27 +723,8 @@ class Population(common.Population):
                 setattr(cell, parametername, val)
 
     def _record(self, variable, record_from=None, rng=None,to_file=True):
-        assert variable in ('spikes', 'v', 'conductance')
-
-        # create device
-        device_name = recording_device_names[variable]
-        if self.recorders[variable] is None:
-            self.recorders[variable] = nest.Create(device_name)
-
-            ss_dict = {"to_file" : to_file, "to_memory":False,"withgid" : True, "withtime" : True}
-            if to_file == False: ss_dict.update({'to_memory':True})
-    
-            # check for older nest2 with need for interval
-            try:
-                if len(nest.GetStatus(self.recorders[variable], 'interval')) == 1:
-                    print "PyNN Warning: nest2 recording_device.interval detected."
-                    print "Please upgrade to a more recent version of nest 2"
-                    print "Transition code only temporarily supported."
-                    ss_dict['interval'] = nest.GetStatus([0],"resolution")[0]
-            except nest.hl_api.NESTError:
-                pass
-
-            nest.SetStatus(self.recorders[variable],ss_dict)
+        if to_file is False:
+            nest.SetStatus(self.recorders[variable]._device, {'to_file': False, 'to_memory': True})
 
         # create list of neurons
         fixed_list = False
@@ -785,11 +752,7 @@ class Population(common.Population):
             for neuron in rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]:
                 tmp_list.append(neuron)
 
-        tmp_set = Set(tmp_list)
-        tmp_list = list( tmp_set.difference(self.recorded[variable]) )
-        self.recorded[variable] = self.recorded[variable].union(tmp_set)
-        # connect device to neurons
-        _connect_recording_device(self.recorders[variable], record_from=tmp_list)
+        self.recorders[variable].record(tmp_list)
 
     def record(self, record_from=None, rng=None, to_file=True):
         """
@@ -842,8 +805,7 @@ class Population(common.Population):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        _print(filename, gather=gather, compatible_output=compatible_output,
-               population=self, variable="spikes")
+        self.recorders['spikes'].write(filename, gather, compatible_output)
 
     def getSpikes(self, gather=True):
         """
@@ -855,7 +817,7 @@ class Population(common.Population):
         NOTE: getSpikes or printSpikes should be called only once per run,
         because they mangle simulator recorder files.
         """
-        return _get_recorded_data(population=self, variable="spikes")
+        return self.recorders['spikes'].get(gather)
 
     def get_v(self, gather=True):
         """
@@ -867,7 +829,7 @@ class Population(common.Population):
         NOTE: getSpikes or printSpikes should be called only once per run,
         because they mangle simulator recorder files.
         """
-        return _get_recorded_data(population=self, variable="v")
+        return self.recorders['v'].get(gather)
             
     def get_c(self, gather=True):
         """
@@ -879,18 +841,15 @@ class Population(common.Population):
         NOTE: getSpikes or printSpikes should be called only once per run,
         because they mangle simulator recorder files.
         """
-        return _get_recorded_data(population=self, variable="conductance")
+        return self.recorders['conductance'].get(gather)
     
     def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
-        # gather is not relevant, but is needed for API consistency
-        events = nest.GetStatus(self.recorders['spikes'], "events")[0]
-        if is_number(events):
-            return float(events)/self.n_rec
-        else:
-            return len(events['times'])
+        n_spikes = len(self.recorders['spikes'].get(gather))
+        n_rec = len(self.recorders['spikes'].recorded)
+        return float(n_spikes)/n_rec
 
     def randomInit(self, rand_distr):
         """
@@ -918,8 +877,7 @@ class Population(common.Population):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        _print(filename, gather=gather, compatible_output=compatible_output,
-               population=self, variable="v")
+        self.recorders['v'].write(filename, gather, compatible_output)
 
     def print_c(self, filename, gather=True, compatible_output=True):
         """
@@ -934,8 +892,7 @@ class Population(common.Population):
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        _print(filename, gather=gather, compatible_output=compatible_output,
-               population=self, variable="conductance")
+        self.recorders['conductance'].write(filename, gather, compatible_output)
 
     def describe(self):
         """

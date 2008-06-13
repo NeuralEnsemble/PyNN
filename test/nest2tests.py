@@ -415,9 +415,9 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         spike_times = numpy.arange(10.0, 200.0, 10.0)
         spike_source = nest.Population(1, nest.SpikeSourceArray, {'spike_times': spike_times})
         spike_source.record()
-        nest.run(100.0)
+        nest.run(101.0)
         spikes = spike_source.getSpikes()[:,1]
-        self.assert_( max(spikes) == 100.0 )
+        self.assert_( max(spikes) == 100.0, "max(spikes)=%s" % max(spikes) )
 
 # ==============================================================================
 class ProjectionInitTest(unittest.TestCase):
