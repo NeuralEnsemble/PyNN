@@ -27,12 +27,13 @@ Set = set
 gid           = 0
 ncid          = 0
 gidlist       = []
-vfilelist     = {}
-spikefilelist = {}
+recorder_list = []
 running       = False
 initialised   = False
 nrn_dll_loaded = []
 quit_on_end   = True
+RECORDING_VECTOR_NAMES = {'spikes': 'spiketimes',
+                          'v': 'vtrace'}
 
 # ==============================================================================
 #   Utility classes and functions
@@ -288,6 +289,123 @@ class HocToPy:
         if HocToPy.hocvar is None:
             raise HocError("caused by HocToPy.bool('%s')" % condition)
         return HocToPy.hocvar
+
+
+class Recorder(object):
+    """Encapsulates data and functions related to recording model variables."""
+    
+    def __init__(self, variable, population=None, file=None):
+        """
+        `file` should be one of:
+            a file-name,
+            `None` (write to a temporary file)
+            `False` (write to memory).
+        """
+        assert variable in RECORDING_VECTOR_NAMES
+        self.variable = variable
+        self.filename = file or None
+        self.population = population # needed for writing header information
+        self.recorded = Set([])        
+
+    def record(self, ids):
+        """Add the cells in `ids` to the set of recorded cells."""
+        ids = Set([id for id in ids if id in self.population.gidlist])
+        new_ids = list( ids.difference(self.recorded) )
+        self.recorded = self.recorded.union(ids)
+        if self.population is None:
+            cell_template = "cell%d"
+            id_list = new_ids
+        else:
+            cell_template = "%s.object(%s)" % (self.population.hoc_label, "%d")
+            id_list = self.population.gidlist
+        if self.variable == 'spikes':
+            template = 'tmp = %s.record(1)' % cell_template
+        elif self.variable == 'v': 
+            template = 'tmp = %s.record_v(1,%g)' % (cell_template, get_time_step())
+        hoc_commands = []
+        for src in new_ids:
+            hoc_commands += [template % id_list.index(src)]
+        hoc_execute(hoc_commands, "---Recorder.record() ---")
+        
+    def get(self, gather=False):
+        """Returns the recorded data."""
+        data = recording.readArray(filename, sepchar=None)
+        data = recording.convert_compatible_output(data, self.population, variable)
+        return data
+    
+    def write(self, file=None, gather=False, compatible_output=True):
+        hoc_execute(['objref gathered_vec_list',
+                     'gathered_vec_list =  new List()'])
+        vector_operation = ''
+        if self.variable == 'spikes':
+            vector_operation = '.where("<=", tstop)'
+        header = "# dt = %g\\n# n = %d\\n" % (get_time_step(), int(h.tstop/get_time_step()))
+        if self.population is None:
+            cell_template = "cell%d"
+            post_label = "node%d: post cellX.%s" % (myid, self.variable)
+            id_list = gidlist
+            padding = 0
+        else:
+            cell_template = "%s.object(%s)" % (self.population.hoc_label, "%d")
+            post_label = 'node%d: post_%s.%s' % (myid, self.population.hoc_label, self.variable)
+            id_list = self.population.gidlist
+            padding = self.population.gid_start
+            
+        def post_data():
+            pack_template = 'tmp = pc.pack(%s.%s%s)' % (cell_template,
+                                                        RECORDING_VECTOR_NAME[self.variable],
+                                                        vector_operation)
+            for cell in self.recorded:
+                hoc_commands += ['tmp = pc.pack(%d)' % id_list.index(cell),
+                                 pack_template % id_list.index(cell)]
+            hoc_commands += ['tmp = pc.post("%s")' % post_label]
+            hoc_execute(hoc_commands,"--- Population[%s].__print()__ --- [Post objects to master]" %self.label)
+        def take_data():
+            hoc_commands = ['tmp = pc.take(post_label)']
+            for node in range(1, num_processes()):
+                hoc_commands += ['gathered_vec_list.append(pc.upkscalar())',
+                                 'gathered_vec_list.append(pc.upkvec())']
+        def write_data():
+            if self.population is None:
+                header = "# first_id = %d\\n# last_id = %d\\n" % (min(self.recorded), max(self.recorded))
+            else:
+                header = "# %d" % self.population.dim[0]
+                for dimension in list(self.population.dim)[1:]:
+                    header = "%s\t%d" % (header, dimension)
+                header += "\\n# first_id = %d\\n# last_id = %d\\n" % (self.population.gid_start, self.population.gid_start+self.population.size-1)
+            
+            if self.variable == 'v':
+                header += "# dt = %g\\n# n = %d\\n" % (get_time_step(), int(h.tstop/get_time_step()))
+                num_format = "%.6g"
+            elif self.variable == 'spikes':
+                header += "# dt = %g\\n"% get_time_step()
+                num_format = "%.2f"
+            filename = file or self.filename
+            hoc_commands = ['objref fileobj',
+                            'fileobj = new File()',
+                            'tmp = fileobj.wopen("%s")' % filename,
+                            'tmp = fileobj.printf("%s")' % header,
+                            'i = 0']
+            write_template = 'tmp = %s.%s%s.printf(fileobj, fmt)' % (cell_template,
+                                                                     RECORDING_VECTOR_NAMES[self.variable],
+                                                                     vector_operation)
+            for cell in self.recorded:
+                hoc_commands += ['fmt = "%s\\t%d\\n"' % (num_format, cell-padding),
+                                 write_template % id_list.index(cell)]
+            # writing gathered data is currently broken
+            #hoc_commands += ['while i < gathered_vec_list.count()-2 { gathered_vec_list.o(i+1).printf(fileobj, "%s broken") ' % num_format]
+            hoc_commands += ['tmp = fileobj.close()']
+            hoc_execute(hoc_commands, "Recorder.write()")
+            
+        if gather:
+            if myid != 0: # on slave nodes, post data
+                post_data()
+            else:
+                take_data()
+                write_data()
+        else:
+            filename += ".%d" % myid    
+            write_data()
                 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -370,36 +488,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     global logfile, myid #, vfilelist, spikefilelist
+    
+    for recorder in recorder_list:
+        recorder.write(gather=False, compatible_output=compatible_output)
     hoc_commands = []
-    if len(vfilelist) > 0:
-        hoc_commands = ['objref fileobj',
-                        'fileobj = new File()']
-        while len(vfilelist):
-            filename, cell_list = vfilelist.popitem()
-            #tstop = HocToPy.get('tstop','float')
-            tstop = h.tstop
-            header = "# dt = %g\\n# n = %d\\n" % (get_time_step(), int(tstop/get_time_step()))
-            header += "# first_id = %d\\n# last_id = %d\\n" % (cell_list[0], cell_list[-1])
-            hoc_commands += ['tmp = fileobj.wopen("%s")' % filename,
-                             'tmp = fileobj.printf("%s")' % header]
-            for cell in cell_list:
-                hoc_commands += ['fmt = "%s\\t%d\\n"' % ("%.6g", cell),
-                                 'tmp = cell%d.vtrace.printf(fileobj, fmt)' % cell]
-            hoc_commands += ['tmp = fileobj.close()']
-    if len(spikefilelist) > 0:
-        hoc_commands += ['objref fileobj',
-                        'fileobj = new File()']
-        header = "# dt = %g\\n"% get_time_step()
-        header += "# first_id = %d\\n #last_id = %d\\n" % (cell_list[0], cell_list[-1])
-        while len(spikefilelist):
-            filename, cell_list = spikefilelist.popitem()
-            hoc_commands += ['tmp = fileobj.wopen("%s")' % filename,
-                             'tmp = fileobj.printf("%s")' % header]
-            for cell in cell_list:
-                hoc_commands += ['fmt = "%s\\t%d\\n"' % ("%.2f", cell),
-                                 #'tmp = fileobj.printf("# cell%d\\n")' % cell,
-                                 'tmp = cell%d.spiketimes.where("<=", tstop).printf(fileobj, fmt)' % cell]
-            hoc_commands += ['tmp = fileobj.close()']
     hoc_commands += ['tmp = pc.runworker()',
                      'tmp = pc.done()']
     hoc_execute(hoc_commands,"--- end() ---")
@@ -557,17 +649,11 @@ def record(source, filename):
     cells."""
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
-    global spikefilelist, gidlist
-    if type(source) != types.ListType:
+    if not hasattr(source, '__len__'):
         source = [source]
-    hoc_commands = []
-    if not spikefilelist.has_key(filename):
-        spikefilelist[filename] = []
-    for src in source:
-        if src in gidlist:
-            hoc_commands += ['tmp = cell%d.record(1)' % src]
-            spikefilelist[filename] += [src] # writing to file is done in end()
-    hoc_execute(hoc_commands, "---record() ---")
+    recorder = Recorder('spikes', file=filename)
+    recorder.record(source)
+    recorder_list.append(recorder)
 
 def record_v(source, filename):
     """
@@ -575,20 +661,12 @@ def record_v(source, filename):
     a list of cells."""
     # would actually like to be able to record to an array and
     # choose later whether to write to a file.
-    global vfilelist, gidlist
-    if type(source) != types.ListType:
+    if not hasattr(source, '__len__'):
         source = [source]
-    hoc_commands = []
-    if not vfilelist.has_key(filename):
-        vfilelist[filename] = []
-    for src in source:
-        if src in gidlist:
-            if src.parent:
-                raise Exception("The record_v() function does not work with cells in a Population. Please use the record_v() method of the Population object.")
-            else:
-                hoc_commands += ['tmp = cell%d.record_v(1,%g)' % (src, get_time_step())]
-            vfilelist[filename] += [src] # writing to file is done in end()
-    hoc_execute(hoc_commands, "---record_v() ---")
+    recorder = Recorder('spikes', file=filename)
+    recorder.record(source)
+    recorder_list.append(recorder)
+
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -646,8 +724,9 @@ class Population(common.Population):
             self.label = 'population%d' % Population.nPop
         self.hoc_label = self.label.replace(" ","_")
         
-        self.record_from = { 'spiketimes': Set(), 'vtrace': Set() }
-        
+        self.recorders = {}
+        for variable in RECORDING_VECTOR_NAMES:
+            self.recorders[variable] = Recorder(variable, population=self)        
         
         # Now the gid and cellclass are stored as instance of the ID class, which will allow a syntax like
         # p[i, j].set(param, val). But we have also to deal with positions : a population needs to know ALL the positions
@@ -883,9 +962,7 @@ class Population(common.Population):
         Private method called by record() and record_v().
         """
         global myid
-        hoc_commands = []
         fixed_list=False
-
         if isinstance(record_from, list): #record from the fixed list specified by user
             fixed_list=True
         elif record_from is None: # record from all cells:
@@ -903,34 +980,7 @@ class Population(common.Population):
         else:
             raise Exception("record_from must be either a list of cells or the number of cells to record from")
         # record_from is now a list or numpy array
-
-        suffix = ''*(record_what=='spiketimes') + '_v'*(record_what=='vtrace')
-        for id in record_from:
-            if id in self.gidlist:
-                hoc_commands += ['tmp = %s.object(%d).record%s(1)' % (self.hoc_label, self.gidlist.index(id), suffix)]
-
-        # note that self.record_from is not the same on all nodes, like self.gidlist, for example.
-        self.record_from[record_what].update(Set(record_from))
-        hoc_commands += ['objref record_from']
-        hoc_execute(hoc_commands)
-
-        # Then we have to send the lists of local recorded objects to the master node,
-        # but only if the list has not been specified by the user.
-        if fixed_list is False:
-            if myid != 0:  # on slave nodes
-                hoc_commands = ['record_from = new Vector()']
-                for id in self.record_from[record_what]:
-                    if id in self.gidlist:
-                        hoc_commands += ['record_from = record_from.append(%d)' %id]
-                hoc_commands += ['tmp = pc.post("%s.record_from[%s].node[%d]", record_from)' %(self.hoc_label, record_what, myid)]
-                hoc_execute(hoc_commands, "   (Posting recorded cells)")
-            else:          # on the master node
-                for id in range (1, nhost):
-                    hoc_commands = ['record_from = new Vector()']
-                    hoc_commands += ['tmp = pc.take("%s.record_from[%s].node[%d]", record_from)' %(self.hoc_label, record_what, id)]
-                    hoc_execute(hoc_commands)
-                    for j in xrange(int(h.record_from.size())):
-                        self.record_from[record_what].add(int(h.record_from.x[j]))
+        self.recorders[record_what].record(record_from)
 
     def record(self, record_from=None, rng=None):
         """
@@ -940,7 +990,7 @@ class Population(common.Population):
         - or a list containing the ids of the cells to record.
         """
         hoc_comment("--- Population[%s].__record()__ ---" %self.label)
-        self.__record('spiketimes', record_from, rng)
+        self.__record('spikes', record_from, rng)
 
     def record_v(self, record_from=None, rng=None):
         """
@@ -951,53 +1001,7 @@ class Population(common.Population):
         - or a list containing the ids of the cells to record.
         """
         hoc_comment("--- Population[%s].__record_v()__ ---" %self.label)
-        self.__record('vtrace', record_from, rng)
-
-    def __print(self, print_what, filename, num_format, gather, header=None):
-        """Private method used by printSpikes() and print_v()."""
-        global myid
-        vector_operation = ''
-        if print_what == 'spiketimes':
-            vector_operation = '.where("<=", tstop)'
-        if gather and myid != 0: # on slave nodes, post data
-            hoc_commands = []
-            for id in self.record_from[print_what]:
-                if id in self.gidlist:
-                    hoc_commands += ['tmp = pc.post("%s[%d].%s",%s.object(%d).%s%s)' % (self.hoc_label, id,
-                                                                                        print_what,
-                                                                                        self.hoc_label,
-                                                                                        self.gidlist.index(id),
-                                                                                        print_what,
-                                                                                        vector_operation)]
-            hoc_execute(hoc_commands,"--- Population[%s].__print()__ --- [Post objects to master]" %self.label)
-
-        if not gather:
-            filename += ".%d" % myid
-            
-        if myid==0 or not gather:
-            hoc_commands = ['objref fileobj',
-                            'fileobj = new File()',
-                            'tmp = fileobj.wopen("%s")' % filename]
-            if header:
-                hoc_commands += ['tmp = fileobj.printf("%s\\n")' % header]
-            if gather:
-                hoc_commands += ['objref gatheredvec']
-            padding = self.fullgidlist[0]
-            for id in self.record_from[print_what]:
-                addr = self.locate(id)
-                #hoc_commands += ['fmt = "%s\\t%s\\n"' % (num_format, "\\t".join([str(j) for j in addr]))]
-                hoc_commands += ['fmt = "%s\\t%d\\n"' % (num_format, id-padding)]
-                if id in self.gidlist:
-                    hoc_commands += ['tmp = %s.object(%d).%s%s.printf(fileobj, fmt)' % (self.hoc_label,
-                                                                                       self.gidlist.index(id),
-                                                                                       print_what,
-                                                                                       vector_operation)]
-                elif gather: 
-                    hoc_commands += ['gatheredvec = new Vector()']
-                    hoc_commands += ['tmp = pc.take("%s[%d].%s", gatheredvec)' % (self.hoc_label, id, print_what),
-                                     'tmp = gatheredvec.printf(fileobj, fmt)']
-            hoc_commands += ['tmp = fileobj.close()']
-            hoc_execute(hoc_commands,"--- Population[%s].__print()__ ---" %self.label)
+        self.__record('v', record_from, rng)
 
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
@@ -1021,11 +1025,7 @@ class Population(common.Population):
         on that node.
         """        
         hoc_comment("--- Population[%s].__printSpikes()__ ---" %self.label)
-        header = "# %d" %self.dim[0]
-        for dimension in list(self.dim)[1:]:
-            header = "%s\t%d" %(header, dimension)
-        header += "\\n# first_id = %d\\n# last_id = %d\\n" % (self.fullgidlist[0], self.fullgidlist[-1])
-        self.__print('spiketimes', filename,"%.2f", gather, header)
+        self.recorders['spikes'].write(filename, gather, compatible_output)
 
     def print_v(self, filename, gather=True, compatible_output=True):
         """
@@ -1046,15 +1046,8 @@ class Population(common.Population):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        #tstop = HocToPy.get('tstop','float')
-        tstop = h.tstop
-        header = "# dt = %f\\n# n = %d\\n" % (get_time_step(), int(tstop/get_time_step()))
-        header = "%s# %d" %(header, self.dim[0])
-        for dimension in list(self.dim)[1:]:
-                header = "%s\t%d" %(header, dimension)
-        header += "\\n# first_id = %d\\n# last_id = %d\\n" % (self.fullgidlist[0], self.fullgidlist[-1])
         hoc_comment("--- Population[%s].__print_v()__ ---" %self.label)
-        self.__print('vtrace', filename,"%.4g", gather, header)
+        self.recorders['v'].write(filename, gather, compatible_output)
 
     def getSpikes(self, gather=True):
         """
@@ -1065,12 +1058,12 @@ class Population(common.Population):
         """
         # This is a bit of a hack implemetation
         tmpfile = "neuron_tmpfile" # should really use tempfile module
-        self.__print('spiketimes', tmpfile, "%.2f", gather)
+        self.recorders['spikes'].write(tmpfile, gather, compatible_output=False)
         if not gather:
             tmpfile += '%d' % myid
         if myid==0 or not gather:
             f = open(tmpfile, 'r')
-            lines = [line for line in f.read().split('\n') if line] # remove blank lines
+            lines = [line for line in f.read().split('\n') if line and line[0]!='#'] # remove blank and comment lines
             line2spike = lambda s: (int(s[1]), float(s[0]))
             spikes = numpy.array([line2spike(line.split()) for line in lines])
             f.close()
@@ -1089,7 +1082,7 @@ class Population(common.Population):
         if gather and myid != 0:
             hoc_commands = []
             nspikes = 0;ncells  = 0
-            for id in self.record_from['spiketimes']:
+            for id in self.recorders['spikes'].recorded:
                 if id in self.gidlist:
                     #nspikes += HocToPy.get('%s.object(%d).spiketimes.size()' %(self.hoc_label, self.gidlist.index(id)),'int')
                     nspikes += getattr(h, self.hoc_label).object(self.gidlist.index(id)).spiketimes.size()
@@ -1102,7 +1095,7 @@ class Population(common.Population):
         if myid==0 or not gather:
             nspikes = 0.0; ncells = 0.0
             hoc_execute(["nspikes = 0", "ncells = 0"])
-            for id in self.record_from['spiketimes']:
+            for id in self.recorders['spikes'].recorded:
                 if id in self.gidlist:
                     nspikes += getattr(h, self.hoc_label).object(self.gidlist.index(id)).spiketimes.size()
                     ncells  += 1

@@ -444,6 +444,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
        meanSpikeCount() methods of the Population class."""
     
     def setUp(self):
+        neuron.Population.nPop = 0
 	self.pop1 = neuron.Population((3,3), neuron.SpikeSourcePoisson,{'rate': 20})
 	self.pop2 = neuron.Population((3,3), neuron.IF_curr_alpha)
 
@@ -454,7 +455,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
     def testRecordInt(self):
         """Population.record(n): not a full test, just checking there are no Exceptions raised."""
         # Partial record	
-	self.pop1.record(5)
+        self.pop1.record(5)
 	
     def testRecordWithRNG(self):
         """Population.record(n, rng): not a full test, just checking there are no Exceptions raised."""

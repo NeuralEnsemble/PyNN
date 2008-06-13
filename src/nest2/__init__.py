@@ -716,7 +716,6 @@ class Population(common.Population):
         else:
             #rarr = rand_distr.next(n=len(self.cell_local))
             rarr = rand_distr.next(n=self.size)
-            print rank(), self.cell_local[:5], self.cell_local[-5:], len(rarr), len(self.cell_local)
             assert len(rarr) >= len(self.cell_local), "The length of rarr (%d) must be greater than that of cell_local (%d)" % (len(rarr), len(self.cell_local))
             rarr = rarr[:len(self.cell_local)]
             for cell,val in zip(self.cell_local, rarr):
