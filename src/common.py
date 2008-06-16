@@ -53,6 +53,9 @@ def _abstract_method(obj=None):
     # Note that there is a NotImplementedError built-in exception we could use
     raise Exception("Unimplemented abstract method: %s" % _function_id(obj, 1))
 
+def is_listlike(obj):
+    return hasattr(obj, "__len__") and not isinstance(obj, basestring)
+
 def build_translations(*translation_list):
     """
     Build a translation dictionary from a list of translations/transformations.
@@ -92,7 +95,7 @@ class IDMixin(object):
     # class
     
     non_parameter_attributes = ('parent', '_cellclass', 'cellclass',
-                                '_position', 'position', 'hocname')
+                                '_position', 'position', 'hocname', '_cell')
     
     def __init__(self):
         self.parent = None

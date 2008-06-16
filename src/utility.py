@@ -11,6 +11,7 @@ except ImportError:
     SMTPHOST = None
     EMAIL = None
 import sys
+import logging
 
 red     = 0010; green  = 0020; yellow = 0030; blue = 0040;
 magenta = 0050; cyan   = 0060; bright = 0100
@@ -42,3 +43,14 @@ def get_script_args(script, n_args):
         raise Exception("Script requires %d arguments, you supplied %d" % (n_args, len(args)))
     return args
     
+def init_logging(logfile, debug=False):
+    if debug:
+        logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s',
+                    filename=logfile,
+                    filemode='w')
+    else:
+        logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(message)s',
+                    filename=logfile,
+                    filemode='w')

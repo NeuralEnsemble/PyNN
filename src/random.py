@@ -135,7 +135,9 @@ class NativeRNG(AbstractRNG):
     """Signals that the simulator's own native RNG should be used.
     Each simulator module should implement a class of the same name which
     inherits from this and which sets the seed appropriately."""
-    pass
+    
+    def __str__(self):
+        return "AbstractRNG(seed=%s)" % self.seed
 
 
 class RandomDistribution:
@@ -169,3 +171,5 @@ class RandomDistribution:
                              distribution=self.name,
                              parameters=self.parameters)
         
+    def __str__(self):
+        return "RandomDistribution('%(name)s', %(parameters)s, %(rng)s)" % self.__dict__ 

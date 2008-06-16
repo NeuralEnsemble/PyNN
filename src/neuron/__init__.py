@@ -241,22 +241,22 @@ def _translate_synapse_type(synapse_type, weight=None, extra_mechanism=None):
             syn_objref += "_tm"
     return syn_objref
 
-def checkParams(param, val=None):
-    """Check parameters are of valid types, normalise the different ways of
-       specifying parameters and values by putting everything in a dict.
-       Called by set() and Population.set()."""
-    if isinstance(param, str):
-        if isinstance(val, float) or isinstance(val, int):
-            param_dict = {param:float(val)}
-        elif isinstance(val,(str, list)):
-            param_dict = {param:val}
-        else:
-            raise common.InvalidParameterValueError
-    elif isinstance(param, dict):
-        param_dict = param
-    else:
-        raise common.InvalidParameterValueError
-    return param_dict
+#def checkParams(param, val=None):
+#    """Check parameters are of valid types, normalise the different ways of
+#       specifying parameters and values by putting everything in a dict.
+#       Called by set() and Population.set()."""
+#    if isinstance(param, str):
+#        if isinstance(val, float) or isinstance(val, int):
+#            param_dict = {param:float(val)}
+#        elif isinstance(val,(str, list)):
+#            param_dict = {param:val}
+#        else:
+#            raise common.InvalidParameterValueError
+#    elif isinstance(param, dict):
+#        param_dict = param
+#    else:
+#        raise common.InvalidParameterValueError
+#    return param_dict
 
 class HocToPy:
     """Static class to simplify getting variables from hoc."""

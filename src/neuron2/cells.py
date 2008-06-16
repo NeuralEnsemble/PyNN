@@ -6,6 +6,7 @@
 from pyNN import common
 import neuron
 from math import pi
+import logging
 
 ExpISyn   = neuron.new_point_process('ExpISyn')
 AlphaISyn = neuron.new_point_process('AlphaISyn')
@@ -29,6 +30,8 @@ def _new_property(obj_hierarchy, attr_name):
         obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
         return getattr(obj, attr_name)
     return property(fset=set, fget=get)
+
+
 
 class StandardIF(neuron.nrn.Section):
     """docstring"""
@@ -78,13 +81,8 @@ class StandardIF(neuron.nrn.Section):
             
         # need to deal with FinitializeHandler for v_init?
         #self.fih = neuron.FInitializeHandler("memb_init()", obj=self)
-        self.fih2 = neuron.FInitializeHandler('print "kjyuyv"', obj=self)
-        #neuron.h('objref fih3')
-        #neuron.h('fih3 = new FInitializeHandler("reslugis")')
-        #fih4 = neuron.h.new_FInitializeHandler(1, "kurh")
-        #neuron.h('obfunc foobar() { return new FInitializeHandler(1, "kuauw") }')
-        #fih5 = neuron.h.foobar()
-    
+        #self.fih2 = neuron.FInitializeHandler('print "kjyuyv"', obj=self)
+
     def __set_tau_m(self, value):
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
         
@@ -107,7 +105,7 @@ class StandardIF(neuron.nrn.Section):
 
     def record(self, active):
         if active:
-            rec = NetCon(self.source, None)
+            rec = neuron.NetCon(self.source, None)
             rec.record(self.spiketimes)
     
     def record_v(self, active):
@@ -121,7 +119,8 @@ class StandardIF(neuron.nrn.Section):
         if v_init:
             self.v_init = v_init
         self.v = v_init
-        
+    
+
 
 class SpikeSource(object):
     
@@ -142,7 +141,7 @@ class SpikeSource(object):
                 rec.record(self.spiketimes)
             
 
-class IF_curr_alpha(StandardIF, common.IF_curr_alpha):
+class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
@@ -158,15 +157,13 @@ class IF_curr_alpha(StandardIF, common.IF_curr_alpha):
         ('tau_syn_I',  'tau_i'),
         ('v_init',     'v_init'),
     )
-    #hoc_name = "StandardIF"
+    model = StandardIF
     
     def __init__(self, parameters):
         common.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
-        #self.parameters['syn_type']  = 'current'
-        #self.parameters['syn_shape'] = 'alpha'
-        StandardIF.__init__(self, 'current', 'alpha', **self.parameters)
+                                                        # values for not-specified parameters.
+        self.parameters['syn_type']  = 'current'
+        self.parameters['syn_shape'] = 'alpha'
 
 class IF_curr_exp(common.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
@@ -185,11 +182,10 @@ class IF_curr_exp(common.IF_curr_exp):
         ('tau_syn_I',  'tau_i'),
         ('v_init',     'v_init'),
     )
-    hoc_name = "StandardIF"
+    model = StandardIF
     
     def __init__(self, parameters):
         common.IF_curr_exp.__init__(self, parameters)
-        self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'exp'
 
