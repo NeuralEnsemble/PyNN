@@ -102,21 +102,21 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         ('v_reset',    'Vreset'),
         ('v_rest',     'U0'),
         ('v_thresh',   'Theta'),
-        ('e_rev_E',    'V_reversal_E'),
         ('e_rev_I',    'V_reversal_I'),
-        ('cm',         'C',             1000.0),
-        ('tau_refrac', 'TauR',          "max(get_time_step(), tau_refrac)", "TauR"),
         ('tau_syn_E',  'TauSyn_E'),
         ('tau_syn_I',  'TauSyn_I'),
-        ('g_leak',     'gL'),
+        ('g_leak',     'gL')
     )
     nest_name = "iaf_sfa_neuron"
 
     def __init__(self, parameters):
         common.IF_facets_hardware1.__init__(self, parameters)
-        self.parameters['q_relref'] = 0.0
-        self.parameters['q_sfa']    = 0.0
-        self.parameters['python']   = True
+        self.parameters['C']            = 200.0
+        self.parameters['TauR']         =   0.4
+        self.parameters['V_reversal_E'] =   0.0
+        self.parameters['q_relref']     =   0.0
+        self.parameters['q_sfa']        =   0.0
+        self.parameters['python']       = True
 
 
 class SpikeSourcePoisson(common.SpikeSourcePoisson):

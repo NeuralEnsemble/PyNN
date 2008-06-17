@@ -117,15 +117,12 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
     """
 
     translations = common.build_translations(
-        ('cm',         'CM'),
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
-        ('tau_refrac', 't_refrac'),
-        ('g_leak',     'tau_m',    "cm*1000.0/g_leak", "CM*1000.0/tau_m"),
+        ('g_leak',     'tau_m',    "0.2*1000.0/g_leak", "0.2*1000.0/tau_m"),
         ('tau_syn_E',  'tau_e'),
         ('tau_syn_I',  'tau_i'),
-        ('e_rev_E',    'e_e'),
         ('e_rev_I',    'e_i')
     )
     hoc_name = "StandardIF"
@@ -135,6 +132,9 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
         self.parameters['i_offset']  = 0.0
+        self.parameters['CM']        = 0.2
+        self.parameters['t_refrac']  = 0.4
+        self.parameters['e_e']       = 0.0
 
 
 class SpikeSourcePoisson(common.SpikeSourcePoisson):

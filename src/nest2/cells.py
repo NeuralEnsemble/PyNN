@@ -131,10 +131,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         ('v_reset',    'V_reset'),
         ('v_rest',     'E_L'),
         ('v_thresh',   'V_th'),
-        ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
-        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
-        ('tau_refrac', 't_ref',      "max(get_time_step(), tau_refrac)", "t_ref"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('g_leak',     'g_L')
@@ -143,8 +140,11 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
 
     def __init__(self, parameters):
         common.IF_facets_hardware1.__init__(self, parameters)
-        self.parameters['q_rr']     = 0.0
-        self.parameters['q_sfa']    = 0.0
+        self.parameters['C_m']   = 200.0
+        self.parameters['t_ref'] =   0.4
+        self.parameters['E_ex']  =   0.0
+        self.parameters['q_rr']  =   0.0
+        self.parameters['q_sfa'] =   0.0
         
 
 class HH_cond_exp(common.HH_cond_exp):
