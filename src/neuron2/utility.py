@@ -1,6 +1,7 @@
 from pyNN import __path__ as pyNN_path
 import platform
 import logging
+import numpy
 import os.path
 import neuron
 h = neuron.h
@@ -24,6 +25,9 @@ def load_mechanisms(path=pyNN_path[0]):
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
     
+    formats = {'spikes': "%g\t%d",
+               'v': "%g\t%g\t%d"}
+    
     def __init__(self, variable, population=None, file=None):
         """
         `file` should be one of:
@@ -39,22 +43,54 @@ class Recorder(object):
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
         logging.debug('Recorder.record(%s)', str(ids))
-        ids = set([id for id in ids if id in self.population._local_ids])
+        if self.population:
+            ids = set([id for id in ids if id in self.population._local_ids])
+        else:
+            ids = set(ids) # how to decide if the cell is local?
         new_ids = list( ids.difference(self.recorded) )
-        logging.info("%s.record('%s', %s)", self.population.label, self.variable, new_ids[:5])
+        
         self.recorded = self.recorded.union(ids)
+        logging.debug('Recorder.recorded = %s' % self.recorded)
         if self.variable == 'spikes':
-            for cell in new_ids:
-                cell.record(1)
+            for id in new_ids:
+                id._cell.record(1)
         elif self.variable == 'v':
-            for cell in new_ids:
-                cell.record_v(1)
+            for id in new_ids:
+                id._cell.record_v(1)
         
     def get(self, gather=False):
         """Returns the recorded data."""
-        pass
+        if self.variable == 'spikes':
+            data = numpy.empty((0,2))
+            for id in self.recorded:
+                spikes = id._cell.spiketimes.toarray()
+                if len(spikes) > 0:
+                    new_data = numpy.array([spikes, numpy.ones(spikes.shape)*id]).T
+                    data = numpy.concatenate((data, new_data))
+        elif self.variable == 'v':
+            data = numpy.empty((0,3))
+            for id in self.recorded:
+                v = id._cell.vtrace.toarray()
+                t = id._cell.record_times.toarray()
+                new_data = numpy.array([t, v, numpy.ones(v.shape)*id]).T
+                data = numpy.concatenate((data, new_data))
+        return data
     
     def write(self, file=None, gather=False, compatible_output=True):
-        pass
+        data = self.get(gather)
+        numpy.savetxt(file or self.filename, data, Recorder.formats[self.variable])
+        
+class Initializer(object):
+    
+    def __init__(self):
+        self.cell_list = []
+        self.population_list = []
+        neuron.h('objref initializer')
+        neuron.h('initializer = PythonObject(self)')
+    
+    def initialize(self):
+        for cell in self.cell_list:
+            cell.memb_init()
+
 
 load_mechanisms()

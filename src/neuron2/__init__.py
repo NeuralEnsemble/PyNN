@@ -36,12 +36,12 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global initialised, quit_on_end, running, pc
+    global initialised, quit_on_end, running, parallel_context
     if not initialised:
         h('min_delay = 0')
         h('tstop = 0')
-        pc = neuron.ParallelContext()
-        pc.spike_compress(1,0)
+        parallel_context = neuron.ParallelContext()
+        parallel_context.spike_compress(1,0)
         cvode = neuron.CVode()
         utility.init_logging("neuron2.log.%d" % rank(), debug)
         logging.info("Initialization of NEURON (use setup(.., debug=True) to see a full logfile)")
@@ -59,8 +59,8 @@ def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     for recorder in recorder_list:
         recorder.write(gather=False, compatible_output=compatible_output)
-    pc.runworker()
-    pc.done()
+    parallel_context.runworker()
+    parallel_context.done()
     if quit_on_end:
         logging.info("Finishing up with NEURON.")
         h.quit()
@@ -71,7 +71,7 @@ def run(simtime):
     logging.info("Running the simulation for %d ms" % simtime)
     if not running:
         running = True
-        local_minimum_delay = pc.set_maxstep(10)
+        local_minimum_delay = parallel_context.set_maxstep(10)
         h.finitialize()
         h.tstop = 0
         logging.debug("local_minimum_delay on host #%d = %g" % (rank(), local_minimum_delay))
@@ -79,7 +79,7 @@ def run(simtime):
             assert local_minimum_delay >= get_min_delay(),\
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, get_min_delay())
     h.tstop = simtime
-    pc.psolve(h.tstop)
+    parallel_context.psolve(h.tstop)
     return get_current_time()
 
 # ==============================================================================
@@ -99,11 +99,11 @@ def get_min_delay():
 common.get_min_delay = get_min_delay
 
 def num_processes():
-    return int(pc.nhost())
+    return int(parallel_context.nhost())
 
 def rank():
     """Return the MPI rank."""
-    return int(pc.id())
+    return int(parallel_context.id())
 
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
@@ -117,15 +117,14 @@ class ID(int, common.IDMixin):
     def _build_cell(self, celltype, parent=None):
         gid = int(self)
         self._cell = celltype.model(**celltype.parameters)  # create the cell object
-        pc.set_gid2node(gid, rank())                        # assign the gid to this node
+        parallel_context.set_gid2node(gid, rank())                        # assign the gid to this node
         nc = neuron.NetCon(self._cell.source, None)         # } associate the cell spike source
-        pc.cell(gid, nc.hoc_obj)                            # } with the gid (using a temporary NetCon)
+        parallel_context.cell(gid, nc.hoc_obj)                            # } with the gid (using a temporary NetCon)
         self.parent = parent
     
     def get_native_parameters(self):
         D = {}
-        for name in ('tau_m', 'cm', 'v_rest', 'v_thresh', 't_refrac',
-                     'i_offset', 'v_reset', 'v_init', 'tau_e', 'tau_i'):
+        for name in self._cell.parameter_names:
             D[name] = getattr(self._cell, name)
         return D
     
@@ -137,6 +136,121 @@ class ID(int, common.IDMixin):
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
+
+def _create(celltype, n, parent=None):
+    """
+    Function used by both `create()` and `Population.__init__()`
+    """
+    global gid_counter
+    assert n > 0, 'n must be a positive integer'
+    first_id = gid_counter
+    last_id = gid_counter + n
+    all_ids = numpy.array([id for id in range(first_id, last_id)], ID)
+    # mask_local is used to extract those elements from arrays that apply to the cells on the current node
+    mask_local = all_ids%num_processes()==0 # round-robin distribution of cells between nodes
+    for i,(id,is_local) in enumerate(zip(all_ids, mask_local)):
+        if is_local:
+            all_ids[i] = ID(id)
+            all_ids[i]._build_cell(celltype, parent=parent)
+    gid_counter += n
+    return all_ids, mask_local, first_id, last_id
+
+def create(cellclass, param_dict=None, n=1):
+    """
+    Create n cells all of the same type.
+    If n > 1, return a list of cell ids/references.
+    If n==1, return just the single id.
+    """
+    all_ids, mask_local, first_id, last_id = _create(cellclass(param_dict), n)
+    for id in all_ids[mask_local]:
+        id.cellclass = cellclass
+    if len(all_ids) == 1:
+        all_ids = all_ids[0]
+    return all_ids
+
+def _single_connect(source, target, weight, delay, synapse_type):
+    """
+    Private function to connect two neurons.
+    Used by `connect()` and the `Connector` classes.
+    """
+    if synapse_type is None:
+        synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
+    if weight is None:
+        weight = common.DEFAULT_WEIGHT
+    if "cond" in target.cellclass.__name__:
+        weight = abs(weight) # weights must be positive for conductance-based synapses
+    elif synapse_type == 'inhibitory' and weight > 0:
+        weight *= -1         # and negative for inhibitory, current-based synapses
+    if delay is None:
+        delay = get_min_delay()
+    elif delay < get_min_delay():
+        raise common.ConnectionError("delay (%s) is too small (< %s)" % (delay, get_min_delay()))
+    synapse_object = getattr(target._cell, synapse_type).hoc_obj
+    nc = parallel_context.gid_connect(int(source), synapse_object)
+    nc.weight[0] = weight
+    nc.delay  = delay
+    return nc
+
+def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
+    """Connect a source of spikes to a synaptic target. source and target can
+    both be individual cells or lists of cells, in which case all possible
+    connections are made with probability p, using either the random number
+    generator supplied, or the default rng otherwise.
+    Weights should be in nA or µS."""
+    logging.debug("connecting %s to %s on host %d" % (source, target, rank()))
+    if not common.is_listlike(source):
+        source = [source]
+    if not common.is_listlike(target):
+        target = [target]
+    if p < 1:
+        rng = rng or numpy.random
+    connection_list = []
+    for tgt in target:
+        sources = numpy.array(source)
+        if p < 1:
+            rarr = rng.uniform(0, 1, len(source))
+            sources = sources[rarr<p]
+        for src in sources:
+            nc = _single_connect(src, tgt, weight, delay, synapse_type)
+            connection_list.append((src, tgt, nc))
+    return connection_list
+
+def set(cells, param, val=None):
+    """Set one or more parameters of an individual cell or list of cells.
+    param can be a dict, in which case val should not be supplied, or a string
+    giving the parameter name, in which case val is the parameter value.
+    """
+    if val:
+        param = {param:val}
+    if not hasattr(cells, '__len__'):
+        cells = [cells]
+    # see comment in Population.set() below about the efficiency of the
+    # following
+    for cell in cells:
+        cell.set_parameters(**param)
+
+def record(source, filename):
+    """Record spikes to a file. source can be an individual cell or a list of
+    cells."""
+    # would actually like to be able to record to an array and choose later
+    # whether to write to a file.
+    if not hasattr(source, '__len__'):
+        source = [source]
+    recorder = Recorder('spikes', file=filename)
+    recorder.record(source)
+    recorder_list.append(recorder)
+
+def record_v(source, filename):
+    """
+    Record membrane potential to a file. source can be an individual cell or
+    a list of cells."""
+    # would actually like to be able to record to an array and
+    # choose later whether to write to a file.
+    if not hasattr(source, '__len__'):
+        source = [source]
+    recorder = Recorder('v', file=filename)
+    recorder.record(source)
+    recorder_list.append(recorder)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -166,35 +280,36 @@ class Population(common.Population):
           constructor
         label is an optional name for the population.
         """
-        global gid_counter
+        ##global gid_counter
         common.Population.__init__(self, dims, cellclass, cellparams, label)
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self)}
-        self.first_id = gid_counter
-        self.last_id = gid_counter + self.size
+        ##self.first_id = gid_counter
+        ##self.last_id = gid_counter + self.size
         self.label = self.label or 'population%d' % Population.nPop
+        self.celltype = cellclass(cellparams)
         
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
         # The local cells are also stored in a list, for easy iteration
-        self._all_ids = numpy.array([id for id in range(self.first_id, self.last_id)], ID) #.reshape(self.dim)
-        # _mask_local is used to extract those elements from arrays that apply to the cells on the current node, e.g. for tset()
-        self._mask_local = self._all_ids%num_processes()==0 # round-robin distribution of cells between nodes
-        ## _map_local is used to map addresses to the index within the list of local cells
-        #self._map_local = numpy.where(self._mask_local, self._all_ids/int(num_processes()), None)
-        for i,(id,is_local) in enumerate(zip(self._all_ids, self._mask_local)):
-            if is_local:
-                self._all_ids[i] = ID(id)
+        
+        self._all_ids, self._mask_local, self.first_id, self.last_id = _create(self.celltype, self.size, parent=self)
+        ##self._all_ids = numpy.array([id for id in range(self.first_id, self.last_id)], ID) #.reshape(self.dim)
+        ### _mask_local is used to extract those elements from arrays that apply to the cells on the current node, e.g. for tset()
+        ##self._mask_local = self._all_ids%num_processes()==0 # round-robin distribution of cells between nodes
+        ##for i,(id,is_local) in enumerate(zip(self._all_ids, self._mask_local)):
+        ##    if is_local:
+        ##        self._all_ids[i] = ID(id)
         # _local_ids is a list containing only those cells that exist on the current node
         self._local_ids = self._all_ids[self._mask_local]
         self._all_ids = self._all_ids.reshape(self.dim)
         self._mask_local = self._mask_local.reshape(self.dim)
         
-        self.celltype = cellclass(cellparams)
-        for id in self._local_ids:
-            id._build_cell(self.celltype, parent=self)
-        gid_counter += self.size
+        
+        ##for id in self._local_ids:
+        ##    id._build_cell(self.celltype, parent=self)
+        #gid_counter += self.size
         Population.nPop += 1
         logging.info(self.describe('Creating Population "%(label)s" of shape %(dim)s, '+
                                    'containing `%(celltype)s`s with indices between %(first_id)s and %(last_id)s'))
@@ -351,19 +466,20 @@ class Population(common.Population):
         if isinstance(record_from, list): #record from the fixed list specified by user
             fixed_list=True
         elif record_from is None: # record from all cells:
-            record_from = self._all_ids
+            record_from = self._all_ids.flatten()
         elif isinstance(record_from, int): # record from a number of cells, selected at random  
             # Each node will record N/nhost cells...
             nrec = int(record_from/num_processes())
             if not rng:
                 rng = numpy.random
-            record_from = rng.permutation(self._all_ids)[0:nrec]
+            record_from = rng.permutation(self._all_ids.flatten())[0:nrec]
             # need ID objects, permutation returns integers
             # ???
         else:
             raise Exception("record_from must be either a list of cells or the number of cells to record from")
         # record_from is now a list or numpy array. We do not have to worry about whether the cells are
         # local because the Recorder object takes care of this.
+        logging.info("%s.record('%s', %s)", self.label, record_what, record_from[:5])
         self.recorders[record_what].record(record_from)
 
     def record(self, record_from=None, rng=None):

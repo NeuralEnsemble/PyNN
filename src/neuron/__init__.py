@@ -306,7 +306,10 @@ class Recorder(object):
 
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
-        ids = Set([id for id in ids if id in self.population.gidlist])
+        if self.population:
+            ids = Set([id for id in ids if id in self.population.gidlist])
+        else:
+            ids = Set(ids) # what about non-local cells?
         new_ids = list( ids.difference(self.recorded) )
         self.recorded = self.recorded.union(ids)
         
@@ -396,7 +399,7 @@ class Recorder(object):
                 take_data()
                 write_data()
         else:
-            filename += ".%d" % myid    
+            self.filename += ".%d" % myid    
             write_data()
                 
 # ==============================================================================

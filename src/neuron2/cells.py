@@ -58,6 +58,8 @@ class StandardIF(neuron.nrn.Section):
         synapse_model = StandardIF.synapse_models[syn_type][syn_shape]
         self.esyn = synapse_model(self, 0.5)
         self.isyn = synapse_model(self, 0.5)
+        self.excitatory = self.esyn # } aliases
+        self.inhibitory = self.isyn # }
 
         # insert current source
         self.stim = neuron.IClamp(self, 0.5, delay=0, dur=1e12, amp=i_offset)
@@ -68,20 +70,22 @@ class StandardIF(neuron.nrn.Section):
         self.source = self.spike_reset
         
         # process arguments
-        for name in ('tau_m', 'cm', 'v_rest', 'v_thresh', 't_refrac',
-                     'i_offset', 'v_reset', 'v_init', 'tau_e', 'tau_i'):
+        self.parameter_names = ['tau_m', 'cm', 'v_rest', 'v_thresh', 't_refrac',
+                                'i_offset', 'v_reset', 'v_init', 'tau_e', 'tau_i']
+        if syn_type == 'conductance':
+            self.parameter_names.extend(['e_e', 'e_i'])
+        for name in self.parameter_names:
             setattr(self, name, locals()[name])
         if self.v_reset is None:
             self.v_reset = self.v_rest
         if self.v_init is None:
             self.v_init = self.v_rest
-        if syn_type == 'conductance':
-            self.e_e = e_e
-            self.e_i = e_i
             
         # need to deal with FinitializeHandler for v_init?
-        #self.fih = neuron.FInitializeHandler("memb_init()", obj=self)
-        #self.fih2 = neuron.FInitializeHandler('print "kjyuyv"', obj=self)
+        self.fih = neuron.h.FInitializeHandler("memb_init()", self)
+        self.fih2 = neuron.h.FInitializeHandler('print "kjyuyv"')
+        self.spiketimes = neuron.Vector(0)
+        self.fih.allprint()
 
     def __set_tau_m(self, value):
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
@@ -106,16 +110,20 @@ class StandardIF(neuron.nrn.Section):
     def record(self, active):
         if active:
             rec = neuron.NetCon(self.source, None)
-            rec.record(self.spiketimes)
+            rec.record(self.spiketimes.hoc_obj)
     
     def record_v(self, active):
         if active:
             self.vtrace = neuron.Vector()
             self.vtrace.record(self, 'v')
+            self.record_times = neuron.Vector()
+            neuron.h('%s.record(&t)' % self.record_times.name)
         else:
             self.vtrace = None
+            self.record_times
     
     def memb_init(self, v_init=None):
+        print "memb_init() called"
         if v_init:
             self.v_init = v_init
         self.v = v_init
@@ -208,12 +216,11 @@ class IF_cond_alpha(common.IF_cond_alpha):
         ('e_rev_E',    'e_e'),
         ('e_rev_I',    'e_i')
     )
-    hoc_name = "StandardIF"
+    model = StandardIF
     
     def __init__(self, parameters):
         common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
 
@@ -236,12 +243,11 @@ class IF_cond_exp(common.IF_cond_exp):
         ('e_rev_E',    'e_e'),
         ('e_rev_I',    'e_i')
     )
-    hoc_name = "StandardIF"
+    model = StandardIF
     
     def __init__(self, parameters):
         common.IF_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
-        self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
 
@@ -265,11 +271,10 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         ('e_rev_E',    'e_e'),
         ('e_rev_I',    'e_i'),
     ) # v_init?
-    hoc_name = "StandardIF"
+    model = StandardIF
 
     def __init__(self, parameters):
         common.IF_facets_hardware1.__init__(self, parameters)
-        self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
         self.parameters['i_offset']  = 0.0
@@ -283,11 +288,10 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
         ('rate',     'interval',  "1000.0/rate",  "1000.0/interval"),
         ('duration', 'number',    "int(rate/1000.0*duration)", "number*interval"), # should there be a +/1 here?
     )
-    hoc_name = 'SpikeSource'
-   
+    model = SpikeSource
+    
     def __init__(self, parameters):
         common.SpikeSourcePoisson.__init__(self, parameters)
-        self.parameters = self.translate(self.parameters)
         self.parameters['source_type'] = 'NetStim'    
         self.parameters['noise'] = 1
         
@@ -298,13 +302,12 @@ class SpikeSourceArray(SpikeSource, common.SpikeSourceArray):
     translations = common.build_translations(
         ('spike_times', 'spiketimes'),
     )
-    #hoc_name = 'SpikeSource'
+    model = SpikeSource
     
     def __init__(self, parameters):
         common.SpikeSourceArray.__init__(self, parameters)
-        self.parameters = self.translate(self.parameters)  
-        #self.parameters['source_type'] = 'VecStim'
-        SpikeSource.__init__(self, source_type=VecStim, spiketimes=self.parameters['spiketimes'])
+        self.parameters['source_type'] = VecStim
+        #SpikeSource.__init__(self, source_type=VecStim, spiketimes=self.parameters['spiketimes'])
         
         
 class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
@@ -342,6 +345,5 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     
     def __init__(self, parameters):
         common.EIF_cond_alpha_isfa_ista.__init__(self, parameters)
-        self.parameters = self.translate(self.parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'

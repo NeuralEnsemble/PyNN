@@ -11,6 +11,8 @@ import numpy
 from math import *
 from pyNN import random
 
+DEFAULT_WEIGHT = 0.0
+
 class InvalidParameterValueError(Exception): pass
 
 class NonExistentParameterError(Exception):
