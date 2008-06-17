@@ -649,7 +649,7 @@ def record_v(source, filename):
     # choose later whether to write to a file.
     if not hasattr(source, '__len__'):
         source = [source]
-    recorder = Recorder('spikes', file=filename)
+    recorder = Recorder('v', file=filename)
     recorder.record(source)
     recorder_list.append(recorder)
 
