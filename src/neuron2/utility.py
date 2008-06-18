@@ -1,4 +1,5 @@
 from pyNN import __path__ as pyNN_path
+from pyNN import common
 import platform
 import logging
 import numpy
@@ -86,11 +87,25 @@ class Initializer(object):
         self.cell_list = []
         self.population_list = []
         neuron.h('objref initializer')
-        neuron.h('initializer = PythonObject(self)')
+        neuron.h.initializer = self
+        self.fih = h.FInitializeHandler("initializer.initialize()")
+    
+    def register(self, *items):
+        for item in items:
+            if isinstance(item, common.Population):
+                if "Source" not in item.__class__.__name__:
+                    self.population_list.append(item)
+            else:
+                if hasattr(item._cell, "memb_init"):
+                    self.cell_list.append(item)
     
     def initialize(self):
+        logging.info("Initializing membrane potential of %d cells and %d Populations." % \
+                     (len(self.cell_list), len(self.population_list)))
         for cell in self.cell_list:
-            cell.memb_init()
-
+            cell._cell.memb_init()
+        for population in self.population_list:
+            for cell in population:
+                cell._cell.memb_init()
 
 load_mechanisms()

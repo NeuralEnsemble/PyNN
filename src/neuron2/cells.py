@@ -80,12 +80,7 @@ class StandardIF(neuron.nrn.Section):
             self.v_reset = self.v_rest
         if self.v_init is None:
             self.v_init = self.v_rest
-            
-        # need to deal with FinitializeHandler for v_init?
-        self.fih = neuron.h.FInitializeHandler("memb_init()", self)
-        self.fih2 = neuron.h.FInitializeHandler('print "kjyuyv"')
         self.spiketimes = neuron.Vector(0)
-        self.fih.allprint()
 
     def __set_tau_m(self, value):
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
@@ -123,11 +118,9 @@ class StandardIF(neuron.nrn.Section):
             self.record_times
     
     def memb_init(self, v_init=None):
-        print "memb_init() called"
         if v_init:
             self.v_init = v_init
-        self.v = v_init
-    
+        self.seg.v = self.v_init
 
 
 class SpikeSource(object):

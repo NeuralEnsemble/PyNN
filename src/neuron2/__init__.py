@@ -36,13 +36,14 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global initialised, quit_on_end, running, parallel_context
+    global initialised, quit_on_end, running, parallel_context, initializer
     if not initialised:
         h('min_delay = 0')
         h('tstop = 0')
         parallel_context = neuron.ParallelContext()
         parallel_context.spike_compress(1,0)
         cvode = neuron.CVode()
+        initializer = Initializer()
         utility.init_logging("neuron2.log.%d" % rank(), debug)
         logging.info("Initialization of NEURON (use setup(.., debug=True) to see a full logfile)")
     h.dt = timestep
@@ -68,7 +69,6 @@ def end(compatible_output=True):
 def run(simtime):
     """Run the simulation for simtime ms."""
     global running
-    logging.info("Running the simulation for %d ms" % simtime)
     if not running:
         running = True
         local_minimum_delay = parallel_context.set_maxstep(10)
@@ -79,6 +79,7 @@ def run(simtime):
             assert local_minimum_delay >= get_min_delay(),\
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, get_min_delay())
     h.tstop = simtime
+    logging.info("Running the simulation for %d ms" % simtime)
     parallel_context.psolve(h.tstop)
     return get_current_time()
 
@@ -164,6 +165,7 @@ def create(cellclass, param_dict=None, n=1):
     all_ids, mask_local, first_id, last_id = _create(cellclass(param_dict), n)
     for id in all_ids[mask_local]:
         id.cellclass = cellclass
+    initializer.register(*all_ids[mask_local])
     if len(all_ids) == 1:
         all_ids = all_ids[0]
     return all_ids
@@ -280,12 +282,9 @@ class Population(common.Population):
           constructor
         label is an optional name for the population.
         """
-        ##global gid_counter
         common.Population.__init__(self, dims, cellclass, cellparams, label)
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self)}
-        ##self.first_id = gid_counter
-        ##self.last_id = gid_counter + self.size
         self.label = self.label or 'population%d' % Population.nPop
         self.celltype = cellclass(cellparams)
         
@@ -293,23 +292,12 @@ class Population(common.Population):
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
         # The local cells are also stored in a list, for easy iteration
-        
         self._all_ids, self._mask_local, self.first_id, self.last_id = _create(self.celltype, self.size, parent=self)
-        ##self._all_ids = numpy.array([id for id in range(self.first_id, self.last_id)], ID) #.reshape(self.dim)
-        ### _mask_local is used to extract those elements from arrays that apply to the cells on the current node, e.g. for tset()
-        ##self._mask_local = self._all_ids%num_processes()==0 # round-robin distribution of cells between nodes
-        ##for i,(id,is_local) in enumerate(zip(self._all_ids, self._mask_local)):
-        ##    if is_local:
-        ##        self._all_ids[i] = ID(id)
-        # _local_ids is a list containing only those cells that exist on the current node
         self._local_ids = self._all_ids[self._mask_local]
         self._all_ids = self._all_ids.reshape(self.dim)
         self._mask_local = self._mask_local.reshape(self.dim)
         
-        
-        ##for id in self._local_ids:
-        ##    id._build_cell(self.celltype, parent=self)
-        #gid_counter += self.size
+        initializer.register(self)
         Population.nPop += 1
         logging.info(self.describe('Creating Population "%(label)s" of shape %(dim)s, '+
                                    'containing `%(celltype)s`s with indices between %(first_id)s and %(last_id)s'))
