@@ -100,7 +100,7 @@ def write_compatible_output(sim_filename, user_filename, input_format, populatio
                 result.write("%g\t%d\n" % (data[idx][v_column], data[idx][id_column])) # v id
         elif data.shape[1] == 2: # spike files
             for idx in xrange(len(data)):
-                result.write("%g\t%d\n" % (data[idx][t_column], data[idx][id_column])) # time id
+                result.write("%g\t%d\n" % (data[idx][time_column], data[idx][id_column])) # time id
         else:
             raise Exception("Data file should have 2,3 or 4 columns, actually has %d" % data.shape[1])
         result.close()

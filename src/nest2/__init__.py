@@ -117,8 +117,9 @@ class Recorder(object):
         device_name = RECORDING_DEVICE_NAMES[variable]
         self._device = nest.Create(device_name)
         device_parameters = {"withgid": True, "withtime": True,
-                             "to_file": True, "to_memory": False,
-                             "interval": get_time_step()}
+                             "to_file": True, "to_memory": False}
+        if self.variable != 'spikes':
+            device_parameters["interval"] = get_time_step()
         if file is False:
             device_parameters.update(to_file=False, to_memory=True)
         nest.SetStatus(self._device, device_parameters)
