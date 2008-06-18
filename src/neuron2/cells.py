@@ -13,6 +13,7 @@ AlphaISyn = neuron.new_point_process('AlphaISyn')
 AlphaSyn  = neuron.new_point_process('AlphaSyn') # note that AlphaSynapse exists in NEURON now
 ResetRefrac = neuron.new_point_process('ResetRefrac')
 VecStim = neuron.new_hoc_class('VecStim')
+NetStim = neuron.new_hoc_class('VecStim')
 
 def _new_property(obj_hierarchy, attr_name):
     """
@@ -44,6 +45,11 @@ class StandardIF(neuron.nrn.Section):
     def __init__(self, syn_type, syn_shape, tau_m=20, cm=1.0, v_rest=-65,
                  v_thresh=-55, t_refrac=2, i_offset=0, v_reset=None,
                  v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70):
+        
+        if v_reset is None:
+            v_reset = v_rest
+        if v_init is None:
+            v_init = v_rest
 
         # initialise Section object with 'pas' mechanism
         neuron.nrn.Section.__init__(self)
@@ -53,7 +59,7 @@ class StandardIF(neuron.nrn.Section):
         self.insert('pas')
         
         # insert synapses
-        assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'"
+        assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
         assert syn_shape in ('alpha', 'exp'), "syn_type must be either 'alpha' or 'exp'"
         synapse_model = StandardIF.synapse_models[syn_type][syn_shape]
         self.esyn = synapse_model(self, 0.5)
@@ -76,10 +82,7 @@ class StandardIF(neuron.nrn.Section):
             self.parameter_names.extend(['e_e', 'e_i'])
         for name in self.parameter_names:
             setattr(self, name, locals()[name])
-        if self.v_reset is None:
-            self.v_reset = self.v_rest
-        if self.v_init is None:
-            self.v_init = self.v_rest
+        
         self.spiketimes = neuron.Vector(0)
 
     def __set_tau_m(self, value):
@@ -125,13 +128,15 @@ class StandardIF(neuron.nrn.Section):
 
 class SpikeSource(object):
     
-    def __init__(self, source_type, spiketimes=[]):
+    def __init__(self, source_type, start=0, interval=1e12, number=0, spiketimes=[]):
         self.source = source_type()
         if spiketimes:
             self.spiketimes = neuron.Vector(spiketimes)
             self.source.play(self.spiketimes.hoc_obj)
             self.do_not_record = True
         else:
+            for name in 'start', 'interval', 'number':
+                setattr(self.source, name, locals()[name])
             self.spiketimes = neuron.Vector()
             self.do_not_record = False
 
@@ -285,9 +290,7 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     
     def __init__(self, parameters):
         common.SpikeSourcePoisson.__init__(self, parameters)
-        self.parameters['source_type'] = 'NetStim'    
-        self.parameters['noise'] = 1
-        
+        self.parameters['source_type'] = NetStim           
 
 class SpikeSourceArray(SpikeSource, common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""

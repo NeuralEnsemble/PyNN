@@ -21,11 +21,14 @@ class NonExistentParameterError(Exception):
     exist.
     """
     
-    def __init__(self, parameter_name, standard_model):
+    def __init__(self, parameter_name, model):
         self.parameter_name = parameter_name
-        self.model_name = standard_model.__name__
-        self.valid_parameter_names = standard_model.default_parameters.keys()
-        self.valid_parameter_names.sort()
+        self.model_name = model.__name__
+        if issubclass(model, StandardModelType):
+            self.valid_parameter_names = model.default_parameters.keys()
+            self.valid_parameter_names.sort()
+        else:
+            self.valid_parameter_names = ['unknown']
 
     def __str__(self):
         return "%s (valid parameters for %s are: %s)" % (self.parameter_name,
@@ -721,7 +724,7 @@ class Population(object):
         self.size = self.dim[0]
         for i in range(1, self.ndim):
             self.size *= self.dim[i]
-        self.cell = None # to be defined by child, simulator-specific classes
+        ##self.cell = None # to be defined by child, simulator-specific classes
     
     def __getitem__(self, addr):
         """Return a representation of the cell with coordinates given by addr,

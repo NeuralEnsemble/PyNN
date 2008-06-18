@@ -115,12 +115,12 @@ class ID(int, common.IDMixin):
         int.__init__(n)
         common.IDMixin.__init__(self)
     
-    def _build_cell(self, celltype, parent=None):
+    def _build_cell(self, cell_model, cell_parameters, parent=None):
         gid = int(self)
-        self._cell = celltype.model(**celltype.parameters)  # create the cell object
-        parallel_context.set_gid2node(gid, rank())                        # assign the gid to this node
+        self._cell = cell_model(**cell_parameters)          # create the cell object
+        parallel_context.set_gid2node(gid, rank())          # assign the gid to this node
         nc = neuron.NetCon(self._cell.source, None)         # } associate the cell spike source
-        parallel_context.cell(gid, nc.hoc_obj)                            # } with the gid (using a temporary NetCon)
+        parallel_context.cell(gid, nc.hoc_obj)              # } with the gid (using a temporary NetCon)
         self.parent = parent
     
     def get_native_parameters(self):
@@ -138,12 +138,25 @@ class ID(int, common.IDMixin):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def _create(celltype, n, parent=None):
+def _create(cellclass, param_dict, n, parent=None):
     """
     Function used by both `create()` and `Population.__init__()`
     """
     global gid_counter
     assert n > 0, 'n must be a positive integer'
+    if isinstance(cellclass, basestring): # cell defined in hoc template
+        try:
+            cell_model = getattr(h, cellclass)
+        except AttributeError:
+            raise common.InvalidModelError("There is no hoc template called %s" % cellclass)
+        cell_parameters = param_dict or {}
+    elif issubclass(cellclass, common.StandardCellType):
+        celltype = cellclass(param_dict)
+        cell_model = celltype.model
+        cell_parameters = celltype.parameters
+    else:
+        cell_model = cellclass
+        cell_parameters = param_dict
     first_id = gid_counter
     last_id = gid_counter + n
     all_ids = numpy.array([id for id in range(first_id, last_id)], ID)
@@ -152,7 +165,7 @@ def _create(celltype, n, parent=None):
     for i,(id,is_local) in enumerate(zip(all_ids, mask_local)):
         if is_local:
             all_ids[i] = ID(id)
-            all_ids[i]._build_cell(celltype, parent=parent)
+            all_ids[i]._build_cell(cell_model, cell_parameters, parent=parent)
     gid_counter += n
     return all_ids, mask_local, first_id, last_id
 
@@ -162,10 +175,11 @@ def create(cellclass, param_dict=None, n=1):
     If n > 1, return a list of cell ids/references.
     If n==1, return just the single id.
     """
-    all_ids, mask_local, first_id, last_id = _create(cellclass(param_dict), n)
+    all_ids, mask_local, first_id, last_id = _create(cellclass, param_dict, n)
     for id in all_ids[mask_local]:
         id.cellclass = cellclass
     initializer.register(*all_ids[mask_local])
+    all_ids = all_ids.tolist() # not sure this is desirable, but it is consistent with the other modules
     if len(all_ids) == 1:
         all_ids = all_ids[0]
     return all_ids
@@ -175,6 +189,10 @@ def _single_connect(source, target, weight, delay, synapse_type):
     Private function to connect two neurons.
     Used by `connect()` and the `Connector` classes.
     """
+    if not isinstance(source, int) or source > gid_counter or source < 0:
+        raise common.ConnectionError("Invalid source ID: %s" % source)
+    if not isinstance(target, ID):
+        raise common.ConnectionError("Invalid target ID: %s" % target)
     if synapse_type is None:
         synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
     if weight is None:
@@ -214,7 +232,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
             sources = sources[rarr<p]
         for src in sources:
             nc = _single_connect(src, tgt, weight, delay, synapse_type)
-            connection_list.append((src, tgt, nc))
+            connection_list.append(nc)
     return connection_list
 
 def set(cells, param, val=None):
@@ -286,13 +304,16 @@ class Population(common.Population):
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self)}
         self.label = self.label or 'population%d' % Population.nPop
-        self.celltype = cellclass(cellparams)
+        if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
+            self.celltype = cellclass(cellparams)
+        else:
+            self.celltype = cellclass
         
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
         # The local cells are also stored in a list, for easy iteration
-        self._all_ids, self._mask_local, self.first_id, self.last_id = _create(self.celltype, self.size, parent=self)
+        self._all_ids, self._mask_local, self.first_id, self.last_id = _create(cellclass, cellparams, self.size, parent=self)
         self._local_ids = self._all_ids[self._mask_local]
         self._all_ids = self._all_ids.reshape(self.dim)
         self._mask_local = self._mask_local.reshape(self.dim)
