@@ -94,7 +94,7 @@ class OneToOneConnector(common.OneToOneConnector, HocConnector):
         if projection.pre.dim == projection.post.dim:
             hoc_commands = []
             for tgt in projection.post.gidlist:
-                src = tgt - projection.post.gid_start + projection.pre.gid_start
+                src = tgt - projection.post.first_id + projection.pre.first_id
                 if hasattr(weight, 'next'):
                     w = weight.next()
                 else:

@@ -368,7 +368,7 @@ class Population(common.Population):
         # self.gidlist is now derived from self.fullgidlist since it contains only the cells of the population located on
         # the node
         #self.gidlist     = [self.fullgidlist[i+myid] for i in range(0, len(self.fullgidlist),nhost) if i < len(self.fullgidlist)-myid]
-        #self.gid_start   = gid
+        #self.first_id   = gid
 
         
             
@@ -467,7 +467,7 @@ class Population(common.Population):
         index = 0
         for i,s in zip(addr,self.steps):
             index += i*s
-        id = index + self.gid_start
+        id = index + self.first_id
         assert addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, addr, id, self.locate(id))
         # We return the gid as an ID object. Note that each instance of Populations
         # distributed on several node can give the ID object, because fullgidlist is duplicated
@@ -482,7 +482,7 @@ class Population(common.Population):
         """
         # id should be a gid
         assert isinstance(id,int), "id is %s, not int" % type(id)
-        id -= self.gid_start
+        id -= self.first_id
         if self.ndim == 3:
             rows = self.dim[1]; cols = self.dim[2]
             i = id/(rows*cols); remainder = id%(rows*cols)

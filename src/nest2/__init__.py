@@ -555,7 +555,7 @@ class Population(common.Population):
 
         self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
         self.cell_local = self.cell[numpy.array(nest.GetStatus(self.cell.tolist(),'local'))]
-        self.id_start = self.cell.reshape(self.size,)[0]
+        self.first_id = self.cell.reshape(self.size,)[0]
 
         for id in self.cell:
             id.parent = self
@@ -625,7 +625,7 @@ class Population(common.Population):
         ###assert isinstance(id,int)
         ###return tuple([a.tolist()[0] for a in numpy.where(self.cell == id)])
 
-        id -= self.id_start
+        id -= self.first_id
         if self.ndim == 3:
             rows = self.dim[1]; cols = self.dim[2]
             i = id/(rows*cols); remainder = id%(rows*cols)
@@ -1248,7 +1248,7 @@ class Projection(common.Projection):
                                          parameter_name, 'target')
                 # note that we assume that Population ids are consecutive, which is the case, but we should
                 # perhaps make an assert in __init__() to really make sure
-                values[src-self.pre.id_start, tgt-self.post.id_start] = v
+                values[src-self.pre.first_id, tgt-self.post.first_id] = v
         return values
 
     def getWeights(self, format='list', gather=True):

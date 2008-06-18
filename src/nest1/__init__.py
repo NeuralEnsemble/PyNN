@@ -426,7 +426,7 @@ class Population(common.Population):
             self.cell = pynest.create(cellclass, self.size)
             
         self.cell = numpy.array([ ID(pynest.getGID(addr)) for addr in self.cell ], ID)
-        self.id_start = self.cell.reshape(self.size,)[0]
+        self.first_id = self.cell.reshape(self.size,)[0]
         
         for id in self.cell:
             id.parent = self
@@ -494,7 +494,7 @@ class Population(common.Population):
         ###assert isinstance(id, int)
         ###return tuple([a.tolist()[0] for a in numpy.where(self.cell == id)])
         
-        id -= self.id_start
+        id -= self.first_id
         if self.ndim == 3:
             rows = self.dim[1]; cols = self.dim[2]
             i = id/(rows*cols); remainder = id%(rows*cols)

@@ -46,7 +46,7 @@ def convert_compatible_output(data, population, variable):
     !!! NEST specific !!!
     """
     if population is not None:
-        padding = population.id_start
+        padding = population.first_id
         
     if variable == 'spikes':
         return numpy.array((data['times'],data['senders']- padding)).T
@@ -72,9 +72,9 @@ def write_compatible_output(sim_filename, user_filename, input_format, populatio
         # Write header info (e.g., dimensions of the population)
         if population is not None:
             result.write("# dimensions =" + "\t".join([str(d) for d in population.dim]) + "\n")
-            result.write("# first_id = %d\n" % population.id_start)
-            result.write("# last_id = %d\n" % (population.id_start+len(population)-1,))
-            padding = population.id_start
+            result.write("# first_id = %d\n" % population.first_id)
+            result.write("# last_id = %d\n" % (population.first_id+len(population)-1,))
+            padding = population.first_id
         else:
             padding = 0
         result.write("# dt = %g\n" % dt)

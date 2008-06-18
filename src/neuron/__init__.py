@@ -71,7 +71,7 @@ class ID(int, common.IDMixin):
                 cell = hoc_cell_list.object(list_index)
             except RuntimeError:
                 print "id:", self
-                print "parent.gid_start:", self.parent.gid_start
+                print "parent.first_id:", self.parent.first_id
                 print "len(parent):", len(self.parent)
                 print "hoc_cell_list.count():", hoc_cell_list.count()
                 print "parent.gidlist.index(id):", self.parent.gidlist.index(self)
@@ -344,7 +344,7 @@ class Recorder(object):
             cell_template = "%s.object(%s)" % (self.population.hoc_label, "%d")
             post_label = 'node%d: post_%s.%s' % (myid, self.population.hoc_label, self.variable)
             id_list = self.population.gidlist
-            padding = self.population.gid_start
+            padding = self.population.first_id
             
         def post_data():
             pack_template = 'tmp = pc.pack(%s.%s%s)' % (cell_template,
@@ -367,7 +367,7 @@ class Recorder(object):
                 header = "# %d" % self.population.dim[0]
                 for dimension in list(self.population.dim)[1:]:
                     header = "%s\t%d" % (header, dimension)
-                header += "\\n# first_id = %d\\n# last_id = %d\\n" % (self.population.gid_start, self.population.gid_start+self.population.size-1)
+                header += "\\n# first_id = %d\\n# last_id = %d\\n" % (self.population.first_id, self.population.first_id+self.population.size-1)
             
             if self.variable == 'v':
                 header += "# dt = %g\\n# n = %d\\n" % (get_time_step(), int(h.tstop/get_time_step()))
@@ -726,7 +726,7 @@ class Population(common.Population):
         # self.gidlist is now derived from self.fullgidlist since it contains only the cells of the population located on
         # the node
         self.gidlist     = [self.fullgidlist[i+myid] for i in range(0, len(self.fullgidlist), nhost) if i < len(self.fullgidlist)-myid]
-        self.gid_start   = gid
+        self.first_id   = gid
 
         # Write hoc commands
         hoc_commands += ['objref %s' % self.hoc_label,
@@ -776,7 +776,7 @@ class Population(common.Population):
         index = 0
         for i, s in zip(addr, self.steps):
             index += i*s
-        id = index + self.gid_start
+        id = index + self.first_id
         assert addr == self.locate(id), 'index=%s addr=%s id=%s locate(id)=%s' % (index, addr, id, self.locate(id))
         # We return the gid as an ID object. Note that each instance of Populations
         # distributed on several node can give the ID object, because fullgidlist is duplicated
@@ -815,7 +815,7 @@ class Population(common.Population):
         """
         # id should be a gid
         assert isinstance(id, int), "id is %s, not int" % type(id)
-        id -= self.gid_start
+        id -= self.first_id
         if self.ndim == 3:
             rows = self.dim[1]; cols = self.dim[2]
             i = id/(rows*cols); remainder = id%(rows*cols)
@@ -885,7 +885,7 @@ class Population(common.Population):
         else:
             raise common.InvalidDimensionsError, "Population: %s, value_array: %s" % (str(self.dim),
                                                                                       str(value_array.shape))
-        values = values.take(numpy.array(self.gidlist)-self.gid_start) # take just the values for cells on this machine
+        values = values.take(numpy.array(self.gidlist)-self.first_id) # take just the values for cells on this machine
         assert len(values) == len(self.gidlist)
         
         # Set the values for each cell
@@ -1625,8 +1625,8 @@ class Projection(common.Projection):
             values = numpy.zeros((len(self.pre), len(self.post)), 'float')
             for i in xrange(len(self)):
                 weight = getattr(h, self.hoc_label).object(i).weight[0]
-                values[self.connections[i][0]-self.pre.gid_start,
-                       self.connections[i][1]-self.post.gid_start] = weight
+                values[self.connections[i][0]-self.pre.first_id,
+                       self.connections[i][1]-self.post.first_id] = weight
         return values
         
     def getDelays(self, format='list', gather=True):
@@ -1699,8 +1699,8 @@ class Projection(common.Projection):
                 fmt = "%g "*len(self.post) + "\n"
                 for i in xrange(len(self)):
                     weight = getattr(h, self.hoc_label).object(i).weight[0]
-                    weights[self.connections[i][0]-self.pre.gid_start,
-                            self.connections[i][1]-self.post.gid_start] = weight
+                    weights[self.connections[i][0]-self.pre.first_id,
+                            self.connections[i][1]-self.post.first_id] = weight
                 for row in weights:
                     f.write(fmt % tuple(row))
             else:
