@@ -1,5 +1,5 @@
 from pyNN import __path__ as pyNN_path
-from pyNN import common
+from pyNN import common, recording
 import platform
 import logging
 import numpy
@@ -26,8 +26,10 @@ def load_mechanisms(path=pyNN_path[0]):
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
     
-    formats = {'spikes': "%g\t%d",
+    numpy_formats = {'spikes': "%g\t%d",
                'v': "%g\t%g\t%d"}
+    formats = {'spikes': 't id',
+               'v': 't v id'}
     
     def __init__(self, variable, population=None, file=None):
         """
@@ -39,7 +41,8 @@ class Recorder(object):
         self.variable = variable
         self.filename = file or None
         self.population = population # needed for writing header information
-        self.recorded = set([])        
+        self.recorded = set([])
+        
 
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
@@ -79,7 +82,11 @@ class Recorder(object):
     
     def write(self, file=None, gather=False, compatible_output=True):
         data = self.get(gather)
-        numpy.savetxt(file or self.filename, data, Recorder.formats[self.variable])
+        filename = file or self.filename
+        numpy.savetxt(filename, data, Recorder.numpy_formats[self.variable])
+        if compatible_output:
+            recording.write_compatible_output(filename, filename, Recorder.formats[self.variable],
+                                              self.population, common.get_time_step())
         
 class Initializer(object):
     

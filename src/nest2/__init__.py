@@ -98,6 +98,9 @@ class Connection(object):
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
     
+    formats = {'spikes': 'id t',
+               'v': 'id t v'}
+    
     def __init__(self, variable, population=None, file=None):
         """
         `file` should be one of:
@@ -114,7 +117,8 @@ class Recorder(object):
         device_name = RECORDING_DEVICE_NAMES[variable]
         self._device = nest.Create(device_name)
         device_parameters = {"withgid": True, "withtime": True,
-                             "to_file": True, "to_memory": False}
+                             "to_file": True, "to_memory": False,
+                             "interval": get_time_step()}
         if file is False:
             device_parameters.update(to_file=False, to_memory=True)
         nest.SetStatus(self._device, device_parameters)
@@ -157,7 +161,7 @@ class Recorder(object):
             if gather == False and num_processes() > 1:
                 user_filename += '.%d' % rank()
             if gather == False or rank() == 0: # if we gather, only do this on the master node
-                recording.write_compatible_output(nest_filename, user_filename,
+                recording.write_compatible_output(nest_filename, user_filename, Recorder.formats[self.variable],
                                                   self.population, get_time_step())
         else:
             system_line = 'cat %s >> %s' % (nest_filename, user_filename)

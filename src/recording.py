@@ -56,49 +56,57 @@ def convert_compatible_output(data, population, variable):
         return numpy.array((data['times'],data['senders']- padding,data['exc_conductance'],data['inh_conductance'])).T
             
     
-def write_compatible_output(sim_filename, user_filename, population, dt):
+def write_compatible_output(sim_filename, user_filename, input_format, population, dt):
     """
     Rewrite simulation data in a standard format:
         spiketime (in ms) cell_id-min(cell_id)
     """
     logging.info("Writing %s in compatible format (was %s)" % (user_filename, sim_filename))
-    result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)
-        
-    # Write header info (e.g., dimensions of the population)
-    if population is not None:
-        result.write("# dimensions =" + "\t".join([str(d) for d in population.dim]) + "\n")
-        result.write("# first_id = %d\n" % population.id_start)
-        result.write("# last_id = %d\n" % (population.id_start+len(population)-1,))
-        padding = population.id_start
-    else:
-        padding = 0
-    result.write("# dt = %g\n" % dt)
                     
     # Writing spiketimes, cell_id-min(cell_id)                    
     # open file
     if os.path.getsize(sim_filename) > 0:
         data = readArray(sim_filename, sepchar=None)
+        
+        result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)    
+        # Write header info (e.g., dimensions of the population)
+        if population is not None:
+            result.write("# dimensions =" + "\t".join([str(d) for d in population.dim]) + "\n")
+            result.write("# first_id = %d\n" % population.id_start)
+            result.write("# last_id = %d\n" % (population.id_start+len(population)-1,))
+            padding = population.id_start
+        else:
+            padding = 0
+        result.write("# dt = %g\n" % dt)
+        
         data[:,0] = data[:,0] - padding
+        
         # sort
         #indx = data.argsort(axis=0, kind='mergesort')[:,0] # will quicksort (not stable) work?
         #data = data[indx]
+        input_format = input_format.split()
+        time_column = input_format.index('t')
+        id_column = input_format.index('id')
+        
         if data.shape[1] == 4: # conductance files
+            ge_column = input_format.index('ge')
+            gi_column = input_format.index('gi')
             raise Exception("Not yet implemented")
         elif data.shape[1] == 3: # voltage files
+            v_column = input_format.index('v')
             #result.write("# n = %d\n" % int(nest.GetStatus([0], "time")[0]/dt))
             result.write("# n = %d\n" % len(data))
             for idx in xrange(len(data)):
-                result.write("%g\t%d\n" % (data[idx][2], data[idx][0])) # v id
+                result.write("%g\t%d\n" % (data[idx][v_column], data[idx][id_column])) # v id
         elif data.shape[1] == 2: # spike files
             for idx in xrange(len(data)):
-                result.write("%g\t%d\n" % (data[idx][1], data[idx][0])) # time id
+                result.write("%g\t%d\n" % (data[idx][t_column], data[idx][id_column])) # time id
         else:
             raise Exception("Data file should have 2,3 or 4 columns, actually has %d" % data.shape[1])
+        result.close()
     else:
         logging.info("%s is empty" % sim_filename)
-    result.close()
-
-
+    
 def readArray(filename, sepchar=None, skipchar='#'):
     """
     (Pylab has a great load() function, but it is not necessary to import

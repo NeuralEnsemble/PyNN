@@ -399,7 +399,8 @@ class Recorder(object):
                 take_data()
                 write_data()
         else:
-            self.filename += ".%d" % myid    
+            if num_processes() > 1:
+                self.filename += ".%d" % myid    
             write_data()
                 
 # ==============================================================================
