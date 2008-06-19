@@ -7,7 +7,7 @@ $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
-from pyNN.neuron2.utility import *
+from pyNN.neuron2 import simulator
 from pyNN import common, utility
 from pyNN.neuron2.cells import *
 from pyNN.neuron2.connectors import *
@@ -20,9 +20,6 @@ import logging
 import operator
 
 # Global variables
-gid_counter = 0
-initialised = False
-running = False
 quit_on_end = True
 recorder_list = []
 
@@ -36,52 +33,29 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global initialised, quit_on_end, running, parallel_context, initializer
-    if not initialised:
-        h('min_delay = 0')
-        h('tstop = 0')
-        parallel_context = neuron.ParallelContext()
-        parallel_context.spike_compress(1,0)
-        cvode = neuron.CVode()
-        initializer = Initializer()
+    global quit_on_end
+    if not simulator.state.initialized:
         utility.init_logging("neuron2.log.%d" % rank(), debug)
         logging.info("Initialization of NEURON (use setup(.., debug=True) to see a full logfile)")
-    h.dt = timestep
-    h.tstop = 0
-    h.min_delay = min_delay
-    running = False
+        simulator.state.initialized = True
+    simulator.state.dt = timestep
+    simulator.state.min_delay = min_delay
+    simulator.reset()
     if 'quit_on_end' in extra_params:
         quit_on_end = extra_params['quit_on_end']
     if extra_params.has_key('use_cvode'):
-        cvode.active(int(extra_params['use_cvode']))
+        simulator.state.cvode.active(int(extra_params['use_cvode']))
     return rank()
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     for recorder in recorder_list:
         recorder.write(gather=False, compatible_output=compatible_output)
-    parallel_context.runworker()
-    parallel_context.done()
-    if quit_on_end:
-        logging.info("Finishing up with NEURON.")
-        h.quit()
+    simulator.finalize(quit_on_end)
         
 def run(simtime):
     """Run the simulation for simtime ms."""
-    global running
-    if not running:
-        running = True
-        local_minimum_delay = parallel_context.set_maxstep(10)
-        h.finitialize()
-        h.tstop = 0
-        logging.debug("local_minimum_delay on host #%d = %g" % (rank(), local_minimum_delay))
-        if num_processes() > 1:
-            assert local_minimum_delay >= get_min_delay(),\
-                   "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, get_min_delay())
-    h.tstop = simtime
-    logging.info("Running the simulation for %d ms" % simtime)
-    parallel_context.psolve(h.tstop)
-    return get_current_time()
+    simulator.run(simtime)
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -89,23 +63,23 @@ def run(simtime):
 
 def get_current_time():
     """Return the current time in the simulation."""
-    return h.t
+    return simulator.state.t
 common.get_current_time = get_current_time
 
 def get_time_step():
-    return h.dt
+    return simulator.state.dt
 common.get_time_step = get_time_step
 
 def get_min_delay():
-    return h.min_delay
+    return simulator.state.min_delay
 common.get_min_delay = get_min_delay
 
 def num_processes():
-    return int(parallel_context.nhost())
+    return simulator.state.num_processes
 
 def rank():
     """Return the MPI rank."""
-    return int(parallel_context.id())
+    return simulator.state.mpi_rank
 
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
@@ -119,9 +93,7 @@ class ID(int, common.IDMixin):
     def _build_cell(self, cell_model, cell_parameters, parent=None):
         gid = int(self)
         self._cell = cell_model(**cell_parameters)          # create the cell object
-        parallel_context.set_gid2node(gid, rank())          # assign the gid to this node
-        nc = neuron.NetCon(self._cell.source, None)         # } associate the cell spike source
-        parallel_context.cell(gid, nc.hoc_obj)              # } with the gid (using a temporary NetCon)
+        simulator.register_gid(gid, self._cell.source)
         self.parent = parent
     
     def get_native_parameters(self):
@@ -143,11 +115,10 @@ def _create(cellclass, param_dict, n, parent=None):
     """
     Function used by both `create()` and `Population.__init__()`
     """
-    global gid_counter
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, basestring): # cell defined in hoc template
         try:
-            cell_model = getattr(h, cellclass)
+            cell_model = getattr(simulator.h, cellclass)
         except AttributeError:
             raise common.InvalidModelError("There is no hoc template called %s" % cellclass)
         cell_parameters = param_dict or {}
@@ -158,8 +129,8 @@ def _create(cellclass, param_dict, n, parent=None):
     else:
         cell_model = cellclass
         cell_parameters = param_dict
-    first_id = gid_counter
-    last_id = gid_counter + n
+    first_id = simulator.state.gid_counter
+    last_id = simulator.state.gid_counter + n
     all_ids = numpy.array([id for id in range(first_id, last_id)], ID)
     # mask_local is used to extract those elements from arrays that apply to the cells on the current node
     mask_local = all_ids%num_processes()==0 # round-robin distribution of cells between nodes
@@ -167,7 +138,7 @@ def _create(cellclass, param_dict, n, parent=None):
         if is_local:
             all_ids[i] = ID(id)
             all_ids[i]._build_cell(cell_model, cell_parameters, parent=parent)
-    gid_counter += n
+    simulator.state.gid_counter += n
     return all_ids, mask_local, first_id, last_id
 
 def create(cellclass, param_dict=None, n=1):
@@ -179,40 +150,11 @@ def create(cellclass, param_dict=None, n=1):
     all_ids, mask_local, first_id, last_id = _create(cellclass, param_dict, n)
     for id in all_ids[mask_local]:
         id.cellclass = cellclass
-    initializer.register(*all_ids[mask_local])
+    simulator.initializer.register(*all_ids[mask_local])
     all_ids = all_ids.tolist() # not sure this is desirable, but it is consistent with the other modules
     if len(all_ids) == 1:
         all_ids = all_ids[0]
     return all_ids
-
-def _single_connect(source, target, weight, delay, synapse_type):
-    """
-    Private function to connect two neurons.
-    Used by `connect()` and the `Connector` classes.
-    """
-    global gid_counter
-    if not isinstance(source, int) or source > gid_counter or source < 0:
-        errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, gid_counter)
-        raise common.ConnectionError(errmsg)
-    if not isinstance(target, ID):
-        raise common.ConnectionError("Invalid target ID: %s" % target)
-    if synapse_type is None:
-        synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
-    if weight is None:
-        weight = common.DEFAULT_WEIGHT
-    if "cond" in target.cellclass.__name__:
-        weight = abs(weight) # weights must be positive for conductance-based synapses
-    elif synapse_type == 'inhibitory' and weight > 0:
-        weight *= -1         # and negative for inhibitory, current-based synapses
-    if delay is None:
-        delay = get_min_delay()
-    elif delay < get_min_delay():
-        raise common.ConnectionError("delay (%s) is too small (< %s)" % (delay, get_min_delay()))
-    synapse_object = getattr(target._cell, synapse_type).hoc_obj
-    nc = parallel_context.gid_connect(int(source), synapse_object)
-    nc.weight[0] = weight
-    nc.delay  = delay
-    return nc
 
 def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
@@ -234,7 +176,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
             rarr = rng.uniform(0, 1, len(source))
             sources = sources[rarr<p]
         for src in sources:
-            nc = _single_connect(src, tgt, weight, delay, synapse_type)
+            nc = simulator.single_connect(src, tgt, weight, delay, synapse_type)
             connection_list.append(nc)
     return connection_list
 
@@ -259,7 +201,7 @@ def record(source, filename):
     # whether to write to a file.
     if not hasattr(source, '__len__'):
         source = [source]
-    recorder = Recorder('spikes', file=filename)
+    recorder = simulator.Recorder('spikes', file=filename)
     recorder.record(source)
     recorder_list.append(recorder)
 
@@ -271,7 +213,7 @@ def record_v(source, filename):
     # choose later whether to write to a file.
     if not hasattr(source, '__len__'):
         source = [source]
-    recorder = Recorder('v', file=filename)
+    recorder = simulator.Recorder('v', file=filename)
     recorder.record(source)
     recorder_list.append(recorder)
 
@@ -304,8 +246,8 @@ class Population(common.Population):
         label is an optional name for the population.
         """
         common.Population.__init__(self, dims, cellclass, cellparams, label)
-        self.recorders = {'spikes': Recorder('spikes', population=self),
-                          'v': Recorder('v', population=self)}
+        self.recorders = {'spikes': simulator.Recorder('spikes', population=self),
+                          'v': simulator.Recorder('v', population=self)}
         self.label = self.label or 'population%d' % Population.nPop
         if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
             self.celltype = cellclass(cellparams)
@@ -321,7 +263,7 @@ class Population(common.Population):
         self._all_ids = self._all_ids.reshape(self.dim)
         self._mask_local = self._mask_local.reshape(self.dim)
         
-        initializer.register(self)
+        simulator.initializer.register(self)
         Population.nPop += 1
         logging.info(self.describe('Creating Population "%(label)s" of shape %(dim)s, '+
                                    'containing `%(celltype)s`s with indices between %(first_id)s and %(last_id)s'))
@@ -455,7 +397,7 @@ class Population(common.Population):
         # sequence of random numbers does not depend on the number of nodes,
         # provided that the same rng with the same seed is used on each node.
         if isinstance(rand_distr.rng, NativeRNG):
-            rng = h.Random(rand_distr.rng.seed or 0)
+            rng = simulator.h.Random(rand_distr.rng.seed or 0)
             native_rand_distr = getattr(rng, rand_distr.name)
             rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick() for i in range(self._all_ids.size-1)]
         else:
@@ -476,7 +418,6 @@ class Population(common.Population):
         """
         Private method called by record() and record_v().
         """
-        global myid
         fixed_list=False
         if isinstance(record_from, list): #record from the fixed list specified by user
             fixed_list=True
@@ -665,7 +606,7 @@ class Projection(common.Projection):
             connection_method = getattr(self,'_%s' % method)   
             connection_method(method_parameters)
         elif isinstance(method, common.Connector):
-            print "gid_counter = ", gid_counter
+            print "simulator.gid_counter = ", simulator.State.gid_counter
             method.connect(self)
             
         logging.info("--- Projection[%s].__init__() ---" %self.label)

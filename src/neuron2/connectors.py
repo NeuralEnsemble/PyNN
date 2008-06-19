@@ -5,11 +5,9 @@
 
 from pyNN import common
 from pyNN.random import RandomDistribution, NativeRNG
-from pyNN.neuron2.__init__ import get_min_delay, _single_connect
+from pyNN.neuron2 import simulator
 import numpy
 from math import *
-
-common.get_min_delay = get_min_delay
 
 # ==============================================================================
 #   Connection method classes
@@ -41,9 +39,9 @@ class HocConnector(object):
             if hasattr(d, '__len__'): # d is an array
                 delays = d.__iter__()
             else:
-                delays = ConstIter(max((d, get_min_delay())))
+                delays = ConstIter(max((d, simulator.state.min_delay)))
         else:
-            delays = ConstIter(get_min_delay())
+            delays = ConstIter(simulator.state.min_delay)
         return delays
 
     def _process_conn_list(self, conn_list, projection):
@@ -81,9 +79,9 @@ def probabilistic_connect(connector, projection, p):
             if connector.allow_self_connections or projection.pre != projection.post or tgt != src:
                 if create[j]:
                     projection.connections.append(
-                            _single_connect(src, tgt,
-                                            weights.next(), delays.next(),
-                                            projection.synapse_type))
+                            simulator.single_connect(src, tgt,
+                                                     weights.next(), delays.next(),
+                                                     projection.synapse_type))
 
 
 class AllToAllConnector(common.AllToAllConnector, HocConnector):    
@@ -101,7 +99,7 @@ class OneToOneConnector(common.OneToOneConnector, HocConnector):
             for tgt in projection.post:
                 src = tgt - projection.post.first_id + projection.pre.first_id
                 projection.connections.append(
-                    _single_connect(src, tgt, weights.next(), delays.next(), projection.synapse_type))
+                    simulator.single_connect(src, tgt, weights.next(), delays.next(), projection.synapse_type))
         else:
             raise Exception("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
         return hoc_commands

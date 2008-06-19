@@ -22,13 +22,13 @@ class CreationTest(unittest.TestCase):
     """Tests of the create() function."""
     
     def tearDown(self):
-        neuron.gid_counter = 0
+        neuron.simulator.state.gid_counter = 0
     
     def testCreateStandardCell(self):
         """create(): First cell created should have index 0."""
         logging.info('=== CreationTest.testCreateStandardCell() ===')
         ifcell = neuron.create(neuron.IF_curr_alpha)
-        assert ifcell == 0, 'Failed to create standard cell'
+        assert ifcell == 0, 'Failed to create standard cell (cell=%s)' % ifcell
         
     def testCreateStandardCells(self):
         """create(): Creating multiple cells should return a list of integers"""
@@ -436,6 +436,9 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         self.pop1 = neuron.Population((3,3), neuron.SpikeSourcePoisson,{'rate': 20})
         self.pop2 = neuron.Population((3,3), neuron.IF_curr_alpha)
 
+    def tearDown(self):
+        neuron.simulator.reset()
+
     def testRecordAll(self):
         """Population.record(): not a full test, just checking there are no Exceptions raised."""
         self.pop1.record()
@@ -462,9 +465,8 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         # close to 20 Hz. Then we also test how the spikes are saved
         self.pop1.record()
         simtime = 1000.0
-        neuron.running = False
         neuron.run(simtime)
-        self.pop1.printSpikes("temp_neuron.ras", gather=True)
+        #self.pop1.printSpikes("temp_neuron.ras", gather=True)
         rate = self.pop1.meanSpikeCount()*1000/simtime
         if neuron.rank() == 0: # only on master node
             assert (20*0.8 < rate) and (rate < 20*1.2), "rate is %s" % rate
@@ -492,9 +494,10 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         spike_times = numpy.arange(10.0, 200.0, 10.0)
         spike_source = neuron.Population(1, neuron.SpikeSourceArray, {'spike_times': spike_times})
         spike_source.record()
-        neuron.running = False
         neuron.run(100.0)
-        spikes = spike_source.getSpikes()[:,0]
+        spikes = spike_source.getSpikes()
+        print spikes
+        spikes = spikes[:,0]
         if neuron.rank() == 0:
             self.assert_( max(spikes) == 100.0, str(spikes) )
 

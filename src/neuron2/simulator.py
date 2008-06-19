@@ -68,8 +68,7 @@ class Recorder(object):
             data = numpy.empty((0,2))
             for id in self.recorded:
                 spikes = id._cell.spiketimes.toarray()
-                print "t = ", common.get_current_time()
-                spikes = spikes[spikes<=common.get_current_time()+1e-9]
+                spikes = spikes[spikes<=state.t+1e-9]
                 if len(spikes) > 0:
                     new_data = numpy.array([spikes, numpy.ones(spikes.shape)*id]).T
                     data = numpy.concatenate((data, new_data))
@@ -90,14 +89,18 @@ class Recorder(object):
             recording.write_compatible_output(filename, filename, Recorder.formats[self.variable],
                                               self.population, common.get_time_step())
         
-class Initializer(object):
+class _Initializer(object):
     
     def __init__(self):
         self.cell_list = []
         self.population_list = []
-        neuron.h('objref initializer')
+        h('objref initializer')
         neuron.h.initializer = self
         self.fih = h.FInitializeHandler("initializer.initialize()")
+    
+    def __call__(self):
+        """This is to make the Initializer a Singleton."""
+        return self
     
     def register(self, *items):
         for item in items:
@@ -117,5 +120,100 @@ class Initializer(object):
             for cell in population:
                 cell._cell.memb_init()
 
+def h_property(name):
+    def _get(self):
+        return getattr(h,name)
+    def _set(self, val):
+        setattr(h, name, val)
+    return property(fget=_get, fset=_set)
 
-load_mechanisms()
+class _State(object):
+    """Represent the simulator state."""
+    
+    def __init__(self):
+        self.gid_counter = 0
+        self.running = False
+        self.initialized = False
+        h('min_delay = 0')
+        h('tstop = 0')
+        self.parallel_context = neuron.ParallelContext()
+        self.parallel_context.spike_compress(1,0)
+        self.num_processes = int(self.parallel_context.nhost())
+        self.mpi_rank = int(self.parallel_context.id())
+        self.cvode = neuron.CVode()
+    
+    t = h_property('t')
+    dt = h_property('dt')
+    tstop = h_property('tstop')         # } do these really need to be stored in hoc?
+    min_delay = h_property('min_delay') # }
+    
+    
+    def __call__(self):
+        """This is to make the State a Singleton."""
+        return self
+    
+def reset():
+    state.running = False
+    state.t = 0
+    state.tstop = 0
+
+def run(simtime):
+    if not state.running:
+        state.running = True
+        local_minimum_delay = state.parallel_context.set_maxstep(10)
+        h.finitialize()
+        state.tstop = 0
+        logging.debug("local_minimum_delay on host #%d = %g" % (state.mpi_rank, local_minimum_delay))
+        if state.num_processes > 1:
+            assert local_minimum_delay >= state.min_delay,\
+                   "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, state.min_delay)
+    state.tstop = simtime
+    logging.info("Running the simulation for %d ms" % simtime)
+    state.parallel_context.psolve(state.tstop)
+    return state.t
+
+
+def finalize(quit=True):
+    state.parallel_context.runworker()
+    state.parallel_context.done()
+    if quit:
+        logging.info("Finishing up with NEURON.")
+        h.quit()
+
+def register_gid(gid, source):
+    state.parallel_context.set_gid2node(gid, state.mpi_rank)  # assign the gid to this node
+    nc = neuron.NetCon(source, None)                          # } associate the cell spike source
+    state.parallel_context.cell(gid, nc.hoc_obj)              # } with the gid (using a temporary NetCon)
+
+def single_connect(source, target, weight, delay, synapse_type):
+    """
+    Private function to connect two neurons.
+    Used by `connect()` and the `Connector` classes.
+    """
+    if not isinstance(source, int) or source > state.gid_counter or source < 0:
+        errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, state.gid_counter)
+        raise common.ConnectionError(errmsg)
+    if not isinstance(target, common.IDMixin):
+        raise common.ConnectionError("Invalid target ID: %s" % target)
+    if synapse_type is None:
+        synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
+    if weight is None:
+        weight = common.DEFAULT_WEIGHT
+    if "cond" in target.cellclass.__name__:
+        weight = abs(weight) # weights must be positive for conductance-based synapses
+    elif synapse_type == 'inhibitory' and weight > 0:
+        weight *= -1         # and negative for inhibitory, current-based synapses
+    if delay is None:
+        delay = state.min_delay
+    elif delay < state.min_delay:
+        raise common.ConnectionError("delay (%s) is too small (< %s)" % (delay, state.min_delay))
+    synapse_object = getattr(target._cell, synapse_type).hoc_obj
+    nc = state.parallel_context.gid_connect(int(source), synapse_object)
+    nc.weight[0] = weight
+    nc.delay  = delay
+    return nc
+
+# The following are executed every time the module is imported.
+load_mechanisms() # maintains a list of mechanisms that have already been imported
+state = _State()  # a Singleton, so only a single instance ever exists
+initializer = _Initializer()

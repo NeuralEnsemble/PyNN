@@ -163,7 +163,8 @@ class SpikeSource(object):
         else:
             for name in 'start', 'interval', 'number':
                 setattr(self.source, name, locals()[name])
-            self.spiketimes = neuron.Vector()
+            self.source.noise = 1
+            self.spiketimes = neuron.Vector(0)
             self.do_not_record = False
 
     start    = _new_property('source', 'start')
@@ -173,8 +174,9 @@ class SpikeSource(object):
     def record(self, active):
         if not self.do_not_record: # for VecStims, etc, recording doesn't make sense as we already have the spike times
             if active:
-                rec = neuron.NetCon(self.source, None)
-                rec.record(self.spiketimes.hoc_obj)
+                self.spiketimes.hoc_obj.printf()
+                self.rec = neuron.NetCon(self.source, None)
+                self.rec.record(self.spiketimes.hoc_obj)
             
 
 class IF_curr_alpha(common.IF_curr_alpha):
