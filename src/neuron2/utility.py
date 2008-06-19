@@ -68,6 +68,8 @@ class Recorder(object):
             data = numpy.empty((0,2))
             for id in self.recorded:
                 spikes = id._cell.spiketimes.toarray()
+                print "t = ", common.get_current_time()
+                spikes = spikes[spikes<=common.get_current_time()+1e-9]
                 if len(spikes) > 0:
                     new_data = numpy.array([spikes, numpy.ones(spikes.shape)*id]).T
                     data = numpy.concatenate((data, new_data))
@@ -100,7 +102,7 @@ class Initializer(object):
     def register(self, *items):
         for item in items:
             if isinstance(item, common.Population):
-                if "Source" not in item.__class__.__name__:
+                if "Source" not in item.celltype.__class__.__name__: # don't do memb_init() on spike sources
                     self.population_list.append(item)
             else:
                 if hasattr(item._cell, "memb_init"):
@@ -114,5 +116,6 @@ class Initializer(object):
         for population in self.population_list:
             for cell in population:
                 cell._cell.memb_init()
+
 
 load_mechanisms()

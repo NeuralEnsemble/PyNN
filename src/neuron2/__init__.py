@@ -90,6 +90,7 @@ def run(simtime):
 def get_current_time():
     """Return the current time in the simulation."""
     return h.t
+common.get_current_time = get_current_time
 
 def get_time_step():
     return h.dt
@@ -189,8 +190,10 @@ def _single_connect(source, target, weight, delay, synapse_type):
     Private function to connect two neurons.
     Used by `connect()` and the `Connector` classes.
     """
+    global gid_counter
     if not isinstance(source, int) or source > gid_counter or source < 0:
-        raise common.ConnectionError("Invalid source ID: %s" % source)
+        errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, gid_counter)
+        raise common.ConnectionError(errmsg)
     if not isinstance(target, ID):
         raise common.ConnectionError("Invalid target ID: %s" % target)
     if synapse_type is None:
@@ -388,7 +391,7 @@ class Population(common.Population):
         """
         values = [getattr(cell, parameter_name) for cell in self]
         if as_array:
-            values = numpy.array(values)
+            values = numpy.array(values).reshape(self.dim)
         return values
 
     def set(self, param, val=None):
@@ -431,10 +434,13 @@ class Population(common.Population):
         ##local_indices = numpy.array([cell.gid for cell in self]) - self.first_id
         ##values = values.take(local_indices) # take just the values for cells on this machine
         assert local_values.size == self._local_ids.size, "%d != %d" % (local_values.size, self._local_ids.size)
-        
-        logging.info("%s.tset('%s', array(shape=%s, min=%s, max=%s)",
-                     self.label, parametername, value_array.shape,
-                     value_array.min(), value_array.max())
+        try:
+            logging.info("%s.tset('%s', array(shape=%s, min=%s, max=%s))",
+                         self.label, parametername, value_array.shape,
+                         value_array.min(), value_array.max())
+        except TypeError: # min() and max() won't work for non-numeric values
+            logging.info("%s.tset('%s', non_numeric_array(shape=%s))",
+                         self.label, parametername, value_array.shape)
         # Set the values for each cell
         for cell, val in zip(self, local_values.flat):
             setattr(cell, parametername, val)
@@ -593,3 +599,92 @@ class Population(common.Population):
         context.update(cell_parameters=first_id.get_parameters())
         context.update(celltype=self.celltype.__class__.__name__)
         return template % context
+    
+
+class Projection(common.Projection):
+    """
+    A container for all the connections of a given type (same synapse type and
+    plasticity mechanisms) between two populations, together with methods to set
+    parameters of those connections, including of plasticity mechanisms.
+    """
+    
+    nProj = 0
+    
+    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll',
+                 method_parameters=None, source=None, target=None,
+                 synapse_dynamics=None, label=None, rng=None):
+        """
+        presynaptic_population and postsynaptic_population - Population objects.
+        
+        source - string specifying which attribute of the presynaptic cell
+                 signals action potentials
+                 
+        target - string specifying which synapse on the postsynaptic cell to
+                 connect to
+                 
+        If source and/or target are not given, default values are used.
+        
+        method - string indicating which algorithm to use in determining
+                 connections.
+        Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
+        'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
+        'fromFile', 'fromList'.
+        
+        method_parameters - dict containing parameters needed by the connection
+        method, although we should allow this to be a number or string if there
+        is only one parameter.
+        
+        synapse_dynamics - a `SynapseDynamics` object specifying which
+        synaptic plasticity mechanisms to use.
+        
+        rng - since most of the connection methods need uniform random numbers,
+        it is probably more convenient to specify a RNG object here rather
+        than within method_parameters, particularly since some methods also use
+        random numbers to give variability in the number of connections per cell.
+        """
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
+                                   method_parameters, source, target, synapse_dynamics, label, rng)
+        self.connections = []
+        if not label:
+            self.label = 'projection%d' % Projection.nProj
+        if not rng:
+            self.rng = NumpyRNG()
+        self.synapse_type = target
+        
+        ## Deal with short-term synaptic plasticity
+        if self.short_term_plasticity_mechanism:
+            U = self._short_term_plasticity_parameters['U']
+            tau_rec = self._short_term_plasticity_parameters['tau_rec']
+            tau_facil = self._short_term_plasticity_parameters['tau_facil']
+            u0 = self._short_term_plasticity_parameters['u0']
+            for cell in self.post:
+                cell._cell.use_Tsodyks_Markram_synapses(self.synapse_type, U, tau_rec, tau_facil, u0)
+                
+        ## Create connections
+        if isinstance(method, str):
+            connection_method = getattr(self,'_%s' % method)   
+            connection_method(method_parameters)
+        elif isinstance(method, common.Connector):
+            print "gid_counter = ", gid_counter
+            method.connect(self)
+            
+        logging.info("--- Projection[%s].__init__() ---" %self.label)
+        
+        # By defaut, we set all the delays to min_delay, except if
+        # the Projection data have been loaded from a file or a list.
+        # This should already have been done if using a Connector object
+        if isinstance(method, str) and (method != 'fromList') and (method != 'fromFile'):
+            self.setDelays(get_min_delay())
+                
+        ## Deal with long-term synaptic plasticity
+        if self.long_term_plasticity_mechanism:
+            self._setupSTDP(self.long_term_plasticity_mechanism, self._stdp_parameters)
+            
+        Projection.nProj += 1
+
+    def __len__(self):
+        """Return the total number of connections."""
+        return len(self.connections)
+
+    # --- Connection methods ---------------------------------------------------
+    

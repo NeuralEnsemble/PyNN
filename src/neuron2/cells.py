@@ -13,7 +13,8 @@ AlphaISyn = neuron.new_point_process('AlphaISyn')
 AlphaSyn  = neuron.new_point_process('AlphaSyn') # note that AlphaSynapse exists in NEURON now
 ResetRefrac = neuron.new_point_process('ResetRefrac')
 VecStim = neuron.new_hoc_class('VecStim')
-NetStim = neuron.new_hoc_class('VecStim')
+NetStim = neuron.new_hoc_class('NetStim')
+tmgsyn = neuron.new_hoc_class('tmgsyn')
 
 def _new_property(obj_hierarchy, attr_name):
     """
@@ -125,11 +126,36 @@ class StandardIF(neuron.nrn.Section):
             self.v_init = v_init
         self.seg.v = self.v_init
 
+    
+    def use_Tsodyks_Markram_synapses(ei, U, tau_rec, tau_facil, u0):
+        if self.syn_type == 'current':
+            raise Exception("Tsodyks-Markram mechanism only available for conductance-based synapses.")
+        elif ei == 'excitatory':
+            self.esyn = tmgsyn(self, 0.5)
+            self.esyn.tau_1 = self.tau_e
+            self.esyn.e = self.e_e
+            syn = self.esyn
+        elif ei == 'inhibitory':
+            self.isyn = tmgsyn(self, 0.5)
+            self.isyn.tau_1 = self.tau_i
+            self.isyn.e = self.e_i
+            syn = self.isyn
+        syn.U = U
+        syn.tau_rec = tau_rec
+        syn.tau_facil = tau_facil
+        syn.u0 = u0
+
 
 class SpikeSource(object):
     
+    parameter_names = {
+        'NetStim': ['start', 'interval', 'number'],
+        'VecStim': ['spiketimes']
+    }
+    
     def __init__(self, source_type, start=0, interval=1e12, number=0, spiketimes=[]):
         self.source = source_type()
+        self.parameter_names = SpikeSource.parameter_names[source_type.__name__]
         if spiketimes:
             self.spiketimes = neuron.Vector(spiketimes)
             self.source.play(self.spiketimes.hoc_obj)
@@ -140,11 +166,15 @@ class SpikeSource(object):
             self.spiketimes = neuron.Vector()
             self.do_not_record = False
 
+    start    = _new_property('source', 'start')
+    interval = _new_property('source', 'interval')
+    number   = _new_property('source', 'number')
+
     def record(self, active):
         if not self.do_not_record: # for VecStims, etc, recording doesn't make sense as we already have the spike times
             if active:
-                rec = NetCon(self.source, None)
-                rec.record(self.spiketimes)
+                rec = neuron.NetCon(self.source, None)
+                rec.record(self.spiketimes.hoc_obj)
             
 
 class IF_curr_alpha(common.IF_curr_alpha):
@@ -290,7 +320,8 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     
     def __init__(self, parameters):
         common.SpikeSourcePoisson.__init__(self, parameters)
-        self.parameters['source_type'] = NetStim           
+        self.parameters['source_type'] = NetStim
+
 
 class SpikeSourceArray(SpikeSource, common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""

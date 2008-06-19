@@ -241,297 +241,269 @@ class PopulationInitTest(unittest.TestCase):
         or a valid neuron model should raise a HocError."""
         self.assertRaises(common.InvalidModelError, neuron.Population, (3,3), 'qwerty', {})
         
-#    def testInitWithNonStandardModel(self):
-#        """Population.__init__(): the cell list in hoc should have the same length as the population size."""
-#        net = neuron.Population((3,3), 'StandardIF', {'syn_type':'current', 'syn_shape':'exp'})
-#        n_cells = getattr(h, net.label).count()
-#        n_cells_lower = int(getattr(h, net.label).count())
-#        # round-robin distribution
-#        assert 9/neuron.nhost <= n_cells_lower <= 9/neuron.nhost+1, "%d not between %d and %d" % (n_cells_lower, 9/neuron.nhost, 9/neuron.nhost+1)
-#    
-#
-## ==============================================================================
-#class PopulationIndexTest(unittest.TestCase):
-#    """Tests of the Population class indexing."""
-#    
-#    def setUp(self):
-#        neuron.Population.nPop = 0
-#        self.net1 = neuron.Population((10,), neuron.IF_curr_alpha)
-#        self.net2 = neuron.Population((2,4,3), neuron.IF_curr_exp)
-#        self.net3 = neuron.Population((2,2,1), neuron.SpikeSourceArray)
-#        self.net4 = neuron.Population((1,2,1), neuron.SpikeSourceArray)
-#        self.net5 = neuron.Population((3,3), neuron.IF_cond_alpha)
-#    
-#    def testValidIndices(self):
-#        for i in range(10):
-#            self.assertEqual((i,), self.net1.locate(self.net1[i]))
-#
-#    def testValidAddresses(self):
-#        for addr in ( (0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1), (0,1,2), (0,2,0), (0,2,1), (0,2,2), (0,3,0), (0,3,1), (0,3,2),
-#                      (1,0,0), (1,0,1), (1,0,2), (1,1,0), (1,1,1), (1,1,2), (1,2,0), (1,2,1), (1,2,2), (1,3,0), (1,3,1), (1,3,2) ):
-#            id = self.net2[addr]
-#            self.assertEqual(addr, self.net2.locate(id))
-#        for addr in ( (0,0,0), (0,1,0), (1,0,0), (1,1,0) ):
-#            id = self.net3[addr]
-#            self.assertEqual(addr, self.net3.locate(id))
-#        for addr in ( (0,0,0), (0,1,0) ):
-#            id = self.net4[addr]
-#            self.assertEqual(addr, self.net4.locate(id))
-#        for addr in ( (0,0), (0,1), (0,2), (1,0), (1,1), (1,2), (2,0), (2,1), (2,2) ):
-#            id = self.net5[addr]
-#            self.assertEqual(addr, self.net5.locate(id))
-#
-#    def testInvalidIndices(self):
-#        self.assertRaises(IndexError, self.net1.__getitem__, (11,))
-#        
-#    def testInvalidIndexDimension(self):
-#        self.assertRaises(common.InvalidDimensionsError, self.net1.__getitem__, (10,2))
-#     
-## ==============================================================================
-#class PopulationIteratorTest(unittest.TestCase):
-#    """Tests of the Population class iterators."""
-#    
-#    def setUp(self):
-#        neuron.Population.nPop = 0
-#        self.net1 = neuron.Population((10,), neuron.IF_curr_alpha)
-#        self.net2 = neuron.Population((2,4,3), neuron.IF_curr_exp)
-#        self.net3 = neuron.Population((2,2,1), neuron.SpikeSourceArray)
-#        self.net4 = neuron.Population((1,2,1), neuron.SpikeSourceArray)
-#        self.net5 = neuron.Population((3,3), neuron.IF_cond_alpha)
-#        
-#    def testIter(self):
-#        """This needs more thought for the distributed case."""
-#        for net in self.net1, self.net2:
-#            ids = [i for i in net]
-#            self.assertEqual(ids, net.gidlist)
-#            self.assert_(isinstance(ids[0], neuron.ID))
-#            
-#    def testAddressIter(self):
-#        for net in self.net1, self.net2:
-#            for id, addr in zip(net.ids(), net.addresses()):
-#                self.assertEqual(id, net[addr])
-#                self.assertEqual(addr, net.locate(id))
-#            
-#    
-## ==============================================================================
-#class PopulationSetTest(unittest.TestCase):
-#        
-#    def setUp(self):
-#        neuron.Population.nPop = 0
-#        self.net = neuron.Population((3,3), neuron.IF_curr_alpha)
-#        self.net2 = neuron.Population((5,),'StandardIF',{'syn_type':'current','syn_shape':'exp'})
-#    
-#    def testSetFromDict(self):
-#        """Population.set(): Parameters set in a dict should all be retrievable using the top-level HocObject"""
-#        self.net.set({'tau_m':43.21})
-#        cell_list = getattr(h, self.net.label)
-#        for i in range(int(cell_list.count())):
-#            assert cell_list.object(i).tau_m == 43.21
-#    
-#    def testSetFromPair(self):
-#        """Population.set(): A parameter set as a string, value pair should be retrievable using the top-level HocObject"""
-#        self.net.set('tau_m',12.34)
-#        cell_list = getattr(h, self.net.label)
-#        for i in range(int(cell_list.count())):
-#            assert cell_list.object(i).tau_m == 12.34
-#    
-#    def testSetInvalidFromPair(self):
-#        """Population.set(): Trying to set an invalid value for a parameter should raise an exception."""
-#        self.assertRaises(common.InvalidParameterValueError, self.net.set, 'tau_m', [])
-#    
-#    def testSetInvalidFromDict(self):
-#        """Population.set(): When any of the parameters in a dict have invalid values, then an exception should be raised.
-#           There is no guarantee that the valid parameters will be set."""
-#        self.assertRaises(common.InvalidParameterValueError, self.net.set, {'v_thresh':'hello','tau_m':56.78})
-#    
-#    def testSetNonexistentFromPair(self):
-#        """Population.set(): Trying to set a nonexistent parameter should raise an exception."""
-#        self.assertRaises(common.NonExistentParameterError, self.net.set, 'tau_foo', 10.0)
-#    
-#    def testSetNonexistentFromDict(self):
-#        """Population.set(): When some of the parameters in a dict are inexistent, an exception should be raised.
-#           There is no guarantee that the existing parameters will be set."""
-#        self.assertRaises(common.NonExistentParameterError, self.net.set, {'tau_foo': 10.0, 'tau_m': 21.0})
-#    
-#    def testSetWithNonStandardModel(self):
-#        """Population.set(): Parameters set in a dict should all be retrievable using the top-level HocObject"""
-#        self.net2.set({'tau_m':43.21})
-#        cell_list = getattr(h, self.net2.label)
-#        for i in range(int(cell_list.count())):
-#            assert cell_list.object(i).tau_m == 43.21
-#        
-#    def testTSet(self):
-#        """Population.tset(): The valueArray passed should be retrievable using the top-level HocObject on all nodes."""
-#        array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
-#        self.net.tset('i_offset', array_in)
-#        array_out = numpy.zeros((3,3), float)
-#        hoc_net = getattr(h, self.net.label)
-#        for i in 0,1,2:
-#            for j in 0,1,2:
-#                id = 3*i+j
-#                if id in self.net.gidlist:
-#                    list_index = self.net.gidlist.index(id)
-#                    cell = hoc_net.object(list_index)
-#                    array_out[i, j] = cell.stim.amp
-#                else:
-#                    array_out[i, j] = array_in[i, j]
-#        assert numpy.equal(array_in, array_out).all(), array_out
-#    
-#    def testTSetInvalidDimensions(self):
-#        """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
-#        array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6]])
-#        self.assertRaises(common.InvalidDimensionsError, self.net.tset, 'i_offset', array_in)
-#    
-#    def testTSetInvalidValues(self):
-#        """Population.tset(): If some of the values in the valueArray are invalid, should raise an exception."""
-#        array_in = numpy.array([['potatoes','carrots','peas'],['dogs','cats','mice'],['oranges','bananas','apples']])
-#        self.assertRaises(common.InvalidParameterValueError, self.net.tset, 'i_offset', array_in)
-#        
-#    def testRSetNative1(self):
-#        """Population.rset(): with native rng. This is difficult to test, so for
-#        now just require that all values retrieved should be different.
-#        Later, could calculate distribution and assert that the difference between
-#        sample and theoretical distribution is less than some threshold."""
-#        self.net.rset('tau_m',
-#                      random.RandomDistribution(rng=random.NativeRNG(),
-#                                                distribution='uniform',
-#                                                parameters=(10.0,30.0)))
-#        hoc_net = getattr(h, self.net.label)
-#        self.assertNotEqual(hoc_net.object(0).tau_m,
-#                            hoc_net.object(1).tau_m)
-#        
-#    def testRSetNumpy(self):
-#        """Population.rset(): with numpy rng."""
-#        rd1 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
-#                                         distribution='uniform',
-#                                         parameters=[0.9,1.1])
-#        rd2 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
-#                                         distribution='uniform',
-#                                         parameters=[0.9,1.1])
-#        self.net.rset('cm', rd1)
-#        output_values = numpy.zeros((3,3), numpy.float)
-#        hoc_net = getattr(h, self.net.label)
-#        for i in 0,1,2:
-#            for j in 0,1,2:
-#                id = 3*i+j
-#                if id in self.net.gidlist:
-#                    list_index = self.net.gidlist.index(id)
-#                    output_values[i, j] = hoc_net.object(list_index).cell(0.5).cm
-#        input_values = rd2.next(9)
-#        output_values = output_values.reshape((9,))
-#        for i in range(9):
-#            if i in self.net.gidlist:
-#                self.assertAlmostEqual(input_values[i], output_values[i], places=5)
-#        
-#    def testRSetNative2(self):
-#        """Population.rset(): with native rng."""
-#        rd1 = random.RandomDistribution(rng=random.NativeRNG(seed=98765),
-#                                         distribution='uniform',
-#                                         parameters=[0.9,1.1])
-#        rd2 = random.RandomDistribution(rng=random.NativeRNG(seed=98765),
-#                                         distribution='uniform',
-#                                         parameters=[0.9,1.1])
-#        self.net.rset('cm', rd1)
-#        output_values_1 = numpy.zeros((3,3), numpy.float)
-#        output_values_2 = numpy.zeros((3,3), numpy.float)
-#        hoc_net = getattr(h, self.net.label)
-#        print hoc_net.count()
-#        for i in 0,1,2:
-#            for j in 0,1,2:
-#                id = 3*i+j
-#                if id in self.net.gidlist:
-#                    list_index = self.net.gidlist.index(id)
-#                    output_values_1[i, j] = hoc_net.object(list_index).cell(0.5).cm
-#        self.net.rset('cm', rd2)
-#        for i in 0,1,2:
-#            for j in 0,1,2:
-#                id = 3*i+j
-#                if id in self.net.gidlist:
-#                    list_index = self.net.gidlist.index(id)
-#                    output_values_2[i, j] = hoc_net.object(list_index).cell(0.5).cm
-#        output_values_1 = output_values_1.reshape((9,))
-#        output_values_2 = output_values_2.reshape((9,))
-#        for i in range(9):
-#            self.assertAlmostEqual(output_values_1[i], output_values_2[i], places=5)    
-#
-## ==============================================================================
-#class PopulationRecordTest(unittest.TestCase): # to write later
-#    """Tests of the record(), record_v(), printSpikes(), print_v() and
-#       meanSpikeCount() methods of the Population class."""
-#    
-#    def setUp(self):
-#        neuron.Population.nPop = 0
-#	self.pop1 = neuron.Population((3,3), neuron.SpikeSourcePoisson,{'rate': 20})
-#	self.pop2 = neuron.Population((3,3), neuron.IF_curr_alpha)
-#
-#    def testRecordAll(self):
-#        """Population.record(): not a full test, just checking there are no Exceptions raised."""
-#	self.pop1.record()
-#        
-#    def testRecordInt(self):
-#        """Population.record(n): not a full test, just checking there are no Exceptions raised."""
-#        # Partial record	
-#        self.pop1.record(5)
-#	
-#    def testRecordWithRNG(self):
-#        """Population.record(n, rng): not a full test, just checking there are no Exceptions raised."""
-#	self.pop1.record(5, random.NumpyRNG())
-#        
-#    def testRecordList(self):
-#        """Population.record(list): not a full test, just checking there are no Exceptions raised."""
-#	# Selected list record
-#	record_list = []
-#	for i in range(0,2):
-#	    record_list.append(self.pop1[i,1])
-#	self.pop1.record(record_list)
-#
-#    def testSpikeRecording(self):
-#	# We test the mean spike count by checking if the rate of the poissonian sources are
-#	# close to 20 Hz. Then we also test how the spikes are saved
-#	self.pop1.record()
-#	simtime = 1000.0
-#        neuron.running = False
-#	neuron.run(simtime)
-#	self.pop1.printSpikes("temp_neuron.ras", gather=True)
-#        rate = self.pop1.meanSpikeCount()*1000/simtime
-#        if neuron.myid == 0: # only on master node
-#            assert (20*0.8 < rate) and (rate < 20*1.2), "rate is %s" % rate
-#
-#    def testPotentialRecording(self):
-#	"""Population.record_v() and Population.print_v(): not a full test, just checking 
-#	# there are no Exceptions raised."""
-#	rng = NumpyRNG(123)
-#	v_reset  = -65.0
-#	v_thresh = -50.0
-#	uniformDistr = RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])
-#	self.pop2.randomInit(uniformDistr)
-#	self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
-#	simtime = 10.0
-#        neuron.running = False
-#        neuron.run(simtime)
-#	self.pop2.print_v("temp_neuron.v", gather=True)
-#
-#    def testRecordWithSpikeTimesGreaterThanSimTime(self):
-#        """
-#        If a `SpikeSourceArray` is initialized with spike times greater than the
-#        simulation time, only those spikes that actually occurred should be
-#        written to file or returned by getSpikes().
-#        """
-#        spike_times = numpy.arange(10.0, 200.0, 10.0)
-#        spike_source = neuron.Population(1, neuron.SpikeSourceArray, {'spike_times': spike_times})
-#        spike_source.record()
-#        neuron.running = False
-#        neuron.run(100.0)
-#        spikes = spike_source.getSpikes()[:,1]
-#        if neuron.myid == 0:
-#            self.assert_( max(spikes) == 100.0, str(spikes) )
-#
-## ==============================================================================
-#class PopulationOtherTest(unittest.TestCase): # to write later
-#    """Tests of the randomInit() method of the Population class."""
-#    pass
-#
-## ==============================================================================
+    def testInitWithNonStandardModel(self):
+        """Population.__init__(): the cell list in hoc should have the same length as the population size."""
+        net = neuron.Population((3,3), neuron.StandardIF, {'syn_type':'current', 'syn_shape':'exp'})
+        self.assertEqual(net.size, 9)
+        n_cells_local = len([id for id in net])
+        min = 9/neuron.num_processes()
+        max = min+1
+        assert min <= n_cells_local <= max, "%d not between %d and %d" % (n_cells_local, min, max)
+
+# ==============================================================================
+class PopulationIndexTest(unittest.TestCase):
+    """Tests of the Population class indexing."""
+    
+    def setUp(self):
+        neuron.Population.nPop = 0
+        self.net1 = neuron.Population((10,), neuron.IF_curr_alpha)
+        self.net2 = neuron.Population((2,4,3), neuron.IF_curr_exp)
+        self.net3 = neuron.Population((2,2,1), neuron.SpikeSourceArray)
+        self.net4 = neuron.Population((1,2,1), neuron.SpikeSourceArray)
+        self.net5 = neuron.Population((3,3), neuron.IF_cond_alpha)
+    
+    def testValidIndices(self):
+        for i in range(10):
+            self.assertEqual((i,), self.net1.locate(self.net1[i]))
+
+    def testValidAddresses(self):
+        for addr in ( (0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1), (0,1,2), (0,2,0), (0,2,1), (0,2,2), (0,3,0), (0,3,1), (0,3,2),
+                      (1,0,0), (1,0,1), (1,0,2), (1,1,0), (1,1,1), (1,1,2), (1,2,0), (1,2,1), (1,2,2), (1,3,0), (1,3,1), (1,3,2) ):
+            id = self.net2[addr]
+            self.assertEqual(addr, self.net2.locate(id))
+        for addr in ( (0,0,0), (0,1,0), (1,0,0), (1,1,0) ):
+            id = self.net3[addr]
+            self.assertEqual(addr, self.net3.locate(id))
+        for addr in ( (0,0,0), (0,1,0) ):
+            id = self.net4[addr]
+            self.assertEqual(addr, self.net4.locate(id))
+        for addr in ( (0,0), (0,1), (0,2), (1,0), (1,1), (1,2), (2,0), (2,1), (2,2) ):
+            id = self.net5[addr]
+            self.assertEqual(addr, self.net5.locate(id))
+
+    def testInvalidIndices(self):
+        self.assertRaises(IndexError, self.net1.__getitem__, (11,))
+        
+    def testInvalidIndexDimension(self):
+        self.assertRaises(common.InvalidDimensionsError, self.net1.__getitem__, (10,2))
+     
+# ==============================================================================
+class PopulationIteratorTest(unittest.TestCase):
+    """Tests of the Population class iterators."""
+    
+    def setUp(self):
+        neuron.Population.nPop = 0
+        self.net1 = neuron.Population((10,), neuron.IF_curr_alpha)
+        self.net2 = neuron.Population((2,4,3), neuron.IF_curr_exp)
+        self.net3 = neuron.Population((2,2,1), neuron.SpikeSourceArray)
+        self.net4 = neuron.Population((1,2,1), neuron.SpikeSourceArray)
+        self.net5 = neuron.Population((3,3), neuron.IF_cond_alpha)
+        
+    def testIter(self):
+        """This needs more thought for the distributed case."""
+        for net in self.net1, self.net2:
+            ids = [i for i in net]
+            self.assertEqual(ids, net._local_ids.tolist())
+            self.assert_(isinstance(ids[0], neuron.ID))
+            
+    def testAddressIter(self):
+        for net in self.net1, self.net2:
+            for id, addr in zip(net.ids(), net.addresses()):
+                self.assertEqual(id, net[addr])
+                self.assertEqual(addr, net.locate(id))
+            
+    
+# ==============================================================================
+class PopulationSetTest(unittest.TestCase):
+        
+    def setUp(self):
+        neuron.Population.nPop = 0
+        self.net = neuron.Population((3,3), neuron.IF_curr_alpha)
+        self.net2 = neuron.Population((5,), neuron.StandardIF, {'syn_type':'current','syn_shape':'exp'})
+    
+    def testSetFromDict(self):
+        """Population.set()"""
+        self.net.set({'tau_m': 43.21})
+        for cell in self.net:
+            assert cell.tau_m == 43.21
+    
+    def testSetFromPair(self):
+        """Population.set(): A parameter set as a string, value pair should be retrievable using the top-level HocObject"""
+        self.net.set('tau_m', 12.34)
+        for cell in self.net:
+            assert cell.tau_m == 12.34
+    
+    def testSetInvalidFromPair(self):
+        """Population.set(): Trying to set an invalid value for a parameter should raise an exception."""
+        self.assertRaises(common.InvalidParameterValueError, self.net.set, 'tau_m', [])
+    
+    def testSetInvalidFromDict(self):
+        """Population.set(): When any of the parameters in a dict have invalid values, then an exception should be raised.
+           There is no guarantee that the valid parameters will be set."""
+        self.assertRaises(common.InvalidParameterValueError, self.net.set, {'v_thresh':'hello','tau_m':56.78})
+    
+    def testSetNonexistentFromPair(self):
+        """Population.set(): Trying to set a nonexistent parameter should raise an exception."""
+        self.assertRaises(common.NonExistentParameterError, self.net.set, 'tau_foo', 10.0)
+    
+    def testSetNonexistentFromDict(self):
+        """Population.set(): When some of the parameters in a dict are inexistent, an exception should be raised.
+           There is no guarantee that the existing parameters will be set."""
+        self.assertRaises(common.NonExistentParameterError, self.net.set, {'tau_foo': 10.0, 'tau_m': 21.0})
+    
+    def testSetWithNonStandardModel(self):
+        """Population.set(): Parameters set in a dict should all be retrievable using the top-level HocObject"""
+        self.net2.set({'tau_m':43.21})
+        for cell in self.net2:
+            assert cell.tau_m == 43.21
+        
+    def testTSet(self):
+        """Population.tset(): The valueArray passed should be retrievable using the top-level HocObject on all nodes."""
+        array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
+        self.net.tset('i_offset', array_in)
+        array_out = self.net.get('i_offset', as_array=True)
+        array_out2 = numpy.zeros((3,3), float)
+        for i in 0,1,2:
+            for j in 0,1,2:
+                id = 3*i+j
+                cell = self.net[i,j]
+                if cell in self.net:
+                    array_out2[i, j] = cell._cell.stim.amp
+                else:
+                    array_out2[i, j] = array_in[i, j]
+        assert numpy.equal(array_in, array_out, array_out2).all(), array_out
+    
+    def testTSetInvalidDimensions(self):
+        """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
+        array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6]])
+        self.assertRaises(common.InvalidDimensionsError, self.net.tset, 'i_offset', array_in)
+    
+    def testTSetInvalidValues(self):
+        """Population.tset(): If some of the values in the valueArray are invalid, should raise an exception."""
+        array_in = numpy.array([['potatoes','carrots','peas'],['dogs','cats','mice'],['oranges','bananas','apples']])
+        self.assertRaises(common.InvalidParameterValueError, self.net.tset, 'i_offset', array_in)
+        
+    def testRSetNative1(self):
+        """Population.rset(): with native rng. This is difficult to test, so for
+        now just require that all values retrieved should be different.
+        Later, could calculate distribution and assert that the difference between
+        sample and theoretical distribution is less than some threshold."""
+        self.net.rset('tau_m',
+                      random.RandomDistribution(rng=random.NativeRNG(),
+                                                distribution='uniform',
+                                                parameters=(10.0,30.0)))
+        self.assertNotEqual(self.net[0,0].tau_m,
+                            self.net[0,1].tau_m)
+        
+    def testRSetNumpy(self):
+        """Population.rset(): with numpy rng."""
+        rd1 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
+                                         distribution='uniform',
+                                         parameters=[0.9,1.1])
+        rd2 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
+                                         distribution='uniform',
+                                         parameters=[0.9,1.1])
+        self.net.rset('cm', rd1)
+        output_values = self.net.get('cm', as_array=True)
+        input_values = rd2.next(9).reshape(self.net.dim)
+        assert numpy.equal(input_values, output_values).all()
+        
+    def testRSetNative2(self):
+        """Population.rset(): with native rng."""
+        rd1 = random.RandomDistribution(rng=random.NativeRNG(seed=98765),
+                                         distribution='uniform',
+                                         parameters=[0.9,1.1])
+        rd2 = random.RandomDistribution(rng=random.NativeRNG(seed=98765),
+                                         distribution='uniform',
+                                         parameters=[0.9,1.1])
+        self.net.rset('cm', rd1)
+        output_values_1 = numpy.zeros((3,3), numpy.float)
+        for i in 0,1,2:
+            for j in 0,1,2:
+                id = self.net[i,j]
+                output_values_1[i, j] = id._cell(0.5).cm
+        self.net.rset('cm', rd2)
+        output_values_2 = self.net.get('cm', as_array=True)
+        assert numpy.equal(output_values_1, output_values_2).all()
+
+# ==============================================================================
+class PopulationRecordTest(unittest.TestCase): # to write later
+    """Tests of the record(), record_v(), printSpikes(), print_v() and
+       meanSpikeCount() methods of the Population class."""
+    
+    def setUp(self):
+        neuron.Population.nPop = 0
+        self.pop1 = neuron.Population((3,3), neuron.SpikeSourcePoisson,{'rate': 20})
+        self.pop2 = neuron.Population((3,3), neuron.IF_curr_alpha)
+
+    def testRecordAll(self):
+        """Population.record(): not a full test, just checking there are no Exceptions raised."""
+        self.pop1.record()
+        
+    def testRecordInt(self):
+        """Population.record(n): not a full test, just checking there are no Exceptions raised."""
+        # Partial record
+        self.pop1.record(5)
+
+    def testRecordWithRNG(self):
+        """Population.record(n, rng): not a full test, just checking there are no Exceptions raised."""
+        self.pop1.record(5, random.NumpyRNG())
+
+    def testRecordList(self):
+        """Population.record(list): not a full test, just checking there are no Exceptions raised."""
+        # Selected list record
+        record_list = []
+        for i in range(0,2):
+            record_list.append(self.pop1[i,1])
+        self.pop1.record(record_list)
+
+    def testSpikeRecording(self):
+        # We test the mean spike count by checking if the rate of the poissonian sources are
+        # close to 20 Hz. Then we also test how the spikes are saved
+        self.pop1.record()
+        simtime = 1000.0
+        neuron.running = False
+        neuron.run(simtime)
+        self.pop1.printSpikes("temp_neuron.ras", gather=True)
+        rate = self.pop1.meanSpikeCount()*1000/simtime
+        if neuron.rank() == 0: # only on master node
+            assert (20*0.8 < rate) and (rate < 20*1.2), "rate is %s" % rate
+
+    def testPotentialRecording(self):
+        """Population.record_v() and Population.print_v(): not a full test, just checking 
+        # there are no Exceptions raised."""
+        rng = NumpyRNG(123)
+        v_reset  = -65.0
+        v_thresh = -50.0
+        uniformDistr = RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])
+        self.pop2.randomInit(uniformDistr)
+        self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
+        simtime = 10.0
+        neuron.running = False
+        neuron.run(simtime)
+        self.pop2.print_v("temp_neuron.v", gather=True)
+
+    def testRecordWithSpikeTimesGreaterThanSimTime(self):
+        """
+        If a `SpikeSourceArray` is initialized with spike times greater than the
+        simulation time, only those spikes that actually occurred should be
+        written to file or returned by getSpikes().
+        """
+        spike_times = numpy.arange(10.0, 200.0, 10.0)
+        spike_source = neuron.Population(1, neuron.SpikeSourceArray, {'spike_times': spike_times})
+        spike_source.record()
+        neuron.running = False
+        neuron.run(100.0)
+        spikes = spike_source.getSpikes()[:,0]
+        if neuron.rank() == 0:
+            self.assert_( max(spikes) == 100.0, str(spikes) )
+
+# ==============================================================================
+class PopulationOtherTest(unittest.TestCase): # to write later
+    """Tests of the randomInit() method of the Population class."""
+    pass
+
+# ==============================================================================
 #class ProjectionInitTest(unittest.TestCase):
 #    """Tests of the __init__() method of the Projection class."""
 #        
@@ -550,17 +522,18 @@ class PopulationInitTest(unittest.TestCase):
 #        obtain the weight using the top-level HocObject"""
 #        for srcP in [self.source5, self.source22]:
 #            for tgtP in [self.target6, self.target33]:
-#                prj1 = neuron.Projection(srcP, tgtP, 'allToAll')
+#                print "gid_counter = ", neuron.gid_counter
+#                #prj1 = neuron.Projection(srcP, tgtP, 'allToAll')
 #                prj2 = neuron.Projection(srcP, tgtP, neuron.AllToAllConnector())
-#                prj1.setWeights(1.234)
-#                prj2.setWeights(1.234)
-#                for prj in prj1, prj2:
-#                    hoc_list = getattr(h, prj.label)
-#                    weights = []
-#                    for connection_id in prj.connections:
-#                        weights.append(hoc_list.object(prj.connections.index(connection_id)).weight[0])
-#                    assert weights == [1.234]*len(prj)
-#            
+#                #prj1.setWeights(1.234)
+#                #prj2.setWeights(1.234)
+#                #for prj in prj1, prj2:
+#                #    hoc_list = getattr(h, prj.label)
+#                #    weights = []
+#                #    for connection_id in prj.connections:
+#                #        weights.append(hoc_list.object(prj.connections.index(connection_id)).weight[0])
+#                #    assert weights == [1.234]*len(prj)
+            
 #    def testFixedProbability(self):
 #        """For all connections created with "fixedProbability"..."""
 #        for srcP in [self.source5, self.source22]:
