@@ -64,15 +64,15 @@ def run(simtime):
 def get_current_time():
     """Return the current time in the simulation."""
     return simulator.state.t
-common.get_current_time = get_current_time
+#common.get_current_time = get_current_time
 
 def get_time_step():
     return simulator.state.dt
-common.get_time_step = get_time_step
+#common.get_time_step = get_time_step
 
 def get_min_delay():
     return simulator.state.min_delay
-common.get_min_delay = get_min_delay
+#common.get_min_delay = get_min_delay
 
 def num_processes():
     return simulator.state.num_processes
@@ -262,6 +262,7 @@ class Population(common.Population):
         self._local_ids = self._all_ids[self._mask_local]
         self._all_ids = self._all_ids.reshape(self.dim)
         self._mask_local = self._mask_local.reshape(self.dim)
+        self.cell = self._all_ids # temporary, awaiting harmonisation
         
         simulator.initializer.register(self)
         Population.nPop += 1
@@ -287,7 +288,7 @@ class Population(common.Population):
         return id
     
     def __iter__(self):
-        """Iterator over cell ids."""
+        """Iterator over cell ids on the local node."""
         return iter(self._local_ids)
 
     def __address_gen(self):
@@ -303,8 +304,12 @@ class Population(common.Population):
         return self.__address_gen()
 
     def ids(self):
-        """Iterator over cell ids."""
+        """Iterator over cell ids on the local node."""
         return self.__iter__()
+    
+    def all(self):
+        """Iterator over cell ids on all nodes."""
+        return self._all_ids.flat
     
     def locate(self, id):
         """Given an element id in a Population, return the coordinates.
@@ -602,8 +607,7 @@ class Projection(common.Projection):
                 
         ## Create connections
         if isinstance(method, str):
-            connection_method = getattr(self,'_%s' % method)   
-            connection_method(method_parameters)
+            raise Exception('Connection methods as strings no longer supported. Please use a Connector.')
         elif isinstance(method, common.Connector):
             method.connect(self)
             
@@ -627,3 +631,60 @@ class Projection(common.Projection):
 
     # --- Connection methods ---------------------------------------------------
     
+    # --- Methods for setting connection parameters ----------------------------
+    
+    def setWeights(self, w):
+        """
+        w can be a single number, in which case all weights are set to this
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
+        Weights should be in nA for current-based and µS for conductance-based
+        synapses.
+        """
+        if isinstance(w, float) or isinstance(w, int):
+            logging.info("Projection %s: setWeights(%s)" % (self.label, w))
+            for nc in self.connections:
+                nc.weight[0] = w # should first check weight value is ok, i.e. +ve for conductance-based, -ve for inhibitory current-based, not outside the weight limits for STDP... 
+        elif isinstance(w, list) or isinstance(w, numpy.ndarray):
+            assert len(w) == len(self), "List of weights has length %d, Projection %s has length %d" % (len(w), self.label, len(self))
+            logging.info("Projection %s: setWeights(iterable(min=%s, max=%s))" % (self.label, min(w), max(w)))
+            for nc, weight in zip(self.connections, w):
+                nc.weight[0] = w
+        else:
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+        
+    def setDelays(self, d):
+        """
+        d can be a single number, in which case all delays are set to this
+        value, or a list/1D array of length equal to the number of connections
+        in the population.
+        """
+        if isinstance(d, float) or isinstance(d, int):
+            if d < get_min_delay():
+                raise Exception("Delays must be greater than or equal to the minimum delay, currently %g ms" % get_min_delay())
+            logging.info("Projection %s: setDelays(%s)" % (self.label, d))
+            for nc in self.connections:
+                nc.delay = d
+            # if we have STDP, need to update pre2wa and post2wa delays as well
+            if self.synapse_dynamics and self.synapse_dynamics.slow:
+                ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
+                for pre2wa, post2wa in self.stdp_connections:
+                    pre2wa.delay = float(d)*(1-ddf)
+                    post2wa.delay = float(d)*ddf
+        elif isinstance(d, list) or isinstance(d, numpy.ndarray):
+            d = numpy.array(d)
+            if not (d-get_min_delay()>=0).all():
+                raise Exception("Delays must be greater than or equal to the minimum delay, currently %g ms" % get_min_delay())
+            assert len(d) == len(self), "List of delays has length %d, Projection %s has length %d" % (len(d), self.label, len(self))
+            logging.info("Projection %s: setDelays(iterable(min=%s, max=%s))" % (self.label, min(d), max(d)))
+            for nc, delay in zip(self.connections, d):
+                nc.delay = delay
+            # if we have STDP, need to update pre2wa and post2wa delays as well
+            if self.synapse_dynamics and self.synapse_dynamics.slow:
+                ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
+                for (pre2wa, post2wa), delay in zip(self.stdp_connections, d):
+                    pre2wa.delay = float(delay)*(1-ddf)
+                    post2wa.delay = float(delay)*ddf
+        else:
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+        

@@ -87,7 +87,7 @@ class Recorder(object):
         numpy.savetxt(filename, data, Recorder.numpy_formats[self.variable])
         if compatible_output:
             recording.write_compatible_output(filename, filename, Recorder.formats[self.variable],
-                                              self.population, common.get_time_step())
+                                              self.population, state.dt)
         
 class _Initializer(object):
     
