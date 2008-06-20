@@ -253,7 +253,7 @@ class Population(common.Population):
             self.celltype = cellclass(cellparams)
         else:
             self.celltype = cellclass
-        
+
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
@@ -531,8 +531,7 @@ class Population(common.Population):
                     'ID range: %(first_id)d-%(last_id)d',
                     'First cell on this node:',
                     '  ID: %(local_first_id)d',
-                    '  Parameters: %(cell_parameters)s',
-                   ]
+                    '  Parameters: %(cell_parameters)s']
             template = "\n".join(rows)
         context = self.__dict__.copy()
         first_id = self._local_ids[0]
@@ -606,7 +605,6 @@ class Projection(common.Projection):
             connection_method = getattr(self,'_%s' % method)   
             connection_method(method_parameters)
         elif isinstance(method, common.Connector):
-            print "simulator.gid_counter = ", simulator.State.gid_counter
             method.connect(self)
             
         logging.info("--- Projection[%s].__init__() ---" %self.label)

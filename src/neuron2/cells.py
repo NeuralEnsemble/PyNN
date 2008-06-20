@@ -116,10 +116,10 @@ class StandardIF(neuron.nrn.Section):
             self.vtrace = neuron.Vector()
             self.vtrace.record(self, 'v')
             self.record_times = neuron.Vector()
-            neuron.h('%s.record(&t)' % self.record_times.name)
+            neuron.h('tmp = %s.record(&t)' % self.record_times.name)
         else:
             self.vtrace = None
-            self.record_times
+            self.record_times = None
     
     def memb_init(self, v_init=None):
         if v_init:
@@ -174,7 +174,6 @@ class SpikeSource(object):
     def record(self, active):
         if not self.do_not_record: # for VecStims, etc, recording doesn't make sense as we already have the spike times
             if active:
-                self.spiketimes.hoc_obj.printf()
                 self.rec = neuron.NetCon(self.source, None)
                 self.rec.record(self.spiketimes.hoc_obj)
             
