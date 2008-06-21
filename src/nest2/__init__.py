@@ -908,7 +908,7 @@ class Population(common.Population):
         print "-> Celltype is %s" %self.celltype
         print "-> Cell Parameters used for cell[0] (during initialization and now) are: "
         for key, value in self.cellparams.items():
-          print "\t|", key, "\t: ", "init->", value, "\t now->", nest.GetStatus([self.cell[0]])[0][key]
+          print "\t|", key, "\t: ", "init->", value, "\t now->", nest.GetStatus([self.cell.flatten()[0]])[0][key]
         print "--- End of Population description ----"
 
 
