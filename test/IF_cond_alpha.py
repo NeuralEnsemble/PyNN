@@ -18,7 +18,7 @@ else:
 exec("from pyNN.%s import *" % simulator)
 
 
-setup(timestep=0.01,min_delay=0.01,max_delay=4.0)
+setup(timestep=0.1,min_delay=0.1,max_delay=4.0)
 
 ifcell = create(IF_cond_alpha, {'i_offset' : 0.1,    'tau_refrac' : 3.0,
                                 'v_thresh' : -51.0,  'tau_syn_E'  : 2.0,

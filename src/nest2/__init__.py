@@ -917,12 +917,14 @@ class Population(common.Population):
         pop = Population(dims, cellclass=self.celltype, label=label, create_cells=False)
         # And then copy parameters from its parent
         pop.cellparams  = self.cellparams
-        pop.cell        = cell_list
         pop.first_id    = self.first_id
-        idx             = pop.cell.flatten() -pop.first_id
+        idx             = numpy.array(cell_list).flatten() - pop.first_id
+        pop.cell        = self.cell.flatten()[idx].reshape(dims)
         pop.cell_local  = self.cell_local[idx]
-        pop.position    = self.positions[:,idx]
+        pop.positions   = self.positions[:,idx]
         return pop
+
+
 
 
     def describe(self):

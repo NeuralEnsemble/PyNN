@@ -37,7 +37,7 @@ Timer = Timer()
 
 rngseed  = 98765
 
-n        = 4000  # number of cells
+n        = 400  # number of cells
 r_ei     = 4.0   # number of excitatory cells:number of inhibitory cells
 pconn    = 0.02  # connection probability
 stim_dur = 50.   # (ms) duration of random stimulation

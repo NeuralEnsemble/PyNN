@@ -12,8 +12,9 @@ import numpy
 
 if hasattr(sys,"argv"):     # run using python
     simulator = sys.argv[-1]
-else:
-    simulator = "neuron"
+    print simulator
+#else:
+#    simulator = "neuron"
     #simulator = "neuron"    # run using nrngui -python
 
 
@@ -42,10 +43,11 @@ p2.record()
 p2.record_v()
 #print prj.getWeights()
 t = 0
-while t < 50:
-    t = run(1.0)
-    syn_dict = nest.GetConnection([p1[0]], 'stdp_synapse', 0)
-    print "%4.1f   %6.4f   %7.3f   %6.4f" % (t, prj.getWeights()[0], syn_dict['Kplus'], syn_dict['weight'])
+if simulator == "nest2":
+    while t < 50:
+        t = run(1.0)
+        syn_dict = nest.GetConnection([p1[0]], 'stdp_synapse', 0)
+        print "%4.1f   %6.4f   %7.3f   %6.4f" % (t, prj.getWeights()[0], syn_dict['Kplus'], syn_dict['weight'])
 #run(1000.0)
 p1.printSpikes("simple_STDP_1.ras")
 p2.printSpikes("simple_STDP_2.ras")
