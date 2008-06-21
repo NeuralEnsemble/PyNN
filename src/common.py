@@ -699,7 +699,7 @@ class Population(object):
     term intended to include layers, columns, nuclei, etc., of cells.
     """
     
-    def __init__(self, dims, cellclass, cellparams=None, label=None):
+    def __init__(self, dims, cellclass, cellparams=None, label=None, create_cells=True):
         """
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
@@ -929,7 +929,16 @@ class Population(object):
         Returns a human readable description of the population
         """
         return _abstract_method(self)
-
+    
+    def getSubPopulation(self, cells):
+        """
+        Returns a sub population from a population object. The shape of cells will
+        determine the dimensions of the sub population. cells should contains cells
+        member of the parent population.
+        Ex z = pop.getSubPopulation([pop[1],pop[3],pop[5]])
+        """
+        return _abstract_method(self)
+    
 # ==============================================================================
 
 class Projection(object):

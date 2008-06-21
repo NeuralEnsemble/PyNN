@@ -529,7 +529,7 @@ class Population(common.Population):
     """
     nPop = 0
 
-    def __init__(self, dims, cellclass, cellparams=None, label=None):
+    def __init__(self, dims, cellclass, cellparams=None, label=None, create_cells=True):
         """
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
@@ -542,30 +542,41 @@ class Population(common.Population):
         label is an optional name for the population.
         """
 
-        common.Population.__init__(self, dims, cellclass, cellparams, label)
+        common.Population.__init__(self, dims, cellclass, cellparams, label, create_cells)
 
         # Should perhaps use "LayoutNetwork"?
 
         if isinstance(cellclass, type):
             self.celltype = cellclass(cellparams)
-            self.cell = nest.Create(self.celltype.nest_name, self.size)
+            if create_cells:
+                self.cell = nest.Create(self.celltype.nest_name, self.size)
+            else:
+                #A SubPopulation has been created, those fields will be filled later
+                self.cell = []
             self.cellparams = self.celltype.parameters
         elif isinstance(cellclass, str):
-            self.cell = nest.Create(cellclass, self.size)
+            if create_cells:
+                self.cell = nest.Create(cellclass, self.size)
+            else:
+                #A SubPopulation has been created, those fields will be filled later
+                self.cell = []
+        ### Warning : not tested yet, quickly implemented in Okinawa. To allow the
+        ### construction of subpopulation without creating the cells
+        elif isinstance(cellclass,common.StandardCellType):
+            self.cell = []
 
-        self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
-        self.cell_local = self.cell[numpy.array(nest.GetStatus(self.cell.tolist(),'local'))]
-        self.first_id = self.cell.reshape(self.size,)[0]
+        if create_cells:
+            self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
+            self.cell_local = self.cell[numpy.array(nest.GetStatus(self.cell.tolist(),'local'))]
+            self.first_id = self.cell.reshape(self.size,)[0]
 
-        for id in self.cell:
-            id.parent = self
+            for id in self.cell:
+                id.parent = self
             #id.setCellClass(cellclass)
             #id.setPosition(self.locate(id))
-
-        if self.cellparams:
-            nest.SetStatus(self.cell_local, [self.cellparams])
-
-        self.cell = numpy.reshape(self.cell, self.dim)
+            self.cell = numpy.reshape(self.cell, self.dim)
+            if self.cellparams:
+                nest.SetStatus(self.cell_local, [self.cellparams])
 
         if not self.label:
             self.label = 'population%d' % Population.nPop
@@ -898,12 +909,28 @@ class Population(common.Population):
         """
         self.recorders['conductance'].write(filename, gather, compatible_output)
 
+    def getSubPopulation(self, cell_list, label=None):
+        
+        # We get the dimensions of the new population
+        dims = numpy.array(cell_list).shape
+        # We create an empty population
+        pop = Population(dims, cellclass=self.celltype, label=label, create_cells=False)
+        # And then copy parameters from its parent
+        pop.cellparams  = self.cellparams
+        pop.cell        = cell_list
+        pop.first_id    = self.first_id
+        idx             = pop.cell.flatten() -pop.first_id
+        pop.cell_local  = self.cell_local[idx]
+        pop.position    = self.positions[:,idx]
+        return pop
+
+
     def describe(self):
         """
         Return a human readable description of the population
         """
         print "\n------- Population description -------"
-        print "Population called %s is made of %d cells [%d being local]" %(self.label, len(self.cell), len(self.cell_local))
+        print "Population called %s is made of %d cells [%d being local]" %(self.label, len(self.cell.flatten()), len(self.cell_local))
         print "-> Cells are aranged on a %dD grid of size %s" %(len(self.dim), self.dim)
         print "-> Celltype is %s" %self.celltype
         print "-> Cell Parameters used for cell[0] (during initialization and now) are: "
