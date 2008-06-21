@@ -1004,6 +1004,8 @@ class Projection(common.Projection):
                 raise Exception("Postsynaptic cell model does not support STDP.")
 
             synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
+            if 'num_connectors' in synapse_defaults:
+                synapse_defaults.pop('num_connectors') # otherwise NEST tells you to check your spelling!
             synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
             synapse_defaults.update(self._stdp_parameters)
             nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)
