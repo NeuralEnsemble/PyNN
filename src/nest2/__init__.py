@@ -900,7 +900,7 @@ class Population(common.Population):
 
     def describe(self):
         """
-        Return a human readable description of the population"
+        Return a human readable description of the population
         """
         print "\n------- Population description -------"
         print "Population called %s is made of %d cells [%d being local]" %(self.label, len(self.cell), len(self.cell_local))
