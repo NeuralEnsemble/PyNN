@@ -529,7 +529,7 @@ class Population(common.Population):
     """
     nPop = 0
 
-    def __init__(self, dims, cellclass, cellparams=None, label=None, create_cells=True):
+    def __init__(self, dims, cellclass, cellparams=None, label=None, parent=None):
         """
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
@@ -542,20 +542,20 @@ class Population(common.Population):
         label is an optional name for the population.
         """
 
-        common.Population.__init__(self, dims, cellclass, cellparams, label, create_cells)
+        common.Population.__init__(self, dims, cellclass, cellparams, label, parent)
 
         # Should perhaps use "LayoutNetwork"?
 
         if isinstance(cellclass, type):
             self.celltype = cellclass(cellparams)
-            if create_cells:
+            if not parent:
                 self.cell = nest.Create(self.celltype.nest_name, self.size)
             else:
                 #A SubPopulation has been created, those fields will be filled later
                 self.cell = []
             self.cellparams = self.celltype.parameters
         elif isinstance(cellclass, str):
-            if create_cells:
+            if not parent:
                 self.cell = nest.Create(cellclass, self.size)
             else:
                 #A SubPopulation has been created, those fields will be filled later
@@ -565,7 +565,7 @@ class Population(common.Population):
         elif isinstance(cellclass,common.StandardCellType):
             self.cell = []
 
-        if create_cells:
+        if not parent:
             self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
             self.cell_local = self.cell[numpy.array(nest.GetStatus(self.cell.tolist(),'local'))]
             self.first_id = self.cell.reshape(self.size,)[0]
@@ -914,18 +914,15 @@ class Population(common.Population):
         # We get the dimensions of the new population
         dims = numpy.array(cell_list).shape
         # We create an empty population
-        pop = Population(dims, cellclass=self.celltype, label=label, create_cells=False)
+        pop = Population(dims, cellclass=self.celltype, label=label, parent=self)
         # And then copy parameters from its parent
-        pop.cellparams  = self.cellparams
-        pop.first_id    = self.first_id
-        idx             = numpy.array(cell_list).flatten() - pop.first_id
-        pop.cell        = self.cell.flatten()[idx].reshape(dims)
-        pop.cell_local  = self.cell_local[idx]
-        pop.positions   = self.positions[:,idx]
+        pop.cellparams  = pop.parent.cellparams
+        pop.first_id    = pop.parent.first_id
+        idx             = numpy.array(cell_list,int).flatten() - pop.first_id
+        pop.cell        = pop.parent.cell.flatten()[idx].reshape(dims)
+        pop.cell_local  = pop.parent.cell_local[idx]
+        pop.positions   = pop.parent.positions[:,idx]
         return pop
-
-
-
 
     def describe(self):
         """
@@ -933,6 +930,8 @@ class Population(common.Population):
         """
         print "\n------- Population description -------"
         print "Population called %s is made of %d cells [%d being local]" %(self.label, len(self.cell.flatten()), len(self.cell_local))
+        if self.parent:
+            print "This population is a subpopulation of population %s" %self.parent.label
         print "-> Cells are aranged on a %dD grid of size %s" %(len(self.dim), self.dim)
         print "-> Celltype is %s" %self.celltype
         print "-> Cell Parameters used for cell[0] (during initialization and now) are: "
@@ -1377,7 +1376,7 @@ class Projection(common.Projection):
         dict = nest.GetConnections([self.pre.cell.flat[0]], self._plasticity_model)[0]
         idx = numpy.where(numpy.array(dict['targets']) == self._targets[0])[0]
         for key, value in dict.items():
-          print "\t| ", key, ": ", value[idx]
+          print "\t| ", key, ": ", value[idx[0]]
 
         print "---- End of Projection description -----"
 

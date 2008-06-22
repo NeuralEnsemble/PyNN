@@ -699,7 +699,7 @@ class Population(object):
     term intended to include layers, columns, nuclei, etc., of cells.
     """
     
-    def __init__(self, dims, cellclass, cellparams=None, label=None, create_cells=True):
+    def __init__(self, dims, cellclass, cellparams=None, label=None, parent=None):
         """
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
@@ -722,6 +722,7 @@ class Population(object):
         self.ndim = len(self.dim)
         self.cellparams = cellparams
         self.size = self.dim[0]
+        self.parent = parent
         for i in range(1, self.ndim):
             self.size *= self.dim[i]
         ##self.cell = None # to be defined by child, simulator-specific classes
