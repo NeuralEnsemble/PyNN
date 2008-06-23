@@ -185,6 +185,19 @@ def register_gid(gid, source):
     nc = neuron.NetCon(source, None)                          # } associate the cell spike source
     state.parallel_context.cell(gid, nc.hoc_obj)              # } with the gid (using a temporary NetCon)
 
+def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
+    native_rng = h.Random(0 or rng.seed)
+    rarr = [getattr(native_rng, distribution)(*parameters)]
+    rarr.extend([native_rng.repick() for j in xrange(n-1)])
+    return numpy.array(rarr)
+
+class Connection(object):
+
+    def __init__(self, source, target, nc):
+        self.pre = source
+        self.post = target
+        self.nc = nc
+
 def single_connect(source, target, weight, delay, synapse_type):
     """
     Private function to connect two neurons.
@@ -211,7 +224,7 @@ def single_connect(source, target, weight, delay, synapse_type):
     nc = state.parallel_context.gid_connect(int(source), synapse_object)
     nc.weight[0] = weight
     nc.delay  = delay
-    return nc
+    return Connection(source, target, nc)
 
 # The following are executed every time the module is imported.
 load_mechanisms() # maintains a list of mechanisms that have already been imported

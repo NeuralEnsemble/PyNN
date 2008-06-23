@@ -13,7 +13,7 @@ from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                   sin, sinh, sqrt, tan, tanh
 
 # ==============================================================================
-#   Connection method classes
+#   Utility functions/classes (not part of the API)
 # ==============================================================================
 
 class ConstIter(object):
@@ -49,22 +49,19 @@ class HocConnector(object):
 
     def _process_conn_list(self, conn_list, projection):
         """Extract fields from list of tuples and construct the hoc commands."""
-        hoc_commands = []
         for i in xrange(len(conn_list)):
             src, tgt, weight, delay = conn_list[i][:]
             src = projection.pre[tuple(src)]
             tgt = projection.post[tuple(tgt)]
-            hoc_commands += self.singleConnect(projection, src, tgt, weight, delay)
-        return hoc_commands
+            projection.connections.append(simulator.single_connect(src, tgt, weight, delay, projection.synapse_type))
 
 def probabilistic_connect(connector, projection, p):
     weights = connector.weights_iterator()
     delays = connector.delays_iterator()
     if isinstance(projection.rng, NativeRNG):
-        rng = simulator.h.Random(0 or projection.rng.seed)
-        rarr = [rng.uniform(0,1)]
-        rarr.extend([rng.repick() for j in xrange(projection.pre.size*projection.post.size-1)])
-        rarr = numpy.array(rarr)
+        rarr = simulator.nativeRNG_pick(projection.pre.size*projection.post.size,
+                                        projection.rng,
+                                        'uniform', (0,1))
     else:
         # We use concatenate, rather than just creating
         # n=projection.pre.size*projection.post.size random numbers,
@@ -87,6 +84,10 @@ def probabilistic_connect(connector, projection, p):
                                                      projection.synapse_type))
             j += 1
     assert j == required_length
+
+# ==============================================================================
+#   Connection method classes
+# ==============================================================================
 
 class AllToAllConnector(common.AllToAllConnector, HocConnector):    
     
@@ -133,85 +134,77 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         p_array = eval(self.d_expression)
         probabilistic_connect(self, projection, p_array.flatten())
 
-#class _FixedNumberConnector(common.FixedNumberPreConnector, HocConnector):
-#    
-#    def _connect(self, projection, x_list, y_list, type):
-#        weight = self.getWeight(self.weights)
-#        delay = self.getDelay(self.delays)
-#        hoc_commands = []
-#        
-#        if projection.rng:
-#            if isinstance(projection.rng, NativeRNG):
-#                raise Exception("NativeRNG not yet supported for the FixedNumberPreConnector")
-#            rng = projection.rng
-#        else:
-#            rng = numpy.random
-#        for y in y_list:            
-#            # pick n neurons at random
-#            if hasattr(self, 'rand_distr'):
-#                n = self.rand_distr.next()
-#            elif hasattr(self, 'n'):
-#                n = self.n
-#            candidates = x_list
-#            xs = []
-#            while len(xs) < n: # if the number of requested cells is larger than the size of the
-#                                    # presynaptic population, we allow multiple connections for a given cell
-#                xs += [candidates[candidates.index(id)] for id in rng.permutation(candidates)[0:n]]
-#                # have to use index() because rng.permutation returns ints, not ID objects
-#            xs = xs[:n]
-#            for x in xs:
-#                if self.allow_self_connections or (x != y):
-#                    if hasattr(weight, 'next'):
-#                        w = weight.next()
-#                    else:
-#                        w = weight
-#                    if hasattr(delay, 'next'):
-#                        d = delay.next()
-#                    else:
-#                        d = delay
-#                    if type == 'pre':
-#                        hoc_commands += self.singleConnect(projection, x, y, w, d)
-#                    elif type == 'post':
-#                        hoc_commands += self.singleConnect(projection, y, x, w, d)
-#                    else:
-#                        raise Exception('Problem in _FixedNumberConnector')
-#        return hoc_commands
-#
-#
-#class FixedNumberPreConnector(_FixedNumberConnector):
-#    
-#    def connect(self, projection):
-#        return self._connect(projection, projection.pre.gidlist, projection.post.gidlist, 'pre')
-#
-#
-#class FixedNumberPostConnector(_FixedNumberConnector):
-#     
-#    def connect(self, projection):
-#        return self._connect(projection, projection.post.gidlist, projection.pre.gidlist, 'post')
-#
-#
-#class FromListConnector(common.FromListConnector, HocConnector):
-#    
-#    def connect(self, projection):
-#        return self._process_conn_list(self.conn_list, projection)
-#
-#    
-#class FromFileConnector(common.FromFileConnector, HocConnector):
-#    
-#    def connect(self, projection):
-#        if self.distributed:
-#            myid = int(h.pc.id())
-#            self.filename += ".%d" % myid
-#        # open the file...
-#        f = open(self.filename, 'r', 10000)
-#        lines = f.readlines()
-#        f.close()
-#        # gather all the data in a list of tuples (one per line)
-#        input_tuples = []
-#        for line in lines:
-#            single_line = line.rstrip()
-#            src, tgt, w, d = single_line.split("\t", 4)
-#            src = "[%s" % src.split("[",1)[1]
-#            tgt = "[%s" % tgt.split("[",1)[1]
-#            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
-#        return self._process_conn_list(input_tuples, projection)
+class _FixedNumberConnector(common.FixedNumberPreConnector, HocConnector):
+    
+    def _connect(self, projection, x_list, y_list, type):
+        weights = self.weights_iterator()
+        delays = self.delays_iterator()
+      
+        if projection.rng:
+            if isinstance(projection.rng, NativeRNG):
+                raise Exception("NativeRNG not yet supported for the FixedNumberPreConnector")
+            rng = projection.rng
+        else:
+            rng = numpy.random
+        for y in y_list:            
+            # pick n neurons at random
+            if hasattr(self, 'rand_distr'):
+                n = self.rand_distr.next()
+            elif hasattr(self, 'n'):
+                n = self.n
+            candidates = x_list
+            xs = []
+            while len(xs) < n: # if the number of requested cells is larger than the size of the
+                                    # presynaptic population, we allow multiple connections for a given cell
+                xs += [candidates[candidates.index(id)] for id in rng.permutation(candidates)[0:n]]
+                # have to use index() because rng.permutation returns ints, not ID objects
+            xs = xs[:n]
+            for x in xs:
+                if self.allow_self_connections or (x != y):
+                    if type == 'pre':
+                        src = x; tgt = y  
+                    elif type == 'post':
+                        src = y; tgt = x
+                    else:
+                        raise Exception('Problem in _FixedNumberConnector')
+                    projection.connections.append(
+                        simulator.single_connect(src, tgt, weights.next(), delays.next(), projection.synapse_type))
+
+
+class FixedNumberPreConnector(_FixedNumberConnector):
+    
+    def connect(self, projection):
+        self._connect(projection, projection.pre._all_ids.flatten().tolist(), projection.post._local_ids, 'pre')
+
+
+class FixedNumberPostConnector(_FixedNumberConnector):
+     
+    def connect(self, projection):
+        self._connect(projection, projection.post._all_ids.flatten().tolist(), projection.pre._all_ids.flatten(), 'post')
+
+
+class FromListConnector(common.FromListConnector, HocConnector):
+    
+    def connect(self, projection):
+        self._process_conn_list(self.conn_list, projection)
+
+    
+class FromFileConnector(common.FromFileConnector, HocConnector):
+    
+    def connect(self, projection):
+        if self.distributed:
+            myid = int(h.pc.id())
+            self.filename += ".%d" % myid
+        # open the file...
+        f = open(self.filename, 'r', 10000)
+        lines = f.readlines()
+        f.close()
+        # gather all the data in a list of tuples (one per line)
+        input_tuples = []
+        for line in lines:
+            single_line = line.rstrip()
+            src, tgt, w, d = single_line.split("\t", 4)
+            src = "[%s" % src.split("[",1)[1]
+            tgt = "[%s" % tgt.split("[",1)[1]
+            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
+        self._process_conn_list(input_tuples, projection)

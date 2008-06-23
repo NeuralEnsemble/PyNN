@@ -643,13 +643,13 @@ class Projection(common.Projection):
         """
         if isinstance(w, float) or isinstance(w, int):
             logging.info("Projection %s: setWeights(%s)" % (self.label, w))
-            for nc in self.connections:
-                nc.weight[0] = w # should first check weight value is ok, i.e. +ve for conductance-based, -ve for inhibitory current-based, not outside the weight limits for STDP... 
+            for c in self.connections:
+                c.nc.weight[0] = w # should first check weight value is ok, i.e. +ve for conductance-based, -ve for inhibitory current-based, not outside the weight limits for STDP... 
         elif isinstance(w, list) or isinstance(w, numpy.ndarray):
             assert len(w) == len(self), "List of weights has length %d, Projection %s has length %d" % (len(w), self.label, len(self))
             logging.info("Projection %s: setWeights(iterable(min=%s, max=%s))" % (self.label, min(w), max(w)))
-            for nc, weight in zip(self.connections, w):
-                nc.weight[0] = w
+            for c, weight in zip(self.connections, w):
+                c.nc.weight[0] = weight
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
         
@@ -663,8 +663,8 @@ class Projection(common.Projection):
             if d < get_min_delay():
                 raise Exception("Delays must be greater than or equal to the minimum delay, currently %g ms" % get_min_delay())
             logging.info("Projection %s: setDelays(%s)" % (self.label, d))
-            for nc in self.connections:
-                nc.delay = d
+            for c in self.connections:
+                c.nc.delay = d
             # if we have STDP, need to update pre2wa and post2wa delays as well
             if self.synapse_dynamics and self.synapse_dynamics.slow:
                 ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
@@ -677,8 +677,8 @@ class Projection(common.Projection):
                 raise Exception("Delays must be greater than or equal to the minimum delay, currently %g ms" % get_min_delay())
             assert len(d) == len(self), "List of delays has length %d, Projection %s has length %d" % (len(d), self.label, len(self))
             logging.info("Projection %s: setDelays(iterable(min=%s, max=%s))" % (self.label, min(d), max(d)))
-            for nc, delay in zip(self.connections, d):
-                nc.delay = delay
+            for c, delay in zip(self.connections, d):
+                c.nc.delay = delay
             # if we have STDP, need to update pre2wa and post2wa delays as well
             if self.synapse_dynamics and self.synapse_dynamics.slow:
                 ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
@@ -687,4 +687,57 @@ class Projection(common.Projection):
                     post2wa.delay = float(delay)*ddf
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-        
+    
+    def randomizeWeights(self, rand_distr):
+        """
+        Set weights to random values taken from rand_distr.
+        """
+        # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
+        # Python
+        if isinstance(rand_distr.rng, NativeRNG):
+            rarr = simulator.nativeRNG_pick(len(self),
+                                            rand_distr.rng,
+                                            rand_distr.name,
+                                            rand_distr.parameters)
+        else:       
+            rarr = rand_distr.next(len(self))  
+        logging.info("--- Projection[%s].__randomizeWeights__() ---" % self.label)
+        self.setWeights(rarr)
+    
+    def randomizeDelays(self, rand_distr):
+        """
+        Set delays to random values taken from rand_distr.
+        """
+        # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
+        # Python
+        if isinstance(rand_distr.rng, NativeRNG):
+            rarr = simulator.nativeRNG_pick(len(self),
+                                            rand_distr.rng,
+                                            rand_distr.name,
+                                            rand_distr.parameters)
+        else:       
+            rarr = rand_distr.next(len(self))  
+        logging.info("--- Projection[%s].__randomizeDelays__() ---" % self.label)
+        self.setDelays(rarr)
+    
+    # --- Methods for writing/reading information to/from file. ----------------
+    
+    def saveConnections(self, filename, gather=False):
+        """Save connections to file in a format suitable for reading in with the
+        'fromFile' method."""
+        if gather:
+            raise Exception("saveConnections() with gather=True not yet implemented")
+        elif num_processes() > 1:
+            filename += '.%d' % rank()
+        logging.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
+        f = open(filename, 'w', 10000)
+        for c in self.connections:
+            line = "%s%s\t%s%s\t%g\t%g\n" % (self.pre.label,
+                                     self.pre.locate(c.pre),
+                                     self.post.label,
+                                     self.post.locate(c.post),
+                                     c.nc.weight[0],
+                                     c.nc.delay)
+            line = line.replace('(','[').replace(')',']')
+            f.write(line)
+        f.close()
