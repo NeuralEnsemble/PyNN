@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """ Master script for running tests.
 $Id$
 """
@@ -6,6 +5,7 @@ $Id$
 import subprocess, sys, glob, os, re
 import numpy as N
 import logging
+import sys
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s',
@@ -20,9 +20,10 @@ nrnheader = re.compile(r'(?P<header>NEURON.*Additional mechanisms from files(\s+
 
 def run(cmd,engine):
     #print 'Running "', cmd, '" with', engine.upper()
-    logfile = open("%s_%s.log" % (cmd,engine), 'w')
+    fail = False
+    logfile = open("Results/%s_%s.log" % (cmd,engine), 'w')
     if engine in ('nest1', 'pcsim', 'nest2', 'neuron'):
-        cmd = 'python ' + cmd + '.py ' + engine
+        cmd = sys.executable + ' ' + cmd + '.py ' + engine
     else:
         logging.error('Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", and "neuron"' % engine)
         
@@ -34,12 +35,11 @@ def run(cmd,engine):
     match = nrnheader.match(errorMsg)
     if match:
         errorMsg = match.groupdict()['body']
-    
     if len(errorMsg) > 0:
         logging.error("\n=== %s Error =======================" % engine.upper())
         logging.error("  " + errorMsg.replace("\n","\n   "))
         logging.error("=======================================")
-        sys.exit(2)
+        raise Exception()
 
 def sortTracesByCells(traces, gids):
     # First, we see what are the gid present in the recorded file:
@@ -70,10 +70,10 @@ def compare_traces(script, mse_threshold, engines):
         traces[engine] = []
         try:
             run(script, engine)
-            pattern = '%s_*_%s.v' % (script, engine)
+            pattern = 'Results/%s_*_%s.v' % (script, engine)
             filenames = glob.glob(pattern)
             if len(filenames) == 0:
-                pattern = '%s_%s.v' % (script, engine)
+                pattern = 'Results/%s_%s.v' % (script, engine)
                 filenames = glob.glob(pattern)
             if filenames:
                 for filename in filenames:
@@ -123,7 +123,7 @@ def compare_traces(script, mse_threshold, engines):
             logging.info("%s:  Fail (mse = %f, threshold = %f)" % (script, mse, mse_threshold))
     else:
         logging.info("%s: Fail - %s" % (script, fail_message))
-
+    return fail
 
 def compare_rasters(script,mse_threshold,engines):
     """For scripts that write a voltage trace to file."""
@@ -138,9 +138,11 @@ def compare_rasters(script,mse_threshold,engines):
         try:
         #if (True):
             run(script, engine)
-            filenames = glob.glob('%s_*_%s.ras' % (script, engine))
+            pattern = 'Results/%s_*_%s.ras' % (script, engine)
+            filenames = glob.glob(pattern)
             if len(filenames) == 0:
-                filenames = glob.glob('%s_%s.ras' % (script, engine))
+                pattern = 'Results/%s_%s.ras' % (script, engine)
+                filenames = glob.glob(pattern)
             if filenames:
                 for filename in filenames:
                     f = open(filename,'r')
@@ -157,7 +159,7 @@ def compare_rasters(script,mse_threshold,engines):
                     raster = sortTracesByCells(raster, position)
                     rasters[engine].append(raster)
             else:
-                fail = True; fail_message += "No files match glob pattern. "
+                fail = True; fail_message += "No files match glob pattern %s. " % pattern
         except Exception:
             fail = True
             fail_message += "Exception raised in %s. " % engine.upper()
@@ -190,8 +192,18 @@ def compare_rasters(script,mse_threshold,engines):
         
 if __name__ == "__main__":
     
-    engine_list = ("nest1", "neuron", "pcsim", "nest2")
-    
+    engine_list = ["nest1", "neuron", "pcsim", "nest2"]
+    for engine in engine_list:
+        try:
+            exec("import pyNN.%s" % engine)
+        except ImportError, errmsg:
+            engine_list.remove(engine)
+            logging.warning("Unable to use %s: %s" % (engine, errmsg))
+    if len(engine_list) < 2:
+        logging.error("Need at least two simulators to run tests.")
+        sys.exit(1)
+    logging.debug("Using the following simulators: %s" % ", ".join(engine_list))
+            
     thresholds_v = {"IF_curr_alpha"  : 0.26,
                     "IF_curr_exp"    : 0.25, 
                     "IF_cond_alpha"  : 0.25,

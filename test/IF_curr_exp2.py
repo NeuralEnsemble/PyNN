@@ -7,11 +7,7 @@ import sys
 from NeuroTools.stgen import StGen
 from pyNN.random import NumpyRNG
 
-if hasattr(sys,"argv"):     # run using python
-    simulator = sys.argv[-1]
-else:
-    simulator = "neuron"    # run using nrngui -python
-
+simulator = sys.argv[-1]
 
 exec("from pyNN.%s import *" % simulator)
 
@@ -34,8 +30,8 @@ spike_source = create(SpikeSourceArray,
  
 conn = connect(spike_source, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)
     
-record(ifcell,"IF_curr_exp2_%s.ras" % simulator)
-record_v(ifcell,"IF_curr_exp2_%s.v" % simulator)
+record(ifcell, "Results/IF_curr_exp2_%s.ras" % simulator)
+record_v(ifcell, "Results/IF_curr_exp2_%s.v" % simulator)
 run(simtime)
   
 end()

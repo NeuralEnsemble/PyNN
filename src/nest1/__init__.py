@@ -268,11 +268,12 @@ def record(source, filename):
         source = [pynest.getAddress(src) for src in source]
     else:
         source = [pynest.getAddress(source)]
+    file_handle = filename.replace('/','_')
+    tmpfile = "%s/%s" %(tempdir, file_handle)
     for src in source:
         pynest.connect(src, spike_detector[0])
-        tmpfile = "%s/%s" %(tempdir, filename)
-        pynest.sr('/%s (%s) (w) file def' % (filename, tmpfile))
-        pynest.sr('%s << /output_stream %s >> SetStatus' % (pynest.getGID(spike_detector[0]), filename))
+        pynest.sr('/%s (%s) (w) file def' % (file_handle, tmpfile))
+        pynest.sr('%s << /output_stream %s >> SetStatus' % (pynest.getGID(spike_detector[0]), file_handle))
     recorders[filename] = ("spikes", tmpfile)
 
 

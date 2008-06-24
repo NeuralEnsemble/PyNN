@@ -10,10 +10,7 @@ $Id$
 
 import sys
 
-if hasattr(sys,"argv"):     # run using python
-    simulator = sys.argv[-1]
-else:
-    simulator = "neuron"    # run using nrngui -python
+simulator = sys.argv[-1]
 
 exec("from pyNN.%s import *" % simulator)
 
@@ -40,9 +37,9 @@ output_population.record_v()
 
 run(tstop)
 
-output_population.printSpikes("simpleNetwork_output_%s.ras" % simulator)
-input_population.printSpikes("simpleNetwork_input_%s.ras" % simulator)
-output_population.print_v("simpleNetwork_output_%s.v" % simulator)
+output_population.printSpikes("Results/simpleNetwork_output_%s.ras" % simulator)
+input_population.printSpikes("Results/simpleNetwork_input_%s.ras" % simulator)
+output_population.print_v("Results/simpleNetwork_output_%s.v" % simulator)
 
 end()
 

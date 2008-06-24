@@ -9,11 +9,7 @@ $Id$
 
 import sys
 
-if hasattr(sys,"argv"):     # run using python
-    simulator = sys.argv[-1]
-else:
-    simulator = "neuron"    # run using nrngui -python
-
+simulator = sys.argv[-1]
 
 exec("from pyNN.%s import *" % simulator)
 
@@ -26,7 +22,7 @@ spike_source = create(SpikeSourceArray, {'spike_times': [0.1*float(i) for i in r
 
 conn = connect(spike_source,ifcells,weight=1.5)
 
-record_v(ifcells[0],"IF_curr_alpha2_%s.v" % simulator)
+record_v(ifcells[0], "Results/IF_curr_alpha2_%s.v" % simulator)
 run(100.0)
 
 end()
