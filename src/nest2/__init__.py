@@ -347,6 +347,7 @@ def end(compatible_output=True):
 
     for tempdir in tempdirs:
         os.system("rm -rf %s" %tempdir)
+        tempdirs.remove(tempdir)
 
 def run(simtime):
     """Run the simulation for simtime ms."""
