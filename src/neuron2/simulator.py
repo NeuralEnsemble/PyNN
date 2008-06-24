@@ -26,8 +26,10 @@ def load_mechanisms(path=pyNN_path[0]):
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
     
-    numpy_formats = {'spikes': "%g\t%d",
-               'v': "%g\t%g\t%d"}
+    numpy1_1_formats = {'spikes': "%g\t%d",
+                        'v': "%g\t%g\t%d"}
+    numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support different
+                        'v': "%g"}      # formats for different columns
     formats = {'spikes': 't id',
                'v': 't v id'}
     
@@ -84,7 +86,7 @@ class Recorder(object):
     def write(self, file=None, gather=False, compatible_output=True):
         data = self.get(gather)
         filename = file or self.filename
-        numpy.savetxt(filename, data, Recorder.numpy_formats[self.variable])
+        numpy.savetxt(filename, data, Recorder.numpy1_0_formats[self.variable], delimiter='\t')
         if compatible_output:
             recording.write_compatible_output(filename, filename, Recorder.formats[self.variable],
                                               self.population, state.dt)
