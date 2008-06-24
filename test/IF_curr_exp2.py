@@ -7,12 +7,12 @@ import sys
 from NeuroTools.stgen import StGen
 from pyNN.random import NumpyRNG
 
-simulator = sys.argv[-1]
+simulator_name = sys.argv[-1]
 
-exec("from pyNN.%s import *" % simulator)
+exec("from pyNN.%s import *" % simulator_name)
 
 
-setup(timestep=0.01, min_delay=2.0, max_delay=4.0)
+setup(timestep=0.1, min_delay=2.0, max_delay=4.0)
 
 ifcell = create(IF_curr_exp,{'i_offset' :   0.1, 'tau_refrac' : 3.0,
                              'v_thresh' : -51.0, 'tau_syn_E'  : 2.0,
@@ -30,8 +30,8 @@ spike_source = create(SpikeSourceArray,
  
 conn = connect(spike_source, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)
     
-record(ifcell, "Results/IF_curr_exp2_%s.ras" % simulator)
-record_v(ifcell, "Results/IF_curr_exp2_%s.v" % simulator)
+record(ifcell, "Results/IF_curr_exp2_%s.ras" % simulator_name)
+record_v(ifcell, "Results/IF_curr_exp2_%s.v" % simulator_name)
 run(simtime)
   
 end()

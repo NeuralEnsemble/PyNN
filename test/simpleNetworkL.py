@@ -11,9 +11,9 @@ $Id$
 
 import sys
 
-simulator = sys.argv[-1]
+simulator_name = sys.argv[-1]
 
-exec("from pyNN.%s import *" % simulator)
+exec("from pyNN.%s import *" % simulator_name)
 
 from NeuroTools.stgen import StGen
 
@@ -33,8 +33,8 @@ spike_source = create(SpikeSourceArray, {'spike_times': spike_times })
 conn1 = connect(spike_source, ifcell1, weight=1.0)
 conn2 = connect(spike_source, ifcell2, weight=1.0)
     
-record_v(ifcell1, "Results/simpleNetworkL_1_%s.v" % simulator)
-record_v(ifcell2, "Results/simpleNetworkL_2_%s.v" % simulator)
+record_v(ifcell1, "Results/simpleNetworkL_1_%s.v" % simulator_name)
+record_v(ifcell2, "Results/simpleNetworkL_2_%s.v" % simulator_name)
 run(tstop)
     
 end()

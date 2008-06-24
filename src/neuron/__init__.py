@@ -591,28 +591,28 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
             raise common.ConnectionError, "Postsynaptic cell id %s does not exist." % str(tgt)
         if "cond" in tgt.cellclass.__name__:
             weight = abs(weight) # weights must be positive for conductance-based synapses
+        if tgt in gidlist: # only create connections to cells that exist on this machine
+            if p < 1:
+                if rng: # use the supplied RNG
+                    rarr = self.rng.uniform(0,1, len(source))
+                else:   # use the default RNG
+                    rarr = numpy.random.uniform(0,1, len(source))
+            for j, src in enumerate(source):
+                if src > gid or src < 0 or not isinstance(src, int):
+                    raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src)
+                else:
+                    if p >= 1.0 or rarr[j] < p: # might be more efficient to vectorise the latter comparison
+                        hoc_commands += [#'nc = pc.gid_connect(%d, pc.gid2cell(%d).%s)' % (src, tgt, syn_objref),
+                                         'nc = pc.gid_connect(%d, cell%d.%s)' % (src, tgt, syn_objref),
+                                         'nc.delay = %g' % delay,
+                                         'nc.weight = %g' % weight,
+                                         'tmp = netconlist.append(nc)']
+                        ncid += 1
         else:
-            if tgt in gidlist: # only create connections to cells that exist on this machine
-                if p < 1:
-                    if rng: # use the supplied RNG
-                        rarr = self.rng.uniform(0,1, len(source))
-                    else:   # use the default RNG
-                        rarr = numpy.random.uniform(0,1, len(source))
-                for j, src in enumerate(source):
-                    if src > gid or src < 0 or not isinstance(src, int):
-                        raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src)
-                    else:
-                        if p >= 1.0 or rarr[j] < p: # might be more efficient to vectorise the latter comparison
-                            hoc_commands += [#'nc = pc.gid_connect(%d, pc.gid2cell(%d).%s)' % (src, tgt, syn_objref),
-                                             'nc = pc.gid_connect(%d, cell%d.%s)' % (src, tgt, syn_objref),
-                                             'nc.delay = %g' % delay,
-                                             'nc.weight = %g' % weight,
-                                             'tmp = netconlist.append(nc)']
-                            ncid += 1
-            else:
-                for j, src in enumerate(source):
-                    if src > gid or src < 0 or not isinstance(src, int):
-                        raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src)
+            for j, src in enumerate(source):
+                if src > gid or src < 0 or not isinstance(src, int):
+                    raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src)
+    print hoc_commands
     hoc_execute(hoc_commands, "--- connect(%s,%s) ---" % (str(source), str(target)))
     return range(nc_start, ncid)
 

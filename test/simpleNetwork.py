@@ -10,9 +10,9 @@ $Id$
 
 import sys
 
-simulator = sys.argv[-1]
+simulator_name = sys.argv[-1]
 
-exec("from pyNN.%s import *" % simulator)
+exec("from pyNN.%s import *" % simulator_name)
 
 from NeuroTools.stgen import StGen
 
@@ -28,7 +28,7 @@ spike_times = list(spikeGenerator.poisson_generator(100.0/1000.0,tstop)) # rate 
 
 input_population  = Population(1, SpikeSourceArray, {'spike_times': spike_times }, "input")
 
-projection = Projection(input_population, output_population, 'allToAll')
+projection = Projection(input_population, output_population, AllToAllConnector())
 projection.setWeights(1.0)
 
 input_population.record()
@@ -37,9 +37,9 @@ output_population.record_v()
 
 run(tstop)
 
-output_population.printSpikes("Results/simpleNetwork_output_%s.ras" % simulator)
-input_population.printSpikes("Results/simpleNetwork_input_%s.ras" % simulator)
-output_population.print_v("Results/simpleNetwork_output_%s.v" % simulator)
+output_population.printSpikes("Results/simpleNetwork_output_%s.ras" % simulator_name)
+input_population.printSpikes("Results/simpleNetwork_input_%s.ras" % simulator_name)
+output_population.print_v("Results/simpleNetwork_output_%s.v" % simulator_name)
 
 end()
 

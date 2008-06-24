@@ -9,9 +9,9 @@ $Id$
 
 import sys
 
-simulator = sys.argv[-1]
+simulator_name = sys.argv[-1]
 
-exec("from pyNN.%s import *" % simulator)
+exec("from pyNN.%s import *" % simulator_name)
 
 
 setup(timestep=0.1,min_delay=0.1,max_delay=4.0)
@@ -27,7 +27,7 @@ spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in rang
 connE = connect(spike_sourceE, ifcell, weight=0.006, synapse_type='excitatory',delay=2.0)
 connI = connect(spike_sourceI, ifcell, weight=0.02, synapse_type ='inhibitory',delay=4.0)
     
-record_v(ifcell, "Results/IF_cond_exp_%s.v" % simulator)
+record_v(ifcell, "Results/IF_cond_exp_%s.v" % simulator_name)
 run(200.0)
 
 end()

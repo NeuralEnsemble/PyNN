@@ -11,9 +11,9 @@ $Id$
 
 import sys
 
-simulator = sys.argv[-1]
+simulator_name = sys.argv[-1]
 
-exec("from pyNN.%s import *" % simulator)
+exec("from pyNN.%s import *" % simulator_name)
 from NeuroTools.stgen import StGen
 
 # === Define parameters ========================================================
@@ -48,7 +48,7 @@ spike_source = Population((n,), SpikeSourceArray,{'spike_times': spike_times})
 cells.record()
 cells.record_v()
 
-input_conns = Projection(spike_source,cells,'allToAll')
+input_conns = Projection(spike_source, cells, AllToAllConnector())
 input_conns.setWeights(w)
 input_conns.setDelays(syn_delay)
 
@@ -56,8 +56,8 @@ input_conns.setDelays(syn_delay)
 
 run(simtime)
 
-cells.printSpikes("Results/small_network_%s.ras" % (simulator, ))
-cells.print_v("Results/small_network_%s.v" % (simulator, ))
+cells.printSpikes("Results/small_network_%s.ras" % (simulator_name, ))
+cells.print_v("Results/small_network_%s.v" % (simulator_name, ))
 
 print "Mean firing rate: ", cells.meanSpikeCount()*1000.0/simtime, "Hz"
 

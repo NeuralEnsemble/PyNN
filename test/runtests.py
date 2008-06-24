@@ -6,6 +6,11 @@ import subprocess, sys, glob, os, re
 import numpy as N
 import logging
 import sys
+try:
+    import pylab
+    plotting = True
+except ImportError:
+    plotting = False
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s',
@@ -22,10 +27,10 @@ def run(cmd,engine):
     #print 'Running "', cmd, '" with', engine.upper()
     fail = False
     logfile = open("Results/%s_%s.log" % (cmd,engine), 'w')
-    if engine in ('nest1', 'pcsim', 'nest2', 'neuron'):
+    if engine in ('nest1', 'pcsim', 'nest2', 'neuron', 'neuron2'):
         cmd = sys.executable + ' ' + cmd + '.py ' + engine
     else:
-        logging.error('Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", and "neuron"' % engine)
+        logging.error('Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", "neuron", "neuron2"' % engine)
         
     p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
     p.wait()
@@ -65,6 +70,10 @@ def compare_traces(script, mse_threshold, engines):
     fail = False
     fail_message = ""
     
+    if plotting:
+        fig = pylab.figure()
+        pylab.title(script)
+    
     for engine in engines:
         logging.debug("Running %s with %s" % (script, engine))
         traces[engine] = []
@@ -90,11 +99,17 @@ def compare_traces(script, mse_threshold, engines):
                     trace = N.array([float(line.split()[0]) for line in trace]) # take first column 
                     trace = sortTracesByCells(trace, position)
                     traces[engine].append(trace)
+                    if plotting:
+                        pylab.plot(trace, label=engine)
             else:
                 fail = True; fail_message += "No files match glob pattern. %s" % pattern
         except Exception:
             fail = True
             fail_message += "Exception raised in %s. " % engine.upper()
+
+    if plotting:
+        pylab.legend()
+        pylab.savefig("Results/%s.png" % script)
 
     if not fail:
         mse = 0.0
@@ -192,7 +207,7 @@ def compare_rasters(script,mse_threshold,engines):
         
 if __name__ == "__main__":
     
-    engine_list = ["nest1", "neuron", "pcsim", "nest2"]
+    engine_list = ["nest1", "neuron", "pcsim", "nest2", "neuron2"]
     for engine in engine_list:
         try:
             exec("import pyNN.%s" % engine)
