@@ -152,7 +152,7 @@ class Recorder(object):
                 data[:,0] = data[:,0] - padding
         elif nest.GetStatus(self._device,'to_memory')[0]:
             data = nest.GetStatus(self._device,'events')[0]
-            data = recording.convert_compatible_output(data, self.population, 'spikes')
+            data = recording.convert_compatible_output(data, self.population, self.variable)
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):
