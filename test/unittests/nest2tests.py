@@ -454,7 +454,7 @@ class ProjectionInitTest(unittest.TestCase):
         assert len(prj1) == self.source33.size
         assert len(prj2) == self.source33.size
         
-    def testDistantDependentProbability(self):
+    def testDistanceDependentProbability(self):
         """For all connections created with "distanceDependentProbability"..."""
         # Test should be improved..."
         for rngclass in (nest.NumpyRNG, nest.NativeRNG):
