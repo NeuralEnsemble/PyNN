@@ -213,7 +213,8 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
     d = src.position - scale_factor*(tgt.position + offset)
     
     if not periodic_boundaries == None:
-        d = numpy.array(map(min, ((x_i, y_i) for (x_i, y_i) in zip(abs(d), periodic_boundaries-abs(d)))))
+        d = numpy.minimum(abs(d),periodic_boundaries-abs(d))
+        #d = numpy.array(map(min, ((x_i, y_i) for (x_i, y_i) in zip(abs(d), periodic_boundaries-abs(d)))))
     if mask is not None:
         d = d[mask]
     return numpy.sqrt(numpy.dot(d, d))
@@ -243,6 +244,7 @@ def distances(pre, post, mask=None, scale_factor=1.0, offset=0.0,
         if periodic_boundaries:
             dims  = diff2.shape
             diff2 = diff2.flatten()
+            #diff2 = numpy.minimum(diff2, periodic_boundaries[i]-diff2)
             diff2 = numpy.array(map(min, ((x_i, y_i) for (x_i, y_i) in zip(diff2, periodic_boundaries[i]-diff2))))
             diff2 = diff2.reshape(dims)
         diff2 **= 2
