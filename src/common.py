@@ -633,11 +633,11 @@ def get_time_step():
 
 def get_min_delay():
     """Return the minimum allowed synaptic delay."""
-    return 1e12
+    raise Exception("common.get_min_delay() must be overridden by a simulator-specific function")
 
 def get_max_delay():
     """Return the maximum allowed synaptic delay."""
-    return -1e12
+    raise Exception("common.get_max_delay() must be overridden by a simulator-specific function")
 
 def num_processes():
     """When running a parallel simulation with MPI, return the number of processors being used."""

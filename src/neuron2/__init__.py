@@ -72,7 +72,7 @@ def get_time_step():
 
 def get_min_delay():
     return simulator.state.min_delay
-#common.get_min_delay = get_min_delay
+common.get_min_delay = get_min_delay
 
 def num_processes():
     return simulator.state.num_processes

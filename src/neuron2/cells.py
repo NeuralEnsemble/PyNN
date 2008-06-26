@@ -77,7 +77,7 @@ class StandardIF(neuron.nrn.Section):
         self.source = self.spike_reset
         
         # process arguments
-        self.parameter_names = ['tau_m', 'cm', 'v_rest', 'v_thresh', 't_refrac',
+        self.parameter_names = ['cm', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',   # 'cm' must come before 'tau_m'
                                 'i_offset', 'v_reset', 'v_init', 'tau_e', 'tau_i']
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
