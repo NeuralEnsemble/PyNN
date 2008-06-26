@@ -91,12 +91,11 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
     
     def connect(self, projection):
         periodic_boundaries = self.periodic_boundaries
-        if periodic_boundaries is not None:
-            if periodic_boundaries is True: 
-                dimensions = projection.post.dim
-            else:
-                dimensions = [0,0,0]
+        if periodic_boundaries is True:
+            dimensions = projection.post.dim
             periodic_boundaries = numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions))))
+        if periodic_boundaries:
+            print "Periodic boundaries set to size ", periodic_boundaries
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         # what about NativeRNG?
