@@ -495,7 +495,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         spike_source.record()
         neuron.run(100.0)
         spikes = spike_source.getSpikes()
-        spikes = spikes[:,0]
+        spikes = spikes[:,1]
         if neuron.rank() == 0:
             self.assert_( max(spikes) == 100.0, str(spikes) )
 

@@ -44,7 +44,7 @@ class IDSetGetTest(unittest.TestCase):
                     if name == 'spike_times':
                         i = [1.0, 2.0]
                         cell.__setattr__(name, i)
-                        o = cell.__getattr__(name)
+                        o = list(cell.__getattr__(name))
                         self.assertEqual(i, o)
                     else:
                         i = numpy.random.uniform(0.1, 100) # tau_refrac is always at least dt (=0.1)

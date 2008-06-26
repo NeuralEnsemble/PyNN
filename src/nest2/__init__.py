@@ -145,6 +145,7 @@ class Recorder(object):
             data = recording.readArray(nest_filename, sepchar=None)
             os.remove(nest_filename)
             if data.size > 0:
+                # the following returns indices, not IDs. I'm not sure this is what we want.
                 if self.population is not None:
                     padding = self.population.cell.flatten()[0]
                 else:

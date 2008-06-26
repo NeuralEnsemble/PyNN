@@ -65,7 +65,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
         ('e_rev_E',    'V_reversal_E'),
         ('e_rev_I',    'V_reversal_I'),
     )
-    nest_name = "iaf_cond_neuron"
+    nest_name = "iaf_cond_neuron2"
     
 
 class IF_cond_exp(common.IF_cond_exp):
@@ -95,8 +95,6 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
     details regarding the hardware model see the FACETS-internal Wiki:
     https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
     """
-    # in 'iaf_sfa_neuron', the dimension of C is pF,
-    # while in the pyNN context, cm is given in nF
     translations = common.build_translations(
         ('v_reset',    'Vreset'),
         ('v_rest',     'U0'),
