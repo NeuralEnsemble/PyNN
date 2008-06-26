@@ -244,8 +244,8 @@ def distances(pre, post, mask=None, scale_factor=1.0, offset=0.0,
         if periodic_boundaries:
             dims  = diff2.shape
             diff2 = diff2.flatten()
-            #diff2 = numpy.minimum(diff2, periodic_boundaries[i]-diff2)
-            diff2 = numpy.array(map(min, ((x_i, y_i) for (x_i, y_i) in zip(diff2, periodic_boundaries[i]-diff2))))
+            diff2 = numpy.minimum(diff2, periodic_boundaries[i]-diff2)
+            #diff2 = numpy.array(map(min, ((x_i, y_i) for (x_i, y_i) in zip(diff2, periodic_boundaries[i]-diff2))))
             diff2 = diff2.reshape(dims)
         diff2 **= 2
         d += diff2
@@ -1410,6 +1410,12 @@ class DistanceDependentProbabilityConnector(Connector):
             print d_expression
             raise
         self.d_expression = d_expression
+        # We will use the numpy functions, so we need to parse the function
+        # given by the user to look for some key function and add numpy
+        # in front of them (or add from numpy import *)
+        func = ['exp','log','sin','cos','cosh','sinh','tan','tanh']
+        for item in func:
+            self.d_expression = self.d_expression.replace(item,"numpy.%s" %item)
         self.allow_self_connections = allow_self_connections
         self.mask = DistanceDependentProbabilityConnector.AXES[axes]
         self.periodic_boundaries = periodic_boundaries

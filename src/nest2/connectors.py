@@ -135,11 +135,10 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             distances = common.distances(pre, projection.post, self.mask,
                                          self.scale_factor, self.offset,
                                          periodic_boundaries)
+            func = eval("lambda d: %s" %self.d_expression)
+            distances[0] = func(distances[0])
             for post in postsynaptic_neurons:
-                func = eval("lambda d: %s" %self.d_expression)
-                distances[0] = func(distances[0])
                 #probabilities = map(func,distances[0])
-                
                 if self.allow_self_connections or pre != post: 
                     # calculate the distance between the two cells :
                     #d = distances[0][idx_post]
