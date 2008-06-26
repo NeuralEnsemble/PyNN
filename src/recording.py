@@ -47,6 +47,8 @@ def convert_compatible_output(data, population, variable):
     """
     if population is not None:
         padding = population.first_id
+    else:
+        padding = 0
         
     if variable == 'spikes':
         return numpy.array((data['times'],data['senders']- padding)).T
