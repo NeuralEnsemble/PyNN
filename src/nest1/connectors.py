@@ -7,6 +7,9 @@ from pyNN import common
 from pyNN.nest1.__init__ import pynest, numpy, get_min_delay, get_max_delay
 from pyNN.random import RandomDistribution, NativeRNG
 from math import *
+from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
+                  fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
+                  sin, sinh, sqrt, tan, tanh
 
 common.get_min_delay = get_min_delay
 common.get_max_delay = get_max_delay
@@ -93,9 +96,9 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         periodic_boundaries = self.periodic_boundaries
         if periodic_boundaries is True:
             dimensions = projection.post.dim
-            periodic_boundaries = numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions))))
+            periodic_boundaries = tuple(numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions)))))
         if periodic_boundaries:
-            print "Periodic boundaries set to size ", periodic_boundaries
+            print "Periodic boundaries activated and set to size ", periodic_boundaries
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         # what about NativeRNG?
@@ -112,15 +115,15 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             source_list=[]
             idx_pre  = 0
             distances = common.distances(projection.pre, post, self.mask, self.scale_factor, self.offset, periodic_boundaries)
+            func = eval("lambda d: %s" %self.d_expression)
+            distances[:,0] = func(distances[:,0])
+            
             for pre in presynaptic_neurons:
                 if self.allow_self_connections or pre != post: 
                     # calculate the distance between the two cells :
-                    d = distances[idx_pre][0]
-                    p = eval(self.d_expression)
+                    p = distances[idx_pre,0]
                     if p >= 1 or (0 < p < 1 and rarr[j] < p):
                         source_list.append(pre)
-                        #projection._targets.append(post)
-                        #projection._targetPorts.append(pynest.connectWD(pre_addr, post_addr, weight, delay)) 
                 j += 1
                 idx_pre += 1
             N = len(source_list)

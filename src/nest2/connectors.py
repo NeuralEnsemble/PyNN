@@ -11,6 +11,9 @@ import numpy
 # good thing. Better to define WDManager here?
 from pyNN.random import RandomDistribution, NativeRNG
 from math import *
+from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
+                  fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
+                  sin, sinh, sqrt, tan, tanh
 
 def _convertWeight(w, synapse_type):
     weight = w*1000.0
@@ -112,9 +115,9 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         periodic_boundaries = self.periodic_boundaries
         if periodic_boundaries is True:
             dimensions = projection.post.dim
-            periodic_boundaries = numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions))))
+            periodic_boundaries = tuple(numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions)))))
         if periodic_boundaries:
-            print "Periodic boundaries set to size ", periodic_boundaries
+            print "Periodic boundaries activated and set to size ", periodic_boundaries
         postsynaptic_neurons = projection.post.cell.flatten() # array
         presynaptic_neurons  = projection.pre.cell.flat # iterator 
         # what about NativeRNG?
@@ -138,17 +141,11 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             func = eval("lambda d: %s" %self.d_expression)
             distances[0] = func(distances[0])
             for post in postsynaptic_neurons:
-                #probabilities = map(func,distances[0])
                 if self.allow_self_connections or pre != post: 
                     # calculate the distance between the two cells :
-                    #d = distances[0][idx_post]
-                    #p = eval(self.d_expression)
-                    p = distances[0][idx_post]
+                    p = distances[0,idx_post]
                     if p >= 1 or (0 < p < 1 and rarr[j] < p):
                         target_list.append(post)
-                        #projection._targets.append(post)
-                        #projection._target_ports.append(nest.connect(pre_addr,post_addr))
-                        #nest.ConnectWD([pre],[post], [weight], [delay])
                 j += 1
                 idx_post += 1
             N = len(target_list)

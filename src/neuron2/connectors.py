@@ -123,10 +123,9 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         periodic_boundaries = self.periodic_boundaries
         if periodic_boundaries is True:
             dimensions = projection.post.dim
-            periodic_boundaries = numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions))))
+            periodic_boundaries = tuple(numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions)))))
         if periodic_boundaries:
-            print "Periodic boundaries set to size ", periodic_boundaries
-        j = 0
+            print "Periodic boundaries activated and set to size ", periodic_boundaries
         # this is not going to work for parallel sims
         # either build up d gradually by iterating over local target cells,
         # or use the local_mask somehow to pick out only part of the distance matrix

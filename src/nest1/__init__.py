@@ -822,12 +822,12 @@ class Population(common.Population):
         Returns a human readable description of the population
         """
         print "\n------- Population description -------"
-        print "Population called %s is made of %d cells" %(self.label, len(self.cell))
+        print "Population called %s is made of %d cells" %(self.label, len(self.cell.flatten()))
         print "-> Cells are aranged on a %dD grid of size %s" %(len(self.dim), self.dim)
         print "-> Celltype is %s" %self.celltype
         print "-> Cell Parameters used for cell[0] (during initialization and now) are: " 
         for key, value in self.cellparams.items():
-          print "\t|", key, "\t: ", "init->", value, "\t now->", pynest.getDict([self.cell[0]])[0][key]
+          print "\t|", key, "\t: ", "init->", value, "\t now->", pynest.getDict([self.cell.flatten()[0]])[0][key]
         print "--- End of Population description ----"
         
          

@@ -1413,9 +1413,9 @@ class DistanceDependentProbabilityConnector(Connector):
         # We will use the numpy functions, so we need to parse the function
         # given by the user to look for some key function and add numpy
         # in front of them (or add from numpy import *)
-        func = ['exp','log','sin','cos','cosh','sinh','tan','tanh']
-        for item in func:
-            self.d_expression = self.d_expression.replace(item,"numpy.%s" %item)
+        #func = ['exp','log','sin','cos','cosh','sinh','tan','tanh']
+        #for item in func:
+            #self.d_expression = self.d_expression.replace(item,"numpy.%s" %item)
         self.allow_self_connections = allow_self_connections
         self.mask = DistanceDependentProbabilityConnector.AXES[axes]
         self.periodic_boundaries = periodic_boundaries
