@@ -10,15 +10,15 @@ $Id$
 """
 
 import sys
+import numpy
 
 simulator_name = sys.argv[-1]
 
 exec("from pyNN.%s import *" % simulator_name)
-from NeuroTools.stgen import StGen
 
 # === Define parameters ========================================================
 
-n = 10    # Number of cells
+n = 5    # Number of cells
 w = 0.2   # synaptic weight (nA)
 cell_params = {
     'tau_m'      : 20.0, # (ms)
@@ -37,12 +37,15 @@ simtime    = 1000.0      # (ms)
 
 # === Build the network ========================================================
 
-setup(timestep=dt,max_delay=syn_delay)
+setup(timestep=dt, max_delay=syn_delay)
 
 cells = Population((n,), IF_curr_alpha, cell_params, "cells")
 
-spikeGenerator = StGen()
-spike_times = list(spikeGenerator.poisson_generator((input_rate/1000.0),simtime)) # rate in spikes/ms
+number = int(2*simtime*input_rate/1000.0)
+numpy.random.seed(26278342)
+spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number))
+assert spike_times.max() > simtime
+
 spike_source = Population((n,), SpikeSourceArray,{'spike_times': spike_times})
 
 cells.record()
@@ -64,4 +67,3 @@ print "Mean firing rate: ", cells.meanSpikeCount()*1000.0/simtime, "Hz"
 # === Clean up and quit ========================================================
 
 end()
-sys.exit(0)
