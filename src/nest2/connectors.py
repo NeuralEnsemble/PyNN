@@ -129,25 +129,28 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 rng = projection.rng
         else:
             rng = numpy.random
-        rarr = rng.uniform(0, 1, (projection.pre.size*projection.post.size,))
-        j = 0
-        idx_post = 0
         for pre in presynaptic_neurons:
-            target_list = []
-            idx_post = 0
             distances = common.distances(pre, projection.post, self.mask,
                                          self.scale_factor, self.offset,
                                          periodic_boundaries)
             func = eval("lambda d: %s" %self.d_expression)
             distances[0] = func(distances[0])
-            for post in postsynaptic_neurons:
-                if self.allow_self_connections or pre != post: 
+            rarr = rng.uniform(0, 1, len(distances[0,:]),)
+            idx = numpy.where((distances[0,:] >= 1) | ((0 < distances[0,:]) & (distances[0,:] < 1) & (rarr < distances[0,:])))[0]
+            target_list = postsynaptic_neurons[idx].tolist()
+            if self.allow_self_connections:
+                try:
+                    target_list.remove(pre)
+                except Exception:
+                    pass
+            #for post in postsynaptic_neurons:
+            #    if self.allow_self_connections or pre != post: 
                     # calculate the distance between the two cells :
-                    p = distances[0,idx_post]
-                    if p >= 1 or (0 < p < 1 and rarr[j] < p):
-                        target_list.append(post)
-                j += 1
-                idx_post += 1
+            #        p = distances[0,idx_post]
+            #        if p >= 1 or (0 < p < 1 and rarr[j] < p):
+            #            target_list.append(post)
+            #    j += 1
+            #    idx_post += 1
             N = len(target_list)
             weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()

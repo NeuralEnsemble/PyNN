@@ -105,27 +105,31 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         if projection.rng:
             if isinstance(projection.rng, NativeRNG):
                 print "Warning: use of NativeRNG not implemented. Using NumpyRNG"
-                rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
+                rng = numpy.random
             else:
-                rarr = projection.rng.uniform(0,1,(projection.pre.size*projection.post.size,))
+                rng = projection.rng
         else:
-            rarr = numpy.random.uniform(0,1,(projection.pre.size*projection.post.size,))
-        j = 0
+            rng = numpy.random
         for post in postsynaptic_neurons:
-            source_list=[]
-            idx_pre  = 0
             distances = common.distances(projection.pre, post, self.mask, self.scale_factor, self.offset, periodic_boundaries)
             func = eval("lambda d: %s" %self.d_expression)
             distances[:,0] = func(distances[:,0])
-            
-            for pre in presynaptic_neurons:
-                if self.allow_self_connections or pre != post: 
-                    # calculate the distance between the two cells :
-                    p = distances[idx_pre,0]
-                    if p >= 1 or (0 < p < 1 and rarr[j] < p):
-                        source_list.append(pre)
-                j += 1
-                idx_pre += 1
+            rarr = rng.uniform(0, 1, len(distances[:,0]),)
+            idx = numpy.where((distances[:,0] >= 1) | ((0 < distances[:,0]) & (distances[:,0] < 1) & (rarr < distances[:,0])))[0]
+            source_list = presynaptic_neurons[idx].tolist()
+            if self.allow_self_connections:
+                try:
+                    source_list.remove(post)
+                except Exception:
+                    pass
+            #for pre in presynaptic_neurons:
+                #if self.allow_self_connections or pre != post: 
+                    ## calculate the distance between the two cells :
+                    #p = distances[idx_pre,0]
+                    #if p >= 1 or (0 < p < 1 and rarr[j] < p):
+                        #source_list.append(pre)
+                #j += 1
+                #idx_pre += 1
             N = len(source_list)
             weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()
