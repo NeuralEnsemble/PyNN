@@ -180,7 +180,6 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
             weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()
             delays = self.getDelays(N).tolist()
-            print target_list,[pre]
             nest.DivergentConnectWD([pre], target_list.tolist(), weights, delays)
             projection._sources += [pre]*N
             conn_dict = nest.GetConnections([pre], projection._plasticity_model)[0]
@@ -237,8 +236,6 @@ class FixedNumberPreConnector(common.FixedNumberPreConnector):
             conn_dict = nest.GetConnections([pre], projection._plasticity_model)[0]
             if isinstance(conn_dict, dict):
                 projection._targets += conn_dict['targets'][start_port:end_port]
-        print start_ports
-        print end_ports
         return len(projection._sources)
 
 

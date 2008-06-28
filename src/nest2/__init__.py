@@ -1374,9 +1374,12 @@ class Projection(common.Projection):
         print "\tsource\ttarget\tport"
         print "\t%d\t%d\t%d" %(self._sources[0], self._targets[0], self._target_ports[0])
         dict = nest.GetConnections([self.pre.cell.flat[0]], self._plasticity_model)[0]
-        idx = numpy.where(numpy.array(dict['targets']) == self._targets[0])[0]
-        for key, value in dict.items():
-          print "\t| ", key, ": ", value[idx[0]]
+        for i in xrange(len(self._targets)):
+            idx  = numpy.where(numpy.array(dict['targets']) == self._targets[i])[0]
+            if len(idx) > 0: 
+                for key, value in dict.items():
+                    print "\t| ", key, ": ", value[idx[0]]
+                break
 
         print "---- End of Projection description -----"
 
