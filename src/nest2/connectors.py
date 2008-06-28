@@ -130,27 +130,23 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         else:
             rng = numpy.random
         for pre in presynaptic_neurons:
+            # We compute the distances from the post cell to all the others
             distances = common.distances(pre, projection.post, self.mask,
                                          self.scale_factor, self.offset,
                                          periodic_boundaries)
+            # We evaluate the probabilities of connections for those distances
             func = eval("lambda d: %s" %self.d_expression)
             distances[0] = func(distances[0])
+            # We get the list of cells that will established a connection
             rarr = rng.uniform(0, 1, len(distances[0,:]),)
             idx = numpy.where((distances[0,:] >= 1) | ((0 < distances[0,:]) & (distances[0,:] < 1) & (rarr < distances[0,:])))[0]
             target_list = postsynaptic_neurons[idx].tolist()
-            if self.allow_self_connections:
+            # We remove the pre cell if we don't allow self connections
+            if not self.allow_self_connections:
                 try:
                     target_list.remove(pre)
                 except Exception:
                     pass
-            #for post in postsynaptic_neurons:
-            #    if self.allow_self_connections or pre != post: 
-                    # calculate the distance between the two cells :
-            #        p = distances[0,idx_post]
-            #        if p >= 1 or (0 < p < 1 and rarr[j] < p):
-            #            target_list.append(post)
-            #    j += 1
-            #    idx_post += 1
             N = len(target_list)
             weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()
@@ -162,7 +158,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         return len(projection._sources)
 
 
-class FixedNumberPreConnector(common.FixedNumberPreConnector):
+class FixedNumberPostConnector(common.FixedNumberPostConnector):
     
     def connect(self, projection):
         postsynaptic_neurons  = projection.post.cell.flatten()
@@ -184,9 +180,8 @@ class FixedNumberPreConnector(common.FixedNumberPreConnector):
             weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()
             delays = self.getDelays(N).tolist()
-
+            print target_list,[pre]
             nest.DivergentConnectWD([pre], target_list.tolist(), weights, delays)
-
             projection._sources += [pre]*N
             conn_dict = nest.GetConnections([pre], projection._plasticity_model)[0]
             if isinstance(conn_dict, dict):
@@ -208,7 +203,7 @@ def _n_connections(population, synapse_type):
         n[i] = len(conn_dict['targets'])
     return n
 
-class FixedNumberPostConnector(common.FixedNumberPostConnector):
+class FixedNumberPreConnector(common.FixedNumberPreConnector):
     
     def connect(self, projection):
         presynaptic_neurons = projection.pre.cell.flatten()

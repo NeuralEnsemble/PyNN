@@ -67,7 +67,13 @@ def write_compatible_output(sim_filename, user_filename, input_format, populatio
                     
     # Writing spiketimes, cell_id-min(cell_id)                    
     # open file
-    if os.path.getsize(sim_filename) > 0:
+    
+    try: 
+        N = os.path.getsize(sim_filename)
+    except Exception:
+        N = 0
+    
+    if N > 0:
         data = readArray(sim_filename, sepchar=None)
         
         result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)    

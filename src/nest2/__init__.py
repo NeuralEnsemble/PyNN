@@ -143,7 +143,7 @@ class Recorder(object):
         if nest.GetStatus(self._device, 'to_file')[0]:
             nest_filename = _merge_files(self._device, gather)
             data = recording.readArray(nest_filename, sepchar=None)
-            os.remove(nest_filename)
+            #os.remove(nest_filename)
             if data.size > 0:
                 # the following returns indices, not IDs. I'm not sure this is what we want.
                 if self.population is not None:
@@ -163,8 +163,7 @@ class Recorder(object):
             if gather == False and num_processes() > 1:
                 user_filename += '.%d' % rank()
             if gather == False or rank() == 0: # if we gather, only do this on the master node
-                recording.write_compatible_output(nest_filename, user_filename, Recorder.formats[self.variable],
-                                                  self.population, get_time_step())
+                recording.write_compatible_output(nest_filename, user_filename, Recorder.formats[self.variable],self.population, get_time_step())
         else:
             system_line = 'cat %s >> %s' % (nest_filename, user_filename)
             os.system(system_line)
@@ -766,8 +765,7 @@ class Population(common.Population):
             tmp_list = record_from
         else:
             rng = rng or numpy.random
-            for neuron in rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]:
-                tmp_list.append(neuron)
+            tmp_list = rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]
 
         self.recorders[variable].record(tmp_list)
 
