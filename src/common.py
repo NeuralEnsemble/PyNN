@@ -1512,10 +1512,10 @@ class MultiplicativeWeightDependence(STDPWeightDependence):
     For potentiation, Dw propto w_max-w
     """
     default_parameters = {
-        'w_min':  20.0,
-        'w_max': 20.0,
-        'A_plus': 0.01,
-        'A_minus': 0.01
+        'w_min'  : 0.0,
+        'w_max'  : 1.0,
+        'A_plus' : 0.01,
+        'A_minus': 0.01,
     }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
@@ -1529,12 +1529,30 @@ class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
     (van Rossum rule?)
     """
 
-    def __init__(self, w_min=0.0, A_plus=0.01, A_minus=0.01):
+    default_parameters = {
+        'w_min'  : 0.0,
+        'w_max'  : 1.0,
+        'A_plus' : 0.01,
+        'A_minus': 0.01,
+    }
+
+    def __init__(self, w_min=0.0,  w_max=1.0, A_plus=0.01, A_minus=0.01):
         pass
 
     
 class GutigWeightDependence(STDPWeightDependence):
-    pass
+    
+    default_parameters = {
+        'w_min'   : 0.0,
+        'w_max'   : 1.0,
+        'A_plus'  : 0.01,
+        'A_minus' : 0.01,
+        'mu_plus' : 0.5,
+        'mu_minus': 0.5
+    }
+
+    def __init__(self, w_min=0.0,  w_max=1.0, A_plus=0.01, A_minus=0.01,mu_plus=0.5,mu_minus=0.5):
+        pass
 
 # Not yet implemented for any module
 #class PfisterSpikeTripletRule(STDPTimingDependence):

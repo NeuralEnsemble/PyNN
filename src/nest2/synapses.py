@@ -81,9 +81,9 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
     For potentiation, Dw propto w_max-w
     """
     translations = common.build_translations(
-        ('w_max',     'wmax',  1000.0), # unit conversion
+        ('w_max',     'Wmax',  1000.0), # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
-        ('A_plus',    'aLTP'),
+        ('A_plus',    'lambda'),
         ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
     )
     possible_models = set(['stdp_synapse',]) #'stdp_synapse_hom'
@@ -97,6 +97,55 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
         self.parameters = self.translate(parameters)
         self.parameters['mu_plus'] = 1.0
         self.parameters['mu_minus'] = 1.0
+
+class AdditivePotentiationMultiplicativeDepression(common.AdditivePotentiationMultiplicativeDepression):
+    """
+    The amplitude of the weight change depends on the current weight.
+    For depression, Dw propto w-w_min
+    For potentiation, Dw propto w_max-w
+    """
+    translations = common.build_translations(
+        ('w_max',     'Wmax',  1000.0), # unit conversion
+        ('w_min',     'w_min_always_zero_in_NEST'),
+        ('A_plus',    'lambda'),
+        ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
+    )
+    possible_models = set(['stdp_synapse',]) #'stdp_synapse_hom'
+        
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
+        if w_min != 0:
+            raise Exception("Non-zero minimum weight is not supported by NEST.")
+        common.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
+        parameters = locals()
+        parameters.pop('self') 
+        self.parameters = self.translate(parameters)
+        self.parameters['mu_plus'] = 0.0
+        self.parameters['mu_minus'] = 1.0
+
+
+class GutigWeightDependence(common.GutigWeightDependence):
+    """
+    The amplitude of the weight change depends on the current weight.
+    For depression, Dw propto w-w_min
+    For potentiation, Dw propto w_max-w
+    """
+    translations = common.build_translations(
+        ('w_max',     'Wmax',  1000.0), # unit conversion
+        ('w_min',     'w_min_always_zero_in_NEST'),
+        ('A_plus',    'lambda'),
+        ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
+        ('mu_plus',   'mu_plus'),
+        ('mu_minus',  'mu_minus'),
+    )
+    possible_models = set(['stdp_synapse',]) #'stdp_synapse_hom'
+        
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01,mu_plus=0.5,mu_minus=0.5):
+        if w_min != 0:
+            raise Exception("Non-zero minimum weight is not supported by NEST.")
+        common.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
+        parameters = locals()
+        parameters.pop('self') 
+        self.parameters = self.translate(parameters)
 
 
 class SpikePairRule(common.SpikePairRule):

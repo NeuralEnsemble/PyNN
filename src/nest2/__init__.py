@@ -764,7 +764,8 @@ class Population(common.Population):
             #    tmp_list = [neuron for neuron in record_from]
             tmp_list = record_from
         else:
-            rng = rng or numpy.random
+            if not rng:
+                rng = numpy.random
             tmp_list = rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]
 
         self.recorders[variable].record(tmp_list)
@@ -862,7 +863,7 @@ class Population(common.Population):
         """
         Returns the mean number of spikes per neuron.
         """
-        n_spikes = len(self.recorders['spikes'].get(gather))
+        n_spikes = nest.GetStatus(self.recorders['spikes']._device,'n_events')[0]
         n_rec = len(self.recorders['spikes'].recorded)
         return float(n_spikes)/n_rec
 
