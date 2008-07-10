@@ -159,14 +159,27 @@ class Recorder(object):
     def write(self, file=None, gather=False, compatible_output=True):
         user_filename = file or self.filename
         nest_filename = _merge_files(self._device, gather)
+	if num_processes() > 1:
+            user_filename += '.%d' % rank()
         if compatible_output:
-            if gather == False and num_processes() > 1:
-                user_filename += '.%d' % rank()
-            if gather == False or rank() == 0: # if we gather, only do this on the master node
-                recording.write_compatible_output(nest_filename, user_filename, Recorder.formats[self.variable],self.population, get_time_step())
+            # We should do the post processing (i.e the compatible output) in a distributed
+	    # manner to speed up the thing. The only problem that will arise is the headers, 
+	    # that should be taken into account to be really clean. Otherwise, if the # symbol
+	    # is escaped while reading the file, there is no problem
+           recording.write_compatible_output(nest_filename, user_filename, Recorder.formats[self.variable],self.population, get_time_step())
         else:
             system_line = 'cat %s >> %s' % (nest_filename, user_filename)
             os.system(system_line)
+	if gather == True and num_processes()> 1:
+	    root_file = file or self.filename
+	    for node in xrange(num_processes()):
+		if rank()==0:
+		    node_file = root_file + '.%d' % node 
+		    if os.path.exists(node_file):
+                    	system_line = 'cat %s >> %s' % (node_file, root_file)
+	            	os.system(system_line)
+		    	system_line = 'rm %s' %node_file
+		    	os.system(system_line)
         # don't want to remove nest_filename at this point in case the user wants to access the data
         # a second time (e.g. with both getSpikes() and printSpikes()), but we should
         # maintain a list of temporary files to be deleted at the end of the simulation
@@ -513,9 +526,9 @@ def _merge_files(recorder, gather):
             system_line = 'cat %s >> %s' % (nest_filename, merged_filename)
             os.system(system_line)
             os.remove(nest_filename)
-    if gather and len(node_list) > 1:
-	#if rank() == 0:
-        raise Exception("gather not yet implemented")
+    #if gather and len(node_list) > 1:
+	##if rank() == 0:
+        #raise Exception("gather not yet implemented")
     return merged_filename
 
 
@@ -867,7 +880,7 @@ class Population(common.Population):
 	## Routine to give an average firing rate over all the threads/nodes
 	## This is a rough approximation, because in fact each nodes is only multiplying 
 	## the frequency of the recorders by the number of processes. To do better, we need a MPI
-	## package to send informations to node 0.
+	## package to send informations to node 0. Nevertheless, it works for threaded mode
 	node_list = range(nest.GetStatus([0], "total_num_virtual_procs")[0])
 	n_spikes  = 0
 	for node in node_list:

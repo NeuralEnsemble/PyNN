@@ -38,11 +38,7 @@ def get_target_ports(pre, target_list, synapse_type):
     # the target in this list. For now, we stick with saving the target port
     # in Python (faster, but more memory needed), but PyNEST should soon have
     # a function to do the lookup, at which point we will switch to using that.
-    conn_dict = nest.GetConnections([pre], synapse_type)[0]
-    if conn_dict:
-        first_port = len(conn_dict['targets'])
-    else:
-        first_port = 0
+    first_port = len(nest.GetConnections([pre], synapse_type)[0]['targets'])
     return range(first_port, first_port+len(target_list))
 
 
@@ -93,8 +89,6 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
                 rarr = projection.rng.uniform(0, 1, (npost,)) # what about NativeRNG?
             else:
                 rarr = numpy.random.uniform(0, 1, (npost,))
-            if len(rarr) > len(postsynaptic_neurons):
-                rarr = rarr[:len(postsynaptic_neurons)]
             target_list = numpy.compress(numpy.less(rarr, self.p_connect), postsynaptic_neurons).tolist()
             # if self connections are not allowed, check whether pre and post are the same
             if not self.allow_self_connections and pre in target_list:
@@ -119,6 +113,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         if periodic_boundaries:
             print "Periodic boundaries activated and set to size ", periodic_boundaries
         postsynaptic_neurons = projection.post.cell.flatten() # array
+	npost = len(postsynaptic_neurons)
 	#postsynaptic_neurons = projection.post.cell_local
         # what about NativeRNG?
         if projection.rng:
@@ -136,17 +131,14 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                                          periodic_boundaries)
             # We evaluate the probabilities of connections for those distances
             func = eval("lambda d: %s" %self.d_expression)
-            distances[0] = func(distances[0])
+            distances = func(distances[0])
             # We get the list of cells that will established a connection
-            rarr = rng.uniform(0, 1, len(distances[0,:]),)
-            idx = numpy.where((distances[0,:] >= 1) | ((0 < distances[0,:]) & (distances[0,:] < 1) & (rarr < distances[0,:])))[0]
-            target_list = postsynaptic_neurons[idx].tolist()
+            rarr = rng.uniform(0, 1, (npost,))
+	    target_list = numpy.compress((distances >= 1) | ((0 < distances) & (distances < 1) & (rarr <= distances)), postsynaptic_neurons).tolist()
+            #target_list = postsynaptic_neurons[idx].tolist()
             # We remove the pre cell if we don't allow self connections
-            if not self.allow_self_connections:
-                try:
-                    target_list.remove(pre)
-                except Exception:
-                    pass
+            if not self.allow_self_connections and pre in target_list:
+                target_list.remove(pre)
             N = len(target_list)
             weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()

@@ -37,7 +37,7 @@ Timer = Timer()
 
 rngseed  = 98765
 
-n        = 400  # number of cells
+n        = 5000  # number of cells
 r_ei     = 4.0   # number of excitatory cells:number of inhibitory cells
 pconn    = 0.02  # connection probability
 stim_dur = 50.   # (ms) duration of random stimulation
@@ -94,7 +94,6 @@ elif benchmark == "CUBA":
     if simulator == "brian":
         w_exc = w_exc*0.1
         w_inh = w_inh*0.1
-    print w_exc, w_inh
     assert w_exc > 0; assert w_inh < 0
 
 # === Build the network ========================================================
@@ -138,7 +137,7 @@ if benchmark == "COBA":
     ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
 
 print "%s Initialising membrane potential to random values..." % node_id
-rng = NumpyRNG(seed=rngseed, parallel_safe=True, rank=node_id, num_processes=np)
+rng = NumpyRNG(seed=rngseed, parallel_safe=False, rank=node_id, num_processes=np)
 uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
 if simulator == "brian":
     uniformDistr = RandomDistribution('uniform', [v_reset*0.001,v_thresh*0.001], rng=rng)
@@ -157,7 +156,6 @@ connections['i2i'] = Projection(inh_cells, inh_cells, inh_conn, target='inhibito
 if (benchmark == "COBA"):
     connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, target='excitatory')
     connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
-
 
 #for prj in connections.keys():
     #connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator, np))
@@ -182,7 +180,6 @@ simCPUTime = Timer.elapsedTime()
 E_rate = exc_cells.meanSpikeCount()*1000./tstop
 I_rate = inh_cells.meanSpikeCount()*1000./tstop
 
-
 # === Print results to file ====================================================
 
 print "%d Writing data to file..." % node_id
@@ -190,7 +187,7 @@ Timer.reset()
 
 exc_cells.printSpikes("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator, np))
 inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator, np))
-exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, np), compatible_output=True)
+exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, np))
 writeCPUTime = Timer.elapsedTime()
 
 tmp_string = "%d e→e  %d e→i  %d i→e  %d i→i" % (len(connections['e2e']), len(connections['e2i']), len(connections['i2e']), len(connections['i2i']))

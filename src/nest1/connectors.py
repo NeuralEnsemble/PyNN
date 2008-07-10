@@ -102,6 +102,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         # what about NativeRNG?
+	npre = len(presynaptic_neurons)
         if projection.rng:
             if isinstance(projection.rng, NativeRNG):
                 print "Warning: use of NativeRNG not implemented. Using NumpyRNG"
@@ -114,17 +115,13 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             distances = common.distances(projection.pre, post, self.mask, self.scale_factor, self.offset, periodic_boundaries)
             # We evaluate the probabilities of connections for those distances
             func = eval("lambda d: %s" %self.d_expression)
-            distances[:,0] = func(distances[:,0])
-            rarr = rng.uniform(0, 1, len(distances[:,0]),)
+            distances = func(distances[:,0])
+            rarr = rng.uniform(0, 1, (npre,))
             # We get the list of cells that will established a connection
-            idx = numpy.where((distances[:,0] >= 1) | ((0 < distances[:,0]) & (distances[:,0] < 1) & (rarr < distances[:,0])))[0]
-            source_list = presynaptic_neurons[idx].tolist()
+	    source_list = numpy.compress((distances >= 1) | ((0 < distances) & (distances < 1) & (rarr <= distances)), presynaptic_neurons).tolist()
             # We remove the post cell if we don't allow self connections
-            if not self.allow_self_connections:
-                try:
-                    source_list.remove(post)
-                except Exception:
-                    pass
+            if not self.allow_self_connections and post in source_list:
+		source_list.remove(post)
             N = len(source_list)
             weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()
