@@ -124,10 +124,10 @@ class IDMixin(object):
 
     def set_parameters(self, **parameters):
         """Set cell parameters, given as a sequence of parameter=value arguments."""
-        all_parameters = self.get_parameters()
-        all_parameters.update(parameters)
+        #all_parameters = self.get_parameters()
+        #all_parameters.update(parameters)
         if self.is_standard_cell():
-            parameters = self.cellclass.translate(all_parameters)
+            parameters = self.cellclass.translate(parameters)
         self.set_native_parameters(parameters)
     
     def get_parameters(self):
@@ -314,7 +314,9 @@ class StandardModelType(object):
         """Translate standardized model parameters to simulator-specific parameters."""
         parameters = cls.checkParameters(parameters, with_defaults=False)
         native_parameters = {}
-        for name,D  in cls.translations.items():
+	for name,value in parameters.items():
+	    D = cls.translations[name]
+        #for name,D  in cls.translations.items():
             pname = D['translated_name']
             try:
                 pval = eval(D['forward_transform'], globals(), parameters)
@@ -1227,11 +1229,12 @@ class Projection(object):
 class Connector(object):
     """Base class for Connector classes."""
     
-    def __init__(self, weights=0.0, delays=None):
+    def __init__(self, weights=0.0, delays=None, check_connections=False):
         self.w_index = 0 # should probably use a generator
         self.d_index = 0 # rather than storing these values
         self.weights = weights
         self.delays = delays
+	self.check_connections = check_connections
         if delays is None:
             self.delays = get_min_delay()
     
@@ -1251,7 +1254,6 @@ class Connector(object):
             weights = self.weights[self.w_index:self.w_index+N]
         else:
             raise Exception("weights is of type %s" % type(self.weights))
-        #assert numpy.all(weights>=0), "Weight values must be positive"
         self.w_index += N
         return weights
     
@@ -1267,10 +1269,11 @@ class Connector(object):
             delays = self.delays[self.d_index:self.d_index+N]
         else:
             raise Exception("delays is of type %s" % type(self.delays))
-        assert numpy.all(delays >= get_min_delay()), \
-               "Delay values must be greater than or equal to the minimum delay %g. The smallest delay is %g." % (get_min_delay(), delays.min())
-        assert numpy.all(delays <= get_max_delay()), \
-               "Delay values must be less than or equal to the maximum delay %s. The largest delay is %s" % (get_max_delay(), delays.max())                                                                                              
+	if self.check_connections:
+	    assert numpy.all(delays >= get_min_delay()), \
+	    "Delay values must be greater than or equal to the minimum delay %g. The smallest delay is %g." % (get_min_delay(), delays.min())
+	    assert numpy.all(delays <= get_max_delay()), \
+	    "Delay values must be less than or equal to the maximum delay %s. The largest delay is %s" % (get_max_delay(), delays.max())                                                                                              
         self.d_index += N
         return delays
     
@@ -1405,8 +1408,7 @@ class DistanceDependentProbabilityConnector(Connector):
             d = 0; assert 0 <= eval(d_expression), eval(d_expression)
             d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
         except ZeroDivisionError:
-            print d_expression
-            raise
+            raise Exception("Error in the distance expression %s" %d_expression)
         self.d_expression = d_expression
         # We will use the numpy functions, so we need to parse the function
         # given by the user to look for some key function and add numpy

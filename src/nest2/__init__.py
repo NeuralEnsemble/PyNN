@@ -9,7 +9,7 @@ import nest
 from pyNN import common
 from pyNN.random import *
 from pyNN import recording
-import numpy, types, sys, shutil, os, logging, copy, tempfile
+import numpy, types, sys, shutil, os, logging, copy, tempfile, re
 from math import *
 from pyNN.nest2.cells import *
 from pyNN.nest2.connectors import *
@@ -514,6 +514,7 @@ def _merge_files(recorder, gather):
             os.system(system_line)
             os.remove(nest_filename)
     if gather and len(node_list) > 1:
+	#if rank() == 0:
         raise Exception("gather not yet implemented")
     return merged_filename
 
@@ -570,7 +571,6 @@ class Population(common.Population):
             self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
             self.cell_local = self.cell[numpy.array(nest.GetStatus(self.cell.tolist(),'local'))]
             self.first_id = self.cell.reshape(self.size,)[0]
-
             for id in self.cell:
                 id.parent = self
             #id.setCellClass(cellclass)
@@ -863,7 +863,18 @@ class Population(common.Population):
         """
         Returns the mean number of spikes per neuron.
         """
-        n_spikes = nest.GetStatus(self.recorders['spikes']._device,'n_events')[0]
+	
+	## Routine to give an average firing rate over all the threads/nodes
+	## This is a rough approximation, because in fact each nodes is only multiplying 
+	## the frequency of the recorders by the number of processes. To do better, we need a MPI
+	## package to send informations to node 0.
+	node_list = range(nest.GetStatus([0], "total_num_virtual_procs")[0])
+	n_spikes  = 0
+	for node in node_list:
+	    nest.sps(self.recorders['spikes']._device[0])
+	    nest.sr("%d GetAddress %d append" %(self.recorders['spikes']._device[0], node))
+	    nest.sr("GetStatus /n_events get")
+	    n_spikes += nest.spp()
         n_rec = len(self.recorders['spikes'].recorded)
         return float(n_spikes)/n_rec
 
@@ -1360,20 +1371,18 @@ class Projection(common.Projection):
         """
         print "\n------- Projection description -------"
         print "Projection %s from %s [%d cells] to %s [%d cells]" %(self.label, self.pre.label, len(self.pre.cell),self.post.label, len(self.post.cell))
-        print "Connector used is %s : " %self._method
+        print "\t| Connector : %s" %self._method
         if isinstance(self._method.weights,RandomDistribution):
-          print "\t| Weights are drawn from %s distribution with parameters %s "%(self._method.weights.name, self._method.weights.parameters)
+          print "\t| Weights : drawn from %s distribution with params %s "%(self._method.weights.name, self._method.weights.parameters)
         else:
-          print "\t| Weights: ", self._method.weights
+          print "\t| Weights : ", self._method.weights
         if isinstance(self._method.delays,RandomDistribution):
-          print "\t| Delays are drawn from %s distribution with parameters %s " %(self._method.delays.name, self._method.delays.parameters)
+          print "\t| Delays : drawn from %s distribution with params %s " %(self._method.delays.name, self._method.delays.parameters)
         else:
           print "\t| Delays: ", self._method.delays
-        print "\t| Plasticity: ", self._plasticity_model
-        print "\t --> %d connections have been created for this projection" %len(self)
-        print "To check, here are the parameters of one connection from this projection"
-        print "\tsource\ttarget\tport"
-        print "\t%d\t%d\t%d" %(self._sources[0], self._targets[0], self._target_ports[0])
+        print "\t| Plasticity : ", self._plasticity_model
+        print "\t ----> %d connections have been created for this projection" %len(self)
+        print "\tParameters of connection from %d to %d [port %d]" %(self._sources[0], self._targets[0], self._target_ports[0])
         dict = nest.GetConnections([self.pre.cell.flat[0]], self._plasticity_model)[0]
         for i in xrange(len(self._targets)):
             idx  = numpy.where(numpy.array(dict['targets']) == self._targets[i])[0]
