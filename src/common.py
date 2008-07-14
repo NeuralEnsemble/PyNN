@@ -1239,7 +1239,7 @@ class Connector(object):
         self.d_index = 0 # rather than storing these values
         self.weights = weights
         self.delays = delays
-	self.check_connections = check_connections
+        self.check_connections = check_connections
         if delays is None:
             self.delays = get_min_delay()
     
@@ -1307,7 +1307,7 @@ class FromListConnector(Connector):
 
 class FromFileConnector(Connector):
     """
-    Make connections according to a list contained in a file.
+    Make connections according to a list read from a file.
     """
     
     def __init__(self, filename, distributed=False):

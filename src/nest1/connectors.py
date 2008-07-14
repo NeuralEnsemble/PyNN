@@ -118,10 +118,10 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             distances = func(distances[:,0])
             rarr = rng.uniform(0, 1, (npre,))
             # We get the list of cells that will established a connection
-	    source_list = numpy.compress((distances >= 1) | ((0 < distances) & (distances < 1) & (rarr <= distances)), presynaptic_neurons).tolist()
+            source_list = numpy.compress((distances >= 1) | ((0 < distances) & (distances < 1) & (rarr <= distances)), presynaptic_neurons).tolist()
             # We remove the post cell if we don't allow self connections
             if not self.allow_self_connections and post in source_list:
-		source_list.remove(post)
+                source_list.remove(post)
             N = len(source_list)
             weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()

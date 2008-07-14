@@ -82,7 +82,7 @@ class OneToOneConnector(common.OneToOneConnector):
 class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
     def connect(self, projection):
-	postsynaptic_neurons = projection.post.cell.flatten()
+        postsynaptic_neurons = projection.post.cell.flatten()
         npost = len(postsynaptic_neurons)
         for pre in projection.pre.cell.flat:
             if projection.rng:
