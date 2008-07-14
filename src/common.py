@@ -124,9 +124,15 @@ class IDMixin(object):
 
     def set_parameters(self, **parameters):
         """Set cell parameters, given as a sequence of parameter=value arguments."""
-        #all_parameters = self.get_parameters()
-        #all_parameters.update(parameters)
+        # if some of the parameters are computed from the values of other
+        # parameters, need to get and translate all parameters
         if self.is_standard_cell():
+            computed_parameters = self.cellclass.computed_parameters()
+            have_computed_parameters = any([p_name in computed_parameters for p_name in parameters])
+            if have_computed_parameters:     
+                all_parameters = self.get_parameters()
+                all_parameters.update(parameters)
+                parameters = all_parameters
             parameters = self.cellclass.translate(parameters)
         self.set_native_parameters(parameters)
     
@@ -314,15 +320,14 @@ class StandardModelType(object):
         """Translate standardized model parameters to simulator-specific parameters."""
         parameters = cls.checkParameters(parameters, with_defaults=False)
         native_parameters = {}
-	for name,value in parameters.items():
-	    D = cls.translations[name]
-        #for name,D  in cls.translations.items():
+        for name in parameters:
+            D = cls.translations[name]
             pname = D['translated_name']
             try:
                 pval = eval(D['forward_transform'], globals(), parameters)
-            except NameError:
-                raise Exception("%s in %s. Transform: %s. Parameters: %s." \
-                                % (pname, cls.__name__, D['forward_transform'], parameters))
+            except NameError, errmsg:
+                raise Exception("Problem translating %s in %s. Transform: %s. Parameters: %s. %s" \
+                                % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
             except ZeroDivisionError:
                 pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
@@ -1292,8 +1297,7 @@ class AllToAllConnector(Connector):
 
 class FromListConnector(Connector):
     """
-    Connects all cells in the presynaptic population to all cells in the
-    postsynaptic population.
+    Make connections according to a list.
     """
     
     def __init__(self, conn_list):
@@ -1303,8 +1307,7 @@ class FromListConnector(Connector):
 
 class FromFileConnector(Connector):
     """
-    Connects all cells in the presynaptic population to all cells in the
-    postsynaptic population.
+    Make connections according to a list contained in a file.
     """
     
     def __init__(self, filename, distributed=False):
@@ -1315,8 +1318,8 @@ class FromFileConnector(Connector):
         
 class FixedNumberPostConnector(Connector):
     """
-    Each postsynaptic cell receives a fixed number of connections, chosen
-    randomly from the presynaptic cells.
+    Each pre-synaptic neuron is connected to exactly n post-synaptic neurons
+    chosen at random.
     """
     
     def __init__(self, n, allow_self_connections=True, weights=0.0, delays=None):
@@ -1336,8 +1339,8 @@ class FixedNumberPostConnector(Connector):
 
 class FixedNumberPreConnector(Connector):
     """
-    Connects all cells in the postsynaptic population to fixed number of
-    cells in the presynaptic population, randomly choosen.
+    Each post-synaptic neuron is connected to exactly n pre-synaptic neurons
+    chosen at random.
     """
     def __init__(self, n, allow_self_connections=True, weights=0.0, delays=None):
         Connector.__init__(self, weights, delays)

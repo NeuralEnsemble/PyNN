@@ -609,16 +609,19 @@ class IDTest(unittest.TestCase):
         nest.Population.nPop = 0
         self.pop1 = nest.Population((5,),nest.IF_curr_alpha,{'tau_m':10.0})
         self.pop2 = nest.Population((5,4),nest.IF_curr_exp,{'v_reset':-60.0})
+        self.pop3 = nest.Population((10,), nest.IF_cond_alpha)
     
     def testIDSetAndGet(self):
         self.pop1[3].tau_m = 20.0
         self.pop2[3,2].v_reset = -70.0
+        self.pop3[5].tau_m = -55.0
         ifcell_params = nest.nest.GetStatus([self.pop1[3]])[0]
         self.assertEqual(20.0, ifcell_params['tau_m'])
         self.assertEqual(20.0, self.pop1[3].tau_m)
         self.assertEqual(10.0, self.pop1[0].tau_m)
         self.assertEqual(-70.0, self.pop2[3,2].v_reset)
         self.assertEqual(-60.0, self.pop2[0,0].v_reset)
+        self.assertAlmostEqual(-55.0, self.pop3[5].tau_m, 9)
 
     def testGetCellClass(self):
         self.assertEqual(nest.IF_curr_alpha, self.pop1[0].cellclass)
