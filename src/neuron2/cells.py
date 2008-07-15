@@ -176,6 +176,8 @@ class BretteGerstnerIF(SingleCompartmentNeuron):
         # insert Brette-Gerstner spike mechanism
         self.insert('IF_BG5')
         self.seg.IF_BG5.surf = self.area()
+        self.source = neuron.NetCon(source=None, target=None, section=self,
+                                    position=0.5)
     
     v_thresh = _new_property('seg.IF_BG5', 'Vtr')
     v_reset  = _new_property('seg.IF_BG5', 'Vbot')

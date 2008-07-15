@@ -100,7 +100,8 @@ class IDMixin(object):
     # class
     
     non_parameter_attributes = ('parent', '_cellclass', 'cellclass',
-                                '_position', 'position', 'hocname', '_cell')
+                                '_position', 'position', 'hocname', '_cell',
+                                'inject')
     
     def __init__(self):
         self.parent = None
@@ -202,8 +203,10 @@ class IDMixin(object):
 
     position = property(_get_position, _set_position)
       
-
-
+    def inject(self, current_source):
+        """Inject current from a current source object into the cell."""
+        current_source.inject_into([self])
+        
 
 def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
              periodic_boundaries=None): # may need to add an offset parameter

@@ -14,6 +14,7 @@ from math import *
 from pyNN.nest2.cells import *
 from pyNN.nest2.connectors import *
 from pyNN.nest2.synapses import *
+from pyNN.nest2.electrodes import *
 Set = set
 
 recorder_list = []

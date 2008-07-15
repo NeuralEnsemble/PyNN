@@ -12,6 +12,7 @@ from pyNN import common, utility
 from pyNN.neuron2.cells import *
 from pyNN.neuron2.connectors import *
 from pyNN.neuron2.synapses import *
+from pyNN.neuron2.electrodes import *
 
 from math import *
 import sys
