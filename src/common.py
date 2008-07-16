@@ -10,6 +10,7 @@ import types, time, copy, sys
 import numpy
 from math import *
 from pyNN import random
+from string import Template
 
 DEFAULT_WEIGHT = 0.0
 
@@ -366,13 +367,15 @@ class StandardModelType(object):
         more than one other parameter."""
         return [name for name in cls.translations if name not in cls.simple_parameters()+cls.scaled_parameters()]
         
-
     def update_parameters(self, parameters):
         """
         update self.parameters with those in parameters 
         """
         self.parameters.update(self.translate(parameters))
         
+    def describe(self, template='standard'):
+        return str(self)
+    
 
 class StandardCellType(StandardModelType):
     """Base class for standardized cell model classes."""
@@ -934,11 +937,47 @@ class Population(object):
         # gather is not relevant, but is needed for API consistency
         return _abstract_method(self)
     
-    def describe(self):
+    def describe(self, template='standard'):
         """
         Returns a human readable description of the population
         """
-        return _abstract_method(self)
+        if template == 'standard':
+            #lines = ['==== Population $label ====',
+            #         '  Dimensions: $dim',
+            #         '  Local cells: $n_cells_local',
+            #         '  Cell type: $celltype',
+            #         '  ID range: $first_id-$last_id',
+            #         '  First cell on this node:',
+            #         '    ID: $local_first_id',
+            #         '    Parameters: $cell_parameters']
+            lines = ['------- Population description -------',
+                     'Population called $label is made of $n_cells cells [$n_cells_local being local]']
+            if self.parent:
+                lines += ['This population is a subpopulation of population $parent_label']
+            lines += ["-> Cells are aranged on a ${ndim}D grid of size $dim",
+                      "-> Celltype is $celltype",
+                      "-> ID range is $first_id-$last_id",
+                      "-> Cell Parameters used for cell[0] are: "]
+            for name, value in self.index(0).get_parameters().items():
+                lines += ["    | %-12s: %s" % (name, value)]
+            lines += ["--- End of Population description ----"]
+            template = "\n".join(lines)
+            
+        context = self.__dict__.copy()
+        first_id = self._local_ids[0]
+        context.update(local_first_id=first_id)
+        context.update(cell_parameters=first_id.get_parameters())
+        context.update(celltype=self.celltype.__class__.__name__)
+        context.update(n_cells=len(self))
+        context.update(n_cells_local=len(self._local_ids))
+        for k in context.keys():
+            if k[0] == '_':
+                context.pop(k)
+                
+        if template == None:
+            return context
+        else:
+            return Template(template).substitute(context)
     
     def getSubPopulation(self, cells):
         """
@@ -998,6 +1037,7 @@ class Projection(object):
         self.target = target                  # }
         self.label  = label
         self.rng    = rng
+        self._method = method
         self.synapse_dynamics = synapse_dynamics
         self.connection = None # access individual connections. To be defined by child, simulator-specific classes
         if label is None:
@@ -1223,11 +1263,41 @@ class Projection(object):
         # should be put here or in an external module.
         return _abstract_method(self)
     
-    def describe(self):
+    def describe(self, template='standard'):
         """
         Returns a human readable description of the projection
         """
-        return _abstract_method(self)
+        if template == 'standard':
+            lines = ["------- Projection description -------",
+                     "Projection $label from $pre_label [$pre_n_cells cells] to $post_label [$post_n_cells cells]",
+                     "    | Connector : $_method",
+                     "    | Weights : $weights",
+                     "    | Delays : $delays",
+                     "    | Plasticity : $plasticity",
+                     "    | Num. connections : $nconn",
+                    ]        
+            lines += ["---- End of Projection description -----"]
+            template = '\n'.join(lines)
+        
+        context = self.__dict__.copy()
+        context.update({
+            'nconn': len(self),
+            'pre_label': self.pre.label,
+            'post_label': self.post.label,
+            'pre_n_cells': self.pre.size,
+            'post_n_cells': self.post.size,
+            'weights': str(self._method.weights),
+            'delays': str(self._method.delays),
+        })
+        if self.synapse_dynamics:
+            context.update(plasticity=self.synapse_dynamics.describe())
+        else:
+            context.update(plasticity='None')
+            
+        if template == None:
+            return context
+        else:
+            return Template(template).substitute(context)
 
 
 # ==============================================================================
@@ -1277,11 +1347,11 @@ class Connector(object):
             delays = self.delays[self.d_index:self.d_index+N]
         else:
             raise Exception("delays is of type %s" % type(self.delays))
-	if self.check_connections:
-	    assert numpy.all(delays >= get_min_delay()), \
-	    "Delay values must be greater than or equal to the minimum delay %g. The smallest delay is %g." % (get_min_delay(), delays.min())
-	    assert numpy.all(delays <= get_max_delay()), \
-	    "Delay values must be less than or equal to the maximum delay %s. The largest delay is %s" % (get_max_delay(), delays.max())                                                                                              
+        if self.check_connections:
+            assert numpy.all(delays >= get_min_delay()), \
+            "Delay values must be greater than or equal to the minimum delay %g. The smallest delay is %g." % (get_min_delay(), delays.min())
+            assert numpy.all(delays <= get_max_delay()), \
+            "Delay values must be less than or equal to the maximum delay %s. The largest delay is %s" % (get_max_delay(), delays.max())                                                                                              
         self.d_index += N
         return delays
     
@@ -1446,8 +1516,20 @@ class SynapseDynamics(object):
     def __init__(self, fast=None, slow=None):
         self.fast = fast
         self.slow = slow
-                
-                
+    
+    def describe(self, template='standard'):
+        if template == 'standard':
+            lines = ["Short-term plasticity mechanism: $slow",
+                     "Long-term plasticity mechanism: $fast"]
+            template = "\n".join(lines)
+        context = {'fast': self.fast.describe(),
+                   'slow': self.slow.describe()}
+        if template == None:
+            return context
+        else:
+            return Template(template).substitute(context)
+        
+        
 class ShortTermPlasticityMechanism(StandardModelType):
     """Abstract base class for models of short-term synaptic dynamics."""
     

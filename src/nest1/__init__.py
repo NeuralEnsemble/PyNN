@@ -816,21 +816,7 @@ class Population(common.Population):
                 result.write(line)
         os.system("rm %s" %tmpfile)
         result.close()
-     
-    def describe(self):
-        """
-        Returns a human readable description of the population
-        """
-        print "\n------- Population description -------"
-        print "Population called %s is made of %d cells" %(self.label, len(self.cell.flatten()))
-        print "-> Cells are aranged on a %dD grid of size %s" %(len(self.dim), self.dim)
-        print "-> Celltype is %s" %self.celltype
-        print "-> Cell Parameters used for cell[0] (during initialization and now) are: " 
-        for key, value in self.cellparams.items():
-          print "\t|", key, "\t: ", "init->", value, "\t now->", pynest.getDict([self.cell.flatten()[0]])[0][key]
-        print "--- End of Population description ----"
-        
-         
+              
 
     
 class Projection(common.Projection):
@@ -1255,29 +1241,7 @@ class Projection(common.Projection):
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
         raise Exception("Method not yet implemented")
-    
-    def describe(self):
-        """
-        Return a human readable description of the projection
-        """
-        print "\n------- Projection description -------"
-        print "Projection %s from %s [%d cells] to %s [%d cells]" %(self.label, self.pre.label, len(self.pre.cell),self.post.label, len(self.post.cell))
-        print "\t| Connector : " %self._method
-        if isinstance(self._method.weights,RandomDistribution):
-          print "\t| Weights : drawn from %s distribution with params %s "%(self._method.weights.name, self._method.weights.parameters)
-        else:
-          print "\t| Weights : ", self._method.weights
-        if isinstance(self._method.delays,RandomDistribution):
-          print "\t| Delays : drawn from %s distribution with params %s " %(self._method.delays.name, self._method.delays.parameters)
-        else:
-          print "\t| Delays : ", self._method.delays
-        print "\t| Plasticity : ", self._plasticity_model
-        print "\t --> %d connections have been created for this projection" %len(self)
-        print "\tParameters of connection from %d to %d" %(self._sources[0], self._targets[0])
-        print "\t| weights : ", pynest.getWeight([self._sources[0]],self._targetPorts[0])
-        print "\t| delays : ", pynest.getDelay([self._sources[0]], self._targetPorts[0])
-        
-        print "---- End of Projection description -----"
+
 
 # ==============================================================================
 #   Utility classes

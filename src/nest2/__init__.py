@@ -584,7 +584,8 @@ class Population(common.Population):
         if not parent:
             self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
             self.cell_local = self.cell[numpy.array(nest.GetStatus(self.cell.tolist(),'local'))]
-            self.first_id = self.cell.reshape(self.size,)[0]
+            self.first_id = self.cell.flatten()[0]
+            self.last_id = self.cell.flatten()[-1]
             for id in self.cell:
                 id.parent = self
             #id.setCellClass(cellclass)
@@ -592,6 +593,7 @@ class Population(common.Population):
             self.cell = numpy.reshape(self.cell, self.dim)
             if self.cellparams:
                 nest.SetStatus(self.cell_local, [self.cellparams])
+            self._local_ids = self.cell_local
 
         if not self.label:
             self.label = 'population%d' % Population.nPop
@@ -950,21 +952,6 @@ class Population(common.Population):
         pop.positions   = pop.parent.positions[:,idx]
         return pop
 
-    def describe(self):
-        """
-        Return a human readable description of the population
-        """
-        print "\n------- Population description -------"
-        print "Population called %s is made of %d cells [%d being local]" %(self.label, len(self.cell.flatten()), len(self.cell_local))
-        if self.parent:
-            print "This population is a subpopulation of population %s" %self.parent.label
-        print "-> Cells are aranged on a %dD grid of size %s" %(len(self.dim), self.dim)
-        print "-> Celltype is %s" %self.celltype
-        print "-> Cell Parameters used for cell[0] (during initialization and now) are: "
-        for key, value in self.cellparams.items():
-          print "\t|", key, "\t: ", "init->", value, "\t now->", nest.GetStatus([self.cell.flatten()[0]])[0][key]
-        print "--- End of Population description ----"
-
 
 class Projection(common.Projection):
     """
@@ -1023,7 +1010,6 @@ class Projection(common.Projection):
         self._targets = []     # holds gids
         self._sources = []     # holds gids
         self.synapse_type = target
-        self._method = method
 
         if synapse_dynamics and synapse_dynamics.fast and synapse_dynamics.slow:
                 raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
@@ -1367,7 +1353,6 @@ class Projection(common.Projection):
                 f.write(fmt % tuple(row))
         f.close()
 
-
     def weightHistogram(self, min=None, max=None, nbins=10):
         """
         Return a histogram of synaptic weights.
@@ -1379,33 +1364,21 @@ class Projection(common.Projection):
         bins = numpy.arange(min, max, (max-min)/nbins)
         return numpy.histogram(self.getWeights(format='list', gather=True), bins) # returns n, bins
 
-    def describe(self):
+    def describe(self, template='standard'):
         """
-        Return a human readable description of the projection
+        Returns a human readable description of the projection
         """
-        print "\n------- Projection description -------"
-        print "Projection %s from %s [%d cells] to %s [%d cells]" %(self.label, self.pre.label, len(self.pre.cell),self.post.label, len(self.post.cell))
-        print "\t| Connector : %s" %self._method
-        if isinstance(self._method.weights,RandomDistribution):
-          print "\t| Weights : drawn from %s distribution with params %s "%(self._method.weights.name, self._method.weights.parameters)
-        else:
-          print "\t| Weights : ", self._method.weights
-        if isinstance(self._method.delays,RandomDistribution):
-          print "\t| Delays : drawn from %s distribution with params %s " %(self._method.delays.name, self._method.delays.parameters)
-        else:
-          print "\t| Delays: ", self._method.delays
-        print "\t| Plasticity : ", self._plasticity_model
-        print "\t ----> %d connections have been created for this projection" %len(self)
-        print "\tParameters of connection from %d to %d [port %d]" %(self._sources[0], self._targets[0], self._target_ports[0])
+        description = common.Projection.describe(self, template)
+        description += "\n    Parameters of connection from %d to %d [port %d]" % (self._sources[0], self._targets[0], self._target_ports[0])
         dict = nest.GetConnections([self.pre.cell.flat[0]], self._plasticity_model)[0]
         for i in xrange(len(self._targets)):
             idx  = numpy.where(numpy.array(dict['targets']) == self._targets[i])[0]
             if len(idx) > 0: 
                 for key, value in dict.items():
-                    print "\t| ", key, ": ", value[idx[0]]
+                    description += "\n    | %s: %s" % (key, value[idx[0]])
                 break
-
-        print "---- End of Projection description -----"
+        description += "\n---- End of NEST-specific Projection description -----"
+        return description
 
 # ==============================================================================
 #   Utility classes

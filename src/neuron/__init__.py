@@ -727,6 +727,7 @@ class Population(common.Population):
         # the node
         self.gidlist     = [self.fullgidlist[i+myid] for i in range(0, len(self.fullgidlist), nhost) if i < len(self.fullgidlist)-myid]
         self.first_id   = gid
+        
 
         # Write hoc commands
         hoc_commands += ['objref %s' % self.hoc_label,
@@ -742,6 +743,7 @@ class Population(common.Population):
         hoc_execute(hoc_commands, "--- Population[%s].__init__() ---" %self.label)
         Population.nPop += 1
         gid = gid+self.size
+        self.last_id =  gid-1
 
         # We add the gidlist of the population to the global gidlist
         gidlist += self.gidlist
@@ -757,6 +759,7 @@ class Population(common.Population):
         # want to be able to use the low level set() function
         for cell_id in self.gidlist:
             cell_id.hocname = "%s.o(%d)" % (self.hoc_label, self.gidlist.index(cell_id))
+        self._local_ids = self.gidlist
 
     def __getitem__(self, addr):
         """Return a representation of the cell with coordinates given by addr,
@@ -1101,19 +1104,6 @@ class Population(common.Population):
         """
         hoc_comment("--- Population[%s].__randomInit()__ ---" %self.label)
         self.rset("v_init", rand_distr)
-    
-    def describe(self):
-        """
-        Return a human readable description of the population"
-        """
-        print "\n------- Population description -------"
-        print "Population called %s is made of %d cells [%d being local]" %(self.label, len(self.fullgidlist), len(self.gidlist))
-        print "-> Cells are aranged on a %dD grid of size %s" %(len(self.dim), self.dim)
-        print "-> Celltype is %s" %self.celltype
-        print "-> Cell Parameters used for cell[0] (during initialization and now) are: " 
-        for key, value in self.cellparams.items():
-          print "\t|", key, "\t: ", "init->", value, "\t now->", getattr(self.cell[0],key)
-        print "--- End of Population description ----"
 
 
 class Projection(common.Projection):

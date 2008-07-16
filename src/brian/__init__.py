@@ -531,14 +531,6 @@ class Population(common.Population):
                     f.write("%g\t%g\n" %(self.vm_recorder[cell][idx]*1000.,cell))
             f.close()
         pass
-     
-    def describe(self):
-        """
-        Returns a human readable description of the population
-        """
-        pass
-        
-         
 
     
 class Projection(common.Projection):
@@ -749,12 +741,7 @@ class Projection(common.Projection):
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
         raise Exception("Method not yet implemented")
-    
-    def describe(self):
-        """
-        Return a human readable description of the projection
-        """
-        pass
+
 
 # ==============================================================================
 #   Utility classes

@@ -131,8 +131,8 @@ def _create(cellclass, param_dict, n, parent=None):
         cell_model = cellclass
         cell_parameters = param_dict
     first_id = simulator.state.gid_counter
-    last_id = simulator.state.gid_counter + n
-    all_ids = numpy.array([id for id in range(first_id, last_id)], ID)
+    last_id = simulator.state.gid_counter + n - 1
+    all_ids = numpy.array([id for id in range(first_id, last_id+1)], ID)
     # mask_local is used to extract those elements from arrays that apply to the cells on the current node
     mask_local = all_ids%num_processes()==0 # round-robin distribution of cells between nodes
     for i,(id,is_local) in enumerate(zip(all_ids, mask_local)):
@@ -267,8 +267,8 @@ class Population(common.Population):
         
         simulator.initializer.register(self)
         Population.nPop += 1
-        logging.info(self.describe('Creating Population "%(label)s" of shape %(dim)s, '+
-                                   'containing `%(celltype)s`s with indices between %(first_id)s and %(last_id)s'))
+        logging.info(self.describe('Creating Population "$label" of shape $dim, '+
+                                   'containing `$celltype`s with indices between $first_id and $last_id'))
         logging.debug(self.describe())
     
     def __getitem__(self, addr):
@@ -332,6 +332,12 @@ class Population(common.Population):
         else:
             raise common.InvalidDimensionsError
         return coords
+
+    def index(self, n):
+        """Return the nth cell in the population (Indexing starts at 0)."""
+        if hasattr(n, '__len__'):
+            n = numpy.array(n)
+        return self._all_ids.flatten()[n]
 
     def get(self, parameter_name, as_array=False):
         """
@@ -529,24 +535,8 @@ class Population(common.Population):
         n_rec = len(self.recorders['spikes'].recorded)
         return float(n_spikes)/n_rec
 
-    def describe(self, template=None):
-        if template is None:
-            rows = ['==== Population %(label)s ====',
-                    'Dimensions: %(dim)s',
-                    'Cell type: %(celltype)s',
-                    'ID range: %(first_id)d-%(last_id)d',
-                    'First cell on this node:',
-                    '  ID: %(local_first_id)d',
-                    '  Parameters: %(cell_parameters)s']
-            template = "\n".join(rows)
-        context = self.__dict__.copy()
-        first_id = self._local_ids[0]
-        context.update(local_first_id=first_id)
-        context.update(cell_parameters=first_id.get_parameters())
-        context.update(celltype=self.celltype.__class__.__name__)
-        return template % context
-    
 
+        
 class Projection(common.Projection):
     """
     A container for all the connections of a given type (same synapse type and
