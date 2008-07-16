@@ -123,11 +123,9 @@ def readArray(filename, sepchar=None, skipchar='#'):
     has been created to load from file the spike raster or the membrane potentials
     saved by the simulators).
     """
-    logging.debug(filename)
     myfile = open(filename, "r", DEFAULT_BUFFER_SIZE)
     contents = myfile.readlines()
     myfile.close()
-    logging.debug(contents)
     data = []
     for line in contents:
         stripped_line = line.lstrip()
@@ -138,6 +136,6 @@ def readArray(filename, sepchar=None, skipchar='#'):
     a = numpy.array(data)
     if a.size > 0:
         (Nrow, Ncol) = a.shape
-        logging.debug(str(a.shape))
+        #logging.debug(str(a.shape))
         #if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
     return a

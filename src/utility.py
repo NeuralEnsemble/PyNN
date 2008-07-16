@@ -43,7 +43,9 @@ def get_script_args(script, n_args):
         raise Exception("Script requires %d arguments, you supplied %d" % (n_args, len(args)))
     return args
     
-def init_logging(logfile, debug=False):
+def init_logging(logfile, debug=False, num_processes=1, rank=0):
+    if num_processes > 1:
+        logfile += '.%d' % rank
     if debug:
         logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s',

@@ -6,7 +6,7 @@ $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 __version__ = "$Rev:188 $"
 
 import nest
-from pyNN import common
+from pyNN import common, utility
 from pyNN.random import *
 from pyNN import recording
 import numpy, types, sys, shutil, os, logging, copy, tempfile, re
@@ -289,8 +289,14 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     global tempdir
+    log_file = "nest2.log"
+    if debug:
+        if isinstance(debug, basestring):
+            log_file = debug
+    utility.init_logging(log_file, debug, num_processes(), rank())
+    logging.info("Initialization of Nest")
+    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     assert min_delay >= timestep, "min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep)
 
     # reset the simulation kernel
@@ -326,24 +332,6 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
         nest.SetSynapseDefaults(synapse_model, {'min_delay': min_delay,
                                                 'max_delay': max_delay})
 
-    # Initialisation of the log module. To write in the logfile, simply enter
-    # logging.critical(), logging.debug(), logging.info(), logging.warning()
-    if debug:
-        if isinstance(debug, basestring):
-            filename = debug
-        else:
-            filename = "nest.log"
-        logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    filename=filename,
-                    filemode='w')
-    else:
-        logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    filename='nest.log',
-                    filemode='w')
-
-    logging.info("Initialization of Nest")
     return nest.Rank()
 
 def end(compatible_output=True):

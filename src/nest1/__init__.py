@@ -6,7 +6,7 @@ $Id:nest1.py 143 2007-10-05 14:20:16Z apdavison $
 __version__ = "$Rev$"
 
 import pynest
-from pyNN import common, recording
+from pyNN import common, recording, utility
 from pyNN.random import *
 import numpy, types, sys, shutil, os, logging, copy, tempfile
 from math import *
@@ -87,6 +87,15 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     global tempdir
     
+    # Initialisation of the log module. To write in the logfile, simply enter
+    # logging.critical(), logging.debug(), logging.info(), logging.warning() 
+    log_file = "nest1.log"
+    if debug:
+        if isinstance(debug, basestring):
+            log_file = debug
+    utility.init_logging(log_file, debug, num_processes(), rank())
+    logging.info("Initialization of Nest")
+    
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
     
@@ -110,21 +119,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
                         'update_mode' : update_modes['fixed'],
                         'rng_seeds'   : rng_seeds[0:num_threads],
                         'buffsize'    : batchsize})
-    
-    # Initialisation of the log module. To write in the logfile, simply enter
-    # logging.critical(), logging.debug(), logging.info(), logging.warning() 
-    if debug:
-        logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    filename='nest.log',
-                    filemode='w')
-    else:
-        logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    filename='nest.log',
-                    filemode='w')
-
-    logging.info("Initialization of Nest")    
+       
     return 0
 
 def end(compatible_output=True):

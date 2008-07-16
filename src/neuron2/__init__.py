@@ -36,7 +36,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     """
     global quit_on_end
     if not simulator.state.initialized:
-        utility.init_logging("neuron2.log.%d" % rank(), debug)
+        utility.init_logging("neuron2.log", debug, num_processes(), rank())
         logging.info("Initialization of NEURON (use setup(.., debug=True) to see a full logfile)")
         simulator.state.initialized = True
     simulator.state.dt = timestep

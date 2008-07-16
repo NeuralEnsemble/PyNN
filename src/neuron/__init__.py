@@ -12,7 +12,7 @@ h = hoc.HocObject()
 from pyNN import __path__ as pyNN_path
 from pyNN.random import *
 from math import *
-from pyNN import common
+from pyNN import common, utility
 from pyNN.neuron.cells import *
 from pyNN.neuron.connectors import *
 from pyNN.neuron.synapses import *
@@ -413,24 +413,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global nhost, myid, logger, initialised, quit_on_end, running
+    global nhost, myid, initialised, quit_on_end, running
     load_mechanisms()
     if 'quit_on_end' in extra_params:
         quit_on_end = extra_params['quit_on_end']
-    # Initialisation of the log module. To write in the logfile, simply enter
-    # logging.critical(), logging.debug(), logging.info(), logging.warning() 
-    if debug:
-        logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    filename='neuron.log',
-                    filemode='w')
-    else:
-        logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    filename='neuron.log',
-                    filemode='w')
-        
-    logging.info("Initialization of NEURON (use setup(.., debug=True) to see a full logfile)")
     
     # All the objects that will be used frequently in the hoc code are declared in the setup
     
@@ -461,7 +447,16 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
             h('objref cvode')
             h('cvode = new CVode()')
             h.cvode.active(1)
-        
+    
+    # Initialisation of the log module. To write in the logfile, simply enter
+    # logging.critical(), logging.debug(), logging.info(), logging.warning()
+    log_file = "neuron.log"
+    if debug:
+        if isinstance(debug, basestring):
+            log_file = debug
+    utility.init_logging(log_file, debug, num_processes(), rank())
+    logging.info("Initialization of NEURON (use setup(.., debug=True) to see a full logfile)")
+    
     nhost = int(h.pc.nhost())
     if nhost < 2:
         nhost = 1; myid = 0
