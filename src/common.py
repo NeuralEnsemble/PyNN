@@ -1065,7 +1065,18 @@ class Projection(object):
                 elif len(possible_models) == 0 :
                     raise Exception("No available plasticity models")
                 elif len(possible_models) > 1 :
-                    raise Exception("Multiple plasticity models available")
+                    if self.synapse_dynamics.slow.model:
+                        if self.synapse_dynamics.slow.model in list(possible_models):
+                            self.long_term_plasticity_mechanism = self.synapse_dynamics.slow.model
+                        else:
+                            print "The particular model %s does not exists !" %self.synapse_dynamics.slow.model
+                    else:
+                        print "Several stdp models are available for those plastics connections"
+                        for model in possible_models:
+                            print "--> %s" %model
+                        self.long_term_plasticity_mechanism = list(possible_models)[0]
+                        print "By default, %s is used" %self.long_term_plasticity_mechanism
+                    #raise Exception("Multiple plasticity models available")
                 
                 #print "Using %s" % self._plasticity_model
                 self._stdp_parameters = td.parameters.copy()
@@ -1541,11 +1552,12 @@ class STDPMechanism(object):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
-                 voltage_dependence=None, dendritic_delay_fraction=1.0):
+                 voltage_dependence=None, dendritic_delay_fraction=1.0, model=None):
         self.timing_dependence = timing_dependence
         self.weight_dependence = weight_dependence
         self.voltage_dependence = voltage_dependence
         self.dendritic_delay_fraction = dendritic_delay_fraction
+        self.model = model
 
 
 class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):

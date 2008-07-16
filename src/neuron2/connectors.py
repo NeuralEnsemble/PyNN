@@ -133,6 +133,10 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                              self.scale_factor, self.offset,
                              periodic_boundaries)
         p_array = eval(self.d_expression)
+        if isinstance(self.weights,str):
+            raise Exception("The weights distance dependent are not implemented yet")
+        if isinstance(self.delays,str):
+            raise Exception("The delays distance dependent are not implemented yet")
         probabilistic_connect(self, projection, p_array.flatten())
 
 class _FixedNumberConnector(common.FixedNumberPreConnector, HocConnector):

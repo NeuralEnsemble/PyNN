@@ -26,7 +26,7 @@ Timer = Timer()
 downscale   = 50      # scale number of neurons down by this factor
                       # scale synaptic weights up by this factor to
                       # obtain similar dynamics independent of size
-order       = 50000   # determines size of network:
+order       = 50000  # determines size of network:
                       # 4*order excitatory neurons
                       # 1*order inhibitory neurons
 Nrec        = 50      # number of neurons to record from, per population
@@ -47,7 +47,7 @@ U0          = 0.0     # resting potential [mV]
 theta       = 20.0    # threshold 
 
 # simulation-related parameters  
-simtime     = 100.0  # simulation time [ms] 
+simtime     = 100.0   # simulation time [ms] 
 dt          = 0.1     # simulation step length [ms]   
 
 # seed for random generator used when building connections
@@ -56,11 +56,6 @@ use_RandomArray = True # use Python rng rather than NEST rng
 
 # seed for random generator(s) used during simulation
 kernelseed  = 43210987      
-
-exfilename  = "brunel_ex_%s.ras" % simulator # output file for excit. population  
-infilename  = "brunel_in_%s.ras" % simulator # output file for inhib. population  
-vexfilename = "brunel_ex_%s.v" % simulator # output file for membrane potential traces
-vinfilename = "brunel_in_%s.v" % simulator # output file for membrane potential traces
   
 # === Calculate derived parameters =============================================
 
@@ -112,14 +107,19 @@ cell_params = {'tau_m'      : tauMem,
 # clear all existing network elements and set resolution and limits on delays.
 # For NEST, limits must be set BEFORE connecting any elements
 
-extra = {'threads' : 2}
+#extra = {'threads' : 2}
+extra = {}
 
 myid = setup(timestep=dt, max_delay=delay, **extra)
+np = num_processes()
+import socket
+host_name = socket.gethostname()
+print "Host #%d is on %s" % (myid+1, host_name)
 
 if extra.has_key('threads'):
     print "%d Initialising the simulator with %d threads..." %(myid, extra['threads'])
 else:
-    print "%d Initialising the simulator with single thread..." %(node_id)
+    print "%d Initialising the simulator with single thread..." %(myid)
 
 # Small function to display information only on node 1
 def nprint(s):
@@ -129,7 +129,7 @@ def nprint(s):
 Timer.start() # start timer on construction    
 
 print "%d Setting up random number generator" %myid
-rng = NumpyRNG(kernelseed+myid)
+rng = NumpyRNG(kernelseed, parallel_safe=True, rank=myid, num_processes=np)
 
 print "%d Creating excitatory population." %myid
 E_net = Population((NE,),IF_curr_alpha,cell_params,"E_net")
@@ -138,8 +138,7 @@ print "%d Creating inhibitory population." %myid
 I_net = Population((NI,),IF_curr_alpha,cell_params,"I_net")
 
 print "%d Initialising membrane potential to random values." %myid
-rng2 = NumpyRNG(kernelseed+myid)
-uniformDistr = RandomDistribution('uniform',[U0,theta],rng2)
+uniformDistr = RandomDistribution('uniform',[U0,theta],rng)
 E_net.randomInit(uniformDistr)
 I_net.randomInit(uniformDistr)
 
@@ -170,6 +169,8 @@ print "I --> E\t\t", len(I_to_E), "connections"
 input_to_E = Projection(expoisson, E_net, ext_Connector, target="excitatory")
 print "input --> E\t", len(input_to_E), "connections"
 
+print E_to_E.describe()
+
 print "%d Connecting inhibitory population." %myid
 E_to_I = Projection(E_net, I_net, E_Connector, rng=rng, target="excitatory")
 print "E --> I\t\t", len(E_to_I), "connections"
@@ -188,6 +189,11 @@ print "%d Running simulation." %myid
 run(simtime)
 simCPUTime = Timer.elapsedTime()
 
+exfilename  = "Results/Brunel_exc_%s_np%d.ras" % (simulator,np) # output file for excit. population  
+infilename  = "Results/Brunel_inh_%s_np%d.ras" % (simulator,np) # output file for inhib. population  
+vexfilename = "Results/Brunel_exc_%s_np%d.v"   % (simulator,np) # output file for membrane potential traces
+vinfilename = "Results/Brunel_inh_%s_np%d.v"   % (simulator,np) # output file for membrane potential traces
+
 # write data to file
 E_net.printSpikes(exfilename)
 I_net.printSpikes(infilename)
@@ -199,6 +205,7 @@ I_rate = I_net.meanSpikeCount()*1000.0/simtime
 
 # write a short report
 nprint("\n--- Brunel Network Simulation ---")
+nprint("Nodes              : %d" % np)
 nprint("Number of Neurons  : %d" %N)
 nprint("Number of Synapses : %d" %Nsyn)
 nprint("Input firing rate  : %g" %p_rate)
@@ -208,9 +215,7 @@ nprint("Excitatory rate    : %g Hz" %E_rate)
 nprint("Inhibitory rate    : %g Hz" %I_rate)
 nprint("Build time         : %g s" %buildCPUTime)   
 nprint("Simulation time    : %g s" %simCPUTime)
-
   
 # === Clean up and quit ========================================================
 
 end()
-

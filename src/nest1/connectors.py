@@ -115,17 +115,28 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             distances = common.distances(projection.pre, post, self.mask, self.scale_factor, self.offset, periodic_boundaries)
             # We evaluate the probabilities of connections for those distances
             func = eval("lambda d: %s" %self.d_expression)
-            distances = func(distances[:,0])
+            probabilities = func(distances[:,0])
             rarr = rng.uniform(0, 1, (npre,))
-            # We get the list of cells that will established a connection
-            source_list = numpy.compress((distances >= 1) | ((0 < distances) & (distances < 1) & (rarr <= distances)), presynaptic_neurons).tolist()
+            # We get the list of cells that will established a connecti
+            idx = numpy.where((probabilities >= 1) | ((0 < probabilities) & (probabilities < 1) & (rarr <= probabilities)))[0]
+            source_list = presynaptic_neurons[idx].tolist()
             # We remove the post cell if we don't allow self connections
             if not self.allow_self_connections and post in source_list:
+                idx.remove(source_list.index(post))
                 source_list.remove(post)
             N = len(source_list)
-            weights = self.getWeights(N)
+            if isinstance(self.weights,str):
+                func = eval("lambda d: %s" %self.weights)
+                weights = func(distances[:,0])[idx]
+            else:
+                weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()
-            delays = self.getDelays(N).tolist()
+            # We deal with the fact that the user could have given a delays distance dependent
+            if isinstance(self.delays,str):
+                func = eval("lambda d: %s" %self.delays)
+                delays = func(distances[:,0])[idx].tolist()
+            else:
+                delays = self.getDelays(N).tolist()
             projection._targets += [post]*N
             projection._sources += source_list
             projection._targetPorts += pynest.convergentConnect(source_list, post, weights, delays)

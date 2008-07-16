@@ -35,7 +35,7 @@ prj = Projection(p1, p2, method=connection_method,
                  synapse_dynamics=SynapseDynamics(slow=stdp_model))
 
 if simulator == "nest2":
-    print nest.GetConnection([p1[0]], 'stdp_synapse', 0)
+    print nest.GetConnection([p1[0]], 'stdp_synapse_hom', 0)
     print nest.GetStatus([p2[0]])
 
 p1.record()
@@ -46,7 +46,7 @@ t = 0
 if simulator == "nest2":
     while t < 50:
         t = run(1.0)
-        syn_dict = nest.GetConnection([p1[0]], 'stdp_synapse', 0)
+        syn_dict = nest.GetConnection([p1[0]], 'stdp_synapse_hom', 0)
         print "%4.1f   %6.4f   %7.3f   %6.4f" % (t, prj.getWeights()[0], syn_dict['Kplus'], syn_dict['weight'])
 #run(1000.0)
 p1.printSpikes("simple_STDP_1.ras")
