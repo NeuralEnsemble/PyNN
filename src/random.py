@@ -144,7 +144,7 @@ class RandomDistribution:
     """Class which defines a next(n) method which returns an array of n random
        numbers from a given distribution."""
        
-    def __init__(self, distribution='uniform', parameters=[], rng=None):
+    def __init__(self, distribution='uniform', parameters=[], rng=None, boundaries=None, constrain="clip"):
         """
         If present, rng should be a NumpyRNG or GSLRNG object.
         distribution should be the name of a method supported by the underlying
@@ -152,6 +152,13 @@ class RandomDistribution:
         parameters should be a list or tuple containing the arguments expected
             by the underlying method in the correct order. named arguments are
             not yet supported.
+        boundaries is a tuple (min, max) used to specify explicitely, for distribution 
+            like Gaussian, Gamma or others, hard boundaries for the parameters. If 
+            parameters are drawn outside those boundaries, the policy applied will depend 
+            on the constrain parameter.
+        constrain control the policy for weights out of the specified boundaries. 
+            If "clip", random numbers are clipped to the boundaries. 
+            If "redraw", random numbers are drawn till they fall within the boundaries.
         Note that NumpyRNG and GSLRNG distributions may not have the same names,
             e.g., 'normal' for NumpyRNG and 'gaussian' for GSLRNG, and the
             arguments may also differ.
@@ -159,6 +166,8 @@ class RandomDistribution:
         self.name = distribution
         assert isinstance(parameters, (list, tuple, dict)), "The parameters argument must be a list or tuple or dict"
         self.parameters = parameters
+        self.boundaries = boundaries
+        self.constrain  = constrain
         if rng:
             assert isinstance(rng, AbstractRNG), "rng must be a pyNN.random RNG object"
             self.rng = rng
@@ -167,7 +176,22 @@ class RandomDistribution:
         
     def next(self, n=1):
         """Return n random numbers from the distribution."""
-        return self.rng.next(n=n,
+        if self.boundaries:
+            res = self.rng.next(n=n,
+                             distribution=self.name,
+                             parameters=self.parameters)
+            if self.constrain == "clip":
+                return numpy.maximum(numpy.minimum(res,self.boundaries[1]),self.boundaries[0])
+            elif self.constrain == "redraw":
+                idx = numpy.where((res > self.boundaries[1]) | (res < self.boundaries[0]))[0]
+                while len(idx) > 0:
+                    res[idx] = self.rng.next(len(idx),distribution=self.name,parameters=self.parameters)
+                    idx = numpy.where((res > self.boundaries[1]) | (res < self.boundaries[0]))[0]
+                return res
+            else:
+                raise Exception("This constrain method (%s) does not exist" %self.constrain)
+        else:
+            return self.rng.next(n=n,
                              distribution=self.name,
                              parameters=self.parameters)
         

@@ -169,8 +169,6 @@ print "I --> E\t\t", len(I_to_E), "connections"
 input_to_E = Projection(expoisson, E_net, ext_Connector, target="excitatory")
 print "input --> E\t", len(input_to_E), "connections"
 
-print E_to_E.describe()
-
 print "%d Connecting inhibitory population." %myid
 E_to_I = Projection(E_net, I_net, E_Connector, rng=rng, target="excitatory")
 print "E --> I\t\t", len(E_to_I), "connections"
