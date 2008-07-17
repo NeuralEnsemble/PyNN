@@ -11,35 +11,35 @@ import numpy
 
 DEFAULT_BUFFER_SIZE = 10000
 
-class RecordingManager(object):
-    
-    def __init__(self, setup_function, get_function):
-        """
-        `setup_function` should take a variable, a source list, and an optional filename
-        and return an identifier.
-        `get_function` should take the identifier returned by `setup_function` and
-        return the recorded spikes, Vm trace, etc.
-        
-        Example:
-        rm = RecordingManager(_nest_record, _nest_get)
-        """
-        # create temporary directory
-        tempdir = tempfile.mkdtemp()
-        # initialise mapping from recording identifiers to temporary filenames
-        self.recorder_list = []
-        # for parallel simulations, determine if this is the master node
-        self._setup = setup_function
-        self._get = get_function
-    
-    def add_recording(self, sources, variable, filename=None):
-        recorder = self._setup(variable, sources, filename)
-        self.recorder_list.append(recorder)
-    
-    def get_recording(self, recording_id):
-        return self._get(recording_id)
-    
-    def write(self, recording_id, filename_or_obj, format="compatible", gather=True):
-        pass
+#class RecordingManager(object):
+#    
+#    def __init__(self, setup_function, get_function):
+#        """
+#        `setup_function` should take a variable, a source list, and an optional filename
+#        and return an identifier.
+#        `get_function` should take the identifier returned by `setup_function` and
+#        return the recorded spikes, Vm trace, etc.
+#        
+#        Example:
+#        rm = RecordingManager(_nest_record, _nest_get)
+#        """
+#        # create temporary directory
+#        tempdir = tempfile.mkdtemp()
+#        # initialise mapping from recording identifiers to temporary filenames
+#        self.recorder_list = []
+#        # for parallel simulations, determine if this is the master node
+#        self._setup = setup_function
+#        self._get = get_function
+#    
+#    def add_recording(self, sources, variable, filename=None):
+#        recorder = self._setup(variable, sources, filename)
+#        self.recorder_list.append(recorder)
+#    
+#    def get_recording(self, recording_id):
+#        return self._get(recording_id)
+#    
+#    def write(self, recording_id, filename_or_obj, format="compatible", gather=True):
+#        pass
 
 def convert_compatible_output(data, population, variable):
     """
@@ -58,7 +58,7 @@ def convert_compatible_output(data, population, variable):
         return numpy.array((data['times'],data['senders']- padding,data['exc_conductance'],data['inh_conductance'])).T
             
     
-def write_compatible_output(sim_filename, user_filename, input_format, population, dt):
+def write_compatible_output(sim_filename, user_filename, variable, input_format, population, dt):
     """
     Rewrite simulation data in a standard format:
         spiketime (in ms) cell_id-min(cell_id)
@@ -114,7 +114,67 @@ def write_compatible_output(sim_filename, user_filename, input_format, populatio
         result.close()
     else:
         logging.info("%s is empty" % sim_filename)
+
+def write_compatible_output1(data_source, user_filename, variable, input_format, population, dt):
+    """
+    Rewrite simulation data in a standard format:
+        spiketime (in ms) cell_id-min(cell_id)
+    """
+    if isinstance(data_source, numpy.ndarray):
+        logging.info("Writing %s in compatible format (from memory)" % user_filename)
+        N = len(data_source)
+    else: # assume data is a filename or open file object
+        logging.info("Writing %s in compatible format (was %s)" % (user_filename, data_source))
+        try: 
+            N = os.path.getsize(data_source)
+        except Exception:
+            N = 0
     
+    if N > 0:
+        user_file = StandardTextFile(user_filename)    
+        # Write header info (e.g., dimensions of the population)
+        metadata = {}
+        if population is not None:
+            metadata.update({
+                'dimensions': "\t".join([str(d) for d in population.dim]),
+                'first_id': population.first_id,
+                'last_id': population.first_id + len(population)-1
+            })
+            id_offset = population.first_id
+        else:
+            id_offset = 0
+        metadata['dt'] = dt
+        
+        input_format = input_format.split()
+        time_column = input_format.index('t')
+        id_column = input_format.index('id')
+        
+        if variable == 'conductance':
+            ge_column = input_format.index('ge')
+            gi_column = input_format.index('gi')
+            column_map = [ge_column, gi_column, id_column]
+            raise Exception("Not yet implemented")
+        elif variable == 'v': # voltage files
+            v_column = input_format.index('v')
+            column_map = [v_column, id_column]
+        elif variable == 'spikes': # spike files
+            column_map = [time_column, id_column]
+        else:
+            raise Exception("Invalid variable")
+        
+        # Read/select data
+        if isinstance(data_source, numpy.ndarray):
+            data_array = data_source[:, column_map]
+        else: # assume data is a filename or open file object
+            #data_array = numpy.loadtxt(data_source, usecols=column_map)
+            data_array = readArray(sim_filename, sepchar=None)
+        data_array[:,-1] -= id_offset # replies on fact that id is always last column
+        metadata['n'] = data_array.shape[0]
+        
+        user_file.write(data_array, metadata)
+    else:
+        logging.warning("%s is empty" % sim_filename)
+
 def readArray(filename, sepchar=None, skipchar='#'):
     """
     (Pylab has a great load() function, but it is not necessary to import
@@ -139,3 +199,23 @@ def readArray(filename, sepchar=None, skipchar='#'):
         #logging.debug(str(a.shape))
         #if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
     return a
+
+
+class StandardTextFile(object):
+    
+    
+    def __init__(self, filename, gather=False):
+        self.name = filename
+        self.gather = gather
+        self.fileobj = open(self.name, 'w', DEFAULT_BUFFER_SIZE)
+        
+    def write(self, data, metadata):
+        # can we write to the file more than once? In this case, should use seek,tell
+        # to always put the header information at the top?
+        # write header
+        header_lines = ["# %s = %s" % item for item in metadata.items()]
+        self.fileobj.write("\n".join(header_lines) + '\n')
+        # write data
+        numpy.savetxt(self.fileobj, data, fmt = '%s', delimiter='\t')
+        self.fileobj.close()
+ 

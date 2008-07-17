@@ -111,7 +111,7 @@ class Recorder(object):
         """
         assert variable in RECORDING_DEVICE_NAMES
         self.variable = variable
-        self.filename = file or None
+        self.file = file
         self.population = population # needed for writing header information
         self.recorded = Set([])        
         # create device
@@ -158,19 +158,28 @@ class Recorder(object):
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):
-        user_filename = file or self.filename
+        user_file = file or self.file
+        if isinstance(user_file, basestring) and num_processes() > 1:
+            user_file += '.%d' % rank()
         nest_filename = _merge_files(self._device, gather)
-        if num_processes() > 1:
-            user_filename += '.%d' % rank()
         if compatible_output:
             # We should do the post processing (i.e the compatible output) in a distributed
             # manner to speed up the thing. The only problem that will arise is the headers, 
             # that should be taken into account to be really clean. Otherwise, if the # symbol
             # is escaped while reading the file, there is no problem
-           recording.write_compatible_output(nest_filename, user_filename, Recorder.formats[self.variable],self.population, get_time_step())
+           recording.write_compatible_output(nest_filename, user_file,
+                                              self.variable,
+                                              Recorder.formats[self.variable],
+                                              self.population, get_time_step())
         else:
-            system_line = 'cat %s > %s' % (nest_filename, user_filename)
-            os.system(system_line)
+            if isinstance(userfile, basestring):
+                os.system('cat %s > %s' % (nest_filename, user_file))
+            elif hasattr(user_file, 'write'):
+                nest_file = open(nest_filename)
+                user_file.write(nest_file.read())
+                nest_file.close()
+            else:
+                raise Exception('Must provide a filename or an open file')
         if gather == True and num_processes() > 1:
             root_file = file or self.filename
             for node in xrange(num_processes()):
