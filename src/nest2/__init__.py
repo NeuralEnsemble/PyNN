@@ -159,8 +159,10 @@ class Recorder(object):
     
     def write(self, file=None, gather=False, compatible_output=True):
         user_file = file or self.file
-        if isinstance(user_file, basestring) and num_processes() > 1:
-            user_file += '.%d' % rank()
+        if isinstance(user_file, basestring):
+            if num_processes() > 1:
+                user_file += '.%d' % rank()
+            recording.rename_existing(user_file)
         nest_filename = _merge_files(self._device, gather)
         if compatible_output:
             # We should do the post processing (i.e the compatible output) in a distributed
@@ -180,16 +182,14 @@ class Recorder(object):
                 nest_file.close()
             else:
                 raise Exception('Must provide a filename or an open file')
-        if gather == True and num_processes() > 1:
+        if gather == True and rank() == 0 and num_processes() > 1:
             root_file = file or self.filename
+            recording.rename_existing(root_file)
             for node in xrange(num_processes()):
-                if rank()==0:
-                    node_file = root_file + '.%d' % node 
-                    if os.path.exists(node_file):
-                        system_line = 'cat %s >> %s' % (node_file, root_file)
-                        os.system(system_line)
-                        system_line = 'rm %s' % node_file
-                        os.system(system_line)
+                node_file = root_file + '.%d' % node 
+                if os.path.exists(node_file):
+                    os.system('cat %s >> %s' % (node_file, root_file))
+                    os.system('rm %s' % node_file)
         # don't want to remove nest_filename at this point in case the user wants to access the data
         # a second time (e.g. with both getSpikes() and printSpikes()), but we should
         # maintain a list of temporary files to be deleted at the end of the simulation

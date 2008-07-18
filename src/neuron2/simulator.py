@@ -90,9 +90,10 @@ class Recorder(object):
     def write(self, file=None, gather=False, compatible_output=True):
         data = self.get(gather)
         filename = file or self.filename
+        recording.rename_existing(filename)
         numpy.savetxt(filename, data, Recorder.numpy1_0_formats[self.variable], delimiter='\t')
         if compatible_output:
-            recording.write_compatible_output(filename, filename, Recorder.formats[self.variable],
+            recording.write_compatible_output(filename, filename, self.variable, Recorder.formats[self.variable],
                                               self.population, state.dt)
         
 class _Initializer(object):

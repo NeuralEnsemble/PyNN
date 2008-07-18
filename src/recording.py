@@ -41,6 +41,11 @@ DEFAULT_BUFFER_SIZE = 10000
 #    def write(self, recording_id, filename_or_obj, format="compatible", gather=True):
 #        pass
 
+def rename_existing(filename):
+    if os.path.exists(filename):
+        os.system('mv %s %s_old' % (filename, filename))
+        logging.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
+
 def convert_compatible_output(data, population, variable):
     """
     !!! NEST specific !!!
