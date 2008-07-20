@@ -174,7 +174,7 @@ class Recorder(object):
                                               Recorder.formats[self.variable],
                                               self.population, get_time_step())
         else:
-            if isinstance(userfile, basestring):
+            if isinstance(user_file, basestring):
                 os.system('cat %s > %s' % (nest_filename, user_file))
             elif hasattr(user_file, 'write'):
                 nest_file = open(nest_filename)
