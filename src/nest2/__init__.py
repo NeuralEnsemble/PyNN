@@ -132,12 +132,17 @@ class Recorder(object):
         self.recorded = self.recorded.union(ids)
         
         device_name = nest.GetStatus(self._device, "model")[0]
+        original_synapse_context = nest.GetSynapseContext()
+        if original_synapse_context != 'static_synapse':
+            nest.SetSynapseContext('static_synapse')
         if device_name == "spike_detector":
             nest.ConvergentConnect(new_ids, self._device)
         elif device_name in ('voltmeter', 'conductancemeter'):
             nest.DivergentConnect(self._device, new_ids)
         else:
             raise Exception("%s is not a valid recording device" % device_name)
+        if original_synapse_context != 'static_synapse':
+            nest.SetSynapseContext(original_synapse_context)
     
     def get(self, gather=False):
         """Returns the recorded data."""
@@ -589,7 +594,11 @@ class Population(common.Population):
             #id.setPosition(self.locate(id))
             self.cell = numpy.reshape(self.cell, self.dim)
             if self.cellparams:
-                nest.SetStatus(self.cell_local, [self.cellparams])
+                try:
+                    nest.SetStatus(self.cell_local, [self.cellparams])
+                except nest.hl_api.NESTError:
+                    print "NEST error when trying to set the following dictionary: %s" % self.cellparams
+                    raise
             self._local_ids = self.cell_local
 
         if not self.label:
