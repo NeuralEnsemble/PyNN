@@ -255,7 +255,7 @@ class Population(common.Population):
         useless_params=['v_thresh','v_reset','tau_refrac','cm']
         if self.cellparams:
             for key, value in self.cellparams.items():
-                if not key in unchangeable_params:
+                if not key in useless_params:
                     setattr(self.brian_cells,key,value)
         self.cell = numpy.array([ID(cell) for cell in xrange(len(self.brian_cells))],ID)
         for id in self.cell:
