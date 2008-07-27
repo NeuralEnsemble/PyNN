@@ -35,6 +35,19 @@ class ID(int, common.IDMixin):
     def __init__(self, n):
         int.__init__(n)
         common.IDMixin.__init__(self)
+    
+    def __getattr__(self, name):
+        try:
+            val = float(self.parent.brian_cells[int(self)].__getattr__(name))
+        except KeyError:
+            raise NonExistentParameterError(name, self.cellclass)
+        return val
+    
+    def set_native_parameters(self, parameters):
+        for key, value in parameters.items():
+            self.parent.brian_cells[int(self)].__setattr__(key,value)
+        
+
         
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
@@ -77,8 +90,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     timestep  = 0.001*timestep
     min_delay = 0.001*min_delay
     max_delay = 0.001*max_delay
-    net      = brian.Network()
-    simclock = brian.Clock(dt=timestep)
+    net       = brian.Network()
+    simclock  = brian.Clock(dt=timestep)
     return 0
 
 def end(compatible_output=True):
@@ -224,31 +237,40 @@ class Population(common.Population):
             self.cellparams = self.celltype.parameters
             if isinstance(self.celltype,SpikeSourcePoisson):
                 rate       = self.cellparams['rate']
-                self.cell  = brian.PoissonGroup(self.size, rates = rate, clock=simclock)
+                fct        = self.celltype.fct
+                self.brian_cells  = brian.PoissonGroup(self.size, rates = fct, clock=simclock)
             else:
                 v_thresh   = self.cellparams['v_thresh']
                 v_reset    = self.cellparams['v_reset']
                 tau_refrac = self.cellparams['tau_refrac']
-                self.cell = brian.NeuronGroup(self.size,model=cellclass.eqs,threshold=v_thresh,reset=v_reset, refractory=tau_refrac, clock=simclock)
+                self.brian_cells = brian.NeuronGroup(self.size,model=cellclass.eqs,threshold=v_thresh,reset=v_reset, refractory=tau_refrac, clock=simclock, compile=True)
 
         elif isinstance(cellclass, str):
-            self.cell = brian.NeuronGroup(self.size,model=cellclass.eqs,threshold=v_thresh,reset=v_reset, clock=simclock)
+            v_thresh   = self.cellparams['v_thresh']
+            v_reset    = self.cellparams['v_reset']
+            tau_refrac = self.cellparams['tau_refrac']
+            self.brian_cells = brian.NeuronGroup(self.size,model=cellclass,threshold=v_thresh,reset=v_reset, clock=simclock)
             self.cellparams = self.celltype.parameters
 
-        unchangeable_params=['v_thresh','v_reset','tau_refrac']
+        useless_params=['v_thresh','v_reset','tau_refrac','cm']
         if self.cellparams:
             for key, value in self.cellparams.items():
                 if not key in unchangeable_params:
-                    setattr(self.cell,key,value)
-        self.cell_id = numpy.arange(len(self.cell))
-        self.cell_id = numpy.reshape(self.cell_id, self.dim)
+                    setattr(self.brian_cells,key,value)
+        self.cell = numpy.array([ID(cell) for cell in xrange(len(self.brian_cells))],ID)
+        for id in self.cell:
+            id.parent = self
+        self.cell = numpy.reshape(self.cell, self.dim)
         self.spike_recorder = None
         self.vm_recorder    = None
+        self.ce_recorder    = None
+        self.ci_recorder    = None
+        self.first_id       = 0
         
         if not self.label:
             self.label = 'population%d' % Population.nPop
         Population.nPop += 1
-        net.add(self.cell)
+        net.add(self.brian_cells)
     
     def __getitem__(self, addr):
         """Return a representation of the cell with coordinates given by addr,
@@ -260,12 +282,12 @@ class Population(common.Population):
         if isinstance(addr, int):
             addr = (addr,)
         if len(addr) == self.ndim:
-            id = self.cell_id[addr]
+            id = self.cell[addr]
         else:
             raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
         if addr != self.locate(id):
             raise IndexError, 'Invalid cell address %s' % str(addr)
-        return self.cell[id]
+        return id
     
     def __iter__(self):
         return self.cell.flat
@@ -321,7 +343,7 @@ class Population(common.Population):
         """
         Get the values of a parameter for every cell in the population.
         """
-        values = getattr(self.cell, parameter_name)
+        values = getattr(self.brian_cells, parameter_name)
         if as_array:
             values = numpy.array(values)
         return values
@@ -345,7 +367,7 @@ class Population(common.Population):
         else:
             raise common.InvalidParameterValueError
         for key, value in para_dict.items():
-            setattr(self.cell, key, value)
+            setattr(self.brian_cells, key, value)
         
 
     def tset(self, parametername, value_array):
@@ -384,8 +406,8 @@ class Population(common.Population):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
             rarr = rand_distr.next(n=self.size)
-            assert len(rarr) == len(self.cell_id)
-            setattr(self.cell, parametername, rarr)
+            assert len(rarr) == len(self.brian_cells)
+            setattr(self.brian_cells, parametername, rarr)
         
     def _call(self, methodname, arguments):
         """
@@ -398,7 +420,7 @@ class Population(common.Population):
     def _tcall(self, methodname, objarr):
         """
         `Topographic' call. Calls the method methodname() for every cell in the 
-        population. The argument to the method depends on the coordinates of the
+        population. The argument     to the method depends on the coordinates of the
         cell. objarr is an array with the same dimensions as the Population.
         e.g. p.tcall("memb_init", vinitArray) calls
         p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
@@ -420,9 +442,9 @@ class Population(common.Population):
             if isinstance(record_from,int):
                 N = record_from
             print "Warning: Brian can record only the %d first cells of the population" %N
-            self.spike_recorder = brian.SpikeMonitor(self.cell[0:N],True)
+            self.spike_recorder = brian.SpikeMonitor(self.brian_cells[0:N],True)
         else:
-            self.spike_recorder = brian.SpikeMonitor(self.cell,True)
+            self.spike_recorder = brian.SpikeMonitor(self.brian_cells,True)
         net.add(self.spike_recorder)
 
     def record_v(self, record_from=None, rng=None):
@@ -435,15 +457,34 @@ class Population(common.Population):
         """
         global net
         if record_from:
-            if isinstance(record_from,list):
-                N = len(record_from)
             if isinstance(record_from,int):
                 N = record_from
-            print "Warning: Brian can record only the %d first cells of the population" %N
-            self.vm_recorder = brian.StateMonitor(self.cell[0:N],'v',record=True)
+                record_from = numpy.random.permutation(self.cell.flatten()[0:N])
+            self.vm_recorder = brian.StateMonitor(self.brian_cells,'v',record=record_from)
         else:
-            self.vm_recorder = brian.StateMonitor(self.cell,'v',record=True)
+            self.vm_recorder = brian.StateMonitor(self.brian_cells,'v',record=True)
         net.add(self.vm_recorder)
+    
+    def record_c(self, record_from=None, rng=None, to_file=True):
+        """
+        If record_from is not given, record the conductances/currents for all cells in
+        the Population.
+        record_from can be an integer - the number of cells to record from, chosen
+        at random (in this case a random number generator can also be supplied)
+        - or a list containing the ids of the cells to record.
+        """
+        global net
+        if record_from:
+            if isinstance(record_from,int):
+                N = record_from
+                record_from = numpy.random.permutation(self.cell.flatten()[0:N])
+            self.ce_recorder = brian.StateMonitor(self.brian_cells,'ge',record=record_from)
+            self.ci_recorder = brian.StateMonitor(self.brian_cells,'gi',record=record_from)
+        else:
+            self.ce_recorder = brian.StateMonitor(self.brian_cells,'ge',record=True)
+            self.ci_recorder = brian.StateMonitor(self.brian_cells,'gi',record=True)
+        net.add(self.ce_recorder)
+        net.add(self.ci_recorder)
     
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
@@ -470,9 +511,13 @@ class Population(common.Population):
         if self.spike_recorder:
             f = open(filename,"w", DEFAULT_BUFFER_SIZE)
             f.write("# dimensions =" + "\t".join([str(d) for d in self.dim]) + "\n")
+            f.write("# first_id = %d\n" % self.first_id)
+            f.write("# last_id = %d\n" % (self.first_id+len(self)-1,))
             f.write("# dt = %g\n" % dt)
-            for item in self.spike_recorder.spikes:
-                f.write("%g\t%d\n" %(1000*item[1], item[0]))
+            spikes = numpy.array(self.spike_recorder.spikes)
+            spikes[:,1]=1000*spikes[:,1]
+            for item in spikes:
+                f.write("%g\t%d\n" %(item[1], item[0]))
             f.close()
     
     def getSpikes(self,  gather=True):
@@ -489,14 +534,17 @@ class Population(common.Population):
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        return float(self.spike_recorder.nspikes)/len(self.cell)
+        
+        # TO DO : add a recordede list otherwise wrong
+        
+        return float(self.spike_recorder.nspikes)/len(self)
 
     def randomInit(self, rand_distr):
         """
         Set initial membrane potentials for all the cells in the population to
         random values.
         """
-        self.rset('v_init', rand_distr)
+        self.rset('v', rand_distr)
 
 
     def print_v(self, filename, gather=True, compatible_output=True):
@@ -523,14 +571,16 @@ class Population(common.Population):
             f = open(filename,"w", DEFAULT_BUFFER_SIZE)
             N = len(self.vm_recorder[0])
             f.write("# dimensions =" + "\t".join([str(d) for d in self.dim]) + "\n")
+            f.write("# first_id = %d\n" % self.first_id)
+            f.write("# last_id = %d\n" % (self.first_id+len(self)-1,))
             f.write("# dt = %g\n" % dt)
             f.write("# n = %d\n" % N)
             cells = self.vm_recorder.get_record_indices()
             for cell in cells:
+                vm = 1000*self.vm_recorder[cell]
                 for idx in xrange(N):
-                    f.write("%g\t%g\n" %(self.vm_recorder[cell][idx]*1000.,cell))
+                    f.write("%g\t%g\n" %(vm[idx],cell))
             f.close()
-        pass
 
     
 class Projection(common.Projection):
@@ -545,7 +595,7 @@ class Projection(common.Projection):
         presynaptic_population and postsynaptic_population - Population objects.
         
         source - string specifying which attribute of the presynaptic cell
-                 signals action potentials
+                 signals action potentialss
                  
         target - string specifying which synapse on the postsynaptic cell to
                  connect to
