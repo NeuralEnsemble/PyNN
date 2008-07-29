@@ -322,7 +322,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     tempdirs.append(tempdir) # append tempdir to tempdirs list
 
     # set tempdir
-    nest.SetStatus([0], {'device_prefix':tempdir,})
+    try:
+        nest.SetStatus([0], {'device_prefix':tempdir,})
+    except nest.NESTError:    
+        nest.SetStatus([0], {'data_path':tempdir,})
     # set resolution
     nest.SetStatus([0], {'resolution': timestep})
 
@@ -509,7 +512,10 @@ def _merge_files(recorder, gather):
     Combine data from multiple files (one per thread and per process) into a single file.
     Returns the filename of the merged file.
     """
-    nest.FlushDevice(recorder)
+    try:
+        nest.FlushDevice(recorder)
+    except AttributeError:
+        pass
     status = nest.GetStatus([0])[0]
     local_num_threads = status['local_num_threads']
     node_list = range(nest.GetStatus([0], "num_processes")[0])
