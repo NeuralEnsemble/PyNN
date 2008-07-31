@@ -104,7 +104,9 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
         if data.shape[1] == 4: # conductance files
             ge_column = input_format.index('ge')
             gi_column = input_format.index('gi')
-            raise Exception("Not yet implemented")
+            result.write("# n = %d\n" % len(data))
+            for idx in xrange(len(data)):
+                result.write("%g\t%g\t%d\n" % (data[idx][ge_column], data[idx][gi_column], data[idx][id_column])) # ge gi id
         elif data.shape[1] == 3: # voltage files
             v_column = input_format.index('v')
             #result.write("# n = %d\n" % int(nest.GetStatus([0], "time")[0]/dt))
@@ -172,7 +174,7 @@ def write_compatible_output1(data_source, user_filename, variable, input_format,
             data_array = data_source[:, column_map]
         else: # assume data is a filename or open file object
             #data_array = numpy.loadtxt(data_source, usecols=column_map)
-            data_array = readArray(sim_filename, sepchar=None)
+            data_array = readArray(data_source, sepchar=None)
         data_array[:,-1] -= id_offset # replies on fact that id is always last column
         metadata['n'] = data_array.shape[0]
         

@@ -100,7 +100,8 @@ class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
     
     formats = {'spikes': 'id t',
-               'v': 'id t v'}
+               'v': 'id t v',
+               'conductance':'id t ge gi'}
     
     def __init__(self, variable, population=None, file=None):
         """
