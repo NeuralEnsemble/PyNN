@@ -878,12 +878,12 @@ class Population(common.Population):
         # Convert everything to 1D arrays
         if self.dim == value_array.shape: # the values are numbers or non-array objects
             values = value_array.flatten()
-        elif len(value_array.shape) == len(self.dim)+1: # the values are themselves 1D arrays
-            values = numpy.reshape(value_array, (self.dim, value_array.size/self.cell.size))
+        elif self.dim == value_array.shape[:-1]: # the values are themselves 1D arrays
+            values = numpy.reshape(value_array, (self.size, value_array.size/self.size))
         else:
             raise common.InvalidDimensionsError, "Population: %s, value_array: %s" % (str(self.dim),
                                                                                       str(value_array.shape))
-        values = values.take(numpy.array(self.gidlist)-self.first_id) # take just the values for cells on this machine
+        values = values.take(numpy.array(self.gidlist)-self.first_id,  axis=0) # take just the values for cells on this machine
         assert len(values) == len(self.gidlist)
         
         # Set the values for each cell
