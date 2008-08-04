@@ -407,7 +407,16 @@ class Population(common.Population):
         else:
             rarr = rand_distr.next(n=self.size)
             assert len(rarr) == len(self.brian_cells)
-            setattr(self.brian_cells, parametername, rarr)
+            if parametername in self.celltype.scaled_parameters():
+                translation = self.celltype.translations[parametername]
+                rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
+                setattr(self.brian_cells, translation['translated_name'], rarr)
+            elif parametername in self.celltype.simple_parameters():
+                translation = self.celltype.translations[parametername]
+                setattr(self.brian_cells, translation['translated_name'], rarr)
+            else:
+                for cell,val in zip(self.cell.flat, rarr):
+                    setattr(cell, parametername, val)
         
     def _call(self, methodname, arguments):
         """
@@ -544,7 +553,7 @@ class Population(common.Population):
         Set initial membrane potentials for all the cells in the population to
         random values.
         """
-        self.rset('v', rand_distr)
+        self.rset('v_init', rand_distr)
 
 
     def print_v(self, filename, gather=True, compatible_output=True):

@@ -764,8 +764,16 @@ class Population(common.Population):
             rarr = rand_distr.next(n=self.size)
             assert len(rarr) >= len(self.cell_local), "The length of rarr (%d) must be greater than that of cell_local (%d)" % (len(rarr), len(self.cell_local))
             rarr = rarr[:len(self.cell_local)]
-            for cell,val in zip(self.cell_local, rarr):
-                setattr(cell, parametername, val)
+            if parametername in self.celltype.scaled_parameters():
+                translation = self.celltype.translations[parametername]
+                rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
+                nest.SetStatus(self.cell_local,translation['translated_name'],rarr)
+            elif parametername in self.celltype.simple_parameters():
+                translation = self.celltype.translations[parametername]
+                nest.SetStatus(self.cell_local, translation['translated_name'], rarr)
+            else:
+                for cell,val in zip(self.cell_local, rarr):
+                    setattr(cell, parametername, val)
 
     def _record(self, variable, record_from=None, rng=None,to_file=True):
         if to_file is False:
@@ -1033,6 +1041,8 @@ class Projection(common.Projection):
 
         # Set synaptic plasticity parameters
         original_synapse_context = nest.GetSynapseContext()
+        #self.plasticity_name = self.label.replace(" ","_to_")
+        #nest.CopySynapseType(self._plasticity_model,"excitatory")
         nest.SetSynapseContext(self._plasticity_model)
 
         if hasattr(self, '_short_term_plasticity_parameters') and self._short_term_plasticity_parameters:
@@ -1041,6 +1051,7 @@ class Projection(common.Projection):
             if 'num_connectors' in synapse_defaults:
                 synapse_defaults.pop('num_connectors')
             synapse_defaults.update(self._short_term_plasticity_parameters)
+            
             nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)
 
         if hasattr(self, '_stdp_parameters') and self._stdp_parameters:

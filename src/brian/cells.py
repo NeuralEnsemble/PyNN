@@ -13,16 +13,16 @@ class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     translations = common.build_translations(
-        ('v_rest',     'v_rest', mV),
-        ('v_reset',    'v_reset', mV),
+        ('v_rest',     'v_rest', 0.001),
+        ('v_reset',    'v_reset', 0.001),
         ('cm',         'cm'), # C is in pF, cm in nF
-        ('tau_m',      'tau_m', ms),
+        ('tau_m',      'tau_m', 0.001),
         ('tau_refrac', 'tau_refrac',"max(get_time_step(), tau_refrac*0.001)", "tau_refrac"),
-        ('tau_syn_E',  'tau_syn_E', ms),
-        ('tau_syn_I',  'tau_syn_I', ms),
-        ('v_thresh',   'v_thresh', mV),
-        ('i_offset',   'i_offset', pA), # I0 is in pA, i_offset in nA
-        ('v_init',     'v', mV),
+        ('tau_syn_E',  'tau_syn_E', 0.001),
+        ('tau_syn_I',  'tau_syn_I', 0.001),
+        ('v_thresh',   'v_thresh', 0.001),
+        ('i_offset',   'i_offset'), # I0 is in pA, i_offset in nA
+        ('v_init',     'v', 0.001),
     )
     eqs= brian.Equations('''
         dv/dt  = (ge + gi + (v_rest-v))/tau_m : volt
