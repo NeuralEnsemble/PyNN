@@ -10,15 +10,15 @@ import unittest
 import numpy
 import os
 
-def get_weight(src, port):
-    conn_dict = nest.nest.GetConnection([src], 'static_synapse', port)
+def get_weight(src, port, plasticity_name):
+    conn_dict = nest.nest.GetConnection([src], plasticity_name, port)
     if isinstance(conn_dict, dict):
         return conn_dict['weight']
     else:
         raise Exception("Either the source id (%s) or the port number (%s) or both is invalid." % (src, port))
 
-def get_delay(src, port):
-    conn_dict = nest.nest.GetConnection([src], 'static_synapse', port)
+def get_delay(src, port, plasticity_name):
+    conn_dict = nest.nest.GetConnection([src], plasticity_name, port)
     if isinstance(conn_dict, dict):
         return conn_dict['delay']
     else:
@@ -444,7 +444,7 @@ class ProjectionInitTest(unittest.TestCase):
                     for src,tgt in prj.connections():
                         ###print "--------", prj.label, srcP.label, tgtP.label, src, tgt
                         ###print nest.nest.GetConnections([src],'static_synapse') ###
-                        weights.append(get_weight(src, tgt))
+                        weights.append(get_weight(src, tgt, prj.plasticity_name))
                     assert weights == [0.0]*len(prj._sources)
     
     def testOneToOne(self):
@@ -482,7 +482,7 @@ class ProjectionInitTest(unittest.TestCase):
                     weights = []
                     for src, tgt in prj.connections():
                         #print nest.nest.GetConnections([src],[tgt])
-                        weights.append(get_weight(src, tgt))
+                        weights.append(get_weight(src, tgt, prj.plasticity_name))
                     assert weights == [0.]*len(prj._sources)
                     
     def testSaveAndLoad(self):
@@ -496,11 +496,11 @@ class ProjectionInitTest(unittest.TestCase):
         # For a connections scheme saved and reloaded, we test if the connections, their weights and their delays
         # are equal.
         for src,tgt in prj1.connections():
-            w1.append(get_weight(src, tgt))
-            d1.append(get_delay(src, tgt))
+            w1.append(get_weight(src, tgt, prj1.plasticity_name))
+            d1.append(get_delay(src, tgt, prj1.plasticity_name))
         for src,tgt in prj2.connections():
-            w2.append(get_weight(src, tgt))
-            d2.append(get_delay(src, tgt))
+            w2.append(get_weight(src, tgt, prj2.plasticity_name))
+            d2.append(get_delay(src, tgt, prj2.plasticity_name))
         assert (w1 == w2) and (d1 == d2)
 
 class ProjectionSetTest(unittest.TestCase):
@@ -526,7 +526,7 @@ class ProjectionSetTest(unittest.TestCase):
         for prj in self.prjlist:
             prj.setWeights(1.234)
             for src, tgt in prj.connections():
-                assert get_weight(src, tgt) == 1234.0 # note the difference in units between pyNN and NEST
+                assert get_weight(src, tgt, prj.plasticity_name) == 1234.0 # note the difference in units between pyNN and NEST
 
     #def testSetAndGetID(self):
         # Small test to see if the ID class is working
@@ -539,7 +539,7 @@ class ProjectionSetTest(unittest.TestCase):
             prj.setWeights(weights_in)
             weights_out = []
             for src,tgt in prj.connections():
-                weights_out.append(0.001*get_weight(src, tgt)) # units conversion
+                weights_out.append(0.001*get_weight(src, tgt, prj.plasticity_name)) # units conversion
             self.assert_(arrays_almost_equal(weights_in, weights_out, 1e-8), "%s != %s" % (weights_in, weights_out))
             
     def testRandomizeWeights(self):
@@ -548,10 +548,10 @@ class ProjectionSetTest(unittest.TestCase):
         prj1.randomizeWeights(self.distrib_Numpy)
         w1 = []; w2 = [];
         for src,tgt in prj1.connections():
-            w1.append(get_weight(src, tgt))
+            w1.append(get_weight(src, tgt, prj1.plasticity_name))
         prj1.randomizeWeights(self.distrib_Numpy)        
         for src, tgt in prj1.connections():
-            w2.append(get_weight(src, tgt))
+            w2.append(get_weight(src, tgt, prj1.plasticity_name))
         self.assertNotEqual(w1,w2)
         
     def testRandomizeDelays(self):
@@ -560,10 +560,10 @@ class ProjectionSetTest(unittest.TestCase):
         prj1.randomizeDelays(self.distrib_Numpy)
         d1 = []; d2 = [];
         for src,tgt in prj1.connections():
-            d1.append(get_delay(src,tgt))
+            d1.append(get_delay(src,tgt, prj1.plasticity_name))
         prj1.randomizeDelays(self.distrib_Numpy)        
         for src, tgt in prj1.connections():
-            d2.append(get_delay(src,tgt))
+            d2.append(get_delay(src,tgt, prj1.plasticity_name))
         self.assertNotEqual(d1,d2)
 
 class ProjectionGetTest(unittest.TestCase):

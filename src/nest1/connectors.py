@@ -20,9 +20,8 @@ def _convertWeight(w, synapse_type):
         all_negative = (weight<=0).all()
         all_positive = (weight>=0).all()
         assert all_negative or all_positive, "Weights must be either all positive or all negative"
-        if synapse_type == 'inhibitory':
-            if all_positive:
-                weight *= -1
+        if synapse_type == 'inhibitory' and all_positive:
+            weight *= -1
     elif is_number(weight):
         if synapse_type == 'inhibitory' and weight > 0:
             weight *= -1
@@ -72,11 +71,16 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
         presynaptic_neurons  = numpy.reshape(projection.pre.cell,(projection.pre.cell.size,))
         npre = projection.pre.size
-        for post in postsynaptic_neurons:
-            if projection.rng:
-                rarr = projection.rng.uniform(0,1,(npre,)) # what about NativeRNG?
+        if projection.rng:
+            if isinstance(projection.rng, NativeRNG):
+                print "Warning: use of NativeRNG not implemented. Using NumpyRNG"
+                rng = numpy.random
             else:
-                rarr = numpy.random.uniform(0,1,(npre,))
+                rng = projection.rng
+        else:
+            rng = numpy.random
+        for post in postsynaptic_neurons:
+            rarr = rng.uniform(0, 1, npre) # what about NativeRNG?
             source_list = numpy.compress(numpy.less(rarr, self.p_connect), presynaptic_neurons).tolist()
             # if self connections are not allowed, check whether pre and post are the same
             if not self.allow_self_connections and post in source_list:

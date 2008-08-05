@@ -124,6 +124,8 @@ class Recorder(object):
             device_parameters["interval"] = get_time_step()
         if file is False:
             device_parameters.update(to_file=False, to_memory=True)
+        # line needed for old version of nest 2.0
+	# device_parameters.pop('to_memory')
         nest.SetStatus(self._device, device_parameters)
 
     def record(self, ids):
@@ -573,12 +575,12 @@ class Population(common.Population):
 
         if isinstance(cellclass, type):
             self.celltype = cellclass(cellparams)
+            self.cellparams = self.celltype.parameters
             if not parent:
                 self.cell = nest.Create(self.celltype.nest_name, self.size)
             else:
                 #A SubPopulation has been created, those fields will be filled later
                 self.cell = []
-            self.cellparams = self.celltype.parameters
         elif isinstance(cellclass, str):
             if not parent:
                 self.cell = nest.Create(cellclass, self.size)
@@ -910,6 +912,7 @@ class Population(common.Population):
         for node in node_list:
             nest.sps(self.recorders['spikes']._device[0])
             nest.sr("%d GetAddress %d append" %(self.recorders['spikes']._device[0], node))
+            #nest.sr("GetStatus /events get")
             nest.sr("GetStatus /n_events get")
             n_spikes += nest.spp()
         n_rec = len(self.recorders['spikes'].recorded)
@@ -984,12 +987,29 @@ class Projection(common.Projection):
         """docstring needed."""
 
         def __init__(self, parent):
-            self.parent = parent
+            self.parent    = parent
+            self.port_idx  = 0
+            self.last_conn = (0,0)
+        
+        def reset(self):
+            self.port_idx  = 0
+            self.last_conn = (0,0)
 
         def __getitem__(self, id):
             """Returns a (source address, target port number) tuple."""
-            assert isinstance(id, int)
-            return (self.parent._sources[id], self.parent._target_ports[id])
+            src = self.parent._sources[id]
+            tgt = self.parent._targets[id]
+            connections = nest.FindConnections([src],[tgt], self.parent.plasticity_name)
+            # We keep this counter to be sure that, when several connections have been
+            # established for the same source <-> target, we iterates over those connections
+            # Note that, for the moment, there may a problem if the sources/targets lists are
+            # not sorted according to the sources.
+            if (src,tgt) == self.last_conn:
+                self.port_idx += 1
+            else:
+                self.port_idx  = 0
+                self.last_conn = (src,tgt)
+            return (src,connections['ports'][self.port_idx])
 
     def __init__(self, presynaptic_population, postsynaptic_population,
                  method='allToAll', method_parameters=None, source=None,
@@ -1041,18 +1061,23 @@ class Projection(common.Projection):
 
         # Set synaptic plasticity parameters
         original_synapse_context = nest.GetSynapseContext()
-        #self.plasticity_name = self.label.replace(" ","_to_")
-        #nest.CopySynapseType(self._plasticity_model,"excitatory")
-        nest.SetSynapseContext(self._plasticity_model)
+        
+        # We create a particular synapse context just for this projection, by copying
+        # the one which is desired. The name of the synapse context is randomly generated
+        # and will be available as projection.plasticity_name
+        self.plasticity_name = "%d" %numpy.random.random_integers(0,1000)
+        #self.plasticity_name = self.label.replace(" → ","_to_")
+        nest.CopySynapseType(self._plasticity_model,self.plasticity_name)
+        # Then we define this copy of the standard plasticity model as the current one)
+        nest.SetSynapseContext(self.plasticity_name)
 
         if hasattr(self, '_short_term_plasticity_parameters') and self._short_term_plasticity_parameters:
-            synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
+            synapse_defaults = nest.GetSynapseDefaults(self.plasticity_name)
             synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
             if 'num_connectors' in synapse_defaults:
                 synapse_defaults.pop('num_connectors')
             synapse_defaults.update(self._short_term_plasticity_parameters)
-            
-            nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)
+            nest.SetSynapseDefaults(self.plasticity_name, synapse_defaults)
 
         if hasattr(self, '_stdp_parameters') and self._stdp_parameters:
             # NEST does not support w_min != 0
@@ -1067,12 +1092,12 @@ class Projection(common.Projection):
             else:
                 raise Exception("Postsynaptic cell model does not support STDP.")
 
-            synapse_defaults = nest.GetSynapseDefaults(self._plasticity_model)
+            synapse_defaults = nest.GetSynapseDefaults(self.plasticity_name)
             if 'num_connectors' in synapse_defaults:
                 synapse_defaults.pop('num_connectors') # otherwise NEST tells you to check your spelling!
             synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
             synapse_defaults.update(self._stdp_parameters)
-            nest.SetSynapseDefaults(self._plasticity_model, synapse_defaults)
+            nest.SetSynapseDefaults(self.plasticity_name, synapse_defaults)
 
         # Create connections
         if isinstance(method, str):
@@ -1096,6 +1121,7 @@ class Projection(common.Projection):
 
     def connections(self):
         """for conn in prj.connections()..."""
+        self.connection.reset()
         for i in xrange(len(self)):
             yield self.connection[i]
 
@@ -1229,16 +1255,16 @@ class Projection(common.Projection):
         if is_number(value):
             if optimized:
                 for src in self.pre.cell.flat:
-                    _set_connections(src, self._plasticity_model, **{name: value})
+                    _set_connections(src, self.plasticity_name, **{name: value})
             else:
                 for src, port in self.connections():
-                    _set_connection(src, port, self._plasticity_model, **{name: value})
+                    _set_connection(src, port, self.plasticity_name, **{name: value})
         elif isinstance(value, (list, numpy.ndarray)):
             # this is probably not the most efficient way - should sort by src and then use SetConnections?
             assert len(value) == len(self)
             for (src,port),v in zip(self.connections(), value):
                 try:
-                    _set_connection(src, port, self._plasticity_model, **{name: v})
+                    _set_connection(src, port, self.plasticity_name, **{name: v})
                 except common.RoundingWarning:
                     logging.warning("Rounding occurred when setting %s to %s" % (name, v))
         else:
@@ -1295,22 +1321,24 @@ class Projection(common.Projection):
         print "Connections for Projection %s, connected with %s" % (self.label or '(un-labelled)',
                                                                     self._method)
         print "\tsource\ttarget\tport"
-        for conn in zip(self._sources, self._targets, self._target_ports):
-            print "\t%d\t%d\t%d" % conn
+        for src,tgt in zip(self._sources, self._targets):
+            connections = nest.FindConnections([src],[tgt],self.plasticity_name)
+            for port in connections['ports']:
+                print "\t%d\t%d\t%d" % (src, tgt, port)
         print "Connection data for the presynaptic population (%s)" % self.pre.label
         for src in self.pre.cell.flat:
-            print src, nest.GetConnections([src], self._plasticity_model)
+            print src, nest.GetConnections([src], self.plasticity_name)
 
     def _get_connection_values(self, format, parameter_name, gather):
         assert format in ('list', 'array'), "`format` is '%s', should be one of 'list', 'array'" % format
         if format == 'list':
             values = []
             for src, port in self.connections():
-                values.append(_get_connection(src, port, self._plasticity_model, parameter_name))
+                values.append(_get_connection(src, port, self.plasticity_name, parameter_name))
         elif format == 'array':
             values = numpy.zeros((self.pre.size, self.post.size))
             for src, port in self.connections():
-                v, tgt = _get_connection(src, port, self._plasticity_model,
+                v, tgt = _get_connection(src, port, self.plasticity_name,
                                          parameter_name, 'target')
                 # note that we assume that Population ids are consecutive, which is the case, but we should
                 # perhaps make an assert in __init__() to really make sure
@@ -1349,7 +1377,7 @@ class Projection(common.Projection):
         f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
         weights = []; delays = []
         for src, port in self.connections():
-            weight, delay = _get_connection(src, port, self._plasticity_model,
+            weight, delay = _get_connection(src, port, self.plasticity_name,
                                             'weight', 'delay')
             # Note unit change from pA to nA or nS to uS, depending on synapse type
             weights.append(0.001*weight)
@@ -1393,8 +1421,11 @@ class Projection(common.Projection):
         Returns a human readable description of the projection
         """
         description = common.Projection.describe(self, template)
-        description += "\n    Parameters of connection from %d to %d [port %d]" % (self._sources[0], self._targets[0], self._target_ports[0])
-        dict = nest.GetConnections([self.pre.cell.flat[0]], self._plasticity_model)[0]
+        src = self._sources[0]
+        tgt = self._targets[0]
+        port = nest.FindConnections([src],[tgt],self.plasticity_name)['ports'][0]
+        description += "\n    Parameters of connection from %d to %d [port %d]" % (src, tgt, port)
+        dict = nest.GetConnections([self.pre.cell.flat[0]], self.plasticity_name)[0]
         for i in xrange(len(self._targets)):
             idx  = numpy.where(numpy.array(dict['targets']) == self._targets[i])[0]
             if len(idx) > 0: 

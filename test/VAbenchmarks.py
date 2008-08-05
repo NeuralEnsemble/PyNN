@@ -139,8 +139,6 @@ if benchmark == "COBA":
 print "%s Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(seed=rngseed, parallel_safe=False, rank=node_id, num_processes=np)
 uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
-if simulator == "brian":
-    uniformDistr = RandomDistribution('uniform', [v_reset*0.001,v_thresh*0.001], rng=rng)
 exc_cells.randomInit(uniformDistr)
 inh_cells.randomInit(uniformDistr)
 
