@@ -91,9 +91,6 @@ elif benchmark == "CUBA":
     celltype = IF_curr_exp
     w_exc = 1e-3*Gexc*(Erev_exc - v_mean) # (nA) weight of excitatory synapses
     w_inh = 1e-3*Ginh*(Erev_inh - v_mean) # (nA)
-    if simulator == "brian":
-        w_exc = w_exc*0.1
-        w_inh = w_inh*0.1
     assert w_exc > 0; assert w_inh < 0
 
 # === Build the network ========================================================

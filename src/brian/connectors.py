@@ -6,39 +6,67 @@
 from pyNN import common
 from pyNN.brian.__init__ import numpy
 import brian_no_units_no_warnings
-import brian
+import brian, types
 from pyNN.random import RandomDistribution, NativeRNG
 from math import *
 from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                   fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
                   sin, sinh, sqrt, tan, tanh
 
+def is_number(n):
+    return type(n) == types.FloatType or type(n) == types.IntType or type(n) == numpy.float64
+
 def _targetConnection(Connector, projection):
-    if projection.synapse_type == "excitatory":
-        target="ge"
+    if projection.synapse_type == "excitatory" or projection.synapse_type is None:
+        target=projection.post.celltype.synapses['exc']
     else:
-        target="gi"
+        target=projection.post.celltype.synapses['inh']
     return brian.Connection(projection.pre.brian_cells,projection.post.brian_cells,target, delay=Connector.delays*0.001)
+
+def _convertWeight(weight, projection):
+    #if isinstance(projection.pre.brian_cells, brian.PoissonGroup):
+        #weight *= projection.pre.brian_cells.rate[0]*projection.pre.brian_cells.clock.dt
+    if isinstance(weight, numpy.ndarray):
+        all_negative = (weight<=0).all()
+        all_positive = (weight>=0).all()
+        assert all_negative or all_positive, "Weights must be either all positive or all negative"
+        if not projection.post.celltype.default_parameters.has_key('e_rev_E'):
+            if projection.synapse_type == 'inhibitory' and all_positive:
+                weight *= -1
+        else:
+            if projection.synapse_type == "inhibitory" and all_negative:
+                weight *= 1
+    elif is_number(weight):
+        if not projection.post.celltype.default_parameters.has_key('e_rev_E'):
+            if projection.synapse_type == 'inhibitory' and weight > 0:
+                weight *= -1
+        else:
+            if projection.synapse_type == 'inhibitory' and weight < 0:
+                weight *= -1
+    return weight
 
 class AllToAllConnector(common.AllToAllConnector):    
     
     def connect(self, projection):
         projection._connections = _targetConnection(self, projection)
-        projection._connections.connect_full(projection.pre.brian_cells,projection.post.brian_cells, weight=self.weights)
+        weight = _convertWeight(self.weights, projection)
+        projection._connections.connect_full(projection.pre.brian_cells,projection.post.brian_cells, weight=weight)
         return projection._connections.W.getnnz()
 
 class OneToOneConnector(common.OneToOneConnector):
     
     def connect(self, projection):
         projection._connections = _targetConnection(self, projection)
-        projection._connections.connect_one_to_one(projection.pre.brian_cells,projection.post.brian_cells, weight=self.weights)
+        weight = _convertWeight(self.weights, projection)
+        projection._connections.connect_one_to_one(projection.pre.brian_cells,projection.post.brian_cells, weight=weight)
         return projection._connections.W.getnnz()
     
 class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
     def connect(self, projection):
         projection._connections = _targetConnection(self, projection)
-        projection._connections.connect_random(projection.pre.brian_cells,projection.post.brian_cells, self.p_connect, weight=self.weights)
+        weight = _convertWeight(self.weights, projection)
+        projection._connections.connect_random(projection.pre.brian_cells,projection.post.brian_cells, self.p_connect, weight=weight)
         return projection._connections.W.getnnz()
     
 class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector):
@@ -86,6 +114,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 weights = func(distances[0])
             else:
                 weights = self.weights*numpy.ones(N)
+            weights = _convertWeight(weights, projection)
             if isinstance(self.delays,str):
                 raise Exception('''The string definition for delays in Brian is not 
                                 implemented since Brian does not support yet 

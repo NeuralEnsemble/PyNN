@@ -25,18 +25,20 @@ class IF_curr_alpha(common.IF_curr_alpha):
         ('v_init',     'v', 0.001),
     )
     eqs= brian.Equations('''
-        dv/dt  = (ge + gi + (v_rest-v))/tau_m : volt
-        dge/dt = (ye-ge)/tau_syn_E              : 1 
-        dye/dt = -ye/tau_syn_E                  : 1
-        dgi/dt = (yi-gi)/tau_syn_I              : 1 
-        dyi/dt = -yi/tau_syn_I                  : 1
-        tau_syn_E : second
-        tau_syn_I : second
-        tau_m     : second
-        v_rest    : volt
+        dv/dt  = (ge + gi)/cm + (v_rest-v)/tau_m   : volt
+        dge/dt = (2.7182818284590451*ye-ge)/tau_syn_E : 1 
+        dye/dt = -ye/tau_syn_E                        : 1
+        dgi/dt = (2.7182818284590451*yi-gi)/tau_syn_I : 1 
+        dyi/dt = -yi/tau_syn_I                        : 1
+        cm                                    : farad
+        tau_syn_E                             : second
+        tau_syn_I                             : second
+        tau_m                                 : second
+        v_rest                                : volt
         '''
         )
 
+    synapses = {'exc' : 'ye', 'inh' : 'yi'}
 
 class IF_curr_exp(common.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
@@ -56,18 +58,21 @@ class IF_curr_exp(common.IF_curr_exp):
         ('v_init',     'v', 0.001),
     )
     eqs= brian.Equations('''
-        dv/dt  = (ge + gi + (v_rest-v))/tau_m : volt
-        dge/dt = -ge/tau_syn_E              : 1
-        dgi/dt = -gi/tau_syn_I              : 1
-        tau_syn_E                           : second
-        tau_syn_I                           : second
-        tau_m                               : second
-        v_rest                              : volt
+        dv/dt  = (ge + gi)/cm + (v_rest-v)/tau_m : volt
+        dge/dt = -ge/tau_syn_E                : 1
+        dgi/dt = -gi/tau_syn_I                : 1
+        tau_syn_E                             : second
+        tau_syn_I                             : second
+        tau_m                                 : second
+        cm                                    : farad
+        v_rest                                : volt
         '''
         )
     
+    synapses = {'exc' : 'ge', 'inh' : 'gi'}
+    
 
-class IF_cond_alpha(common.ModelNotAvailable):
+class IF_cond_alpha(common.IF_cond_alpha):
     translations = common.build_translations(
         ('v_rest',     'v_rest',0.001)    ,
         ('v_reset',    'v_reset',0.001),
@@ -83,20 +88,22 @@ class IF_cond_alpha(common.ModelNotAvailable):
         ('v_init',     'v',0.001),
     )
     eqs= brian.Equations('''
-        dv/dt  = ((v_rest-v) + ge*(e_rev_E-v) + gi*(e_rev_I-v))/tau_m : volt
-        dge/dt = ye-ge/tau_syn_E              : 1 
-        dye/dt = -ye/tau_syn_E                : 1
-        dgi/dt = yi-gi/tau_syn_I              : 1 
-        dyi/dt = -yi/tau_syn_I                : 1
-        tau_syn_E              : second
-        tau_syn_I              : second
-        tau_m                  : second
-        v_rest                 : volt
-        e_rev_E                : volt
-        e_rev_I                : volt
+        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v))/(0.001*cm) : volt
+        dge/dt = (2.7182818284590451*ye-ge)/tau_syn_E  : 1 
+        dye/dt = -ye/tau_syn_E                         : 1
+        dgi/dt = (2.7182818284590451*yi-gi)/tau_syn_I  : 1 
+        dyi/dt = -yi/tau_syn_I                         : 1
+        tau_syn_E                             : second
+        tau_syn_I                             : second
+        tau_m                                 : second
+        v_rest                                : volt
+        e_rev_E                               : volt
+        e_rev_I                               : volt
+        cm                                    : farad
         '''
         )
 
+    synapses = {'exc' : 'ye', 'inh' : 'yi'}
 
 class IF_cond_exp(common.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and 
@@ -116,17 +123,20 @@ class IF_cond_exp(common.IF_cond_exp):
         ('v_init',     'v',0.001),
     )
     eqs= brian.Equations('''
-        dv/dt  = ((v_rest-v) + ge*(e_rev_E-v) + gi*(e_rev_I-v))/tau_m : volt
+        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v))/(0.001*cm) : volt
         dge/dt = -ge/tau_syn_E : 1
         dgi/dt = -gi/tau_syn_I : 1
         tau_syn_E              : second
         tau_syn_I              : second
         tau_m                  : second
+        cm                     : farad
         v_rest                 : volt
         e_rev_E                : volt
         e_rev_I                : volt
         '''
         )
+    
+    synapses = {'exc' : 'ge', 'inh' : 'gi'}
 
 class IF_facets_hardware1(common.IF_facets_hardware1):
     """Leaky integrate and fire model with conductance-based synapses and fixed
@@ -154,6 +164,12 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     
 class SpikeSourceArray(common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
+    translations = common.build_translations(
+        ('spike_times', 'spike_times'),
+    )
+    
+    def __init__(self, parameters):
+        common.SpikeSourceArray.__init__(self, parameters)
 
 
 class EIF_cond_alpha_isfa_ista(common.ModelNotAvailable):

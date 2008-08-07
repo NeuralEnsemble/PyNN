@@ -38,16 +38,23 @@ class ID(int, common.IDMixin):
     
     def __getattr__(self, name):
         try:
-            val = float(self.parent.brian_cells[int(self)].__getattr__(name))
+            if isinstance(self.parent.brian_cells,brian.MultipleSpikeGeneratorGroup):
+                if name == "spike_times":
+                    return 1000*numpy.array(self.parent.brian_cells._threshold.spiketimes[int(self)])
+            else:
+                val = float(self.parent.brian_cells[int(self)].__getattr__(name))
+                return val
         except KeyError:
             raise NonExistentParameterError(name, self.cellclass)
-        return val
     
     def set_native_parameters(self, parameters):
         for key, value in parameters.items():
-            self.parent.brian_cells[int(self)].__setattr__(key,value)
-        
-
+            if isinstance(self.parent.brian_cells,brian.MultipleSpikeGeneratorGroup):
+                if key == "spike_times":
+                    spike_times = 0.001*numpy.array(value)
+                    self.parent.brian_cells._threshold.spiketimes[int(self)] = spike_times
+            else:
+                self.parent.brian_cells[int(self)].__setattr__(key,value)
         
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
@@ -70,9 +77,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
+    global net, simclock, _max_delay, _min_delay
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
-    global tempdir, net, simclock
-    
+
     # Initialisation of the log module. To write in the logfile, simply enter
     # logging.critical(), logging.debug(), logging.info(), logging.warning() 
     if debug:
@@ -87,11 +94,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
                     filemode='w')
 
     logging.info("Initialization of Brian")
-    timestep  = 0.001*timestep
-    min_delay = 0.001*min_delay
-    max_delay = 0.001*max_delay
+    _min_delay = 0.001*min_delay
+    _max_delay = 0.001*max_delay
     net       = brian.Network()
-    simclock  = brian.Clock(dt=timestep)
+    simclock  = brian.Clock(dt=0.001*timestep)
     return 0
 
 def end(compatible_output=True):
@@ -104,15 +110,23 @@ def run(simtime):
     net.run(0.001*simtime)
 
 def get_min_delay():
-    return 0.1*brian.ms
+    global _min_delay
+    return _min_delay
 common.get_min_delay = get_min_delay
 
+def get_max_delay():
+    global _max_delay
+    return _max_delay
+common.get_max_delay = get_max_delay
+
 def get_time_step():
-    return 0.1*brian.ms
+    global simclock
+    return simclock.dt
 common.get_time_step = get_time_step
 
 def get_current_time():
-    pass
+    global simclock
+    return simclock.t
 
 def num_processes():
     return 1
@@ -230,29 +244,32 @@ class Population(common.Population):
         global net, simclock
         common.Population.__init__(self, dims, cellclass, cellparams, label)  # move this to common.Population.__init__()
         
-        # Should perhaps use "LayoutNetwork"?
-        
         if isinstance(cellclass, type):
             self.celltype = cellclass(cellparams)
             self.cellparams = self.celltype.parameters
-            if isinstance(self.celltype,SpikeSourcePoisson):
-                rate       = self.cellparams['rate']
-                fct        = self.celltype.fct
+            if isinstance(self.celltype, SpikeSourcePoisson):
+                rate              = self.cellparams['rate']
+                fct               = self.celltype.fct
                 self.brian_cells  = brian.PoissonGroup(self.size, rates = fct, clock=simclock)
+                #self.brian_cells._max_delay = get_max_delay()/get_time_step()
+            elif isinstance(self.celltype, SpikeSourceArray):
+                spike_times = 0.001*numpy.array(self.cellparams['spike_times'])
+                self.brian_cells  = brian.MultipleSpikeGeneratorGroup([spike_times for i in xrange(self.size)])
+                #self.brian_cells._max_delay = get_max_delay()/get_time_step()
             else:
                 v_thresh   = self.cellparams['v_thresh']
                 v_reset    = self.cellparams['v_reset']
                 tau_refrac = self.cellparams['tau_refrac']
-                self.brian_cells = brian.NeuronGroup(self.size,model=cellclass.eqs,threshold=v_thresh,reset=v_reset, refractory=tau_refrac, clock=simclock, compile=True)
+                self.brian_cells = brian.NeuronGroup(self.size,model=cellclass.eqs,threshold=v_thresh,reset=v_reset, refractory=tau_refrac, clock=simclock, compile=True, max_delay=get_max_delay())
 
         elif isinstance(cellclass, str):
             v_thresh   = self.cellparams['v_thresh']
             v_reset    = self.cellparams['v_reset']
             tau_refrac = self.cellparams['tau_refrac']
-            self.brian_cells = brian.NeuronGroup(self.size,model=cellclass,threshold=v_thresh,reset=v_reset, clock=simclock)
+            self.brian_cells = brian.NeuronGroup(self.size,model=cellclass,threshold=v_thresh,reset=v_reset, clock=simclock, compile=True, max_delay=get_max_delay())
             self.cellparams = self.celltype.parameters
 
-        useless_params=['v_thresh','v_reset','tau_refrac','cm']
+        useless_params=['v_thresh', 'v_reset', 'tau_refrac', 'spike_times']
         if self.cellparams:
             for key, value in self.cellparams.items():
                 if not key in useless_params:
@@ -272,6 +289,7 @@ class Population(common.Population):
         Population.nPop += 1
         net.add(self.brian_cells)
     
+
     def __getitem__(self, addr):
         """Return a representation of the cell with coordinates given by addr,
            suitable for being passed to other methods that require a cell id.
@@ -469,9 +487,9 @@ class Population(common.Population):
             if isinstance(record_from,int):
                 N = record_from
                 record_from = numpy.random.permutation(self.cell.flatten()[0:N])
-            self.vm_recorder = brian.StateMonitor(self.brian_cells,'v',record=record_from)
         else:
-            self.vm_recorder = brian.StateMonitor(self.brian_cells,'v',record=True)
+            record_from = True
+        self.vm_recorder = brian.StateMonitor(self.brian_cells,'v',record=record_from)
         net.add(self.vm_recorder)
     
     def record_c(self, record_from=None, rng=None, to_file=True):
@@ -487,11 +505,10 @@ class Population(common.Population):
             if isinstance(record_from,int):
                 N = record_from
                 record_from = numpy.random.permutation(self.cell.flatten()[0:N])
-            self.ce_recorder = brian.StateMonitor(self.brian_cells,'ge',record=record_from)
-            self.ci_recorder = brian.StateMonitor(self.brian_cells,'gi',record=record_from)
         else:
-            self.ce_recorder = brian.StateMonitor(self.brian_cells,'ge',record=True)
-            self.ci_recorder = brian.StateMonitor(self.brian_cells,'gi',record=True)
+            record_from = True
+        self.ce_recorder = brian.StateMonitor(self.brian_cells,'ge',record=record_from)
+        self.ci_recorder = brian.StateMonitor(self.brian_cells,'gi',record=record_from)
         net.add(self.ce_recorder)
         net.add(self.ci_recorder)
     
@@ -524,7 +541,10 @@ class Population(common.Population):
             f.write("# last_id = %d\n" % (self.first_id+len(self)-1,))
             f.write("# dt = %g\n" % dt)
             spikes = numpy.array(self.spike_recorder.spikes)
-            spikes[:,1]=1000*spikes[:,1]
+            try:
+                spikes[:,1]=1000*spikes[:,1]
+            except Exception:
+                pass
             for item in spikes:
                 f.write("%g\t%d\n" %(item[1], item[0]))
             f.close()
@@ -544,7 +564,7 @@ class Population(common.Population):
         """
         # gather is not relevant, but is needed for API consistency
         
-        # TO DO : add a recordede list otherwise wrong
+        # TO DO : add a recordeded list otherwise wrong
         
         return float(self.spike_recorder.nspikes)/len(self)
 
