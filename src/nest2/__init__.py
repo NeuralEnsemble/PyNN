@@ -766,16 +766,19 @@ class Population(common.Population):
             rarr = rand_distr.next(n=self.size)
             assert len(rarr) >= len(self.cell_local), "The length of rarr (%d) must be greater than that of cell_local (%d)" % (len(rarr), len(self.cell_local))
             rarr = rarr[:len(self.cell_local)]
-            if parametername in self.celltype.scaled_parameters():
-                translation = self.celltype.translations[parametername]
-                rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
-                nest.SetStatus(self.cell_local,translation['translated_name'],rarr)
-            elif parametername in self.celltype.simple_parameters():
-                translation = self.celltype.translations[parametername]
-                nest.SetStatus(self.cell_local, translation['translated_name'], rarr)
+            if not isinstance(self.celltype, str):
+                if parametername in self.celltype.scaled_parameters():
+                    translation = self.celltype.translations[parametername]
+                    rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
+                    nest.SetStatus(self.cell_local,translation['translated_name'],rarr)
+                elif parametername in self.celltype.simple_parameters():
+                    translation = self.celltype.translations[parametername]
+                    nest.SetStatus(self.cell_local, translation['translated_name'], rarr)
+                else:
+                    for cell,val in zip(self.cell_local, rarr):
+                        setattr(cell, parametername, val)
             else:
-                for cell,val in zip(self.cell_local, rarr):
-                    setattr(cell, parametername, val)
+               nest.SetStatus(self.cell_local, parametername, rarr)
 
     def _record(self, variable, record_from=None, rng=None,to_file=True):
         if to_file is False:
