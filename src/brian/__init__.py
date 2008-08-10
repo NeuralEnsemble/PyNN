@@ -19,6 +19,26 @@ net      = None
 simclock = None
 DEFAULT_BUFFER_SIZE = 10000
 
+class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
+   def __init__(self,spiketimes,clock=None,max_delay=0):
+       clock = brian.guess_clock(clock)
+       thresh = brian.directcontrol.MultipleSpikeGeneratorThreshold(spiketimes)
+       brian.NeuronGroup.__init__(self,len(spiketimes),model=brian.LazyStateUpdater(),threshold=thresh,clock=clock,max_delay=max_delay)
+       
+
+class PoissonGroupWithDelays(brian.NeuronGroup):
+    def __init__(self,N,rates=0,clock=None,max_delay=0):
+        brian.NeuronGroup.__init__(self,N,model=brian.LazyStateUpdater(),threshold=brian.PoissonThreshold(),clock=clock,max_delay=max_delay)
+        if callable(rates): # a function is passed
+            self._variable_rate=True
+            self.rates=rates
+            self._S0[0]=self.rates(self.clock.t)
+        else:
+            self._variable_rate=False
+            self._S[0,:]=rates
+            self._S0[0]=rates
+        self.var_index={'rate':0}
+
 # ==============================================================================
 #   Utility classes and functions
 # ==============================================================================
@@ -38,7 +58,7 @@ class ID(int, common.IDMixin):
     
     def __getattr__(self, name):
         try:
-            if isinstance(self.parent.brian_cells,brian.MultipleSpikeGeneratorGroup):
+            if isinstance(self.parent.brian_cells,MultipleSpikeGeneratorGroupWithDelays):
                 if name == "spike_times":
                     return 1000*numpy.array(self.parent.brian_cells._threshold.spiketimes[int(self)])
             else:
@@ -49,7 +69,7 @@ class ID(int, common.IDMixin):
     
     def set_native_parameters(self, parameters):
         for key, value in parameters.items():
-            if isinstance(self.parent.brian_cells,brian.MultipleSpikeGeneratorGroup):
+            if isinstance(self.parent.brian_cells,MultipleSpikeGeneratorGroupWithDelays):
                 if key == "spike_times":
                     spike_times = 0.001*numpy.array(value)
                     self.parent.brian_cells._threshold.spiketimes[int(self)] = spike_times
@@ -127,6 +147,10 @@ common.get_time_step = get_time_step
 def get_current_time():
     global simclock
     return simclock.t
+
+def get_net_status():
+    global net
+    return net
 
 def num_processes():
     return 1
@@ -250,12 +274,10 @@ class Population(common.Population):
             if isinstance(self.celltype, SpikeSourcePoisson):
                 rate              = self.cellparams['rate']
                 fct               = self.celltype.fct
-                self.brian_cells  = brian.PoissonGroup(self.size, rates = fct, clock=simclock)
-                #self.brian_cells._max_delay = get_max_delay()/get_time_step()
+                self.brian_cells  = brian.PoissonGroup(self.size, rates = fct, clock=simclock, )
             elif isinstance(self.celltype, SpikeSourceArray):
                 spike_times = 0.001*numpy.array(self.cellparams['spike_times'])
-                self.brian_cells  = brian.MultipleSpikeGeneratorGroup([spike_times for i in xrange(self.size)])
-                #self.brian_cells._max_delay = get_max_delay()/get_time_step()
+                self.brian_cells  = MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(self.size)], max_delay=get_max_delay())
             else:
                 v_thresh   = self.cellparams['v_thresh']
                 v_reset    = self.cellparams['v_reset']
@@ -482,14 +504,14 @@ class Population(common.Population):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        global net
+        global net, simclock
         if record_from:
             if isinstance(record_from,int):
                 N = record_from
                 record_from = numpy.random.permutation(self.cell.flatten()[0:N])
         else:
             record_from = True
-        self.vm_recorder = brian.StateMonitor(self.brian_cells,'v',record=record_from)
+        self.vm_recorder = brian.StateMonitor(self.brian_cells,'v',record=record_from, clock=simclock)
         net.add(self.vm_recorder)
     
     def record_c(self, record_from=None, rng=None, to_file=True):
@@ -500,15 +522,15 @@ class Population(common.Population):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        global net
+        global net, simclock
         if record_from:
             if isinstance(record_from,int):
                 N = record_from
                 record_from = numpy.random.permutation(self.cell.flatten()[0:N])
         else:
             record_from = True
-        self.ce_recorder = brian.StateMonitor(self.brian_cells,'ge',record=record_from)
-        self.ci_recorder = brian.StateMonitor(self.brian_cells,'gi',record=record_from)
+        self.ce_recorder = brian.StateMonitor(self.brian_cells,'ge',record=record_from, clock=simclock)
+        self.ci_recorder = brian.StateMonitor(self.brian_cells,'gi',record=record_from, clock=simclock)
         net.add(self.ce_recorder)
         net.add(self.ci_recorder)
     
@@ -556,7 +578,12 @@ class Population(common.Population):
 
         Useful for small populations, for example for single neuron Monte-Carlo.
         """
-        return self.spike_recorder.spikes
+        spikes = numpy.array(self.spike_recorder.spikes)
+        try:
+            spikes[:,1] = 1000*spikes[:,1]
+        except Exception:
+            spikes = []
+        return spikes
 
     def meanSpikeCount(self, gather=True):
         """

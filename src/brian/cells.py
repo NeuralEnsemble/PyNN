@@ -88,7 +88,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
         ('v_init',     'v',0.001),
     )
     eqs= brian.Equations('''
-        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v))/(0.001*cm) : volt
+        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) - gi*(e_rev_I-v))/(0.001*cm) : volt
         dge/dt = (2.7182818284590451*ye-ge)/tau_syn_E  : 1 
         dye/dt = -ye/tau_syn_E                         : 1
         dgi/dt = (2.7182818284590451*yi-gi)/tau_syn_I  : 1 
@@ -123,7 +123,7 @@ class IF_cond_exp(common.IF_cond_exp):
         ('v_init',     'v',0.001),
     )
     eqs= brian.Equations('''
-        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v))/(0.001*cm) : volt
+        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) - gi*(e_rev_I-v))/(0.001*cm) : volt
         dge/dt = -ge/tau_syn_E : 1
         dgi/dt = -gi/tau_syn_I : 1
         tau_syn_E              : second

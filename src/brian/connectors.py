@@ -4,7 +4,7 @@
 # ==============================================================================
 
 from pyNN import common
-from pyNN.brian.__init__ import numpy
+from pyNN.brian.__init__ import numpy, PoissonGroupWithDelays
 import brian_no_units_no_warnings
 import brian, types
 from pyNN.random import RandomDistribution, NativeRNG
@@ -21,28 +21,26 @@ def _targetConnection(Connector, projection):
         target=projection.post.celltype.synapses['exc']
     else:
         target=projection.post.celltype.synapses['inh']
-    return brian.Connection(projection.pre.brian_cells,projection.post.brian_cells,target, delay=Connector.delays*0.001)
+    src   = projection.pre.brian_cells
+    tgt   = projection.post.brian_cells
+    delay = Connector.delays*0.001
+    connection = brian.Connection(src, tgt, target, delay=delay)
+    return connection
 
 def _convertWeight(weight, projection):
-    #if isinstance(projection.pre.brian_cells, brian.PoissonGroup):
-        #weight *= projection.pre.brian_cells.rate[0]*projection.pre.brian_cells.clock.dt
+    #if isinstance(projection.pre.brian_cells, PoissonGroupWithDelays):
+        #weight *= 10*projection.pre.brian_cells.clock.dt
     if isinstance(weight, numpy.ndarray):
         all_negative = (weight<=0).all()
         all_positive = (weight>=0).all()
         assert all_negative or all_positive, "Weights must be either all positive or all negative"
-        if not projection.post.celltype.default_parameters.has_key('e_rev_E'):
-            if projection.synapse_type == 'inhibitory' and all_positive:
-                weight *= -1
-        else:
-            if projection.synapse_type == "inhibitory" and all_negative:
-                weight *= 1
+        if projection.synapse_type == 'inhibitory' and all_positive:
+            weight *= -1
     elif is_number(weight):
-        if not projection.post.celltype.default_parameters.has_key('e_rev_E'):
-            if projection.synapse_type == 'inhibitory' and weight > 0:
-                weight *= -1
-        else:
-            if projection.synapse_type == 'inhibitory' and weight < 0:
-                weight *= -1
+        if projection.synapse_type == 'inhibitory' and weight > 0:
+            weight *= -1
+    else:
+        raise TypeError("we must be either a number or a numpy array")
     return weight
 
 class AllToAllConnector(common.AllToAllConnector):    
