@@ -130,7 +130,7 @@ class IDMixin(object):
         # parameters, need to get and translate all parameters
         if self.is_standard_cell():
             computed_parameters = self.cellclass.computed_parameters()
-            have_computed_parameters = any([p_name in computed_parameters for p_name in parameters])
+            have_computed_parameters = numpy.any([p_name in computed_parameters for p_name in parameters])
             if have_computed_parameters:     
                 all_parameters = self.get_parameters()
                 all_parameters.update(parameters)
