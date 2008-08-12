@@ -4,7 +4,7 @@
 # ==============================================================================
 
 from pyNN import common
-from pyNN.brian.__init__ import numpy, PoissonGroupWithDelays
+from pyNN.brian.__init__ import numpy
 import brian_no_units_no_warnings
 import brian, types
 from pyNN.random import RandomDistribution, NativeRNG
@@ -23,7 +23,7 @@ def _targetConnection(Connector, projection):
         target=projection.post.celltype.synapses['inh']
     src   = projection.pre.brian_cells
     tgt   = projection.post.brian_cells
-    delay = Connector.delays*0.001
+    delay = max(projection.pre.brian_cells.clock.dt,Connector.delays*0.001)
     connection = brian.Connection(src, tgt, target, delay=delay)
     return connection
 
@@ -92,24 +92,24 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         # and not only those with non zero elements. 
         # The -2 comes from the fact that brian will make 2 tests calls before
         # using the function.
-        nb_conn = -2
+        #nb_conn = -2
         post    = projection.post
         N       = len(post)
+        get_proba   = eval("lambda d: %s" %self.d_expression)
+        get_weights = eval("lambda d: %s" %self.weights)
         
         def topoconnect(i,j):
             global nb_conn, post, N
             pre  = projection.pre.cell.flatten()[i]
             distances = common.distances(pre, post, self.mask,
                                          self.scale_factor, self.offset,
-                                         periodic_boundaries)
-            func = eval("lambda d: %s" %self.d_expression)
-            p = func(distances[0])
+                                         periodic_boundaries)[0]
+            p = get_proba(distances)
             # We get the list of cells that will established a connection
             rarr  = rng.uniform(0, 1, N)
             conn  = ((p >= 1) | ((0 < p) & (p < 1) & (rarr <= p)))
             if isinstance(self.weights,str):
-                func = eval("lambda d: %s" %self.weights)
-                weights = func(distances[0])
+                weights = get_weights(distances)
             else:
                 weights = self.weights*numpy.ones(N)
             weights = _convertWeight(weights, projection)
@@ -125,6 +125,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             return weights
         projection._connections = _targetConnection(self, projection)
         projection._connections.connect_full(projection.pre.brian_cells,projection.post.brian_cells,weight=topoconnect)
+        #print nb_conn
         return projection._connections.W.getnnz()
     
 

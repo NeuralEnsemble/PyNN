@@ -131,17 +131,21 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 rng = projection.rng
         else:
             rng = numpy.random
+            
+        get_proba   = eval("lambda d: %s" %self.d_expression)
+        get_weights = eval("lambda d: %s" %self.weights)
+        get_delays  = eval("lambda d: %s" %self.delays)
+            
         for pre in projection.pre.cell.flat:
             # We compute the distances from the post cell to all the others
             distances = common.distances(pre, projection.post, self.mask,
                                          self.scale_factor, self.offset,
-                                         periodic_boundaries)
+                                         periodic_boundaries)[0]
             # We evaluate the probabilities of connections for those distances
-            func = eval("lambda d: %s" %self.d_expression)
-            probabilities = func(distances[0])
+            proba = get_proba(distances)
             # We get the list of cells that will established a connection
             rarr = rng.uniform(0, 1, (npost,))
-            idx = numpy.where((probabilities >= 1) | ((0 < probabilities) & (probabilities < 1) & (rarr <= probabilities)))[0]
+            idx = numpy.where((proba >= 1) | ((0 < proba) & (proba < 1) & (rarr <= proba)))[0]
             target_list = postsynaptic_neurons[idx].tolist()
             # We remove the pre cell if we don't allow self connections
             if not self.allow_self_connections and pre in target_list:
@@ -150,15 +154,13 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             N = len(target_list)
             # We deal with the fact that the user could have given a weights distance dependent
             if isinstance(self.weights,str):
-                func = eval("lambda d: %s" %self.weights)
-                weights = func(distances[0])[idx]
+                weights = get_weights(distances[idx])
             else:
                 weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()
             # We deal with the fact that the user could have given a delays distance dependent
             if isinstance(self.delays,str):
-                func = eval("lambda d: %s" %self.delays)
-                delays = func(distances[0])[idx].tolist()
+                delays = get_delays(distances[idx]).tolist()
             else:
                 delays = self.getDelays(N).tolist()
             projection._targets += target_list
@@ -166,7 +168,6 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             #projection._target_ports += get_target_ports(pre, target_list, projection._plasticity_model)
             nest.DivergentConnectWD([pre], target_list, weights, delays)
         return len(projection._sources)
-
 
 class FixedNumberPostConnector(common.FixedNumberPostConnector):
     

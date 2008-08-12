@@ -115,14 +115,18 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 rng = projection.rng
         else:
             rng = numpy.random
+        
+        get_proba   = eval("lambda d: %s" %self.d_expression)
+        get_weights = eval("lambda d: %s" %self.weights)
+        get_delays  = eval("lambda d: %s" %self.delays)
+            
         for post in postsynaptic_neurons:
-            distances = common.distances(projection.pre, post, self.mask, self.scale_factor, self.offset, periodic_boundaries)
+            distances = common.distances(projection.pre, post, self.mask, self.scale_factor, self.offset, periodic_boundaries)[:,0]
             # We evaluate the probabilities of connections for those distances
-            func = eval("lambda d: %s" %self.d_expression)
-            probabilities = func(distances[:,0])
+            proba = get_proba(distances)
             rarr = rng.uniform(0, 1, (npre,))
             # We get the list of cells that will established a connecti
-            idx = numpy.where((probabilities >= 1) | ((0 < probabilities) & (probabilities < 1) & (rarr <= probabilities)))[0]
+            idx = numpy.where((proba >= 1) | ((0 < proba) & (proba < 1) & (rarr <= proba)))[0]
             source_list = presynaptic_neurons[idx].tolist()
             # We remove the post cell if we don't allow self connections
             if not self.allow_self_connections and post in source_list:
@@ -130,15 +134,13 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 source_list.remove(post)
             N = len(source_list)
             if isinstance(self.weights,str):
-                func = eval("lambda d: %s" %self.weights)
-                weights = func(distances[:,0])[idx]
+                weights = get_weights(distances[idx])
             else:
                 weights = self.getWeights(N)
             weights = _convertWeight(weights, projection.synapse_type).tolist()
             # We deal with the fact that the user could have given a delays distance dependent
             if isinstance(self.delays,str):
-                func = eval("lambda d: %s" %self.delays)
-                delays = func(distances[:,0])[idx].tolist()
+                delays = get_delays(distances[idx]).tolist()
             else:
                 delays = self.getDelays(N).tolist()
             projection._targets += [post]*N
