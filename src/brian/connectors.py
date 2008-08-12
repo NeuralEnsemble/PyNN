@@ -95,8 +95,8 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         #nb_conn = -2
         post    = projection.post
         N       = len(post)
-        get_proba   = eval("lambda d: %s" %self.d_expression)
-        get_weights = eval("lambda d: %s" %self.weights)
+        get_proba   = lambda d: eval(self.d_expression)
+        get_weights = lambda d: eval(self.weights)
         
         def topoconnect(i,j):
             global nb_conn, post, N

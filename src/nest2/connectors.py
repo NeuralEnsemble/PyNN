@@ -132,9 +132,9 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         else:
             rng = numpy.random
             
-        get_proba   = eval("lambda d: %s" %self.d_expression)
-        get_weights = eval("lambda d: %s" %self.weights)
-        get_delays  = eval("lambda d: %s" %self.delays)
+        get_proba   = lambda d: eval(self.d_expression)
+        get_weights = lambda d: eval(self.weights)
+        get_delays  = lambda d: eval(self.delays)
             
         for pre in projection.pre.cell.flat:
             # We compute the distances from the post cell to all the others

@@ -116,9 +116,9 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         else:
             rng = numpy.random
         
-        get_proba   = eval("lambda d: %s" %self.d_expression)
-        get_weights = eval("lambda d: %s" %self.weights)
-        get_delays  = eval("lambda d: %s" %self.delays)
+        get_proba   = lambda d: eval(self.d_expression)
+        get_weights = lambda d: eval(self.weights)
+        get_delays  = lambda d: eval(self.delays)
             
         for post in postsynaptic_neurons:
             distances = common.distances(projection.pre, post, self.mask, self.scale_factor, self.offset, periodic_boundaries)[:,0]
