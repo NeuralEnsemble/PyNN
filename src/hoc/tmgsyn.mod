@@ -145,7 +145,7 @@ INITIAL {
 	u = u0
 	tsyn = t
 : this header will appear once per stream
- printf("t\t t-tsyn\t y\t z\t u\t newu\t g\t dg\t newg\t newy\n")
+ :printf("t\t t-tsyn\t y\t z\t u\t newu\t g\t dg\t newg\t newy\n")
 }
 
 	: first calculate z at event-
@@ -164,18 +164,18 @@ INITIAL {
 		u = U
 	}
 
- printf("%g\t%g\t%g\t%g\t%g", t, t-tsyn, y, z, u)
+ :printf("%g\t%g\t%g\t%g\t%g", t, t-tsyn, y, z, u)
 
 	if (tau_facil > 0) {
 		state_discontinuity(u, u + U*(1-u))
 	}
 
- printf("\t%g\t%g\t%g", u, g, weight*x*u)
+ :printf("\t%g\t%g\t%g", u, g, weight*x*u)
 
 	state_discontinuity(g, g + weight*x*u)
 	state_discontinuity(y, y + x*u)
 
 	tsyn = t
 
- printf("\t%g\t%g\n", g, y)
+ :printf("\t%g\t%g\n", g, y)
 }
