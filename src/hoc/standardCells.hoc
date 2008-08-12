@@ -219,8 +219,8 @@ begintemplate SpikeSource
       if (input_spiketimes.size() > 0) {
         source.play(input_spiketimes)
         source.ping = 1.0
-        spiketimes.append(input_spiketimes)
       }
+      recorded_current_input_spikes = 0
       has_input_spikes = 1
     } else {
       has_input_spikes = 0
@@ -253,6 +253,9 @@ begintemplate SpikeSource
       }
     }
     recording = $1
+    if (recording && !recorded_current_input_spikes) {
+        spiketimes.append(input_spiketimes)
+    }
   }
   
   proc set() {
@@ -268,8 +271,12 @@ begintemplate SpikeSource
       source.play(input_spiketimes)
       source.ping = 1.0
       if (recording == 1) {
-        spiketimes.append(input_spiketimes)
+          spiketimes.append(input_spiketimes)
+          recorded_current_input_spikes = 1
+      } else {
+          recorded_current_input_spikes = 0
       }
+       
     } else {
       source.start = start
       source.interval = interval
