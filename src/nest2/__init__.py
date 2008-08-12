@@ -717,6 +717,7 @@ class Population(common.Population):
             param_dict = param
         else:
             raise common.InvalidParameterValueError
+        
         # This is not very efficient for simple and scaled parameters.
         # Should call nest.SetStatus(self.cell_local,...) for the parameters in
         # self.celltype.__class__.simple_parameters() and .scaled_parameters()
@@ -724,8 +725,32 @@ class Population(common.Population):
         # case, it may be quicker to test whether the parameters participating
         # in the computation vary between cells, since if this is not the case
         # we can do the computation here and use nest.SetStatus.
-        for cell in self.cell_local:
-            cell.set_parameters(**param_dict)
+        for key, value in param_dict.items():
+            if not isinstance(self.celltype, str):
+                # Here we check the consistency of the given parameters
+                try:
+                    self.celltype.default_parameters[key]
+                except Exception:
+                    raise common.NonExistentParameterError(key, self.celltype.__class__)
+                if type(value) != type(self.celltype.default_parameters[key]):
+                    raise common.InvalidParameterValueError
+                
+                # Then we do the call to SetStatus
+                if key in self.celltype.scaled_parameters():
+                    translation = self.celltype.translations[key]
+                    value = eval(translation['forward_transform'], globals(), {key:value})
+                    nest.SetStatus(self.cell_local,translation['translated_name'],value)
+                elif key in self.celltype.simple_parameters():
+                    translation = self.celltype.translations[key]
+                    nest.SetStatus(self.cell_local, translation['translated_name'], value)
+                else:
+                    for cell in self.cell_local:
+                        cell.set_parameters(**{key:value})
+            else:
+                try:
+                    nest.SetStatus(self.cell_local, key, value)
+                except Exception:
+                    raise common.InvalidParameterValueError
 
     def tset(self, parametername, value_array):
         """
@@ -767,6 +792,10 @@ class Population(common.Population):
             assert len(rarr) >= len(self.cell_local), "The length of rarr (%d) must be greater than that of cell_local (%d)" % (len(rarr), len(self.cell_local))
             rarr = rarr[:len(self.cell_local)]
             if not isinstance(self.celltype, str):
+                try:
+                    self.celltype.default_parameters[parametername]
+                except Exception:
+                    raise common.NonExistentParameterError(parametername, self.celltype.__class__)
                 if parametername in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[parametername]
                     rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
