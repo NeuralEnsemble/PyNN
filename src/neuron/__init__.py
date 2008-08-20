@@ -22,6 +22,7 @@ import sys
 import numpy
 import logging
 import platform
+import tempfile
 Set = set
 
 gid           = 0
@@ -329,37 +330,42 @@ class Recorder(object):
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):
-        hoc_execute(['objref gathered_vec_list',
-                     'gathered_vec_list =  new List()'])
+        hoc_execute(['objref gathered_vec_list, gathered_id_vec',
+                     'gathered_vec_list =  new List()',
+                     'gathered_id_vec = new Vector(0)'])
         vector_operation = ''
         if self.variable == 'spikes':
             vector_operation = '.where("<=", tstop)'
         header = "# dt = %g\\n# n = %d\\n" % (get_time_step(), int(h.tstop/get_time_step()))
         if self.population is None:
             cell_template = "cell%d"
-            post_label = "node%d: post cellX.%s" % (myid, self.variable)
+            post_fmt = "node%%d: post cellX.%s" % self.variable
             id_list = gidlist
             padding = 0
         else:
             cell_template = "%s.object(%s)" % (self.population.hoc_label, "%d")
-            post_label = 'node%d: post_%s.%s' % (myid, self.population.hoc_label, self.variable)
+            post_fmt = 'node%%d: post_%s.%s' % (self.population.hoc_label, self.variable)
             id_list = self.population.gidlist
             padding = self.population.first_id
             
         def post_data():
             pack_template = 'tmp = pc.pack(%s.%s%s)' % (cell_template,
-                                                        RECORDING_VECTOR_NAME[self.variable],
+                                                        RECORDING_VECTOR_NAMES[self.variable],
                                                         vector_operation)
+            hoc_commands = ['tmp = pc.pack(%d)' % len(self.recorded)]
             for cell in self.recorded:
-                hoc_commands += ['tmp = pc.pack(%d)' % id_list.index(cell),
+                hoc_commands += ['tmp = pc.pack(%d)' % cell, #id_list.index(cell),
                                  pack_template % id_list.index(cell)]
-            hoc_commands += ['tmp = pc.post("%s")' % post_label]
-            hoc_execute(hoc_commands,"--- Population[%s].__print()__ --- [Post objects to master]" %self.label)
+            hoc_commands += ['tmp = pc.post("%s")' % (post_fmt % myid,)]
+            hoc_execute(hoc_commands,"--- Population[%s].__print()__ --- [Post objects to master]" % self.population.label)
         def take_data():
-            hoc_commands = ['tmp = pc.take(post_label)']
+            #hoc_commands = ['tmp = pc.take(post_label)']
             for node in range(1, num_processes()):
-                hoc_commands += ['gathered_vec_list.append(pc.upkscalar())',
-                                 'gathered_vec_list.append(pc.upkvec())']
+                take_label = post_fmt % node
+                hoc_commands = ['tmp = pc.take("%s")' % take_label,
+                                'n = pc.upkscalar()',
+                                'for i = 1,n { gathered_id_vec.append(pc.upkscalar()) gathered_vec_list.append(pc.upkvec()) }']
+                hoc_execute(hoc_commands,"--- Population[%s].__print()__ --- [Take objects from node %d]" % (self.population.label, node))
         def write_data():
             if self.population is None:
                 header = "# first_id = %d\\n# last_id = %d\\n" % (min(self.recorded), max(self.recorded))
@@ -387,10 +393,13 @@ class Recorder(object):
             for cell in self.recorded:
                 hoc_commands += ['fmt = "%s\\t%d\\n"' % (num_format, cell-padding),
                                  write_template % id_list.index(cell)]
-            # writing gathered data is currently broken
-            #hoc_commands += ['while i < gathered_vec_list.count()-2 { gathered_vec_list.o(i+1).printf(fileobj, "%s broken") ' % num_format]
-            hoc_commands += ['tmp = fileobj.close()']
             hoc_execute(hoc_commands, "Recorder.write()")
+            # write gathered data
+            for id, vec in zip(h.gathered_id_vec, h.gathered_vec_list):
+                fmt = "%s\t%d\n" % (num_format, int(id)-padding)
+                vec.printf(h.fileobj, fmt)
+            h.fileobj.close()
+            
             
         if gather:
             if myid != 0: # on slave nodes, post data
@@ -400,7 +409,10 @@ class Recorder(object):
                 write_data()
         else:
             if num_processes() > 1:
-                self.filename += ".%d" % myid    
+                if file:
+                    file += ".%d" % myid
+                else:
+                    self.filename += ".%d" % myid
             write_data()
                 
 # ==============================================================================
@@ -584,7 +596,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     for tgt in target:
         if tgt > gid or tgt < 0 or not isinstance(tgt, int):
             raise common.ConnectionError, "Postsynaptic cell id %s does not exist." % str(tgt)
-        if "cond" in tgt.cellclass.__name__:
+        if hasattr(tgt.cellclass, '__name__') and "cond" in tgt.cellclass.__name__:
             weight = abs(weight) # weights must be positive for conductance-based synapses
         if tgt in gidlist: # only create connections to cells that exist on this machine
             if p < 1:
@@ -597,8 +609,8 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
                     raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src)
                 else:
                     if p >= 1.0 or rarr[j] < p: # might be more efficient to vectorise the latter comparison
-                        hoc_commands += [#'nc = pc.gid_connect(%d, pc.gid2cell(%d).%s)' % (src, tgt, syn_objref),
-                                         'nc = pc.gid_connect(%d, cell%d.%s)' % (src, tgt, syn_objref),
+                        hoc_commands += ['nc = pc.gid_connect(%d, pc.gid2cell(%d).%s)' % (src, tgt, syn_objref),
+                                         #'nc = pc.gid_connect(%d, cell%d.%s)' % (src, tgt, syn_objref),
                                          'nc.delay = %g' % delay,
                                          'nc.weight = %g' % weight,
                                          'tmp = netconlist.append(nc)']
@@ -607,7 +619,6 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
             for j, src in enumerate(source):
                 if src > gid or src < 0 or not isinstance(src, int):
                     raise common.ConnectionError, "Presynaptic cell id %s does not exist." % str(src)
-    print hoc_commands
     hoc_execute(hoc_commands, "--- connect(%s,%s) ---" % (str(source), str(target)))
     return range(nc_start, ncid)
 
@@ -1040,17 +1051,17 @@ class Population(common.Population):
         Useful for small populations, for example for single neuron Monte-Carlo.
         """
         # This is a bit of a hack implemetation
-        tmpfile = "neuron_tmpfile" # should really use tempfile module
+        tmpfile = os.path.join(tempfile.mkdtemp(prefix="pyNN_neuron"), "getSpikes_tmpfile") # should really use tempfile module
         self.recorders['spikes'].write(tmpfile, gather, compatible_output=False)
-        if not gather:
-            tmpfile += '%d' % myid
+        if not gather and num_processes()>1:
+            tmpfile += '.%d' % myid
         if myid==0 or not gather:
             f = open(tmpfile, 'r')
             lines = [line for line in f.read().split('\n') if line and line[0]!='#'] # remove blank and comment lines
             line2spike = lambda s: (int(s[1]), float(s[0]))
             spikes = numpy.array([line2spike(line.split()) for line in lines])
             f.close()
-            #os.remove(tmpfile)
+            #os.remove(tmpfile) # should also remove tmp parent directory
             return spikes
         else:
             return numpy.empty((0,2))

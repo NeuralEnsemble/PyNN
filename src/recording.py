@@ -78,22 +78,20 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
     except Exception:
         N = 0
     
+    result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)    
+    # Write header info (e.g., dimensions of the population)
+    if population is not None:
+        result.write("# dimensions =" + "\t".join([str(d) for d in population.dim]) + "\n")
+        result.write("# first_id = %d\n" % population.first_id)
+        result.write("# last_id = %d\n" % (population.first_id+len(population)-1,))
+        padding = population.first_id
+    else:
+        padding = 0
+    result.write("# dt = %g\n" % dt)
+        
     if N > 0:
         data = readArray(sim_filename, sepchar=None)
-        
-        result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)    
-        # Write header info (e.g., dimensions of the population)
-        if population is not None:
-            result.write("# dimensions =" + "\t".join([str(d) for d in population.dim]) + "\n")
-            result.write("# first_id = %d\n" % population.first_id)
-            result.write("# last_id = %d\n" % (population.first_id+len(population)-1,))
-            padding = population.first_id
-        else:
-            padding = 0
-        result.write("# dt = %g\n" % dt)
-        
         data[:,0] = data[:,0] - padding
-        
         # sort
         #indx = data.argsort(axis=0, kind='mergesort')[:,0] # will quicksort (not stable) work?
         #data = data[indx]
@@ -118,9 +116,10 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
                 result.write("%g\t%d\n" % (data[idx][time_column], data[idx][id_column])) # time id
         else:
             raise Exception("Data file should have 2,3 or 4 columns, actually has %d" % data.shape[1])
-        result.close()
     else:
         logging.info("%s is empty" % sim_filename)
+        result.write("# n = 0\n")
+    result.close()
 
 def write_compatible_output1(data_source, user_filename, variable, input_format, population, dt):
     """
