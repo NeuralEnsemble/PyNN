@@ -22,7 +22,10 @@ from copy import copy
 from math import *
 
 if len(sys.argv) < 3:
-    print "Usage: python VAbenchmarks.py <simulator> <benchmark>\n\n<simulator> is either neuron, nest1, nest2 or pcsim\n<benchmark> is either CUBA or COBA."
+    print """Usage: python VAbenchmarks.py <simulator> <benchmark>
+    
+    <simulator> is either neuron, nest1, nest2 or pcsim
+    <benchmark> is either CUBA or COBA."""
     sys.exit(1)
 simulator = sys.argv[-2]
 benchmark = sys.argv[-1]
@@ -193,7 +196,8 @@ inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, sim
 exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, np), compatible_output=True)
 writeCPUTime = Timer.elapsedTime()
 
-tmp_string = "%d e→e  %d e→i  %d i→e  %d i→i" % (len(connections['e2e']), len(connections['e2i']), len(connections['i2e']), len(connections['i2i']))
+tmp_string = "%d e→e  %d e→i  %d i→e  %d i→i" % (len(connections['e2e']), len(connections['e2i']),
+                                                 len(connections['i2e']), len(connections['i2i']))
 
 nprint("\n--- Vogels-Abbott Network Simulation ---")
 nprint("Nodes                  : %d" % np)
