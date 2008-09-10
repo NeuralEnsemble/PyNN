@@ -115,21 +115,27 @@ class Recorder(object):
         self.file = file
         self.population = population # needed for writing header information
         self.recorded = Set([])        
-        # create device
-        device_name = RECORDING_DEVICE_NAMES[variable]
+        # we defer creating the actual device until it is needed.
+        self._device = None
+
+    def _create_device(self):
+        device_name = RECORDING_DEVICE_NAMES[self.variable]
         self._device = nest.Create(device_name)
-        device_parameters = {"withgid": True, "withtime": True,
-                             "to_file": True, "to_memory": False}
+        device_parameters = {"withgid": True, "withtime": True}
         if self.variable != 'spikes':
             device_parameters["interval"] = get_time_step()
-        if file is False:
+        if self.file is False:
             device_parameters.update(to_file=False, to_memory=True)
+        else: # (includes self.file is None)
+            device_parameters.update(to_file=True, to_memory=False)
         # line needed for old version of nest 2.0
-	# device_parameters.pop('to_memory')
+        # device_parameters.pop('to_memory')
         nest.SetStatus(self._device, device_parameters)
 
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
+        if self._device is None:
+            self._create_device()
         ids = Set(ids)
         new_ids = list( ids.difference(self.recorded) )
         self.recorded = self.recorded.union(ids)
@@ -149,6 +155,8 @@ class Recorder(object):
     
     def get(self, gather=False):
         """Returns the recorded data."""
+        if self._device is None:
+            raise Exception("No cells recorded, so no data to return")
         if nest.GetStatus(self._device, 'to_file')[0]:
             nest_filename = _merge_files(self._device, gather)
             data = recording.readArray(nest_filename, sepchar=None)
@@ -166,6 +174,8 @@ class Recorder(object):
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):
+        if self._device is None:
+            raise Exception("No cells recorded, so no data to write to file.")
         user_file = file or self.file
         if isinstance(user_file, basestring):
             if num_processes() > 1:
@@ -810,9 +820,6 @@ class Population(common.Population):
                nest.SetStatus(self.cell_local, parametername, rarr)
 
     def _record(self, variable, record_from=None, rng=None,to_file=True):
-        if to_file is False:
-            nest.SetStatus(self.recorders[variable]._device, {'to_file': False, 'to_memory': True})
-
         # create list of neurons
         fixed_list = False
         if record_from:
@@ -838,8 +845,9 @@ class Population(common.Population):
             if not rng:
                 rng = numpy.random
             tmp_list = rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]
-
+    
         self.recorders[variable].record(tmp_list)
+        nest.SetStatus(self.recorders[variable]._device, {'to_file': to_file, 'to_memory': not to_file})
 
     def record(self, record_from=None, rng=None, to_file=True):
         """
