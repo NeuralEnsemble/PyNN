@@ -46,7 +46,7 @@ def rename_existing(filename):
         os.system('mv %s %s_old' % (filename, filename))
         logging.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
 
-def convert_compatible_output(data, population, variable):
+def convert_compatible_output(data, population, variable,compatible_output=True):
     """
     !!! NEST specific !!!
     """
@@ -58,9 +58,15 @@ def convert_compatible_output(data, population, variable):
     if variable == 'spikes':
         return numpy.array((data['times'],data['senders']- padding)).T
     elif variable == 'v':
-        return numpy.array((data['times'],data['senders']- padding,data['potentials'])).T
+        if compatible_output:
+            return numpy.array((data['potentials'],data['senders']- padding)).T
+        else:
+            return numpy.array((data['times'],data['senders']- padding,data['potentials'])).T
     elif variable == 'conductance':
-        return numpy.array((data['times'],data['senders']- padding,data['exc_conductance'],data['inh_conductance'])).T
+        if compatible_output:
+            return numpy.array((data['exc_conductance'],data['inh_conductance'],data['senders']- padding)).T
+        else:
+            return numpy.array((data['times'],data['senders']- padding,data['exc_conductance'],data['inh_conductance'])).T
             
     
 def write_compatible_output(sim_filename, user_filename, variable, input_format, population, dt):

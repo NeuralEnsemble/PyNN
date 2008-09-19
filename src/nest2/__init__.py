@@ -153,7 +153,7 @@ class Recorder(object):
         if original_synapse_context != 'static_synapse':
             nest.SetSynapseContext(original_synapse_context)
     
-    def get(self, gather=False):
+    def get(self, gather=False, compatible_output=True):
         """Returns the recorded data."""
         if self._device is None:
             raise Exception("No cells recorded, so no data to return")
@@ -170,7 +170,7 @@ class Recorder(object):
                 data[:,0] = data[:,0] - padding
         elif nest.GetStatus(self._device,'to_memory')[0]:
             data = nest.GetStatus(self._device,'events')[0]
-            data = recording.convert_compatible_output(data, self.population, self.variable)
+            data = recording.convert_compatible_output(data, self.population, self.variable,compatible_output)
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):
@@ -902,7 +902,7 @@ class Population(common.Population):
         """
         self.recorders['spikes'].write(filename, gather, compatible_output)
 
-    def getSpikes(self, gather=True):
+    def getSpikes(self, gather=True, compatible_output=True):
         """
         Return a 2-column numpy array containing cell ids and spike times for
         recorded cells.
@@ -912,9 +912,9 @@ class Population(common.Population):
         NOTE: getSpikes or printSpikes should be called only once per run,
         because they mangle simulator recorder files.
         """
-        return self.recorders['spikes'].get(gather)
+        return self.recorders['spikes'].get(gather, compatible_output)
 
-    def get_v(self, gather=True):
+    def get_v(self, gather=True, compatible_output=True):
         """
         Return a 2-column numpy array containing cell ids and spike times for
         recorded cells.
@@ -924,9 +924,9 @@ class Population(common.Population):
         NOTE: getSpikes or printSpikes should be called only once per run,
         because they mangle simulator recorder files.
         """
-        return self.recorders['v'].get(gather)
+        return self.recorders['v'].get(gather, compatible_output)
             
-    def get_c(self, gather=True):
+    def get_c(self, gather=True, compatible_output=True):
         """
         Return a 2-column numpy array containing cell ids and spike times for
         recorded cells.
@@ -936,7 +936,7 @@ class Population(common.Population):
         NOTE: getSpikes or printSpikes should be called only once per run,
         because they mangle simulator recorder files.
         """
-        return self.recorders['conductance'].get(gather)
+        return self.recorders['conductance'].get(gather, compatible_output)
     
     def meanSpikeCount(self, gather=True):
         """
