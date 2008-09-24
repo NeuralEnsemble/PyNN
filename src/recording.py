@@ -87,7 +87,7 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
     result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)    
     # Write header info (e.g., dimensions of the population)
     if population is not None:
-        result.write("# dimensions =" + "\t".join([str(d) for d in population.dim]) + "\n")
+        result.write("# dimensions = %s\n" %list(population.dim))
         result.write("# first_id = %d\n" % population.first_id)
         result.write("# last_id = %d\n" % (population.first_id+len(population)-1,))
         padding = population.first_id
@@ -148,7 +148,7 @@ def write_compatible_output1(data_source, user_filename, variable, input_format,
         metadata = {}
         if population is not None:
             metadata.update({
-                'dimensions': "\t".join([str(d) for d in population.dim]),
+                'dimensions': str(list(population.dim)),
                 'first_id': population.first_id,
                 'last_id': population.first_id + len(population)-1
             })

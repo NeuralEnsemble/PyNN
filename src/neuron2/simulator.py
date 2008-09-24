@@ -66,24 +66,20 @@ class Recorder(object):
         
     def get(self, gather=False):
         """Returns the recorded data."""
-        if self.population:  # we return indices (always starting at 0), not IDs. This is what the other modules do, but I think we should really return IDs.
-            offset = self.population.first_id
-        else:
-            offset = 0
         if self.variable == 'spikes':
             data = numpy.empty((0,2))
             for id in self.recorded:
                 spikes = id._cell.spiketimes.toarray()
                 spikes = spikes[spikes<=state.t+1e-9]
                 if len(spikes) > 0:
-                    new_data = numpy.array([numpy.ones(spikes.shape)*(id-offset), spikes]).T
+                    new_data = numpy.array([numpy.ones(spikes.shape)*id, spikes]).T
                     data = numpy.concatenate((data, new_data))
         elif self.variable == 'v':
             data = numpy.empty((0,3))
             for id in self.recorded:
                 v = id._cell.vtrace.toarray()
                 t = id._cell.record_times.toarray()
-                new_data = numpy.array([t, v, numpy.ones(v.shape)*(id-offset)]).T
+                new_data = numpy.array([t, v, numpy.ones(v.shape)*id]).T
                 data = numpy.concatenate((data, new_data))
         return data
     
