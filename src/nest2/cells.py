@@ -141,7 +141,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
     def __init__(self, parameters):
         common.IF_facets_hardware1.__init__(self, parameters)
         self.parameters['C_m']   = 200.0
-        self.parameters['t_ref'] =   0.4
+        self.parameters['t_ref'] =   1.0
         self.parameters['E_ex']  =   0.0
         self.parameters['q_rr']  =   0.0
         self.parameters['q_sfa'] =   0.0

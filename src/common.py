@@ -495,7 +495,7 @@ class IF_facets_hardware1(StandardCellType):
     """Leaky integrate and fire model with conductance-based synapses and fixed 
     threshold as it is resembled by the FACETS Hardware Stage 1. 
     The following parameters can be assumed for a corresponding software
-    simulation: cm = 0.2 nF, tau_refrac = 0.4 ms, e_rev_E = 0.0 mV.  
+    simulation: cm = 0.2 nF, tau_refrac = 1.0 ms, e_rev_E = 0.0 mV.  
     For further details regarding the hardware model see the FACETS-internal Wiki:
     https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
     """

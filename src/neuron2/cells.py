@@ -356,7 +356,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         self.parameters['syn_shape'] = 'exp'
         self.parameters['i_offset']  = 0.0
         self.parameters['cm']        = 0.2
-        self.parameters['t_refrac']  = 0.4
+        self.parameters['t_refrac']  = 1.0
         self.parameters['e_e']       = 0.0
         
 
