@@ -88,7 +88,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
         self.simObjFactory = LIFCondAlphaNeuron(**self.parameters)
 
 
-class IF_cond_exp(common.IF_cond_alpha):
+class IF_cond_exp(common.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and 
     exponentially-decaying post-synaptic conductance."""
     
@@ -111,7 +111,7 @@ class IF_cond_exp(common.IF_cond_alpha):
     setterMethods = {}
         
     def __init__(self, parameters):
-        common.IF_cond_alpha.__init__(self, parameters)
+        common.IF_cond_exp.__init__(self, parameters)
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = LIFCondExpNeuron(**self.parameters)
 

@@ -7,7 +7,7 @@ $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 """
 __version__ = "$Rev$"
 
-from neuron import hoc, Vector
+from neuron import hoc
 h = hoc.HocObject()
 from pyNN import __path__ as pyNN_path
 from pyNN.random import *
@@ -112,7 +112,8 @@ class ID(int, common.IDMixin):
         logging.debug("Setting %s in %s" % (parameters, cell))
         for name, val in parameters.items():
             if hasattr(val, '__len__'):
-                setattr(cell, name, Vector(val).hoc_obj)
+                #setattr(cell, name, Vector(val).hoc_obj)
+                setattr(cell, name, h.Vector(val))
             else:
                 setattr(cell, name, val)
             cell.param_update()

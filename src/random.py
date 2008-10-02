@@ -98,7 +98,10 @@ class NumpyRNG(AbstractRNG):
             # the node with rank 0, and that neurons are distributed in a round-robin
             # This assumption is not true for NEST
             rarr = rarr[numpy.arange(self.rank, len(rarr), self.num_processes)]
-        return rarr
+        if len(rarr) == 1:
+            return rarr[0]
+        else:
+            return rarr
 
 class GSLRNG(AbstractRNG):
     """Wrapper for the GSL random number generators."""

@@ -134,7 +134,7 @@ def _create(cellclass, param_dict, n, parent=None):
     last_id = simulator.state.gid_counter + n - 1
     all_ids = numpy.array([id for id in range(first_id, last_id+1)], ID)
     # mask_local is used to extract those elements from arrays that apply to the cells on the current node
-    mask_local = all_ids%num_processes()==0 # round-robin distribution of cells between nodes
+    mask_local = all_ids%num_processes()==rank() # round-robin distribution of cells between nodes
     for i,(id,is_local) in enumerate(zip(all_ids, mask_local)):
         if is_local:
             all_ids[i] = ID(id)

@@ -185,7 +185,7 @@ def write_compatible_output1(data_source, user_filename, variable, input_format,
         
         user_file.write(data_array, metadata)
     else:
-        logging.warning("%s is empty" % sim_filename)
+        logging.warning("%s is empty" % data_source)
 
 def readArray(filename, sepchar=None, skipchar='#'):
     """

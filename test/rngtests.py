@@ -28,10 +28,14 @@ class SimpleTests(unittest.TestCase):
             self.assertEqual(len(rng.next(n=5)),5)
             
     def testNonPositiveN(self):
-        """Calling next(m) where m <= 0 should raise a ValueError."""
+        """Calling next(m) where m < 0 should raise a ValueError."""
         for rng in self.rnglist:
-            self.assertRaises(ValueError,rng.next,0)
             self.assertRaises(ValueError,rng.next,-1)
+
+    def testNZero(self):
+        """Calling next(0) should return an empty array."""
+        for rng in self.rnglist:
+	    self.assertEqual(len(rng.next(0)), 0)
 
 # ==============================================================================            
 if __name__ == "__main__":
