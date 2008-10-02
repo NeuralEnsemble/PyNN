@@ -6,6 +6,29 @@
 from pyNN import common
 from pypcsim import *
 from pyNN.pcsim.pcsim_globals import pcsim_globals
+import numpy
+
+
+class ListConnectionPredicate(PyConnectionDecisionPredicate):
+    """Used by FromListConnector and FromFileConnector."""
+    
+    def __init__(self, conn_array):
+        PyConnectionDecisionPredicate.__init__(self)
+        # now need to turn conn_list into a form suitable for use by decide()
+        # a sparse array would be one possibility, but for now we use a dict of dicts
+        self._connections = {}
+        for i in xrange(len(conn_array)):
+            src, tgt = conn_array[i][:]
+            if src not in self._connections:
+                self._connections[src] = []
+            self._connections[src].append(tgt) 
+    
+    def decide(self, src, tgt, rng):
+        if src in self._connections and tgt in self._connections[src]:
+            return True
+        else:
+            return False
+
 
 class AllToAllConnector(common.AllToAllConnector):    
     
@@ -49,3 +72,45 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
         decider = DegreeDistributionConnections(ConstantNumber(self.fixedpost), DegreeDistributionConnections.outgoing)
         wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
         return decider, wiring_method, self.weights, self.delays
+    
+class FromListConnector(common.FromListConnector):
+    
+    def connect(self, projection):
+        conn_array = numpy.zeros((len(self.conn_list),4))
+        for i in xrange(len(self.conn_list)):
+            src, tgt, weight, delay = self.conn_list[i][:]
+            src = projection.pre[tuple(src)]
+            tgt = projection.post[tuple(tgt)]
+            conn_array[i,:] = (src, tgt, weight, delay)
+        self.weights = conn_array[:,2]
+        self.delays = conn_array[:,3]
+        lcp = ListConnectionPredicate(conn_array[:,0:2])
+        decider = PredicateBasedConnections(lcp)
+        wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
+        # pcsim does not yet deal with having lists of weights, delays, so for now we just return 0 values
+        # and will set the weights, delays later
+        return decider, wiring_method, 0.0, 0.0
+
+class FromFileConnector(common.FromFileConnector):
+    
+    def connect(self, projection):
+        f = open(self.filename, 'r', 10000)
+        lines = f.readlines()
+        f.close()
+        conn_array = numpy.zeros((len(lines),4))
+        for i,line in enumerate(lines):
+            single_line = line.rstrip()
+            src, tgt, w, d = single_line.split("\t", 4)
+            src = "[%s" % src.split("[",1)[1]
+            tgt = "[%s" % tgt.split("[",1)[1]
+            src = projection.pre[tuple(eval(src))]
+            tgt = projection.post[tuple(eval(tgt))]
+            conn_array[i,:] = (src, tgt, w, d)
+        self.weights = conn_array[:,2]
+        self.delays = conn_array[:,3]
+        lcp = ListConnectionPredicate(conn_array[:,0:2])
+        decider = PredicateBasedConnections(lcp)
+        wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
+        # pcsim does not yet deal with having lists of weights, delays, so for now we just return 0 values
+        # and will set the weights, delays later
+        return decider, wiring_method, 0.0, 0.0

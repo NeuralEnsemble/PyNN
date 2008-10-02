@@ -332,6 +332,16 @@ class ProjectionInitTest(unittest.TestCase):
         prj2 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 3], distrib_Native)
         assert (0 < len(prj1) < len(self.source33)*len(self.target33)) and (0 < len(prj2) < len(self.source33)*len(self.target33))
 
+    def testFromList(self):
+        list_22_33 = [([0,0], [0,2], 0.2, 0.3),
+                      ([1,0], [2,2], 0.3, 0.4),
+                      ([1,0], [1,0], 0.4, 0.5)]
+        prj1 = Projection(self.source22, self.target33, FromListConnector(list_22_33))
+        assert len(prj1) == len(list_22_33)
+        
+    def testWithWeightArray(self):
+        prj2 = Projection(self.source33, self.target33, OneToOneConnector(weights=numpy.linspace(0.1,0.9,9)))
+        assert len(prj1) == self.source33.size # just check there are no Exceptions raised for now. Need also to check weights are properly set
 #         
 #     def testSaveAndLoad(self):
 #         prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
