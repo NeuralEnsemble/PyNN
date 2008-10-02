@@ -89,7 +89,7 @@ class FromListConnector(common.FromListConnector):
         wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
         # pcsim does not yet deal with having lists of weights, delays, so for now we just return 0 values
         # and will set the weights, delays later
-        return decider, wiring_method, 0.0, 0.0
+        return decider, wiring_method, self.weights, self.delays
 
 class FromFileConnector(common.FromFileConnector):
     
@@ -113,4 +113,4 @@ class FromFileConnector(common.FromFileConnector):
         wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
         # pcsim does not yet deal with having lists of weights, delays, so for now we just return 0 values
         # and will set the weights, delays later
-        return decider, wiring_method, 0.0, 0.0
+        return decider, wiring_method, self.weights, self.delays

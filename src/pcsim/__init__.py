@@ -996,14 +996,14 @@ class Projection(common.Projection, WDManager):
             decider, wiring_method, weight, delay = method.connect(self)
         
         weight = self.getWeight(weight)
-        is_conductance = hasattr(self.post.pcsim_population.object(0),'ErevExc')
-        if isinstance(weight, pyNN.random.RandomDistribution):
+        self.is_conductance = hasattr(self.post.pcsim_population.object(0),'ErevExc')
+        if isinstance(weight, pyNN.random.RandomDistribution) or hasattr(weight, '__len__'):
             w = 1.
         else:
-            w = self.convertWeight(weight, is_conductance)
+            w = self.convertWeight(weight, self.is_conductance)
         
         delay  = self.getDelay(delay)
-        if isinstance(delay, pyNN.random.RandomDistribution):
+        if isinstance(delay, pyNN.random.RandomDistribution) or hasattr(delay, '__len__'):
             d = pcsim_globals.minDelay/1000.
         else:
             d = self.convertDelay(delay)
@@ -1032,9 +1032,15 @@ class Projection(common.Projection, WDManager):
         # while the network is build, and not set after...
         if isinstance(weight, pyNN.random.RandomDistribution):
             self.randomizeWeights(weight)
+        elif hasattr(weight, '__len__'):
+            assert len(weight) == len(self), "Weight array does not have the same number of elements as the Projection %d != %d" % (len(weight),len(self))
+            self.setWeights(weight)
         
         if isinstance(delay, pyNN.random.RandomDistribution):
             self.randomizeDelays(delay)
+        elif hasattr(delay, '__len__'):
+            assert len(delay) == len(self), "Weight array does not have the same number of elements as the Projection %d != %d" % (len(weight),len(self))
+            self.setDelays(delay)
         
         if not label:
             self.label = 'projection%d' % Projection.nProj
@@ -1060,8 +1066,7 @@ class Projection(common.Projection, WDManager):
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-        is_conductance = hasattr(self.post.pcsim_population.object(0),'ErevExc')
-        w = self.convertWeight(w, is_conductance)
+        w = self.convertWeight(w, self.is_conductance)
         if isinstance(w, float) or isinstance(w, int):
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).W = w
@@ -1076,8 +1081,7 @@ class Projection(common.Projection, WDManager):
         # Arguably, we could merge this with set_weights just by detecting the
         # argument type. It could make for easier-to-read simulation code to
         # give it a separate name, though. Comments?
-        is_conductance = hasattr(self.post.pcsim_population.object(0),'ErevExc')
-        rand_distr = self.convertWeight(rand_distr, is_conductance)
+        rand_distr = self.convertWeight(rand_distr, self.is_conductance)
         weights = rand_distr.next(len(self))
         for i in range(len(self)):
             pcsim_globals.net.object(self.pcsim_projection[i]).W = weights[i]
@@ -1093,6 +1097,7 @@ class Projection(common.Projection, WDManager):
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).delay = d
         else:
+            assert 1000.0*min(d) >= pcsim_globals.minDelay, "Smallest delay %g ms must be smaller than %g ms" % (min(d), pcsim_globals.minDelay)
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).delay = d[i]
     
@@ -1104,6 +1109,37 @@ class Projection(common.Projection, WDManager):
         delays = rand_distr.next(len(self))
         for i in range(len(self)):
             pcsim_globals.net.object(self.pcsim_projection[i]).delay = delays[i]
+    
+    def getWeights(self, format='list', gather=True):
+        """
+        Possible formats are: a list of length equal to the number of connections
+        in the projection, a 2D weight array (with zero or None for non-existent
+        connections).
+        """
+        if format == 'list':
+            if self.is_conductance:
+                A = 1e6 # S --> uS
+            else:
+                A = 1e9 # A --> nA
+            return [A*self.pcsim_projection.object(i).W for i in xrange(self.pcsim_projection.size())]
+        elif format == 'array':
+            raise Exception("Not yet implemented")
+        else:
+            raise Exception("Valid formats are 'list' and 'array'")
+    
+    def getDelays(self, format='list', gather=True):
+        """
+        Possible formats are: a list of length equal to the number of connections
+        in the projection, a 2D weight array (with zero or None for non-existent
+        connections).
+        """
+        if format == 'list':
+            A = 1e3 # s --> ms
+            return [A*self.pcsim_projection.object(i).delay for i in xrange(self.pcsim_projection.size())]
+        elif format == 'array':
+            raise Exception("Not yet implemented")
+        else:
+            raise Exception("Valid formats are 'list' and 'array'")
     
     # --- Methods for writing/reading information to/from file. ----------------
     

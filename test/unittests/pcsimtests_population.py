@@ -15,6 +15,11 @@ from pyNN.pcsim import *
 import unittest, sys, numpy
 import numpy.random
 
+def arrays_almost_equal(a, b, threshold):
+    return (abs(a-b) < threshold).all()
+
+def max_array_diff(a, b):
+    return max(abs(a-b))
 
 class PopulationInitTest(unittest.TestCase):
     """Tests of the __init__() method of the Population class."""
@@ -340,9 +345,19 @@ class ProjectionInitTest(unittest.TestCase):
         assert len(prj1) == len(list_22_33)
         
     def testWithWeightArray(self):
-        prj2 = Projection(self.source33, self.target33, OneToOneConnector(weights=numpy.linspace(0.1,0.9,9)))
-        assert len(prj1) == self.source33.size # just check there are no Exceptions raised for now. Need also to check weights are properly set
-#         
+        w = numpy.linspace(0.1,0.9,9)
+        prj1 = Projection(self.source33, self.target33, OneToOneConnector(weights=w))
+        assert len(prj1) == self.source33.size
+        w_out = numpy.array(prj1.getWeights(format='list'))
+        assert arrays_almost_equal(w_out, w, 1e-7), "Max difference is %g" % max_array_diff(w_out,w)
+    
+    def testWithDelayArray(self):
+        d = numpy.linspace(1.1,1.9,9)
+        prj1 = Projection(self.source33, self.target33, OneToOneConnector(delays=d))
+        assert len(prj1) == self.source33.size
+        d_out = numpy.array(prj1.getDelays(format='list'))
+        assert arrays_almost_equal(d_out, d, 1e-7), "Max difference is %g" % max_array_diff(d_out,d)
+    
 #     def testSaveAndLoad(self):
 #         prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
 #         prj1.setDelays(1)
