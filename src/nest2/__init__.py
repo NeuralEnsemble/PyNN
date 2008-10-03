@@ -524,8 +524,8 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
                         nest.ConnectWD([src], [tgt], [weight], [delay])
                         connect_id += [Connection(src, tgt, 'static_synapse')]
     #except nest.SLIError:
-    except Exception: # unfortunately, SLIError seems to have disappeared.Hopefully it will be reinstated.
-        raise common.ConnectionError
+    except Exception, errmsg: # unfortunately, SLIError seems to have disappeared.Hopefully it will be reinstated.
+        raise common.ConnectionError, errmsg
     return connect_id
 
 def set(cells, param, val=None):
@@ -1270,6 +1270,7 @@ class Projection(common.Projection):
     def _fixedNumberPre(self, parameters):
         """Each presynaptic cell makes a fixed number of connections."""
         n = parameters['n']
+        allow_self_connections = True
         if parameters.has_key('allow_self_connections'):
             allow_self_connections = parameters['allow_self_connections']
         c = FixedNumberPreConnector(n, allow_self_connections)
@@ -1278,6 +1279,7 @@ class Projection(common.Projection):
     def _fixedNumberPost(self, parameters):
         """Each postsynaptic cell receives a fixed number of connections."""
         n = parameters['n']
+        allow_self_connections = True
         if parameters.has_key('allow_self_connections'):
             allow_self_connections = parameters['allow_self_connections']
         c = FixedNumberPostConnector(n, allow_self_connections)

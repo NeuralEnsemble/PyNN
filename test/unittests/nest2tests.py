@@ -27,6 +27,9 @@ def get_delay(src, port, plasticity_name):
 def arrays_almost_equal(a, b, threshold):
     return (abs(a-b) < threshold).all()
 
+def max_array_diff(a, b):
+    return max(abs(a-b))
+
 # ==============================================================================
 class CreationTest(unittest.TestCase):
     """Tests of the create() function."""
@@ -39,8 +42,9 @@ class CreationTest(unittest.TestCase):
     
     def testCreateStandardCell(self):
         """create(): First cell created should have GID==1"""
-        ifcell = nest.create(nest.IF_curr_alpha)
-        assert ifcell == 1, 'Failed to create standard cell'
+        for cell_type in nest.list_standard_models():
+            ifcell = nest.create(cell_type)
+            assert ifcell.cellclass == cell_type
         
     def testCreateStandardCells(self):
         """create(): Creating multiple cells should return a list of GIDs"""
@@ -427,25 +431,28 @@ class ProjectionInitTest(unittest.TestCase):
         nest.setup(max_delay=0.5)
         nest.Population.nPop = 0
         self.target33 = nest.Population((3,3),nest.IF_curr_alpha, label="target33")
-        self.target6  = nest.Population((6,),nest.IF_curr_alpha, label="target6")
+        self.target6  = nest.Population((6,),nest.IF_cond_exp, label="target6")
         self.source5  = nest.Population((5,),nest.SpikeSourcePoisson, label="source5")
+        self.source6  = self.target6
         self.source22 = nest.Population((2,2),nest.SpikeSourcePoisson, label="source22")
         self.source33 = nest.Population((3,3),nest.SpikeSourcePoisson, label="source33")
 
     def testAllToAll(self):
         """For all connections created with "allToAll" it should be possible to obtain the weight using pynest.getWeight()"""
-        for srcP in [self.source5, self.source22]:
+        for srcP in [self.source5, self.source22, self.source6]:
             for tgtP in [self.target6, self.target33]:
-                prj1 = nest.Projection(srcP, tgtP, "allToAll", label="string")
-                prj2 = nest.Projection(srcP, tgtP, nest.AllToAllConnector(), label="connector")
-                for prj in prj1,prj2:
-                    assert len(prj._sources) == len(prj._targets)
-                    weights = []
-                    for src,tgt in prj.connections():
-                        ###print "--------", prj.label, srcP.label, tgtP.label, src, tgt
-                        ###print nest.nest.GetConnections([src],'static_synapse') ###
-                        weights.append(get_weight(src, tgt, prj.plasticity_name))
-                    assert weights == [0.0]*len(prj._sources)
+                for syn_type in 'excitatory', 'inhibitory':
+                    for allow_self_connections in True, False:
+                        prj1 = nest.Projection(srcP, tgtP, "allToAll", {'allow_self_connections':allow_self_connections}, target=syn_type, label="string")
+                        prj2 = nest.Projection(srcP, tgtP, nest.AllToAllConnector(allow_self_connections=allow_self_connections), target=syn_type, label="connector")
+                        for prj in prj1,prj2:
+                            assert len(prj._sources) == len(prj._targets)
+                            weights = []
+                            for src,tgt in prj.connections():
+                                ###print "--------", prj.label, srcP.label, tgtP.label, src, tgt
+                                ###print nest.nest.GetConnections([src],'static_synapse') ###
+                                weights.append(get_weight(src, tgt, prj.plasticity_name))
+                            assert weights == [0.0]*len(prj._sources)
     
     def testOneToOne(self):
         """For all connections created with "OneToOne" it should be possible to obtain the weight using pyneuron.getWeight()"""
@@ -453,37 +460,72 @@ class ProjectionInitTest(unittest.TestCase):
         prj2 = nest.Projection(self.source33, self.target33, nest.OneToOneConnector())
         assert len(prj1) == self.source33.size
         assert len(prj2) == self.source33.size
+        self.assertRaises(common.InvalidDimensionsError, nest.Projection, self.source33, self.target6, nest.OneToOneConnector())
         
     def testDistanceDependentProbability(self):
         """For all connections created with "distanceDependentProbability"..."""
         # Test should be improved..."
         for rngclass in (nest.NumpyRNG, nest.NativeRNG):
             for expr in ('exp(-d)', 'd < 0.5'):
-                prj1 = nest.Projection(self.source33, self.target33,
-                                         'distanceDependentProbability',
-                                         {'d_expression' : expr},rng=rngclass(12345))
-                prj2 = nest.Projection(self.source33, self.target33,
-                                         nest.DistanceDependentProbabilityConnector(d_expression=expr),
-                                         rng=rngclass(12345))
-                assert (0 < len(prj1) < len(self.source33)*len(self.target33)) \
-                   and (0 < len(prj2) < len(self.source33)*len(self.target33))
-                if rngclass == nest.NumpyRNG:
-                    assert prj1._sources == prj2._sources, "%s %s" % (rngclass, expr)
-                    assert prj1._targets == prj2._targets, "%s %s" % (rngclass, expr)
+                for allow_self_connections in True, False:
+                    prj1 = nest.Projection(self.source33, self.target33,
+                                             'distanceDependentProbability',
+                                             {'d_expression': expr, 'allow_self_connections':allow_self_connections},
+                                             rng=rngclass(12345))
+                    prj2 = nest.Projection(self.source33, self.target33,
+                                             nest.DistanceDependentProbabilityConnector(d_expression=expr, allow_self_connections=allow_self_connections),
+                                             rng=rngclass(12345))
+                    assert (0 < len(prj1) < len(self.source33)*len(self.target33)) \
+                       and (0 < len(prj2) < len(self.source33)*len(self.target33))
+                    if rngclass == nest.NumpyRNG:
+                        assert prj1._sources == prj2._sources, "%s %s" % (rngclass, expr)
+                        assert prj1._targets == prj2._targets, "%s %s" % (rngclass, expr)
+
+    def testFixedNumberPost(self):
+        for srcP in [self.source5, self.source22, self.source6]:
+            for tgtP in [self.target6, self.target33]:
+                for asc in True, False:
+                    prj1 = nest.Projection(srcP, tgtP, "fixedNumberPost", {'n': 4,
+                                                                           'allow_self_connections':asc}, label="string")
+                    prj2 = nest.Projection(srcP, tgtP, nest.FixedNumberPostConnector(n=4, allow_self_connections=asc), label="connector")
+                    for prj in prj1,prj2:
+                        assert len(prj._sources) == len(prj._targets), "src=%s, tgt=%s" % (prj._sources, prj._targets)
+                        assert prj.getWeights('list') == [0.0, 0.0, 0.0, 0.0]*len(srcP), str(prj.getWeights('list'))
+    
+    def testFixedNumberPre(self):
+        for srcP in [self.source5, self.source22, self.source6]:
+            for tgtP in [self.target6, self.target33]:
+                for asc in True, False:
+                    prj1 = nest.Projection(srcP, tgtP, "fixedNumberPre", {'n': 4,
+                                                                          'allow_self_connections':asc}, label="string")
+                    prj1.setWeights(0.5)
+                    prj2 = nest.Projection(srcP, tgtP, nest.FixedNumberPreConnector(n=4, weights=0.5, allow_self_connections=asc), label="connector")
+                    for prj in prj1,prj2:
+                        assert len(prj._sources) == len(prj._targets), "src=%s, tgt=%s" % (prj._sources, prj._targets)
+                        assert prj.getWeights('list') == [0.5, 0.5, 0.5, 0.5]*len(tgtP), str(prj.getWeights('list'))
 
     def testFixedProbability(self):
         """For all connections created with "fixedProbability" it should be possible to obtain the weight using .getWeight()"""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
-                prj1 = nest.Projection(srcP, tgtP, "fixedProbability", 0.5)
-                prj2 = nest.Projection(srcP, tgtP, nest.FixedProbabilityConnector(0.5))
-                for prj in prj1, prj2:
-                    assert len(prj._sources) == len(prj._targets)
-                    weights = []
-                    for src, tgt in prj.connections():
-                        #print nest.nest.GetConnections([src],[tgt])
-                        weights.append(get_weight(src, tgt, prj.plasticity_name))
-                    assert weights == [0.]*len(prj._sources)
+                for rng in None, random.NumpyRNG(), random.NativeRNG():
+                    prj1 = nest.Projection(srcP, tgtP, "fixedProbability", 0.5, rng=rng)
+                    prj2 = nest.Projection(srcP, tgtP, nest.FixedProbabilityConnector(0.5), rng=rng)
+                    for prj in prj1, prj2:
+                        assert len(prj._sources) == len(prj._targets)
+                        weights = []
+                        for src, tgt in prj.connections():
+                            #print nest.nest.GetConnections([src],[tgt])
+                            weights.append(get_weight(src, tgt, prj.plasticity_name))
+                        assert weights == [0.]*len(prj._sources)
+                    
+    def testFromList(self):
+        conn_list_22_33 = [([0,0], [0,2], 0.25, 0.5),
+                           ([0,0], [1,2], 0.5, 0.5),
+                           ([1,0], [2,2], 0.125, 0.1)]
+        prj = nest.Projection(self.source22, self.target33, nest.FromListConnector(conn_list_22_33))
+        assert prj.getWeights('list') == [0.25, 0.5, 0.125], str(prj.getWeights('list'))
+        assert prj.getDelays('list') == [0.5, 0.5, 0.1], str(prj.getDelays('list'))
                     
     def testSaveAndLoad(self):
         prj1 = nest.Projection(self.source22, self.target33, 'allToAll')
@@ -503,6 +545,49 @@ class ProjectionInitTest(unittest.TestCase):
             d2.append(get_delay(src, tgt, prj2.plasticity_name))
         assert (w1 == w2) and (d1 == d2)
 
+    def testInitialWeightsFromPositiveArray(self):
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                for syn_type in 'excitatory', 'inhibitory':
+                    weights_in = numpy.random.uniform(0.1,0.2,len(srcP)*len(tgtP))
+                    connector = nest.AllToAllConnector(weights=weights_in)
+                    prj = nest.Projection(srcP, tgtP, connector, target=syn_type)
+                    weights_out = numpy.array(prj.getWeights(format='list'))
+                    if syn_type == 'inhibitory':
+                        weights_out *= -1
+                    assert arrays_almost_equal(weights_in, weights_out, 1e-9), '(%s) %s != %s' % (syn_type, weights_in, weights_out)
+
+    def testInitialInhibitoryWeightsFromNegativeArray(self):
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                weights_in = numpy.random.uniform(-0.1,-0.2,len(srcP)*len(tgtP))
+                connector = nest.AllToAllConnector(weights=weights_in)
+                prj = nest.Projection(srcP, tgtP, connector, target='inhibitory')
+                weights_out = numpy.array(prj.getWeights(format='list'))
+                assert arrays_almost_equal(weights_in, weights_out, 1e-9), '(%s) %s != %s' % (syn_type, weights_in, weights_out)
+                
+    def testInitialExcitatoryWeightsFromNegativeArray(self):
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                weights_in = numpy.random.uniform(-0.1,-0.2,len(srcP)*len(tgtP))
+                connector = nest.AllToAllConnector(weights=weights_in)
+                self.assertRaises(nest.InvalidWeightError, nest.Projection, srcP, tgtP, connector, target='excitatory')
+                
+    def testInitialWeightsFromMixedArray(self):
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                weights_in = numpy.random.uniform(-0.1,0.1,len(srcP)*len(tgtP))
+                connector = nest.AllToAllConnector(weights=weights_in)
+                self.assertRaises(nest.InvalidWeightError, nest.Projection, srcP, tgtP, connector)
+    
+    def testInitialNegativeWeight(self):
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                connector = nest.AllToAllConnector(weights=-1.23)
+                self.assertRaises(nest.InvalidWeightError, nest.Projection, srcP, tgtP, connector, target='excitatory')
+                prj = nest.Projection(srcP, tgtP, connector, target='inhibitory')
+                assert arrays_almost_equal(numpy.array(prj.getWeights(format='list')), -1.23*numpy.ones(len(srcP)*len(tgtP)), 1e-9)
+                
 class ProjectionSetTest(unittest.TestCase):
     """Tests of the setWeights(), setDelays(), randomizeWeights() and
     randomizeDelays() methods of the Projection class."""
@@ -635,6 +720,52 @@ class IDTest(unittest.TestCase):
         new_pos = (-0.6,3.5,-100.0) # check that position is set-by-value from new_pos
         self.assert_((self.pop2[0,2].position == (0.5,1.5,0.0)).all())
 
+class SynapseDynamicsTest(unittest.TestCase):
+    
+    def setUp(self):
+        nest.setup(max_delay=0.5)
+        nest.Population.nPop = 0
+        self.target33 = nest.Population((3,3),nest.IF_curr_alpha, label="target33")
+        self.target6  = nest.Population((6,),nest.IF_cond_exp, label="target6")
+        self.source5  = nest.Population((5,),nest.SpikeSourcePoisson, label="source5")
+        self.source6  = self.target6
+        self.source22 = nest.Population((2,2),nest.SpikeSourcePoisson, label="source22")
+        self.source33 = nest.Population((3,3),nest.SpikeSourcePoisson, label="source33")
+        self.connectors = [nest.AllToAllConnector(weights=0.1, delays=0.2),
+                           nest.FixedProbabilityConnector(1.0, weights=0.1, delays=0.2)]
+
+    def testCreateProjectionWithTsodyksMarkramSynapses(self):
+        sd = nest.SynapseDynamics(fast=nest.TsodyksMarkramMechanism())
+        for srcP in [self.source5, self.source22, self.source6]:
+            for tgtP in [self.target6, self.target33]:
+                for conn  in self.connectors:
+                    prj = nest.Projection(srcP, tgtP,
+                                          conn,
+                                          label="connector",
+                                          synapse_dynamics=sd)
+                    assert prj.getWeights('list') == [0.1]*(len(srcP)*len(tgtP)), "%s != %s" % (prj.getWeights('list'),[0.1]*(len(srcP)*len(tgtP)))
+                    assert prj.getDelays('list') == [0.2]*(len(srcP)*len(tgtP))
+                    assert prj._get_connection_values('list', 'U', gather=False) == [0.5]*(len(srcP)*len(tgtP))
+
+    def testCreateSimpleSTDPConnection(self):
+        for wd in [nest.AdditiveWeightDependence(w_max=0.7654),
+                   nest.GutigWeightDependence(w_max=0.7654)]:
+            stdp = nest.STDPMechanism(timing_dependence=nest.SpikePairRule(),
+                                      weight_dependence=wd)
+            sd = nest.SynapseDynamics(slow=stdp)
+            for srcP in [self.source5, self.source22, self.source6]:
+                for tgtP in [self.target6, self.target33]:
+                    for conn  in self.connectors:
+                        prj = nest.Projection(srcP, tgtP,
+                                              conn,
+                                              label="connector",
+                                              synapse_dynamics=sd)
+                        assert prj.getWeights('list') == [0.1]*(len(srcP)*len(tgtP)), "%s != %s" % (prj.getWeights('list'),[0.1]*(len(srcP)*len(tgtP)))
+                        assert prj.getDelays('list') == [0.2]*(len(srcP)*len(tgtP))
+                        assert prj._get_connection_values('list', 'Kplus', gather=False) == [0.0]*(len(srcP)*len(tgtP))
+                        assert nest.nest.GetSynapseDefaults(prj.plasticity_name)['Wmax'] == 0.7654*1000.0
+            print nest.nest.GetConnections([prj.pre.index(0)], prj.plasticity_name)
+            print nest.nest.GetSynapseDefaults(prj.plasticity_name)
 
 if __name__ == "__main__":
     unittest.main()
