@@ -1066,6 +1066,15 @@ class Projection(object):
                     raise Exception("No available plasticity models")
                 elif len(possible_models) > 1 :
                     if self.synapse_dynamics.slow.model:
+                        # addition of the `model` attribute (see r415) is a pragmatic solution
+                        # but not an elegant one, and I don't think it should go into a released API
+                        # Since the problem of multiple models only seems to appear for NEST
+                        # with homogeneous and non-homogeneous versions, it would be better either
+                        # for the code to decide itself which to use (would be complex, as
+                        # connection creation would have to be deferred to run()) or to have
+                        # a global OPTIMIZED variable (possibly set in setup()) - if this was
+                        # set True the homogeneous version would be used and later attempts to
+                        # change parameters of the synapse would raise Exceptions.
                         if self.synapse_dynamics.slow.model in list(possible_models):
                             self.long_term_plasticity_mechanism = self.synapse_dynamics.slow.model
                         else:
@@ -1557,7 +1566,7 @@ class STDPMechanism(object):
         self.weight_dependence = weight_dependence
         self.voltage_dependence = voltage_dependence
         self.dendritic_delay_fraction = dendritic_delay_fraction
-        self.model = model
+        self.model = model # see comment in Projection.__init__()
 
 
 class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):

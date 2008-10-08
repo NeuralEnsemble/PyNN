@@ -916,7 +916,7 @@ class Population(common.Population):
 
     def record_c(self, record_from=None, rng=None, to_file=True):
         """
-        If record_from is not given, record the membrane potential for all cells in
+        If record_from is not given, record the synaptic conductance for all cells in
         the Population.
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)

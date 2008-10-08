@@ -155,7 +155,7 @@ class RandomDistribution:
         parameters should be a list or tuple containing the arguments expected
             by the underlying method in the correct order. named arguments are
             not yet supported.
-        boundaries is a tuple (min, max) used to specify explicitely, for distribution 
+        boundaries is a tuple (min, max) used to specify explicitly, for distribution 
             like Gaussian, Gamma or others, hard boundaries for the parameters. If 
             parameters are drawn outside those boundaries, the policy applied will depend 
             on the constrain parameter.
