@@ -13,6 +13,7 @@ Unit tests for pyNN.pcsim package
 import pyNN.common as common
 import pyNN.random as random
 from pyNN.pcsim import *
+from pypcsim import *
 import unittest, sys, numpy
 import numpy.random
 from numpy import arange

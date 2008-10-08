@@ -18,7 +18,7 @@ import os.path
 import types
 import sys
 import numpy
-from pypcsim import *
+import pypcsim
 from pyNN.pcsim.cells import *
 from pyNN.pcsim.connectors import *
 from pyNN.pcsim.synapses import *
@@ -58,7 +58,7 @@ def checkParams(param, val=None):
 class NativeRNG(pyNN.random.NativeRNG):
     def __init__(self, seed=None, type='MersenneTwister19937'):
         pyNN.random.AbstractRNG.__init__(self, seed)
-        self.rndEngine = eval(type + '()')
+        self.rndEngine = getattr(pypcsim, type)()
         if not self.seed:
             self.seed = int(datetime.today().microsecond)
         self.rndEngine.seed(self.seed)
@@ -67,7 +67,7 @@ class NativeRNG(pyNN.random.NativeRNG):
         """Return n random numbers from the distribution.
         If n is 1, return a float, if n > 1, return a numpy array,
         if n <= 0, raise an Exception."""
-        distribution_type = eval(distribution + "Distribution")
+        distribution_type = getattr(pypcsim, distribution + "Distribution")
         if isinstance(parameters, dict):
             dist = apply(distribution_type, (), parameters)
         else:
@@ -102,9 +102,9 @@ class SpikesMultiChannelRecorder(object):
         if type(sources) != types.ListType:
             sources = [sources]        
         for i, src in zip(src_indices, sources):
-            src_id = SimObject.ID(src)    
-            rec = pcsim_globals.net.create(SpikeTimeRecorder(), SimEngine.ID(src_id.node, src_id.eng))            
-            pcsim_globals.net.connect(src, rec, Time.sec(0))            
+            src_id = pypcsim.SimObject.ID(src)    
+            rec = pcsim_globals.net.create(pypcsim.SpikeTimeRecorder(), pypcsim.SimEngine.ID(src_id.node, src_id.eng))            
+            pcsim_globals.net.connect(src, rec, pypcsim.Time.sec(0))            
             if (src_id.node == pcsim_globals.net.mpi_rank()):                
                 self.recordings += [ (i, rec, src) ]
                             
@@ -184,9 +184,9 @@ class FieldMultiChannelRecorder:
             src_indices = range(len(self.recordings), len(self.recordings) + len(sources))
         global pcsim_globals
         for i, src in zip(src_indices, sources):
-            src_id = SimObject.ID(src)
-            rec = pcsim_globals.net.create(AnalogRecorder(), SimEngine.ID(src_id.node, src_id.eng))
-            pcsim_globals.net.connect(src, self.fieldname, rec, 0, Time.sec(0))
+            src_id = pypcsim.SimObject.ID(src)
+            rec = pcsim_globals.net.create(pypcsim.AnalogRecorder(), pypcsim.SimEngine.ID(src_id.node, src_id.eng))
+            pcsim_globals.net.connect(src, self.fieldname, rec, 0, pypcsim.Time.sec(0))
             if (src_id.node == pcsim_globals.net.mpi_rank()):
                 self.recordings += [ (i, rec, src) ]
                 
@@ -266,7 +266,7 @@ class ID(long, common.IDMixin):
                 except AttributeError, e:
                     raise AttributeError("%s. Possible attributes are: %s" % (e, dir(pcsim_cell)))
         for k,v in pcsim_parameters.items():
-            if isinstance(v, StdVectorDouble):
+            if isinstance(v, pypcsim.StdVectorDouble):
                 pcsim_parameters[k] = list(v)
         return pcsim_parameters
     
@@ -376,9 +376,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
             simulation_rng_seed = datetime.today().microsecond
         pcsim_globals.simulationRNGSeed = simulation_rng_seed
     if extra_params.has_key('threads'):
-        pcsim_globals.net = DistributedMultiThreadNetwork(extra_params['threads'], SimParameter( Time.ms(timestep), Time.ms(min_delay), Time.ms(max_delay), pcsim_globals.constructRNGSeed, pcsim_globals.simulationRNGSeed))
+        pcsim_globals.net = pypcsim.DistributedMultiThreadNetwork(extra_params['threads'],
+                                                                  pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), pcsim_globals.constructRNGSeed, pcsim_globals.simulationRNGSeed))
     else:
-        pcsim_globals.net = DistributedSingleThreadNetwork(SimParameter( Time.ms(timestep), Time.ms(min_delay), Time.ms(max_delay), pcsim_globals.constructRNGSeed, pcsim_globals.simulationRNGSeed))
+        pcsim_globals.net = pypcsim.DistributedSingleThreadNetwork(pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), pcsim_globals.constructRNGSeed, pcsim_globals.simulationRNGSeed))
     pcsim_globals.spikes_multi_rec = {}
     pcsim_globals.vm_multi_rec = {}
     return pcsim_globals.net.mpi_rank()
@@ -434,13 +435,13 @@ def create(cellclass, param_dict=None, n=1):
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, str):
         try:
-            cellclass = eval(cellclass)
+            cellclass = getattr(pypcsim, cellclass)
         except:
-            raise AttributeError("ERROR: Trying to create non-existent cellclass " + cellclass.__name__ )
+            raise AttributeError("ERROR: Trying to create non-existent cellclass " + cellclass )
     if issubclass(cellclass, common.StandardCellType):
         cellfactory = cellclass(param_dict).simObjFactory
     else:
-        if issubclass(cellclass, SimObject):
+        if issubclass(cellclass, pypcsim.SimObject):
             cellfactory = apply(cellclass, (), param_dict)
         else:
             raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
@@ -481,15 +482,15 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
             syn_target_id = 1
         else:
             syn_target_id = 2
-        syn_factory = SimpleScalingSpikingSynapse(syn_target_id, weight, delay)
+        syn_factory = pypcsim.SimpleScalingSpikingSynapse(syn_target_id, weight, delay)
     else:
         if isinstance(synapse_type, type):
             syn_factory = synapse_type
         elif isinstance(synapse_type, str):
             if synapse_type == 'excitatory':
-                syn_factory = SimpleScalingSpikingSynapse(1, weight, delay)
+                syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, weight, delay)
             elif synapse_type == 'inhibitory':
-                syn_factory = SimpleScalingSpikingSynapse(2, weight, delay)
+                syn_factory = pypcsim.SimpleScalingSpikingSynapse(2, weight, delay)
             else:
                 eval('syn_factory = ' + synapse_type + '()')
             syn_factory.W = weight;
@@ -504,9 +505,9 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
                 source = [source]
             if type(target) != types.ListType:
                 target = [target]
-            src_popul = SimObjectPopulation(pcsim_globals.net, source)
-            dest_popul = SimObjectPopulation(pcsim_globals.net, target)
-            connections = ConnectionsProjection(src_popul, dest_popul, syn_factory, RandomConnections(p), SimpleAllToAllWiringMethod(pcsim_globals.net), True)
+            src_popul = pypcsim.SimObjectPopulation(pcsim_globals.net, source)
+            dest_popul = pypcsim.SimObjectPopulation(pcsim_globals.net, target)
+            connections = pypcsim.ConnectionsProjection(src_popul, dest_popul, syn_factory, pypcsim.RandomConnections(p), pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net), True)
             return connections.idVector()
     except exceptions.TypeError, e:
         raise common.ConnectionError(e)
@@ -603,23 +604,23 @@ class Population(common.Population):
                 self.steps[i] *= self.dim[j]
         
         if isinstance(cellclass, str):
-            if not cellclass in globals():
+            if not cellclass in dir(pypcsim):
                 raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
-            cellclass = eval(cellclass)
+            cellclass = getattr(pypcsim, cellclass)
             self.celltype = cellclass
         if issubclass(cellclass, common.StandardCellType):
             self.celltype = cellclass(cellparams)
             self.cellfactory = self.celltype.simObjFactory
         else:
             self.celltype = cellclass
-            if issubclass(cellclass, SimObject):
+            if issubclass(cellclass, pypcsim.SimObject):
                 self.cellfactory = apply(cellclass, (), cellparams)
             else:
                 raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
         
             
         # CuboidGridPopulation(SimNetwork &net, GridPoint3D origin, Volume3DSize dims, SimObjectFactory &objFactory)
-        self.pcsim_population = CuboidGridObjectPopulation(pcsim_globals.net, GridPoint3D(0,0,0), Volume3DSize(dims[0], dims[1], dims[2]), self.cellfactory)
+        self.pcsim_population = pypcsim.CuboidGridObjectPopulation(pcsim_globals.net, pypcsim.GridPoint3D(0,0,0), pypcsim.Volume3DSize(dims[0], dims[1], dims[2]), self.cellfactory)
         self.cell = numpy.array(self.pcsim_population.idVector())
         self.cell -= self.cell[0]
         
@@ -980,23 +981,23 @@ class Projection(common.Projection, WDManager):
             weight = None
             delay = None
             if method == 'allToAll':
-                decider = RandomConnections(1)
-                wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+                decider = pypcsim.RandomConnections(1)
+                wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
             elif method == 'fixedProbability':
-                decider = RandomConnections(float(method_parameters))
-                wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+                decider = pypcsim.RandomConnections(float(method_parameters))
+                wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
             elif method == 'distanceDependentProbability':
-                decider = EuclideanDistanceRandomConnections(method_parameters[0], method_parameters[1])
-                wiring_method = DistributedSyncWiringMethod(pcsim_globals.net)
+                decider = pypcsim.EuclideanDistanceRandomConnections(method_parameters[0], method_parameters[1])
+                wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
             elif method == 'fixedNumberPre':
-                decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.incoming)
-                wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
+                decider = pypcsim.DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.incoming)
+                wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
             elif method == 'fixedNumberPost':
-                decider = DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.outgoing)
-                wiring_method = SimpleAllToAllWiringMethod(pcsim_globals.net)
+                decider = pypcsim.DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.outgoing)
+                wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
             elif method == 'oneToOne':
-                decider = RandomConnections(1)
-                wiring_method = OneToOneWiringMethod(pcsim_globals.net) 
+                decider = pypcsim.RandomConnections(1)
+                wiring_method = pypcsim.OneToOneWiringMethod(pcsim_globals.net) 
             else:
                 raise Exception("METHOD NOT YET IMPLEMENTED")
         elif isinstance(method, common.Connector):
@@ -1016,24 +1017,24 @@ class Projection(common.Projection, WDManager):
             d = self.convertDelay(delay)
 
         if not target:
-            self.syn_factory = SimpleScalingSpikingSynapse(1, w, d)
+            self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, w, d)
         elif isinstance(target, int):
-            self.syn_factory = SimpleScalingSpikingSynapse(target, w, d)
+            self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(target, w, d)
         else:
             if isinstance(target, str):
                 if target == 'excitatory':
-                    self.syn_factory = SimpleScalingSpikingSynapse(1, w, d)
+                    self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, w, d)
                 elif target == 'inhibitory':
-                    self.syn_factory = SimpleScalingSpikingSynapse(2, w, d)
+                    self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(2, w, d)
                 else:
                     target = eval(target)
                     self.syn_factory = target({})
             else:
                 self.syn_factory = target
             
-        self.pcsim_projection = ConnectionsProjection(self.pre.pcsim_population, self.post.pcsim_population, 
-                                                      self.syn_factory, decider, wiring_method, collectIDs = True,
-                                                      collectPairs=True)
+        self.pcsim_projection = pypcsim.ConnectionsProjection(self.pre.pcsim_population, self.post.pcsim_population, 
+                                                              self.syn_factory, decider, wiring_method, collectIDs = True,
+                                                              collectPairs=True)
         
         ######## Should be removed and better implemented by using
         # the fact that those random Distribution can be passed directly

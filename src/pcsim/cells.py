@@ -4,7 +4,7 @@
 # ==============================================================================
 
 from pyNN import common
-from pypcsim import *
+import pypcsim
 import numpy
 
 class IF_curr_alpha(common.IF_curr_alpha):
@@ -30,7 +30,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
     def __init__(self, parameters):
         common.IF_curr_alpha.__init__(self, parameters)              
         self.parameters['Inoise'] = 0.0
-        self.simObjFactory = LIFCurrAlphaNeuron(**self.parameters)
+        self.simObjFactory = pypcsim.LIFCurrAlphaNeuron(**self.parameters)
 
 
 class IF_curr_exp(common.IF_curr_exp):
@@ -57,7 +57,7 @@ class IF_curr_exp(common.IF_curr_exp):
     def __init__(self, parameters):
         common.IF_curr_exp.__init__(self, parameters)                
         self.parameters['Inoise'] = 0.0
-        self.simObjFactory = LIFCurrExpNeuron(**self.parameters)
+        self.simObjFactory = pypcsim.LIFCurrExpNeuron(**self.parameters)
 
 
 class IF_cond_alpha(common.IF_cond_alpha):
@@ -85,7 +85,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
     def __init__(self, parameters):
         common.IF_cond_alpha.__init__(self, parameters)
         self.parameters['Inoise'] = 0.0
-        self.simObjFactory = LIFCondAlphaNeuron(**self.parameters)
+        self.simObjFactory = pypcsim.LIFCondAlphaNeuron(**self.parameters)
 
 
 class IF_cond_exp(common.IF_cond_exp):
@@ -113,7 +113,7 @@ class IF_cond_exp(common.IF_cond_exp):
     def __init__(self, parameters):
         common.IF_cond_exp.__init__(self, parameters)
         self.parameters['Inoise'] = 0.0
-        self.simObjFactory = LIFCondExpNeuron(**self.parameters)
+        self.simObjFactory = pypcsim.LIFCondExpNeuron(**self.parameters)
 
 
 """ Implemented not tested """
@@ -131,7 +131,7 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
    
     def __init__(self, parameters):
         common.SpikeSourcePoisson.__init__(self, parameters)      
-        self.simObjFactory = PoissonInputNeuron(**self.parameters)
+        self.simObjFactory = pypcsim.PoissonInputNeuron(**self.parameters)
 
     
 """ Implemented but not tested """
@@ -147,8 +147,8 @@ class SpikeSourceArray(common.SpikeSourceArray):
     
     def __init__(self, parameters):
         common.SpikeSourceArray.__init__(self, parameters)
-        self.pcsim_object_handle = SpikingInputNeuron(**self.parameters)
-        self.simObjFactory  = SpikingInputNeuron(**self.parameters)
+        self.pcsim_object_handle = pypcsim.SpikingInputNeuron(**self.parameters)
+        self.simObjFactory  = pypcsim.SpikingInputNeuron(**self.parameters)
     
     @classmethod
     def translate(cls, parameters):
@@ -216,7 +216,7 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
                   'Vinit','Inoise','Iinject', 'ErevExc', 
                   'TauSynExc', 'ErevInh', 'TauSynInh'):
             limited_parameters[k] = self.parameters[k]
-        self.simObjFactory = CbaEIFCondAlphaNeuron(**limited_parameters)
+        self.simObjFactory = pypcsim.CbaEIFCondAlphaNeuron(**limited_parameters)
 
 class IF_facets_hardware1(common.ModelNotAvailable):
     pass
