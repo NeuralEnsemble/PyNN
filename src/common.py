@@ -13,6 +13,7 @@ from pyNN import random
 from string import Template
 
 DEFAULT_WEIGHT = 0.0
+DEFAULT_BUFFER_SIZE = 10000
 
 class InvalidParameterValueError(Exception): pass
 
@@ -1271,7 +1272,15 @@ class Projection(object):
     
     def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""
-        return _abstract_method(self)
+        weights = self.getWeights(format=format, gather=gather)
+        f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
+        if format == 'list':
+            f.write("\n".join([str(w) for w in weights]))
+        elif format == 'array':
+            fmt = "%g "*len(self.post) + "\n"
+            for row in weights:
+                f.write(fmt % tuple(row))
+        f.close()
     
     def weightHistogram(self, min=None, max=None, nbins=10):
         """
@@ -1281,7 +1290,8 @@ class Projection(object):
         """
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
-        return _abstract_method(self)
+        bins = numpy.arange(min, max, float(max-min)/nbins)
+        return numpy.histogram(self.getWeights(format='list', gather=True), bins) # returns n, bins
     
     def describe(self, template='standard'):
         """

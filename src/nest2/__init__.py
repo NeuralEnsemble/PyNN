@@ -1500,7 +1500,7 @@ class Projection(common.Projection):
         """
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
-        bins = numpy.arange(min, max, (max-min)/nbins)
+        bins = numpy.arange(min, max, float(max-min)/nbins)
         return numpy.histogram(self.getWeights(format='list', gather=True), bins) # returns n, bins
 
     def describe(self, template='standard'):

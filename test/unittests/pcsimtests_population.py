@@ -358,22 +358,14 @@ class ProjectionInitTest(unittest.TestCase):
         d_out = numpy.array(prj1.getDelays(format='list'))
         assert arrays_almost_equal(d_out, d, 1e-7), "Max difference is %g" % max_array_diff(d_out,d)
     
-#     def testSaveAndLoad(self):
-#         prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
-#         prj1.setDelays(1)
-#         prj1.setWeights(1.234)
-#         prj1.saveConnections("connections.tmp")
-#         prj2 = neuron.Projection(self.source33, self.target33, 'fromFile',"connections.tmp")
-#         w1 = []; w2 = []; d1 = []; d2 = [];
-#         # For a connections scheme saved and reloaded, we test if the connections, their weights and their delays
-#         # are equal.
-#         for connection_id in prj1.connections:
-#             w1.append(HocToPy.get('%s.object(%d).weight' % (prj1.label,prj1.connections.index(connection_id))))
-#             w2.append(HocToPy.get('%s.object(%d).weight' % (prj2.label,prj2.connections.index(connection_id))))
-#             d1.append(HocToPy.get('%s.object(%d).delay' % (prj1.label,prj1.connections.index(connection_id))))
-#             d2.append(HocToPy.get('%s.object(%d).delay' % (prj2.label,prj2.connections.index(connection_id))))
-#         assert (w1 == w2) and (d1 == d2)
-#           
+    def testSaveAndLoad(self):
+        prj1 = Projection(self.source33, self.target33, 'oneToOne')
+        prj1.setDelays(1)
+        prj1.setWeights(1.234)
+        prj1.saveConnections("connections.tmp")
+        prj2 = Projection(self.source33, self.target33, FromFileConnector("connections.tmp"))
+        assert prj1.getWeights('list') == prj2.getWeights('list')
+        assert prj1.getDelays('list') == prj2.getDelays('list')
 
 
 class ProjectionSetTest(unittest.TestCase):

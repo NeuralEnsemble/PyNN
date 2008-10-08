@@ -324,6 +324,13 @@ class WDManager(object):
         else:
             weight = w*w_factor
         return weight
+    
+    def reverse_convertWeight(self, w, conductance):
+        if conductance:
+            w_factor = 1e6 # Convert from S to µS
+        else:
+            w_factor = 1e9 # Convert from A to nA
+        return w*w_factor
      
     def convertDelay(self, d):
         
@@ -1025,7 +1032,8 @@ class Projection(common.Projection, WDManager):
                 self.syn_factory = target
             
         self.pcsim_projection = ConnectionsProjection(self.pre.pcsim_population, self.post.pcsim_population, 
-                                                      self.syn_factory, decider, wiring_method, collectIDs = True)
+                                                      self.syn_factory, decider, wiring_method, collectIDs = True,
+                                                      collectPairs=True)
         
         ######## Should be removed and better implemented by using
         # the fact that those random Distribution can be passed directly
@@ -1097,7 +1105,7 @@ class Projection(common.Projection, WDManager):
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).delay = d
         else:
-            assert 1000.0*min(d) >= pcsim_globals.minDelay, "Smallest delay %g ms must be smaller than %g ms" % (min(d), pcsim_globals.minDelay)
+            assert 1000.0*min(d) >= pcsim_globals.minDelay, "Smallest delay %g ms must be larger than %g ms" % (min(d), pcsim_globals.minDelay)
             for i in range(len(self)):
                 pcsim_globals.net.object(self.pcsim_projection[i]).delay = d[i]
     
@@ -1146,23 +1154,18 @@ class Projection(common.Projection, WDManager):
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        # should think about adding a 'gather' option.
-        raise Exception("Method not yet implemented")
-        
-    
-    def printWeights(self, filename, format='list', gather=True):
-        """Print synaptic weights to file."""
-        raise Exception("Method not yet implemented")
-    
-    def weightHistogram(self, min=None, max=None, nbins=10):
-        """
-        Return a histogram of synaptic weights.
-        If min and max are not given, the minimum and maximum weights are
-        calculated automatically.
-        """
-        # it is arguable whether functions operating on the set of weights
-        # should be put here or in an external module.
-        raise Exception("Method not yet implemented")
+        # Not at all sure this will work for distributed simulations
+        f = open(filename, 'w')
+        for i in range(self.pcsim_projection.size()):
+            pre_id, post_id = self.pcsim_projection.prePostPair(i)
+            pre_id = list(self.pre.pcsim_population.idVector()).index(pre_id.packed()) # surely there is an easier/faster way?
+            post_id = list(self.post.pcsim_population.idVector()).index(post_id.packed())
+            pre_addr = self.pre.locate(ID(pre_id))
+            post_addr = self.post.locate(ID(post_id))
+            w = self.reverse_convertWeight(self.pcsim_projection.object(i).W, self.is_conductance)
+            d = 1e3*self.pcsim_projection.object(i).delay
+            f.write("%s\t%s\t%g\t%g\n" % (map(int, pre_addr), map(int, post_addr), w, d))
+        f.close()
     
 
 # ==============================================================================
