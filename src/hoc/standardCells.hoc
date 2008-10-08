@@ -7,6 +7,7 @@ begintemplate StandardIF
 
 public cell, spike_reset, isyn, esyn, esyn_tm, isyn_tm
 public spiketimes, memb_init, record, source, vtrace
+public gesyntrace, gisyntrace
 public syn_type, syn_shape, record_v, stim, v_init
 public tau_m, CM, v_rest, v_thresh, v_reset, t_refrac, i_offset
 public tau_e, tau_i, e_e, e_i
@@ -14,6 +15,7 @@ public param_update, connect2target
 create cell
 objref spike_reset, esyn, isyn, source, esyn_tm, isyn_tm
 objref spiketimes, rec, nil, fih, fih2, this, vtrace, stim
+objref gesyntrace, gisyntrace
 strdef syn_type, syn_shape
 
 proc init() {
@@ -91,6 +93,9 @@ proc init() {
   }
   recording_spikes = 0
   recording_v = 0
+  recording_gsyn = 0
+  using_esyn_tm = 0
+  using_isyn_tm = 0
 }
 
 proc param_update() {
@@ -140,6 +145,30 @@ proc record_v() {
   }
 }
 
+proc record_gsyn() {
+  // first arg - on (1) or off (zero)
+  if ($1 == 1) {
+    if (!recording_gsyn) {
+        gesyntrace = new Vector()
+        gisyntrace = new Vector()
+        if (using_esyn_tm) {
+            gesyntrace.record(&esyn_tm.g) // this assumes either/or
+        } else {                          // but could use both
+            gesyntrace.record(&esyn.g)    // at the same time
+        }                                 // really ought to sum
+        if (using_isyn_tm) {
+            gisyntrace.record(&isyn_tm.g)
+        } else {
+            gisyntrace.record(&isyn.g)
+        }
+        recording_gsyn = 1
+    }
+  } else {
+    objref gesyntrace, gisyntrace
+    recording_gsyn = 0
+  }
+}
+
 proc memb_init() {
   if (numarg() == 1) {
     v_init = $1
@@ -162,6 +191,11 @@ proc use_Tsodyks_Markram_synapses() {
         esyn_tm.u0 = $5
         esyn_tm.tau_1 = tau_e
         esyn_tm.e = e_e
+        using_esyn_tm = 1
+        if (recording_gsyn) {
+            record_gsyn(0) // assumes we don't have both static and dynamic synapses at the same time
+            record_gsyn(1)
+        }
     } else if ($1 == 2) {
         cell isyn_tm = new tmgsyn(0.5)
         isyn_tm.U = $2
@@ -170,6 +204,11 @@ proc use_Tsodyks_Markram_synapses() {
         isyn_tm.u0 = $5
         isyn_tm.tau_1 = tau_i
         isyn_tm.e = e_i
+        using_isyn_tm = 1
+        if (recording_gsyn) {
+            record_gsyn(0) // assumes we don't have both static and dynamic synapses at the same time
+            record_gsyn(1)
+        }
     } else {
         print "First arg must be 1 for excitatory, 2 for inhibitory synapses"
     }

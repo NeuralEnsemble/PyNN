@@ -27,6 +27,7 @@ projections = {}
 for label in 'static', 'depressing', 'facilitating':
     populations[label] = sim.Population(1, sim.IF_cond_exp, {'e_rev_I': -75}, label=label)
     populations[label].record_v()
+    populations[label].record_c()
     projections[label] = sim.Projection(spike_source, populations[label], connector,
                                         target='inhibitory',
                                         synapse_dynamics=synapse_dynamics[label])
@@ -36,7 +37,8 @@ spike_source.record()
 sim.run(200.0)
 
 for label,p in populations.items():
-    p.print_v("tsodyksmarkram_%s_%s.v" % (label, simulator))
+    p.print_v("Results/tsodyksmarkram_%s_%s.v" % (label, simulator))
+    p.print_c("Results/tsodyksmarkram_%s_%s.gsyn" % (label, simulator))
     
 print spike_source.getSpikes()
     

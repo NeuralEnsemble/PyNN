@@ -34,7 +34,9 @@ initialised   = False
 nrn_dll_loaded = []
 quit_on_end   = True
 RECORDING_VECTOR_NAMES = {'spikes': 'spiketimes',
-                          'v': 'vtrace'}
+                          'v': 'vtrace',
+                          'gesyn': 'gesyntrace',
+                          'gisyn': 'gisyntrace'}
 
 # ==============================================================================
 #   Utility classes and functions
@@ -321,7 +323,11 @@ class Recorder(object):
         elif self.variable == 'v':
             dt = get_time_step()
             for cell in new_ids:
-                cell._hoc_cell().record_v(1, dt)    
+                cell._hoc_cell().record_v(1, dt)
+        elif self.variable == 'gesyn' or self.variable == 'gisyn':
+            dt = get_time_step()
+            for cell in new_ids:
+                cell._hoc_cell().record_gsyn(1, dt)
         
     def get(self, gather=False):
         """Returns the recorded data."""
@@ -382,6 +388,9 @@ class Recorder(object):
             elif self.variable == 'spikes':
                 header += "# dt = %g\\n"% get_time_step()
                 num_format = "%.2f"
+            elif self.variable == 'gesyn' or self.variable == 'gisyn':
+                header += "# dt = %g\\n# n = %d\\n" % (get_time_step(), int(h.tstop/get_time_step()))
+                num_format = "%.6g"
             filename = file or self.filename
             hoc_commands = ['objref fileobj',
                             'fileobj = new File()',
@@ -400,7 +409,6 @@ class Recorder(object):
                 fmt = "%s\t%d\n" % (num_format, int(id)-padding)
                 vec.printf(h.fileobj, fmt)
             h.fileobj.close()
-            
             
         if gather:
             if myid != 0: # on slave nodes, post data
@@ -998,6 +1006,18 @@ class Population(common.Population):
         hoc_comment("--- Population[%s].__record_v()__ ---" %self.label)
         self.__record('v', record_from, rng)
 
+    def record_c(self, record_from=None, rng=None):
+        """
+        If record_from is not given, record the synaptic conductance for all cells in
+        the Population.
+        record_from can be an integer - the number of cells to record from, chosen
+        at random (in this case a random number generator can also be supplied)
+        - or a list containing the ids of the cells to record.
+        """
+        hoc_comment("--- Population[%s].__record_v()__ ---" %self.label)
+        self.__record('gesyn', record_from, rng)
+        self.__record('gisyn', record_from, rng)
+
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
         Write spike times to file.
@@ -1043,6 +1063,23 @@ class Population(common.Population):
         """
         hoc_comment("--- Population[%s].__print_v()__ ---" %self.label)
         self.recorders['v'].write(filename, gather, compatible_output)
+
+    def print_c(self, filename, gather=True, compatible_output=True):
+        """
+        Write conductance traces to file.
+        If compatible_output is True, the format is "t g cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
+
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        voltage files.
+        """
+        hoc_comment("--- Population[%s].__print_c()__ ---" %self.label)
+        self.recorders['gesyn'].write("%s.e" % filename, gather, compatible_output)
+        self.recorders['gisyn'].write("%s.i" % filename, gather, compatible_output)
 
     def getSpikes(self, gather=True):
         """
