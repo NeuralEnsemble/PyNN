@@ -170,6 +170,9 @@ class RandomDistribution:
         assert isinstance(parameters, (list, tuple, dict)), "The parameters argument must be a list or tuple or dict"
         self.parameters = parameters
         self.boundaries = boundaries
+        if self.boundaries:
+            self.min_bound = min(self.boundaries)
+            self.max_bound = max(self.boundaries)
         self.constrain  = constrain
         if rng:
             assert isinstance(rng, AbstractRNG), "rng must be a pyNN.random RNG object"
@@ -183,14 +186,21 @@ class RandomDistribution:
             res = self.rng.next(n=n,
                              distribution=self.name,
                              parameters=self.parameters)
+            if type(res) == numpy.float64:
+                res = numpy.array([res])
             if self.constrain == "clip":
-                return numpy.maximum(numpy.minimum(res,self.boundaries[1]),self.boundaries[0])
+                return numpy.maximum(numpy.minimum(res,self.max_bound),self.min_bound)
             elif self.constrain == "redraw":
-                idx = numpy.where((res > self.boundaries[1]) | (res < self.boundaries[0]))[0]
-                while len(idx) > 0:
-                    res[idx] = self.rng.next(len(idx),distribution=self.name,parameters=self.parameters)
-                    idx = numpy.where((res > self.boundaries[1]) | (res < self.boundaries[0]))[0]
-                return res
+                if len(res) == 1:
+                    while not ((res > self.min_bound) and (res < self.max_bound)):
+                        res = self.rng.next(n=n, distribution=self.name, parameters=self.parameters)
+                    return res
+                else:
+                    idx = numpy.where((res > self.max_bound) | (res < self.min_bound))[0]
+                    while len(idx) > 0:
+                        res[idx] = self.rng.next(len(idx),distribution=self.name,parameters=self.parameters)
+                        idx = numpy.where((res > self.max_bound) | (res < self.min_bound))[0]
+                    return res
             else:
                 raise Exception("This constrain method (%s) does not exist" %self.constrain)
         else:
