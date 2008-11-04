@@ -33,6 +33,8 @@ import operator
 
 from pyNN.pcsim.pcsim_globals import pcsim_globals
 
+Set = set
+
 def checkParams(param, val=None):
     """Check parameters are of valid types, normalise the different ways of
        specifying parameters and values by putting everything in a dict.
@@ -1034,6 +1036,7 @@ class Projection(common.Projection, WDManager):
         
         weight = self.getWeight(weight)
         self.is_conductance = hasattr(self.post.pcsim_population.object(0),'ErevExc')
+        
         if isinstance(weight, pyNN.random.RandomDistribution) or hasattr(weight, '__len__'):
             w = 1.
         else:
@@ -1047,7 +1050,13 @@ class Projection(common.Projection, WDManager):
 
         # handle synapse dynamics
         if self.synapse_dynamics:
-            synapse_type = None
+            
+            # choose the right model depending on whether we have conductance- or current-based synapses
+            if self.is_conductance:
+                possible_models = Set([pypcsim.DynamicStdpCondExpSynapse])
+            else:
+                possible_models = Set([pypcsim.DynamicStdpSynapse])
+                
             plasticity_parameters = {}
             
             # we need to know the synaptic time constant, which is a property of the
@@ -1059,14 +1068,15 @@ class Projection(common.Projection, WDManager):
                 tau_syn = self.post.celltype.parameters['TauSynInh']
             else:
                 raise Exception("Currently, target must be one of 'excitatory', 'inhibitory' with dynamic synapses")
-            
+
             if self.synapse_dynamics.fast:
-                synapse_type = self.short_term_plasticity_mechanism
+                possible_models = possible_models.intersection(self.short_term_plasticity_mechanism)
                 plasticity_parameters.update(self._short_term_plasticity_parameters)
             if self.synapse_dynamics.slow:
-                if synapse_type:
-                    assert synapse_type == self.long_term_plasticity_mechanism, "%s != %s" % (synapse_type, self.long_term_plasticity_mechanism)
+                possible_models = possible_models.intersection(self.long_term_plasticity_mechanism)
                 plasticity_parameters.update(self._stdp_parameters)
+            assert len(possible_models) == 1, str(possible_models)
+            synapse_type = list(possible_models)[0]
             self.syn_factory = synapse_type(Winit=w, delay=d, tau=tau_syn,
                                             **plasticity_parameters)
         else:

@@ -1127,6 +1127,13 @@ class Projection(common.Projection):
         self._sources = []     # holds gids
         self.synapse_type = target
 
+        if isinstance(self.long_term_plasticity_mechanism, Set):
+            print "Several STDP models are available for these connections"
+            for model in self.long_term_plasticity_mechanism:
+                print "--> %s" %model
+            self.long_term_plasticity_mechanism = list(self.long_term_plasticity_mechanism)[0]
+            print "By default, %s is used" % self.long_term_plasticity_mechanism
+
         if synapse_dynamics and synapse_dynamics.fast and synapse_dynamics.slow:
                 raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
         self._plasticity_model = self.short_term_plasticity_mechanism or \

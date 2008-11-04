@@ -41,8 +41,9 @@ class TsodyksMarkramMechanism(common.TsodyksMarkramMechanism):
                        # need to look at the source code
     )
     #possible_models = set([s for s in synapse_models if "Dynamic" in s])
-    #possible_models = set(['DynamicStdpSynapse', 'DynamicStdpCondExpSynapse'])
-    native_name = pypcsim.DynamicStdpSynapse
+    possible_models = set([pypcsim.DynamicStdpSynapse,
+                           pypcsim.DynamicStdpCondExpSynapse])
+    #native_name = pypcsim.DynamicStdpSynapse
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
         common.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)

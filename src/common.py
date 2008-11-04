@@ -1053,13 +1053,19 @@ class Projection(object):
               "The synapse_dynamics argument, if specified, must be a SynapseDynamics object, not a %s" % type(synapse_dynamics)
             if self.synapse_dynamics.fast:
                 assert isinstance(self.synapse_dynamics.fast, ShortTermPlasticityMechanism)
-                self.short_term_plasticity_mechanism = self.synapse_dynamics.fast.native_name
+                if hasattr(self.synapse_dynamics.fast, 'native_name'):
+                    self.short_term_plasticity_mechanism = self.synapse_dynamics.fast.native_name
+                else:
+                    self.short_term_plasticity_mechanism = self.synapse_dynamics.fast.possible_models
                 self._short_term_plasticity_parameters = self.synapse_dynamics.fast.parameters.copy()
             if self.synapse_dynamics.slow:
                 assert isinstance(self.synapse_dynamics.slow, STDPMechanism)
                 assert 0 <= self.synapse_dynamics.slow.dendritic_delay_fraction <= 1.0
                 td = self.synapse_dynamics.slow.timing_dependence
                 wd = self.synapse_dynamics.slow.weight_dependence
+                self._stdp_parameters = td.parameters.copy()
+                self._stdp_parameters.update(wd.parameters)
+                
                 possible_models = td.possible_models.intersection(wd.possible_models)
                 if len(possible_models) == 1 :
                     self.long_term_plasticity_mechanism = list(possible_models)[0]
@@ -1081,16 +1087,9 @@ class Projection(object):
                         else:
                             print "The particular model %s does not exists !" %self.synapse_dynamics.slow.model
                     else:
-                        print "Several STDP models are available for these connections"
-                        for model in possible_models:
-                            print "--> %s" %model
-                        self.long_term_plasticity_mechanism = list(possible_models)[0]
-                        print "By default, %s is used" %self.long_term_plasticity_mechanism
-                    #raise Exception("Multiple plasticity models available")
+                        # we pass the set of models back to the simulator-specific module for it to deal with
+                        self.long_term_plasticity_mechanism = possible_models
                 
-                #print "Using %s" % self._plasticity_model
-                self._stdp_parameters = td.parameters.copy()
-                self._stdp_parameters.update(wd.parameters)
             
     def __len__(self):
         """Return the total number of connections."""
