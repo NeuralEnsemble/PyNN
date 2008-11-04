@@ -559,8 +559,8 @@ class Population(common.Population):
         if self.spike_recorder:
             f = open(filename,"w", DEFAULT_BUFFER_SIZE)
             f.write("# dimensions =" + "\t".join([str(d) for d in self.dim]) + "\n")
-            f.write("# first_id = %d\n" % self.first_id)
-            f.write("# last_id = %d\n" % (self.first_id+len(self)-1,))
+            f.write("# first_id = %d\n" % 0)
+            f.write("# last_id = %d\n" % (len(self)-1,))
             f.write("# dt = %g\n" % dt)
             spikes = numpy.array(self.spike_recorder.spikes)
             try:
@@ -627,8 +627,8 @@ class Population(common.Population):
             f = open(filename,"w", DEFAULT_BUFFER_SIZE)
             N = len(self.vm_recorder[0])
             f.write("# dimensions =" + "\t".join([str(d) for d in self.dim]) + "\n")
-            f.write("# first_id = %d\n" % self.first_id)
-            f.write("# last_id = %d\n" % (self.first_id+len(self)-1,))
+            f.write("# first_id = %d\n" % 0)
+            f.write("# last_id = %d\n" % (len(self)-1,))
             f.write("# dt = %g\n" % dt)
             f.write("# n = %d\n" % N)
             cells = self.vm_recorder.get_record_indices()

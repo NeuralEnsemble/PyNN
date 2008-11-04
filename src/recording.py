@@ -88,8 +88,8 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
     # Write header info (e.g., dimensions of the population)
     if population is not None:
         result.write("# dimensions = %s\n" %list(population.dim))
-        result.write("# first_id = %d\n" % population.first_id)
-        result.write("# last_id = %d\n" % (population.first_id+len(population)-1,))
+        result.write("# first_id = %d\n" % 0)
+        result.write("# last_id = %d\n" % (len(population)-1,))
         padding = population.first_id
     else:
         padding = 0
@@ -149,8 +149,8 @@ def write_compatible_output1(data_source, user_filename, variable, input_format,
         if population is not None:
             metadata.update({
                 'dimensions': str(list(population.dim)),
-                'first_id': population.first_id,
-                'last_id': population.first_id + len(population)-1
+                'first_id': 0,
+                'last_id': len(population)-1
             })
             id_offset = population.first_id
         else:
