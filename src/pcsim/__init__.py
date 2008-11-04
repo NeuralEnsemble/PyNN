@@ -228,6 +228,19 @@ class FieldMultiChannelRecorder:
                 f.write("\n")
         f.close()
 
+    def get_v(self):
+        all_vm = numpy.zeros((0,3))
+        for i, rec, src in self.recordings:            
+            vm = 1000.0*numpy.array(pcsim_globals.net.object(rec).getRecordedValues())
+            vm = vm.reshape((len(vm),1))
+            dt = get_time_step()
+            t = numpy.arange(0, dt*len(vm), dt).reshape((len(vm),1))
+            ids = i*numpy.ones(vm.shape)
+            ids_t_vm = numpy.concatenate((ids, t, vm), axis=1)
+            all_vm = numpy.concatenate((all_vm, ids_t_vm), axis=0)
+        return all_vm
+    
+
 class ID(long, common.IDMixin):
     """
     Instead of storing ids as integers, we store them as ID objects,
@@ -895,6 +908,16 @@ class Population(common.Population):
         """
         return self.spike_rec.getSpikes()
     
+    def get_v(self, gather=True, compatible_output=True):
+        """
+        Return a 2-column numpy array containing cell ids and spike times for
+        recorded cells.
+
+        Useful for small populations, for example for single neuron Monte-Carlo.
+
+        """
+        return self.vm_rec.get_v()
+    
     def meanSpikeCount(self, gather=True):         
         """
             Returns the mean number of spikes per neuron.
@@ -928,7 +951,9 @@ class Projection(common.Projection, WDManager):
     
     nProj = 0
     
-    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', method_parameters=None, source=None, target=None, synapse_dynamics=None, label=None, rng=None):
+    def __init__(self, presynaptic_population, postsynaptic_population,
+                 method='allToAll', method_parameters=None, source=None,
+                 target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -974,7 +999,9 @@ class Projection(common.Projection, WDManager):
                    
         """
         global pcsim_globals
-        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, method_parameters, source, target, synapse_dynamics, label, rng)
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
+                                   method, method_parameters, source, target,
+                                   synapse_dynamics, label, rng)
         
         # Determine connection decider
         if isinstance(method, str):
@@ -990,10 +1017,12 @@ class Projection(common.Projection, WDManager):
                 decider = pypcsim.EuclideanDistanceRandomConnections(method_parameters[0], method_parameters[1])
                 wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
             elif method == 'fixedNumberPre':
-                decider = pypcsim.DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.incoming)
+                decider = pypcsim.DegreeDistributionConnections(ConstantNumber(parameters),
+                                                                DegreeDistributionConnections.incoming)
                 wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
             elif method == 'fixedNumberPost':
-                decider = pypcsim.DegreeDistributionConnections(ConstantNumber(parameters), DegreeDistributionConnections.outgoing)
+                decider = pypcsim.DegreeDistributionConnections(ConstantNumber(parameters),
+                                                                DegreeDistributionConnections.outgoing)
                 wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
             elif method == 'oneToOne':
                 decider = pypcsim.RandomConnections(1)
@@ -1016,21 +1045,46 @@ class Projection(common.Projection, WDManager):
         else:
             d = self.convertDelay(delay)
 
-        if not target:
-            self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, w, d)
-        elif isinstance(target, int):
-            self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(target, w, d)
-        else:
-            if isinstance(target, str):
-                if target == 'excitatory':
-                    self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, w, d)
-                elif target == 'inhibitory':
-                    self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(2, w, d)
-                else:
-                    target = eval(target)
-                    self.syn_factory = target({})
+        # handle synapse dynamics
+        if self.synapse_dynamics:
+            synapse_type = None
+            plasticity_parameters = {}
+            
+            # we need to know the synaptic time constant, which is a property of the
+            # post-synaptic cell in PyNN. Here, we get it from the Population initial
+            # value, but this is a problem if tau_syn varies from cell to cell
+            if target in (None, 'excitatory'):
+                tau_syn = self.post.celltype.parameters['TauSynExc']
+            elif target == 'inhibitory':
+                tau_syn = self.post.celltype.parameters['TauSynInh']
             else:
-                self.syn_factory = target
+                raise Exception("Currently, target must be one of 'excitatory', 'inhibitory' with dynamic synapses")
+            
+            if self.synapse_dynamics.fast:
+                synapse_type = self.short_term_plasticity_mechanism
+                plasticity_parameters.update(self._short_term_plasticity_parameters)
+            if self.synapse_dynamics.slow:
+                if synapse_type:
+                    assert synapse_type == self.long_term_plasticity_mechanism, "%s != %s" % (synapse_type, self.long_term_plasticity_mechanism)
+                plasticity_parameters.update(self._stdp_parameters)
+            self.syn_factory = synapse_type(Winit=w, delay=d, tau=tau_syn,
+                                            **plasticity_parameters)
+        else:
+            if not target:
+                self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, w, d)
+            elif isinstance(target, int):
+                self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(target, w, d)
+            else:
+                if isinstance(target, str):
+                    if target == 'excitatory':
+                        self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, w, d)
+                    elif target == 'inhibitory':
+                        self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(2, w, d)
+                    else:
+                        target = eval(target)
+                        self.syn_factory = target({})
+                else:
+                    self.syn_factory = target
             
         self.pcsim_projection = pypcsim.ConnectionsProjection(self.pre.pcsim_population, self.post.pcsim_population, 
                                                               self.syn_factory, decider, wiring_method, collectIDs = True,
