@@ -961,25 +961,15 @@ class Population(common.Population):
 
     def get_v(self, gather=True, compatible_output=True):
         """
-        Return a 2-column numpy array containing cell ids and spike times for
+        Return a 2-column numpy array containing cell ids and Vm for
         recorded cells.
-
-        Useful for small populations, for example for single neuron Monte-Carlo.
-
-        NOTE: getSpikes or printSpikes should be called only once per run,
-        because they mangle simulator recorder files.
         """
         return self.recorders['v'].get(gather, compatible_output)
             
     def get_c(self, gather=True, compatible_output=True):
         """
-        Return a 2-column numpy array containing cell ids and spike times for
-        recorded cells.
-
-        Useful for small populations, for example for single neuron Monte-Carlo.
-
-        NOTE: getSpikes or printSpikes should be called only once per run,
-        because they mangle simulator recorder files.
+        Return a 3-column numpy array containing cell ids and synaptic
+        conductances for recorded cells.
         """
         return self.recorders['conductance'].get(gather, compatible_output)
     

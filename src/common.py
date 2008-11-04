@@ -1081,7 +1081,7 @@ class Projection(object):
                         else:
                             print "The particular model %s does not exists !" %self.synapse_dynamics.slow.model
                     else:
-                        print "Several stdp models are available for those plastics connections"
+                        print "Several STDP models are available for these connections"
                         for model in possible_models:
                             print "--> %s" %model
                         self.long_term_plasticity_mechanism = list(possible_models)[0]
@@ -1645,9 +1645,8 @@ class MultiplicativeWeightDependence(STDPWeightDependence):
 
 class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
     """
-    For depression, Dw propto w-w_min
-    For potentiation, Dw constant
-    (van Rossum rule?)
+    The amplitude of the weight change depends on the current weight for
+    depression (Dw propto w-w_min) and is fixed for potentiation.
     """
 
     default_parameters = {

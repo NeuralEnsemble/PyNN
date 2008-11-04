@@ -513,7 +513,7 @@ def run(simtime):
         if nhost > 1:
             assert h.local_minimum_delay >= get_min_delay(),\
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (h.local_minimum_delay, get_min_delay())
-    h.tstop = simtime
+    h.tstop += simtime
     h.pc.psolve(h.tstop)
     return get_current_time()
 
