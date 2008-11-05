@@ -26,9 +26,11 @@ $Id$
 import sys
 import numpy
 
-from pyNN import nest2, neuron
+from pyNN import nest2, neuron, pcsim
 from NeuroTools.stgen import StGen
 from NeuroTools.analysis import arrays_almost_equal
+
+simulators = (nest2, neuron, pcsim)
 
 # Parameters
 spike_interval = 10.0
@@ -37,6 +39,7 @@ recording_interval = 1.0
 first_spike = 12.0
 early_offset = 2.0
 late_offset = 2.0
+ddf = 1.0
 w_max = 0.004
 delays = 1.0
 acceptable_jitter = 0.03
@@ -48,7 +51,8 @@ assert late_offset/spike_interval < 0.5
 def create_network(sim):
     """Create the network described above."""
     spike_latency = 0.20
-    sim.setup(timestep=0.01,min_delay=0.01,max_delay=5.0,debug=True)
+    sim.setup(timestep=0.01, min_delay=0.1, max_delay=10.0,
+              debug=True, quit_on_end=False)
     if noisy:
         trigger_times = StGen().poisson_generator(1.0/spike_interval, tstop) + first_spike
     else:
@@ -65,8 +69,8 @@ def create_network(sim):
     stdp_model = sim.STDPMechanism(
         timing_dependence=sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0),
         weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=w_max,
-                                                       A_plus=0.01, A_minus=0.012),
-        dendritic_delay_fraction=1.0
+                                                       A_plus=0.01, A_minus=0.01),
+        dendritic_delay_fraction=ddf
         )
 
     connector_in_out = sim.AllToAllConnector(weights=w_max/4.0, delays=delays)
@@ -83,17 +87,18 @@ def create_network(sim):
     p_tr.record()
     p_out.record()
     p_out.record_v()
-    
+        
     return locals()
 
 # Create the networks
-net = {neuron.__name__: create_network(neuron),
-       nest2.__name__: create_network(nest2)}
+net = {}
+for sim in simulators:
+    net[sim.__name__] = create_network(sim)
 
 # Create lists to store weights
 prj_list = ['prj_early_out', 'prj_late_out']
 weights = {}
-for sim_name in nest2.__name__, neuron.__name__:
+for sim_name in net.keys():
     weights[sim_name] = {}
     for prj in prj_list:
         weights[sim_name][prj] = []
@@ -101,7 +106,7 @@ for sim_name in nest2.__name__, neuron.__name__:
 # Run the network, and record weights at short intervals
 t = 0      
 while t < tstop:
-    for sim in nest2, neuron:
+    for sim in simulators:
         t = sim.run(recording_interval)
         for prj in prj_list:
             weights[sim.__name__][prj].append(net[sim.__name__][prj].getWeights()[0])
@@ -110,7 +115,7 @@ while t < tstop:
 import pylab
 pylab.rcParams['interactive'] = True
 for prj in prj_list:
-    for sim_name in nest2.__name__, neuron.__name__:    
+    for sim_name in net.keys():    
         pylab.plot(weights[sim_name][prj], label="%s %s" % (sim_name, prj))
 pylab.legend(loc='center right')
 
@@ -118,9 +123,10 @@ pylab.legend(loc='center right')
 spikes = {}
 for p,x in (('p_early',-0.02), ('p_late',-0.03), ('p_out',-0.025)):
     spikes[p] = {}
-    for sim_name in nest2.__name__, neuron.__name__:
+    for sim_name in net.keys():
         spikes[p][sim_name] = net[sim_name][p].getSpikes()[:,1]
     assert arrays_almost_equal(spikes[p][nest2.__name__], spikes[p][neuron.__name__], acceptable_jitter), "Max diff = %g ms" % max(spikes[p][nest2.__name__]-spikes[p][neuron.__name__])
+    assert arrays_almost_equal(spikes[p][nest2.__name__], spikes[p][pcsim.__name__], acceptable_jitter), "Max diff = %g ms" % max(spikes[p][nest2.__name__]-spikes[p][neuron.__name__])
     spike_times = spikes[p][neuron.__name__]
     pylab.plot(spike_times,
                [x*w_max]*len(spike_times), '+', label=p)
@@ -128,21 +134,44 @@ pylab.xlabel('Time (ms)')
 pylab.ylabel('Weight (nA)')
 pylab.title('stdp_multisim')
 
-# Extract weights at times of presynaptic spikes.
-weights_at_spiketimes = {}
-presynaptic_spikes = {}
-for sim_name in nest2.__name__, neuron.__name__:
-    presynaptic_spikes[sim_name] = numpy.concatenate((spikes['p_early'][sim_name],
-                                                      spikes['p_late'][sim_name]))
-    mask = (presynaptic_spikes[sim_name]/recording_interval).astype('int')
-    weights_at_spiketimes[sim_name] = numpy.array(weights[sim.__name__]['prj_early_out'])[mask]
+# plot Vm
+pylab.figure(2)
+for sim_name in net.keys():
+    print sim_name
+    vm = net[sim_name]['p_out'].get_v()
+    pylab.plot(vm[:,1], vm[:,2], label=sim_name)
+pylab.legend(loc='upper right')
 
-if (weights_at_spiketimes[nest2.__name__] == weights_at_spiketimes[neuron.__name__]).all():
+# Extract weights at times of presynaptic spikes.
+weights_at_spiketimes = {'prj_early_out': {}, 'prj_late_out': {}}
+presynaptic_spikes = {}
+post_synaptic_potentials = {}
+for sim_name in net.keys():
+    for p_name, prj_name in zip(('p_early', 'p_late'), weights_at_spiketimes.keys()):
+        presynaptic_spikes[sim_name] = spikes[p_name][sim_name]
+        print "presynaptic spikes for %s: %s" % (sim_name, presynaptic_spikes[sim_name])
+        post_synaptic_potentials[sim_name] = presynaptic_spikes[sim_name] + delays
+        #mask = (presynaptic_spikes[sim_name]/recording_interval).astype('int')
+        mask = (post_synaptic_potentials[sim_name]/recording_interval).astype('int')
+        weights_at_spiketimes[prj_name][sim_name] = numpy.array(weights[sim_name][prj_name])[mask]
+
+def all_equal(arr, threshold=0):
+    equal = True
+    a = arr[0]
+    for b in arr[1:]:
+        equal = equal and (numpy.abs(a - b) <= threshold).all()
+        print "---", numpy.abs(a-b)
+    return equal
+
+if (all_equal(weights_at_spiketimes['prj_early_out'].values(), threshold=1e-5) and
+    all_equal(weights_at_spiketimes['prj_late_out'].values(), threshold=1e-5)):
     print "*** Passed ***"
 else:
     print "*** Failed ***"
-    print "nest2 weights:", weights_at_spiketimes[nest2.__name__]
-    print "neuron weights:", weights_at_spiketimes[neuron.__name__]
+for sim_name in net.keys():
+    print "%s weights: %s %s" % (sim_name,
+                                 weights_at_spiketimes['prj_early_out'][sim_name],
+                                 weights_at_spiketimes['prj_late_out'][sim_name])
 
-neuron.end()
-nest2.end()
+for sim in simulators:
+    sim.end()

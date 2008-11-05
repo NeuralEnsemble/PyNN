@@ -1089,7 +1089,7 @@ class Population(common.Population):
         Useful for small populations, for example for single neuron Monte-Carlo.
         """
         # This is a bit of a hack implemetation
-        tmpfile = os.path.join(tempfile.mkdtemp(prefix="pyNN_neuron"), "getSpikes_tmpfile") # should really use tempfile module
+        tmpfile = os.path.join(tempfile.mkdtemp(prefix="pyNN_neuron"), "getSpikes_tmpfile") 
         self.recorders['spikes'].write(tmpfile, gather, compatible_output=False)
         if not gather and num_processes()>1:
             tmpfile += '.%d' % myid
@@ -1101,6 +1101,25 @@ class Population(common.Population):
             f.close()
             #os.remove(tmpfile) # should also remove tmp parent directory
             return spikes
+        else:
+            return numpy.empty((0,2))
+    
+    def get_v(self, gather=True):
+        # This is a bit of a hack implemetation
+        tmpfile = os.path.join(tempfile.mkdtemp(prefix="pyNN_neuron"), "get_v_tmpfile")
+        print tmpfile
+        self.recorders['v'].write(tmpfile, gather, compatible_output=False)
+        if not gather and num_processes()>1:
+            tmpfile += '.%d' % myid
+        if myid==0 or not gather:
+            f = open(tmpfile, 'r')
+            lines = [line for line in f.read().split('\n') if line and line[0]!='#'] # remove blank and comment lines
+            dt = get_time_step()
+            line2vm = lambda i,s: (int(s[1]), i*dt, float(s[0]))
+            vm = numpy.array([line2vm(i,line.split()) for i,line in enumerate(lines)])
+            f.close()
+            #os.remove(tmpfile) # should also remove tmp parent directory
+            return vm
         else:
             return numpy.empty((0,2))
         

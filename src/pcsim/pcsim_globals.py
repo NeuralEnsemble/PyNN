@@ -8,6 +8,7 @@ class PyPCSIM_GLOBALS:
     simulationRNGSeed = None
     spikes_multi_rec = {}
     vm_multi_rec = {}
+    t = 0
     pass
 
 pcsim_globals = PyPCSIM_GLOBALS()

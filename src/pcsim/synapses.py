@@ -63,8 +63,8 @@ class AdditiveWeightDependence(common.AdditiveWeightDependence):
     translations = common.build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion
         ('w_min',     'w_min_always_zero_in_PCSIM'),
-        ('A_plus',    'Apos'),
-        ('A_minus',   'Aneg', -1),
+        ('A_plus',    'Apos', '1e-9*A_plus*w_max', '1e9*Apos/w_max'),  # note that here Apos and Aneg
+        ('A_minus',   'Aneg', '-1e-9*A_minus*w_max', '-1e9*Aneg/w_max'), # have the same units as the weight
     )
     possible_models = set([pypcsim.DynamicStdpSynapse,
                            pypcsim.DynamicStdpCondExpSynapse])
@@ -91,8 +91,8 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
     translations = common.build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion
         ('w_min',     'w_min_always_zero_in_PCSIM'),
-        ('A_plus',    'Apos'),
-        ('A_minus',   'Aneg', -1),
+        ('A_plus',    'Apos'),     # here Apos and Aneg
+        ('A_minus',   'Aneg', -1), # are dimensionless
     )
     possible_models = set([pypcsim.DynamicStdpSynapse,
                            pypcsim.DynamicStdpCondExpSynapse])
@@ -117,8 +117,8 @@ class AdditivePotentiationMultiplicativeDepression(common.AdditivePotentiationMu
     translations = common.build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion
         ('w_min',     'w_min_always_zero_in_PCSIM'),
-        ('A_plus',    'Apos'),
-        ('A_minus',   'Aneg', -1),
+        ('A_plus',    'Apos', 1e-9), # Apos has the same units as the weight
+        ('A_minus',   'Aneg', -1),   # Aneg is dimensionless
     )
     possible_models = set([pypcsim.DynamicStdpSynapse,
                            pypcsim.DynamicStdpCondExpSynapse])

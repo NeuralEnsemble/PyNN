@@ -375,6 +375,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     """
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     global pcsim_globals, dt
+    pcsim_globals.t = 0
     pcsim_globals.dt = timestep
     pcsim_globals.minDelay = min_delay
     pcsim_globals.maxDelay = max_delay
@@ -413,11 +414,13 @@ def end(compatible_output=True):
 def run(simtime):
     """Run the simulation for simtime ms."""
     global pcsim_globals
+    pcsim_globals.t += simtime
     pcsim_globals.net.advance(int(simtime / pcsim_globals.dt ))
+    return get_current_time()
 
 def get_current_time():
     """Return the current time in the simulation."""
-    raise NotImplementedError()
+    return pcsim_globals.t
 
 def get_time_step():
     return pcsim_globals.dt
@@ -1072,9 +1075,16 @@ class Projection(common.Projection, WDManager):
             if self.synapse_dynamics.fast:
                 possible_models = possible_models.intersection(self.short_term_plasticity_mechanism)
                 plasticity_parameters.update(self._short_term_plasticity_parameters)
+                # perhaps need to ensure that STDP is turned off here, to be turned back on by the next block
             if self.synapse_dynamics.slow:
                 possible_models = possible_models.intersection(self.long_term_plasticity_mechanism)
                 plasticity_parameters.update(self._stdp_parameters)
+                dendritic_delay = self.synapse_dynamics.slow.dendritic_delay_fraction * d
+                transmission_delay = d - dendritic_delay
+                plasticity_parameters.update({'back_delay': 2*dendritic_delay})
+                
+            if not self.synapse_dynamics.fast: # turn off short-term plasticity
+                plasticity_parameters.update({'U': 1.0, 'D': 0.0, 'F': 0.0, 'u0': 1.0, 'r0': 1.0, 'f0': -1})
             assert len(possible_models) == 1, str(possible_models)
             synapse_type = list(possible_models)[0]
             self.syn_factory = synapse_type(Winit=w, delay=d, tau=tau_syn,
@@ -1165,6 +1175,7 @@ class Projection(common.Projection, WDManager):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
+        # with STDP, will need updating to take account of the dendritic_delay_fraction
         d = self.convertDelay(d)
         if isinstance(d, float) or isinstance(d, int):
             for i in range(len(self)):
