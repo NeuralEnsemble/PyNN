@@ -22,9 +22,8 @@ class MultiSim(object):
             
     def run(self, simtime, steps=1, *callbacks):
         dt = float(simtime)/steps
-        for sim in self.sim_list:
-            for i in range(steps):
+        for i in range(steps):
+            for sim in self.sim_list:
                 sim.run(dt)
-                for func_name in callbacks:
-                    func = getattr(self.nets[sim.__name__], func_name)
-                    func()
+            for func in callbacks:
+                func()
