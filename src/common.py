@@ -1041,9 +1041,10 @@ class Projection(object):
         self._method = method
         self.synapse_dynamics = synapse_dynamics
         self.connection = None # access individual connections. To be defined by child, simulator-specific classes
+        self.weights = []
         if label is None:
             if self.pre.label and self.post.label:
-                self.label = "%s → %s" % (self.pre.label, self.post.label)
+                self.label = "%s→%s" % (self.pre.label, self.post.label)
     
         # Deal with synaptic plasticity
         self.short_term_plasticity_mechanism = None
@@ -1094,6 +1095,9 @@ class Projection(object):
     def __len__(self):
         """Return the total number of connections."""
         return self.nconn
+    
+    def __repr__(self):
+        return 'Projection("%s")' % self.label
     
     # --- Connection methods ---------------------------------------------------
     

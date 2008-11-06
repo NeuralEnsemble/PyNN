@@ -33,17 +33,17 @@ from NeuroTools.analysis import arrays_almost_equal
 simulators = (nest2, neuron, pcsim)
 
 # Parameters
-spike_interval = 10.0
-tstop = spike_interval*30
+spike_interval = 30.0
+tstop = 300 #spike_interval*3
 recording_interval = 1.0
 first_spike = 12.0
-early_offset = 2.0
-late_offset = 2.0
+early_offset = 7.0
+late_offset = 7.0
 ddf = 1.0
-w_max = 0.004
-delays = 1.0
+w_max = 0.4
+delays = 2.0
 acceptable_jitter = 0.03
-noisy = True
+noisy = False
 
 assert early_offset/spike_interval < 0.5
 assert late_offset/spike_interval < 0.5
