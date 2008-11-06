@@ -1125,7 +1125,7 @@ class Projection(common.Projection, WDManager):
             assert len(delay) == len(self), "Weight array does not have the same number of elements as the Projection %d != %d" % (len(weight),len(self))
             self.setDelays(delay)
         
-        if not label:
+        if not self.label:
             self.label = 'projection%d' % Projection.nProj
         if not rng:
             self.rng = numpy.random.RandomState()

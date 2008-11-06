@@ -1213,9 +1213,9 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    method_parameters, source, target, synapse_dynamics, label, rng)
         self.connections = []
-        if not label:
+        if not self.label:
             self.label = 'projection%d' % Projection.nProj
-        self.hoc_label = self.label.replace(" ","_")
+        self.hoc_label = self.label.replace(" ","_").replace("→","2")
         if not rng:
             self.rng = NumpyRNG()
         hoc_commands = ['objref %s' % self.hoc_label,
