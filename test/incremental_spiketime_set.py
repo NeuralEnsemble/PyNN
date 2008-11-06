@@ -8,7 +8,7 @@ interactive = False
 
 if interactive:
     import pylab
-	pylab.rcParams['interactive'] = interactive
+    pylab.rcParams['interactive'] = interactive
 
 simulator = sys.argv[-1]
 sim = __import__("pyNN.%s" % simulator, None, None, [simulator])
