@@ -177,3 +177,4 @@ class SpikePairRule(common.SpikePairRule):
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)
+        self.parameters['STDPgap'] = 0.0
