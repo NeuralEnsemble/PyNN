@@ -4,7 +4,7 @@ import numpy
 from NeuroTools.parameters import ParameterSet
 from NeuroTools.stgen import StGen
 from simple_network import SimpleNetwork
-from multisim import MultiSim
+from pyNN.utility import MultiSim
 from calc import STDPSynapse
 from pyNN import nest2, neuron, pcsim
 from time import time

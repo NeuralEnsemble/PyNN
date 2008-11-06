@@ -56,3 +56,54 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0):
                     format='%(asctime)s %(levelname)s %(message)s',
                     filename=logfile,
                     filemode='w')
+        
+        
+class MultiSim(object):
+    """
+    A small framework to make it easier to run the same model on multiple
+    simulators.
+    
+    Currently runs the simulations interleaved, but it would be nice to add
+    parallel runs via threading, multiple processes, or MPI processes.
+    """
+    
+    def __init__(self, sim_list, net, parameters):
+        """
+        Build the model defined in the class `net`, with parameters `parameters`,
+        for each of the simulator modules specified in `sim_list`.
+        
+        The `net` constructor takes arguments `sim` and `parameters`.
+        """
+        self.sim_list = sim_list
+        self.nets = {}
+        for sim in sim_list:
+            self.nets[sim.__name__] = net(sim, parameters)
+            
+    def __iter__(self):
+        return self.nets.itervalues()
+    
+    def __getattr__(self, name):
+        """
+        Assumes `name` is a method of the `net` model.
+        Return a function that runs `net.name()` for all the simulators.
+        """
+        def iterate_over_nets(*args, **kwargs):
+            retvals = {}
+            for sim_name, net in self.nets.items():
+                retvals[sim_name] = getattr(net, name)(*args, **kwargs)
+            return retvals
+        return iterate_over_nets
+            
+    def run(self, simtime, steps=1, *callbacks):
+        """
+        Run the model for a time `simtime` in all simulators.
+        
+        The run may be broken into a number of steps (each of equal duration).
+        Any functions in `callbacks` will be called after each step.
+        """
+        dt = float(simtime)/steps
+        for i in range(steps):
+            for sim in self.sim_list:
+                sim.run(dt)
+            for func in callbacks:
+                func()
