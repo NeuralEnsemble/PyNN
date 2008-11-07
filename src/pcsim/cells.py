@@ -134,7 +134,20 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
         self.simObjFactory = pypcsim.PoissonInputNeuron(**self.parameters)
 
     
-""" Implemented but not tested """
+def sanitize_spike_times(spike_times):
+    """
+    PCSIM has a bug that the SpikingInputNeuron sometimes stops emitting spikes
+    I think this happens when two spikes fall in the same time step.
+    This workaround removes any spikes after the first within a given time step.
+    """
+    time_step = common.get_time_step()
+    spike_times = numpy.array(spike_times)
+    bins = (spike_times/time_step).astype('int')
+    mask = numpy.concatenate((numpy.array([True]), bins[1:] != bins[:-1]))
+    if len(mask) < len(bins):
+        logging.warn("Spikes have been thrown away because they were too close together.")
+    return spike_times[mask]
+
 class SpikeSourceArray(common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
     translations = common.build_translations(
@@ -154,12 +167,13 @@ class SpikeSourceArray(common.SpikeSourceArray):
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
         translated_parameters = super(SpikeSourceArray, cls).translate(parameters)
+        translated_parameters['spikeTimes'] = sanitize_spike_times(translated_parameters['spikeTimes'])
         # for why we used 'super' here, see http://blogs.gnome.org/jamesh/2005/06/23/overriding-class-methods-in-python/
         # convert from ms to s - should really be done in common.py, but that doesn't handle lists, only arrays
         if isinstance(translated_parameters['spikeTimes'], list):
             translated_parameters['spikeTimes'] = [t*0.001 for t in translated_parameters['spikeTimes']]
-        elif isinstance(translated_parameters['spikeTimes'], numpy.array):
-            translated_parameters['spikeTimes'] *= 0.001 
+        elif isinstance(translated_parameters['spikeTimes'], numpy.ndarray):
+            translated_parameters['spikeTimes'] *= 0.001
         return translated_parameters
     
     @classmethod
