@@ -105,12 +105,19 @@ class SimpleNetwork(object):
             vm[pop.label] = pop.get_v()
         return vm
     
-    def get_weights(self):
+    def get_weights(self, at_input_spiketimes=False, recording_interval=1.0):
         w = {}
+        if at_input_spiketimes:
+            presynaptic_spike_times = self.pre.getSpikes()[:,1]
         for prj in self.prj:
             w[prj.label] = numpy.array(prj.weights)
+            if at_input_spiketimes:
+                assert isinstance(prj._method.delays, float)
+                post_synaptic_potentials = presynaptic_spike_times + prj._method.delays
+                mask = numpy.ceil(post_synaptic_potentials/recording_interval).astype('int')
+                w[prj.label] = w[prj.label][mask]
         return w
-    
+
         
 def test():
     import pyNN.nest2

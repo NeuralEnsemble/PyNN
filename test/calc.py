@@ -35,14 +35,18 @@ class STDPSynapse(object):
         self.tlast_post = 0
         self.deltaw = []
     
-    def calc_weights(self):
+    def calc_weights(self, at_input_spiketimes=False):
         self.reset()
         update = {1: self.pre_synaptic_spike,
                   -1: self.post_synaptic_spike}
         for t, code in self.events:
             self.deltaw.append( update[code](t) )
         weights = self.w_init + numpy.add.accumulate(self.deltaw)
-        return self.events[:,0], weights
+        if at_input_spiketimes:
+            mask = self.events[:,1]==1
+        else:
+            mask = slice(None)
+        return self.events[:,0][mask], weights[mask]
                 
     def pre_synaptic_spike(self, t):
         self.P = self.P*numpy.exp((self.tlast_pre-t)/self.tau_plus) + self.A_plus
