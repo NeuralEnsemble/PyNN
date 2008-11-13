@@ -1,6 +1,6 @@
 # ==============================================================================
 # Synapse Dynamics classes for nest2
-# $Id$
+# $Id: synapses.py 479 2008-11-04 13:20:40Z apdavison $
 # ==============================================================================
 
 from pyNN import common
@@ -45,6 +45,7 @@ class TsodyksMarkramMechanism(common.TsodyksMarkramMechanism):
         common.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
         parameters = dict(locals()) # need the dict to get a copy of locals. When running
         parameters.pop('self')      # through coverage.py, for some reason, the pop() doesn't have any effect
+        print parameters
         self.parameters = self.translate(parameters)
 
 class AdditiveWeightDependence(common.AdditiveWeightDependence):

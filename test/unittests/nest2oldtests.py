@@ -763,9 +763,9 @@ class SynapseDynamicsTest(unittest.TestCase):
                         assert prj.getWeights('list') == [0.1]*(len(srcP)*len(tgtP)), "%s != %s" % (prj.getWeights('list'),[0.1]*(len(srcP)*len(tgtP)))
                         assert prj.getDelays('list') == [0.2]*(len(srcP)*len(tgtP))
                         assert prj._get_connection_values('list', 'Kplus', gather=False) == [0.0]*(len(srcP)*len(tgtP))
-                        assert nest.nest.GetDefaults(prj.plasticity_name)['Wmax'] == 0.7654*1000.0
+                        assert nest.nest.GetSynapseDefaults(prj.plasticity_name)['Wmax'] == 0.7654*1000.0
             print nest.nest.GetConnections([prj.pre.index(0)], prj.plasticity_name)
-            print nest.nest.GetDefaults(prj.plasticity_name)
+            print nest.nest.GetSynapseDefaults(prj.plasticity_name)
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 PyNEST v2 implementation of the PyNN API.
-$Id$
+$Id: __init__.py 482 2008-11-04 14:50:26Z apdavison $
 """
 
 import nest
@@ -141,12 +141,17 @@ class Recorder(object):
         self.recorded = self.recorded.union(ids)
         
         device_name = nest.GetStatus(self._device, "model")[0]
+        original_synapse_context = nest.GetSynapseContext()
+        if original_synapse_context != 'static_synapse':
+            nest.SetSynapseContext('static_synapse')
         if device_name == "spike_detector":
-            nest.ConvergentConnect(new_ids, self._device, model='static_synapse')
+            nest.ConvergentConnect(new_ids, self._device)
         elif device_name in ('voltmeter', 'conductancemeter'):
-            nest.DivergentConnect(self._device, new_ids, model='static_synapse')
+            nest.DivergentConnect(self._device, new_ids)
         else:
             raise Exception("%s is not a valid recording device" % device_name)
+        if original_synapse_context != 'static_synapse':
+            nest.SetSynapseContext(original_synapse_context)
     
     def get(self, gather=False, compatible_output=True):
         """Returns the recorded data."""
@@ -397,7 +402,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     for synapse_model in NEST_SYNAPSE_TYPES:
         # this is done in two steps, because otherwise NEST sometimes complains
         #   "max_delay is not compatible with default delay"
-        nest.SetDefaults(synapse_model, {'delay' : min_delay, 'min_delay': min_delay, 'max_delay': max_delay})
+        nest.SetSynapseDefaults(synapse_model, {'delay': min_delay})
+        nest.SetSynapseDefaults(synapse_model, {'min_delay': min_delay,
+                                                'max_delay': max_delay})
 
     # set resolution
     nest.SetStatus([0], {'resolution': timestep})
@@ -434,11 +441,11 @@ def get_time_step():
 common.get_time_step = get_time_step
 
 def get_min_delay():
-    return nest.GetDefaults('static_synapse')['min_delay']
+    return nest.GetSynapseDefaults('static_synapse')['min_delay']
 common.get_min_delay = get_min_delay
 
 def get_max_delay():
-    return nest.GetDefaults('static_synapse')['max_delay']
+    return nest.GetSynapseDefaults('static_synapse')['max_delay']
 common.get_max_delay = get_max_delay
 
 def num_processes():
@@ -499,7 +506,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         weight *= -1
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
-            nest.Connect([source], [target], [weight], [delay], 'static_synapse')
+            nest.ConnectWD([source], [target], [weight], [delay])
             connect_id = Connection(source, target, 'static_synapse')
         else:
             connect_id = []
@@ -515,7 +522,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
                         rarr = numpy.random.uniform(0, 1, len(target))
                 for j,tgt in enumerate(target):
                     if p >= 1 or rarr[j] < p:
-                        nest.Connect([src], [tgt], [weight], [delay], 'static_synapse')
+                        nest.ConnectWD([src], [tgt], [weight], [delay])
                         connect_id += [Connection(src, tgt, 'static_synapse')]
     #except nest.SLIError:
     except Exception, errmsg: # unfortunately, SLIError seems to have disappeared.Hopefully it will be reinstated.
@@ -981,8 +988,8 @@ class Population(common.Population):
         for node in node_list:
             nest.sps(self.recorders['spikes']._device[0])
             nest.sr("%d GetAddress %d append" %(self.recorders['spikes']._device[0], node))
-            #nest.sr("GetStatus /events get")
-            nest.sr("GetStatus /n_events get")
+            nest.sr("GetStatus /events get")
+            #nest.sr("GetStatus /n_events get")
             n_spikes += nest.spp()
         n_rec = len(self.recorders['spikes'].recorded)
         return float(n_spikes)/n_rec
@@ -1112,7 +1119,6 @@ class Projection(common.Projection):
         than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
-        global counter
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    method, method_parameters, source, target,
                                    synapse_dynamics, label, rng)
@@ -1136,20 +1142,27 @@ class Projection(common.Projection):
                                  "static_synapse"
         assert self._plasticity_model in NEST_SYNAPSE_TYPES, self._plasticity_model
 
-        # Set synaptic plasticity parameters 
+        # Set synaptic plasticity parameters
+        original_synapse_context = nest.GetSynapseContext()
+        
         # We create a particular synapse context just for this projection, by copying
         # the one which is desired. The name of the synapse context is randomly generated
         # and will be available as projection.plasticity_name
+        global counter
         self.plasticity_name = "projection_%d" %counter
         counter += 1
-	synapse_defaults = nest.GetDefaults(self._plasticity_model)
-	synapse_defaults.pop('synapsemodel')
-	synapse_defaults.pop('num_connections')
-	if 'num_connectors' in synapse_defaults:
-	    synapse_defaults.pop('num_connectors')
-            
+        #self.plasticity_name = self.label.replace(" → ","_to_")
+        nest.CopySynapseType(self._plasticity_model,self.plasticity_name)
+        # Then we define this copy of the standard plasticity model as the current one)
+        nest.SetSynapseContext(self.plasticity_name)
+
         if hasattr(self, '_short_term_plasticity_parameters') and self._short_term_plasticity_parameters:
+            synapse_defaults = nest.GetSynapseDefaults(self.plasticity_name)
+            synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
+            if 'num_connectors' in synapse_defaults:
+                synapse_defaults.pop('num_connectors')
             synapse_defaults.update(self._short_term_plasticity_parameters)
+            nest.SetSynapseDefaults(self.plasticity_name, synapse_defaults)
 
         if hasattr(self, '_stdp_parameters') and self._stdp_parameters:
             # NEST does not support w_min != 0
@@ -1164,16 +1177,25 @@ class Projection(common.Projection):
             else:
                 raise Exception("Postsynaptic cell model does not support STDP.")
 
+            synapse_defaults = nest.GetSynapseDefaults(self.plasticity_name)
+            if 'num_connectors' in synapse_defaults:
+                synapse_defaults.pop('num_connectors') # otherwise NEST tells you to check your spelling!
+            synapse_defaults.pop('num_connections') # otherwise NEST tells you to check your spelling!
             synapse_defaults.update(self._stdp_parameters)
+            nest.SetSynapseDefaults(self.plasticity_name, synapse_defaults)
 
-        nest.CopyModel(self._plasticity_model, self.plasticity_name, synapse_defaults)
-        
         # Create connections
         if isinstance(method, str):
             connection_method = getattr(self, '_%s' % method)
             self.nconn = connection_method(method_parameters)
         elif isinstance(method, common.Connector):
             self.nconn = method.connect(self)
+
+        # Reset synapse context.
+        # This is needed because low-level API does not support synapse dynamics
+        # for now. We don't just reset to 'static_synapse' in case the user has
+        # made a direct call to nest.SetSynapseContext()
+        nest.SetSynapseContext(original_synapse_context)
 
         # Define a method to access individual connections
         self.connection = Projection.ConnectionDict(self)
@@ -1267,9 +1289,33 @@ class Projection(common.Projection):
         """
         Load connections from a file.
         """
+        if type(parameters) == types.FileType:
+            fileobj = parameters
+            # should check here that fileobj is already open for reading
+            lines = fileobj.readlines()
+        elif type(parameters) == types.StringType:
+            filename = parameters
+            # now open the file...
+            f = open(filename, 'r', DEFAULT_BUFFER_SIZE)
+            lines = f.readlines()
+        elif type(parameters) == types.DictType:
+            # dict could have 'filename' key or 'file' key
+            # implement this...
+            raise Exception("Argument type not yet implemented")
+
         # We read the file and gather all the data in a list of tuples (one per line)
-        c = FromFileConnector(parameters)
-        return c.connect(self)
+        input_tuples = []
+        for line in lines:
+            single_line = line.rstrip()
+            src, tgt, w, d = single_line.split("\t", 4)
+            src = "[%s" % src.split("[", 1)[1]
+            tgt = "[%s" % tgt.split("[", 1)[1]
+            src = eval(src)
+            tgt = eval(tgt)
+            input_tuples.append((src, tgt, float(w), float(d)))
+        f.close()
+
+        self._fromList(input_tuples)
 
     def _fromList(self, conn_list):
         """
@@ -1278,8 +1324,16 @@ class Projection(common.Projection):
         where pre_addr and post_addr are both neuron addresses, i.e. tuples or
         lists containing the neuron array coordinates.
         """
-        c = FromListConnector(conn_list)
-        return c.connect(self)
+        for i in xrange(len(conn_list)):
+            src, tgt, weight, delay = conn_list[i][:]
+            src = eval("self.pre%s" %src)
+            tgt = eval("self.post%s" %tgt)
+            pre_addr = nest.GetAddress([src])
+            post_addr = nest.GetAddress([tgt])
+            nest.ConnectWD(pre_addr, post_addr, [1000*weight], [delay])
+            self._sources.append(src)
+            self._targets.append(tgt)
+            self._target_ports.append(tgt)
 
 
     # --- Methods for setting connection parameters ----------------------------
