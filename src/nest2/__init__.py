@@ -129,7 +129,7 @@ class Recorder(object):
         else: # (includes self.file is None)
             device_parameters.update(to_file=True, to_memory=False)
         # line needed for old version of nest 2.0
-        device_parameters.pop('to_memory')
+        #device_parameters.pop('to_memory')
         nest.SetStatus(self._device, device_parameters)
 
     def record(self, ids):
@@ -886,7 +886,7 @@ class Population(common.Population):
             tmp_list = rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]
     
         self.recorders[variable].record(tmp_list)
-        nest.SetStatus(self.recorders[variable]._device, {'to_file': to_file})
+        nest.SetStatus(self.recorders[variable]._device, {'to_file': to_file, 'to_memory' : not to_file})
 
     def record(self, record_from=None, rng=None, to_file=True):
         """
