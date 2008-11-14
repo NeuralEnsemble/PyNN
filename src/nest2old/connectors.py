@@ -4,7 +4,7 @@
 """
 
 from pyNN import common
-from pyNN.nest2.__init__ import nest, is_number, get_max_delay, get_min_delay
+from pyNN.nest2old.__init__ import nest, is_number, get_max_delay, get_min_delay
 import numpy
 # note that WDManager is defined in __init__.py imported here, then imported
 # into __init__ through `from connectors import *`. This circularity can't be a

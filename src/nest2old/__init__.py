@@ -10,10 +10,10 @@ from pyNN.random import *
 from pyNN import recording
 import numpy, types, sys, shutil, os, logging, copy, tempfile, re
 from math import *
-from pyNN.nest2.cells import *
-from pyNN.nest2.connectors import *
-from pyNN.nest2.synapses import *
-from pyNN.nest2.electrodes import *
+from pyNN.nest2old.cells import *
+from pyNN.nest2old.connectors import *
+from pyNN.nest2old.synapses import *
+from pyNN.nest2old.electrodes import *
 Set = set
 global counter
 
