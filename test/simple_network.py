@@ -1,6 +1,7 @@
 # encoding: utf-8
 import numpy
 from NeuroTools.parameters import ParameterSet
+from NeuroTools import signals
 from itertools import chain
 
 class SimpleNetwork(object):
@@ -96,13 +97,20 @@ class SimpleNetwork(object):
     def get_spikes(self):
         spikes = {}
         for pop in chain(self._neuronal_populations, self._source_populations):
-            spikes[pop.label] = pop.getSpikes()
+            spike_arr = pop.getSpikes()
+            spikes[pop.label] = signals.SpikeList(spike_arr, id_list=[0]) #pop.cell.flat)
         return spikes
         
     def get_v(self):
         vm = {}
         for pop in self._neuronal_populations:
-            vm[pop.label] = pop.get_v()
+            vm_arr = pop.get_v()
+            t_start = min(vm_arr[:,1])
+            t_stop = max(vm_arr[:,1])
+            vm[pop.label] = signals.VmList(vm_arr[:,(0,2)], id_list=[0], #pop.cell.flat-pop.first_id,
+                                           dt=self.parameters.system.timestep,
+                                           t_start=min(vm_arr[:,1]),
+                                           t_stop=max(vm_arr[:,1]))
         return vm
     
     def get_weights(self, at_input_spiketimes=False, recording_interval=1.0):

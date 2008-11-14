@@ -893,7 +893,7 @@ class Population(common.Population):
             tmp_list = rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]
     
         self.recorders[variable].record(tmp_list)
-        nest.SetStatus(self.recorders[variable]._device, {'to_file': to_file, 'to_memory' : not to file})
+        nest.SetStatus(self.recorders[variable]._device, {'to_file': to_file, 'to_memory' : not to_file})
 
     def record(self, record_from=None, rng=None, to_file=True):
         """
