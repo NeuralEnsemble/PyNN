@@ -107,3 +107,8 @@ class MultiSim(object):
                 sim.run(dt)
             for func in callbacks:
                 func()
+                
+    def end(self):
+        for sim in self.sim_list:
+            sim.end()
+            

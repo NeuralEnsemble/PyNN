@@ -6,6 +6,7 @@
 from pyNN import common
 import pypcsim
 import numpy
+import logging
 
 class IF_curr_alpha(common.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
@@ -144,8 +145,9 @@ def sanitize_spike_times(spike_times):
     spike_times = numpy.array(spike_times)
     bins = (spike_times/time_step).astype('int')
     mask = numpy.concatenate((numpy.array([True]), bins[1:] != bins[:-1]))
-    if len(mask) < len(bins):
+    if mask.sum() < len(bins):
         logging.warn("Spikes have been thrown away because they were too close together.")
+        logging.debug(spike_times[(1-mask).astype('bool')])
     return spike_times[mask]
 
 class SpikeSourceArray(common.SpikeSourceArray):

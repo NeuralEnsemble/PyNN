@@ -6,34 +6,40 @@ potential trace of the post-synaptic cell between simulators is within some
 tolerance.
 """
 
+import sys
 from time import time
 import numpy
 from NeuroTools.parameters import ParameterSet
 from NeuroTools.stgen import StGen
-from pyNN.utility import MultiSim
+from pyNN.utility import MultiSim, init_logging
 from pyNN import nest2old, neuron, pcsim
 from simple_network import SimpleNetwork
 from pprint import pprint
 
+init_logging("test_synaptic_integration.log", debug=True)
+
+url = sys.argv[1]
+test_parameters = ParameterSet(url)
+
 sim_list = [nest2old, neuron, pcsim]
-sim_time = 1000.0
-spike_interval = 1.0
+sim_time = test_parameters.sim_time
+spike_interval = test_parameters.spike_interval
 
 stgen = StGen()
-seed = int(1e9*(time()%1))
+seed = test_parameters.seed #int(1e9*(time()%1))
 stgen.seed(seed)
 
-parameters = ParameterSet({
-    'system': { 'timestep': 0.01, 'min_delay': 0.1, 'max_delay': 10.0 },
+model_parameters = ParameterSet({
+    'system': test_parameters.system,
     'input_spike_times': stgen.poisson_generator(1000.0/spike_interval, t_stop=sim_time, array=True),
-    'cell_type': 'IF_curr_exp',
-    'cell_parameters': { 'tau_refrac': 2.0, 'tau_m': 20.0, 'tau_syn_E': 2.0 },
+    'cell_type': test_parameters.cell.type,
+    'cell_parameters': test_parameters.cell.params,
     'plasticity': { 'short_term': None, 'long_term': None },
-    'weights': 0.5,
-    'delays': 1.0,
+    'weights': test_parameters.weights,
+    'delays': test_parameters.delays,
 })
 
-networks = MultiSim(sim_list, SimpleNetwork, parameters)
+networks = MultiSim(sim_list, SimpleNetwork, model_parameters)
 networks.run(sim_time)
 
 spike_data = networks.get_spikes()
@@ -71,12 +77,15 @@ def plot_figures():
             print sim_name, len(spikes['pre'])
             pylab.plot( spikes['pre'][0].spike_times, (2*i+1)*numpy.ones_like(spikes['pre'][0].spike_times),
                        "|", label="Presynaptic spikes (%s)" % sim_name, markersize=50)
-    pylab.plot( parameters.input_spike_times, (2*i+2)*numpy.ones_like(parameters.input_spike_times),
+    pylab.plot( model_parameters.input_spike_times, (2*i+2)*numpy.ones_like(model_parameters.input_spike_times),
                "|", label="Presynaptic spikes", markersize=50 )
     pylab.ylim(-0.5,2*i+2.5)
 
 print spike_data
 print vm_data
 distances = calc_distances()
-pprint(distances)    
-#plot_figures()
+pprint(distances)
+if test_parameters.plot_figures:
+    plot_figures()
+
+#networks.end()
