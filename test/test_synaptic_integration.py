@@ -86,7 +86,7 @@ def plot_figure(spike_data, vm_data, model_parameters):
     # plot Vm
     for sim_name, vm in vm_data.items():
         vm['post'].plot(display=panel, kwargs={'label': "post (%s)" % sim_name})
-    panel.set_ylim(-70,-30)
+    panel.set_ylim(-90,-30)
     panel.legend(loc='upper right')
     # plot spikes
     panel = fig.next_panel()

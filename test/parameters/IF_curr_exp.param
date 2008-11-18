@@ -1,0 +1,5 @@
+{ 'type': 'IF_curr_exp',
+  'params': { 'tau_refrac': 2.0,
+              'tau_m': 20.0,
+              'tau_syn_E': 2.0 },
+}

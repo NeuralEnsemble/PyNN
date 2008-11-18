@@ -1,0 +1,16 @@
+{ 'type': 'IF_cond_exp',
+    'params': {
+        'v_rest'    : UniformDist(-80.0, -55.0),   # Resting membrane potential in mV. 
+        'cm'        : UniformDist(0.1, 5.0),       # Capacity of the membrane in nF
+        'tau_m'     : UniformDist(1.0, 50.0),      # Membrane time constant in ms.
+        'tau_refrac': UniformDist(0.1, 5.0),       # Duration of refractory period in ms. 
+        'tau_syn_E' : UniformDist(0.5, 10.0),      # Decay time of excitatory synaptic current in ms.
+        'tau_syn_I' : UniformDist(0.5, 20.0),      # Decay time of inhibitory synaptic current in ms.
+        'e_rev_E'   : UniformDist(-20, 20.0),      # Reversal potential for excitatory input in mV
+        'e_rev_I'   : UniformDist(-90, -60.0),     # Reversal potential for inhibitory input in mV
+        'i_offset'  : UniformDist(-1.0, 1.0),      # Offset current in nA
+        'v_reset'   : UniformDist(-90.0, -60.0),   # Reset potential after a spike in mV.
+        'v_thresh'  : UniformDist(-55.0, -40.0),   # Spike threshold in mV.
+        'v_init'    : UniformDist(-80.0, -55.0),   # Membrane potential in mV at t = 0
+    },
+}

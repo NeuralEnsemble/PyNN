@@ -47,7 +47,7 @@ ds = datastore.ShelveDataStore(root_dir=parameter_space.results_dir,
                                key_generator=datastore.keygenerators.hash_pickle)
 
 for job in job_manager:
-    print job.read_output()
+    ##print job.read_output()
     test_module.parameters = test_module.load_parameters(job.args[0])
     print ds.retrieve(test_module, 'distances')
     ds.store(test_module, 'output', job.output)

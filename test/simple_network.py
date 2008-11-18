@@ -60,7 +60,11 @@ class SimpleNetwork(object):
         else:
             syn_dyn = None
         # Create connections
-        connector = sim.AllToAllConnector(weights=parameters.weights,
+        weights = parameters.weights          # to give approximate parity in numerical values between
+        if "_cond_" in parameters.cell_type:  # current- and conductance-based synapses, we divide the
+            weights /= 50.0                   # weights by 50 (approx the distance in mV between threshold
+                                              # and excitatory reversal potential) for conductance-based.
+        connector = sim.AllToAllConnector(weights=weights,
                                           delays=parameters.delays)
         self.prj = [sim.Projection(self.pre, self.post, method=connector,
                                    synapse_dynamics=syn_dyn)]
