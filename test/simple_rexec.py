@@ -24,9 +24,9 @@ class Job(Popen):
     def run(self, node):
         self.node = node
         cmd = "ssh -x %s %s %s %s" % (node,
-                                   sys.executable,
-                                   os.path.abspath(self.script),
-                                   " ".join(self.args))
+                                      sys.executable,
+                                      os.path.abspath(self.script),
+                                      " ".join(self.args))
         self._output = tempfile.TemporaryFile()
         Popen.__init__(self, cmd, stdin=None, stdout=self._output, stderr=STDOUT,
                        shell=True)
