@@ -4,12 +4,15 @@ Very simple API for remotely executing jobs
 Also see:
   http://jerith.za.net/code/remoteexec.html
   http://pussh.sourceforge.net
+  http://www.theether.org/pssh/
 """
 
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, STDOUT
 import sys
 import os
+from StringIO import StringIO
 from itertools import cycle
+import tempfile
 
 
 class Job(Popen):
@@ -18,16 +21,26 @@ class Job(Popen):
         self.script = script
         self.args = args
         
-    def run(self, node, output=None):
+    def run(self, node):
         self.node = node
-        cmd = "ssh %s %s %s %s" % (node,
+        cmd = "ssh -x %s %s %s %s" % (node,
                                    sys.executable,
                                    os.path.abspath(self.script),
                                    " ".join(self.args))
-        if output is None:
-            output = PIPE
-        Popen.__init__(self, cmd, stdin=None, stdout=output, stderr=output,
+        self._output = tempfile.TemporaryFile()
+        Popen.__init__(self, cmd, stdin=None, stdout=self._output, stderr=STDOUT,
                        shell=True)
+
+    def wait(self):
+        Popen.wait(self)
+        self._output.seek(0)
+        self.output = self._output.read()
+        self._output.close()
+
+    def read_output(self):
+        prefix = "\n%s " % self.node
+        return prefix.join(self.output.split("\n"))
+
 
 class JobManager(object):
     
@@ -48,7 +61,6 @@ class JobManager(object):
     def wait(self):
         for job in self.job_list:
             job.wait()
-            
     
 def test():
     if not os.path.exists("test.py"):
