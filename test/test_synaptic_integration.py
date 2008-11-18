@@ -33,13 +33,14 @@ import sys
 import numpy
 from NeuroTools.parameters import ParameterSet
 from NeuroTools.stgen import StGen
+from NeuroTools.plotting import SimpleMultiplot
 from pyNN.utility import MultiSim, init_logging
 from simple_network import SimpleNetwork
 
 # Attributes for datastore
 input = None
 full_type = 'module:test_synaptic_integration'
-version = '$Revision:$'
+version = '$Revision$'
 
 
 def load_parameters(url):
@@ -78,39 +79,41 @@ def calc_distances(spike_data):
                 f_distance = getattr(spike_data[sim1.__name__]['post'][0], "distance_%s" % measure)
                 distances[measure][sim1.__name__][sim2.__name__] = f_distance(spike_data[sim2.__name__]['post'][0])
     return distances
-   
-def plot_figures(spike_data, vm_data, model_parameters, interactive=False):
-    pylab.rcParams['interactive'] = interactive
-    if not interactive:
-        pylab.rcParams['backend'] = 'Cairo'
-        
+
+def plot_figure(spike_data, vm_data, model_parameters):
+    fig = SimpleMultiplot(2, 1, xlabel="Time (ms)")
+    panel = fig.next_panel()
     # plot Vm
-    pylab.figure(1)
     for sim_name, vm in vm_data.items():
-        vm['post'].plot(display=pylab.gca(), kwargs={'label': "post (%s)" % sim_name})
-    pylab.legend(loc='upper left')
-    ##pylab.ylim(-80, -40)
-    
+        vm['post'].plot(display=panel, kwargs={'label': "post (%s)" % sim_name})
+    panel.set_ylim(-70,-30)
+    panel.legend(loc='upper right')
     # plot spikes
-    pylab.figure(2)
-    for i, (sim_name, spikes) in enumerate(spike_data.items()):
-        if len(spikes['post']) > 0:
-            pylab.plot( spikes['post'][0].spike_times, (2*i)*numpy.ones_like(spikes['post'][0].spike_times),
-                       "|", label="Postsynaptic spikes (%s)" % sim_name, markersize=50)
-        if len(spikes['pre']) > 0:
-            print sim_name, len(spikes['pre'])
-            pylab.plot( spikes['pre'][0].spike_times, (2*i+1)*numpy.ones_like(spikes['pre'][0].spike_times),
-                       "|", label="Presynaptic spikes (%s)" % sim_name, markersize=50)
-    pylab.plot( model_parameters.input_spike_times, (2*i+2)*numpy.ones_like(model_parameters.input_spike_times),
-               "|", label="Presynaptic spikes", markersize=50 )
-    pylab.ylim(-0.5,2*i+2.5)
-    pylab.legend()
+    panel = fig.next_panel()
+    tick_labels = []
+    i = 0
+    for sim_name, spikes in spike_data.items():
+        for pop in 'pre', 'post':
+            if len(spikes[pop]) > 0:
+                label = "%s (%s)" % (pop, sim_name.split('.')[1])
+                panel.plot( spikes[pop][0].spike_times, i*numpy.ones_like(spikes[pop][0].spike_times),
+                           "|", label=label, markersize=25)
+                tick_labels.append(label)
+                i += 1
+    label = "Input spikes"
+    panel.plot( model_parameters.input_spike_times, i*numpy.ones_like(model_parameters.input_spike_times),
+               "|", label=label, markersize=25 )
+    tick_labels.append(label)
+    panel.set_ylim(-0.5,i+0.5)
+    panel.set_yticks(range(7))
+    panel.set_yticklabels(tick_labels, size=6)
+    return fig
 
 # ==============================================================================
 if __name__ == "__main__":
     from pyNN import nest2old, neuron, pcsim
     from NeuroTools import datastore
-    import pylab
+    
     init_logging("test_synaptic_integration.log", debug=False)
     sim_list = [nest2old, neuron, pcsim]
     parameters = load_parameters(sys.argv[1])
@@ -126,7 +129,5 @@ if __name__ == "__main__":
     ds.store(this, 'parameters', parameters)
 
     if parameters.plot_figures:
-        plot_figures(spike_data, vm_data, model_parameters)
-        for fig in 1,2:
-            pylab.figure(fig)
-            pylab.savefig("%s/%s_%d.png" % (parameters.results_dir, ds._generate_key(this), fig))
+        fig = plot_figure(spike_data, vm_data, model_parameters)
+        fig.save("%s/%s.png" % (parameters.results_dir, ds._generate_key(this)))

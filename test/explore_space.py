@@ -27,7 +27,7 @@ trials = int(sys.argv[3])
 # iterate over the parameter space, creating a job each time
 parameter_space = ParameterSpace(url)
 tempfiles = []
-job_manager = JobManager(node_list)
+job_manager = JobManager(node_list, delay=0)
 
 for parameter_set in parameter_space.realize_dists(n=trials, copy=True):
     ##print parameter_set.pretty()

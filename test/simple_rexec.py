@@ -13,7 +13,7 @@ import os
 from StringIO import StringIO
 from itertools import cycle
 import tempfile
-
+from time import sleep
 
 class Job(Popen):
     
@@ -44,15 +44,17 @@ class Job(Popen):
 
 class JobManager(object):
     
-    def __init__(self, node_list):
+    def __init__(self, node_list, delay=0):
         self.node_list = node_list
         self._node = cycle(self.node_list)
         self.job_list = []
+        self.delay = delay
     
     def __iter__(self):
         return iter(self.job_list)
     
     def run(self, script, *args):
+        sleep(self.delay)
         job = Job(script, *args)
         node = self._node.next()
         job.run(node)
