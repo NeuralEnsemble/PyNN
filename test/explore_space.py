@@ -2,11 +2,9 @@
 Script to run a test many times, with parameters taken from a ParameterSpace
 object. If run on a cluster, the runs will be distributed across different nodes.
 
-Run:
+For a full description of usage, run:
 
 python3 explore_space.py --help
-
-for a full description of usage.
 
 """
 
@@ -76,6 +74,7 @@ for job in job_manager:
     ##print job.read_output()
     test_module.parameters = test_module.load_parameters(job.args[0])
     print ds.retrieve(test_module, 'distances')
+    print ds.retrieve(test_module, 'vm_diff')
     ds.store(test_module, 'output', job.output)
 
 # clean up

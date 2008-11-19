@@ -34,6 +34,7 @@ import numpy
 from NeuroTools.parameters import ParameterSet
 from NeuroTools.stgen import StGen
 from NeuroTools.plotting import SimpleMultiplot
+from NeuroTools.signals import VmList
 from pyNN.utility import MultiSim, init_logging
 from simple_network import SimpleNetwork
 
@@ -80,6 +81,26 @@ def calc_distances(spike_data):
                 distances[measure][sim1.__name__][sim2.__name__] = f_distance(spike_data[sim2.__name__]['post'][0])
     return distances
 
+def calc_Vm_diff(vm_data):
+    mean_stdev = {}
+    for sim1 in sim_list:
+        mean_stdev[sim1.__name__] = {}
+        v1 = vm_data[sim1.__name__]['post'][0]
+        for sim2 in sim_list:
+            v2 = vm_data[sim2.__name__]['post'][0]
+            vmlist = VmList([],[], dt=v1.dt)
+            # NEST seems to be missing some values at the start and end of the trace,
+            # so we trim all signals to the minimum length. This should be fixed in PyNN
+            t_start = max(v1.t_start, v2.t_start)
+            t_stop = min(v1.t_stop, v2.t_stop)
+            v1 = v1.time_slice(t_start, t_stop)
+            v2 = v2.time_slice(t_start, t_stop)
+            
+            vmlist.append(0, v1)
+            vmlist.append(1, v2)
+            mean_stdev[sim1.__name__][sim2.__name__] = vmlist.std().mean()
+    return mean_stdev
+
 def plot_figure(spike_data, vm_data, model_parameters):
     fig = SimpleMultiplot(2, 1, xlabel="Time (ms)")
     panel = fig.next_panel()
@@ -120,10 +141,13 @@ if __name__ == "__main__":
     spike_data, vm_data, model_parameters = run(parameters, sim_list)
     distances = calc_distances(spike_data)
     print distances
+    vm_diff = calc_Vm_diff(vm_data)
+    print vm_diff
 
     ds = datastore.ShelveDataStore(root_dir=parameters.results_dir, key_generator=datastore.keygenerators.hash_pickle)
     this = sys.modules[__name__]
     ds.store(this, 'distances', distances)
+    ds.store(this, 'vm_diff', vm_diff)
     ds.store(this, 'spike_data', spike_data)
     ds.store(this, 'vm_data', vm_data)
     ds.store(this, 'parameters', parameters)
