@@ -54,6 +54,13 @@ class JobManager(object):
         return iter(self.job_list)
     
     def run(self, script, *args):
+        """
+        Run the script on the next node in the list.
+        
+        There is no attempt at load balancing. It might be better to define the
+        maximal number of jobs for each node, and take the next node as the one
+        with the smallest number of jobs (using poll() instead of wait()).
+        """
         sleep(self.delay)
         job = Job(script, *args)
         node = self._node.next()

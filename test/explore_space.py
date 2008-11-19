@@ -2,40 +2,66 @@
 Script to run a test many times, with parameters taken from a ParameterSpace
 object. If run on a cluster, the runs will be distributed across different nodes.
 
-Usage:
+Run:
 
-python explore_space.py <test_script> <parameter_file> <trials>
+python3 explore_space.py --help
+
+for a full description of usage.
 
 """
 
 import sys
 import os
-from NeuroTools.parameters import ParameterSpace
-from NeuroTools import datastore
 from subprocess import Popen, PIPE
 import tempfile
+from optparse import OptionParser
+import socket
+from NeuroTools.parameters import ParameterSpace
+from NeuroTools import datastore
 from simple_rexec import JobManager
 
-# node_list should really be read from file given on command line
-node_list = ['upstate', 'node2', 'node3', 'node4', 'node5', 'node6', 'node7', 'node8']
+
+def read_hostfile(option, opt, value, parser):
+    f = open(os.path.expanduser(value), 'r')
+    parser.values.host_list = f.read().split()
+    f.close()
+
+def parse_hostlist(option, opt, value, parser):
+    parser.values.host_list = value.split(',')
 
 # read command-line arguments
-test_script = sys.argv[1]
-url = sys.argv[2]
-trials = int(sys.argv[3])
+usage = "Usage: %prog [options] test_script parameter_file"
+parser = OptionParser(usage)
+parser.add_option("-n", "--trials", type=int, dest="trials", default=1,
+                  help="Number of values to draw from each parameter distribution")
+parser.add_option("-H", "--hosts", action="callback", callback=parse_hostlist, type=str,
+                  help="Comma-separated list of hosts to run jobs on")
+parser.add_option("-f", "--hostfile", action="callback", callback=read_hostfile,
+                  type=str, help="Provide a hostfile")
+(options, args) = parser.parse_args()
+if len(args) != 2:
+    parser.error("incorrect number of arguments")
+
+test_script, url = args
+trials = options.trials
+if hasattr(options, "host_list"):
+    host_list = options.host_list
+else:
+    host_list = [socket.gethostname()] # by default, run just on the current host
 
 # iterate over the parameter space, creating a job each time
 parameter_space = ParameterSpace(url)
 tempfiles = []
-job_manager = JobManager(node_list, delay=0)
+job_manager = JobManager(host_list, delay=0)
 
-for parameter_set in parameter_space.realize_dists(n=trials, copy=True):
-    ##print parameter_set.pretty()
-    fd, tmp_url = tempfile.mkstemp(dir=os.getcwd())
-    os.close(fd)
-    tempfiles.append(tmp_url)
-    parameter_set.save(tmp_url)
-    job_manager.run(test_script, parameter_set._url)
+for sub_parameter_space in parameter_space.iter_inner(copy=True):
+    for parameter_set in sub_parameter_space.realize_dists(n=trials, copy=True):
+        ##print parameter_set.pretty()
+        fd, tmp_url = tempfile.mkstemp(dir=os.getcwd())
+        os.close(fd)
+        tempfiles.append(tmp_url)
+        parameter_set.save(tmp_url)
+        job_manager.run(test_script, parameter_set._url)
 
 # wait until all jobs have finished    
 job_manager.wait()
