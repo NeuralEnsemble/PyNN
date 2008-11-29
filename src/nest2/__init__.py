@@ -386,8 +386,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     if 'rng_seeds' in extra_params:
         rng_seeds = extra_params['rng_seeds']
     else:
-        rng = NumpyRNG(42)
-        rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100).astype('int').tolist()
+        rng_seeds_seed = extra_params.get('rng_seeds_seed') or 42
+        rng = NumpyRNG(rng_seeds_seed)
+        rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100000).astype('int').tolist()
     logging.debug("rng_seeds = %s" % rng_seeds)
 
     nest.SetStatus([0],[{'local_num_threads': num_threads,
