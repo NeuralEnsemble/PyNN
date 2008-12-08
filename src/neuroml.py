@@ -22,7 +22,7 @@ namespace = {'xsi': "http://www.w3.org/2001/XMLSchema-instance",
 #   Utility classes
 # ==============================================================================
 
-class ID(common.ID):
+class ID(common.IDMixin):
     """
     Instead of storing ids as integers, we store them as ID objects,
     which allows a syntax like:
@@ -32,7 +32,7 @@ class ID(common.ID):
     """
     
     def __init__(self, n):
-        common.ID.__init__(self, n)
+        common.IDMixin.__init__(self, n)
 
 # ==============================================================================
 #   Module-specific functions and classes (not part of the common API)
@@ -60,7 +60,7 @@ def build_parameter_node(name, value):
         return param_node
 
 class IF_base(object):
-    """Base class for integrate-and-fire neuron models."""
+    """Base class for integrate-and-fire neuron models."""        
     
     def define_morphology(self):
         segments_node = build_node('mml:segments')
@@ -90,7 +90,6 @@ class IF_base(object):
         Ra_node.appendChild(build_parameter_node('', "0.1")) # value doesn't matter for a single compartment
         esyn_node     = build_node('bio:mechanism', name="ExcitatorySynapse", type="Channel Mechanism")
         isyn_node     = build_node('bio:mechanism', name="InhibitorySynapse", type="Channel Mechanism")
-        
         
         for node in ifnode, passive_node, esyn_node, isyn_node, cm_node, Ra_node: # the order is important here
             biophys_node.appendChild(node)
@@ -175,6 +174,8 @@ class IF_cond_exp(common.IF_cond_exp, IF_base):
     decaying-exponential post-synaptic conductance."""
     
     n = 0
+    translations = common.build_translations(*[(name, name)
+                                               for name in common.IF_cond_exp.default_parameters])
     
     def __init__(self, parameters):
         common.IF_cond_exp.__init__(self, parameters)
@@ -187,6 +188,8 @@ class IF_cond_alpha(common.IF_cond_alpha, IF_base):
     shaped post-synaptic conductance."""
     
     n = 0
+    translations = common.build_translations(*[(name, name)
+                                               for name in common.IF_cond_alpha.default_parameters])
     
     def __init__(self, parameters):
         common.IF_cond_alpha.__init__(self, parameters)
