@@ -551,13 +551,13 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
         'v_spike'   : 0.0,    # Spike detection threshold in mV.
         'v_reset'   : -70.6,  # Reset value for V_m after a spike. In mV.
         'v_rest'    : -70.6,  # Resting membrane potential (Leak reversal potential) in mV.
-        'tau_m'     : 9.3667, # Membrane time constant in ms (nest:Leak conductance in nS.)
+        'tau_m'     : 9.3667, # Membrane time constant in ms
         'i_offset'  : 0.0,    # Offset current in nA
         'a'         : 4.0,    # Subthreshold adaptation conductance in nS.
         'b'         : 0.0805, # Spike-triggered adaptation in nA
         'delta_T'   : 2.0,    # Slope factor in mV
         'tau_w'     : 144.0,  # Adaptation time constant in ms
-        'v_thresh'  : -50.4,  # Spike initiation threshold in mV (V_th can also be used for compatibility).
+        'v_thresh'  : -50.4,  # Spike initiation threshold in mV
         'e_rev_E'   : 0.0,    # Excitatory reversal potential in mV.
         'tau_syn_E' : 5.0,    # Rise time of excitatory synaptic conductance in ms (alpha function).
         'e_rev_I'   : -80.0,  # Inhibitory reversal potential in mV.
