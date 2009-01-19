@@ -1,9 +1,8 @@
 """
-For each standard cell type available, creates a simple network with a single
-poisson spike sources projecting to a single standard standard cell, runs the
-model with each simulator, and checks that the difference in the membrane
-potential trace of the post-synaptic cell between simulators is within some
-tolerance.
+Creates a simple network with a single Poisson spike source projecting to a
+single standard cell with a static synapse, runs the model with each simulator,
+and calculates the difference in the spike trains and membrane potential traces
+of the post-synaptic cell between simulators 
 
 Usage:
 

@@ -1,5 +1,5 @@
 """
-Comparison of STDP in `neuron` and `nest2` modules.
+Comparison of STDP in `neuron`, `nest2` and `pcsim` modules.
 
 A 'trigger' population is connected to the output population with static
 synapses and very large weights, so that a single presynaptic spike produces a

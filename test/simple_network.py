@@ -1,4 +1,15 @@
 # encoding: utf-8
+"""
+Defines a very simple network - one spike source connected to one post-synaptic
+neuron - encapsulated in the `SimpleNetwork` class. The connections may be
+plastic, depending on the parameterization.
+
+The network may be extended using the `add_population()` and `add_projection()`
+methods.
+
+Andrew Davison, UNIC, CNRS, 2008
+"""
+
 import numpy
 from NeuroTools.parameters import ParameterSet
 from NeuroTools import signals

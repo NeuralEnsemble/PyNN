@@ -4,7 +4,7 @@ object. If run on a cluster, the runs will be distributed across different nodes
 
 For a full description of usage, run:
 
-python3 explore_space.py --help
+python explore_space.py --help
 
 """
 

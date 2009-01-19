@@ -1,4 +1,16 @@
 # encoding: utf-8
+"""
+For each simulator:
+  - creates a simple network with two independent Poisson spike sources
+    connected to a post-synaptic cell. One of the spike sources ('input') is
+    connected with an STDP synapse with a very small weight. The other
+    ('trigger') is connected with a static synapse and a very large weight, such
+    that it should always cause the post-synaptic cell to fire.
+  - records the evolution of the synaptic weight.
+Calculates the difference in weight trajectories between the simulators
+
+(Consider rewriting to conform to the same structure as in test_synaptic_integration.py)
+"""
 
 import numpy
 from NeuroTools.parameters import ParameterSet
