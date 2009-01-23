@@ -5,7 +5,7 @@ projecting to a 2D population of IF_curr_alpha neurons.
 Andrew Davison, UNIC, CNRS
 August 2006
 
-$Id:$
+$Id$
 """
 
 import sys
@@ -20,13 +20,13 @@ exec("from pyNN.%s import *" % simulator)
 
 tstop = 1000.0
 
-setup(timestep=0.025,min_delay=1.0,max_delay=1.0,file="simpleNetwork2.xml")
+setup(timestep=0.025,min_delay=1.0,max_delay=1.0, file="simpleNetwork2.xml")
     
 cell_params = {'tau_refrac':2.0,'v_thresh':-50.0,'tau_syn_E':2.0, 'tau_syn_I':2.0}
 output_population = Population(2, IF_cond_exp, cell_params, "output")
 
 spikeGenerator = StGen()
-spike_times = list(spikeGenerator.poisson_generator(100.0/1000.0,tstop)) # rate in spikes/ms
+spike_times = list(spikeGenerator.poisson_generator(100.0, t_stop = tstop, array = True)) # rate in spikes/ms
 
 input_population  = Population(1, SpikeSourceArray, {'spike_times': spike_times }, "input")
 
