@@ -729,7 +729,7 @@ class Population(object):
         if isinstance(dims, int): # also allow a single integer, for a 1D population
             self.dim = (self.dim,)
         else:
-            assert isinstance(dims, tuple), "`dims` must be an integer or a tuple."
+            assert isinstance(dims, tuple), "`dims` must be an integer or a tuple. You have supplied a %s" % type(dims)
         self.label = label
         self.celltype = cellclass
         self.ndim = len(self.dim)

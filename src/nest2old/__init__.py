@@ -633,7 +633,11 @@ class Population(common.Population):
             self.celltype = cellclass(cellparams)
             self.cellparams = self.celltype.parameters
             if not parent:
-                self.cell = nest.Create(self.celltype.nest_name, self.size)
+                try:
+                    self.cell = nest.Create(self.celltype.nest_name, self.size)
+                except nest.hl_api.NESTError, errmsg:
+                    raise Exception("Error creating Population of %s cells of size %s. NEST error was:\n%s" % (
+                        self.celltype.nest_name, self.size, errmsg))
             else:
                 #A SubPopulation has been created, those fields will be filled later
                 self.cell = []
