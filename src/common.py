@@ -41,7 +41,7 @@ class InvalidDimensionsError(Exception): pass
 class ConnectionError(Exception): pass
 class InvalidModelError(Exception): pass
 class RoundingWarning(Warning): pass
-
+class NothingToWriteError(Exception): pass
 
 # ==============================================================================
 #   Utility classes and functions

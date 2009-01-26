@@ -197,7 +197,7 @@ class Recorder(object):
     
     def write(self, file=None, gather=False, compatible_output=True):
         if self._device is None:
-            raise Exception("No cells recorded, so no data to write to file.")
+            raise common.NothingToWriteError("No cells recorded, so no data to write to file.")
         user_file = file or self.file
         if isinstance(user_file, basestring):
             if num_processes() > 1:
@@ -384,7 +384,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
         nest.SetStatus([0], {'device_prefix':tempdir,})
     except nest.NESTError:    
         nest.SetStatus([0], {'data_path':tempdir,})
-
+    nest.SetStatus([0], {'overwrite_files': True})
 
     # set kernel RNG seeds
     num_threads = extra_params.get('threads') or 1
