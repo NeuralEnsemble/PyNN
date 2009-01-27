@@ -4,17 +4,10 @@
 # ==============================================================================
 
 from pyNN import common
-import neuron
+from neuron import h, nrn, hclass
 from math import pi
 import logging
 
-ExpISyn   = neuron.new_point_process('ExpISyn')
-AlphaISyn = neuron.new_point_process('AlphaISyn')
-AlphaSyn  = neuron.new_point_process('AlphaSyn') # note that AlphaSynapse exists in NEURON now
-ResetRefrac = neuron.new_point_process('ResetRefrac')
-VecStim = neuron.new_hoc_class('VecStim')
-NetStim = neuron.new_hoc_class('NetStim')
-tmgsyn = neuron.new_hoc_class('tmgsyn')
 
 def _new_property(obj_hierarchy, attr_name):
     """
@@ -34,19 +27,19 @@ def _new_property(obj_hierarchy, attr_name):
     return property(fset=set, fget=get)
 
 
-class SingleCompartmentNeuron(neuron.nrn.Section):
+class SingleCompartmentNeuron(nrn.Section):
     """docstring"""
     
     synapse_models = {
-        'current':      { 'exp': ExpISyn,        'alpha': AlphaISyn },
-        'conductance' : { 'exp': neuron.ExpSyn,  'alpha': AlphaSyn },
+        'current':      { 'exp': h.ExpISyn, 'alpha': h.AlphaISyn },
+        'conductance' : { 'exp': h.ExpSyn,  'alpha': h.AlphaSyn },
     }
 
     def __init__(self, syn_type, syn_shape, tau_m, cm, v_rest, i_offset,
                  v_init, tau_e, tau_i, e_e, e_i):
         
         # initialise Section object with 'pas' mechanism
-        neuron.nrn.Section.__init__(self)
+        nrn.Section.__init__(self)
         self.seg = self(0.5)
         self.L = 100
         self.seg.diam = 1000/pi # gives area = 1e-3 cm2
@@ -56,16 +49,19 @@ class SingleCompartmentNeuron(neuron.nrn.Section):
         assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
         assert syn_shape in ('alpha', 'exp'), "syn_type must be either 'alpha' or 'exp'"
         synapse_model = StandardIF.synapse_models[syn_type][syn_shape]
-        self.esyn = synapse_model(self, 0.5)
-        self.isyn = synapse_model(self, 0.5)
+        self.esyn = synapse_model(0.5, sec=self)
+        self.isyn = synapse_model(0.5, sec=self)
         self.excitatory = self.esyn # } aliases
         self.inhibitory = self.isyn # }
         
         # insert current source
-        self.stim = neuron.IClamp(self, 0.5, delay=0, dur=1e12, amp=i_offset)
+        self.stim = h.IClamp(0.5, sec=self)
+        self.stim.delay = 0
+        self.stim.dur = 1e12
+        self.stim.amp = i_offset
 
         # for recording spikes
-        self.spiketimes = neuron.Vector(0)
+        self.spike_times = h.Vector(0)
 
     def area(self):
         return pi*self.L*self.seg.diam
@@ -88,15 +84,16 @@ class SingleCompartmentNeuron(neuron.nrn.Section):
 
     def record(self, active):
         if active:
-            rec = neuron.NetCon(self.source, None)
-            rec.record(self.spiketimes.hoc_obj)
+            rec = h.NetCon(self.source, None)
+            rec.record(self.spike_times)
     
     def record_v(self, active):
         if active:
-            self.vtrace = neuron.Vector()
-            self.vtrace.record(self, 'v')
-            self.record_times = neuron.Vector()
-            neuron.h('tmp = %s.record(&t)' % self.record_times.name)
+            self.vtrace = h.Vector()
+            self.vtrace.record(self(0.5)._ref_v)
+            self.record_times = h.Vector()
+            #h('tmp = %s.record(&t)' % self.record_times.name)
+            self.record_times.record(h._ref_t)
         else:
             self.vtrace = None
             self.record_times = None
@@ -110,12 +107,12 @@ class SingleCompartmentNeuron(neuron.nrn.Section):
         if self.syn_type == 'current':
             raise Exception("Tsodyks-Markram mechanism only available for conductance-based synapses.")
         elif ei == 'excitatory':
-            self.esyn = tmgsyn(self, 0.5)
+            self.esyn = h.tmgsyn(self, 0.5)
             self.esyn.tau_1 = self.tau_e
             self.esyn.e = self.e_e
             syn = self.esyn
         elif ei == 'inhibitory':
-            self.isyn = tmgsyn(self, 0.5)
+            self.isyn = h.tmgsyn(self, 0.5)
             self.isyn.tau_1 = self.tau_i
             self.isyn.e = self.e_i
             syn = self.isyn
@@ -127,6 +124,7 @@ class SingleCompartmentNeuron(neuron.nrn.Section):
     def set_parameters(self, param_dict):
         for name in self.parameter_names:
             setattr(self, name, param_dict[name])
+
 
 class StandardIF(SingleCompartmentNeuron):
     """docstring"""
@@ -143,7 +141,7 @@ class StandardIF(SingleCompartmentNeuron):
             v_init = v_rest
         
         # insert spike reset mechanism
-        self.spike_reset = ResetRefrac(self, 0.5)
+        self.spike_reset = h.ResetRefrac(0.5, sec=self)
         self.spike_reset.vspike = 40 # (mV) spike height
         self.source = self.spike_reset
         
@@ -176,8 +174,8 @@ class BretteGerstnerIF(SingleCompartmentNeuron):
         # insert Brette-Gerstner spike mechanism
         self.insert('IF_BG5')
         self.seg.IF_BG5.surf = self.area()
-        self.source = neuron.NetCon(source=None, target=None, section=self,
-                                    position=0.5)
+        self.source = h.NetCon(source=None, target=None, section=self,
+                               position=0.5)
     
     v_thresh = _new_property('seg.IF_BG5', 'Vtr')
     v_reset  = _new_property('seg.IF_BG5', 'Vbot')
@@ -196,36 +194,50 @@ class BretteGerstnerIF(SingleCompartmentNeuron):
         return self.seg.IF_BG5.Vspike
     v_spike = property(fget=__get_v_spike, fset=__set_v_spike)
     
-class SpikeSource(object):
     
-    parameter_names = {
-        'NetStim': ['start', 'interval', 'number'],
-        'VecStim': ['spiketimes']
-    }
+class RandomSpikeSource(hclass(h.NetStim)):
     
-    def __init__(self, source_type, start=0, interval=1e12, number=0, spiketimes=[]):
-        self.source = source_type()
-        self.parameter_names = SpikeSource.parameter_names[source_type.__name__]
-        if spiketimes:
-            self.spiketimes = neuron.Vector(spiketimes)
-            self.source.play(self.spiketimes.hoc_obj)
-            self.do_not_record = True
-        else:
-            for name in 'start', 'interval', 'number':
-                setattr(self.source, name, locals()[name])
-            self.source.noise = 1
-            self.spiketimes = neuron.Vector(0)
-            self.do_not_record = False
-
-    start    = _new_property('source', 'start')
-    interval = _new_property('source', 'interval')
-    number   = _new_property('source', 'number')
+    parameter_names = ('start', 'interval', 'number')
+    
+    def __init__(self, start=0, interval=1e12, number=0):
+        self.start = start
+        self.interval = interval
+        self.number = number
+        self.noise = 1
+        self.spike_times = h.Vector(0)
+        self.source = self
 
     def record(self, active):
-        if not self.do_not_record: # for VecStims, etc, recording doesn't make sense as we already have the spike times
-            if active:
-                self.rec = neuron.NetCon(self.source, None)
-                self.rec.record(self.spiketimes.hoc_obj)
+        if active:
+            self.rec = h.NetCon(self, None)
+            self.rec.record(self.spike_times)
+
+
+class VectorSpikeSource(hclass(h.VecStim)):
+
+    parameter_names = ('spike_times',)
+
+    def __init__(self, spike_times=[]):
+        self.spike_times = spike_times
+        self.source = self
+            
+    def _set_spike_times(self, spike_times):
+        self._spike_times = h.Vector(spike_times)
+        self.play(self._spike_times)
+            
+    def _get_spike_times(self):
+        return self._spike_times
+            
+    spike_times = property(fget=_get_spike_times,
+                           fset=_set_spike_times)
+            
+    def record(self, active):
+        """
+        Since spike_times are specified by user, recording is meaningless, but
+        we need to provide a stub for consistency with other models.
+        """
+        pass
+    
             
 # == Standard cells ============================================================
 
@@ -368,26 +380,17 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
         ('rate',     'interval',  "1000.0/rate",  "1000.0/interval"),
         ('duration', 'number',    "int(rate/1000.0*duration)", "number*interval"), # should there be a +/1 here?
     )
-    model = SpikeSource
-    
-    def __init__(self, parameters):
-        common.SpikeSourcePoisson.__init__(self, parameters)
-        self.parameters['source_type'] = NetStim
+    model = RandomSpikeSource
 
 
-class SpikeSourceArray(SpikeSource, common.SpikeSourceArray):
+class SpikeSourceArray(common.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
     translations = common.build_translations(
-        ('spike_times', 'spiketimes'),
+        ('spike_times', 'spike_times'),
     )
-    model = SpikeSource
-    
-    def __init__(self, parameters):
-        common.SpikeSourceArray.__init__(self, parameters)
-        self.parameters['source_type'] = VecStim
-        #SpikeSource.__init__(self, source_type=VecStim, spiketimes=self.parameters['spiketimes'])
-        
+    model = VectorSpikeSource
+       
         
 class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     """

@@ -4,13 +4,13 @@ import platform
 import logging
 import numpy
 import os.path
-import neuron
-h = neuron.h
+from neuron import h
 
 # Global variables
 nrn_dll_loaded = []
 
 def load_mechanisms(path=pyNN_path[0]):
+    # this now exists in the NEURON distribution, so could probably be removed
     global nrn_dll_loaded
     if path not in nrn_dll_loaded:
         arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc']
@@ -69,7 +69,7 @@ class Recorder(object):
         if self.variable == 'spikes':
             data = numpy.empty((0,2))
             for id in self.recorded:
-                spikes = id._cell.spiketimes.toarray()
+                spikes = numpy.array(id._cell.spike_times)
                 spikes = spikes[spikes<=state.t+1e-9]
                 if len(spikes) > 0:
                     new_data = numpy.array([numpy.ones(spikes.shape)*id, spikes]).T
@@ -77,8 +77,8 @@ class Recorder(object):
         elif self.variable == 'v':
             data = numpy.empty((0,3))
             for id in self.recorded:
-                v = id._cell.vtrace.toarray()
-                t = id._cell.record_times.toarray()
+                v = numpy.array(id._cell.vtrace)
+                t = numpy.array(id._cell.record_times)
                 new_data = numpy.array([t, v, numpy.ones(v.shape)*id]).T
                 data = numpy.concatenate((data, new_data))
         return data
@@ -87,9 +87,19 @@ class Recorder(object):
         data = self.get(gather)
         filename = file or self.filename
         recording.rename_existing(filename)
-        numpy.savetxt(filename, data, Recorder.numpy1_0_formats[self.variable], delimiter='\t')
+        try:
+            numpy.savetxt(filename, data, Recorder.numpy1_0_formats[self.variable], delimiter='\t')
+        except AttributeError, errmsg:
+            # we assume the error is due to the lack of savetxt in older versions of numpy and
+            # so provide a cut-down version of that function
+            f = open(filename, 'w')
+            fmt = Recorder.numpy1_0_formats[self.variable]
+            for row in data:
+                f.write('\t'.join([fmt%val for val in row]) + '\n')
+            f.close()
         if compatible_output:
-            recording.write_compatible_output(filename, filename, self.variable, Recorder.formats[self.variable],
+            recording.write_compatible_output(filename, filename, self.variable,
+                                              Recorder.formats[self.variable],
                                               self.population, state.dt)
         
 class _Initializer(object):
@@ -98,7 +108,7 @@ class _Initializer(object):
         self.cell_list = []
         self.population_list = []
         h('objref initializer')
-        neuron.h.initializer = self
+        h.initializer = self
         self.fih = h.FInitializeHandler("initializer.initialize()")
     
     def __call__(self):
@@ -139,11 +149,11 @@ class _State(object):
         self.initialized = False
         h('min_delay = 0')
         h('tstop = 0')
-        self.parallel_context = neuron.ParallelContext()
+        self.parallel_context = h.ParallelContext()
         self.parallel_context.spike_compress(1,0)
         self.num_processes = int(self.parallel_context.nhost())
         self.mpi_rank = int(self.parallel_context.id())
-        self.cvode = neuron.CVode()
+        self.cvode = h.CVode()
     
     t = h_property('t')
     dt = h_property('dt')
@@ -185,8 +195,8 @@ def finalize(quit=True):
 
 def register_gid(gid, source):
     state.parallel_context.set_gid2node(gid, state.mpi_rank)  # assign the gid to this node
-    nc = neuron.NetCon(source, None)                          # } associate the cell spike source
-    state.parallel_context.cell(gid, nc.hoc_obj)              # } with the gid (using a temporary NetCon)
+    nc = h.NetCon(source, None)                          # } associate the cell spike source
+    state.parallel_context.cell(gid, nc)              # } with the gid (using a temporary NetCon)
 
 def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
     native_rng = h.Random(0 or rng.seed)
@@ -223,7 +233,7 @@ def single_connect(source, target, weight, delay, synapse_type):
         delay = state.min_delay
     elif delay < state.min_delay:
         raise common.ConnectionError("delay (%s) is too small (< %s)" % (delay, state.min_delay))
-    synapse_object = getattr(target._cell, synapse_type).hoc_obj
+    synapse_object = getattr(target._cell, synapse_type)
     nc = state.parallel_context.gid_connect(int(source), synapse_object)
     nc.weight[0] = weight
     nc.delay  = delay

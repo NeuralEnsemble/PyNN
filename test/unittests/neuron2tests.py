@@ -24,10 +24,11 @@ class CreationTest(unittest.TestCase):
         neuron.simulator.state.gid_counter = 0
     
     def testCreateStandardCell(self):
-        """create(): First cell created should have index 0."""
         logging.info('=== CreationTest.testCreateStandardCell() ===')
         ifcell = neuron.create(neuron.IF_curr_alpha)
         assert ifcell == 0, 'Failed to create standard cell (cell=%s)' % ifcell
+        ss = neuron.create(neuron.SpikeSourceArray)
+        assert ss == 1, 'Failed to create standard cell (cell=%s)' % ss
         
     def testCreateStandardCells(self):
         """create(): Creating multiple cells should return a list of integers"""
@@ -482,7 +483,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         simtime = 10.0
         neuron.running = False
         neuron.run(simtime)
-        self.pop2.print_v("temp_neuron.v", gather=True)
+        self.pop2.print_v("temp_neuron.v", gather=True, compatible_output=True)
 
     def testRecordWithSpikeTimesGreaterThanSimTime(self):
         """

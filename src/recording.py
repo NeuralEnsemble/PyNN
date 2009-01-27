@@ -84,8 +84,12 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
     except Exception:
         N = 0
     
-    result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)    
+    # First read the data (in case sim_filename and user_filename are identical)
+    if N > 0:
+        data = readArray(sim_filename, sepchar=None)
+        
     # Write header info (e.g., dimensions of the population)
+    result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)
     if population is not None:
         result.write("# dimensions = %s\n" %list(population.dim))
         result.write("# first_id = %d\n" % 0)
@@ -96,11 +100,11 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
     result.write("# dt = %g\n" % dt)
         
     if N > 0:
-        data = readArray(sim_filename, sepchar=None)
         data[:,0] = data[:,0] - padding
         # sort
         #indx = data.argsort(axis=0, kind='mergesort')[:,0] # will quicksort (not stable) work?
         #data = data[indx]
+        
         input_format = input_format.split()
         time_column = input_format.index('t')
         id_column = input_format.index('id')

@@ -1,4 +1,4 @@
-import neuron
+from neuron import h
 
 class CurrentSource(object):
     pass
@@ -14,10 +14,10 @@ class DCSource(CurrentSource):
     
     def inject_into(self, cell_list):
         for id in cell_list:
-            self._devices.append(neuron.IClamp(id._cell,
-                                               delay=self.start,
-                                               dur=self.stop-self.start,
-                                               amp=self.amplitude))
+            self._devices.append(h.IClamp(id._cell,
+                                          delay=self.start,
+                                          dur=self.stop-self.start,
+                                          amp=self.amplitude))
     
 #class StepCurrentSource(CurrentSource):
 #    
