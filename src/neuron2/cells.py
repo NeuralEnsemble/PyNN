@@ -35,7 +35,7 @@ class SingleCompartmentNeuron(nrn.Section):
         'conductance' : { 'exp': h.ExpSyn,  'alpha': h.AlphaSyn },
     }
 
-    def __init__(self, syn_type, syn_shape, tau_m, cm, v_rest, i_offset,
+    def __init__(self, syn_type, syn_shape, tau_m, c_m, v_rest, i_offset,
                  v_init, tau_e, tau_i, e_e, e_i):
         
         # initialise Section object with 'pas' mechanism
@@ -67,13 +67,26 @@ class SingleCompartmentNeuron(nrn.Section):
         return pi*self.L*self.seg.diam
 
     def __set_tau_m(self, value):
+        #print "setting tau_m to", value, "cm =", self.seg.cm
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
-        
     def __get_tau_m(self):
+        #print "tau_m = ", 1e-3*self.seg.cm/self.seg.pas.g, "cm = ", self.seg.cm
         return 1e-3*self.seg.cm/self.seg.pas.g
 
+    def __get_cm(self):
+        #print "cm = ", self.seg.cm
+        return self.seg.cm
+    def __set_cm(self, value): # when we set cm, need to change g to maintain the same value of tau_m
+        #print "setting cm to", value
+        tau_m = self.tau_m
+        self.seg.cm = value
+        self.tau_m = tau_m
+
     tau_m    = property(fget=__get_tau_m, fset=__set_tau_m)
-    cm       = _new_property('seg', 'cm')
+    c_m      = property(fget=__get_cm, fset=__set_cm) # if the property were called 'cm'
+                                                      # it would never get accessed as the
+                                                      # built-in Section.cm would always
+                                                      # be used first
     i_offset = _new_property('stim', 'amp')
     tau_e    = _new_property('esyn', 'tau')
     tau_i    = _new_property('isyn', 'tau')
@@ -129,10 +142,10 @@ class SingleCompartmentNeuron(nrn.Section):
 class StandardIF(SingleCompartmentNeuron):
     """docstring"""
     
-    def __init__(self, syn_type, syn_shape, tau_m=20, cm=1.0, v_rest=-65,
+    def __init__(self, syn_type, syn_shape, tau_m=20, c_m=1.0, v_rest=-65,
                  v_thresh=-55, t_refrac=2, i_offset=0, v_reset=None,
                  v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70):
-        SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, cm, v_rest,
+        SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
                                          i_offset, v_init,
                                          tau_e, tau_i, e_e, e_i)
         if v_reset is None:
@@ -146,7 +159,7 @@ class StandardIF(SingleCompartmentNeuron):
         self.source = self.spike_reset
         
         # process arguments
-        self.parameter_names = ['cm', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',   # 'cm' must come before 'tau_m'
+        self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',   # 'c_m' must come before 'tau_m'
                                 'i_offset', 'v_reset', 'v_init', 'tau_e', 'tau_i']
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
@@ -160,12 +173,12 @@ class StandardIF(SingleCompartmentNeuron):
 class BretteGerstnerIF(SingleCompartmentNeuron):
     """docstring"""
     
-    def __init__(self, syn_type, syn_shape, tau_m=20, cm=1.0, v_rest=-65,
+    def __init__(self, syn_type, syn_shape, tau_m=20, c_m=1.0, v_rest=-65,
                  v_thresh=-55, t_refrac=2, i_offset=0,
                  v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70,
-                 v_spike=0.0, v_reset=-70.6, a=4.0, b=0.0805, tau_w=144.0,
+                 v_spike=0.0, v_reset=-70.6, A=4.0, B=0.0805, tau_w=144.0,
                  w_init=0.0, delta=2.0):
-        SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, cm, v_rest,
+        SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
                                          i_offset, v_init,
                                          tau_e, tau_i, e_e, e_i)
         if v_init is None:
@@ -174,18 +187,26 @@ class BretteGerstnerIF(SingleCompartmentNeuron):
         # insert Brette-Gerstner spike mechanism
         self.insert('IF_BG5')
         self.seg.IF_BG5.surf = self.area()
-        self.source = h.NetCon(source=None, target=None, section=self,
-                               position=0.5)
+        self.source = self.seg._ref_v
+        
+        self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',
+                                'i_offset', 'v_reset', 'v_init', 'tau_e', 'tau_i',
+                                'v_thresh', 'A', 'B', 'tau_w', 'delta', 'w_init',
+                                'v_spike']
+        if syn_type == 'conductance':
+            self.parameter_names.extend(['e_e', 'e_i'])
+        #self.set_parameters(locals())
     
     v_thresh = _new_property('seg.IF_BG5', 'Vtr')
     v_reset  = _new_property('seg.IF_BG5', 'Vbot')
     t_refrac = _new_property('seg.IF_BG5', 'Ref')
-    a        = _new_property('seg.IF_BG5',  'a')
-    b        = _new_property('seg.IF_BG5',  'b')
+    B        = _new_property('seg.IF_BG5',  'b')
+    A        = _new_property('seg.IF_BG5',  'a')
+    # using 'A' because for some bizarre reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"   
     tau_w    = _new_property('seg.IF_BG5',  'tau_w')
     delta    = _new_property('seg.IF_BG5',  'delta')
-    w_init   = _new_property('seg.IF_BG5',  'w_init')
-    v_init   = _new_property('seg',  'v') #??
+    w_init   = _new_property('seg.IF_BG5',  'w_init') # w_init not defined in .mod file - needs to be
+    v_init   = _new_property('seg',  'v') #?? something involving FInitialize
     
     def __set_v_spike(self, value):
         self.seg.IF_BG5.Vspike = value
@@ -247,7 +268,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
     
     translations = common.build_translations(
         ('tau_m',      'tau_m'),
-        ('cm',         'cm'),
+        ('cm',         'c_m'),
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
@@ -272,7 +293,7 @@ class IF_curr_exp(common.IF_curr_exp):
     
     translations = common.build_translations(
         ('tau_m',      'tau_m'),
-        ('cm',         'cm'),
+        ('cm',         'c_m'),
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
@@ -296,7 +317,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
     
     translations = common.build_translations(
         ('tau_m',      'tau_m'),
-        ('cm',         'cm'),
+        ('cm',         'c_m'),
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
@@ -323,7 +344,7 @@ class IF_cond_exp(common.IF_cond_exp):
     
     translations = common.build_translations(
         ('tau_m',      'tau_m'),
-        ('cm',         'cm'),
+        ('cm',         'c_m'),
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
@@ -367,7 +388,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
         self.parameters['i_offset']  = 0.0
-        self.parameters['cm']        = 0.2
+        self.parameters['c_m']       = 0.2
         self.parameters['t_refrac']  = 1.0
         self.parameters['e_e']       = 0.0
         
@@ -378,7 +399,7 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     translations = common.build_translations(
         ('start',    'start'),
         ('rate',     'interval',  "1000.0/rate",  "1000.0/interval"),
-        ('duration', 'number',    "int(rate/1000.0*duration)", "number*interval"), # should there be a +/1 here?
+        ('duration', 'number',    "rate/1000.0*duration", "number*interval"),
     )
     model = RandomSpikeSource
 
@@ -406,15 +427,15 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     translations = common.build_translations(
         ('v_init',     'v_init'),
         ('w_init',     'w_init'),
-        ('cm',         'cm'),
+        ('cm',         'c_m'),
         ('tau_refrac', 't_refrac'), 
         ('v_spike',    'v_spike'),
         ('v_reset',    'v_reset'),
         ('v_rest',     'v_rest'),
         ('tau_m',      'tau_m'),
         ('i_offset',   'i_offset'), 
-        ('a',          'a',        0.001), # nS --> uS
-        ('b',          'b'),
+        ('a',          'A',        0.001), # nS --> uS
+        ('b',          'B'),
         ('delta_T',    'delta'), 
         ('tau_w',      'tau_w'), 
         ('v_thresh',   'v_thresh'), 

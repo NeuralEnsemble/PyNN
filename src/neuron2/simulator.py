@@ -193,9 +193,15 @@ def finalize(quit=True):
         logging.info("Finishing up with NEURON.")
         h.quit()
 
-def register_gid(gid, source):
+def is_point_process(obj):
+    return hasattr(obj, 'loc')
+
+def register_gid(gid, source, section=None):
     state.parallel_context.set_gid2node(gid, state.mpi_rank)  # assign the gid to this node
-    nc = h.NetCon(source, None)                          # } associate the cell spike source
+    if is_point_process(source):
+        nc = h.NetCon(source, None)                          # } associate the cell spike source
+    else:
+        nc = h.NetCon(source, None, sec=section)
     state.parallel_context.cell(gid, nc)              # } with the gid (using a temporary NetCon)
 
 def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):

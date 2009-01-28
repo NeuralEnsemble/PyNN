@@ -65,7 +65,7 @@ INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 NEURON {
 	SUFFIX IF_BG5
 	NONSPECIFIC_CURRENT i
-	RANGE w
+	RANGE w, w_init
 	RANGE a, b, tau_w, EL, GL, delta, surf
 	RANGE Vtr, Ref, Vbot, Vtop, Vspike
 	RANGE spike, reset, gna, gkd, spiketimes, nspike
@@ -101,6 +101,7 @@ PARAMETER {
 	Vbot	= -85	(mV)		: reset value
 	gna	= 1	(mho/cm2)	: very strong gNa for spike
 	gkd	= 1000	(mho/cm2)	: very strong gKd for reset
+        w_init  = 0     (nA)
 }
 
 
@@ -121,7 +122,7 @@ STATE {
 INITIAL {
 	spike = 0
 	reset = -1
-	w = 0
+	w = w_init
 	nspike = 0
 }
 

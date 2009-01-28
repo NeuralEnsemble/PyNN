@@ -94,7 +94,7 @@ class ID(int, common.IDMixin):
     def _build_cell(self, cell_model, cell_parameters, parent=None):
         gid = int(self)
         self._cell = cell_model(**cell_parameters)          # create the cell object
-        simulator.register_gid(gid, self._cell.source)
+        simulator.register_gid(gid, self._cell.source, section=self._cell) # not adequate for multi-compartmental cells
         self.parent = parent
     
     def get_native_parameters(self):

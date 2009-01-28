@@ -88,9 +88,10 @@ class PopulationSpikesTest(unittest.TestCase):
         sim.setup()
         self.spiketimes = numpy.arange(5,105,10.0)
         spiketimes_2D = self.spiketimes.reshape((len(self.spiketimes),1))
-        self.input_spike_array = numpy.concatenate((numpy.zeros(spiketimes_2D.shape, 'float'), spiketimes_2D),
+        self.input_spike_array = numpy.concatenate((numpy.ones(spiketimes_2D.shape, 'float'), spiketimes_2D),
                                                    axis=1)
         self.p1 = sim.Population(1, sim.SpikeSourceArray, {'spike_times': self.spiketimes})
+        self.input_spike_array[:,0] *= self.p1.first_id
     
     def tearDown(self):
         pass
