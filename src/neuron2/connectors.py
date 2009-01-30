@@ -66,8 +66,14 @@ def probabilistic_connect(connector, projection, p):
         # We use concatenate, rather than just creating
         # n=projection.pre.size*projection.post.size random numbers,
         # in case of uneven distribution of neurons between MPI nodes
-        rarr = numpy.concatenate([projection.rng.next(projection.post.size, 'uniform', (0,1)) \
+        if projection.post.size > 1:
+            rarr = numpy.concatenate([projection.rng.next(projection.post.size, 'uniform', (0,1)) \
                                       for src in projection.pre.all()])
+        else:
+            rarr = projection.rng.next(len(projection.pre), 'uniform', (0,1))
+            if not hasattr(rarr, '__len__'): # rng.next(1) returns a float, not an array
+                # arguably, rng.next() should return a float, rng.next(1) an array of length 1
+                rarr = numpy.array([rarr])
     j = 0
     required_length = projection.pre.size * len(projection.post._local_ids) 
     assert len(rarr) >= required_length, \

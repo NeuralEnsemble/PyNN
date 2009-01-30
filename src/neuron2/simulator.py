@@ -77,9 +77,11 @@ class Recorder(object):
         elif self.variable == 'v':
             data = numpy.empty((0,3))
             for id in self.recorded:
-                v = numpy.array(id._cell.vtrace)
+                v = numpy.array(id._cell.vtrace)  
                 t = numpy.array(id._cell.record_times)
-                new_data = numpy.array([t, v, numpy.ones(v.shape)*id]).T
+                #new_data = numpy.array([t, v, numpy.ones(v.shape)*id]).T
+                #new_data = numpy.array([numpy.ones(v.shape)*id, t, v]).T
+                new_data = numpy.array([numpy.ones(v.shape)*(id-self.population.first_id), t, v]).T
                 data = numpy.concatenate((data, new_data))
         return data
     

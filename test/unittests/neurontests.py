@@ -539,7 +539,7 @@ class ProjectionInitTest(unittest.TestCase):
                 prj1.setWeights(1.234)
                 prj2.setWeights(1.234)
                 for prj in prj1, prj2:
-                    hoc_list = getattr(h, prj.label)
+                    hoc_list = getattr(h, prj.hoc_label)
                     weights = []
                     for connection_id in prj.connections:
                         weights.append(hoc_list.object(prj.connections.index(connection_id)).weight[0])
@@ -615,9 +615,9 @@ class ProjectionInitTest(unittest.TestCase):
         w1 = []; w2 = []; w3 = []; d1 = []; d2 = []; d3 = []
         # For a connections scheme saved and reloaded, we test if the connections, their weights and their delays
         # are equal.
-        hoc_list1 = getattr(h, prj1.label)
-        #hoc_list2 = getattr(h, prj2.label)
-        hoc_list3 = getattr(h, prj3.label)
+        hoc_list1 = getattr(h, prj1.hoc_label)
+        #hoc_list2 = getattr(h, prj2.hoc_label)
+        hoc_list3 = getattr(h, prj3.hoc_label)
         for connection_id in prj1.connections:
             w1.append(hoc_list1.object(prj1.connections.index(connection_id)).weight[0])
             #w2.append(hoc_list2.object(prj2.connections.index(connection_id)).weight[0])
@@ -633,7 +633,7 @@ class ProjectionInitTest(unittest.TestCase):
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 prj1 = neuron.Projection(srcP, tgtP, neuron.AllToAllConnector(delays=0.321))
-                hoc_list = getattr(neuron.h, prj1.label)
+                hoc_list = getattr(neuron.h, prj1.hoc_label)
                 assert hoc_list.object(0).delay == 0.321, "Delay should be 0.321, actually %g" % hoc_list.object(0).delay
 
 class ProjectionSetTest(unittest.TestCase):
@@ -650,9 +650,9 @@ class ProjectionSetTest(unittest.TestCase):
         prj1 = neuron.Projection(self.source, self.target, 'allToAll')
         prj1.setWeights(2.345)
         weights = []
-        hoc_list = getattr(h, prj1.label)
+        hoc_list = getattr(h, prj1.hoc_label)
         for connection_id in prj1.connections:
-            #weights.append(HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id))))
+            #weights.append(HocToPy.get('%s.object(%d).weight' % (prj1.hoc_label, prj1.connections.index(connection_id))))
             weights.append(hoc_list.object(prj1.connections.index(connection_id)).weight[0])
         result = 2.345*numpy.ones(len(prj1.connections))
         assert (weights == result.tolist())
@@ -661,9 +661,9 @@ class ProjectionSetTest(unittest.TestCase):
         prj1 = neuron.Projection(self.source, self.target, 'allToAll')
         prj1.setDelays(2.345)
         delays = []
-        hoc_list = getattr(h, prj1.label)
+        hoc_list = getattr(h, prj1.hoc_label)
         for connection_id in prj1.connections:
-            #delays.append(HocToPy.get('%s.object(%d).delay' % (prj1.label, prj1.connections.index(connection_id))))
+            #delays.append(HocToPy.get('%s.object(%d).delay' % (prj1.hoc_label, prj1.connections.index(connection_id))))
             delays.append(hoc_list.object(prj1.connections.index(connection_id)).delay)
         result = 2.345*numpy.ones(len(prj1.connections))
         assert (delays == result.tolist())
@@ -675,18 +675,18 @@ class ProjectionSetTest(unittest.TestCase):
         prj1.randomizeWeights(self.distrib_Numpy)
         prj2.randomizeWeights(self.distrib_Native)
         w1 = []; w2 = []; w3 = []; w4 = []
-        hoc_list1 = getattr(h, prj1.label)
-        hoc_list2 = getattr(h, prj2.label)
+        hoc_list1 = getattr(h, prj1.hoc_label)
+        hoc_list2 = getattr(h, prj2.hoc_label)
         for connection_id in prj1.connections:
-            #w1.append(HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id))))
-            #w2.append(HocToPy.get('%s.object(%d).weight' % (prj2.label, prj1.connections.index(connection_id))))
+            #w1.append(HocToPy.get('%s.object(%d).weight' % (prj1.hoc_label, prj1.connections.index(connection_id))))
+            #w2.append(HocToPy.get('%s.object(%d).weight' % (prj2.hoc_label, prj1.connections.index(connection_id))))
             w1.append(hoc_list1.object(prj1.connections.index(connection_id)).weight[0])
             w2.append(hoc_list2.object(prj2.connections.index(connection_id)).weight[0])
         prj1.randomizeWeights(self.distrib_Numpy)
         prj2.randomizeWeights(self.distrib_Native)
         for connection_id in prj1.connections:
-            #w3.append(HocToPy.get('%s.object(%d).weight' % (prj1.label, prj1.connections.index(connection_id))))
-            #w4.append(HocToPy.get('%s.object(%d).weight' % (prj2.label, prj1.connections.index(connection_id))))
+            #w3.append(HocToPy.get('%s.object(%d).weight' % (prj1.hoc_label, prj1.connections.index(connection_id))))
+            #w4.append(HocToPy.get('%s.object(%d).weight' % (prj2.hoc_label, prj1.connections.index(connection_id))))
             w3.append(hoc_list1.object(prj1.connections.index(connection_id)).weight[0])
             w4.append(hoc_list2.object(prj2.connections.index(connection_id)).weight[0])
         self.assertNotEqual(w1, w3) and self.assertNotEqual(w2, w4) 
@@ -698,18 +698,18 @@ class ProjectionSetTest(unittest.TestCase):
         prj1.randomizeDelays(self.distrib_Numpy)
         prj2.randomizeDelays(self.distrib_Native)
         d1 = []; d2 = []; d3 = []; d4 = []
-        hoc_list1 = getattr(h, prj1.label)
-        hoc_list2 = getattr(h, prj2.label)
+        hoc_list1 = getattr(h, prj1.hoc_label)
+        hoc_list2 = getattr(h, prj2.hoc_label)
         for connection_id in prj1.connections:
-            #d1.append(HocToPy.get('%s.object(%d).delay' % (prj1.label, prj1.connections.index(connection_id))))
-            #d2.append(HocToPy.get('%s.object(%d).delay' % (prj2.label, prj1.connections.index(connection_id))))
+            #d1.append(HocToPy.get('%s.object(%d).delay' % (prj1.hoc_label, prj1.connections.index(connection_id))))
+            #d2.append(HocToPy.get('%s.object(%d).delay' % (prj2.hoc_label, prj1.connections.index(connection_id))))
             d1.append(hoc_list1.object(prj1.connections.index(connection_id)).delay)
             d2.append(hoc_list2.object(prj2.connections.index(connection_id)).delay)
         prj1.randomizeDelays(self.distrib_Numpy)
         prj2.randomizeDelays(self.distrib_Native)
         for connection_id in prj1.connections:
-            #d3.append(HocToPy.get('%s.object(%d).delay' % (prj1.label, prj1.connections.index(connection_id))))
-            #d4.append(HocToPy.get('%s.object(%d).delay' % (prj2.label, prj1.connections.index(connection_id))))
+            #d3.append(HocToPy.get('%s.object(%d).delay' % (prj1.hoc_label, prj1.connections.index(connection_id))))
+            #d4.append(HocToPy.get('%s.object(%d).delay' % (prj2.hoc_label, prj1.connections.index(connection_id))))
             d3.append(hoc_list1.object(prj1.connections.index(connection_id)).delay)
             d4.append(hoc_list2.object(prj2.connections.index(connection_id)).delay)
         self.assertNotEqual(d1, d3) and self.assertNotEqual(d2, d4) 
@@ -732,7 +732,7 @@ class ProjectionSetTest(unittest.TestCase):
         #prj1.setDelays(2)
         #prj1.setWeights(1.0)
         mean_weight_before = 0
-        hoc_list = getattr(h, prj1.label)
+        hoc_list = getattr(h, prj1.hoc_label)
         for connection_id in prj1.connections:
             mean_weight_before += hoc_list.object(prj1.connections.index(connection_id)).weight[0]
         mean_weight_before = float(mean_weight_before/len(prj1.connections))  
@@ -781,7 +781,7 @@ class ProjectionSetTest(unittest.TestCase):
                                  synapse_dynamics=neuron.SynapseDynamics(slow=stdp_model))
         pre2wa = getattr(h, '%s_pre2wa'  % prj1.hoc_label)
         post2wa = getattr(h, '%s_post2wa'  % prj1.hoc_label)
-        nc_list = getattr(h, prj1.label)
+        nc_list = getattr(h, prj1.hoc_label)
         assert pre2wa[0].delay == 2.0
         assert post2wa[0].delay == 0.0
         prj1.randomizeDelays(self.distrib_Native)
@@ -802,7 +802,7 @@ class ProjectionSetTest(unittest.TestCase):
         prj1 = neuron.Projection(self.source, self.target, 'allToAll')
         rule="5.432*d"
         prj1.setTopographicDelays(rule)
-        hoc_list = getattr(h, prj1.label)
+        hoc_list = getattr(h, prj1.hoc_label)
         for connection_id in range(len(prj1.connections)):
             src = prj1.connections[connection_id][0]
             tgt = prj1.connections[connection_id][1]

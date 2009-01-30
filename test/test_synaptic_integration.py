@@ -131,26 +131,31 @@ def plot_figure(spike_data, vm_data, model_parameters):
 
 # ==============================================================================
 if __name__ == "__main__":
-    from pyNN import nest2old, neuron, pcsim
     from NeuroTools import datastore
     
     init_logging("test_synaptic_integration.log", debug=False)
-    sim_list = [nest2old, neuron, pcsim]
     parameters = load_parameters(sys.argv[1])
+    sim_list = sys.argv[2:]
+    assert len(sim_list) >= 1, "Must specify at least one simulator."
+    exec("from pyNN import %s" % ", ".join(sim_list))
+    sim_list = [eval(s) for s in sim_list]    
+    
     spike_data, vm_data, model_parameters = run(parameters, sim_list)
-    distances = calc_distances(spike_data)
-    print distances
-    vm_diff = calc_Vm_diff(vm_data)
-    print vm_diff
-
-    ds = datastore.ShelveDataStore(root_dir=parameters.results_dir, key_generator=datastore.keygenerators.hash_pickle)
-    this = sys.modules[__name__]
-    ds.store(this, 'distances', distances)
-    ds.store(this, 'vm_diff', vm_diff)
-    ds.store(this, 'spike_data', spike_data)
-    ds.store(this, 'vm_data', vm_data)
-    ds.store(this, 'parameters', parameters)
-
-    if parameters.plot_figures:
-        fig = plot_figure(spike_data, vm_data, model_parameters)
-        fig.save("%s/%s.png" % (parameters.results_dir, ds._generate_key(this)))
+    
+    if len(sim_list) >= 2:
+        distances = calc_distances(spike_data)
+        print distances
+        vm_diff = calc_Vm_diff(vm_data)
+        print vm_diff
+    
+        ds = datastore.ShelveDataStore(root_dir=parameters.results_dir, key_generator=datastore.keygenerators.hash_pickle)
+        this = sys.modules[__name__]
+        ds.store(this, 'distances', distances)
+        ds.store(this, 'vm_diff', vm_diff)
+        ds.store(this, 'spike_data', spike_data)
+        ds.store(this, 'vm_data', vm_data)
+        ds.store(this, 'parameters', parameters)
+    
+        if parameters.plot_figures:
+            fig = plot_figure(spike_data, vm_data, model_parameters)
+            fig.save("%s/%s.png" % (parameters.results_dir, ds._generate_key(this)))

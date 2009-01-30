@@ -120,8 +120,6 @@ class SimpleNetwork(object):
         vm = {}
         for pop in self._neuronal_populations:
             vm_arr = pop.get_v()
-            t_start = min(vm_arr[:,1])
-            t_stop = max(vm_arr[:,1])
             vm[pop.label] = signals.VmList(vm_arr[:,(0,2)], id_list=[0], #pop.cell.flat-pop.first_id,
                                            dt=self.parameters.system.timestep,
                                            t_start=min(vm_arr[:,1]),
