@@ -24,8 +24,11 @@ class STDPSynapse(object):
         post = wa_post_times.reshape(len(wa_post_times),1)
         post = numpy.concatenate((post, -1*numpy.ones_like(post)), axis=1)
         events = numpy.concatenate((pre,post), axis=0)
-        ordering = events[:,0].argsort()
-        self.events = events[ordering]
+        if events.size > 0:
+            ordering = events[:,0].argsort()
+            self.events = events[ordering]
+        else:
+            self.events = events
         self.reset()
     
     def reset(self):

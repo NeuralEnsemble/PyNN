@@ -334,6 +334,9 @@ class Recorder(object):
         # not implemented yet
         data = recording.readArray(filename, sepchar=None)
         data = recording.convert_compatible_output(data, self.population, variable)
+        if data.size == 0:
+            ncol = {'spikes': 2, 'v': 3, 'gesyn': 4, 'gisyn': 4}[self.variable]
+            data = numpy.empty([ncol,0])
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):
@@ -1100,6 +1103,8 @@ class Population(common.Population):
             spikes = numpy.array([line2spike(line.split()) for line in lines])
             f.close()
             #os.remove(tmpfile) # should also remove tmp parent directory
+            if spikes.size == 0:
+                spikes = numpy.empty((0,2))
             return spikes
         else:
             return numpy.empty((0,2))

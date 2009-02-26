@@ -69,6 +69,9 @@ job_manager.wait()
 test_module = __import__(test_script.replace(".py",""))
 ds = datastore.ShelveDataStore(root_dir=parameter_space.results_dir,
                                key_generator=datastore.keygenerators.hash_pickle)
+#ds = datastore.DjangoORMDataStore(database_parameters={'DATABASE_ENGINE': 'sqlite3',
+#                                                       'DATABASE_NAME': '%s/datastore.db' % parameter_space.results_dir},
+#                                  data_root_dir=parameter_space.results_dir)
 
 for job in job_manager:
     ##print job.read_output()

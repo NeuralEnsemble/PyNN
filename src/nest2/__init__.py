@@ -163,6 +163,9 @@ class Recorder(object):
                 else:
                     padding = 0
                 data[:,0] = data[:,0] - padding
+            else:
+                ncol = len(Recorder.formats[self.variable].split())
+                data = numpy.empty([0, ncol])
         elif nest.GetStatus(self._device,'to_memory')[0]:
             data = nest.GetStatus(self._device,'events')[0]
             data = recording.convert_compatible_output(data, self.population, self.variable,compatible_output)

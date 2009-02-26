@@ -36,6 +36,7 @@ from NeuroTools.plotting import SimpleMultiplot
 from NeuroTools.signals import VmList
 from pyNN.utility import MultiSim, init_logging
 from simple_network import SimpleNetwork
+from datetime import datetime
 
 # Attributes for datastore
 input = None
