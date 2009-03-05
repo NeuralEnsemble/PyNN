@@ -195,7 +195,7 @@ class Recorder(object):
     
     def write(self, file=None, gather=False, compatible_output=True):
         if self._device is None:
-            raise Exception("No cells recorded, so no data to write to file.")
+            raise common.NothingToWriteError("No cells recorded, so no data to write to file.")
         user_file = file or self.file
         if isinstance(user_file, basestring):
             if num_processes() > 1:
@@ -379,9 +379,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
 
     # set tempdir
     try:
-        nest.SetStatus([0], {'device_prefix':tempdir,})
+        nest.SetKernelStatus({'data_path': tempdir,})
     except nest.NESTError:    
-        nest.SetStatus([0], {'data_path':tempdir,})
+        nest.SetStatus([0], {'device_prefix': tempdir,})
 
 
     # set kernel RNG seeds
@@ -391,9 +391,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     else:
         rng_seeds_seed = extra_params.get('rng_seeds_seed') or 42
         rng = NumpyRNG(rng_seeds_seed)
-        rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100000).astype('int').tolist()
+        rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100000).astype('int').tolist() 
     logging.debug("rng_seeds = %s" % rng_seeds)
-
     nest.SetStatus([0],[{'local_num_threads': num_threads,
                          'rng_seeds'        : rng_seeds}])
 
@@ -662,7 +661,7 @@ class Population(common.Population):
                     print "NEST error when trying to set the following dictionary: %s" % self.cellparams
                     raise
             self._local_ids = self.cell_local
-
+        
         if not self.label:
             self.label = 'population%d' % Population.nPop
         self.recorders = {}
@@ -863,6 +862,8 @@ class Population(common.Population):
                nest.SetStatus(self.cell_local, parametername, rarr)
 
     def _record(self, variable, record_from=None, rng=None,to_file=True):
+        if variable not in self.celltype.recordable:
+            raise Exception("Cannot record %s from cell type %s" % (variable, self.celltype.__class__.__name__))
         # create list of neurons
         fixed_list = False
         if record_from:
