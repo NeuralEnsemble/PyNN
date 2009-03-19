@@ -123,7 +123,7 @@ def _create(cellclass, param_dict, n, parent=None):
         except AttributeError:
             raise common.InvalidModelError("There is no hoc template called %s" % cellclass)
         cell_parameters = param_dict or {}
-    elif issubclass(cellclass, common.StandardCellType):
+    elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
         celltype = cellclass(param_dict)
         cell_model = celltype.model
         cell_parameters = celltype.parameters

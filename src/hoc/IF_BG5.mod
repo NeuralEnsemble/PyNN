@@ -20,17 +20,16 @@ Fourcaud-Trocme et al. (2003):
 
 These two models were combined by Brette and Gerstner (2005):
 
-  Brette R and Gersnter W. Adaptive exponential integrate-and-fire
+  Brette R and Gerstner W. Adaptive exponential integrate-and-fire
   model as an effective description of neuronal activity. 
   J. Neurophysiol. 94: 3637-3642, 2005.
 
 (see this paper for details)
 
-The present implementation considers in addition a spike mechanism 
-based on "fake conductances":
-- at the spike, activate a strong depolarizing (gna) conductance
-- then the reset is a strong hyperpolarizing (gkd) conductance
-  which clamps the membrane at reset value for some refractory time
+The present implementation implements reset and the absolute refractory period
+using a strong hyperpolarizing (gkd) conductance which clamps the membrane at
+reset value for some refractory time. The above-threshold trajectory of the
+membrane potential during a spike is not modelled.
 
 This spike mechanism is implemented as a regular NEURON membrane
 mechanism, and thus can be used in any compartment.  For faster
@@ -50,13 +49,19 @@ Additional parameters for spike generation:
 
 	Ref (ms)   : refractory period (Vm is clamped at reset value)
 	Vtop (mV)  : peak value of the spike
+        Vspike (mV) : spike-detection threshold
 	Vbot (mV)  : reset value
-	gna (S/cm2): gNa for spike
 	gkd (S/cm2): gKd for reset
 
 model 3: simpler IF mechanism, no spike duration
 model 4: store spike times in vector
-A Destexhe
+
+Original author: Alain Destexhe
+
+model 5: removed Na current, removed spike-time storage
+
+Modified by: Andrew Davison
+
 -----------------------------------------------------------------------------
 ENDCOMMENT
 
@@ -68,7 +73,8 @@ NEURON {
 	RANGE w, w_init
 	RANGE a, b, tau_w, EL, GL, delta, surf
 	RANGE Vtr, Ref, Vbot, Vtop, Vspike
-	RANGE spike, reset, gna, gkd, spiketimes, nspike
+	RANGE reset, gkd
+        RANGE debug
 }
 
 UNITS {
@@ -99,9 +105,10 @@ PARAMETER {
 	Vtop	= 50	(mV)		: peak value of spike
         Vspike  = 0     (mV)            : spike detection threshold
 	Vbot	= -85	(mV)		: reset value
-	gna	= 1	(mho/cm2)	: very strong gNa for spike
-	gkd	= 1000	(mho/cm2)	: very strong gKd for reset
+	gkd	= 10000	(mho/cm2)	: very strong gKd for reset
         w_init  = 0     (nA)
+        
+        debug = 0
 }
 
 
@@ -110,9 +117,6 @@ ASSIGNED {
 	i		(mA/cm2)	: membrane current
 
 	reset	(ms)			: reset counter
-        spike				: flag for spike
-	spiketimes[10000] (ms)		: vector for spike times
-	nspike				: nb of spikes
 }
 
 STATE {
@@ -120,41 +124,35 @@ STATE {
 }
 
 INITIAL {
-	spike = 0
 	reset = -1
 	w = w_init
-	nspike = 0
 }
 
 BREAKPOINT {
 	SOLVE states METHOD derivimplicit
 	i = - GL * delta * exp((v-Vtr)/delta) + (100) * w/surf
 	fire()
-        :if (t>11) { printf("%f\t%f\t%f\t%f\t%f\t%f\t%f\n",t,v,w,i,reset,(v-Vtr)/delta,exp((v-Vtr)/delta)) }
 }
 
 
 DERIVATIVE states {		: solve eq for adaptation variable
-	
 	w'=(a*(v-EL)-w)/tau_w
 }
 
 
 
-PROCEDURE fire() { LOCAL q
+PROCEDURE fire() {
 
-	reset = reset - 0.5*dt : this is called twice per timestep
+	reset = reset - 0.5*dt : fire() is called twice per timestep
 
-	if(reset>0) {   			: inside the reset ?
+	if (reset>0) {   			: inside the reset ?
 		i = gkd * (v-Vbot)		: hyp current
-	} else if(v>Vspike) {		        : passing threshold ?
+                if (debug > 0) { printf("reset %f\t%f\t%f\t%f\t%f\t%f\t%f\n",t,v,w,i,reset,(v-Vtr)/delta,exp((v-Vtr)/delta)) }
+	} else if (v>Vspike) {		        : passing threshold ?
+                i = gkd * (v-Vbot)		: hyp current
 		w = w + b			: increment adaptation var
-		:i = gna * (v-Vtop)		: dep current
-		:spike = 1			: initiate spike
-		spiketimes[nspike] = t		: store spike
-		nspike = nspike + 1
                 reset = Ref			: initiate reset
-                :printf("spike at %g ms\n", t)
+                if (debug > 0) { printf("spike %f\t%f\t%f\t%f\t%f\t%f\t%f\n",t,v,w,i,reset,(v-Vtr)/delta,exp((v-Vtr)/delta)) }
   	}
 }
 

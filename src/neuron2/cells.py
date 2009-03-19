@@ -62,6 +62,7 @@ class SingleCompartmentNeuron(nrn.Section):
 
         # for recording spikes
         self.spike_times = h.Vector(0)
+        self.gsyn_trace = {}
 
     def area(self):
         return pi*self.L*self.seg.diam
@@ -110,6 +111,13 @@ class SingleCompartmentNeuron(nrn.Section):
         else:
             self.vtrace = None
             self.record_times = None
+    
+    def record_gsyn(self, syn_name, active):
+        if active:
+            self.gsyn_trace[syn_name] = h.Vector()
+            self.gsyn_trace[syn_name].record(getattr(self, syn_name)._ref_g)
+        else:
+            self.gsyn_trace[syn_name] = None
     
     def memb_init(self, v_init=None):
         if v_init:
@@ -195,7 +203,7 @@ class BretteGerstnerIF(SingleCompartmentNeuron):
                                 'v_spike']
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
-        #self.set_parameters(locals())
+        self.set_parameters(locals())
     
     v_thresh = _new_property('seg.IF_BG5', 'Vtr')
     v_reset  = _new_property('seg.IF_BG5', 'Vbot')
@@ -214,6 +222,25 @@ class BretteGerstnerIF(SingleCompartmentNeuron):
     def __get_v_spike(self):
         return self.seg.IF_BG5.Vspike
     v_spike = property(fget=__get_v_spike, fset=__set_v_spike)
+    
+    def __set_tau_m(self, value):
+        self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+        self.seg.IF_BG5.GL = self.seg.pas.g
+    def __get_tau_m(self):
+        return 1e-3*self.seg.cm/self.seg.pas.g
+
+    def __set_v_rest(self, value):
+        self.seg.pas.e = value
+        self.seg.IF_BG5.EL = value
+    def __get_v_rest(self):
+        return self.seg.pas.e
+    tau_m  = property(fget=__get_tau_m, fset=__set_tau_m)   
+    v_rest = property(fget=__get_v_rest, fset=__set_v_rest)
+    
+    def record(self, active):
+        if active:
+            rec = h.NetCon(self.source, None, sec=self)
+            rec.record(self.spike_times)
     
     
 class RandomSpikeSource(hclass(h.NetStim)):
@@ -450,3 +477,14 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
         common.EIF_cond_alpha_isfa_ista.__init__(self, parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
+
+class EIF_cond_exp_isfa_ista(common.EIF_cond_exp_isfa_ista):
+    """Like EIF_cond_alpha_isfa_ista, but with single-exponential synapses."""
+    
+    translations = EIF_cond_alpha_isfa_ista.translations
+    model = BretteGerstnerIF
+    
+    def __init__(self, parameters):
+        common.EIF_cond_exp_isfa_ista.__init__(self, parameters)
+        self.parameters['syn_type']  = 'conductance'
+        self.parameters['syn_shape'] = 'exp'
