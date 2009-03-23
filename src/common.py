@@ -25,12 +25,16 @@ class NonExistentParameterError(Exception):
     
     def __init__(self, parameter_name, model):
         self.parameter_name = parameter_name
-        self.model_name = model.__name__
-        if issubclass(model, StandardModelType):
-            self.valid_parameter_names = model.default_parameters.keys()
-            self.valid_parameter_names.sort()
-        else:
+        if isinstance(model, type):
+            if issubclass(model, StandardModelType):
+                self.model_name = model.__name__
+                self.valid_parameter_names = model.default_parameters.keys()
+                self.valid_parameter_names.sort()
+        elif isinstance(model, basestring):
+            self.model_name = model
             self.valid_parameter_names = ['unknown']
+        else:
+            raise Exception("When raising a NonExistentParameterError, model must be a class or a string")
 
     def __str__(self):
         return "%s (valid parameters for %s are: %s)" % (self.parameter_name,
@@ -47,19 +51,6 @@ class NothingToWriteError(Exception): pass
 #   Utility classes and functions
 # ==============================================================================
 
-# The following two functions taken from
-# http://www.nedbatchelder.com/text/pythonic-interfaces.html
-def _function_id(obj, n_frames_up):
-    """ Create a string naming the function n frames up on the stack. """
-    fr = sys._getframe(n_frames_up+1)
-    co = fr.f_code
-    return "%s.%s" % (obj.__class__, co.co_name)
-
-def _abstract_method(obj=None):
-    """ Use this instead of 'pass' for the body of abstract methods. """
-    # Note that there is a NotImplementedError built-in exception we could use
-    raise Exception("Unimplemented abstract method: %s" % _function_id(obj, 1))
-
 def is_listlike(obj):
     return hasattr(obj, "__len__") and not isinstance(obj, basestring)
 
@@ -69,7 +60,7 @@ def build_translations(*translation_list):
     """
     translations = {}
     for item in translation_list:
-        assert 2 <= len(item) <= 4, "Translation tuples must have between 2 and 4 items"
+        assert 2 <= len(item) <= 4, "Translation tuples must have between 2 and 4 items. Actual content: %s" % str(item)
         pynn_name = item[0]
         sim_name = item[1]
         if len(item) == 2: # no transformation
@@ -147,10 +138,10 @@ class IDMixin(object):
         return parameters
 
     def _set_cellclass(self, cellclass):
-        if self.parent is not None:
-            raise Exception("Cell class is determined by the Population and cannot be changed for individual neurons.")
+        if self.parent is None and self._cellclass is None:
+            self._cellclass = cellclass
         else:
-            self._cellclass = cellclass # should check it is a standard cell class or a string
+            raise Exception("Cell class cannot be changed after the neuron has been created.")
 
     def _get_cellclass(self):
         if self.parent is not None:
@@ -162,7 +153,7 @@ class IDMixin(object):
         else:
             return self._cellclass
         
-    cellclass = property(_get_cellclass, _set_cellclass)
+    cellclass = property(fget=_get_cellclass, fset=_set_cellclass)
     
     def is_standard_cell(self):
         return (type(self.cellclass) == type and issubclass(self.cellclass, StandardCellType))
@@ -183,7 +174,7 @@ class IDMixin(object):
             index = numpy.where(self.parent.cell.flatten() == int(self))[0][0]
             self.parent.positions[:, index] = pos
         else:
-            self._position = pos
+            self._position = numpy.array(pos)
         
     def _get_position(self):
         """
@@ -224,7 +215,7 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
     d = src.position - scale_factor*(tgt.position + offset)
     
     if not periodic_boundaries == None:
-        d = numpy.minimum(abs(d),periodic_boundaries-abs(d))
+        d = numpy.minimum(abs(d), periodic_boundaries-abs(d))
     if mask is not None:
         d = d[mask]
     return numpy.sqrt(numpy.dot(d, d))
@@ -309,7 +300,7 @@ class StandardModelType(object):
                         except (ValueError, TypeError):
                             raise InvalidParameterValueError(err_msg)
                     # list and something that can be transformed to a list
-                    elif type(default_parameters[k]) == types.ListType: 
+                    elif type(default_parameters[k]) == types.ListType:
                         try:
                             parameters[k] = list(supplied_parameters[k])
                         except TypeError:
@@ -331,7 +322,7 @@ class StandardModelType(object):
             try:
                 pval = eval(D['forward_transform'], globals(), parameters)
             except NameError, errmsg:
-                raise Exception("Problem translating %s in %s. Transform: %s. Parameters: %s. %s" \
+                raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
                                 % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
             except ZeroDivisionError:
                 pval = 1e30 # this is about the highest value hoc can deal with
@@ -345,9 +336,9 @@ class StandardModelType(object):
         for name,D  in cls.translations.items():
             try:
                 standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
-            except NameError:
-                raise Exception("%s in %s. Transform: %s. Parameters: %s." \
-                                % (name, cls.__name__, D['reverse_transform'], native_parameters))
+            except NameError, errmsg:
+                raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
+                                % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
         return standard_parameters
 
     @classmethod
@@ -786,11 +777,11 @@ class Population(object):
     
     def __iter__(self):
         """Iterator over cell ids."""
-        return _abstract_method(self)
+        raise NotImplementedError()
         
     def addresses(self):
         """Iterator over cell addresses."""
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def ids(self):
         """Iterator over cell ids."""
@@ -801,7 +792,7 @@ class Population(object):
                e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
                          7 9
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def __len__(self):
         """Return the total number of cells in the population."""
@@ -831,7 +822,7 @@ class Population(object):
     
     def index(self, n):
         """Return the nth cell in the population (Indexing starts at 0)."""
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def nearest(self, position):
         """Return the neuron closest to the specified position."""
@@ -852,21 +843,21 @@ class Population(object):
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
 
     def tset(self, parametername, value_array):
         """
         'Topographic' set. Set the value of parametername to the values in
         value_array, which must have the same dimensions as the Population.
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def rset(self, parametername, rand_distr):
         """
         'Random' set. Set the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def _call(self, methodname, arguments):
         """
@@ -874,7 +865,7 @@ class Population(object):
         e.g. p.call("set_background","0.1") if the cell class has a method
         set_background().
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def _tcall(self, methodname, objarr):
         """
@@ -884,14 +875,14 @@ class Population(object):
         e.g. p.tcall("memb_init", vinitArray) calls
         p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
 
     def randomInit(self, rand_distr):
         """
         Set initial membrane potentials for all the cells in the population to
         random values.
         """
-        return _abstract_method(self)
+        self.rset('v_init', rand_dist)
 
     def can_record(self, variable):
         return (variable in self.celltype.recordable)
@@ -903,7 +894,7 @@ class Population(object):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
 
     def record_v(self, record_from=None, rng=None):
         """
@@ -913,7 +904,7 @@ class Population(object):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
 
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
@@ -936,7 +927,7 @@ class Population(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """        
-        return _abstract_method(self)
+        raise NotImplementedError()
     
 
     def getSpikes(self, gather=True):
@@ -946,7 +937,7 @@ class Population(object):
 
         Useful for small populations, for example for single neuron Monte-Carlo.
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
 
     def print_v(self, filename, gather=True, compatible_output=True):
         """
@@ -967,14 +958,14 @@ class Population(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
         # gather is not relevant, but is needed for API consistency
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def describe(self, template='standard'):
         """
@@ -1025,7 +1016,7 @@ class Population(object):
         member of the parent population.
         Ex z = pop.getSubPopulation([pop[1],pop[3],pop[5]])
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
 # ==============================================================================
 
@@ -1137,110 +1128,6 @@ class Projection(object):
     def __repr__(self):
         return 'Projection("%s")' % self.label
     
-    # --- Connection methods ---------------------------------------------------
-    
-    def _allToAll(self, parameters=None):
-        """
-        Connect all cells in the presynaptic population to all cells in the postsynaptic population.
-        """
-        allow_self_connections = True # when pre- and post- are the same population,
-                                      # is a cell allowed to connect to itself?
-        if parameters and parameters.has_key('allow_self_connections'):
-            allow_self_connections = parameters['allow_self_connections']
-    
-    def _oneToOne(self, parameters=None):
-        """
-        Where the pre- and postsynaptic populations have the same size, connect
-        cell i in the presynaptic population to cell i in the postsynaptic
-        population for all i.
-        In fact, despite the name, this should probably be generalised to the
-        case where the pre and post populations have different dimensions, e.g.,
-        cell i in a 1D pre population of size n should connect to all cells
-        in row i of a 2D post population of size (n,m).
-        """
-        return _abstract_method(self)
-    
-    def _fixedProbability(self, parameters):
-        """
-        For each pair of pre-post cells, the connection probability is constant.
-        """
-        allow_self_connections = True
-        try:
-            p_connect = float(parameters)
-        except TypeError:
-            p_connect = parameters['p_connect']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-    
-    def _distanceDependentProbability(self, parameters):
-        """
-        For each pair of pre-post cells, the connection probability depends on distance.
-        d_expression should be the right-hand side of a valid python expression
-        for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
-        """
-        allow_self_connections = True
-        if type(parameters) == types.StringType:
-            d_expression = parameters
-        else:
-            d_expression = parameters['d_expression']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-    
-    def _fixedNumberPre(self, parameters):
-        """Each presynaptic cell makes a fixed number of connections."""
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-        elif type(parameters) == types.DictType:
-            if parameters.has_key['n']: # all cells have same number of connections
-                n = parameters['n']
-            elif parameters.has_key['rng']: # number of connections per cell follows a distribution
-                rng = parameters['rng']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        else : # assume parameters is a rng
-            rng = parameters
-    
-    def _fixedNumberPost(self, parameters):
-        """Each postsynaptic cell receives a fixed number of connections."""
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-        elif type(parameters) == types.DictType:
-            if parameters.has_key['n']: # all cells have same number of connections
-                n = parameters['n']
-            elif parameters.has_key['rng']: # number of connections per cell follows a distribution
-                rng = parameters['rng']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        else : # assume parameters is a rng
-            rng = parameters
-    
-    def _fromFile(self, parameters):
-        """
-        Load connections from a file.
-        """
-        if type(parameters) == types.FileType:
-            fileobj = parameters
-            # check fileobj is already open for reading
-        elif type(parameters) == types.StringType:
-            filename = parameters
-            # now open the file...
-        elif type(parameters) == types.DictType:
-            # dict could have 'filename' key or 'file' key
-            # implement this...
-            pass
-        
-    def _fromList(self, conn_list):
-        """
-        Read connections from a list of tuples,
-        containing [pre_addr, post_addr, weight, delay]
-        where pre_addr and post_addr are both neuron addresses, i.e. tuples or
-        lists containing the neuron array coordinates.
-        """
-        # Need to implement parameter parsing here...
-        return _abstract_method(self)
-    
     # --- Methods for setting connection parameters ----------------------------
     
     def setWeights(self, w):
@@ -1251,7 +1138,7 @@ class Projection(object):
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def randomizeWeights(self, rand_distr):
         """
@@ -1260,7 +1147,7 @@ class Projection(object):
         # Arguably, we could merge this with set_weights just by detecting the
         # argument type. It could make for easier-to-read simulation code to
         # give it a separate name, though. Comments?
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def setDelays(self, d):
         """
@@ -1268,25 +1155,25 @@ class Projection(object):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def randomizeDelays(self, rand_distr):
         """
         Set delays to random values taken from rand_distr.
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def setSynapseDynamics(self, param, value):
         """
         Set parameters of the synapse dynamics linked with the projection
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def randomizeSynapseDynamics(self, param, rand_distr):
         """
         Set parameters of the synapse dynamics to values taken from rand_distr
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     # --- Methods for writing/reading information to/from file. ----------------
     
@@ -1296,7 +1183,7 @@ class Projection(object):
         in the projection, a 2D weight array (with zero or None for non-existent
         connections).
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def getDelays(self, format='list', gather=True):
         """
@@ -1304,12 +1191,12 @@ class Projection(object):
         in the projection, a 2D delay array (with None or 1e12 for non-existent
         connections).
         """
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
-        return _abstract_method(self)
+        raise NotImplementedError()
     
     def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""
@@ -1389,7 +1276,7 @@ class Connector(object):
     
     def connect(self, projection):
         """Connect all neurons in ``projection``"""
-        _abstract_method(self)
+        raise NotImplementedError()
         
     def getWeights(self, N):
         """

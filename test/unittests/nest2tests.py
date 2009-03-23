@@ -145,7 +145,13 @@ class ConnectionTest(unittest.TestCase):
     #    nest.end()
 
 # ==============================================================================        
-class SetValueTest(unittest.TestCase): pass # to write later
+class SetValueTest(unittest.TestCase):
+    
+    def testSetNonExistentNativeParameter(self):
+        ifcell = nest.create('iaf_neuron')
+        def set_val(x):
+            ifcell.foo = x
+        self.assertRaises(common.NonExistentParameterError, set_val, 3.2)
 
 # ==============================================================================
 class RecordSpikesTest(unittest.TestCase):
@@ -695,6 +701,7 @@ class IDTest(unittest.TestCase):
         self.pop1 = nest.Population((5,),nest.IF_curr_alpha,{'tau_m':10.0})
         self.pop2 = nest.Population((5,4),nest.IF_curr_exp,{'v_reset':-60.0})
         self.pop3 = nest.Population((10,), nest.IF_cond_alpha)
+        self.pop4 = nest.Population((3,4,5), 'iaf_neuron')
     
     def testIDSetAndGet(self):
         self.pop1[3].tau_m = 20.0
@@ -711,6 +718,7 @@ class IDTest(unittest.TestCase):
     def testGetCellClass(self):
         self.assertEqual(nest.IF_curr_alpha, self.pop1[0].cellclass)
         self.assertEqual(nest.IF_curr_exp, self.pop2[4,3].cellclass)
+        self.assertEqual('iaf_neuron', self.pop4[0,0,0].cellclass)
         
     def testSetAndGetPosition(self):
         self.assert_((self.pop2[0,2].position == (0.0,2.0,0.0)).all())

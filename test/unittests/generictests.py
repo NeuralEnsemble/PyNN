@@ -7,6 +7,7 @@ import sys
 import unittest
 import numpy
 import os
+from pyNN import common
 
 def arrays_almost_equal(a, b, threshold):
     return (abs(a-b) < threshold).all()
@@ -81,6 +82,21 @@ class IDSetGetTest(unittest.TestCase):
                         self.assertAlmostEqual(i, o,
                                                IDSetGetTest.decimal_places.get(name, IDSetGetTest.default_dp),
                                                "%s in %s: %s != %s" % (name, cell_class.__name__, i,o))
+    
+    def testGetCellClass(self):
+        assert 'cellclass' in common.IDMixin.non_parameter_attributes
+        for name, pop in self.populations.items():
+            assert isinstance(pop[0], common.IDMixin)
+            assert 'cellclass' in pop[0].non_parameter_attributes
+            self.assertEqual(pop[0].cellclass.__name__, name)
+        self.assertRaises(Exception, setattr, pop[0].cellclass, 'dummy')
+        
+    def testGetSetPosition(self):
+        for cell_group in self.cells.values():
+            pos = cell_group[0].position
+            self.assertEqual(len(pos), 3)
+            cell_group[0].position = (9.8, 7.6, 5.4)
+            self.assertEqual(tuple(cell_group[0].position), (9.8, 7.6, 5.4))
        
 class PopulationSpikesTest(unittest.TestCase):
     
