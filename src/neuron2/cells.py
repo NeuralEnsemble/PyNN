@@ -45,6 +45,9 @@ class SingleCompartmentNeuron(nrn.Section):
         self.seg.diam = 1000/pi # gives area = 1e-3 cm2
         self.insert('pas')
         
+        self.syn_type = syn_type
+        self.syn_shape = syn_shape
+        
         # insert synapses
         assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
         assert syn_shape in ('alpha', 'exp'), "syn_type must be either 'alpha' or 'exp'"
@@ -115,6 +118,7 @@ class SingleCompartmentNeuron(nrn.Section):
     def record_gsyn(self, syn_name, active):
         if active:
             self.gsyn_trace[syn_name] = h.Vector()
+            # need to create MyExpSyn, with g as range variable
             self.gsyn_trace[syn_name].record(getattr(self, syn_name)._ref_g)
         else:
             self.gsyn_trace[syn_name] = None
@@ -124,18 +128,22 @@ class SingleCompartmentNeuron(nrn.Section):
             self.v_init = v_init
         self.seg.v = self.v_init
 
-    def use_Tsodyks_Markram_synapses(ei, U, tau_rec, tau_facil, u0):
+    def use_Tsodyks_Markram_synapses(self, ei, U, tau_rec, tau_facil, u0):
         if self.syn_type == 'current':
             raise Exception("Tsodyks-Markram mechanism only available for conductance-based synapses.")
         elif ei == 'excitatory':
-            self.esyn = h.tmgsyn(self, 0.5)
-            self.esyn.tau_1 = self.tau_e
-            self.esyn.e = self.e_e
+            tau_syn = self.tau_e
+            e_syn = self.e_e
+            self.esyn = h.tmgsyn(0.5, sec=self)
+            self.esyn.tau = tau_syn
+            self.esyn.e = e_syn
             syn = self.esyn
         elif ei == 'inhibitory':
-            self.isyn = h.tmgsyn(self, 0.5)
-            self.isyn.tau_1 = self.tau_i
-            self.isyn.e = self.e_i
+            tau_syn = self.tau_i
+            e_syn = self.e_i
+            self.isyn = h.tmgsyn(0.5, sec=self)
+            self.isyn.tau = tau_syn
+            self.isyn.e = e_syn
             syn = self.isyn
         syn.U = U
         syn.tau_rec = tau_rec

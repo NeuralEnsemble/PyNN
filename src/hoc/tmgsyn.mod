@@ -35,7 +35,7 @@ x -------> y    Instantaneous, spike triggered.
                      number of channels that are open, or the 
                      fraction of max synaptic current that is 
                      being delivered. 
-  tau_1
+  tau
 y -------> z    z == fraction of "synaptic resources" that are 
                      in the "inactive state"
 
@@ -67,7 +67,7 @@ When tau_facil = 0, u is supposed to equal U.
 
 Note that the synaptic conductance in this mechanism 
 has the same kinetics as y, i.e. decays with time 
-constant tau_1.
+constant tau.
 
 This mechanism can receive multiple streams of 
 synaptic input via NetCon objects.  
@@ -81,7 +81,7 @@ ENDCOMMENT
 NEURON {
 	POINT_PROCESS tmgsyn
 	RANGE e, i
-	RANGE tau_1, tau_rec, tau_facil, U, u0
+	RANGE tau, tau_rec, tau_facil, U, u0
 	NONSPECIFIC_CURRENT i
 }
 
@@ -95,9 +95,9 @@ PARAMETER {
 	: e = -90 mV for inhibitory synapses,
 	:     0 mV for excitatory
 	e = -90	(mV)
-	: tau_1 was the same for inhibitory and excitatory synapses
+	: tau was the same for inhibitory and excitatory synapses
 	: in the models used by T et al.
-	tau_1 = 3 (ms) < 1e-9, 1e9 >
+	tau = 3 (ms) < 1e-9, 1e9 >
 	: tau_rec = 100 ms for inhibitory synapses,
 	:           800 ms for excitatory
 	tau_rec = 100 (ms) < 1e-9, 1e9 >
@@ -133,7 +133,7 @@ BREAKPOINT {
 }
 
 DERIVATIVE state {
-	g' = -g/tau_1
+	g' = -g/tau
 }
 
 NET_RECEIVE(weight (umho), y, z, u, tsyn (ms)) {
@@ -151,9 +151,9 @@ INITIAL {
 	: first calculate z at event-
 	:   based on prior y and z
 	z = z*exp(-(t - tsyn)/tau_rec)
-	z = z + ( y*(exp(-(t - tsyn)/tau_1) - exp(-(t - tsyn)/tau_rec)) / ((tau_1/tau_rec)-1) )
+	z = z + ( y*(exp(-(t - tsyn)/tau) - exp(-(t - tsyn)/tau_rec)) / ((tau/tau_rec)-1) )
 	: now calc y at event-
-	y = y*exp(-(t - tsyn)/tau_1)
+	y = y*exp(-(t - tsyn)/tau)
 
 	x = 1-y-z
 

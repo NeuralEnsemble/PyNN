@@ -189,7 +189,7 @@ proc use_Tsodyks_Markram_synapses() {
         esyn_tm.tau_rec = $3
         esyn_tm.tau_facil =  $4
         esyn_tm.u0 = $5
-        esyn_tm.tau_1 = tau_e
+        esyn_tm.tau = tau_e
         esyn_tm.e = e_e
         using_esyn_tm = 1
         if (recording_gsyn) {
@@ -202,7 +202,7 @@ proc use_Tsodyks_Markram_synapses() {
         isyn_tm.tau_rec = $3
         isyn_tm.tau_facil =  $4
         isyn_tm.u0 = $5
-        isyn_tm.tau_1 = tau_i
+        isyn_tm.tau = tau_i
         isyn_tm.e = e_i
         using_isyn_tm = 1
         if (recording_gsyn) {

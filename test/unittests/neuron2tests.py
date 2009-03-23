@@ -29,6 +29,10 @@ class CreationTest(unittest.TestCase):
         assert ifcell == 0, 'Failed to create standard cell (cell=%s)' % ifcell
         ss = neuron.create(neuron.SpikeSourceArray)
         assert ss == 1, 'Failed to create standard cell (cell=%s)' % ss
+        aeifcell = neuron.create(neuron.EIF_cond_exp_isfa_ista)
+        assert aeifcell == 2, 'Failed to create standard cell (cell=%s)' % aeifcell
+        hardwarecell = neuron.create(neuron.IF_facets_hardware1)
+        assert hardwarecell == 3, 'Failed to create standard cell (cell=%s)' % hardwarecell
         
     def testCreateStandardCells(self):
         """create(): Creating multiple cells should return a list of integers"""
@@ -187,6 +191,13 @@ class SetValueTest(unittest.TestCase):
         # an IF_curr_exp, it is not a valid parameter to be changed later.
         self.assertRaises(common.NonExistentParameterError, neuron.set, self.cells, 'syn_shape', 'alpha')
 
+    def testMembInit(self):
+        native_cell = self.cells[0]._cell
+        a = native_cell.v_init
+        native_cell.memb_init(a+1.0)
+        self.assertEqual(native_cell.v_init, a+1.0)
+        self.assertEqual(native_cell.v_init, native_cell.seg.v)
+        
 # ==============================================================================
 class RecordTest(unittest.TestCase):
 
@@ -202,6 +213,16 @@ class RecordTest(unittest.TestCase):
     def testRecordV(self):
         neuron.record_v(self.cells, "tmp.v")
         neuron.record_v(self.native_cells, "tmp1.v")
+
+    def testStopRecording(self):
+        self.cells[0]._cell.record_v(0)
+        self.native_cells[0]._cell.record_v(0)
+        self.assertEqual(self.cells[0]._cell.vtrace, None)
+        self.assertEqual(self.native_cells[0]._cell.vtrace, None)
+        
+    def testRecordGSyn(self):
+        self.cells[0]._cell.record_gsyn('esyn', 1)
+        assert hasattr(self.gsyn_trace['esyn'], 'size') # hoc Vector object
 
 # ==============================================================================
 class PopulationInitTest(unittest.TestCase):
@@ -435,41 +456,50 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         neuron.Population.nPop = 0
         self.pop1 = neuron.Population((3,3), neuron.SpikeSourcePoisson,{'rate': 20})
         self.pop2 = neuron.Population((3,3), neuron.IF_curr_alpha)
+        self.pop3 = neuron.Population((3,3), neuron.EIF_cond_alpha_isfa_ista)
+        self.pops =[self.pop1, self.pop2, self.pop3]
 
     def tearDown(self):
         neuron.simulator.reset()
 
     def testRecordAll(self):
         """Population.record(): not a full test, just checking there are no Exceptions raised."""
-        self.pop1.record()
+        for pop in self.pops:
+            pop.record()
         
     def testRecordInt(self):
         """Population.record(n): not a full test, just checking there are no Exceptions raised."""
         # Partial record
-        self.pop1.record(5)
+        for pop in self.pops:
+            pop.record(5)
 
     def testRecordWithRNG(self):
         """Population.record(n, rng): not a full test, just checking there are no Exceptions raised."""
-        self.pop1.record(5, random.NumpyRNG())
+        for pop in self.pops:
+            pop.record(5, random.NumpyRNG())
 
     def testRecordList(self):
         """Population.record(list): not a full test, just checking there are no Exceptions raised."""
         # Selected list record
         record_list = []
-        for i in range(0,2):
-            record_list.append(self.pop1[i,1])
-        self.pop1.record(record_list)
+        for pop in self.pops:
+            for i in range(0,2):
+                record_list.append(pop[i,1])
+            pop.record(record_list)
 
     def testSpikeRecording(self):
         # We test the mean spike count by checking if the rate of the poissonian sources are
         # close to 20 Hz. Then we also test how the spikes are saved
         self.pop1.record()
+        self.pop3.record()
         simtime = 1000.0
         neuron.run(simtime)
         #self.pop1.printSpikes("temp_neuron.ras", gather=True)
         rate = self.pop1.meanSpikeCount()*1000/simtime
         if neuron.rank() == 0: # only on master node
             assert (20*0.8 < rate) and (rate < 20*1.2), "rate is %s" % rate
+        rate = self.pop3.meanSpikeCount()*1000/simtime
+        self.assertEqual(rate, 0.0)
 
     def testPotentialRecording(self):
         """Population.record_v() and Population.print_v(): not a full test, just checking 
@@ -803,6 +833,38 @@ class IDTest(unittest.TestCase):
         self.assert_((self.pop2[0,2].position == (0.5,1.5,0.0)).all())
         new_pos = (-0.6,3.5,-100.0) # check that position is set-by-value from new_pos
         self.assert_((self.pop2[0,2].position == (0.5,1.5,0.0)).all())
+        
+class SynapticPlasticityTest(unittest.TestCase):
+    
+    def setUp(self):
+        neuron.Population.nPop = 0
+        neuron.Projection.nProj = 0
+        self.target33    = neuron.Population((3,3), neuron.IF_curr_alpha)
+        self.target6     = neuron.Population((6,), neuron.IF_cond_exp)
+        self.source5     = neuron.Population((5,), neuron.IF_curr_exp)
+        self.source22    = neuron.Population((2,2), neuron.SpikeSourcePoisson)
+        
+    def testUseTsodyksMarkram(self):
+        U=0.6
+        tau_rec=60.0
+        tau_facil=6.0
+        u0=0.6
+        self.assertRaises(Exception,
+                          self.target33[0,0]._cell.use_Tsodyks_Markram_synapses,
+                          'excitatory', U, tau_rec, tau_facil, u0)
+        native_cell = self.target6[0]._cell
+        native_cell.use_Tsodyks_Markram_synapses(
+            'excitatory', U, tau_rec, tau_facil, u0)
+        self.assertEqual(native_cell.esyn.tau, native_cell.tau_e)
+        self.assertEqual(native_cell.esyn.e, native_cell.e_e)
+        self.assertEqual(native_cell.esyn.U, U)
+        self.assertRaises(AttributeError, lambda x: native_cell.isyn.U, None)
+        native_cell.use_Tsodyks_Markram_synapses(
+            'inhibitory', U, tau_rec, tau_facil, u0)
+        self.assertEqual(native_cell.isyn.tau, native_cell.tau_i)
+        self.assertEqual(native_cell.isyn.e, native_cell.e_i)
+        self.assertEqual(native_cell.isyn.U, U)
+
         
 if __name__ == "__main__":
     if '-python' in sys.argv:
