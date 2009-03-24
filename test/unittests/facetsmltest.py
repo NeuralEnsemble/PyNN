@@ -5,7 +5,7 @@ Unit tests for pyNN.facetsml package
 """
 
 from pyNN.facetsml import *
-
+import unittest
 
 class PopulationInitTest(unittest.TestCase):
     """Tests of the __init__() method of the Population class."""

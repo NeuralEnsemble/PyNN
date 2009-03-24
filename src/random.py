@@ -9,25 +9,14 @@ $Id:random.py 188 2008-01-29 10:03:59Z apdavison $
 """
 
 import sys
+import logging
 import numpy.random
 try:
     import pygsl.rng
 except ImportError:
-    print "Warning: GSL random number generators not available"
+    import warnings
+    warnings.warn("GSL random number generators not available")
 import time
-import logging
-
-# The following two functions taken from
-# http://www.nedbatchelder.com/text/pythonic-interfaces.html
-def _function_id(obj, n_frames_up):
-    """ Create a string naming the function n frames up on the stack. """
-    frame = sys._getframe(n_frames_up+1)
-    code = frame.f_code
-    return "%s.%s" % (obj.__class__, code.co_name)
- 
-def abstractMethod(obj=None):
-    """ Use this instead of 'pass' for the body of abstract methods. """
-    raise Exception("Unimplemented abstract method: %s" % _function_id(obj, 1))
  
  
 class AbstractRNG:
@@ -50,7 +39,7 @@ class AbstractRNG:
         
         If n is 1, return a float, if n > 1, return a numpy array,
         if n <= 0, raise an Exception."""
-        abstractMethod(self)
+        raise NotImplementedError
 
     
 class NumpyRNG(AbstractRNG):
@@ -205,8 +194,8 @@ class RandomDistribution:
                 raise Exception("This constrain method (%s) does not exist" %self.constrain)
         else:
             return self.rng.next(n=n,
-                             distribution=self.name,
-                             parameters=self.parameters)
+                                 distribution=self.name,
+                                 parameters=self.parameters)
         
     def __str__(self):
         return "RandomDistribution('%(name)s', %(parameters)s, %(rng)s)" % self.__dict__ 

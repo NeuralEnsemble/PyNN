@@ -7,8 +7,10 @@ $Id:$
 from pyNN import common
 import math
 #import numpy, types, sys, shutil
-import xml.dom.minidom
+import sys
+sys.path.append('/usr/lib/python%s/site-packages/oldxml' % sys.version[:3]) # needed for Ubuntu
 import xml.dom.ext
+import xml.dom.minidom
 
 neuroml_url = 'http://morphml.org'
 namespace = {'xsi': "http://www.w3.org/2001/XMLSchema-instance",

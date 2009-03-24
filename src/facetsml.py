@@ -7,6 +7,8 @@ $Id$
 import common
 #import numpy, types, sys, shutil
 #import RandomArray
+import sys
+sys.path.append('/usr/lib/python%s/site-packages/oldxml' % sys.version[:3]) # needed for Ubuntu
 from xml.dom import *
 from xml.dom.minidom import *
 from xml.dom.ext import *
@@ -80,13 +82,9 @@ def writeDocument(url):
 #   Utility classes
 # ==============================================================================
 
-class ID(common.ID):
+class ID(common.IDMixin):
     """
-    This class is experimental. The idea is that instead of storing ids as
-    integers, we store them as ID objects, which allows a syntax like:
-      p[3,4].set('tau_m',20.0)
-    where p is a Population object. The question is, how big a memory/performance
-    hit is it to replace integers with ID objects?
+    
     """
     
     def set(self,param,val=None):
