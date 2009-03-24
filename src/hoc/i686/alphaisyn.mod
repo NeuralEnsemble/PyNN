@@ -1,1 +1,0 @@
-../alphaisyn.mod

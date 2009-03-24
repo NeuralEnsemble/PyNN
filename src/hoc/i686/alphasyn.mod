@@ -1,1 +1,0 @@
-../alphasyn.mod
