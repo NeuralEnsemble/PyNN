@@ -657,35 +657,35 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    pass
+    raise NotImplementedError
     
 def run(simtime):
     """Run the simulation for simtime ms."""
-    pass
+    raise NotImplementedError
 
 def get_current_time():
     """Return the current time in the simulation."""
-    pass
+    raise NotImplementedError
 
 def get_time_step():
     """Return the integration time step being used in the simulation.""" 
-    pass
+    raise NotImplementedError
 
 def get_min_delay():
     """Return the minimum allowed synaptic delay."""
-    raise Exception("common.get_min_delay() must be overridden by a simulator-specific function")
+    raise NotImplementedError("common.get_min_delay() must be overridden by a simulator-specific function")
 
 def get_max_delay():
     """Return the maximum allowed synaptic delay."""
-    raise Exception("common.get_max_delay() must be overridden by a simulator-specific function")
+    raise NotImplementedError("common.get_max_delay() must be overridden by a simulator-specific function")
 
 def num_processes():
     """When running a parallel simulation with MPI, return the number of processors being used."""
-    pass
+    raise NotImplementedError
 
 def rank():
     """Return the MPI rank."""
-    pass
+    raise NotImplementedError
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -696,7 +696,7 @@ def create(cellclass, param_dict=None, n=1):
     If n > 1, return a list of cell ids/references.
     If n==1, return just the single id.
     """
-    pass
+    raise NotImplementedError
 
 def connect(source, target, weight=None, delay=None, synapse_type=None,
             p=1, rng=None):
@@ -705,27 +705,27 @@ def connect(source, target, weight=None, delay=None, synapse_type=None,
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
     Weights should be in nA or µS."""
-    pass
+    raise NotImplementedError
 
 def set(cells, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value."""
-    pass
+    raise NotImplementedError
 
 def record(source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
-    pass
+    raise NotImplementedError
 
 def record_v(source, filename):
     """Record membrane potential to a file. source can be an individual cell or
     a list of cells."""
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
-    pass
+    raise NotImplementedError
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -773,7 +773,7 @@ class Population(object):
              p = Population(...)
              p[2,3] is equivalent to p.__getitem__((2,3)).
         """
-        pass
+        raise NotImplementedError
     
     def __iter__(self):
         """Iterator over cell ids."""
@@ -828,6 +828,7 @@ class Population(object):
         """Return the neuron closest to the specified position."""
         # doesn't always work correctly if a position is equidistant between two
         # neurons, i.e. 0.5 should be rounded up, but it isn't always.
+        # also doesn't take account of periodic boundary conditions
         pos = numpy.array([position]*self.positions.shape[1]).transpose()
         dist_arr = (self.positions - pos)**2
         distances = dist_arr.sum(axis=0)
@@ -1287,7 +1288,7 @@ class Connector(object):
         elif isinstance(self.weights, (int, float)):
             weights = numpy.ones((N,))*float(self.weights)
         elif hasattr(self.weights, "__len__"):
-            weights = self.weights[self.w_index:self.w_index+N]
+            weights = numpy.array(self.weights[self.w_index:self.w_index+N], float)
         else:
             raise Exception("weights is of type %s" % type(self.weights))
         self.w_index += N
@@ -1302,7 +1303,7 @@ class Connector(object):
         elif isinstance(self.delays, (int, float)):
             delays = numpy.ones((N,))*float(self.delays)
         elif hasattr(self.delays, "__len__"):
-            delays = self.delays[self.d_index:self.d_index+N]
+            delays = numpy.array(self.delays[self.d_index:self.d_index+N], float)
         else:
             raise Exception("delays is of type %s" % type(self.delays))
         if self.check_connections:
@@ -1363,7 +1364,7 @@ class FixedNumberPostConnector(Connector):
         elif isinstance(n, random.RandomDistribution):
             self.rand_distr = n
             # weak check that the random distribution is ok
-            assert numpy.all(numpy.array(n.next(100)) > 0), "the random distribution produces negative numbers"
+            assert numpy.all(numpy.array(n.next(100)) >= 0), "the random distribution produces negative numbers"
         else:
             raise Exception("n must be an integer or a RandomDistribution object")
 
@@ -1441,8 +1442,8 @@ class DistanceDependentProbabilityConnector(Connector):
         try:
             d = 0; assert 0 <= eval(d_expression), eval(d_expression)
             d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
-        except ZeroDivisionError:
-            raise Exception("Error in the distance expression %s" %d_expression)
+        except ZeroDivisionError, err:
+            raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
         # We will use the numpy functions, so we need to parse the function
         # given by the user to look for some key function and add numpy
@@ -1480,8 +1481,8 @@ class SynapseDynamics(object):
             lines = ["Short-term plasticity mechanism: $slow",
                      "Long-term plasticity mechanism: $fast"]
             template = "\n".join(lines)
-        context = {'fast': self.fast.describe(),
-                   'slow': self.slow.describe()}
+        context = {'fast': self.fast and self.fast.describe() or 'None',
+                   'slow': self.slow and self.slow.describe() or 'None'}
         if template == None:
             return context
         else:
@@ -1492,7 +1493,7 @@ class ShortTermPlasticityMechanism(StandardModelType):
     """Abstract base class for models of short-term synaptic dynamics."""
     
     def __init__(self):
-        _abstract_method(self)
+        raise NotImplementedError
 
 
 class STDPMechanism(object):
@@ -1519,21 +1520,21 @@ class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):
     }
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
-        pass
+        raise NotImplementedError
 
         
 class STDPWeightDependence(StandardModelType):
     """Abstract base class for models of STDP weight dependence."""
     
     def __init__(self):
-        _abstract_method(self)
+        raise NotImplementedError
 
 
 class STDPTimingDependence(StandardModelType):
     """Abstract base class for models of STDP timing dependence (triplets, etc)"""
     
     def __init__(self):
-        _abstract_method(self)
+        raise NotImplementedError
         
 
 class AdditiveWeightDependence(STDPWeightDependence):
@@ -1551,7 +1552,7 @@ class AdditiveWeightDependence(STDPWeightDependence):
     }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
-        pass #_abstract_method(self)
+        raise NotImplementedError
 
 
 class MultiplicativeWeightDependence(STDPWeightDependence):
@@ -1568,7 +1569,7 @@ class MultiplicativeWeightDependence(STDPWeightDependence):
     }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
-        pass
+        raise NotImplementedError
     
 
 class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
@@ -1585,7 +1586,7 @@ class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
     }
 
     def __init__(self, w_min=0.0,  w_max=1.0, A_plus=0.01, A_minus=0.01):
-        pass
+        raise NotImplementedError
 
     
 class GutigWeightDependence(STDPWeightDependence):
@@ -1600,11 +1601,11 @@ class GutigWeightDependence(STDPWeightDependence):
     }
 
     def __init__(self, w_min=0.0,  w_max=1.0, A_plus=0.01, A_minus=0.01,mu_plus=0.5,mu_minus=0.5):
-        pass
+        raise NotImplementedError
 
 # Not yet implemented for any module
 #class PfisterSpikeTripletRule(STDPTimingDependence):
-#    pass
+#    raise NotImplementedError
 
 
 class SpikePairRule(STDPTimingDependence):
@@ -1615,7 +1616,7 @@ class SpikePairRule(STDPTimingDependence):
     }
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
-        pass #_abstract_method(self)
+        raise NotImplementedError #_abstract_method(self)
 
 
 # ==============================================================================

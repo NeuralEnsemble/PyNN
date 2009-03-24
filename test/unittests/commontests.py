@@ -7,10 +7,10 @@ import sys
 import unittest
 import numpy
 import os
-from pyNN import common
+from pyNN import common, random
 
 def arrays_almost_equal(a, b, threshold):
-    return (abs(a-b) < threshold).all()
+    return (abs(a-b) <= threshold).all()
 
 # ==============================================================================
 class ExceptionsTest(unittest.TestCase):
@@ -47,7 +47,7 @@ class NotImplementedTest(unittest.TestCase):
         p = common.Population(10, common.IF_cond_alpha)
         for method_name in ('__iter__', 'addresses', 'ids'):
             self.assertRaises(NotImplementedError, getattr(p, method_name))
-        for method_name in ('locate', 'index'):
+        for method_name in ('locate', 'index', '__getitem__'):
             self.assertRaises(NotImplementedError, getattr(p, method_name), 0)
         for method_name in ('set', 'tset', 'rset'):
             self.assertRaises(NotImplementedError, getattr(p, method_name), 'tau_m', 'dummy_value')
@@ -121,6 +121,132 @@ class StandardModelTest(unittest.TestCase):
     def testCreatingNonAvailableModel(self):
         self.assertRaises(NotImplementedError, common.ModelNotAvailable)
                               
+
+class LowLevelAPITest(unittest.TestCase):
+    
+    def test_setup(self):
+        self.assertRaises(Exception, common.setup, min_delay=1.0, max_delay=0.9)
+        self.assertRaises(Exception, common.setup, mindelay=1.0)
+        self.assertRaises(Exception, common.setup, maxdelay=10.0)
+        self.assertRaises(Exception, common.setup, dt=0.1)
+        
+    def test_end(self):
+        self.assertRaises(NotImplementedError, common.end)
+        
+    def test_run(self):
+        self.assertRaises(NotImplementedError, common.run, 10.0)
+               
+    def test_get_simulator_state(self):
+        self.assertRaises(NotImplementedError, common.get_current_time)
+        self.assertRaises(NotImplementedError, common.get_time_step)
+        self.assertRaises(NotImplementedError, common.get_min_delay)
+        self.assertRaises(NotImplementedError, common.get_max_delay)
+        self.assertRaises(NotImplementedError, common.num_processes)
+        self.assertRaises(NotImplementedError, common.rank)
+        
+    def test_create(self):
+        self.assertRaises(NotImplementedError, common.create, "foo")
+    
+    def test_connect(self):
+        self.assertRaises(NotImplementedError, common.connect, 0, 1)
+    
+    def test_set(self):
+        self.assertRaises(NotImplementedError, common.set, "foo", 0)
+    
+    def test_record(self):
+        self.assertRaises(NotImplementedError, common.record, 0, "filename")
+        self.assertRaises(NotImplementedError, common.record_v, 0, "filename")
+        
+class PopulationTest(unittest.TestCase):
+    
+    def test_positions(self):
+        p = common.Population((4,5,6), common.IF_cond_exp)
+        self.assertEqual(p.positions.shape, (3,120))
+        self.assertEqual(tuple(p.positions[:,0]), (0.0,0.0,0.0))
+        self.assertEqual(tuple(p.positions[:,6]), (0.0,1.0,0.0))
+        self.assertEqual(tuple(p.positions[:,30]), (1.0,0.0,0.0))
+        pos = numpy.random.random((3,120))
+        p.positions = pos
+        assert arrays_almost_equal(pos, p.positions, 0.0)
+        pos[0,0] = 99.9
+        assert not arrays_almost_equal(pos, p.positions, 0.0)
+        
+    def test_canrecord(self):
+        p1 = common.Population((4,5,6), common.IF_cond_exp)
+        assert p1.can_record('spikes')
+        assert p1.can_record('v')
+        assert not p1.can_record('foo')
+        p2 = common.Population((4,5,6), common.SpikeSourceArray)
+        assert p2.can_record('spikes')
+        assert not p2.can_record('v')
+        
+class ConnectorTest(unittest.TestCase):
+
+    def test_getWeights(self):
+        c1 = common.Connector(delays=0.5, weights=0.5)
+        self.assertEqual(c1.getWeights(3).tolist(), [0.5,0.5,0.5])
+        c2 = common.Connector(delays=0.5, weights="foo")
+        self.assertRaises(ValueError, c2.getWeights, 3)
+        class A(object): pass
+        c3 = common.Connector(delays=0.5, weights=A())
+        self.assertRaises(Exception,c3.getWeights, 3)
+        rd = random.RandomDistribution('gamma', [0.5,0.5])
+        c4 = common.Connector(delays=0.5, weights=rd)
+        w = c4.getWeights(3)
+        self.assertEqual(len(w), 3)
+        self.assertNotEqual(w[0], w[1])
+        
+    def test_getDelays(self):
+        c1 = common.Connector(delays=0.5, weights=0.5)
+        self.assertEqual(c1.getDelays(3).tolist(), [0.5,0.5,0.5])
+        c2 = common.Connector(weights=0.5, delays="foo")
+        self.assertRaises(ValueError, c2.getDelays, 3)
+        class A(object): pass
+        c3 = common.Connector(weights=0.5, delays=A())
+        self.assertRaises(Exception,c3.getDelays, 3)
+        rd = random.RandomDistribution('gamma', [0.5,0.5])
+        c4 = common.Connector(weights=0.5, delays=rd)
+        d = c4.getDelays(3)
+        self.assertEqual(len(d), 3)
+        self.assertNotEqual(d[0], d[1])
+        c5 = common.Connector(weights=0.5, delays=[1.0, 2.0, 3.0])
+        self.assertEqual(c5.getDelays(3).tolist(), [1.0, 2.0, 3.0]) 
+        #c6 = common.Connector(weights=0.5, delays=0.0, check_connections=True)
+        #self.assertRaises(AssertionError, c6.getDelays, 3)
+    
+    def test_connect(self):
+        c = common.Connector(delays=0.5)
+        self.assertRaises(NotImplementedError, c.connect, 'foo')
+
+class SynapticPlasticityTest(unittest.TestCase):
+    
+    def test_describe(self):
+        s = common.SynapseDynamics()
+        assert isinstance(s.describe(), basestring)
+        assert isinstance(s.describe(template=None), dict)
+       
+    def test_stubs(self):
+        self.assertRaises(NotImplementedError, common.ShortTermPlasticityMechanism)
+        self.assertRaises(NotImplementedError, common.TsodyksMarkramMechanism)
+        self.assertRaises(NotImplementedError, common.STDPWeightDependence)
+        self.assertRaises(NotImplementedError, common.STDPTimingDependence)
+        self.assertRaises(NotImplementedError, common.AdditiveWeightDependence)
+        self.assertRaises(NotImplementedError, common.MultiplicativeWeightDependence)
+        self.assertRaises(NotImplementedError, common.AdditivePotentiationMultiplicativeDepression)
+        self.assertRaises(NotImplementedError, common.GutigWeightDependence)
+        self.assertRaises(NotImplementedError, common.SpikePairRule)
+        
+import time
+
+class TimerTest(unittest.TestCase):
+    
+    def test_timer(self):
+        timer = common.Timer()
+        time.sleep(0.1)
+        assert timer.elapsedTime() > 0
+        assert isinstance(timer.elapsedTime(format='long'), basestring)
+        timer.reset()
+        
 # ==============================================================================
 if __name__ == "__main__":
     unittest.main()

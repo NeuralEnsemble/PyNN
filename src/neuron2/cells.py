@@ -145,6 +145,8 @@ class SingleCompartmentNeuron(nrn.Section):
             self.isyn.tau = tau_syn
             self.isyn.e = e_syn
             syn = self.isyn
+        else:
+            raise Exception("Tsodyks-Markram mechanism not yet implemented for user-defined synapse types. ei = %s" % ei)
         syn.U = U
         syn.tau_rec = tau_rec
         syn.tau_facil = tau_facil

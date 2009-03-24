@@ -42,7 +42,7 @@ class TsodyksMarkramMechanism(common.TsodyksMarkramMechanism):
     native_name = 'tsodyks_synapse'
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
-        common.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
+        #common.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
         parameters = dict(locals()) # need the dict to get a copy of locals. When running
         parameters.pop('self')      # through coverage.py, for some reason, the pop() doesn't have any effect
         self.parameters = self.translate(parameters)
@@ -66,7 +66,7 @@ class AdditiveWeightDependence(common.AdditiveWeightDependence):
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        common.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #common.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)
@@ -91,7 +91,7 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        common.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #common.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self') 
         self.parameters = self.translate(parameters)
@@ -114,7 +114,7 @@ class AdditivePotentiationMultiplicativeDepression(common.AdditivePotentiationMu
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        common.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
+        #common.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self') 
         self.parameters = self.translate(parameters)
@@ -141,7 +141,7 @@ class GutigWeightDependence(common.GutigWeightDependence):
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01,mu_plus=0.5,mu_minus=0.5):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        common.GutigWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #common.GutigWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self') 
         self.parameters = self.translate(parameters)
@@ -156,7 +156,7 @@ class SpikePairRule(common.SpikePairRule):
     possible_models = set(['stdp_synapse_hom','stdp_synapse']) #'stdp_synapse_hom'
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
-        common.SpikePairRule.__init__(self, tau_plus, tau_minus)
+        #common.SpikePairRule.__init__(self, tau_plus, tau_minus)
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)

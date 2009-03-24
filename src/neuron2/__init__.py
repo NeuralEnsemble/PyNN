@@ -585,7 +585,7 @@ class Projection(common.Projection):
             self.label = 'projection%d' % Projection.nProj
         if not rng:
             self.rng = NumpyRNG()
-        self.synapse_type = target
+        self.synapse_type = target or 'excitatory'
         
         ## Deal with short-term synaptic plasticity
         if self.short_term_plasticity_mechanism:

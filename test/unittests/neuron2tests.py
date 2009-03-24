@@ -591,7 +591,7 @@ class ProjectionInitTest(unittest.TestCase):
                                         neuron.DistanceDependentProbabilityConnector(d_expression=expr),
                                         rng=rngclass(12345))
                 assert (0 < len(prj) < len(self.source33)*len(self.target33))
-        
+        self.assertRaises(ZeroDivisionError, neuron.DistanceDependentProbabilityConnector, d_expression="d/0.0")
 
     def testFixedNumberPre(self):
         c1 = neuron.FixedNumberPreConnector(10)
@@ -603,6 +603,8 @@ class ProjectionInitTest(unittest.TestCase):
                     prj1 = neuron.Projection(srcP, tgtP, c)
                     self.assertEqual(len(prj1.connections), c.n*len(tgtP))
                 prj3 = neuron.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
+        self.assertRaises(Exception, neuron.FixedNumberPreConnector, None)
+        
 
     def testFixedNumberPost(self):
         c1 = neuron.FixedNumberPostConnector(10)
@@ -614,6 +616,7 @@ class ProjectionInitTest(unittest.TestCase):
                     prj1 = neuron.Projection(srcP, tgtP, c)
                     self.assertEqual(len(prj1.connections), c.n*len(srcP))
                 prj2 = neuron.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
+        self.assertRaises(Exception, neuron.FixedNumberPostConnector, None)
 
     def testSaveAndLoad(self):
         prj1 = neuron.Projection(self.source33, self.target33, neuron.OneToOneConnector())

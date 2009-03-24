@@ -1,0 +1,57 @@
+2009-03-24 15:13:00,906 INFO Initialization of Brian
+2009-03-24 15:13:00,992 WARNING Equation variable cm also exists in the namespace
+2009-03-24 15:13:00,996 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:01,005 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:01,055 WARNING Equation variable cm also exists in the namespace
+2009-03-24 15:13:01,059 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:01,064 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:01,113 WARNING Equation variable cm also exists in the namespace
+2009-03-24 15:13:01,118 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:01,123 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:01,738 INFO Initialization of Brian
+2009-03-24 15:13:01,812 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:01,819 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:01,871 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:01,876 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:01,928 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:01,934 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:02,564 INFO Initialization of Brian
+2009-03-24 15:13:02,637 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:02,644 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:02,695 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:02,699 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:02,750 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:02,756 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:03,371 INFO Initialization of Brian
+2009-03-24 15:13:03,447 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:03,455 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:03,506 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:03,511 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:03,563 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:03,569 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:04,244 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:04,250 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:04,262 INFO Initialization of Brian
+2009-03-24 15:13:04,341 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:04,346 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:04,400 INFO Initialization of Brian
+2009-03-24 15:13:04,470 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:04,475 INFO Free variables: ['farad', 'second', 'volt']
+2009-03-24 15:13:04,525 INFO Initialization of Brian
+2009-03-24 15:13:05,457 INFO Initialization of Brian
+2009-03-24 15:13:06,215 WARNING Stacking multiple firing times
+2009-03-24 15:13:06,216 WARNING Stacking multiple firing times
+2009-03-24 15:13:06,217 WARNING Stacking multiple firing times
+2009-03-24 15:13:06,218 WARNING Stacking multiple firing times
+2009-03-24 15:13:06,219 WARNING Stacking multiple firing times
+2009-03-24 15:13:06,220 WARNING Stacking multiple firing times
+2009-03-24 15:13:06,221 WARNING Stacking multiple firing times
+2009-03-24 15:13:06,222 WARNING Stacking multiple firing times
+2009-03-24 15:13:06,223 WARNING Stacking multiple firing times
+2009-03-24 15:13:06,489 INFO Initialization of Brian
+2009-03-24 15:13:07,179 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:07,184 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:07,236 INFO Initialization of Brian
+2009-03-24 15:13:07,917 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:07,923 INFO Free variables: ['volt', 'second', 'farad']
+2009-03-24 15:13:07,972 INFO Initialization of Brian

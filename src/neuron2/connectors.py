@@ -145,7 +145,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             raise Exception("The delays distance dependent are not implemented yet")
         probabilistic_connect(self, projection, p_array.flatten())
 
-class _FixedNumberConnector(common.FixedNumberPreConnector, HocConnector):
+class _FixedNumberConnector(HocConnector):
     
     def _connect(self, projection, x_list, y_list, type):
         weights = self.weights_iterator()
@@ -182,13 +182,13 @@ class _FixedNumberConnector(common.FixedNumberPreConnector, HocConnector):
                         simulator.single_connect(src, tgt, weights.next(), delays.next(), projection.synapse_type))
 
 
-class FixedNumberPreConnector(_FixedNumberConnector):
+class FixedNumberPreConnector(common.FixedNumberPreConnector, _FixedNumberConnector):
     
     def connect(self, projection):
         self._connect(projection, projection.pre._all_ids.flatten().tolist(), projection.post._local_ids, 'pre')
 
 
-class FixedNumberPostConnector(_FixedNumberConnector):
+class FixedNumberPostConnector(common.FixedNumberPostConnector, _FixedNumberConnector):
      
     def connect(self, projection):
         self._connect(projection, projection.post._all_ids.flatten().tolist(), projection.pre._all_ids.flatten(), 'post')

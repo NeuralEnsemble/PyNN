@@ -40,7 +40,7 @@ class TsodyksMarkramMechanism(common.TsodyksMarkramMechanism):
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
         assert (x0 == 1 and y0 == 0), "It is not currently possible to set x0 and y0"
-        common.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
+        #common.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
         parameters = locals()
         parameters.pop('self')
         self.parameters = self.translate(parameters)
@@ -62,7 +62,7 @@ class AdditiveWeightDependence(common.AdditiveWeightDependence):
     possible_models = set(['StdwaSA',])
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
-        common.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #common.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = locals()
         parameters.pop('self') 
         self.parameters = self.translate(parameters)
@@ -83,7 +83,7 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
     possible_models = set(['StdwaSoft',])
         
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
-        common.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #common.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = locals()
         parameters.pop('self') 
         self.parameters = self.translate(parameters)
@@ -98,7 +98,7 @@ class SpikePairRule(common.SpikePairRule):
     possible_models = set(['StdwaSA','StdwaSoft'])
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
-        common.SpikePairRule.__init__(self, tau_plus, tau_minus)
+        #common.SpikePairRule.__init__(self, tau_plus, tau_minus)
         parameters = locals()
         parameters.pop('self')
         self.parameters = self.translate(parameters)

@@ -1147,11 +1147,11 @@ class Projection(common.Projection):
         # and will be available as projection.plasticity_name
         self.plasticity_name = "projection_%d" %counter
         counter += 1
-	synapse_defaults = nest.GetDefaults(self._plasticity_model)
-	synapse_defaults.pop('synapsemodel')
-	synapse_defaults.pop('num_connections')
-	if 'num_connectors' in synapse_defaults:
-	    synapse_defaults.pop('num_connectors')
+        synapse_defaults = nest.GetDefaults(self._plasticity_model)
+        synapse_defaults.pop('synapsemodel')
+        synapse_defaults.pop('num_connections')
+        if 'num_connectors' in synapse_defaults:
+            synapse_defaults.pop('num_connectors')
             
         if hasattr(self, '_short_term_plasticity_parameters') and self._short_term_plasticity_parameters:
             synapse_defaults.update(self._short_term_plasticity_parameters)

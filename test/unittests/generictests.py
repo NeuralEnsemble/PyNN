@@ -7,7 +7,7 @@ import sys
 import unittest
 import numpy
 import os
-from pyNN import common
+from pyNN import common, random
 
 def arrays_almost_equal(a, b, threshold):
     return (abs(a-b) < threshold).all()
@@ -151,6 +151,59 @@ class PopulationSetTest(unittest.TestCase):
             else:
                 for b,a in zip(before,after):
                     self.assert_(b[name] == a[name], "%s: %s != %s" % (name, b[name], a[name]))
+                
+    def testRandomInit(self):
+        rd = random.RandomDistribution('uniform', [-75,-55])
+        self.p1.randomInit(rd)
+        self.assertNotEqual(self.p1[0].v_init, self.p1[1].v_init)
+                
+class PopulationPositionsTest(unittest.TestCase):
+    
+    def test_nearest(self):
+        p = sim.Population((4,5,6), sim.IF_cond_exp)
+        self.assertEqual(p.nearest((0.0,0.0,0.0)), p[0,0,0])
+        self.assertEqual(p.nearest((0.0,1.0,0.0)), p[0,1,0])
+        self.assertEqual(p.nearest((1.0,0.0,0.0)), p[1,0,0])
+        self.assertEqual(p.nearest((3.0,2.0,1.0)), p[3,2,1])
+        self.assertEqual(p.nearest((3.49,2.49,1.49)), p[3,2,1])
+        self.assertEqual(p.nearest((3.49,2.49,1.51)), p[3,2,2])
+        self.assertEqual(p.nearest((3.49,2.49,1.5)), p[3,2,2])
+        self.assertEqual(p.nearest((2.5,2.5,1.5)), p[3,3,2])
+                
+class SynapticPlasticityTest(unittest.TestCase):
+    
+    def setUp(self):
+        sim.setup()
+    
+    def test_ProjectionInit(self):
+        fast_mech = sim.TsodyksMarkramMechanism()
+        slow_mech = sim.STDPMechanism(
+                    timing_dependence=sim.SpikePairRule(),
+                    weight_dependence=sim.AdditiveWeightDependence(),
+                    dendritic_delay_fraction=1.0
+        )
+        p1 = sim.Population(10, sim.SpikeSourceArray)
+        p2 = sim.Population(10, sim.IF_cond_exp)
+        prj1 = sim.Projection(p1, p2, sim.OneToOneConnector(),
+                              synapse_dynamics=sim.SynapseDynamics(fast_mech, None))
+        prj2 = sim.Projection(p1, p2, sim.OneToOneConnector(),
+                              synapse_dynamics=sim.SynapseDynamics(None, slow_mech))
+                
+class ProjectionTest(unittest.TestCase):
+    
+    def setUp(self):
+        sim.setup()
+        p1 = sim.Population(10, sim.SpikeSourceArray)
+        p2 = sim.Population(10, sim.IF_cond_exp)
+        self.prj = sim.Projection(p1, p2, sim.OneToOneConnector())
+        
+    def test_describe(self):
+        self.prj.describe()
+        
+    def test_printWeights(self):
+        self.prj.printWeights("weights_list.tmp", format='list')
+        self.prj.printWeights("weights_array.tmp", format='array')
+        # test needs completing. Should read in the weights and check they have the correct values
                 
 # ==============================================================================
 if __name__ == "__main__":
