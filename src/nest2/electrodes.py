@@ -6,7 +6,7 @@ import numpy
 class CurrentSource(object):
     
     def inject_into(self, cell_list):
-        nest.Connect(self._device, cell_list)
+        nest.DivergentConnect(self._device, cell_list)
     
 
 class DCSource(CurrentSource):

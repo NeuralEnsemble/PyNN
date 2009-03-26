@@ -379,6 +379,7 @@ class Population(common.Population):
         """
         if self.dim == value_array.shape: # the values are numbers or non-array objects
             local_values = value_array[self._mask_local]
+            assert local_values.size == self._local_ids.size, "%d != %d" % (local_values.size, self._local_ids.size)
         elif len(value_array.shape) == len(self.dim)+1: # the values are themselves 1D arrays
             #values = numpy.reshape(value_array, (self.dim, value_array.size/self.size))
             local_values = value_array[self._mask_local] # not sure this works
@@ -387,7 +388,7 @@ class Population(common.Population):
                                                                                       str(value_array.shape))
         ##local_indices = numpy.array([cell.gid for cell in self]) - self.first_id
         ##values = values.take(local_indices) # take just the values for cells on this machine
-        assert local_values.size == self._local_ids.size, "%d != %d" % (local_values.size, self._local_ids.size)
+        assert local_values.shape[0] == self._local_ids.size, "%d != %d" % (local_values.size, self._local_ids.size)
         try:
             logging.info("%s.tset('%s', array(shape=%s, min=%s, max=%s))",
                          self.label, parametername, value_array.shape,
@@ -396,7 +397,8 @@ class Population(common.Population):
             logging.info("%s.tset('%s', non_numeric_array(shape=%s))",
                          self.label, parametername, value_array.shape)
         # Set the values for each cell
-        for cell, val in zip(self, local_values.flat):
+        
+        for cell, val in zip(self, local_values):
             setattr(cell, parametername, val)
 
     def rset(self, parametername, rand_distr):
@@ -603,13 +605,7 @@ class Projection(common.Projection):
             method.connect(self)
             
         logging.info("--- Projection[%s].__init__() ---" %self.label)
-        
-        # By defaut, we set all the delays to min_delay, except if
-        # the Projection data have been loaded from a file or a list.
-        # This should already have been done if using a Connector object
-        if isinstance(method, str) and (method != 'fromList') and (method != 'fromFile'):
-            self.setDelays(get_min_delay())
-                
+               
         ## Deal with long-term synaptic plasticity
         if self.long_term_plasticity_mechanism:
             ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
@@ -622,7 +618,13 @@ class Projection(common.Projection):
                 raise Exception("STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
             for c in self.connections:
                 c.useSTDP(self.long_term_plasticity_mechanism, self._stdp_parameters, ddf)
-            
+        
+        # Check none of the delays are out of bounds. This should be redundant,
+        # as this should already have been done in the Connector object, so
+        # we could probably remove it.
+        delays = [c.nc.delay for c in self.connections]
+        assert min(delays) >= get_min_delay()
+        
         Projection.nProj += 1
 
     def __len__(self):

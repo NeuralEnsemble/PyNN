@@ -138,7 +138,8 @@ class PopulationSetTest(unittest.TestCase):
             'tau_m' : 20.,  'tau_syn_E' : 2.3,   'tau_syn_I': 4.5,
             'v_rest': -55., 'v_reset'   : -62.3, 'v_thresh' : -50.2,
             'cm'    : 1.,   'tau_refrac': 2.3}
-        self.p1 = sim.Population((10,), sim.IF_curr_exp, cell_params)
+        self.p1 = sim.Population((5,4,3), sim.IF_curr_exp, cell_params)
+        self.p2 = sim.Population((2,2), sim.SpikeSourceArray)
         
     def testSetOnlyChangesTheDesiredParameters(self):
         before = [cell.get_parameters() for cell in self.p1]
@@ -152,10 +153,26 @@ class PopulationSetTest(unittest.TestCase):
                 for b,a in zip(before,after):
                     self.assert_(b[name] == a[name], "%s: %s != %s" % (name, b[name], a[name]))
                 
+    def test_set_invalid_type(self):
+        self.assertRaises(common.InvalidParameterValueError, self.p1.set, 'foo', {})
+        self.assertRaises(common.InvalidParameterValueError, self.p1.set, [1,2,3])
+                
     def testRandomInit(self):
         rd = random.RandomDistribution('uniform', [-75,-55])
         self.p1.randomInit(rd)
-        self.assertNotEqual(self.p1[0].v_init, self.p1[1].v_init)
+        self.assertNotEqual(self.p1[0,0,0].v_init, self.p1[0,0,1].v_init)
+                
+    def test_tset(self):
+        tau_m = numpy.arange(10.0, 16.0, 0.1).reshape((5,4,3))
+        self.p1.tset("tau_m", tau_m)
+        self.assertEqual(self.p1[0,0,0].tau_m, 10.0)
+        self.assertEqual(self.p1[0,0,1].tau_m, 10.1)
+        self.assertAlmostEqual(self.p1[0,3,1].tau_m, 11.0, 9)
+        
+        spike_times = numpy.arange(40.0).reshape(2,2,10)
+        self.p2.tset("spike_times", spike_times)
+        self.assertEqual(list(self.p2[0,0].spike_times), numpy.arange(10.0).tolist())
+        self.assertEqual(list(self.p2[1,1].spike_times), numpy.arange(30.0,40.0).tolist())
                 
 class PopulationPositionsTest(unittest.TestCase):
     
@@ -169,6 +186,14 @@ class PopulationPositionsTest(unittest.TestCase):
         self.assertEqual(p.nearest((3.49,2.49,1.51)), p[3,2,2])
         self.assertEqual(p.nearest((3.49,2.49,1.5)), p[3,2,2])
         self.assertEqual(p.nearest((2.5,2.5,1.5)), p[3,3,2])
+                
+class PopulationCellAccessTest(unittest.TestCase):
+    
+    def test_index(self):
+        p = sim.Population((4,5,6), sim.IF_cond_exp)
+        self.assertEqual(p.index(0), p[0,0,0])
+        self.assertEqual(p.index(119), p[3,4,5])
+        self.assertEqual(p.index([0,1,2]).tolist(), [p[0,0,0], p[0,0,1], p[0,0,2]])
                 
 class SynapticPlasticityTest(unittest.TestCase):
     
@@ -204,6 +229,48 @@ class ProjectionTest(unittest.TestCase):
         self.prj.printWeights("weights_list.tmp", format='list')
         self.prj.printWeights("weights_array.tmp", format='array')
         # test needs completing. Should read in the weights and check they have the correct values
+         
+         
+class ConnectorsTest(unittest.TestCase):
+    
+    def test_OneToOne_with_unequal_pop_sizes(self):
+        sim.setup()
+        p1 = sim.Population(10, sim.SpikeSourceArray)
+        p2 = sim.Population(9, sim.IF_cond_exp)
+        c = sim.OneToOneConnector()
+        self.assertRaises(Exception, sim.Projection, p1, p2, c) 
+                
+class ElectrodesTest(unittest.TestCase):
+    
+    def test_DCSource(self):
+        # just check no Exceptions are raised, for now.
+        source = sim.DCSource()
+        cells = sim.create(sim.IF_curr_exp, {}, 5)
+        source.inject_into(cells)
+        for cell in cells:
+            cell.inject(source)
+                
+    def test_StepCurrentSource(self):
+        # just check no Exceptions are raised, for now.
+        source = sim.StepCurrentSource([10.0, 20.0, 30.0, 40.0], [-0.1, 0.2, -0.1, 0.0])
+        cells = sim.create(sim.IF_curr_exp, {}, 5)
+        source.inject_into(cells)
+        for cell in cells:
+            cell.inject(source)
+                
+class StateTest(unittest.TestCase):
+    
+    def test_get_time(self):
+        sim.setup()
+        self.assertEqual(sim.get_current_time(), 0.0)
+        sim.run(100.0)
+        self.assertAlmostEqual(sim.get_current_time(), 100.0, 9)
+        
+    def test_get_time_step(self):
+        sim.setup()
+        self.assertEqual(sim.get_time_step(), 0.1)
+        sim.setup(timestep=0.05)
+        self.assertEqual(sim.get_time_step(), 0.05)
                 
 # ==============================================================================
 if __name__ == "__main__":

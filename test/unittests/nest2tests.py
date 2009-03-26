@@ -151,7 +151,7 @@ class SetValueTest(unittest.TestCase):
         ifcell = nest.create('iaf_neuron')
         def set_val(x):
             ifcell.foo = x
-        self.assertRaises(common.NonExistentParameterError, set_val, 3.2)
+        self.assertRaises(nest.nest.NESTError, set_val, 3.2)
 
 # ==============================================================================
 class RecordSpikesTest(unittest.TestCase):

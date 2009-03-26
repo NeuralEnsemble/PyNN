@@ -160,11 +160,13 @@ class SetValueTest(unittest.TestCase):
     def setUp(self):
         self.cells = neuron.create(neuron.IF_curr_exp, n=10)
         self.native_cells = neuron.create(neuron.StandardIF, dict(syn_shape="exp", syn_type="current"), n=2)
+        self.single_cell = neuron.create(neuron.IF_cond_exp, n=1)
         
     def testSetFloat(self):
         logging.info("=== SetValueTest.testSetFloat() ===")
         neuron.set(self.cells, 'tau_m',35.7)
         neuron.set(self.native_cells, 'cm', 0.987)
+        neuron.set(self.single_cell, 'v_init', -67.8)
         for cell in self.cells:
             try:
                 assert cell.tau_m == 35.7
@@ -172,6 +174,7 @@ class SetValueTest(unittest.TestCase):
                 pass
         for cell in self.native_cells:
             assert cell._cell.seg.cm == 0.987
+        assert self.single_cell.v_init == -67.8
   
 #    #def testSetString(self):
 #    #    neuron.set(self.cells, neuron.IF_curr_exp,'param_name','string_value')
@@ -207,15 +210,18 @@ class RecordTest(unittest.TestCase):
     def setUp(self):
         self.cells = neuron.create(neuron.IF_curr_exp, n=10)
         self.native_cells = neuron.create(neuron.StandardIF, dict(syn_shape="exp", syn_type="current"), n=2)
+        self.single_cell = neuron.create(neuron.IF_cond_exp, n=1)
 
     def testRecordSpikes(self):
         neuron.record(self.cells, "tmp.spk")
         neuron.record(self.native_cells, "tmp1.spk")
+        neuron.record(self.single_cell, "tmp2.spk")
         # need a better test
 
     def testRecordV(self):
         neuron.record_v(self.cells, "tmp.v")
         neuron.record_v(self.native_cells, "tmp1.v")
+        neuron.record_v(self.single_cell, "tmp2.v")
 
     def testStopRecording(self):
         self.cells[0]._cell.record_v(0)
@@ -490,6 +496,9 @@ class PopulationRecordTest(unittest.TestCase): # to write later
                 record_list.append(pop[i,1])
             pop.record(record_list)
 
+    def testInvalidCellList(self):
+        self.assertRaises(Exception, self.pop2.record, 4.2)
+
     def testSpikeRecording(self):
         # We test the mean spike count by checking if the rate of the poissonian sources are
         # close to 20 Hz. Then we also test how the spikes are saved
@@ -547,6 +556,7 @@ class ProjectionInitTest(unittest.TestCase):
         neuron.Projection.nProj = 0
         self.target33    = neuron.Population((3,3), neuron.IF_curr_alpha)
         self.target6     = neuron.Population((6,), neuron.IF_curr_alpha)
+        self.target1     = neuron.Population((1,), neuron.IF_cond_exp)
         self.source5     = neuron.Population((5,), neuron.SpikeSourcePoisson)
         self.source22    = neuron.Population((2,2), neuron.SpikeSourcePoisson)
         self.source33    = neuron.Population((3,3), neuron.SpikeSourcePoisson)
@@ -572,7 +582,7 @@ class ProjectionInitTest(unittest.TestCase):
     def testFixedProbability(self):
         """For all connections created with "fixedProbability"..."""
         for srcP in [self.source5, self.source22]:
-            for tgtP in [self.target6, self.target33]:
+            for tgtP in [self.target1, self.target6, self.target33]:
                 prj1 = neuron.Projection(srcP, tgtP, neuron.FixedProbabilityConnector(0.5), rng=random.NumpyRNG(12345))
                 prj2 = neuron.Projection(srcP, tgtP, neuron.FixedProbabilityConnector(0.5), rng=random.NativeRNG(12345))
                 for prj in prj1, prj2:
@@ -620,6 +630,19 @@ class ProjectionInitTest(unittest.TestCase):
                     self.assertEqual(len(prj1.connections), c.n*len(srcP))
                 prj2 = neuron.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
         self.assertRaises(Exception, neuron.FixedNumberPostConnector, None)
+
+    def testFromList(self):
+        c1 = neuron.FromListConnector([
+            ([0,], [0,], 0.1, 0.1),
+            ([3,], [0,], 0.2, 0.11),
+            ([2,], [3,], 0.3, 0.12),
+            ([4,], [2,], 0.4, 0.13),
+            ([0,], [1,], 0.5, 0.14),
+            ])
+        prj = neuron.Projection(self.source5, self.target6, c1)
+        self.assertEqual(len(prj.connections), 5)
+            
+            
 
     def testSaveAndLoad(self):
         prj1 = neuron.Projection(self.source33, self.target33, neuron.OneToOneConnector())
@@ -876,7 +899,67 @@ class LoadMechanismsTest(unittest.TestCase):
     def test_load_mechanisms(self):
         self.assertRaises(Exception, neuron.simulator.load_mechanisms, path="/dev/null")
         
-
+class ConnectorsTest(unittest.TestCase):
+    
+    def test_weights_iterator_with_None(self):
+        hc = neuron.connectors.HocConnector()
+        hc.weights = None
+        iterator = hc.weights_iterator()
+        weights = [iterator.next() for i in range(3)]
+        self.assertEqual(weights, [1.0, 1.0, 1.0])
+        
+    def test_weights_iterator_with_float(self):
+        hc = neuron.connectors.HocConnector()
+        hc.weights = 0.5
+        iterator = hc.weights_iterator()
+        weights = [iterator.next() for i in range(3)]
+        self.assertEqual(weights, [0.5, 0.5, 0.5])
+        
+    def test_weights_iterator_with_array(self):
+        hc = neuron.connectors.HocConnector()
+        hc.weights = numpy.arange(0, 1.0, 0.4)
+        iterator = hc.weights_iterator()
+        weights = [iterator.next() for i in range(3)]
+        self.assertEqual(weights, [0.0, 0.4, 0.8])
+        
+    def test_delays_iterator_with_None(self):
+        hc = neuron.connectors.HocConnector()
+        hc.delays = None
+        iterator = hc.delays_iterator()
+        delays = [iterator.next() for i in range(3)]
+        self.assertEqual(delays, [0.1, 0.1, 0.1])
+        
+    def test_delays_iterator_with_float(self):
+        hc = neuron.connectors.HocConnector()
+        hc.delays = 0.5
+        iterator = hc.delays_iterator()
+        delays = [iterator.next() for i in range(3)]
+        self.assertEqual(delays, [0.5, 0.5, 0.5])
+        
+    def test_delays_iterator_with_too_small_float(self):
+        hc = neuron.connectors.HocConnector()
+        hc.delays = 1e-12
+        iterator = hc.delays_iterator()
+        delays = [iterator.next() for i in range(3)]
+        self.assertEqual(delays, [0.1, 0.1, 0.1])
+        
+    def test_delays_iterator_with_array(self):
+        hc = neuron.connectors.HocConnector()
+        hc.delays = numpy.arange(0.1, 1.0, 0.4)
+        iterator = hc.delays_iterator()
+        delays = [iterator.next() for i in range(3)]
+        self.assertEqual(delays, [0.1, 0.5, 0.9])
+        
+    def test_delays_iterator_with_array_containing_too_small_value(self):
+        hc = neuron.connectors.HocConnector()
+        hc.delays = numpy.arange(0.0, 1.0, 0.4)
+        self.assertRaises(Exception, hc.delays_iterator)
+        
+class SetupTest(unittest.TestCase):
+    
+    def test_cvode(self):
+        neuron.setup(use_cvode=True)
+        
         
 if __name__ == "__main__":
     if '-python' in sys.argv:

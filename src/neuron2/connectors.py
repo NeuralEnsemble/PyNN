@@ -28,7 +28,7 @@ class HocConnector(object):
     def weights_iterator(self):
         w = self.weights
         if w is not None:
-            if hasattr(w, '__len__'): # d is an array
+            if hasattr(w, '__len__'): # w is an array
                 weights = w.__iter__()
             else:
                 weights = ConstIter(w)
@@ -40,6 +40,8 @@ class HocConnector(object):
         d = self.delays
         if d is not None:
             if hasattr(d, '__len__'): # d is an array
+                if min(d) < simulator.state.min_delay:
+                    raise Exception("The array of delays contains one or more values that is smaller than the simulator minimum delay.")
                 delays = d.__iter__()
             else:
                 delays = ConstIter(max((d, simulator.state.min_delay)))
