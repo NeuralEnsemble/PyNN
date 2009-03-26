@@ -169,7 +169,6 @@ def write_compatible_output1(data_source, user_filename, variable, input_format,
             ge_column = input_format.index('ge')
             gi_column = input_format.index('gi')
             column_map = [ge_column, gi_column, id_column]
-            raise Exception("Not yet implemented")
         elif variable == 'v': # voltage files
             v_column = input_format.index('v')
             column_map = [v_column, id_column]
@@ -189,7 +188,7 @@ def write_compatible_output1(data_source, user_filename, variable, input_format,
         
         user_file.write(data_array, metadata)
     else:
-        logging.warning("%s is empty" % data_source)
+        logging.warning("%s is empty or does not exist" % data_source)
 
 def readArray(filename, sepchar=None, skipchar='#'):
     """

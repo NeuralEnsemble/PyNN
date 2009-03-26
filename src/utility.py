@@ -3,10 +3,10 @@ A collection of utility functions.
 $Id:$
 """
 
-# If there is a settings.py file in the PyNN root directory, defaults will be
+# If there is a settings.py file on the path, defaults will be
 # taken from there.
 try:
-    from pyNN.settings import SMTPHOST, EMAIL
+    from settings import SMTPHOST, EMAIL
 except ImportError:
     SMTPHOST = None
     EMAIL = None
