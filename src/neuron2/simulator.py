@@ -116,9 +116,9 @@ class _Initializer(object):
         h.initializer = self
         self.fih = h.FInitializeHandler("initializer.initialize()")
     
-    def __call__(self):
-        """This is to make the Initializer a Singleton."""
-        return self
+    #def __call__(self):
+    #    """This is to make the Initializer a Singleton."""
+    #    return self
     
     def register(self, *items):
         for item in items:
@@ -145,6 +145,7 @@ def h_property(name):
         setattr(h, name, val)
     return property(fget=_get, fset=_set)
 
+
 class _State(object):
     """Represent the simulator state."""
     
@@ -164,11 +165,6 @@ class _State(object):
     dt = h_property('dt')
     tstop = h_property('tstop')         # } do these really need to be stored in hoc?
     min_delay = h_property('min_delay') # }
-    
-    
-    def __call__(self):
-        """This is to make the State a Singleton."""
-        return self
     
 def reset():
     state.running = False
@@ -215,12 +211,27 @@ def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
     rarr.extend([native_rng.repick() for j in xrange(n-1)])
     return numpy.array(rarr)
 
+
 class Connection(object):
 
     def __init__(self, source, target, nc):
         self.pre = source
         self.post = target
         self.nc = nc
+        
+    def useSTDP(self, mechanism, parameters, ddf):
+        self.weight_adjuster = getattr(h, mechanism)(0.5)
+        self.pre2wa = state.parallel_context.gid_connect(int(self.pre), self.weight_adjuster)
+        self.pre2wa.threshold = self.nc.threshold
+        self.pre2wa.delay = self.nc.delay * (1-ddf)
+        self.pre2wa.weight[0] = 1
+        # directly create NetCon as wa is on the same machine as the post-synaptic cell
+        self.post2wa = h.NetCon(self.post._cell.source, self.weight_adjuster)
+        self.pre2wa.threshold = 1
+        self.pre2wa.delay = self.nc.delay * ddf
+        self.pre2wa.weight[0] = -1
+        for name, value in parameters.items():
+            setattr(self.weight_adjuster, name, value)
 
 def single_connect(source, target, weight, delay, synapse_type):
     """
@@ -253,4 +264,6 @@ def single_connect(source, target, weight, delay, synapse_type):
 # The following are executed every time the module is imported.
 load_mechanisms() # maintains a list of mechanisms that have already been imported
 state = _State()  # a Singleton, so only a single instance ever exists
+del _State
 initializer = _Initializer()
+del _Initializer

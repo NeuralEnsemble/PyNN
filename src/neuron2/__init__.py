@@ -612,15 +612,22 @@ class Projection(common.Projection):
                 
         ## Deal with long-term synaptic plasticity
         if self.long_term_plasticity_mechanism:
-            self._setupSTDP(self.long_term_plasticity_mechanism, self._stdp_parameters)
+            ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
+            if ddf > 0.5 and num_processes() > 1:
+                # depending on delays, can run into problems with the delay from the
+                # pre-synaptic neuron to the weight-adjuster mechanism being zero.
+                # The best (only?) solution would be to create connections on the
+                # node with the pre-synaptic neurons for ddf>0.5 and on the node
+                # with the post-synaptic neuron (as is done now) for ddf<0.5
+                raise Exception("STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
+            for c in self.connections:
+                c.useSTDP(self.long_term_plasticity_mechanism, self._stdp_parameters, ddf)
             
         Projection.nProj += 1
 
     def __len__(self):
         """Return the total number of connections."""
-        return len(self.connections)
-
-    # --- Connection methods ---------------------------------------------------
+        return len(self.connections)            
     
     # --- Methods for setting connection parameters ----------------------------
     

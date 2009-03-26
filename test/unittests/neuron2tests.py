@@ -151,6 +151,9 @@ class ConnectionTest(unittest.TestCase):
         self.postcells.append([])
         self.assertRaises(common.ConnectionError, neuron.connect, self.precells, self.postcells)
 
+    def testConnectTooSmallDelay(self):
+        self.assertRaises(common.ConnectionError, neuron.connect, self.precells[0], self.postcells[0], delay=1e-12)
+
 # ==============================================================================
 class SetValueTest(unittest.TestCase):
     
@@ -867,6 +870,12 @@ class SynapticPlasticityTest(unittest.TestCase):
         self.assertEqual(native_cell.isyn.tau, native_cell.tau_i)
         self.assertEqual(native_cell.isyn.e, native_cell.e_i)
         self.assertEqual(native_cell.isyn.U, U)
+
+class LoadMechanismsTest(unittest.TestCase):
+    
+    def test_load_mechanisms(self):
+        self.assertRaises(Exception, neuron.simulator.load_mechanisms, path="/dev/null")
+        
 
         
 if __name__ == "__main__":

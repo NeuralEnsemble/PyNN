@@ -41,9 +41,9 @@ class TsodyksMarkramMechanism(common.TsodyksMarkramMechanism):
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
         assert (x0 == 1 and y0 == 0), "It is not currently possible to set x0 and y0"
         #common.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
-        parameters = locals()
-        parameters.pop('self')
-        self.parameters = self.translate(parameters)
+        self.parameters = self.translate({'U': U, 'tau_rec': tau_rec,
+                                          'tau_facil': tau_facil, 'u0': u0,
+                                          'x0': x0, 'y0': y0})
 
 class AdditiveWeightDependence(common.AdditiveWeightDependence):
     """
@@ -63,9 +63,8 @@ class AdditiveWeightDependence(common.AdditiveWeightDependence):
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         #common.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
-        parameters = locals()
-        parameters.pop('self') 
-        self.parameters = self.translate(parameters)
+        self.parameters = self.translate({'w_min': w_min, 'w_max': w_max,
+                                          'A_plus': A_plus, 'A_minus': A_minus})
 
 
 class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
@@ -84,9 +83,8 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
         
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         #common.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
-        parameters = locals()
-        parameters.pop('self') 
-        self.parameters = self.translate(parameters)
+        self.parameters = self.translate({'w_min': w_min, 'w_max': w_max,
+                                          'A_plus': A_plus, 'A_minus': A_minus})
 
 
 class SpikePairRule(common.SpikePairRule):
@@ -99,7 +97,6 @@ class SpikePairRule(common.SpikePairRule):
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
         #common.SpikePairRule.__init__(self, tau_plus, tau_minus)
-        parameters = locals()
-        parameters.pop('self')
-        self.parameters = self.translate(parameters)
+        self.parameters = self.translate({'tau_plus': tau_plus,
+                                          'tau_minus': tau_minus})
         
