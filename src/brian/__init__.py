@@ -646,7 +646,8 @@ class Projection(common.Projection):
     parameters of those connections, including of plasticity mechanisms.
     """
     
-    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', method_parameters=None, source=None, target=None, synapse_dynamics=None, label=None, rng=None):
+    def __init__(self, presynaptic_population, postsynaptic_population, method,
+                 source=None, target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -658,15 +659,8 @@ class Projection(common.Projection):
                  
         If source and/or target are not given, default values are used.
         
-        method - string indicating which algorithm to use in determining
-                 connections.
-        Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
-        'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-        'fromFile', 'fromList'.
-        
-        method_parameters - dict containing parameters needed by the connection
-        method, although we should allow this to be a number or string if there
-        is only one parameter.
+        method - a Connector object, encapsulating the algorithm to use for
+                 connecting the neurons.
         
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
@@ -677,25 +671,16 @@ class Projection(common.Projection):
         random numbers to give variability in the number of connections per cell.
         """
         global net
-        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, method_parameters, source, target, synapse_dynamics, label, rng)
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
+                                   source, target, synapse_dynamics, label, rng)
         
         self._method  = method
         self._connections = None
         self._plasticity_model = "static_synapse"
         self.synapse_type = target
         
-        if isinstance(method, str):
-            connection_method = getattr(self,'_%s' % method)   
-            self.nconn = connection_method(method_parameters)
-        elif isinstance(method, common.Connector):
-            self.nconn = method.connect(self)
-            net.add(self._connections)
-        
-        # By defaut, we set all the delays to min_delay, except if
-        # the Projection data have been loaded from a file or a list.
-        # This should already have been done if using a Connector object
-        if isinstance(method, str) and (method != 'fromList') and (method != 'fromFile'):
-            self.setDelays(get_min_delay())
+        self.nconn = method.connect(self)
+        net.add(self._connections)
     
     def __len__(self):
         """Return the total number of connections."""
@@ -704,82 +689,7 @@ class Projection(common.Projection):
     def connections(self):
         """for conn in prj.connections()..."""
         for i in xrange(len(self)):
-            yield self.connection[i]
-    
-    # --- Connection methods ---------------------------------------------------
-    
-    def _allToAll(self, parameters=None):
-        """
-        Connect all cells in the presynaptic population to all cells in the postsynaptic population.
-        """
-        allow_self_connections = True # when pre- and post- are the same population,
-                                      # is a cell allowed to connect to itself?
-        if parameters and parameters.has_key('allow_self_connections'):
-            allow_self_connections = parameters['allow_self_connections']
-        c = AllToAllConnector(allow_self_connections)
-        return c.connect(self)
-    
-    def _oneToOne(self, parameters=None):
-        """
-        Where the pre- and postsynaptic populations have the same size, connect
-        cell i in the presynaptic population to cell i in the postsynaptic
-        population for all i.
-        In fact, despite the name, this should probably be generalised to the
-        case where the pre and post populations have different dimensions, e.g.,
-        cell i in a 1D pre population of size n should connect to all cells
-        in row i of a 2D post population of size (n,m).
-        """
-        c = OneToOneConnector()
-        return c.connect(self)
-
-    def _fixedProbability(self, parameters):
-        """
-        For each pair of pre-post cells, the connection probability is constant.
-        """
-        allow_self_connections = True
-        try:
-            p_connect = float(parameters)
-        except TypeError:
-            p_connect = parameters['p_connect']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        c = FixedProbabilityConnector(p_connect, allow_self_connections)
-        return c.connect(self)
-    
-    def _distanceDependentProbability(self, parameters):
-        """
-        For each pair of pre-post cells, the connection probability depends on distance.
-        d_expression should be the right-hand side of a valid python expression
-        for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
-        """
-        allow_self_connections = True
-        if type(parameters) == types.StringType:
-            d_expression = parameters
-        else:
-            d_expression = parameters['d_expression']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        c = DistanceDependentProbabilityConnector(d_expression, allow_self_connections=allow_self_connections)
-        return c.connect(self)           
-    
-    def _fromFile(self, parameters):
-        """
-        Load connections from a file.
-        """
-        filename = parameters
-        c = FromFileConnector(filename)
-        return c.connect(self)
-        
-    def _fromList(self, conn_list):
-        """
-        Read connections from a list of tuples,
-        containing [pre_addr, post_addr, weight, delay]
-        where pre_addr and post_addr are both neuron addresses, i.e. tuples or
-        lists containing the neuron array coordinates.
-        """
-        c = FromListConnector(conn_list)
-        return c.connect(self)
-        
+            yield self.connection[i]       
     
     # --- Methods for setting connection parameters ----------------------------
     

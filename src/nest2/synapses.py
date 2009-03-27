@@ -101,7 +101,7 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
 class AdditivePotentiationMultiplicativeDepression(common.AdditivePotentiationMultiplicativeDepression):
     """
     The amplitude of the weight change depends on the current weight for
-    depression (Dw propto w-w_min) and is fixed for potentiation, Dw propto w_max-w
+    depression (Dw propto w-w_min) and is fixed for potentiation.
     """
     translations = common.build_translations(
         ('w_max',     'Wmax',  1000.0), # unit conversion

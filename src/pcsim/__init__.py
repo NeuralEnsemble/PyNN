@@ -957,7 +957,7 @@ class Projection(common.Projection, WDManager):
     nProj = 0
     
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 method='allToAll', method_parameters=None, source=None,
+                 method, source=None,
                  target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
@@ -970,15 +970,8 @@ class Projection(common.Projection, WDManager):
                  
         If source and/or target are not given, default values are used.
         
-        method - string indicating which algorithm to use in determining
-                 connections.
-        Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
-        'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-        'fromFile', 'fromList'.
-        
-        method_parameters - dict containing parameters needed by the connection
-        method, although we should allow this to be a number or string if there
-        is only one parameter.
+        method - a Connector object, encapsulating the algorithm to use for
+                 connecting the neurons.
         
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
@@ -1005,36 +998,13 @@ class Projection(common.Projection, WDManager):
         """
         global pcsim_globals
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
-                                   method, method_parameters, source, target,
+                                   method, source, target,
                                    synapse_dynamics, label, rng)
         
         # Determine connection decider
         if isinstance(method, str):
             weight = None
             delay = None
-            if method == 'allToAll':
-                decider = pypcsim.RandomConnections(1)
-                wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
-            elif method == 'fixedProbability':
-                decider = pypcsim.RandomConnections(float(method_parameters))
-                wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
-            elif method == 'distanceDependentProbability':
-                decider = pypcsim.EuclideanDistanceRandomConnections(method_parameters[0], method_parameters[1])
-                wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
-            elif method == 'fixedNumberPre':
-                decider = pypcsim.DegreeDistributionConnections(ConstantNumber(parameters),
-                                                                DegreeDistributionConnections.incoming)
-                wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
-            elif method == 'fixedNumberPost':
-                decider = pypcsim.DegreeDistributionConnections(ConstantNumber(parameters),
-                                                                DegreeDistributionConnections.outgoing)
-                wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
-            elif method == 'oneToOne':
-                decider = pypcsim.RandomConnections(1)
-                wiring_method = pypcsim.OneToOneWiringMethod(pcsim_globals.net) 
-            else:
-                raise Exception("METHOD NOT YET IMPLEMENTED")
-        elif isinstance(method, common.Connector):
             decider, wiring_method, weight, delay = method.connect(self)
         
         weight = self.getWeight(weight)

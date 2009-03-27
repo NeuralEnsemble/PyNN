@@ -48,7 +48,18 @@ class IDSetGetTest(unittest.TestCase):
                         o = list(cell.__getattr__(name))
                         self.assertEqual(i, o)
                     else:
-                        i = numpy.random.uniform(0.1, 100) # tau_refrac is always at least dt (=0.1)
+                        if name == 'v_reset': # v_reset must be less than v_thresh
+                            i = cell.__getattr__('v_thresh') - numpy.random.uniform(0.1, 100)
+                        elif name == 'v_spike': # v_spike must be greater than v_thresh
+                            i = cell.__getattr__('v_thresh') + numpy.random.uniform(0.1, 100)
+                        elif name == 'v_thresh':
+                            if 'v_spike' in cell_class.default_parameters:
+                                #i = (cell.__getattr__('v_spike') - cell.__getattr__('v_reset'))/2
+                                continue
+                            else:
+                                i = cell.__getattr__('v_reset') + numpy.random.uniform(0.1, 100)
+                        else:
+                            i = numpy.random.uniform(0.1, 100) # tau_refrac is always at least dt (=0.1)
                         cell.__setattr__(name, i)
                         o = cell.__getattr__(name)
                         self.assertEqual(type(i), type(o), "%s: input: %s, output: %s" % (name, type(i), type(o)))
@@ -64,11 +75,17 @@ class IDSetGetTest(unittest.TestCase):
         for cell_class in IDSetGetTest.model_list:
             cell_list = (self.cells[cell_class.__name__][0],
                          self.populations[cell_class.__name__][0])
+            param_names = cell_class.default_parameters.keys()
+            param_names.sort()
             for cell in cell_list:
                 new_parameters = {}
-                for name in cell_class.default_parameters:
+                for name in param_names:
                     if name == 'spike_times':
                         new_parameters[name] = [1.0, 2.0]
+                    elif name == 'v_spike':
+                        new_parameters[name] = new_parameters['v_reset'] + numpy.random.uniform(50.1, 100)
+                    elif name == 'v_thresh':
+                        new_parameters[name] = new_parameters['v_reset'] + numpy.random.uniform(0.1, 50)
                     else:
                         new_parameters[name] = numpy.random.uniform(0.1, 100) # tau_refrac is always at least dt (=0.1)
                 cell.set_parameters(**new_parameters)
@@ -104,10 +121,9 @@ class PopulationSpikesTest(unittest.TestCase):
         sim.setup()
         self.spiketimes = numpy.arange(5,105,10.0)
         spiketimes_2D = self.spiketimes.reshape((len(self.spiketimes),1))
-        self.input_spike_array = numpy.concatenate((numpy.ones(spiketimes_2D.shape, 'float'), spiketimes_2D),
+        self.input_spike_array = numpy.concatenate((numpy.zeros(spiketimes_2D.shape, 'float'), spiketimes_2D),
                                                    axis=1)
         self.p1 = sim.Population(1, sim.SpikeSourceArray, {'spike_times': self.spiketimes})
-        self.input_spike_array[:,0] *= self.p1.first_id
     
     def tearDown(self):
         pass
@@ -201,18 +217,21 @@ class SynapticPlasticityTest(unittest.TestCase):
         sim.setup()
     
     def test_ProjectionInit(self):
-        fast_mech = sim.TsodyksMarkramMechanism()
-        slow_mech = sim.STDPMechanism(
-                    timing_dependence=sim.SpikePairRule(),
-                    weight_dependence=sim.AdditiveWeightDependence(),
-                    dendritic_delay_fraction=1.0
-        )
-        p1 = sim.Population(10, sim.SpikeSourceArray)
-        p2 = sim.Population(10, sim.IF_cond_exp)
-        prj1 = sim.Projection(p1, p2, sim.OneToOneConnector(),
-                              synapse_dynamics=sim.SynapseDynamics(fast_mech, None))
-        prj2 = sim.Projection(p1, p2, sim.OneToOneConnector(),
-                              synapse_dynamics=sim.SynapseDynamics(None, slow_mech))
+        for wd in (sim.AdditiveWeightDependence(),
+                   sim.MultiplicativeWeightDependence(),
+                   sim.AdditivePotentiationMultiplicativeDepression()):
+            fast_mech = sim.TsodyksMarkramMechanism()
+            slow_mech = sim.STDPMechanism(
+                        timing_dependence=sim.SpikePairRule(),
+                        weight_dependence=wd,
+                        dendritic_delay_fraction=1.0
+            )
+            p1 = sim.Population(10, sim.SpikeSourceArray)
+            p2 = sim.Population(10, sim.IF_cond_exp)
+            prj1 = sim.Projection(p1, p2, sim.OneToOneConnector(),
+                                  synapse_dynamics=sim.SynapseDynamics(fast_mech, None))
+            prj2 = sim.Projection(p1, p2, sim.OneToOneConnector(),
+                                  synapse_dynamics=sim.SynapseDynamics(None, slow_mech))
                 
 class ProjectionTest(unittest.TestCase):
     
@@ -226,8 +245,8 @@ class ProjectionTest(unittest.TestCase):
         self.prj.describe()
         
     def test_printWeights(self):
-        self.prj.printWeights("weights_list.tmp", format='list')
-        self.prj.printWeights("weights_array.tmp", format='array')
+        self.prj.printWeights("weights_list.tmp", format='list', gather=False)
+        self.prj.printWeights("weights_array.tmp", format='array', gather=False)
         # test needs completing. Should read in the weights and check they have the correct values
          
          
@@ -244,7 +263,7 @@ class ElectrodesTest(unittest.TestCase):
     
     def test_DCSource(self):
         # just check no Exceptions are raised, for now.
-        source = sim.DCSource()
+        source = sim.DCSource(amplitude=0.5, start=50.0, stop=100.0)
         cells = sim.create(sim.IF_curr_exp, {}, 5)
         source.inject_into(cells)
         for cell in cells:

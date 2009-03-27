@@ -66,13 +66,16 @@ class Recorder(object):
         
     def get(self, gather=False):
         """Returns the recorded data."""
+        if self.population:
+                offset = self.population.first_id
+                
         if self.variable == 'spikes':
             data = numpy.empty((0,2))
             for id in self.recorded:
                 spikes = numpy.array(id._cell.spike_times)
                 spikes = spikes[spikes<=state.t+1e-9]
-                if len(spikes) > 0:
-                    new_data = numpy.array([numpy.ones(spikes.shape)*id, spikes]).T
+                if len(spikes) > 0:    
+                    new_data = numpy.array([numpy.ones(spikes.shape)*(id-offset), spikes]).T
                     data = numpy.concatenate((data, new_data))
         elif self.variable == 'v':
             data = numpy.empty((0,3))
@@ -80,11 +83,8 @@ class Recorder(object):
                 v = numpy.array(id._cell.vtrace)  
                 t = numpy.array(id._cell.record_times)
                 #new_data = numpy.array([t, v, numpy.ones(v.shape)*id]).T
-                #new_data = numpy.array([numpy.ones(v.shape)*id, t, v]).T
-                if self.population:
-                    new_data = numpy.array([numpy.ones(v.shape)*(id-self.population.first_id), t, v]).T
-                else:
-                    new_data = numpy.array([numpy.ones(v.shape)*id, t, v]).T
+                #new_data = numpy.array([numpy.ones(v.shape)*id, t, v]).T                
+                new_data = numpy.array([numpy.ones(v.shape)*(id-offset), t, v]).T
                 data = numpy.concatenate((data, new_data))
         return data
     

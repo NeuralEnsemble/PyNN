@@ -548,8 +548,8 @@ class Projection(common.Projection):
     
     nProj = 0
     
-    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll',
-                 method_parameters=None, source=None, target=None,
+    def __init__(self, presynaptic_population, postsynaptic_population, method,
+                 source=None, target=None,
                  synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
@@ -562,15 +562,8 @@ class Projection(common.Projection):
                  
         If source and/or target are not given, default values are used.
         
-        method - string indicating which algorithm to use in determining
-                 connections.
-        Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
-        'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-        'fromFile', 'fromList'.
-        
-        method_parameters - dict containing parameters needed by the connection
-        method, although we should allow this to be a number or string if there
-        is only one parameter.
+        method - a Connector object, encapsulating the algorithm to use for
+                 connecting the neurons.
         
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
@@ -581,7 +574,7 @@ class Projection(common.Projection):
         random numbers to give variability in the number of connections per cell.
         """
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
-                                   method_parameters, source, target, synapse_dynamics, label, rng)
+                                   source, target, synapse_dynamics, label, rng)
         self.connections = []
         if not label:
             self.label = 'projection%d' % Projection.nProj
@@ -599,10 +592,7 @@ class Projection(common.Projection):
                 cell._cell.use_Tsodyks_Markram_synapses(self.synapse_type, U, tau_rec, tau_facil, u0)
                 
         ## Create connections
-        if isinstance(method, str):
-            raise Exception('Connection methods as strings no longer supported. Please use a Connector.')
-        elif isinstance(method, common.Connector):
-            method.connect(self)
+        method.connect(self)
             
         logging.info("--- Projection[%s].__init__() ---" %self.label)
                
@@ -722,6 +712,46 @@ class Projection(common.Projection):
     
     # --- Methods for writing/reading information to/from file. ----------------
     
+    def getWeights(self, format='list', gather=True):
+        """
+        Possible formats are: a list of length equal to the number of connections
+        in the projection, a 2D weight array (with zero or None for non-existent
+        connections).
+        """
+        if gather:
+            raise Exception("getWeights() with gather=True not yet implemented")
+        if format == 'list':
+            weights = [c.nc.weight[0] for c in self.connections]
+        elif format == 'array':
+            weights = numpy.zeros((self.pre.size, self.post.size))
+            pre_ids = self.pre._all_ids.flatten().tolist()
+            post_ids = self.post._all_ids.flatten().tolist()
+            for c in self.connections:
+                weights[pre_ids.index(c.pre), post_ids.index(c.post)] = c.nc.weight[0]
+        else:
+            raise Exception("format must be 'list' or 'array'")
+        return weights
+            
+    def getDelays(self, format='list', gather=True):
+        """
+        Possible formats are: a list of length equal to the number of connections
+        in the projection, a 2D delay array (with None or 1e12 for non-existent
+        connections).
+        """
+        if gather:
+            raise Exception("getDelays() with gather=True not yet implemented")
+        if format == 'list':
+            delays = [c.nc.delay for c in self.connections]
+        elif format == 'array':
+            delays = 1e12*numpy.ones((self.pre.size, self.post.size))
+            pre_ids = self.pre._all_ids.flatten().tolist()
+            post_ids = self.post._all_ids.flatten().tolist()
+            for c in self.connections:
+                delays[pre_ids.index(c.pre), post_ids.index(c.post)] = c.nc.delay
+        else:
+            raise Exception("format must be 'list' or 'array'")
+        return delays
+            
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""

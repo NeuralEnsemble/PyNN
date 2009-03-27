@@ -3,7 +3,8 @@
  $Id$
 """
 
-from pyNN import common as connectors
+import logging
+from pyNN import common
 from pyNN.nest2.__init__ import nest, is_number, get_max_delay, get_min_delay
 import numpy
 # note that WDManager is defined in __init__.py imported here, then imported
@@ -21,25 +22,17 @@ CHECK_CONNECTIONS = False
 class InvalidWeightError(Exception): pass
 
 def _convertWeight(w, synapse_type):
+    assert isinstance(w, numpy.ndarray), "by this point, single weights should have been transformed to arrays"
     weight = w*1000.0
-    if isinstance(w, numpy.ndarray):
-        all_negative = (weight<=0).all()
-        all_positive = (weight>=0).all()
-        if not (all_negative or all_positive):
-            raise InvalidWeightError("Weights must be either all positive or all negative")
-        if synapse_type == 'inhibitory' and all_positive:
-            weight *= -1
-        elif synapse_type == 'excitatory':
-            if not all_positive:
-                raise InvalidWeightError("Weights must be positive for excitatory synapses")
-    elif is_number(weight):
-        if synapse_type == 'inhibitory' and weight > 0:
-            weight *= -1
-        elif synapse_type == 'excitatory':
-            if weight < 0:
-                raise InvalidWeightError("Weight must be positive for excitatory synapses. Actual value %s" % weight)
-    else:
-        raise TypeError("weight must be either a number or a numpy array")
+    all_negative = (weight<=0).all()
+    all_positive = (weight>=0).all()
+    if not (all_negative or all_positive):
+        raise InvalidWeightError("Weights must be either all positive or all negative")
+    if synapse_type == 'inhibitory' and all_positive:
+        weight *= -1
+    elif synapse_type == 'excitatory':
+        if not all_positive:
+            raise InvalidWeightError("Weights must be positive for excitatory synapses")
     return weight
 
 def check_connections(prj, src, intended_targets):
@@ -52,7 +45,7 @@ def check_connections(prj, src, intended_targets):
     else:
         raise Exception("Problem getting connections for %s" % pre)
 
-class AllToAllConnector(connectors.AllToAllConnector):    
+class AllToAllConnector(common.AllToAllConnector):    
 
     def connect(self, projection):
         postsynaptic_neurons  = projection.post.cell_local.flatten()
@@ -74,7 +67,7 @@ class AllToAllConnector(connectors.AllToAllConnector):
                 check_connections(projection, pre, target_list)
         return len(projection._targets)
 
-class OneToOneConnector(connectors.OneToOneConnector):
+class OneToOneConnector(common.OneToOneConnector):
     
     def connect(self, projection):
         if projection.pre.dim == projection.post.dim:
@@ -87,16 +80,16 @@ class OneToOneConnector(connectors.OneToOneConnector):
             nest.Connect(projection._sources, projection._targets, weights, delays, projection.plasticity_name)
             return projection.pre.size
         else:
-            raise connectors.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
+            raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
     
-class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
+class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
     def connect(self, projection):
         postsynaptic_neurons = projection.post.cell_local
         npost = len(postsynaptic_neurons)
         if projection.rng:
             if isinstance(projection.rng, NativeRNG):
-                print "Warning: use of NativeRNG not implemented. Using NumpyRNG"
+                logging.warning("Warning: use of NativeRNG not implemented. Using NumpyRNG")
                 rng = numpy.random
             else:
                 rng = projection.rng
@@ -121,7 +114,7 @@ class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
                 check_connections(projection, pre, target_list)
         return len(projection._sources)
     
-class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector):
+class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector):
     
     def connect(self, projection):
         periodic_boundaries = self.periodic_boundaries
@@ -129,14 +122,14 @@ class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabil
             dimensions = projection.post.dim
             periodic_boundaries = tuple(numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions)))))
         if periodic_boundaries:
-            print "Periodic boundaries activated and set to size ", periodic_boundaries
+            logging.info("Periodic boundaries activated and set to size %s" % (periodic_boundaries,))
         postsynaptic_neurons = projection.post.cell.flatten() # array
         npost = len(postsynaptic_neurons)
         #postsynaptic_neurons = projection.post.cell_local
         # what about NativeRNG?
         if projection.rng:
             if isinstance(projection.rng, NativeRNG):
-                print "Warning: use of NativeRNG not implemented. Using NumpyRNG"
+                logging.warning("Warning: use of NativeRNG not implemented. Using NumpyRNG")
                 rng = numpy.random
             else:
                 rng = projection.rng
@@ -149,7 +142,7 @@ class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabil
             
         for pre in projection.pre.cell.flat:
             # We compute the distances from the post cell to all the others
-            distances = connectors.distances(pre, projection.post, self.mask,
+            distances = common.distances(pre, projection.post, self.mask,
                                          self.scale_factor, self.offset,
                                          periodic_boundaries)[0]
             # We evaluate the probabilities of connections for those distances
@@ -160,7 +153,7 @@ class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabil
             target_list = postsynaptic_neurons[idx].tolist()
             # We remove the pre cell if we don't allow self connections
             if not self.allow_self_connections and pre in target_list:
-                idx.remove(target_list.index(pre))
+                idx = numpy.delete(idx, target_list.index(pre))
                 target_list.remove(pre)
             N = len(target_list)
             # We deal with the fact that the user could have given a weights distance dependent
@@ -181,12 +174,16 @@ class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabil
                 check_connections(projection, pre, target_list)
         return len(projection._sources)
 
-class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
+class FixedNumberPostConnector(common.FixedNumberPostConnector):
     
     def connect(self, projection):
         postsynaptic_neurons  = projection.post.cell.flatten()
         if projection.rng:
-            rng = projection.rng
+            if isinstance(projection.rng, NativeRNG):
+                logging.warning("Warning: use of NativeRNG not implemented. Using NumpyRNG")
+                rng = numpy.random
+            else:
+                rng = projection.rng
         else:
             rng = numpy.random
         for pre in projection.pre.cell.flat:
@@ -216,12 +213,16 @@ class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
         return len(projection._sources)
 
 
-class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
+class FixedNumberPreConnector(common.FixedNumberPreConnector):
     
     def connect(self, projection):
         presynaptic_neurons = projection.pre.cell.flatten()
         if projection.rng:
-            rng = projection.rng
+            if isinstance(projection.rng, NativeRNG):
+                logging.warning("Warning: use of NativeRNG not implemented. Using NumpyRNG")
+                rng = numpy.random
+            else:
+                rng = projection.rng
         else:
             rng = numpy.random
         for post in projection.post.cell.flat:
@@ -256,26 +257,29 @@ class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
 def _connect_from_list(conn_list, projection):
     # slow: should maybe sort by pre and use DivergentConnect?
     # or at least convert everything to a numpy array at the start
-    weights = []; delays = []
+    weights = numpy.empty((len(conn_list),))
+    delays = numpy.empty_like(weights)
     for i in xrange(len(conn_list)):
         src, tgt, weight, delay = conn_list[i][:]
         src = projection.pre[tuple(src)]
         tgt = projection.post[tuple(tgt)]
         projection._sources.append(src)
         projection._targets.append(tgt)
-        weights.append(_convertWeight(weight, projection.synapse_type))
-        delays.append(delay)
+        #weights.append(_convertWeight(weight, projection.synapse_type))
+        weights[i] = weight
+        delays[i] = delay
+    weights = _convertWeight(weights, projection.synapse_type)
     nest.Connect(projection._sources, projection._targets, weights, delays, projection.plasticity_name)
     return projection.pre.size
 
 
-class FromListConnector(connectors.FromListConnector):
+class FromListConnector(common.FromListConnector):
     
     def connect(self, projection):
         return _connect_from_list(self.conn_list, projection)
 
 
-class FromFileConnector(connectors.FromFileConnector):
+class FromFileConnector(common.FromFileConnector):
     
     def connect(self, projection):
         f = open(self.filename, 'r', 10000)

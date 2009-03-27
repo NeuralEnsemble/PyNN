@@ -86,6 +86,27 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
         self.parameters = self.translate({'w_min': w_min, 'w_max': w_max,
                                           'A_plus': A_plus, 'A_minus': A_minus})
 
+class AdditivePotentiationMultiplicativeDepression(common.AdditivePotentiationMultiplicativeDepression):
+    """
+    The amplitude of the weight change depends on the current weight for
+    depression (Dw propto w-w_min) and is fixed for potentiation
+    """
+    translations = common.build_translations(
+        ('w_max',     'wmax'),
+        ('w_min',     'wmin'),
+        ('A_plus',    'aLTP'),
+        ('A_minus',   'aLTD'),
+    )
+    possible_models = set(['StdwaGuetig'])
+        
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
+        #common.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
+        parameters = dict(locals())
+        parameters.pop('self') 
+        self.parameters = self.translate(parameters)
+        self.parameters['muLTP'] = 0.0
+        self.parameters['muLTD'] = 1.0
+
 
 class SpikePairRule(common.SpikePairRule):
     
@@ -93,7 +114,7 @@ class SpikePairRule(common.SpikePairRule):
         ('tau_plus',  'tauLTP'),
         ('tau_minus', 'tauLTD'),
     )
-    possible_models = set(['StdwaSA','StdwaSoft'])
+    possible_models = set(['StdwaSA','StdwaSoft','StdwaGuetig'])
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
         #common.SpikePairRule.__init__(self, tau_plus, tau_minus)

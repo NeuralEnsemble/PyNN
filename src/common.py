@@ -1029,7 +1029,7 @@ class Projection(object):
     """
     
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 method='allToAll', method_parameters=None,
+                 method,
                  source=None, target=None, synapse_dynamics=None,
                  label=None, rng=None):
         """
@@ -1043,15 +1043,8 @@ class Projection(object):
                  
         If source and/or target are not given, default values are used.
         
-        method - string indicating which algorithm to use in determining
-                 connections.
-        Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
-        'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-        'fromFile', 'fromList'.
-        
-        method_parameters - dict containing parameters needed by the connection
-        method, although we should allow this to be a number or string if there
-        is only one parameter.
+        method - a Connector object, encapsulating the algorithm to use for
+                 connecting the neurons.
         
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
@@ -1575,7 +1568,7 @@ class MultiplicativeWeightDependence(STDPWeightDependence):
 class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
     """
     The amplitude of the weight change depends on the current weight for
-    depression (Dw propto w-w_min) and is fixed for potentiation.
+    depression (Dw propto w) and is fixed for potentiation.
     """
 
     default_parameters = {
