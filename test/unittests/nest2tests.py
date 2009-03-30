@@ -99,7 +99,7 @@ class ConnectionTest(unittest.TestCase):
         """connect(): Weight set should match weight retrieved."""
         conn_id = nest.connect(self.precells[0],self.postcells[0],weight=0.1234)
         weight = conn_id._get_weight()
-        assert weight == 0.1234*1000, "Weight set does not match weight retrieved." # note that pyNN.nest uses nA for weights, whereas NEST uses pA
+        self.assertEqual(weight, 0.1234) # note that pyNN.nest uses nA for weights, whereas NEST uses pA
 
     def testConnectTwoCellsWithDelay(self):
         """connect(): Delay set should match delay retrieved."""
@@ -872,6 +872,13 @@ class RecorderTest(unittest.TestCase):
             data = rec.get()
             self.assertEqual(data.shape, (0,2))
 
+    def test_merge_files(self):
+        rec = nest.Recorder('spikes', file=None)
+        cells = nest.create(nest.IF_curr_exp, {}, n=5)
+        rec.record(cells)
+        nest.run(1.0)
+        filename = nest._merge_files(rec._device, False)
+
     def test_write_not_compatible(self):
         rec1 = nest.Recorder('spikes', file=False)
         rec2 = nest.Recorder('spikes', file='nest_recorder_test.tmp')
@@ -879,8 +886,8 @@ class RecorderTest(unittest.TestCase):
         for rec in rec1, rec2:
             rec.record([cell])
         nest.run(1.0)
-        for rec in rec1, rec2:
-            rec.write(compatible_output=False)
+        rec2.write(compatible_output=False)
+        self.assertRaises(Exception, rec1.write, compatible_output=False) # writing for in-memory data not yet supported
         os.remove('nest_recorder_test.tmp')
         
     def test_write_invalid_file(self):
@@ -889,6 +896,25 @@ class RecorderTest(unittest.TestCase):
         rec.record([cell])
         nest.run(1.0)
         self.assertRaises(Exception, rec.write, file={}, compatible_output=False)
+
+    def test_manipulate_header(self):
+        rec = nest.Recorder('spikes', file='nest_recorder_test.tmp')
+        cell = nest.create(nest.IF_curr_exp, {})
+        rec.record([cell])
+        nest.run(1.0)
+        rec.write(compatible_output=True)
+        header = rec._get_header('nest_recorder_test.tmp')
+        assert isinstance(header, dict)
+        self.assertEqual(float(header['dt']), 0.1)
+        
+        rec._strip_header('nest_recorder_test.tmp', 'nest_recorder_test1.tmp')
+        header = rec._get_header('nest_recorder_test1.tmp')
+        self.assertEqual(len(header), 0)
+        
+        os.remove('nest_recorder_test.tmp')
+        os.remove('nest_recorder_test1.tmp')
+        
+        rec._get_header('awiulclwiufhdp3948tdw3.dat') # does not exist
 
 if __name__ == "__main__":
     unittest.main()
