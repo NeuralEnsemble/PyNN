@@ -810,6 +810,86 @@ class ElectrodesTest(unittest.TestCase):
         for cell in cells:
             cell.inject(source)
 
+class ConnectionClassTest(unittest.TestCase):
+    
+    def setUp(self):
+        nest.setup(timestep=0.1, min_delay=0.1)
+        self.cell1 = nest.create(nest.IF_curr_exp, {})
+        self.cell2 = nest.create(nest.IF_cond_alpha, {})
+    
+    def test_create(self):
+        self.assertRaises(common.ConnectionError, nest.Connection, self.cell1, self.cell2, 'static_synapse')
+        conn = nest.connect(self.cell1, self.cell2)
+        self.assertEqual(conn.pre, self.cell1)
+        self.assertEqual(conn.post, self.cell2)
+        self.assertEqual(conn.port, 0)
+    
+    def test_create_with_nonexistent_pre(self):
+        self.assertRaises(common.ConnectionError, nest.Connection, 999, self.cell2, 'static_synapse')
+
+    def test_get_set_weight(self):
+        conn = nest.connect(self.cell1, self.cell2)
+        self.assertEqual(conn.weight, 0.0)
+        conn.weight = 0.123
+        self.assertEqual(conn.weight, 0.123)
+        self.assertEqual(nest.nest.GetConnection([conn.pre], conn.synapse_model, conn.port)['weight'], 123.0) 
+
+    def test_get_set_delay(self):
+        conn = nest.connect(self.cell1, self.cell2)
+        self.assertEqual(conn.delay, nest.get_min_delay())
+        conn.delay = 2*nest.get_time_step()
+        self.assertEqual(conn.delay, 2*nest.get_time_step())
+        conn.delay = 1.6*nest.get_time_step()
+        self.assertEqual(conn.delay, 2*nest.get_time_step())
+        conn.delay = 1.4*nest.get_time_step()
+        self.assertEqual(conn.delay, 2*nest.get_time_step())
+        conn.delay = 1.4*nest.get_time_step()
+        self.assertRaises(nest.nest.NESTError, setattr, conn, 'delay',  0.9*nest.get_time_step())
+
+class RecorderTest(unittest.TestCase):
+    
+    def setUp(self):
+        nest.setup()
+    
+    def test_create_spike_recorder_in_memory(self):
+        rec = nest.Recorder('spikes', file=False)
+        rec._create_device()
+        params = nest.nest.GetStatus([rec._device])[0]
+        self.assertEqual(params['model'], 'spike_detector')
+        self.assertEqual(params['to_file'], False)
+        self.assertEqual(params['to_memory'], True)
+        
+    def test_premature_get(self):
+        rec = nest.Recorder('spikes', file=False)
+        self.assertRaises(Exception, rec.get)
+        
+    def test_get_before_run(self):
+        rec1 = nest.Recorder('spikes', file=False)
+        rec2 = nest.Recorder('spikes', file=None) # creates temporary file
+        cell = nest.create(nest.IF_curr_exp, {})
+        for rec in rec1, rec2:
+            rec.record([cell])
+            data = rec.get()
+            self.assertEqual(data.shape, (0,2))
+
+    def test_write_not_compatible(self):
+        rec1 = nest.Recorder('spikes', file=False)
+        rec2 = nest.Recorder('spikes', file='nest_recorder_test.tmp')
+        cell = nest.create(nest.IF_curr_exp, {})
+        for rec in rec1, rec2:
+            rec.record([cell])
+        nest.run(1.0)
+        for rec in rec1, rec2:
+            rec.write(compatible_output=False)
+        os.remove('nest_recorder_test.tmp')
+        
+    def test_write_invalid_file(self):
+        rec = nest.Recorder('spikes', file=None)
+        cell = nest.create(nest.IF_curr_exp, {})
+        rec.record([cell])
+        nest.run(1.0)
+        self.assertRaises(Exception, rec.write, file={}, compatible_output=False)
+
 if __name__ == "__main__":
     unittest.main()
     

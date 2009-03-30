@@ -59,29 +59,29 @@ class Connection(object):
         self.synapse_model = synapse_model
         try:
             conn_dict = nest.GetConnections([pre], self.synapse_model)[0]
-        except Exception:
-            raise common.ConnectionError
+        except nest.NESTError, errmsg:
+            raise common.ConnectionError("Cannot create Connection object: %s" % errmsg)
         if (len(conn_dict['targets']) == 0):
-            raise common.ConnectionError
+            raise common.ConnectionError("Presynaptic neuron with ID %d does not have any connections.")
         if conn_dict:
             self.port = len(conn_dict['targets'])-1
         else:
             raise Exception("Could not get port number for connection between %s and %s" % (pre, post))
 
     def _set_weight(self, w):
-        pass
+        nest.SetConnection([self.pre], self.synapse_model, self.port, {'weight': w*1000.0})
 
     def _get_weight(self):
         # this needs to be modified to take account of threads
         # also see nest.GetConnection (was nest.GetSynapseStatus)
         conn_dict = nest.GetConnections([self.pre], self.synapse_model)[0]
         if conn_dict:
-            return conn_dict['weights'][self.port]
+            return 0.001*conn_dict['weights'][self.port]
         else:
             return None
 
     def _set_delay(self, d):
-        pass
+        nest.SetConnection([self.pre], self.synapse_model, self.port, {'delay': d})
 
     def _get_delay(self):
         # this needs to be modified to take account of threads
@@ -153,8 +153,11 @@ class Recorder(object):
         if self._device is None:
             raise Exception("No cells recorded, so no data to return")
         if nest.GetStatus(self._device, 'to_file')[0]:
-            nest_filename = _merge_files(self._device, gather)
-            data = recording.readArray(nest_filename, sepchar=None)
+            if 'filename' in nest.GetStatus(self._device)[0]:
+                nest_filename = _merge_files(self._device, gather)
+                data = recording.readArray(nest_filename, sepchar=None)
+            else:
+                data = numpy.array([])
             #os.remove(nest_filename)
             if data.size > 0:
                 # the following returns indices, not IDs. I'm not sure this is what we want.
@@ -205,6 +208,7 @@ class Recorder(object):
                                                                                                          user_file,
                                                                                                          gather,
                                                                                                          compatible_output))
+        # what if the data was only saved to memory?
         nest_filename = _merge_files(self._device, gather)
         if compatible_output:
             # We should do the post processing (i.e the compatible output) in a distributed
@@ -1383,38 +1387,4 @@ Timer = common.Timer
 # ==============================================================================
 
 
-def save_population(population,filename,variables=[]):
-    """
-    Saves the spike_times of a  population and the dim, size, labels such that one can load it back into a SpikeSourceArray population using the load_population function.
-    """
-    import shelve
-    s = shelve.open(filename)
-    s['spike_times'] = population.getSpikes()
-    s['label'] = population.label
-    s['dim'] = population.dim
-    s['size'] = population.size
-    variables_dict = {}
-    for variable in variables:
-        variables_dict[variable] = eval('population.%s'%variable)
-    s['variables'] = variables_dict
-    s.close()
 
-def load_population(filename):
-    """
-    Loads a population that was saved with the save_population function into SpikeSourceArray.
-    """
-    import shelve
-    s = shelve.open(filename)
-    population = Population(s['dim'],SpikeSourceArray,label=s['label'])
-    # set the spiketimes
-    spikes = s['spike_times']
-    for neuron in numpy.arange(s['size']):
-        spike_times = spikes[spikes[:,0]==neuron][:,1]
-        neuron_in_new_population = neuron+population.first_id
-        index = population.locate(neuron_in_new_population)
-        population[index].set_parameters(**{'spike_times':spike_times})
-    # set the variables
-    for variable, value in s['variables'].items():
-        exec('population.%s = value'%variable)
-    s.close()
-    return population
