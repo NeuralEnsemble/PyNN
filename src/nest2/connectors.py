@@ -48,7 +48,7 @@ def check_connections(prj, src, intended_targets):
 class AllToAllConnector(common.AllToAllConnector):    
 
     def connect(self, projection):
-        postsynaptic_neurons  = projection.post.cell_local.flatten()
+        postsynaptic_neurons  = projection.post.local_cells.flatten()
         target_list = postsynaptic_neurons.tolist()
         for pre in projection.pre.cell.flat:
             # if self connections are not allowed, check whether pre and post are the same
@@ -85,7 +85,7 @@ class OneToOneConnector(common.OneToOneConnector):
 class FixedProbabilityConnector(common.FixedProbabilityConnector):
     
     def connect(self, projection):
-        postsynaptic_neurons = projection.post.cell_local
+        postsynaptic_neurons = projection.post.local_cells
         npost = len(postsynaptic_neurons)
         if projection.rng:
             if isinstance(projection.rng, NativeRNG):
@@ -125,7 +125,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
             logging.info("Periodic boundaries activated and set to size %s" % (periodic_boundaries,))
         postsynaptic_neurons = projection.post.cell.flatten() # array
         npost = len(postsynaptic_neurons)
-        #postsynaptic_neurons = projection.post.cell_local
+        #postsynaptic_neurons = projection.post.local_cells
         # what about NativeRNG?
         if projection.rng:
             if isinstance(projection.rng, NativeRNG):

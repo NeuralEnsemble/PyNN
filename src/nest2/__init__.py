@@ -151,7 +151,7 @@ class Recorder(object):
     def get(self, gather=False, compatible_output=True):
         """Returns the recorded data."""
         if self._device is None:
-            raise Exception("No cells recorded, so no data to return")
+            raise common.NothingToWriteError("No cells recorded, so no data to return")
         if nest.GetStatus(self._device, 'to_file')[0]:
             if 'filename' in nest.GetStatus(self._device)[0]:
                 nest_filename = _merge_files(self._device, gather)
@@ -459,32 +459,48 @@ def rank():
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass, param_dict=None, n=1):
+def _create(cellclass, cellparams=None, n=1, parent=None):
+    """
+    Function used by both `create()` and `Population.__init__()`
+    """
+    assert n > 0, 'n must be a positive integer'
+    if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
+        celltype = cellclass(cellparams)
+        nest_model = celltype.nest_name
+        cell_parameters = celltype.parameters
+    elif isinstance(cellclass, str):  # celltype is not a standard cell
+        nest_model = cellclass
+        cell_parameters = cellparams or {}
+    else:
+        raise Exception("Invalid cell type: %s" % type(cellclass))
+    cell_gids = nest.Create(nest_model, n)
+    if cell_parameters:
+        try:
+            nest.SetStatus(cell_gids, [cell_parameters])
+        except nest.NESTError:
+            print "NEST error when trying to set the following dictionary: %s" % self.cellparams
+            raise
+    first_id = cell_gids[0]
+    last_id = cell_gids[-1]
+    mask_local = numpy.array(nest.GetStatus(cell_gids, 'local'))
+    cell_gids = numpy.array([ID(gid) for gid in cell_gids], ID)
+    return cell_gids, mask_local, first_id, last_id
+
+
+def create(cellclass, cellparams=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
     If n==1, return just the single id.
     """
-    assert n > 0, 'n must be a positive integer'
-    if isinstance(cellclass, type):
-        celltype = cellclass(param_dict)
-        cell_gids = nest.Create(celltype.nest_name, n)
-        cell_gids = [ID(gid) for gid in cell_gids]
-        nest.SetStatus(cell_gids, [celltype.parameters])
-    elif isinstance(cellclass, str):  # celltype is not a standard cell
-        cell_gids = nest.Create(cellclass, n)
-        cell_gids = [ID(gid) for gid in cell_gids]
-        if param_dict:
-            nest.SetStatus(cell_gids, [param_dict])
-    else:
-        raise Exception("Invalid cell type")
-    for id in cell_gids:
-    #    #id.setCellClass(cellclass)
+    all_cells, mask_local, first_id, last_id = _create(cellclass, cellparams, n)
+    for id in all_cells: #[mask_local]:
         id.cellclass = cellclass
+    all_cells = all_cells.tolist() # not sure this is desirable, but it is consistent with the other modules
     if n == 1:
-        return cell_gids[0]
+        return all_cells[0] # or local_cells?
     else:
-        return cell_gids
+        return all_cells
 
 def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
@@ -603,7 +619,7 @@ class Population(common.Population):
     """
     nPop = 0
 
-    def __init__(self, dims, cellclass, cellparams=None, label=None, parent=None):
+    def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
@@ -615,47 +631,20 @@ class Population(common.Population):
           constructor
         label is an optional name for the population.
         """
-
-        common.Population.__init__(self, dims, cellclass, cellparams, label, parent)
+        common.Population.__init__(self, dims, cellclass, cellparams, label)
 
         # Should perhaps use "LayoutNetwork"?
-
-        if isinstance(cellclass, type):
+        if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
             self.celltype = cellclass(cellparams)
-            self.cellparams = self.celltype.parameters
-            if not parent:
-                self.cell = nest.Create(self.celltype.nest_name, self.size)
-            else:
-                #A SubPopulation has been created, those fields will be filled later
-                self.cell = []
-        elif isinstance(cellclass, str):
-            if not parent:
-                self.cell = nest.Create(cellclass, self.size)
-            else:
-                #A SubPopulation has been created, those fields will be filled later
-                self.cell = []
-        ### Warning : not tested yet, quickly implemented in Okinawa. To allow the
-        ### construction of subpopulation without creating the cells
-        elif isinstance(cellclass,common.StandardCellType):
-            self.cell = []
-
-        if not parent:
-            self.cell = numpy.array([ ID(GID) for GID in self.cell ], ID)
-            self.cell_local = self.cell[numpy.array(nest.GetStatus(self.cell.tolist(),'local'))]
-            self.first_id = self.cell.flatten()[0]
-            self.last_id = self.cell.flatten()[-1]
-            for id in self.cell:
-                id.parent = self
-            #id.setCellClass(cellclass)
-            #id.setPosition(self.locate(id))
-            self.cell = numpy.reshape(self.cell, self.dim)
-            if self.cellparams:
-                try:
-                    nest.SetStatus(self.cell_local, [self.cellparams])
-                except nest.hl_api.NESTError:
-                    print "NEST error when trying to set the following dictionary: %s" % self.cellparams
-                    raise
-            self._local_ids = self.cell_local
+        
+        self.all_cells, self._mask_local, self.first_id, self.last_id = _create(cellclass, cellparams, self.size, parent=self)
+        self.local_cells = self.all_cells[self._mask_local]
+        self.all_cells = self.all_cells.reshape(self.dim)
+        self._mask_local = self._mask_local.reshape(self.dim)
+        
+        for id in self.local_cells:
+            id.parent = self
+        self.cell = self.all_cells # temporary alias, awaiting harmonization
         
         if not self.label:
             self.label = 'population%d' % Population.nPop
@@ -741,7 +730,7 @@ class Population(common.Population):
         """
         Get the values of a parameter for every cell in the population.
         """
-        values = [getattr(cell, parameter_name) for cell in self.cell_local]
+        values = [getattr(cell, parameter_name) for cell in self.local_cells]
         if as_array:
             values = numpy.array(values)
         return values
@@ -766,7 +755,7 @@ class Population(common.Population):
             raise common.InvalidParameterValueError
         
         # This is not very efficient for simple and scaled parameters.
-        # Should call nest.SetStatus(self.cell_local,...) for the parameters in
+        # Should call nest.SetStatus(self.local_cells,...) for the parameters in
         # self.celltype.__class__.simple_parameters() and .scaled_parameters()
         # and keep the loop below just for the computed parameters. Even in this
         # case, it may be quicker to test whether the parameters participating
@@ -786,16 +775,16 @@ class Population(common.Population):
                 if key in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[key]
                     value = eval(translation['forward_transform'], globals(), {key:value})
-                    nest.SetStatus(self.cell_local,translation['translated_name'],value)
+                    nest.SetStatus(self.local_cells,translation['translated_name'],value)
                 elif key in self.celltype.simple_parameters():
                     translation = self.celltype.translations[key]
-                    nest.SetStatus(self.cell_local, translation['translated_name'], value)
+                    nest.SetStatus(self.local_cells, translation['translated_name'], value)
                 else:
-                    for cell in self.cell_local:
+                    for cell in self.local_cells:
                         cell.set_parameters(**{key:value})
             else:
                 try:
-                    nest.SetStatus(self.cell_local, key, value)
+                    nest.SetStatus(self.local_cells, key, value)
                 except Exception:
                     raise common.InvalidParameterValueError
 
@@ -821,7 +810,7 @@ class Population(common.Population):
                     # what SpikeSourceArray expects. This is not very robust
                     # though - we might want to add things that do accept arrays.
                     val = list(val)
-                if cell in self.cell_local:
+                if cell in self.local_cells:
                     setattr(cell, parametername, val)
         else:
             raise common.InvalidDimensionsError
@@ -834,10 +823,10 @@ class Population(common.Population):
         if isinstance(rand_distr.rng, NativeRNG):
             raise Exception('rset() not yet implemented for NativeRNG')
         else:
-            #rarr = rand_distr.next(n=len(self.cell_local))
+            #rarr = rand_distr.next(n=len(self.local_cells))
             rarr = rand_distr.next(n=self.size)
-            assert len(rarr) >= len(self.cell_local), "The length of rarr (%d) must be greater than that of cell_local (%d)" % (len(rarr), len(self.cell_local))
-            rarr = rarr[:len(self.cell_local)]
+            assert len(rarr) >= len(self.local_cells), "The length of rarr (%d) must be greater than that of local_cells (%d)" % (len(rarr), len(self.local_cells))
+            rarr = rarr[:len(self.local_cells)]
             if not isinstance(self.celltype, str):
                 try:
                     self.celltype.default_parameters[parametername]
@@ -846,15 +835,15 @@ class Population(common.Population):
                 if parametername in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[parametername]
                     rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
-                    nest.SetStatus(self.cell_local,translation['translated_name'],rarr)
+                    nest.SetStatus(self.local_cells,translation['translated_name'],rarr)
                 elif parametername in self.celltype.simple_parameters():
                     translation = self.celltype.translations[parametername]
-                    nest.SetStatus(self.cell_local, translation['translated_name'], rarr)
+                    nest.SetStatus(self.local_cells, translation['translated_name'], rarr)
                 else:
-                    for cell,val in zip(self.cell_local, rarr):
+                    for cell,val in zip(self.local_cells, rarr):
                         setattr(cell, parametername, val)
             else:
-               nest.SetStatus(self.cell_local, parametername, rarr)
+               nest.SetStatus(self.local_cells, parametername, rarr)
 
     def _record(self, variable, record_from=None, rng=None,to_file=True):
         if variable not in self.celltype.recordable:
@@ -1041,7 +1030,7 @@ class Population(common.Population):
         pop.first_id    = pop.parent.first_id
         idx             = numpy.array(cell_list,int).flatten() - pop.first_id
         pop.cell        = pop.parent.cell.flatten()[idx].reshape(dims)
-        pop.cell_local  = pop.parent.cell_local[idx]
+        pop.local_cells  = pop.parent.local_cells[idx]
         pop.positions   = pop.parent.positions[:,idx]
         return pop
 
@@ -1149,10 +1138,10 @@ class Projection(common.Projection):
             # Tau_minus is a parameter of the post-synaptic cell, not of the connection
             tau_minus = self._stdp_parameters.pop("tau_minus")
             # The following is a temporary workaround until the NEST guys stop renaming parameters!
-            if 'tau_minus' in nest.GetStatus([self.post.cell_local[0]])[0]:
-                nest.SetStatus(self.post.cell_local, [{'tau_minus': tau_minus}])
-            elif 'Tau_minus' in nest.GetStatus([self.post.cell_local[0]])[0]:
-                nest.SetStatus(self.post.cell_local, [{'Tau_minus': tau_minus}])
+            if 'tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
+                nest.SetStatus(self.post.local_cells, [{'tau_minus': tau_minus}])
+            elif 'Tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
+                nest.SetStatus(self.post.local_cells, [{'Tau_minus': tau_minus}])
             else:
                 raise Exception("Postsynaptic cell model does not support STDP.")
 

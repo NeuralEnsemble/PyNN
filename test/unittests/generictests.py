@@ -40,27 +40,32 @@ class IDSetGetTest(unittest.TestCase):
         for cell_class in IDSetGetTest.model_list:
             cell_list = (self.cells[cell_class.__name__][0],
                          self.populations[cell_class.__name__][0])
+            parameter_names = cell_class.default_parameters.keys()
             for cell in cell_list:
-                for name in cell_class.default_parameters:
+                for name in parameter_names:
                     if name == 'spike_times':
                         i = [1.0, 2.0]
                         cell.__setattr__(name, i)
                         o = list(cell.__getattr__(name))
                         self.assertEqual(i, o)
                     else:
-                        if name == 'v_reset': # v_reset must be less than v_thresh
+                        if name == 'v_thresh':
+                            if 'v_spike' in parameter_names:
+                                i = (cell.__getattr__('v_spike') + max(cell.__getattr__('v_reset'), cell.__getattr__('v_init')))/2
+                            elif 'v_init' in parameter_names:
+                                i = max(cell.__getattr__('v_reset'), cell.__getattr__('v_init')) + numpy.random.uniform(0.1, 100)
+                            else:
+                                i = cell.__getattr__('v_reset') + numpy.random.uniform(0.1, 100)
+                        elif name == 'v_reset' or name == 'v_init': # v_reset must be less than v_thresh
                             i = cell.__getattr__('v_thresh') - numpy.random.uniform(0.1, 100)
                         elif name == 'v_spike': # v_spike must be greater than v_thresh
                             i = cell.__getattr__('v_thresh') + numpy.random.uniform(0.1, 100)
-                        elif name == 'v_thresh':
-                            if 'v_spike' in cell_class.default_parameters:
-                                #i = (cell.__getattr__('v_spike') - cell.__getattr__('v_reset'))/2
-                                continue
-                            else:
-                                i = cell.__getattr__('v_reset') + numpy.random.uniform(0.1, 100)
                         else:
                             i = numpy.random.uniform(0.1, 100) # tau_refrac is always at least dt (=0.1)
-                        cell.__setattr__(name, i)
+                        try:
+                            cell.__setattr__(name, i)
+                        except Exception, e:
+                            raise Exception("%s. %s=%g in %s with %s" % (e, name, i, cell_class, cell.get_parameters()))
                         o = cell.__getattr__(name)
                         self.assertEqual(type(i), type(o), "%s: input: %s, output: %s" % (name, type(i), type(o)))
                         self.assertAlmostEqual(i, o,
@@ -75,20 +80,27 @@ class IDSetGetTest(unittest.TestCase):
         for cell_class in IDSetGetTest.model_list:
             cell_list = (self.cells[cell_class.__name__][0],
                          self.populations[cell_class.__name__][0])
-            param_names = cell_class.default_parameters.keys()
-            param_names.sort()
+            parameter_names = cell_class.default_parameters.keys()
+            if 'v_thresh' in parameter_names: # make sure 'v_thresh' comes first
+                parameter_names.remove('v_thresh')
+                parameter_names = ['v_thresh'] + parameter_names
             for cell in cell_list:
                 new_parameters = {}
-                for name in param_names:
+                for name in parameter_names:
                     if name == 'spike_times':
                         new_parameters[name] = [1.0, 2.0]
-                    elif name == 'v_spike':
-                        new_parameters[name] = new_parameters['v_reset'] + numpy.random.uniform(50.1, 100)
                     elif name == 'v_thresh':
-                        new_parameters[name] = new_parameters['v_reset'] + numpy.random.uniform(0.1, 50)
+                        new_parameters[name] = numpy.random.uniform(-100, 100)
+                    elif name == 'v_reset' or name == 'v_init':
+                        new_parameters[name] = new_parameters['v_thresh'] - numpy.random.uniform(0.1, 100)
+                    elif name == 'v_spike':
+                        new_parameters[name] = new_parameters['v_thresh'] + numpy.random.uniform(0.1, 100)
                     else:
                         new_parameters[name] = numpy.random.uniform(0.1, 100) # tau_refrac is always at least dt (=0.1)
-                cell.set_parameters(**new_parameters)
+                try:
+                    cell.set_parameters(**new_parameters)
+                except Exception, e:
+                    raise Exception("%s. %s in %s" % (e, new_parameters, cell_class))
                 retrieved_parameters = cell.get_parameters()
                 self.assertEqual(set(new_parameters.keys()), set(retrieved_parameters.keys()))
                 
