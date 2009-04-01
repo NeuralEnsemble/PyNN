@@ -148,3 +148,45 @@ def load_population(filename):
         exec('population.%s = value'%variable)
     s.close()
     return population
+
+class Timer(object):
+    """For timing script execution."""
+    
+    def __init__(self):
+        self.start()
+    
+    def start(self):
+        """Start timing."""
+        self._start_time = time.time()
+    
+    def elapsedTime(self, format=None):
+        """Return the elapsed time in seconds but keep the clock running."""
+        elapsed_time = time.time() - self._start_time
+        if format=='long':
+            elapsed_time = Timer.time_in_words(elapsed_time)
+        return elapsed_time
+    
+    def reset(self):
+        """Reset the time to zero, and start the clock."""
+        self.start()
+    
+    @staticmethod
+    def time_in_words(s):
+        """Formats a time in seconds as a string containing the time in days,
+        hours, minutes, seconds. Examples::
+            >>> time_in_words(1)
+            1 second
+            >>> time_in_words(123)
+            2 minutes, 3 seconds
+            >>> time_in_words(24*3600)
+            1 day
+        """
+        # based on http://mail.python.org/pipermail/python-list/2003-January/181442.html
+        T = {}
+        T['year'], s = divmod(s, 31556952)
+        min, T['second'] = divmod(s, 60)
+        h, T['minute'] = divmod(min, 60)
+        T['day'], T['hour'] = divmod(h, 24)
+        def add_units(val, units):
+            return "%d %s" % (int(val), units) + (val>1 and 's' or '')
+        return ', '.join([add_units(T[part], part) for part in ('year', 'day', 'hour', 'minute', 'second') if T[part]>0])

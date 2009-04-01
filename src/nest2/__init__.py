@@ -16,8 +16,6 @@ from pyNN.nest2.synapses import *
 from pyNN.nest2.electrodes import *
 from pyNN.nest2 import simulator
 Set = set
-global counter
-
 
 tempdirs       = []
 
@@ -142,7 +140,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global tempdir, counter
+    global tempdir
     log_file = "nest2.log"
     if debug:
         if isinstance(debug, basestring):
@@ -163,7 +161,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     nest.ResetKernel()
     # clear the sli stack, if this is not done --> memory leak cause the stack increases
     nest.sr('clear')
-    counter = 0
+    Projection.nProj = 0
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
 
@@ -487,33 +485,8 @@ class Projection(common.Projection):
     plasticity mechanisms) between two populations, together with methods to set
     parameters of those connections, including of plasticity mechanisms.
     """
-    class ConnectionDict:
-        """docstring needed."""
 
-        def __init__(self, parent):
-            self.parent    = parent
-            self.port_idx  = 0
-            self.last_conn = (0,0)
-        
-        def reset(self):
-            self.port_idx  = 0
-            self.last_conn = (0,0)
-
-        def __getitem__(self, id):
-            """Returns a (source address, target port number) tuple."""
-            src = self.parent._sources[id]
-            tgt = self.parent._targets[id]
-            connections = nest.FindConnections([src],[tgt], self.parent.plasticity_name)
-            # We keep this counter to be sure that, when several connections have been
-            # established for the same source <-> target, we iterates over those connections
-            # Note that, for the moment, there may a problem if the sources/targets lists are
-            # not sorted according to the sources.
-            if (src,tgt) == self.last_conn:
-                self.port_idx += 1
-            else:
-                self.port_idx  = 0
-                self.last_conn = (src,tgt)
-            return (src,connections['ports'][self.port_idx])
+    nProj = 0
 
     def __init__(self, presynaptic_population, postsynaptic_population,
                  method, source=None,
@@ -540,7 +513,6 @@ class Projection(common.Projection):
         than within method_parameters, particularly since some methods also use
         random numbers to give variability in the number of connections per cell.
         """
-        global counter
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    method, source, target,
                                    synapse_dynamics, label, rng)
@@ -567,8 +539,8 @@ class Projection(common.Projection):
         # We create a particular synapse context just for this projection, by copying
         # the one which is desired. The name of the synapse context is randomly generated
         # and will be available as projection.plasticity_name
-        self.plasticity_name = "projection_%d" %counter
-        counter += 1
+        self.plasticity_name = "projection_%d" % Projection.nProj
+        Projection.nProj += 1
         synapse_defaults = nest.GetDefaults(self._plasticity_model)
         synapse_defaults.pop('synapsemodel')
         synapse_defaults.pop('num_connections')
@@ -599,7 +571,7 @@ class Projection(common.Projection):
         self.nconn = method.connect(self)
 
         # Define a method to access individual connections
-        self.connection = Projection.ConnectionDict(self)
+        self.connection = simulator.ConnectionDict(self)
 
     def __len__(self):
         """Return the total number of connections."""
@@ -767,17 +739,6 @@ class Projection(common.Projection):
                 f.write(fmt % tuple(row))
         f.close()
 
-    def weightHistogram(self, min=None, max=None, nbins=10):
-        """
-        Return a histogram of synaptic weights.
-        If min and max are not given, the minimum and maximum weights are
-        calculated automatically.
-        """
-        # it is arguable whether functions operating on the set of weights
-        # should be put here or in an external module.
-        bins = numpy.arange(min, max, float(max-min)/nbins)
-        return numpy.histogram(self.getWeights(format='list', gather=True), bins) # returns n, bins
-
     def describe(self, template='standard'):
         """
         Returns a human readable description of the projection
@@ -796,12 +757,6 @@ class Projection(common.Projection):
                 break
         description += "\n---- End of NEST-specific Projection description -----"
         return description
-
-# ==============================================================================
-#   Utility classes
-# ==============================================================================
-
-Timer = common.Timer
 
 # ==============================================================================
 

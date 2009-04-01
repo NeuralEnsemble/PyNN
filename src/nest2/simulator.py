@@ -246,6 +246,34 @@ class Connection(object):
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
 
+class ConnectionDict:
+    """docstring needed."""
+
+    def __init__(self, parent):
+        self.parent    = parent
+        self.port_idx  = 0
+        self.last_conn = (0,0)
+    
+    def reset(self):
+        self.port_idx  = 0
+        self.last_conn = (0,0)
+
+    def __getitem__(self, id):
+        """Returns a (source address, target port number) tuple."""
+        src = self.parent._sources[id]
+        tgt = self.parent._targets[id]
+        connections = nest.FindConnections([src],[tgt], self.parent.plasticity_name)
+        # We keep this counter to be sure that, when several connections have been
+        # established for the same source <-> target, we iterates over those connections
+        # Note that, for the moment, there may a problem if the sources/targets lists are
+        # not sorted according to the sources.
+        if (src,tgt) == self.last_conn:
+            self.port_idx += 1
+        else:
+            self.port_idx  = 0
+            self.last_conn = (src,tgt)
+        return (src,connections['ports'][self.port_idx])
+
 def single_connect(source, target, weight, delay, synapse_type):
     """
     Private function to connect two neurons.
