@@ -75,12 +75,15 @@ def get_min_delay():
     return simulator.state.min_delay
 common.get_min_delay = get_min_delay
 
+common.get_max_delay = lambda: numpy.inf
+
 def num_processes():
     return simulator.state.num_processes
 
 def rank():
     """Return the MPI rank."""
     return simulator.state.mpi_rank
+common.rank = rank
 
 def list_standard_models():
     return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
@@ -145,54 +148,13 @@ def _create(cellclass, cellparams, n, parent=None):
 
 create = common.build_create(_create)
 
-def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
-    """Connect a source of spikes to a synaptic target. source and target can
-    both be individual cells or lists of cells, in which case all possible
-    connections are made with probability p, using either the random number
-    generator supplied, or the default rng otherwise.
-    Weights should be in nA or µS."""
-    logging.debug("connecting %s to %s on host %d" % (source, target, rank()))
-    if not common.is_listlike(source):
-        source = [source]
-    if not common.is_listlike(target):
-        target = [target]
-    if p < 1:
-        rng = rng or numpy.random
-    connection_list = []
-    for tgt in target:
-        sources = numpy.array(source)
-        if p < 1:
-            rarr = rng.uniform(0, 1, len(source))
-            sources = sources[rarr<p]
-        for src in sources:
-            nc = simulator.single_connect(src, tgt, weight, delay, synapse_type)
-            connection_list.append(nc)
-    return connection_list
+connect = common.build_connect(simulator)
 
 set = common.set
 
-def record(source, filename):
-    """Record spikes to a file. source can be an individual cell or a list of
-    cells."""
-    # would actually like to be able to record to an array and choose later
-    # whether to write to a file.
-    if not hasattr(source, '__len__'):
-        source = [source]
-    recorder = simulator.Recorder('spikes', file=filename)
-    recorder.record(source)
-    simulator.recorder_list.append(recorder)
+record = common.build_record('spikes', simulator)
 
-def record_v(source, filename):
-    """
-    Record membrane potential to a file. source can be an individual cell or
-    a list of cells."""
-    # would actually like to be able to record to an array and
-    # choose later whether to write to a file.
-    if not hasattr(source, '__len__'):
-        source = [source]
-    recorder = simulator.Recorder('v', file=filename)
-    recorder.record(source)
-    simulator.recorder_list.append(recorder)
+record_v = common.build_record('v', simulator)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of

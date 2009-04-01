@@ -97,13 +97,13 @@ class ConnectionTest(unittest.TestCase):
         
     def testConnectTwoCellsWithWeight(self):
         """connect(): Weight set should match weight retrieved."""
-        conn_id = nest.connect(self.precells[0],self.postcells[0],weight=0.1234)
+        conn_id = nest.connect(self.precells[0],self.postcells[0],weight=0.1234)[0]
         weight = conn_id._get_weight()
         self.assertEqual(weight, 0.1234) # note that pyNN.nest uses nA for weights, whereas NEST uses pA
 
     def testConnectTwoCellsWithDelay(self):
         """connect(): Delay set should match delay retrieved."""
-        conn_id = nest.connect(self.precells[0],self.postcells[0],delay=4.4)
+        conn_id = nest.connect(self.precells[0],self.postcells[0],delay=4.4)[0]
         delay = conn_id._get_delay()
         assert delay == 4.4, "Delay set does not match delay retrieved." # Note that delays are only stored to the precision of the timestep.
 
@@ -133,7 +133,9 @@ class ConnectionTest(unittest.TestCase):
         
     def testConnectNonExistentPostCell(self):
         """connect(): Connecting to a non-existent cell should raise a ConnectionError."""
-        self.assertRaises(common.ConnectionError, nest.connect, self.precells[0], [45678])
+        non_existent_cell = nest.ID(45678)
+        non_existent_cell.cellclass = Exception
+        self.assertRaises(common.ConnectionError, nest.connect, self.precells[0], [non_existent_cell])
         
     def testDelayTooSmall(self):
         """connect(): Setting a delay smaller than min_delay should raise an Exception.""" 
@@ -818,24 +820,25 @@ class ConnectionClassTest(unittest.TestCase):
         self.cell2 = nest.create(nest.IF_cond_alpha, {})
     
     def test_create(self):
-        self.assertRaises(common.ConnectionError, nest.Connection, self.cell1, self.cell2, 'static_synapse')
+        self.assertRaises(common.ConnectionError, nest.simulator.Connection, self.cell1, self.cell2, 'static_synapse')
         conn = nest.connect(self.cell1, self.cell2)
-        self.assertEqual(conn.pre, self.cell1)
-        self.assertEqual(conn.post, self.cell2)
-        self.assertEqual(conn.port, 0)
+        assert len(conn) == 1
+        self.assertEqual(conn[0].pre, self.cell1)
+        self.assertEqual(conn[0].post, self.cell2)
+        self.assertEqual(conn[0].port, 0)
     
     def test_create_with_nonexistent_pre(self):
-        self.assertRaises(common.ConnectionError, nest.Connection, 999, self.cell2, 'static_synapse')
+        self.assertRaises(common.ConnectionError, nest.simulator.Connection, 999, self.cell2, 'static_synapse')
 
     def test_get_set_weight(self):
-        conn = nest.connect(self.cell1, self.cell2)
+        conn = nest.connect(self.cell1, self.cell2)[0]
         self.assertEqual(conn.weight, 0.0)
         conn.weight = 0.123
         self.assertEqual(conn.weight, 0.123)
         self.assertEqual(nest.nest.GetConnection([conn.pre], conn.synapse_model, conn.port)['weight'], 123.0) 
 
     def test_get_set_delay(self):
-        conn = nest.connect(self.cell1, self.cell2)
+        conn = nest.connect(self.cell1, self.cell2)[0]
         self.assertEqual(conn.delay, nest.get_min_delay())
         conn.delay = 2*nest.get_time_step()
         self.assertEqual(conn.delay, 2*nest.get_time_step())

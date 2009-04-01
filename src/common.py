@@ -8,6 +8,7 @@ $Id$
 
 import types, time, copy, sys
 import numpy
+import logging
 from math import *
 from pyNN import random
 from string import Template
@@ -77,6 +78,37 @@ def build_translations(*translation_list):
                                    'forward_transform': f,
                                    'reverse_transform': g}
     return translations
+
+def is_conductance(target_cell):
+    """
+    Returns True if the target cell uses conductance-based synapses, False if it
+    uses current-based synapses, and None if the synapse-basis cannot be determined.
+    """
+    if hasattr(target_cell, 'cellclass'):
+        if isinstance(target_cell.cellclass, type):
+            is_conductance = "cond" in target_cell.cellclass.__name__
+        else:
+            is_conductance = "cond" in target_cell.cellclass
+    else:
+        is_conductance = None
+    return is_conductance
+
+def check_weight(weight, synapse_type, is_conductance):
+    if weight is None:
+        weight = DEFAULT_WEIGHT
+    if is_conductance:
+        weight = abs(weight) # weights must be positive for conductance-based synapses
+    elif synapse_type == 'inhibitory' and weight > 0:
+        weight *= -1         # and negative for inhibitory, current-based synapses
+    return weight
+
+def check_delay(delay):
+    if delay is None:
+        delay = get_min_delay()
+    # If the delay is too small , we have to throw an error
+    if delay < get_min_delay() or delay > get_max_delay():
+        raise ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, get_min_delay(), get_max_delay()))
+    return delay
 
 
 class IDMixin(object):
@@ -706,14 +738,33 @@ def build_create(_create):
         return all_cells
     return create
 
-def connect(source, target, weight=None, delay=None, synapse_type=None,
-            p=1, rng=None):
-    """Connect a source of spikes to a synaptic target. source and target can
-    both be individual cells or lists of cells, in which case all possible
-    connections are made with probability p, using either the random number
-    generator supplied, or the default rng otherwise.
-    Weights should be in nA or µS."""
-    raise NotImplementedError
+def build_connect(simulator):
+    def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
+        """Connect a source of spikes to a synaptic target. source and target can
+        both be individual cells or lists of cells, in which case all possible
+        connections are made with probability p, using either the random number
+        generator supplied, or the default rng otherwise.
+        Weights should be in nA or µS."""
+        logging.debug("connecting %s to %s on host %d" % (source, target, rank()))
+        if not is_listlike(source):
+            source = [source]
+        if not is_listlike(target):
+            target = [target]
+        weight = check_weight(weight, synapse_type, is_conductance(target))
+        delay = check_delay(delay)
+        if p < 1:
+            rng = rng or numpy.random
+        connection_list = []
+        for tgt in target:
+            sources = numpy.array(source)
+            if p < 1:
+                rarr = rng.uniform(0, 1, len(source))
+                sources = sources[rarr<p]
+            for src in sources:
+                nc = simulator.single_connect(src, tgt, weight, delay, synapse_type)
+                connection_list.append(nc)
+        return connection_list
+    return connect
 
 def set(cells, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.

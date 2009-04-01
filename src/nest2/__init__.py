@@ -48,52 +48,6 @@ class ID(int, common.IDMixin):
     def set_native_parameters(self, parameters):
         nest.SetStatus([self], [parameters])
 
-
-class Connection(object):
-    """Not part of the API as of 0.4."""
-
-    def __init__(self, pre, post, synapse_model):
-        self.pre = pre
-        self.post = post
-        self.synapse_model = synapse_model
-        try:
-            conn_dict = nest.GetConnections([pre], self.synapse_model)[0]
-        except nest.NESTError, errmsg:
-            raise common.ConnectionError("Cannot create Connection object: %s" % errmsg)
-        if (len(conn_dict['targets']) == 0):
-            raise common.ConnectionError("Presynaptic neuron with ID %d does not have any connections.")
-        if conn_dict:
-            self.port = len(conn_dict['targets'])-1
-        else:
-            raise Exception("Could not get port number for connection between %s and %s" % (pre, post))
-
-    def _set_weight(self, w):
-        nest.SetConnection([self.pre], self.synapse_model, self.port, {'weight': w*1000.0})
-
-    def _get_weight(self):
-        # this needs to be modified to take account of threads
-        # also see nest.GetConnection (was nest.GetSynapseStatus)
-        conn_dict = nest.GetConnections([self.pre], self.synapse_model)[0]
-        if conn_dict:
-            return 0.001*conn_dict['weights'][self.port]
-        else:
-            return None
-
-    def _set_delay(self, d):
-        nest.SetConnection([self.pre], self.synapse_model, self.port, {'delay': d})
-
-    def _get_delay(self):
-        # this needs to be modified to take account of threads
-        # also see nest.GetConnection (was nest.GetSynapseStatus)
-        conn_dict = nest.GetConnections([self.pre],'static_synapse')[0]
-        if conn_dict:
-            return conn_dict['delays'][self.port]
-        else:
-            return None
-
-    weight = property(_get_weight, _set_weight)
-    delay = property(_get_delay, _set_delay)
-
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
     standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
@@ -322,50 +276,12 @@ def _create(cellclass, cellparams=None, n=1, parent=None):
 
 create = common.build_create(_create)
 
-def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
-    """Connect a source of spikes to a synaptic target. source and target can
-    both be individual cells or lists of cells, in which case all possible
-    connections are made with probability p, using either the random number
-    generator supplied, or the default rng otherwise.
-    Weights should be in nA or µS."""
-    if weight is None:
-        weight = 0.0
-    if delay is None:
-        delay = get_min_delay()
-    # If the delay is too small , we have to throw an error
-    if delay < get_min_delay() or delay > get_max_delay():
-        raise common.ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, get_min_delay(), get_max_delay()))
-    weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
-                         # Using convention in this way is not ideal. We should
-                         # be able to look up the units used by each model somewhere.
-    if synapse_type == 'inhibitory' and weight > 0:
-        weight *= -1
-    try:
-        if type(source) != types.ListType and type(target) != types.ListType:
-            nest.Connect([source], [target], [weight], [delay], 'static_synapse')
-            connect_id = Connection(source, target, 'static_synapse')
-        else:
-            connect_id = []
-            if type(source) != types.ListType:
-                source = [source]
-            if type(target) != types.ListType:
-                target = [target]
-            for src in source:
-                if p < 1:
-                    if rng: # use the supplied RNG
-                        rarr = rng.rng.uniform(0, 1, len(target))
-                    else:   # use the default RNG
-                        rarr = numpy.random.uniform(0, 1, len(target))
-                for j,tgt in enumerate(target):
-                    if p >= 1 or rarr[j] < p:
-                        nest.Connect([src], [tgt], [weight], [delay], 'static_synapse')
-                        connect_id += [Connection(src, tgt, 'static_synapse')]
-    except nest.NESTError, errmsg:
-        raise common.ConnectionError, errmsg
-    return connect_id
+connect = common.build_connect(simulator)
 
 set = common.set
+
 record = common.build_record('spikes', simulator)
+
 record_v = common.build_record('v', simulator)
 
 # ==============================================================================

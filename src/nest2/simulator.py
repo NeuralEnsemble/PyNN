@@ -200,3 +200,63 @@ class Recorder(object):
             # maintain a list of temporary files to be deleted at the end of the simulation
         else:
             raise Exception("Writing to file not yet supported for data recorded only to memory.")
+
+class Connection(object):
+    """Not part of the API as of 0.4."""
+
+    def __init__(self, pre, post, synapse_model):
+        self.pre = pre
+        self.post = post
+        self.synapse_model = synapse_model
+        try:
+            conn_dict = nest.GetConnections([pre], self.synapse_model)[0]
+        except nest.NESTError, errmsg:
+            raise common.ConnectionError("Cannot create Connection object: %s" % errmsg)
+        if (len(conn_dict['targets']) == 0):
+            raise common.ConnectionError("Presynaptic neuron with ID %d does not have any connections.")
+        if conn_dict:
+            self.port = len(conn_dict['targets'])-1
+        else:
+            raise Exception("Could not get port number for connection between %s and %s" % (pre, post))
+
+    def _set_weight(self, w):
+        nest.SetConnection([self.pre], self.synapse_model, self.port, {'weight': w*1000.0})
+
+    def _get_weight(self):
+        # this needs to be modified to take account of threads
+        # also see nest.GetConnection (was nest.GetSynapseStatus)
+        conn_dict = nest.GetConnections([self.pre], self.synapse_model)[0]
+        if conn_dict:
+            return 0.001*conn_dict['weights'][self.port]
+        else:
+            return None
+
+    def _set_delay(self, d):
+        nest.SetConnection([self.pre], self.synapse_model, self.port, {'delay': d})
+
+    def _get_delay(self):
+        # this needs to be modified to take account of threads
+        # also see nest.GetConnection (was nest.GetSynapseStatus)
+        conn_dict = nest.GetConnections([self.pre],'static_synapse')[0]
+        if conn_dict:
+            return conn_dict['delays'][self.port]
+        else:
+            return None
+
+    weight = property(_get_weight, _set_weight)
+    delay = property(_get_delay, _set_delay)
+
+def single_connect(source, target, weight, delay, synapse_type):
+    """
+    Private function to connect two neurons.
+    Used by `connect()` and the `Connector` classes.
+    """
+    weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+                         # Using convention in this way is not ideal. We should
+                         # be able to look up the units used by each model somewhere.
+    try:
+        nest.Connect([source], [target], [weight], [delay], 'static_synapse')
+    except nest.NESTError, errmsg:
+        raise common.ConnectionError, errmsg
+    return Connection(source, target, 'static_synapse')
+    

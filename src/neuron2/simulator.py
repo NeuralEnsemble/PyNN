@@ -246,16 +246,11 @@ def single_connect(source, target, weight, delay, synapse_type):
         raise common.ConnectionError("Invalid target ID: %s" % target)
     if synapse_type is None:
         synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
-    if weight is None:
-        weight = common.DEFAULT_WEIGHT
-    if "cond" in target.cellclass.__name__:
-        weight = abs(weight) # weights must be positive for conductance-based synapses
-    elif synapse_type == 'inhibitory' and weight > 0:
-        weight *= -1         # and negative for inhibitory, current-based synapses
-    if delay is None:
-        delay = state.min_delay
-    elif delay < state.min_delay:
-        raise common.ConnectionError("delay (%s) is too small (< %s)" % (delay, state.min_delay))
+    # the next three lines should not be needed, as the weight and delay
+    # should have been checked prior to calling this function
+    weight = common.check_weight(weight, synapse_type, common.is_conductance(target))
+    delay = common.check_delay(delay)
+    
     synapse_object = getattr(target._cell, synapse_type)
     nc = state.parallel_context.gid_connect(int(source), synapse_object)
     nc.weight[0] = weight

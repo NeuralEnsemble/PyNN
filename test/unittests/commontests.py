@@ -143,19 +143,9 @@ class LowLevelAPITest(unittest.TestCase):
         self.assertRaises(NotImplementedError, common.get_max_delay)
         self.assertRaises(NotImplementedError, common.num_processes)
         self.assertRaises(NotImplementedError, common.rank)
-        
-    def test_create(self):
-        self.assertRaises(NotImplementedError, common.create, "foo")
     
     def test_connect(self):
         self.assertRaises(NotImplementedError, common.connect, 0, 1)
-    
-    def test_set(self):
-        self.assertRaises(NotImplementedError, common.set, "foo", 0)
-    
-    def test_record(self):
-        self.assertRaises(NotImplementedError, common.record, 0, "filename")
-        self.assertRaises(NotImplementedError, common.record_v, 0, "filename")
         
 class PopulationTest(unittest.TestCase):
     

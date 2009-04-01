@@ -9,8 +9,11 @@ import numpy
 import os
 from pyNN import common, random
 
-def arrays_almost_equal(a, b, threshold):
-    return (abs(a-b) < threshold).all()
+def assert_arrays_almost_equal(a, b, threshold):
+    if not (abs(a-b) < threshold).all():
+        err_msg = "%s != %s" % (a, b)
+        err_msg += "\nlargest difference = %g" % abs(a-b).max()
+        raise unittest.TestCase.failureException(err_msg)
 
 # ==============================================================================
 class IDSetGetTest(unittest.TestCase):
@@ -57,7 +60,10 @@ class IDSetGetTest(unittest.TestCase):
                             else:
                                 i = cell.__getattr__('v_reset') + numpy.random.uniform(0.1, 100)
                         elif name == 'v_reset' or name == 'v_init': # v_reset must be less than v_thresh
-                            i = cell.__getattr__('v_thresh') - numpy.random.uniform(0.1, 100)
+                            if hasattr(cell, 'v_thresh'):
+                                i = cell.__getattr__('v_thresh') - numpy.random.uniform(0.1, 100)
+                            else:
+                                i = numpy.random.uniform(0.1, 100)
                         elif name == 'v_spike': # v_spike must be greater than v_thresh
                             i = cell.__getattr__('v_thresh') + numpy.random.uniform(0.1, 100)
                         else:
@@ -92,7 +98,10 @@ class IDSetGetTest(unittest.TestCase):
                     elif name == 'v_thresh':
                         new_parameters[name] = numpy.random.uniform(-100, 100)
                     elif name == 'v_reset' or name == 'v_init':
-                        new_parameters[name] = new_parameters['v_thresh'] - numpy.random.uniform(0.1, 100)
+                        if 'v_thresh' in parameter_names:
+                            new_parameters[name] = new_parameters['v_thresh'] - numpy.random.uniform(0.1, 100)
+                        else:
+                            new_parameters[name] = numpy.random.uniform(0.1, 100)
                     elif name == 'v_spike':
                         new_parameters[name] = new_parameters['v_thresh'] + numpy.random.uniform(0.1, 100)
                     else:
@@ -144,8 +153,7 @@ class PopulationSpikesTest(unittest.TestCase):
         self.p1.record()
         sim.run(100.0)
         output_spike_array = self.p1.getSpikes()
-        err_msg = "%s != %s" % (self.input_spike_array, output_spike_array)
-        self.assert_(arrays_almost_equal(self.input_spike_array, output_spike_array, 1e-13), err_msg)
+        assert_arrays_almost_equal(self.input_spike_array, output_spike_array, 1e-11)
     
     def testPopulationRecordTwice(self):
         """Neurons should not be recorded twice.
