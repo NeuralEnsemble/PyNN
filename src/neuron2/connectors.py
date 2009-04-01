@@ -3,7 +3,7 @@
 # $Id: connectors.py 361 2008-06-12 16:17:59Z apdavison $
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, connectors as base_connectors
 from pyNN.random import RandomDistribution, NativeRNG
 from pyNN.neuron2 import simulator
 import numpy
@@ -97,13 +97,13 @@ def probabilistic_connect(connector, projection, p):
 #   Connection method classes
 # ==============================================================================
 
-class AllToAllConnector(common.AllToAllConnector, HocConnector):    
+class AllToAllConnector(base_connectors.AllToAllConnector, HocConnector):    
     
     def connect(self, projection):
         probabilistic_connect(self, projection, 1.0)
         
 
-class OneToOneConnector(common.OneToOneConnector, HocConnector):
+class OneToOneConnector(base_connectors.OneToOneConnector, HocConnector):
     
     def connect(self, projection):
         weights = self.weights_iterator()
@@ -117,7 +117,7 @@ class OneToOneConnector(common.OneToOneConnector, HocConnector):
             raise Exception("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
 
 
-class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
+class FixedProbabilityConnector(base_connectors.FixedProbabilityConnector, HocConnector):
 
     def connect(self, projection):
         logging.info("Connecting %s to %s with probability %s" % (projection.pre.label,
@@ -125,7 +125,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
                                                                   self.p_connect))
         probabilistic_connect(self, projection, self.p_connect)
 
-class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector, HocConnector):
+class DistanceDependentProbabilityConnector(base_connectors.DistanceDependentProbabilityConnector, HocConnector):
     
     def connect(self, projection):
         periodic_boundaries = self.periodic_boundaries
@@ -184,25 +184,25 @@ class _FixedNumberConnector(HocConnector):
                         simulator.single_connect(src, tgt, weights.next(), delays.next(), projection.synapse_type))
 
 
-class FixedNumberPreConnector(common.FixedNumberPreConnector, _FixedNumberConnector):
+class FixedNumberPreConnector(base_connectors.FixedNumberPreConnector, _FixedNumberConnector):
     
     def connect(self, projection):
         self._connect(projection, projection.pre.all_cells.flatten().tolist(), projection.post.local_cells, 'pre')
 
 
-class FixedNumberPostConnector(common.FixedNumberPostConnector, _FixedNumberConnector):
+class FixedNumberPostConnector(base_connectors.FixedNumberPostConnector, _FixedNumberConnector):
      
     def connect(self, projection):
         self._connect(projection, projection.post.all_cells.flatten().tolist(), projection.pre.all_cells.flatten(), 'post')
 
 
-class FromListConnector(common.FromListConnector, HocConnector):
+class FromListConnector(base_connectors.FromListConnector, HocConnector):
     
     def connect(self, projection):
         self._process_conn_list(self.conn_list, projection)
 
     
-class FromFileConnector(common.FromFileConnector, HocConnector):
+class FromFileConnector(base_connectors.FromFileConnector, HocConnector):
     
     def connect(self, projection):
         if self.distributed:

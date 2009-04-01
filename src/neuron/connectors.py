@@ -3,7 +3,7 @@
 # $Id$
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, connectors
 from pyNN.random import RandomDistribution, NativeRNG
 from pyNN.neuron.__init__ import hoc_execute, h, get_min_delay
 import numpy
@@ -64,7 +64,7 @@ class HocConnector(object):
         return hoc_commands
 
 
-class AllToAllConnector(common.AllToAllConnector, HocConnector):    
+class AllToAllConnector(connectors.AllToAllConnector, HocConnector):    
     
     def connect(self, projection):
         weight = self.getWeight(self.weights)
@@ -86,7 +86,7 @@ class AllToAllConnector(common.AllToAllConnector, HocConnector):
         return hoc_commands
 
 
-class OneToOneConnector(common.OneToOneConnector, HocConnector):
+class OneToOneConnector(connectors.OneToOneConnector, HocConnector):
     
     def connect(self, projection):
         weight = self.getWeight(self.weights)
@@ -109,7 +109,7 @@ class OneToOneConnector(common.OneToOneConnector, HocConnector):
         return hoc_commands
 
 
-class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
+class FixedProbabilityConnector(connectors.FixedProbabilityConnector, HocConnector):
     
     def connect(self, projection):
         weight = self.getWeight(self.weights)
@@ -150,7 +150,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector, HocConnector):
         return hoc_commands
 
 
-class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector, HocConnector):
+class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector, HocConnector):
     
     def connect(self, projection):
         weight = self.getWeight(self.weights)
@@ -194,7 +194,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 idx_pre += 1
         return hoc_commands
 
-class _FixedNumberConnector(common.FixedNumberPreConnector, HocConnector):
+class _FixedNumberConnector(connectors.FixedNumberPreConnector, HocConnector):
     
     def _connect(self, projection, x_list, y_list, type):
         weight = self.getWeight(self.weights)
@@ -251,13 +251,13 @@ class FixedNumberPostConnector(_FixedNumberConnector):
         return self._connect(projection, projection.post.gidlist, projection.pre.gidlist, 'post')
 
 
-class FromListConnector(common.FromListConnector, HocConnector):
+class FromListConnector(connectors.FromListConnector, HocConnector):
     
     def connect(self, projection):
         return self._process_conn_list(self.conn_list, projection)
 
     
-class FromFileConnector(common.FromFileConnector, HocConnector):
+class FromFileConnector(connectors.FromFileConnector, HocConnector):
     
     def connect(self, projection):
         if self.distributed:

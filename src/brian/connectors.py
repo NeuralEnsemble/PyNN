@@ -1,9 +1,9 @@
 # ==============================================================================
-# Connection method classes for nest1
+# Connection method classes for brian
 # $Id: connectors.py 294 2008-04-04 12:07:56Z apdavison $
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, connectors
 from pyNN.brian.__init__ import numpy
 import brian_no_units_no_warnings
 import brian, types
@@ -43,7 +43,7 @@ def _convertWeight(weight, projection):
         raise TypeError("we must be either a number or a numpy array")
     return weight
 
-class AllToAllConnector(common.AllToAllConnector):    
+class AllToAllConnector(connectors.AllToAllConnector):    
     
     def connect(self, projection):
         projection._connections = _targetConnection(self, projection)
@@ -51,7 +51,7 @@ class AllToAllConnector(common.AllToAllConnector):
         projection._connections.connect_full(projection.pre.brian_cells,projection.post.brian_cells, weight=weight)
         return projection._connections.W.getnnz()
 
-class OneToOneConnector(common.OneToOneConnector):
+class OneToOneConnector(connectors.OneToOneConnector):
     
     def connect(self, projection):
         projection._connections = _targetConnection(self, projection)
@@ -59,7 +59,7 @@ class OneToOneConnector(common.OneToOneConnector):
         projection._connections.connect_one_to_one(projection.pre.brian_cells,projection.post.brian_cells, weight=weight)
         return projection._connections.W.getnnz()
     
-class FixedProbabilityConnector(common.FixedProbabilityConnector):
+class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
     
     def connect(self, projection):
         projection._connections = _targetConnection(self, projection)
@@ -67,7 +67,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
         projection._connections.connect_random(projection.pre.brian_cells,projection.post.brian_cells, self.p_connect, weight=weight)
         return projection._connections.W.getnnz()
     
-class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector):
+class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector):
     
     def connect(self, projection):
         
@@ -129,24 +129,24 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         return projection._connections.W.getnnz()
     
 
-class FixedNumberPreConnector(common.FixedNumberPreConnector):
+class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
     
     def connect(self, projection):
         raise Exception("Not implemented yet !")
 
-class FixedNumberPostConnector(common.FixedNumberPostConnector):
+class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
     
     def connect(self, projection):
         raise Exception("Not implemented yet !")
     
 
-class FromListConnector(common.FromListConnector):
+class FromListConnector(connectors.FromListConnector):
     
     def connect(self, projection):
         raise Exception("Not implemented yet !")
             
 
-class FromFileConnector(common.FromFileConnector):
+class FromFileConnector(connectors.FromFileConnector):
     
     def connect(self, projection):
         raise Exception("Not implemented yet !")

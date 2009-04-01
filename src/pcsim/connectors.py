@@ -3,7 +3,7 @@
 # $Id$
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, connectors
 import pypcsim
 from pyNN.pcsim.pcsim_globals import pcsim_globals
 import numpy
@@ -30,7 +30,7 @@ class ListConnectionPredicate(pypcsim.PyConnectionDecisionPredicate):
             return False
 
 
-class AllToAllConnector(common.AllToAllConnector):    
+class AllToAllConnector(connectors.AllToAllConnector):    
     
     def connect(self, projection):
         
@@ -39,7 +39,7 @@ class AllToAllConnector(common.AllToAllConnector):
         wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
         return decider, wiring_method, self.weights, self.delays
 
-class OneToOneConnector(common.OneToOneConnector):
+class OneToOneConnector(connectors.OneToOneConnector):
     
     def connect(self, projection):
         
@@ -50,7 +50,7 @@ class OneToOneConnector(common.OneToOneConnector):
         else:
             raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
 
-class FixedProbabilityConnector(common.FixedProbabilityConnector):
+class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
     
     def connect(self, projection):
         
@@ -58,7 +58,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
         wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
         return decider, wiring_method, self.weights, self.delays
 
-class FixedNumberPreConnector(common.FixedNumberPreConnector):
+class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
     
     def connect(self, projection):
         
@@ -66,14 +66,14 @@ class FixedNumberPreConnector(common.FixedNumberPreConnector):
         wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
         return decider, wiring_method, self.weights, self.delays
 
-class FixedNumberPostConnector(common.FixedNumberPostConnector):
+class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
     
     def connect(self, projection):
         decider = pypcsim.DegreeDistributionConnections(pypcsim.ConstantNumber(self.fixedpost), pypcsim.DegreeDistributionConnections.outgoing)
         wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
         return decider, wiring_method, self.weights, self.delays
     
-class FromListConnector(common.FromListConnector):
+class FromListConnector(connectors.FromListConnector):
     
     def connect(self, projection):
         conn_array = numpy.zeros((len(self.conn_list),4))
@@ -91,7 +91,7 @@ class FromListConnector(common.FromListConnector):
         # and will set the weights, delays later
         return decider, wiring_method, self.weights, self.delays
 
-class FromFileConnector(common.FromFileConnector):
+class FromFileConnector(connectors.FromFileConnector):
     
     def connect(self, projection):
         f = open(self.filename, 'r', 10000)

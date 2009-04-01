@@ -3,7 +3,7 @@
 # $Id$
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, connectors
 from pyNN.nest1.__init__ import pynest, numpy, get_min_delay, get_max_delay
 from pyNN.random import RandomDistribution, NativeRNG
 from math import *
@@ -30,7 +30,7 @@ def _convertWeight(w, synapse_type):
     return weight
 
 
-class AllToAllConnector(common.AllToAllConnector):    
+class AllToAllConnector(connectors.AllToAllConnector):    
     
     def connect(self, projection):
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
@@ -49,7 +49,7 @@ class AllToAllConnector(common.AllToAllConnector):
             projection._targetPorts +=  pynest.convergentConnect(source_list, post, weights, delays)
         return len(projection._targets)
 
-class OneToOneConnector(common.OneToOneConnector):
+class OneToOneConnector(connectors.OneToOneConnector):
     
     def connect(self, projection):
         if projection.pre.dim == projection.post.dim:
@@ -65,7 +65,7 @@ class OneToOneConnector(common.OneToOneConnector):
         else:
             raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
     
-class FixedProbabilityConnector(common.FixedProbabilityConnector):
+class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
     
     def connect(self, projection):
         postsynaptic_neurons = numpy.reshape(projection.post.cell,(projection.post.cell.size,))
@@ -94,7 +94,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
             projection._targetPorts += pynest.convergentConnect(source_list, post, weights, delays)
         return len(projection._sources)
     
-class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector):
+class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector):
     
     def connect(self, projection):
         periodic_boundaries = self.periodic_boundaries
@@ -149,18 +149,18 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
         return len(projection._sources)
     
 
-class FixedNumberPreConnector(common.FixedNumberPreConnector):
+class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
     
     def connect(self, projection):
         raise Exception("Not implemented yet !")
 
-class FixedNumberPostConnector(common.FixedNumberPostConnector):
+class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
     
     def connect(self, projection):
         raise Exception("Not implemented yet !")
     
 
-class FromListConnector(common.FromListConnector):
+class FromListConnector(connectors.FromListConnector):
     
     def connect(self, projection):
         for i in xrange(len(self.conn_list)):
@@ -172,7 +172,7 @@ class FromListConnector(common.FromListConnector):
             projection._targetPorts.append(pynest.connectWD([src], [tgt], 1000*weight, delay))
             
 
-class FromFileConnector(common.FromFileConnector):
+class FromFileConnector(connectors.FromFileConnector):
     
     def connect(self, projection):
         # now open the file...

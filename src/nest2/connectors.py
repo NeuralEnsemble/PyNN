@@ -4,7 +4,7 @@
 """
 
 import logging
-from pyNN import common
+from pyNN import common, connectors
 from pyNN.nest2.__init__ import nest, is_number, get_max_delay, get_min_delay
 import numpy
 # note that WDManager is defined in __init__.py imported here, then imported
@@ -45,7 +45,7 @@ def check_connections(prj, src, intended_targets):
     else:
         raise Exception("Problem getting connections for %s" % pre)
 
-class AllToAllConnector(common.AllToAllConnector):    
+class AllToAllConnector(connectors.AllToAllConnector):    
 
     def connect(self, projection):
         postsynaptic_neurons  = projection.post.local_cells.flatten()
@@ -67,7 +67,7 @@ class AllToAllConnector(common.AllToAllConnector):
                 check_connections(projection, pre, target_list)
         return len(projection._targets)
 
-class OneToOneConnector(common.OneToOneConnector):
+class OneToOneConnector(connectors.OneToOneConnector):
     
     def connect(self, projection):
         if projection.pre.dim == projection.post.dim:
@@ -82,7 +82,7 @@ class OneToOneConnector(common.OneToOneConnector):
         else:
             raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
     
-class FixedProbabilityConnector(common.FixedProbabilityConnector):
+class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
     
     def connect(self, projection):
         postsynaptic_neurons = projection.post.local_cells
@@ -114,7 +114,7 @@ class FixedProbabilityConnector(common.FixedProbabilityConnector):
                 check_connections(projection, pre, target_list)
         return len(projection._sources)
     
-class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityConnector):
+class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector):
     
     def connect(self, projection):
         periodic_boundaries = self.periodic_boundaries
@@ -174,7 +174,7 @@ class DistanceDependentProbabilityConnector(common.DistanceDependentProbabilityC
                 check_connections(projection, pre, target_list)
         return len(projection._sources)
 
-class FixedNumberPostConnector(common.FixedNumberPostConnector):
+class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
     
     def connect(self, projection):
         postsynaptic_neurons  = projection.post.cell.flatten()
@@ -213,7 +213,7 @@ class FixedNumberPostConnector(common.FixedNumberPostConnector):
         return len(projection._sources)
 
 
-class FixedNumberPreConnector(common.FixedNumberPreConnector):
+class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
     
     def connect(self, projection):
         presynaptic_neurons = projection.pre.cell.flatten()
@@ -273,13 +273,13 @@ def _connect_from_list(conn_list, projection):
     return projection.pre.size
 
 
-class FromListConnector(common.FromListConnector):
+class FromListConnector(connectors.FromListConnector):
     
     def connect(self, projection):
         return _connect_from_list(self.conn_list, projection)
 
 
-class FromFileConnector(common.FromFileConnector):
+class FromFileConnector(connectors.FromFileConnector):
     
     def connect(self, projection):
         f = open(self.filename, 'r', 10000)
