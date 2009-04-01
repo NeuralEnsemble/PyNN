@@ -64,7 +64,7 @@ class NumpyRNG(AbstractRNG):
         """This is to give NumpyRNG the same methods as numpy.random.RandomState."""
         return getattr(self.rng, name)
     
-    def next(self, n=1, distribution='uniform', parameters=[]):
+    def next(self, n=1, distribution='uniform', parameters=[], mask_local=None):
         """Return n random numbers from the distribution.
         
         If n >= 0, return a numpy array,
@@ -83,10 +83,14 @@ class NumpyRNG(AbstractRNG):
             raise ValueError, "The sample number must be positive"
         if self.parallel_safe and self.num_processes > 1:
             # strip out the random numbers that should be used on other processors.
-            # This assumes that the first neuron in a population is always created on
-            # the node with rank 0, and that neurons are distributed in a round-robin
-            # This assumption is not true for NEST
-            rarr = rarr[numpy.arange(self.rank, len(rarr), self.num_processes)]
+            if mask_local:
+                assert mask_local.size == n
+                rarr = rarr[mask_local]    
+            else:
+                # This assumes that the first neuron in a population is always created on
+                # the node with rank 0, and that neurons are distributed in a round-robin
+                # This assumption is not true for NEST
+                rarr = rarr[numpy.arange(self.rank, len(rarr), self.num_processes)]
         if len(rarr) == 1:
             return rarr[0]
         else:
@@ -169,17 +173,18 @@ class RandomDistribution:
         else: # use numpy.random.RandomState() by default
             self.rng = NumpyRNG()
         
-    def next(self, n=1):
+    def next(self, n=1, mask_local=None):
         """Return n random numbers from the distribution."""
-        if self.boundaries:
-            res = self.rng.next(n=n,
-                             distribution=self.name,
-                             parameters=self.parameters)
+        res = self.rng.next(n=n,
+                            distribution=self.name,
+                            parameters=self.parameters,
+                            mask_local=mask_local)
+        if self.boundaries:  
             if type(res) == numpy.float64:
                 res = numpy.array([res])
             if self.constrain == "clip":
                 return numpy.maximum(numpy.minimum(res,self.max_bound),self.min_bound)
-            elif self.constrain == "redraw":
+            elif self.constrain == "redraw": # not sure how well this works with parallel_safe, mask_local
                 if len(res) == 1:
                     while not ((res > self.min_bound) and (res < self.max_bound)):
                         res = self.rng.next(n=n, distribution=self.name, parameters=self.parameters)
@@ -192,10 +197,7 @@ class RandomDistribution:
                     return res
             else:
                 raise Exception("This constrain method (%s) does not exist" %self.constrain)
-        else:
-            return self.rng.next(n=n,
-                                 distribution=self.name,
-                                 parameters=self.parameters)
+        return res
         
     def __str__(self):
         return "RandomDistribution('%(name)s', %(parameters)s, %(rng)s)" % self.__dict__ 

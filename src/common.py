@@ -1204,6 +1204,26 @@ class ConstIter(object):
     def next(self):
         return self.x
 
+
+def next_n(sequence, N, start_index, mask_local):
+    assert isinstance(N, int), "N is %s, should be an integer" % N
+    if isinstance(sequence, random.RandomDistribution):
+        values = numpy.array(sequence.next(N, mask_local=mask_local))
+    elif isinstance(sequence, (int, float)):
+        if mask_local is not None:
+            assert mask_local.size == N
+            N = mask_local.sum()
+            assert isinstance(N, int), "N is %s, should be an integer" % N
+        values = numpy.ones((N,))*float(sequence)
+    elif hasattr(sequence, "__len__"):
+        values = numpy.array(sequence[start_index:start_index+N], float)
+        if mask_local is not None:
+            assert mask_local.size == N
+            values = values[mask_local]
+    else:
+        raise Exception("sequence is of type %s" % type(sequence))
+    return values
+
 class Connector(object):
     """Base class for Connector classes."""
     
@@ -1219,40 +1239,26 @@ class Connector(object):
     def connect(self, projection):
         """Connect all neurons in ``projection``"""
         raise NotImplementedError()
-        
-    def getWeights(self, N):
+    
+    def get_weights(self, N, mask_local=None):
         """
         Returns the next N weight values
         """
-        if isinstance(self.weights, random.RandomDistribution):
-            weights = numpy.array(self.weights.next(N))
-        elif isinstance(self.weights, (int, float)):
-            weights = numpy.ones((N,))*float(self.weights)
-        elif hasattr(self.weights, "__len__"):
-            weights = numpy.array(self.weights[self.w_index:self.w_index+N], float)
-        else:
-            raise Exception("weights is of type %s" % type(self.weights))
+        weights = next_n(self.weights, N, self.w_index, mask_local)
         self.w_index += N
         return weights
     
-    def getDelays(self, N, start=0):
+    def get_delays(self, N, mask_local=None):
         """
         Returns the next N delay values
         """
-        if isinstance(self.delays, random.RandomDistribution):
-            delays = numpy.array(self.delays.next(N))
-        elif isinstance(self.delays, (int, float)):
-            delays = numpy.ones((N,))*float(self.delays)
-        elif hasattr(self.delays, "__len__"):
-            delays = numpy.array(self.delays[self.d_index:self.d_index+N], float)
-        else:
-            raise Exception("delays is of type %s" % type(self.delays))
+        delays = next_n(self.delays, N, self.d_index, mask_local)
+        self.d_index += N
         if self.check_connections:
             assert numpy.all(delays >= get_min_delay()), \
             "Delay values must be greater than or equal to the minimum delay %g. The smallest delay is %g." % (get_min_delay(), delays.min())
             assert numpy.all(delays <= get_max_delay()), \
             "Delay values must be less than or equal to the maximum delay %s. The largest delay is %s" % (get_max_delay(), delays.max())                                                                                              
-        self.d_index += N
         return delays
     
     def weights_iterator(self):
