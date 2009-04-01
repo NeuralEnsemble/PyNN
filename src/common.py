@@ -1197,6 +1197,13 @@ class Projection(object):
 #   Connection method classes
 # ==============================================================================
 
+class ConstIter(object):
+    """An iterator that always returns the same value."""
+    def __init__(self, x):
+        self.x = x
+    def next(self):
+        return self.x
+
 class Connector(object):
     """Base class for Connector classes."""
     
@@ -1248,6 +1255,30 @@ class Connector(object):
         self.d_index += N
         return delays
     
+    def weights_iterator(self):
+        w = self.weights
+        if w is not None:
+            if hasattr(w, '__len__'): # w is an array
+                weights = w.__iter__()
+            else:
+                weights = ConstIter(w)
+        else: 
+            weights = ConstIter(1.0)
+        return weights
+    
+    def delays_iterator(self):
+        d = self.delays
+        min_delay = get_min_delay()
+        if d is not None:
+            if hasattr(d, '__len__'): # d is an array
+                if min(d) < min_delay:
+                    raise Exception("The array of delays contains one or more values that is smaller than the simulator minimum delay.")
+                delays = d.__iter__()
+            else:
+                delays = ConstIter(max((d, min_delay)))
+        else:
+            delays = ConstIter(min_delay)
+        return delays
         
 # ==============================================================================
 #   Synapse Dynamics classes

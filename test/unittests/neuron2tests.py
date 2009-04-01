@@ -897,63 +897,8 @@ class SynapticPlasticityTest(unittest.TestCase):
 class LoadMechanismsTest(unittest.TestCase):
     
     def test_load_mechanisms(self):
-        self.assertRaises(Exception, neuron.simulator.load_mechanisms, path="/dev/null")
-        
-class ConnectorsTest(unittest.TestCase):
-    
-    def test_weights_iterator_with_None(self):
-        hc = neuron.connectors.HocConnector()
-        hc.weights = None
-        iterator = hc.weights_iterator()
-        weights = [iterator.next() for i in range(3)]
-        self.assertEqual(weights, [1.0, 1.0, 1.0])
-        
-    def test_weights_iterator_with_float(self):
-        hc = neuron.connectors.HocConnector()
-        hc.weights = 0.5
-        iterator = hc.weights_iterator()
-        weights = [iterator.next() for i in range(3)]
-        self.assertEqual(weights, [0.5, 0.5, 0.5])
-        
-    def test_weights_iterator_with_array(self):
-        hc = neuron.connectors.HocConnector()
-        hc.weights = numpy.arange(0, 1.0, 0.4)
-        iterator = hc.weights_iterator()
-        weights = [iterator.next() for i in range(3)]
-        self.assertEqual(weights, [0.0, 0.4, 0.8])
-        
-    def test_delays_iterator_with_None(self):
-        hc = neuron.connectors.HocConnector()
-        hc.delays = None
-        iterator = hc.delays_iterator()
-        delays = [iterator.next() for i in range(3)]
-        self.assertEqual(delays, [0.1, 0.1, 0.1])
-        
-    def test_delays_iterator_with_float(self):
-        hc = neuron.connectors.HocConnector()
-        hc.delays = 0.5
-        iterator = hc.delays_iterator()
-        delays = [iterator.next() for i in range(3)]
-        self.assertEqual(delays, [0.5, 0.5, 0.5])
-        
-    def test_delays_iterator_with_too_small_float(self):
-        hc = neuron.connectors.HocConnector()
-        hc.delays = 1e-12
-        iterator = hc.delays_iterator()
-        delays = [iterator.next() for i in range(3)]
-        self.assertEqual(delays, [0.1, 0.1, 0.1])
-        
-    def test_delays_iterator_with_array(self):
-        hc = neuron.connectors.HocConnector()
-        hc.delays = numpy.arange(0.1, 1.0, 0.4)
-        iterator = hc.delays_iterator()
-        delays = [iterator.next() for i in range(3)]
-        self.assertEqual(delays, [0.1, 0.5, 0.9])
-        
-    def test_delays_iterator_with_array_containing_too_small_value(self):
-        hc = neuron.connectors.HocConnector()
-        hc.delays = numpy.arange(0.0, 1.0, 0.4)
-        self.assertRaises(Exception, hc.delays_iterator)
+        self.assertRaises(Exception, neuron.simulator.load_mechanisms, path="/dev/null")    
+
         
 class SetupTest(unittest.TestCase):
     

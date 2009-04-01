@@ -1,5 +1,5 @@
 """
-Unit tests for the common module
+Unit tests for the common, cells, synapses, connectors modules
 $Id:$
 """
 
@@ -7,7 +7,7 @@ import sys
 import unittest
 import numpy
 import os
-from pyNN import common, random
+from pyNN import common, random, cells, synapses, connectors
 
 def arrays_almost_equal(a, b, threshold):
     return (abs(a-b) <= threshold).all()
@@ -17,7 +17,7 @@ class ExceptionsTest(unittest.TestCase):
     
     def test_NonExistentParameterError_withStandardModel(self):
         try:
-            raise common.NonExistentParameterError("foo", common.IF_cond_alpha)
+            raise common.NonExistentParameterError("foo", cells.IF_cond_alpha)
         except common.NonExistentParameterError, err:
             self.assertEqual(err.model_name, 'IF_cond_alpha')
             self.assertEqual(err.parameter_name, 'foo')
@@ -44,7 +44,7 @@ class ExceptionsTest(unittest.TestCase):
 class NotImplementedTest(unittest.TestCase):
     
     def testPopulationStubs(self):
-        p = common.Population(10, common.IF_cond_alpha)
+        p = common.Population(10, cells.IF_cond_alpha)
         for method_name in ('rset',):
             self.assertRaises(NotImplementedError, getattr(p, method_name), 'tau_m', 'dummy_value')
         for method_name in ('_call', '_tcall'):
@@ -53,8 +53,8 @@ class NotImplementedTest(unittest.TestCase):
             self.assertRaises(NotImplementedError, getattr(p, method_name), [])
         
     def testProjectionStubs(self):
-        p = common.Population(10, common.IF_cond_alpha)
-        prj = common.Projection(p, p, common.AllToAllConnector)
+        p = common.Population(10, cells.IF_cond_alpha)
+        prj = common.Projection(p, p, connectors.AllToAllConnector)
         for method_name in ('setWeights', 'randomizeWeights', 'setDelays', 'randomizeDelays'):
             self.assertRaises(NotImplementedError, getattr(prj, method_name), 'dummy_value')
         for method_name in ('setSynapseDynamics', 'randomizeSynapseDynamics'):
@@ -90,10 +90,10 @@ class DistanceTest(unittest.TestCase):
 class StandardModelTest(unittest.TestCase):
     
     def testCheckParameters(self):
-        self.assertRaises(common.InvalidParameterValueError, common.SpikeSourceArray, {'spike_times': 0.0})
-        self.assertRaises(common.InvalidParameterValueError, common.SpikeSourceInhGamma, {'a': 'foo'})
-        self.assertRaises(ValueError, common.SpikeSourceArray, {'spike_times': 'foo'})
-        self.assertRaises(common.NonExistentParameterError, common.IF_cond_exp, {'foo': 'bar'})
+        self.assertRaises(common.InvalidParameterValueError, cells.SpikeSourceArray, {'spike_times': 0.0})
+        self.assertRaises(common.InvalidParameterValueError, cells.SpikeSourceInhGamma, {'a': 'foo'})
+        self.assertRaises(ValueError, cells.SpikeSourceArray, {'spike_times': 'foo'})
+        self.assertRaises(common.NonExistentParameterError, cells.IF_cond_exp, {'foo': 'bar'})
         
     def testTranslate(self):
         class FakeCellType(common.StandardCellType):
@@ -139,7 +139,7 @@ class LowLevelAPITest(unittest.TestCase):
 class PopulationTest(unittest.TestCase):
     
     def test_positions(self):
-        p = common.Population((4,5,6), common.IF_cond_exp)
+        p = common.Population((4,5,6), cells.IF_cond_exp)
         self.assertEqual(p.positions.shape, (3,120))
         self.assertEqual(tuple(p.positions[:,0]), (0.0,0.0,0.0))
         self.assertEqual(tuple(p.positions[:,6]), (0.0,1.0,0.0))
@@ -151,11 +151,11 @@ class PopulationTest(unittest.TestCase):
         assert not arrays_almost_equal(pos, p.positions, 0.0)
         
     def test_canrecord(self):
-        p1 = common.Population((4,5,6), common.IF_cond_exp)
+        p1 = common.Population((4,5,6), cells.IF_cond_exp)
         assert p1.can_record('spikes')
         assert p1.can_record('v')
         assert not p1.can_record('foo')
-        p2 = common.Population((4,5,6), common.SpikeSourceArray)
+        p2 = common.Population((4,5,6), cells.SpikeSourceArray)
         assert p2.can_record('spikes')
         assert not p2.can_record('v')
         
@@ -206,14 +206,80 @@ class SynapticPlasticityTest(unittest.TestCase):
        
     def test_stubs(self):
         self.assertRaises(NotImplementedError, common.ShortTermPlasticityMechanism)
-        self.assertRaises(NotImplementedError, common.TsodyksMarkramMechanism)
+        self.assertRaises(NotImplementedError, synapses.TsodyksMarkramMechanism)
         self.assertRaises(NotImplementedError, common.STDPWeightDependence)
         self.assertRaises(NotImplementedError, common.STDPTimingDependence)
-        self.assertRaises(NotImplementedError, common.AdditiveWeightDependence)
-        self.assertRaises(NotImplementedError, common.MultiplicativeWeightDependence)
-        self.assertRaises(NotImplementedError, common.AdditivePotentiationMultiplicativeDepression)
-        self.assertRaises(NotImplementedError, common.GutigWeightDependence)
-        self.assertRaises(NotImplementedError, common.SpikePairRule)
+        self.assertRaises(NotImplementedError, synapses.AdditiveWeightDependence)
+        self.assertRaises(NotImplementedError, synapses.MultiplicativeWeightDependence)
+        self.assertRaises(NotImplementedError, synapses.AdditivePotentiationMultiplicativeDepression)
+        self.assertRaises(NotImplementedError, synapses.GutigWeightDependence)
+        self.assertRaises(NotImplementedError, synapses.SpikePairRule)
+        
+
+
+
+class ConnectorsTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.original_get_min_delay = common.get_min_delay
+        common.get_min_delay = lambda: 0.1
+    
+    def tearDown(self):
+        common.get_min_delay = self.original_get_min_delay
+    
+    def test_weights_iterator_with_None(self):
+        c = common.Connector()
+        c.weights = None
+        iterator = c.weights_iterator()
+        weights = [iterator.next() for i in range(3)]
+        self.assertEqual(weights, [1.0, 1.0, 1.0])
+        
+    def test_weights_iterator_with_float(self):
+        c = common.Connector()
+        c.weights = 0.5
+        iterator = c.weights_iterator()
+        weights = [iterator.next() for i in range(3)]
+        self.assertEqual(weights, [0.5, 0.5, 0.5])
+        
+    def test_weights_iterator_with_array(self):
+        c = common.Connector()
+        c.weights = numpy.arange(0, 1.0, 0.4)
+        iterator = c.weights_iterator()
+        weights = [iterator.next() for i in range(3)]
+        self.assertEqual(weights, [0.0, 0.4, 0.8])
+        
+    def test_delays_iterator_with_None(self):
+        c = common.Connector()
+        c.delays = None
+        iterator = c.delays_iterator()
+        delays = [iterator.next() for i in range(3)]
+        self.assertEqual(delays, [0.1, 0.1, 0.1])
+        
+    def test_delays_iterator_with_float(self):
+        c = common.Connector()
+        c.delays = 0.5
+        iterator = c.delays_iterator()
+        delays = [iterator.next() for i in range(3)]
+        self.assertEqual(delays, [0.5, 0.5, 0.5])
+        
+    def test_delays_iterator_with_too_small_float(self):
+        c = common.Connector()
+        c.delays = 1e-12
+        iterator = c.delays_iterator()
+        delays = [iterator.next() for i in range(3)]
+        self.assertEqual(delays, [0.1, 0.1, 0.1])
+        
+    def test_delays_iterator_with_array(self):
+        c = common.Connector()
+        c.delays = numpy.arange(0.1, 1.0, 0.4)
+        iterator = c.delays_iterator()
+        delays = [iterator.next() for i in range(3)]
+        self.assertEqual(delays, [0.1, 0.5, 0.9])
+        
+    def test_delays_iterator_with_array_containing_too_small_value(self):
+        c = common.Connector()
+        c.delays = numpy.arange(0.0, 1.0, 0.4)
+        self.assertRaises(Exception, c.delays_iterator)
                 
 # ==============================================================================
 if __name__ == "__main__":

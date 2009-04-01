@@ -16,38 +16,38 @@ from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
 #   Utility functions/classes (not part of the API)
 # ==============================================================================
 
-class ConstIter(object):
-    """An iterator that always returns the same value."""
-    def __init__(self, x):
-        self.x = x
-    def next(self):
-        return self.x
+#class ConstIter(object):
+#    """An iterator that always returns the same value."""
+#    def __init__(self, x):
+#        self.x = x
+#    def next(self):
+#        return self.x
 
 class HocConnector(object):
     
-    def weights_iterator(self):
-        w = self.weights
-        if w is not None:
-            if hasattr(w, '__len__'): # w is an array
-                weights = w.__iter__()
-            else:
-                weights = ConstIter(w)
-        else: 
-            weights = ConstIter(1.0)
-        return weights
-    
-    def delays_iterator(self):
-        d = self.delays
-        if d is not None:
-            if hasattr(d, '__len__'): # d is an array
-                if min(d) < simulator.state.min_delay:
-                    raise Exception("The array of delays contains one or more values that is smaller than the simulator minimum delay.")
-                delays = d.__iter__()
-            else:
-                delays = ConstIter(max((d, simulator.state.min_delay)))
-        else:
-            delays = ConstIter(simulator.state.min_delay)
-        return delays
+    #def weights_iterator(self):
+    #    w = self.weights
+    #    if w is not None:
+    #        if hasattr(w, '__len__'): # w is an array
+    #            weights = w.__iter__()
+    #        else:
+    #            weights = ConstIter(w)
+    #    else: 
+    #        weights = ConstIter(1.0)
+    #    return weights
+    #
+    #def delays_iterator(self):
+    #    d = self.delays
+    #    if d is not None:
+    #        if hasattr(d, '__len__'): # d is an array
+    #            if min(d) < simulator.state.min_delay:
+    #                raise Exception("The array of delays contains one or more values that is smaller than the simulator minimum delay.")
+    #            delays = d.__iter__()
+    #        else:
+    #            delays = ConstIter(max((d, simulator.state.min_delay)))
+    #    else:
+    #        delays = ConstIter(simulator.state.min_delay)
+    #    return delays
 
     def _process_conn_list(self, conn_list, projection):
         """Extract fields from list of tuples and construct the hoc commands."""
