@@ -330,88 +330,6 @@ class Population(common.Population):
             self.recorders[variable] = simulator.Recorder(variable, population=self)
         Population.nPop += 1
 
-    def __getitem__(self, addr):
-        """Return a representation of the cell with coordinates given by addr,
-           suitable for being passed to other methods that require a cell id.
-           Note that __getitem__ is called when using [] access, e.g.
-             p = Population(...)
-             p[2,3] is equivalent to p.__getitem__((2,3)).
-        """
-        if isinstance(addr, int):
-            addr = (addr,)
-        if len(addr) == self.ndim:
-            id = self.cell[addr]
-        else:
-            raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
-        if addr != self.locate(id):
-            raise IndexError, 'Invalid cell address %s' % str(addr)
-        return id
-
-    def __iter__(self):
-        """Iterator over cell ids."""
-        return self.cell.flat
-
-    def __address_gen(self):
-        """
-        Generator to produce an iterator over all cells on this node,
-        returning addresses.
-        """
-        for i in self.__iter__():
-            yield self.locate(i)
-
-    def addresses(self):
-        """Iterator over cell addresses."""
-        return self.__address_gen()
-
-    def ids(self):
-        """Iterator over cell ids."""
-        return self.__iter__()
-
-    def locate(self, id):
-        """Given an element id in a Population, return the coordinates.
-               e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
-                         7 9
-        """
-        # The top two lines (commented out) are the original implementation,
-        # which does not scale well when the population size gets large.
-        # The next lines are the neuron implementation of the same method. This
-        # assumes that the id values in self.cell are consecutive. This should
-        # always be the case, I think? A unit test is needed to check this.
-
-        ###assert isinstance(id,int)
-        ###return tuple([a.tolist()[0] for a in numpy.where(self.cell == id)])
-
-        id -= self.first_id
-        if self.ndim == 3:
-            rows = self.dim[1]; cols = self.dim[2]
-            i = id/(rows*cols); remainder = id%(rows*cols)
-            j = remainder/cols; k = remainder%cols
-            coords = (i,j,k)
-        elif self.ndim == 2:
-            cols = self.dim[1]
-            i = id/cols; j = id%cols
-            coords = (i,j)
-        elif self.ndim == 1:
-            coords = (id,)
-        else:
-            raise common.InvalidDimensionsError
-        return coords
-
-    def index(self, n):
-        """Return the nth cell in the population (Indexing starts at 0)."""
-        if hasattr(n, '__len__'):
-            n = numpy.array(n)
-        return self.cell.flatten()[n]
-
-    def get(self, parameter_name, as_array=False):
-        """
-        Get the values of a parameter for every cell in the population.
-        """
-        values = [getattr(cell, parameter_name) for cell in self.local_cells]
-        if as_array:
-            values = numpy.array(values)
-        return values
-
     def set(self, param, val=None):
         """
         Set one or more parameters for every cell in the population. param
@@ -431,7 +349,8 @@ class Population(common.Population):
         else:
             raise common.InvalidParameterValueError
         
-        # This is not very efficient for simple and scaled parameters.
+        # The default implementation in common is is not very efficient for
+        # simple and scaled parameters.
         # Should call nest.SetStatus(self.local_cells,...) for the parameters in
         # self.celltype.__class__.simple_parameters() and .scaled_parameters()
         # and keep the loop below just for the computed parameters. Even in this
@@ -464,33 +383,6 @@ class Population(common.Population):
                     nest.SetStatus(self.local_cells, key, value)
                 except Exception:
                     raise common.InvalidParameterValueError
-
-    def tset(self, parametername, value_array):
-        """
-        'Topographic' set. Set the value of parametername to the values in
-        value_array, which must have the same dimensions as the Population.
-        """
-        # Convert everything to 1D arrays
-        cells = numpy.reshape(self.cell, self.cell.size)
-        if self.cell.shape == value_array.shape: # the values are numbers or non-array objects
-            values = numpy.reshape(value_array, self.cell.size)
-        elif len(value_array.shape) == len(self.cell.shape)+1: # the values are themselves 1D arrays
-            values = numpy.reshape(value_array, (self.cell.size, value_array.size/self.cell.size))
-        else:
-            raise common.InvalidDimensionsError, "Population: %s, value_array: %s" % (str(cells.shape),
-                                                                                      str(value_array.shape))
-        # Set the values for each cell
-        if len(cells) == len(values):
-            for cell,val in zip(cells, values):
-                if not isinstance(val, str) and hasattr(val, "__len__"):
-                    # tuples, arrays are all converted to lists, since this is
-                    # what SpikeSourceArray expects. This is not very robust
-                    # though - we might want to add things that do accept arrays.
-                    val = list(val)
-                if cell in self.local_cells:
-                    setattr(cell, parametername, val)
-        else:
-            raise common.InvalidDimensionsError
 
     def rset(self, parametername, rand_distr):
         """
@@ -553,91 +445,11 @@ class Population(common.Population):
     
         self.recorders[variable].record(tmp_list)
         nest.SetStatus(self.recorders[variable]._device, {'to_file': to_file, 'to_memory' : not to_file})
-
-    def record(self, record_from=None, rng=None, to_file=True):
-        """
-        If record_from is not given, record spikes from all cells in the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids
-        of the cells to record.
-        """
-        self._record('spikes', record_from, rng, to_file)
-
-    def record_v(self, record_from=None, rng=None, to_file=True):
-        """
-        If record_from is not given, record the membrane potential for all cells in
-        the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids of the cells to record.
-        """
-        self._record('v', record_from, rng, to_file)
-
-    def record_c(self, record_from=None, rng=None, to_file=True):
-        """
-        If record_from is not given, record the synaptic conductance for all cells in
-        the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids of the cells to record.
-        """
-        self._record('conductance', record_from, rng, to_file)
-
-    def printSpikes(self, filename, gather=True, compatible_output=True):
-        """
-        Write spike times to file.
-
-        If compatible_output is True, the format is "spiketime cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        This allows easy plotting of a `raster' plot of spiketimes, with one
-        line for each cell.
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        spike files.
-
-        For parallel simulators, if gather is True, all data will be gathered
-        to the master node and a single output file created there. Otherwise, a
-        file will be written on each node, containing only the cells simulated
-        on that node.
-        """
-        self.recorders['spikes'].write(filename, gather, compatible_output)
-
-    def getSpikes(self, gather=True, compatible_output=True):
-        """
-        Return a 2-column numpy array containing cell ids and spike times for
-        recorded cells.
-
-        Useful for small populations, for example for single neuron Monte-Carlo.
-
-        NOTE: getSpikes or printSpikes should be called only once per run,
-        because they mangle simulator recorder files.
-        """
-        return self.recorders['spikes'].get(gather, compatible_output)
-
-    def get_v(self, gather=True, compatible_output=True):
-        """
-        Return a 2-column numpy array containing cell ids and Vm for
-        recorded cells.
-        """
-        return self.recorders['v'].get(gather, compatible_output)
-            
-    def get_c(self, gather=True, compatible_output=True):
-        """
-        Return a 3-column numpy array containing cell ids and synaptic
-        conductances for recorded cells.
-        """
-        return self.recorders['conductance'].get(gather, compatible_output)
     
     def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
-        
         ## Routine to give an average firing rate over all the threads/nodes
         ## This is a rough approximation, because in fact each nodes is only multiplying 
         ## the frequency of the recorders by the number of processes. To do better, we need a MPI
@@ -652,49 +464,6 @@ class Population(common.Population):
             n_spikes += nest.spp()
         n_rec = len(self.recorders['spikes'].recorded)
         return float(n_spikes)/n_rec
-
-    def randomInit(self, rand_distr):
-        """
-        Set initial membrane potentials for all the cells in the population to
-        random values.
-        """
-        self.rset('v_init', rand_distr)
-
-    def print_v(self, filename, gather=True, compatible_output=True):
-        """
-        Write membrane potential traces to file.
-
-        If compatible_output is True, the format is "v cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        voltage files.
-
-        For parallel simulators, if gather is True, all data will be gathered
-        to the master node and a single output file created there. Otherwise, a
-        file will be written on each node, containing only the cells simulated
-        on that node.
-        """
-        self.recorders['v'].write(filename, gather, compatible_output)
-
-    def print_c(self, filename, gather=True, compatible_output=True):
-        """
-        Write conductance traces to file.
-        If compatible_output is True, the format is "t g cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        voltage files.
-        """
-        self.recorders['conductance'].write(filename, gather, compatible_output)
 
     def getSubPopulation(self, cell_list, label=None):
         

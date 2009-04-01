@@ -355,7 +355,7 @@ class PopulationSetTest(unittest.TestCase):
                                          distribution='uniform',
                                          parameters=[0.9,1.1])
         self.net.rset('cm',rd1)
-        output_values = self.net.get('cm', as_array=True)
+        output_values = self.net.get('cm', as_array=True).flatten()
         input_values = rd2.next(9)
         self.assert_( arrays_almost_equal(input_values, output_values, 1e-6),
                      "%s != %s" % (input_values, output_values) )

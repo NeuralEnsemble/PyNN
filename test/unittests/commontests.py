@@ -45,18 +45,10 @@ class NotImplementedTest(unittest.TestCase):
     
     def testPopulationStubs(self):
         p = common.Population(10, common.IF_cond_alpha)
-        for method_name in ('__iter__', 'addresses', 'ids'):
-            self.assertRaises(NotImplementedError, getattr(p, method_name))
-        for method_name in ('locate', 'index', '__getitem__'):
-            self.assertRaises(NotImplementedError, getattr(p, method_name), 0)
-        for method_name in ('set', 'tset', 'rset'):
+        for method_name in ('rset',):
             self.assertRaises(NotImplementedError, getattr(p, method_name), 'tau_m', 'dummy_value')
         for method_name in ('_call', '_tcall'):
             self.assertRaises(NotImplementedError, getattr(p, method_name), 'do_foo', 'dummy_value')
-        for method_name in ('record', 'record_v', 'getSpikes', 'meanSpikeCount'):
-            self.assertRaises(NotImplementedError, getattr(p, method_name))
-        for method_name in ('printSpikes', 'print_v'):
-            self.assertRaises(NotImplementedError, getattr(p, method_name), 'filename')
         for method_name in ('getSubPopulation',):
             self.assertRaises(NotImplementedError, getattr(p, method_name), [])
         
@@ -143,9 +135,6 @@ class LowLevelAPITest(unittest.TestCase):
         self.assertRaises(NotImplementedError, common.get_max_delay)
         self.assertRaises(NotImplementedError, common.num_processes)
         self.assertRaises(NotImplementedError, common.rank)
-    
-    def test_connect(self):
-        self.assertRaises(NotImplementedError, common.connect, 0, 1)
         
 class PopulationTest(unittest.TestCase):
     

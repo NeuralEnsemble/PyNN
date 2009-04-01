@@ -842,26 +842,73 @@ class Population(object):
              p = Population(...)
              p[2,3] is equivalent to p.__getitem__((2,3)).
         """
-        raise NotImplementedError
+        if isinstance(addr, int):
+            addr = (addr,)
+        if len(addr) == self.ndim:
+            id = self.all_cells[addr]
+        else:
+            raise InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
+        if addr != self.locate(id):
+            raise IndexError, 'Invalid cell address %s' % str(addr)
+        return id
     
     def __iter__(self):
-        """Iterator over cell ids."""
-        raise NotImplementedError()
+        """Iterator over cell ids on the local node."""
+        return iter(self.local_cells.flat)
         
+    def __address_gen(self):
+        """
+        Generator to produce an iterator over all cells on this node,
+        returning addresses.
+        """
+        for i in self.__iter__():
+            yield self.locate(i)
+
     def addresses(self):
-        """Iterator over cell addresses."""
-        raise NotImplementedError()
+        """Iterator over cell addresses on the local node."""
+        return self.__address_gen()
     
     def ids(self):
-        """Iterator over cell ids."""
+        """Iterator over cell ids on the local node."""
         return self.__iter__()
+    
+    def all(self):
+        """Iterator over cell ids on all nodes."""
+        return self.all_cells.flat
     
     def locate(self, id):
         """Given an element id in a Population, return the coordinates.
                e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
                          7 9
         """
-        raise NotImplementedError()
+        # this implementation assumes that ids are consecutive
+        # a slower (for large populations) implementation that does not make
+        # this assumption is:
+        #   return tuple([a.tolist()[0] for a in numpy.where(self.all_cells == id)])
+        id = id - self.first_id
+        if self.ndim == 3:
+            rows = self.dim[1]; cols = self.dim[2]
+            i = id/(rows*cols); remainder = id%(rows*cols)
+            j = remainder/cols; k = remainder%cols
+            coords = (i,j,k)
+        elif self.ndim == 2:
+            cols = self.dim[1]
+            i = id/cols; j = id%cols
+            coords = (i,j)
+        elif self.ndim == 1:
+            coords = (id,)
+        else:
+            raise common.InvalidDimensionsError
+        return coords
+    
+    def index(self, n):
+        """
+        Return the nth cell in the population (Indexing starts at 0).
+        n may be a list or array, e.g., [i,j,k], in which case, returns the
+        ith, jth and kth cells in the population."""
+        if hasattr(n, '__len__'):
+            n = numpy.array(n)
+        return self.all_cells.flatten()[n]
     
     def __len__(self):
         """Return the total number of cells in the population."""
@@ -889,10 +936,6 @@ class Population(object):
                          giving the x,y,z coordinates of all the neurons (soma, in the
                          case of non-point models).""")
     
-    def index(self, n):
-        """Return the nth cell in the population (Indexing starts at 0)."""
-        raise NotImplementedError()
-    
     def nearest(self, position):
         """Return the neuron closest to the specified position."""
         # doesn't always work correctly if a position is equidistant between two
@@ -903,6 +946,17 @@ class Population(object):
         distances = dist_arr.sum(axis=0)
         nearest = distances.argmin()
         return self.index(nearest)
+    
+    def get(self, parameter_name, as_array=False):
+        """
+        Get the values of a parameter for every cell in the population.
+        """
+        # if all the cells have the same value for this parameter, should
+        # we return just the number, rather than an array?
+        values = [getattr(cell, parameter_name) for cell in self]
+        if as_array:
+            values = numpy.array(values).reshape(self.dim)
+        return values
             
     def set(self, param, val=None):
         """
@@ -913,14 +967,47 @@ class Population(object):
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
-        raise NotImplementedError()
+        if isinstance(param, str):
+            if isinstance(val, (str, float, int)):
+                param_dict = {param: float(val)}
+            elif isinstance(val, (list, numpy.ndarray)):
+                param_dict = {param: val}
+            else:
+                raise InvalidParameterValueError
+        elif isinstance(param, dict):
+            param_dict = param
+        else:
+            raise InvalidParameterValueError
+        logging.info("%s.set(%s)", self.label, param_dict)
+        for cell in self:
+            cell.set_parameters(**param_dict)
 
     def tset(self, parametername, value_array):
         """
         'Topographic' set. Set the value of parametername to the values in
         value_array, which must have the same dimensions as the Population.
         """
-        raise NotImplementedError()
+        if self.dim == value_array.shape: # the values are numbers or non-array objects
+            local_values = value_array[self._mask_local]
+            assert local_values.size == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
+        elif len(value_array.shape) == len(self.dim)+1: # the values are themselves 1D arrays
+            local_values = value_array[self._mask_local] # not sure this works
+        else:
+            raise InvalidDimensionsError, "Population: %s, value_array: %s" % (str(self.dim),
+                                                                               str(value_array.shape))
+        assert local_values.shape[0] == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
+        
+        try:
+            logging.info("%s.tset('%s', array(shape=%s, min=%s, max=%s))",
+                         self.label, parametername, value_array.shape,
+                         value_array.min(), value_array.max())
+        except TypeError: # min() and max() won't work for non-numeric values
+            logging.info("%s.tset('%s', non_numeric_array(shape=%s))",
+                         self.label, parametername, value_array.shape)
+        
+        # Set the values for each cell
+        for cell, val in zip(self, local_values):
+            setattr(cell, parametername, val)
     
     def rset(self, parametername, rand_distr):
         """
@@ -952,21 +1039,21 @@ class Population(object):
         Set initial membrane potentials for all the cells in the population to
         random values.
         """
-        self.rset('v_init', rand_dist)
+        self.rset('v_init', rand_distr)
 
     def can_record(self, variable):
         return (variable in self.celltype.recordable)
 
-    def record(self, record_from=None, rng=None):
+    def record(self, record_from=None, rng=None, to_file=True):
         """
         If record_from is not given, record spikes from all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        raise NotImplementedError()
+        self._record('spikes', record_from, rng, to_file)
 
-    def record_v(self, record_from=None, rng=None):
+    def record_v(self, record_from=None, rng=None, to_file=True):
         """
         If record_from is not given, record the membrane potential for all cells in
         the Population.
@@ -974,7 +1061,17 @@ class Population(object):
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        raise NotImplementedError()
+        self._record('v', record_from, rng, to_file)
+
+    def record_c(self, record_from=None, rng=None, to_file=True):
+        """
+        If record_from is not given, record the synaptic conductance for all cells in
+        the Population.
+        record_from can be an integer - the number of cells to record from, chosen
+        at random (in this case a random number generator can also be supplied)
+        - or a list containing the ids of the cells to record.
+        """
+        self._record('conductance', record_from, rng, to_file)
 
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
@@ -997,17 +1094,16 @@ class Population(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """        
-        raise NotImplementedError()
+        self.recorders['spikes'].write(filename, gather, compatible_output)
     
-
-    def getSpikes(self, gather=True):
+    def getSpikes(self, gather=True, compatible_output=True):
         """
         Return a 2-column numpy array containing cell ids and spike times for
         recorded cells.
 
         Useful for small populations, for example for single neuron Monte-Carlo.
         """
-        raise NotImplementedError()
+        return self.recorders['spikes'].get(gather, compatible_output)
 
     def print_v(self, filename, gather=True, compatible_output=True):
         """
@@ -1028,14 +1124,44 @@ class Population(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        raise NotImplementedError()
+        self.recorders['v'].write(filename, gather, compatible_output)
     
+    def get_v(self, gather=True, compatible_output=True):
+        """
+        Return a 2-column numpy array containing cell ids and Vm for
+        recorded cells.
+        """
+        return self.recorders['v'].get(gather, compatible_output)
+    
+    def print_c(self, filename, gather=True, compatible_output=True):
+        """
+        Write synaptic conductance traces to file.
+        If compatible_output is True, the format is "t g cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
+
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        voltage files.
+        """
+        self.recorders['conductance'].write(filename, gather, compatible_output)
+    
+    def get_c(self, gather=True, compatible_output=True):
+        """
+        Return a 3-column numpy array containing cell ids and synaptic
+        conductances for recorded cells.
+        """
+        return self.recorders['conductance'].get(gather, compatible_output)
+        
     def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
-        # gather is not relevant, but is needed for API consistency
-        raise NotImplementedError()
+        n_spikes = len(self.recorders['spikes'].get(gather))
+        n_rec = len(self.recorders['spikes'].recorded)
+        return float(n_spikes)/n_rec
     
     def describe(self, template='standard'):
         """

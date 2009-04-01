@@ -65,8 +65,10 @@ class Recorder(object):
             for id in new_ids:
                 id._cell.record_v(1)
         
-    def get(self, gather=False):
+    def get(self, gather=False, compatible_output=True):
         """Returns the recorded data."""
+        # compatible_output is not used, but is needed for compatibility with the nest2 module.
+        # Does nest2 really need it?
         if self.population:
                 offset = self.population.first_id
                 
