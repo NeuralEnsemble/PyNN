@@ -68,6 +68,17 @@ class MultiSimTests(unittest.TestCase):
         nets = [net for net in self.ms]
         self.assertEqual(nets, self.ms.nets.values())
 
+import time
+
+class TimerTest(unittest.TestCase):
+    
+    def test_timer(self):
+        timer = utility.Timer()
+        time.sleep(0.1)
+        assert timer.elapsedTime() > 0
+        assert isinstance(timer.elapsedTime(format='long'), basestring)
+        timer.reset()
+
 # ==============================================================================
 if __name__ == "__main__":
     unittest.main()

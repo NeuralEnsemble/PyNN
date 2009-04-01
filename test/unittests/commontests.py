@@ -214,18 +214,7 @@ class SynapticPlasticityTest(unittest.TestCase):
         self.assertRaises(NotImplementedError, common.AdditivePotentiationMultiplicativeDepression)
         self.assertRaises(NotImplementedError, common.GutigWeightDependence)
         self.assertRaises(NotImplementedError, common.SpikePairRule)
-        
-import time
-
-class TimerTest(unittest.TestCase):
-    
-    def test_timer(self):
-        timer = common.Timer()
-        time.sleep(0.1)
-        assert timer.elapsedTime() > 0
-        assert isinstance(timer.elapsedTime(format='long'), basestring)
-        timer.reset()
-        
+                
 # ==============================================================================
 if __name__ == "__main__":
     unittest.main()

@@ -12,6 +12,7 @@ except ImportError:
     EMAIL = None
 import sys
 import logging
+import time
 
 red     = 0010; green  = 0020; yellow = 0030; blue = 0040;
 magenta = 0050; cyan   = 0060; bright = 0100

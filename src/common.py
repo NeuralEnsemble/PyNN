@@ -6,7 +6,7 @@ arguments.
 $Id$
 """
 
-import types, time, copy, sys
+import types, copy, sys
 import numpy
 import logging
 from math import *
