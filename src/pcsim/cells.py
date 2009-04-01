@@ -3,12 +3,12 @@
 # $Id$
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, cells
 import pypcsim
 import numpy
 import logging
 
-class IF_curr_alpha(common.IF_curr_alpha):
+class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
@@ -29,12 +29,12 @@ class IF_curr_alpha(common.IF_curr_alpha):
     setterMethods = {}
         
     def __init__(self, parameters):
-        common.IF_curr_alpha.__init__(self, parameters)              
+        cells.IF_curr_alpha.__init__(self, parameters)              
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = pypcsim.LIFCurrAlphaNeuron(**self.parameters)
 
 
-class IF_curr_exp(common.IF_curr_exp):
+class IF_curr_exp(cells.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
        decaying-exponential post-synaptic current. (Separate synaptic currents for
        excitatory and inhibitory synapses."""
@@ -56,12 +56,12 @@ class IF_curr_exp(common.IF_curr_exp):
     setterMethods = {}
     
     def __init__(self, parameters):
-        common.IF_curr_exp.__init__(self, parameters)                
+        cells.IF_curr_exp.__init__(self, parameters)                
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = pypcsim.LIFCurrExpNeuron(**self.parameters)
 
 
-class IF_cond_alpha(common.IF_cond_alpha):
+class IF_cond_alpha(cells.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
     
@@ -84,12 +84,12 @@ class IF_cond_alpha(common.IF_cond_alpha):
     setterMethods = {}
         
     def __init__(self, parameters):
-        common.IF_cond_alpha.__init__(self, parameters)
+        cells.IF_cond_alpha.__init__(self, parameters)
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = pypcsim.LIFCondAlphaNeuron(**self.parameters)
 
 
-class IF_cond_exp(common.IF_cond_exp):
+class IF_cond_exp(cells.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and 
     exponentially-decaying post-synaptic conductance."""
     
@@ -112,13 +112,13 @@ class IF_cond_exp(common.IF_cond_exp):
     setterMethods = {}
         
     def __init__(self, parameters):
-        common.IF_cond_exp.__init__(self, parameters)
+        cells.IF_cond_exp.__init__(self, parameters)
         self.parameters['Inoise'] = 0.0
         self.simObjFactory = pypcsim.LIFCondExpNeuron(**self.parameters)
 
 
 """ Implemented not tested """
-class SpikeSourcePoisson(common.SpikeSourcePoisson):
+class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
     translations = common.build_translations(
@@ -131,7 +131,7 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     setterMethods = {}
    
     def __init__(self, parameters):
-        common.SpikeSourcePoisson.__init__(self, parameters)      
+        cells.SpikeSourcePoisson.__init__(self, parameters)      
         self.simObjFactory = pypcsim.PoissonInputNeuron(**self.parameters)
 
     
@@ -150,7 +150,7 @@ def sanitize_spike_times(spike_times):
         logging.debug(spike_times[(1-mask).astype('bool')])
     return spike_times[mask]
 
-class SpikeSourceArray(common.SpikeSourceArray):
+class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
     translations = common.build_translations(
         ('spike_times', 'spikeTimes'), # 1e-3), 
@@ -161,7 +161,7 @@ class SpikeSourceArray(common.SpikeSourceArray):
     getterMethods = {'spikeTimes':'getSpikeTimes' }
     
     def __init__(self, parameters):
-        common.SpikeSourceArray.__init__(self, parameters)
+        cells.SpikeSourceArray.__init__(self, parameters)
         self.pcsim_object_handle = pypcsim.SpikingInputNeuron(**self.parameters)
         self.simObjFactory  = pypcsim.SpikingInputNeuron(**self.parameters)
     
@@ -189,7 +189,7 @@ class SpikeSourceArray(common.SpikeSourceArray):
         return standard_parameters
 
 
-class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
+class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     """
     Exponential integrate and fire neuron with spike triggered and sub-threshold
     adaptation currents (isfa, ista reps.) according to:
@@ -225,7 +225,7 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     setterMethods = {}
     
     def __init__(self, parameters):
-        common.EIF_cond_alpha_isfa_ista.__init__(self, parameters)              
+        cells.EIF_cond_alpha_isfa_ista.__init__(self, parameters)              
         self.parameters['Inoise'] = 0.0
         limited_parameters = {} # problem that Trefract is not implemented
         for k in ('a','b','Vt','Vr','El','gl','Cm','tau_w','slope','Vpeak',

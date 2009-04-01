@@ -3,7 +3,7 @@
 # $Id: cells.py 191 2008-01-29 10:36:00Z apdavison $
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, cells
 from neuron import h, nrn, hclass
 from math import pi
 import logging
@@ -299,7 +299,7 @@ class VectorSpikeSource(hclass(h.VecStim)):
             
 # == Standard cells ============================================================
 
-class IF_curr_alpha(common.IF_curr_alpha):
+class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
@@ -318,12 +318,12 @@ class IF_curr_alpha(common.IF_curr_alpha):
     model = StandardIF
     
     def __init__(self, parameters):
-        common.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
+        cells.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
                                                         # values for not-specified parameters.
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'alpha'
 
-class IF_curr_exp(common.IF_curr_exp):
+class IF_curr_exp(cells.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses."""
@@ -343,12 +343,12 @@ class IF_curr_exp(common.IF_curr_exp):
     model = StandardIF
     
     def __init__(self, parameters):
-        common.IF_curr_exp.__init__(self, parameters)
+        cells.IF_curr_exp.__init__(self, parameters)
         self.parameters['syn_type']  = 'current'
         self.parameters['syn_shape'] = 'exp'
 
 
-class IF_cond_alpha(common.IF_cond_alpha):
+class IF_cond_alpha(cells.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
     
@@ -369,13 +369,13 @@ class IF_cond_alpha(common.IF_cond_alpha):
     model = StandardIF
     
     def __init__(self, parameters):
-        common.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default
+        cells.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
 
 
-class IF_cond_exp(common.IF_cond_exp):
+class IF_cond_exp(cells.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and 
     exponentially-decaying post-synaptic conductance."""
     
@@ -396,13 +396,13 @@ class IF_cond_exp(common.IF_cond_exp):
     model = StandardIF
     
     def __init__(self, parameters):
-        common.IF_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
+        cells.IF_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
                                                        # values for not-specified parameters.
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
 
 
-class IF_facets_hardware1(common.IF_facets_hardware1):
+class IF_facets_hardware1(cells.IF_facets_hardware1):
     """Leaky integrate and fire model with conductance-based synapses and fixed
     threshold as it is resembled by the FACETS Hardware Stage 1. For further
     details regarding the hardware model see the FACETS-internal Wiki:
@@ -421,7 +421,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
     model = StandardIF
 
     def __init__(self, parameters):
-        common.IF_facets_hardware1.__init__(self, parameters)
+        cells.IF_facets_hardware1.__init__(self, parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
         self.parameters['i_offset']  = 0.0
@@ -430,7 +430,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         self.parameters['e_e']       = 0.0
         
 
-class SpikeSourcePoisson(common.SpikeSourcePoisson):
+class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
     translations = common.build_translations(
@@ -441,7 +441,7 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     model = RandomSpikeSource
 
 
-class SpikeSourceArray(common.SpikeSourceArray):
+class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
     translations = common.build_translations(
@@ -450,7 +450,7 @@ class SpikeSourceArray(common.SpikeSourceArray):
     model = VectorSpikeSource
        
         
-class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
+class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     """
     Exponential integrate and fire neuron with spike triggered and sub-threshold
     adaptation currents (isfa, ista reps.) according to:
@@ -484,17 +484,17 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     model = BretteGerstnerIF
     
     def __init__(self, parameters):
-        common.EIF_cond_alpha_isfa_ista.__init__(self, parameters)
+        cells.EIF_cond_alpha_isfa_ista.__init__(self, parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'alpha'
 
-class EIF_cond_exp_isfa_ista(common.EIF_cond_exp_isfa_ista):
+class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     """Like EIF_cond_alpha_isfa_ista, but with single-exponential synapses."""
     
     translations = EIF_cond_alpha_isfa_ista.translations
     model = BretteGerstnerIF
     
     def __init__(self, parameters):
-        common.EIF_cond_exp_isfa_ista.__init__(self, parameters)
+        cells.EIF_cond_exp_isfa_ista.__init__(self, parameters)
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'

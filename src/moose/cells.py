@@ -1,5 +1,6 @@
-from pyNN import common
-class HH_cond_exp(common.HH_cond_exp):
+from pyNN import common, cells
+
+class HH_cond_exp(cells.HH_cond_exp):
     """Single compartment cell with an Na channel and a K channel"""
     translations = common.build_translations(
         ('gbar_Na',    'GbarNa', 1e-9),   

@@ -3,9 +3,9 @@
  $Id$
 """
 
-from pyNN import common
+from pyNN import common, cells
  
-class IF_curr_alpha(common.IF_curr_alpha):
+class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
 
@@ -24,7 +24,7 @@ class IF_curr_alpha(common.IF_curr_alpha):
     nest_name = "iaf_psc_alpha"
 
 
-class IF_curr_exp(common.IF_curr_exp):
+class IF_curr_exp(cells.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses."""
@@ -44,7 +44,7 @@ class IF_curr_exp(common.IF_curr_exp):
     nest_name = 'iaf_psc_exp'
 
 
-class IF_cond_alpha(common.IF_cond_alpha):
+class IF_cond_alpha(cells.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
 
@@ -65,7 +65,7 @@ class IF_cond_alpha(common.IF_cond_alpha):
     nest_name = "iaf_cond_alpha"
         
 
-class IF_cond_exp(common.IF_cond_exp):
+class IF_cond_exp(cells.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and 
     exponentially-decaying post-synaptic conductance."""
     
@@ -86,7 +86,7 @@ class IF_cond_exp(common.IF_cond_exp):
     nest_name = "iaf_cond_exp"
 
 
-class IF_cond_exp_gsfa_grr(common.IF_cond_exp_gsfa_grr):
+class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
     """Linear leaky integrate and fire model with fixed threshold,
     decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
     and a conductance-based relative refractory mechanism.
@@ -119,7 +119,7 @@ class IF_cond_exp_gsfa_grr(common.IF_cond_exp_gsfa_grr):
     nest_name = "iaf_cond_exp_sfa_rr"
 
 
-class IF_facets_hardware1(common.IF_facets_hardware1):
+class IF_facets_hardware1(cells.IF_facets_hardware1):
     """Leaky integrate and fire model with conductance-based synapses and fixed 
     threshold as it is resembled by the FACETS Hardware Stage 1. For further 
     details regarding the hardware model see the FACETS-internal Wiki:
@@ -139,7 +139,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
     nest_name = "iaf_cond_exp_sfa_rr"
 
     def __init__(self, parameters):
-        common.IF_facets_hardware1.__init__(self, parameters)
+        cells.IF_facets_hardware1.__init__(self, parameters)
         self.parameters['C_m']   = 200.0
         self.parameters['t_ref'] =   1.0
         self.parameters['E_ex']  =   0.0
@@ -147,7 +147,7 @@ class IF_facets_hardware1(common.IF_facets_hardware1):
         self.parameters['q_sfa'] =   0.0
         
 
-class HH_cond_exp(common.HH_cond_exp):
+class HH_cond_exp(cells.HH_cond_exp):
     """docstring needed here."""
     
     translations = common.build_translations(
@@ -169,7 +169,7 @@ class HH_cond_exp(common.HH_cond_exp):
     nest_name = "hh_cond_exp_traub"
         
         
-class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
+class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     """
     Exponential integrate and fire neuron with spike triggered and sub-threshold
     adaptation currents (isfa, ista reps.) according to:
@@ -203,7 +203,7 @@ class EIF_cond_alpha_isfa_ista(common.EIF_cond_alpha_isfa_ista):
     nest_name = "aeif_cond_alpha"
 
 
-class SpikeSourcePoisson(common.SpikeSourcePoisson):
+class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
     translations = common.build_translations(
@@ -214,11 +214,11 @@ class SpikeSourcePoisson(common.SpikeSourcePoisson):
     nest_name = 'poisson_generator'
     
     def __init__(self, parameters):
-        common.SpikeSourcePoisson.__init__(self, parameters)
+        cells.SpikeSourcePoisson.__init__(self, parameters)
         self.parameters['origin'] = 1.0
 
 
-class SpikeSourceInhGamma(common.SpikeSourceInhGamma):
+class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
     """Spike source, generating realizations of an inhomogeneous gamma process, employing
     the thinning method.
 
@@ -237,11 +237,11 @@ class SpikeSourceInhGamma(common.SpikeSourceInhGamma):
     nest_name = 'inh_gamma_generator'
     
     def __init__(self, parameters):
-        common.SpikeSourceInhGamma.__init__(self, parameters)
+        cells.SpikeSourceInhGamma.__init__(self, parameters)
         self.parameters['origin'] = 1.0
 
 
-class SpikeSourceArray(common.SpikeSourceArray):
+class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
     translations = common.build_translations(
