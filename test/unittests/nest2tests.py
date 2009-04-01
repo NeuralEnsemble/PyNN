@@ -852,7 +852,7 @@ class RecorderTest(unittest.TestCase):
         nest.setup()
     
     def test_create_spike_recorder_in_memory(self):
-        rec = nest.Recorder('spikes', file=False)
+        rec = nest.simulator.Recorder('spikes', file=False)
         rec._create_device()
         params = nest.nest.GetStatus([rec._device])[0]
         self.assertEqual(params['model'], 'spike_detector')
@@ -860,12 +860,12 @@ class RecorderTest(unittest.TestCase):
         self.assertEqual(params['to_memory'], True)
         
     def test_premature_get(self):
-        rec = nest.Recorder('spikes', file=False)
+        rec = nest.simulator.Recorder('spikes', file=False)
         self.assertRaises(Exception, rec.get)
         
     def test_get_before_run(self):
-        rec1 = nest.Recorder('spikes', file=False)
-        rec2 = nest.Recorder('spikes', file=None) # creates temporary file
+        rec1 = nest.simulator.Recorder('spikes', file=False)
+        rec2 = nest.simulator.Recorder('spikes', file=None) # creates temporary file
         cell = nest.create(nest.IF_curr_exp, {})
         for rec in rec1, rec2:
             rec.record([cell])
@@ -873,15 +873,15 @@ class RecorderTest(unittest.TestCase):
             self.assertEqual(data.shape, (0,2))
 
     def test_merge_files(self):
-        rec = nest.Recorder('spikes', file=None)
+        rec = nest.simulator.Recorder('spikes', file=None)
         cells = nest.create(nest.IF_curr_exp, {}, n=5)
         rec.record(cells)
         nest.run(1.0)
-        filename = nest._merge_files(rec._device, False)
+        filename = nest.simulator._merge_files(rec._device, False)
 
     def test_write_not_compatible(self):
-        rec1 = nest.Recorder('spikes', file=False)
-        rec2 = nest.Recorder('spikes', file='nest_recorder_test.tmp')
+        rec1 = nest.simulator.Recorder('spikes', file=False)
+        rec2 = nest.simulator.Recorder('spikes', file='nest_recorder_test.tmp')
         cell = nest.create(nest.IF_curr_exp, {})
         for rec in rec1, rec2:
             rec.record([cell])
@@ -891,14 +891,14 @@ class RecorderTest(unittest.TestCase):
         os.remove('nest_recorder_test.tmp')
         
     def test_write_invalid_file(self):
-        rec = nest.Recorder('spikes', file=None)
+        rec = nest.simulator.Recorder('spikes', file=None)
         cell = nest.create(nest.IF_curr_exp, {})
         rec.record([cell])
         nest.run(1.0)
         self.assertRaises(Exception, rec.write, file={}, compatible_output=False)
 
     def test_manipulate_header(self):
-        rec = nest.Recorder('spikes', file='nest_recorder_test.tmp')
+        rec = nest.simulator.Recorder('spikes', file='nest_recorder_test.tmp')
         cell = nest.create(nest.IF_curr_exp, {})
         rec.record([cell])
         nest.run(1.0)

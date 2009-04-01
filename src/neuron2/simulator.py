@@ -8,6 +8,7 @@ from neuron import h
 
 # Global variables
 nrn_dll_loaded = []
+recorder_list = []
 
 def load_mechanisms(path=pyNN_path[0]):
     # this now exists in the NEURON distribution, so could probably be removed
@@ -50,7 +51,7 @@ class Recorder(object):
         """Add the cells in `ids` to the set of recorded cells."""
         logging.debug('Recorder.record(%s)', str(ids))
         if self.population:
-            ids = set([id for id in ids if id in self.population._local_ids])
+            ids = set([id for id in ids if id in self.population.local_cells])
         else:
             ids = set(ids) # how to decide if the cell is local?
         new_ids = list( ids.difference(self.recorded) )

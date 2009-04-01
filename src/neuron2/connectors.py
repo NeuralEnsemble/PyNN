@@ -77,7 +77,7 @@ def probabilistic_connect(connector, projection, p):
                 # arguably, rng.next() should return a float, rng.next(1) an array of length 1
                 rarr = numpy.array([rarr])
     j = 0
-    required_length = projection.pre.size * len(projection.post._local_ids) 
+    required_length = projection.pre.size * len(projection.post.local_cells) 
     assert len(rarr) >= required_length, \
            "Random array is too short (%d elements, needs %d)" % (len(rarr), required_length)
         
@@ -187,13 +187,13 @@ class _FixedNumberConnector(HocConnector):
 class FixedNumberPreConnector(common.FixedNumberPreConnector, _FixedNumberConnector):
     
     def connect(self, projection):
-        self._connect(projection, projection.pre._all_ids.flatten().tolist(), projection.post._local_ids, 'pre')
+        self._connect(projection, projection.pre.all_cells.flatten().tolist(), projection.post.local_cells, 'pre')
 
 
 class FixedNumberPostConnector(common.FixedNumberPostConnector, _FixedNumberConnector):
      
     def connect(self, projection):
-        self._connect(projection, projection.post._all_ids.flatten().tolist(), projection.pre._all_ids.flatten(), 'post')
+        self._connect(projection, projection.post.all_cells.flatten().tolist(), projection.pre.all_cells.flatten(), 'post')
 
 
 class FromListConnector(common.FromListConnector, HocConnector):

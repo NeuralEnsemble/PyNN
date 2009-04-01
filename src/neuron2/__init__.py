@@ -50,7 +50,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    for recorder in recorder_list:
+    for recorder in simulator.recorder_list:
         recorder.write(gather=False, compatible_output=compatible_output)
     simulator.finalize(quit_on_end)
         
@@ -112,7 +112,7 @@ class ID(int, common.IDMixin):
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def _create(cellclass, param_dict, n, parent=None):
+def _create(cellclass, cellparams, n, parent=None):
     """
     Function used by both `create()` and `Population.__init__()`
     """
@@ -122,14 +122,14 @@ def _create(cellclass, param_dict, n, parent=None):
             cell_model = getattr(simulator.h, cellclass)
         except AttributeError:
             raise common.InvalidModelError("There is no hoc template called %s" % cellclass)
-        cell_parameters = param_dict or {}
+        cell_parameters = cellparams or {}
     elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
-        celltype = cellclass(param_dict)
+        celltype = cellclass(cellparams)
         cell_model = celltype.model
         cell_parameters = celltype.parameters
     else:
         cell_model = cellclass
-        cell_parameters = param_dict
+        cell_parameters = cellparams
     first_id = simulator.state.gid_counter
     last_id = simulator.state.gid_counter + n - 1
     all_ids = numpy.array([id for id in range(first_id, last_id+1)], ID)
@@ -139,23 +139,11 @@ def _create(cellclass, param_dict, n, parent=None):
         if is_local:
             all_ids[i] = ID(id)
             all_ids[i]._build_cell(cell_model, cell_parameters, parent=parent)
+    simulator.initializer.register(*all_ids[mask_local])
     simulator.state.gid_counter += n
     return all_ids, mask_local, first_id, last_id
 
-def create(cellclass, param_dict=None, n=1):
-    """
-    Create n cells all of the same type.
-    If n > 1, return a list of cell ids/references.
-    If n==1, return just the single id.
-    """
-    all_ids, mask_local, first_id, last_id = _create(cellclass, param_dict, n)
-    for id in all_ids[mask_local]:
-        id.cellclass = cellclass
-    simulator.initializer.register(*all_ids[mask_local])
-    all_ids = all_ids.tolist() # not sure this is desirable, but it is consistent with the other modules
-    if len(all_ids) == 1:
-        all_ids = all_ids[0]
-    return all_ids
+create = common.build_create(_create)
 
 def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
@@ -181,19 +169,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
             connection_list.append(nc)
     return connection_list
 
-def set(cells, param, val=None):
-    """Set one or more parameters of an individual cell or list of cells.
-    param can be a dict, in which case val should not be supplied, or a string
-    giving the parameter name, in which case val is the parameter value.
-    """
-    if val:
-        param = {param:val}
-    if not hasattr(cells, '__len__'):
-        cells = [cells]
-    # see comment in Population.set() below about the efficiency of the
-    # following
-    for cell in cells:
-        cell.set_parameters(**param)
+set = common.set
 
 def record(source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
@@ -204,7 +180,7 @@ def record(source, filename):
         source = [source]
     recorder = simulator.Recorder('spikes', file=filename)
     recorder.record(source)
-    recorder_list.append(recorder)
+    simulator.recorder_list.append(recorder)
 
 def record_v(source, filename):
     """
@@ -216,7 +192,7 @@ def record_v(source, filename):
         source = [source]
     recorder = simulator.Recorder('v', file=filename)
     recorder.record(source)
-    recorder_list.append(recorder)
+    simulator.recorder_list.append(recorder)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -259,11 +235,11 @@ class Population(common.Population):
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
         # The local cells are also stored in a list, for easy iteration
-        self._all_ids, self._mask_local, self.first_id, self.last_id = _create(cellclass, cellparams, self.size, parent=self)
-        self._local_ids = self._all_ids[self._mask_local]
-        self._all_ids = self._all_ids.reshape(self.dim)
+        self.all_cells, self._mask_local, self.first_id, self.last_id = _create(cellclass, cellparams, self.size, parent=self)
+        self.local_cells = self.all_cells[self._mask_local]
+        self.all_cells = self.all_cells.reshape(self.dim)
         self._mask_local = self._mask_local.reshape(self.dim)
-        self.cell = self._all_ids # temporary, awaiting harmonisation
+        self.cell = self.all_cells # temporary, awaiting harmonisation
         
         simulator.initializer.register(self)
         Population.nPop += 1
@@ -281,7 +257,7 @@ class Population(common.Population):
         if isinstance(addr, int):
             addr = (addr,)
         if len(addr) == self.ndim:
-            id = self._all_ids[addr]
+            id = self.all_cells[addr]
         else:
             raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
         if addr != self.locate(id):
@@ -290,7 +266,7 @@ class Population(common.Population):
     
     def __iter__(self):
         """Iterator over cell ids on the local node."""
-        return iter(self._local_ids)
+        return iter(self.local_cells)
 
     def __address_gen(self):
         """
@@ -310,7 +286,7 @@ class Population(common.Population):
     
     def all(self):
         """Iterator over cell ids on all nodes."""
-        return self._all_ids.flat
+        return self.all_cells.flat
     
     def locate(self, id):
         """Given an element id in a Population, return the coordinates.
@@ -337,7 +313,7 @@ class Population(common.Population):
         """Return the nth cell in the population (Indexing starts at 0)."""
         if hasattr(n, '__len__'):
             n = numpy.array(n)
-        return self._all_ids.flatten()[n]
+        return self.all_cells.flatten()[n]
 
     def get(self, parameter_name, as_array=False):
         """
@@ -379,7 +355,7 @@ class Population(common.Population):
         """
         if self.dim == value_array.shape: # the values are numbers or non-array objects
             local_values = value_array[self._mask_local]
-            assert local_values.size == self._local_ids.size, "%d != %d" % (local_values.size, self._local_ids.size)
+            assert local_values.size == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
         elif len(value_array.shape) == len(self.dim)+1: # the values are themselves 1D arrays
             #values = numpy.reshape(value_array, (self.dim, value_array.size/self.size))
             local_values = value_array[self._mask_local] # not sure this works
@@ -388,7 +364,7 @@ class Population(common.Population):
                                                                                       str(value_array.shape))
         ##local_indices = numpy.array([cell.gid for cell in self]) - self.first_id
         ##values = values.take(local_indices) # take just the values for cells on this machine
-        assert local_values.shape[0] == self._local_ids.size, "%d != %d" % (local_values.size, self._local_ids.size)
+        assert local_values.shape[0] == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
         try:
             logging.info("%s.tset('%s', array(shape=%s, min=%s, max=%s))",
                          self.label, parametername, value_array.shape,
@@ -413,9 +389,9 @@ class Population(common.Population):
         if isinstance(rand_distr.rng, NativeRNG):
             rng = simulator.h.Random(rand_distr.rng.seed or 0)
             native_rand_distr = getattr(rng, rand_distr.name)
-            rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick() for i in range(self._all_ids.size-1)]
+            rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick() for i in range(self.all_cells.size-1)]
         else:
-            rarr = rand_distr.next(n=self._all_ids.size)
+            rarr = rand_distr.next(n=self.all_cells.size)
         rarr = numpy.array(rarr)
         logging.info("%s.rset('%s', %s)", self.label, parametername, rand_distr)
         for cell,val in zip(self, rarr[self._mask_local.flatten()]):
@@ -436,13 +412,13 @@ class Population(common.Population):
         if isinstance(record_from, list): #record from the fixed list specified by user
             fixed_list=True
         elif record_from is None: # record from all cells:
-            record_from = self._all_ids.flatten()
+            record_from = self.all_cells.flatten()
         elif isinstance(record_from, int): # record from a number of cells, selected at random  
             # Each node will record N/nhost cells...
             nrec = int(record_from/num_processes())
             if not rng:
                 rng = numpy.random
-            record_from = rng.permutation(self._all_ids.flatten())[0:nrec]
+            record_from = rng.permutation(self.all_cells.flatten())[0:nrec]
             # need ID objects, permutation returns integers
             # ???
         else:
@@ -724,8 +700,8 @@ class Projection(common.Projection):
             weights = [c.nc.weight[0] for c in self.connections]
         elif format == 'array':
             weights = numpy.zeros((self.pre.size, self.post.size))
-            pre_ids = self.pre._all_ids.flatten().tolist()
-            post_ids = self.post._all_ids.flatten().tolist()
+            pre_ids = self.pre.all_cells.flatten().tolist()
+            post_ids = self.post.all_cells.flatten().tolist()
             for c in self.connections:
                 weights[pre_ids.index(c.pre), post_ids.index(c.post)] = c.nc.weight[0]
         else:
@@ -744,8 +720,8 @@ class Projection(common.Projection):
             delays = [c.nc.delay for c in self.connections]
         elif format == 'array':
             delays = 1e12*numpy.ones((self.pre.size, self.post.size))
-            pre_ids = self.pre._all_ids.flatten().tolist()
-            post_ids = self.post._all_ids.flatten().tolist()
+            pre_ids = self.pre.all_cells.flatten().tolist()
+            post_ids = self.post.all_cells.flatten().tolist()
             for c in self.connections:
                 delays[pre_ids.index(c.pre), post_ids.index(c.post)] = c.nc.delay
         else:

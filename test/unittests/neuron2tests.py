@@ -333,7 +333,7 @@ class PopulationIteratorTest(unittest.TestCase):
         """This needs more thought for the distributed case."""
         for net in self.net1, self.net2:
             ids = [i for i in net]
-            self.assertEqual(ids, net._local_ids.tolist())
+            self.assertEqual(ids, net.local_cells.tolist())
             self.assert_(isinstance(ids[0], neuron.ID))
             
     def testAddressIter(self):
@@ -591,7 +591,7 @@ class ProjectionInitTest(unittest.TestCase):
     def testOneToOne(self):
         """For all connections created with "OneToOne" ..."""
         prj = neuron.Projection(self.source33, self.target33, neuron.OneToOneConnector())
-        assert len(prj.connections) == len(self.target33._local_ids), prj.connections
+        assert len(prj.connections) == len(self.target33.local_cells), prj.connections
      
     def testDistanceDependentProbability(self):
         """For all connections created with "distanceDependentProbability"..."""

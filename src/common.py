@@ -691,12 +691,20 @@ def rank():
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass, param_dict=None, n=1):
-    """Create n cells all of the same type.
-    If n > 1, return a list of cell ids/references.
-    If n==1, return just the single id.
-    """
-    raise NotImplementedError
+def build_create(_create):
+    def create(cellclass, cellparams=None, n=1):
+        """Create n cells all of the same type.
+        If n > 1, return a list of cell ids/references.
+        If n==1, return just the single id.
+        """
+        all_cells, mask_local, first_id, last_id = _create(cellclass, cellparams, n)
+        for id in all_cells:
+            id.cellclass = cellclass
+        all_cells = all_cells.tolist() # not sure this is desirable, but it is consistent with the other modules
+        if n == 1:
+            all_cells = all_cells[0]
+        return all_cells
+    return create
 
 def connect(source, target, weight=None, delay=None, synapse_type=None,
             p=1, rng=None):
@@ -711,21 +719,31 @@ def set(cells, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value."""
-    raise NotImplementedError
+    if val:
+        param = {param:val}
+    if not hasattr(cells, '__len__'):
+        cells = [cells]
+    # see comment in Population.set() below about the efficiency of the
+    # following
+    for cell in cells:
+        cell.set_parameters(**param)
 
-def record(source, filename):
-    """Record spikes to a file. source can be an individual cell or a list of
-    cells."""
-    # would actually like to be able to record to an array and choose later
-    # whether to write to a file.
-    raise NotImplementedError
-
-def record_v(source, filename):
-    """Record membrane potential to a file. source can be an individual cell or
-    a list of cells."""
-    # would actually like to be able to record to an array and choose later
-    # whether to write to a file.
-    raise NotImplementedError
+def build_record(variable, simulator):
+    def record(source, filename):
+        """Record spikes to a file. source can be an individual cell or a list of
+        cells."""
+        # would actually like to be able to record to an array and choose later
+        # whether to write to a file.
+        if not hasattr(source, '__len__'):
+            source = [source]
+        recorder = simulator.Recorder(variable, file=filename)
+        recorder.record(source)
+        simulator.recorder_list.append(recorder)
+    if variable == 'v':
+        record.__doc__ = """
+            Record membrane potential to a file. source can be an individual cell or
+            a list of cells."""
+    return record
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -995,12 +1013,12 @@ class Population(object):
             template = "\n".join(lines)
             
         context = self.__dict__.copy()
-        first_id = self._local_ids[0]
+        first_id = self.local_cells[0]
         context.update(local_first_id=first_id)
         context.update(cell_parameters=first_id.get_parameters())
         context.update(celltype=self.celltype.__class__.__name__)
         context.update(n_cells=len(self))
-        context.update(n_cells_local=len(self._local_ids))
+        context.update(n_cells_local=len(self.local_cells))
         for k in context.keys():
             if k[0] == '_':
                 context.pop(k)

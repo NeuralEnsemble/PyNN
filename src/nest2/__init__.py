@@ -14,14 +14,13 @@ from pyNN.nest2.cells import *
 from pyNN.nest2.connectors import *
 from pyNN.nest2.synapses import *
 from pyNN.nest2.electrodes import *
+from pyNN.nest2 import simulator
 Set = set
 global counter
 
-recorder_list = []
+
 tempdirs       = []
-RECORDING_DEVICE_NAMES = {'spikes': 'spike_detector',
-                          'v': 'voltmeter',
-                          'conductance': 'conductancemeter'}
+
 DEFAULT_BUFFER_SIZE = 10000
 NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
                       "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse"]
@@ -94,173 +93,6 @@ class Connection(object):
 
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
-
-
-class Recorder(object):
-    """Encapsulates data and functions related to recording model variables."""
-    
-    formats = {'spikes': 'id t',
-               'v': 'id t v',
-               'conductance':'id t ge gi'}
-    
-    def __init__(self, variable, population=None, file=None):
-        """
-        `file` should be one of:
-            a file-name,
-            `None` (write to a temporary file)
-            `False` (write to memory).
-        """
-        assert variable in RECORDING_DEVICE_NAMES
-        self.variable = variable
-        self.file = file
-        self.population = population # needed for writing header information
-        self.recorded = Set([])        
-        # we defer creating the actual device until it is needed.
-        self._device = None
-
-    def _create_device(self):
-        device_name = RECORDING_DEVICE_NAMES[self.variable]
-        self._device = nest.Create(device_name)
-        device_parameters = {"withgid": True, "withtime": True}
-        if self.variable != 'spikes':
-            device_parameters["interval"] = get_time_step()
-        if self.file is False:
-            device_parameters.update(to_file=False, to_memory=True)
-        else: # (includes self.file is None)
-            device_parameters.update(to_file=True, to_memory=False)
-        # line needed for old version of nest 2.0
-        #device_parameters.pop('to_memory')
-        nest.SetStatus(self._device, device_parameters)
-
-    def record(self, ids):
-        """Add the cells in `ids` to the set of recorded cells."""
-        if self._device is None:
-            self._create_device()
-        ids = Set(ids)
-        new_ids = list( ids.difference(self.recorded) )
-        self.recorded = self.recorded.union(ids)
-        
-        device_name = nest.GetStatus(self._device, "model")[0]
-        if device_name == "spike_detector":
-            nest.ConvergentConnect(new_ids, self._device, model='static_synapse')
-        elif device_name in ('voltmeter', 'conductancemeter'):
-            nest.DivergentConnect(self._device, new_ids, model='static_synapse')
-        else:
-            raise Exception("%s is not a valid recording device" % device_name)
-    
-    def get(self, gather=False, compatible_output=True):
-        """Returns the recorded data."""
-        if self._device is None:
-            raise common.NothingToWriteError("No cells recorded, so no data to return")
-        if nest.GetStatus(self._device, 'to_file')[0]:
-            if 'filename' in nest.GetStatus(self._device)[0]:
-                nest_filename = _merge_files(self._device, gather)
-                data = recording.readArray(nest_filename, sepchar=None)
-            else:
-                data = numpy.array([])
-            #os.remove(nest_filename)
-            if data.size > 0:
-                # the following returns indices, not IDs. I'm not sure this is what we want.
-                if self.population is not None:
-                    padding = self.population.cell.flatten()[0]
-                else:
-                    padding = 0
-                data[:,0] = data[:,0] - padding
-            else:
-                ncol = len(Recorder.formats[self.variable].split())
-                data = numpy.empty([0, ncol])
-        elif nest.GetStatus(self._device,'to_memory')[0]:
-            data = nest.GetStatus(self._device,'events')[0]
-            data = recording.convert_compatible_output(data, self.population, self.variable,compatible_output)
-        return data
-    
-    def _get_header(self, file_name):
-        header = {}
-        if os.path.exists(file_name):
-            f = open(file_name, 'r')
-            for line in f:
-                if line[0] == '#':
-                    key, value = line[1:].split("=")
-                    header[key.strip()] = value.strip()
-        else:
-            logging.warning("File %s does not exist, so could not get header." % file_name)
-        return header
-    
-    def _strip_header(self, input_file_name, output_file_name):
-        if os.path.exists(input_file_name):
-            fin = open(input_file_name, 'r')
-            fout = open(output_file_name, 'a')
-            for line in fin:
-                if line[0] != '#':
-                    fout.write(line)
-            fin.close()
-            fout.close()
-    
-    def write(self, file=None, gather=False, compatible_output=True):
-        if self._device is None:
-            raise common.NothingToWriteError("No cells recorded, so no data to write to file.")
-        user_file = file or self.file
-        if isinstance(user_file, basestring):
-            if num_processes() > 1:
-                user_file += '.%d' % rank()
-            recording.rename_existing(user_file)
-        logging.debug("Recorder is writing '%s' to file '%s' with gather=%s and compatible_output=%s" % (self.variable,
-                                                                                                         user_file,
-                                                                                                         gather,
-                                                                                                         compatible_output))
-        # what if the data was only saved to memory?
-        if self.file is not False:
-            nest_filename = _merge_files(self._device, gather)
-            if compatible_output:
-                # We should do the post processing (i.e the compatible output) in a distributed
-                # manner to speed up the thing. The only problem that will arise is the headers, 
-                # that should be taken into account to be really clean. Otherwise, if the # symbol
-                # is escaped while reading the file, there is no problem
-               recording.write_compatible_output(nest_filename, user_file,
-                                                 self.variable,
-                                                 Recorder.formats[self.variable],
-                                                 self.population, get_time_step())
-            else:
-                if isinstance(user_file, basestring):
-                    os.system('cat %s > %s' % (nest_filename, user_file))
-                elif hasattr(user_file, 'write'):
-                    nest_file = open(nest_filename)
-                    user_file.write(nest_file.read())
-                    nest_file.close()
-                else:
-                    raise Exception('Must provide a filename or an open file')
-            np = num_processes()
-            logging.debug("num_processes() = %s" % np)
-            if gather == True and rank() == 0 and np > 1:
-                root_file = file or self.filename
-                logging.debug("Gathering files generated by different nodes into %s" % root_file)
-                n_cells = 0
-                recording.rename_existing(root_file)
-                for node in xrange(np):
-                    node_file = root_file + '.%d' % node
-                    logging.debug("node_file = %s" % node_file)
-                    if os.path.exists(node_file):
-                        # merge headers
-                        header = self._get_header(node_file)
-                        logging.debug(str(header))
-                        if header.has_key('n'):
-                            n_cells += int(header['n'])
-                        #os.system('cat %s >> %s' % (node_file, root_file))
-                        self._strip_header(node_file, root_file)
-                        os.system('rm %s' % node_file)
-                # write header for gathered file
-                f = open("tmp_header", 'w')
-                header['n'] = n_cells
-                for k,v in header.items():
-                    f.write("# %s = %s\n" % (k,v))
-                f.close()
-                os.system('cat %s >> tmp_header' % root_file)
-                os.system('mv tmp_header %s' % root_file)
-            # don't want to remove nest_filename at this point in case the user wants to access the data
-            # a second time (e.g. with both getSpikes() and printSpikes()), but we should
-            # maintain a list of temporary files to be deleted at the end of the simulation
-        else:
-            raise Exception("Writing to file not yet supported for data recorded only to memory.")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
@@ -420,7 +252,7 @@ def end(compatible_output=True):
 
     # And we postprocess the low level files opened by record()
     # and record_v() method
-    for recorder in recorder_list:
+    for recorder in simulator.recorder_list:
         recorder.write(gather=False, compatible_output=compatible_output)
 
     for tempdir in tempdirs:
@@ -450,10 +282,12 @@ common.get_max_delay = get_max_delay
 
 def num_processes():
     return nest.GetStatus([0])[0]['num_processes']
+common.num_processes = num_processes
 
 def rank():
     """Return the MPI rank."""
     return nest.Rank()
+common.rank = rank
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -464,13 +298,13 @@ def _create(cellclass, cellparams=None, n=1, parent=None):
     Function used by both `create()` and `Population.__init__()`
     """
     assert n > 0, 'n must be a positive integer'
-    if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
+    if isinstance(cellclass, basestring):  # celltype is not a standard cell
+        nest_model = cellclass
+        cell_parameters = cellparams or {}
+    elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
         celltype = cellclass(cellparams)
         nest_model = celltype.nest_name
         cell_parameters = celltype.parameters
-    elif isinstance(cellclass, str):  # celltype is not a standard cell
-        nest_model = cellclass
-        cell_parameters = cellparams or {}
     else:
         raise Exception("Invalid cell type: %s" % type(cellclass))
     cell_gids = nest.Create(nest_model, n)
@@ -486,21 +320,7 @@ def _create(cellclass, cellparams=None, n=1, parent=None):
     cell_gids = numpy.array([ID(gid) for gid in cell_gids], ID)
     return cell_gids, mask_local, first_id, last_id
 
-
-def create(cellclass, cellparams=None, n=1):
-    """
-    Create n cells all of the same type.
-    If n > 1, return a list of cell ids/references.
-    If n==1, return just the single id.
-    """
-    all_cells, mask_local, first_id, last_id = _create(cellclass, cellparams, n)
-    for id in all_cells: #[mask_local]:
-        id.cellclass = cellclass
-    all_cells = all_cells.tolist() # not sure this is desirable, but it is consistent with the other modules
-    if n == 1:
-        return all_cells[0] # or local_cells?
-    else:
-        return all_cells
+create = common.build_create(_create)
 
 def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
@@ -544,68 +364,9 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         raise common.ConnectionError, errmsg
     return connect_id
 
-def set(cells, param, val=None):
-    """Set one or more parameters of an individual cell or list of cells.
-    param can be a dict, in which case val should not be supplied, or a string
-    giving the parameter name, in which case val is the parameter value.
-    """
-    if val:
-        param = {param:val}
-    if not hasattr(cells, '__len__'):
-        cells = [cells]
-    # see comment in Population.set() below about the efficiency of the
-    # following
-    for cell in cells:
-        cell.set_parameters(**param)
-
-def record(source, filename):
-    """Record spikes to a file. source can be an individual cell or a list of
-    cells."""
-    # would actually like to be able to record to an array and choose later
-    # whether to write to a file.
-    if not hasattr(source, '__len__'):
-        source = [source]
-    recorder = Recorder('spikes', file=filename)
-    recorder.record(source)
-    recorder_list.append(recorder)
-
-def record_v(source, filename):
-    """
-    Record membrane potential to a file. source can be an individual cell or
-    a list of cells."""
-    # would actually like to be able to record to an array and
-    # choose later whether to write to a file.
-    if not hasattr(source, '__len__'):
-        source = [source]
-    recorder = Recorder('v', file=filename)
-    recorder.record(source)
-    recorder_list.append(recorder)
-
-def _merge_files(recorder, gather):
-    """
-    Combine data from multiple files (one per thread and per process) into a single file.
-    Returns the filename of the merged file.
-    """
-    status = nest.GetStatus([0])[0]
-    local_num_threads = status['local_num_threads']
-    node_list = range(nest.GetStatus([0], "num_processes")[0])
-
-    # Combine data from different threads to the zeroeth thread
-    merged_filename = nest.GetStatus(recorder, "filename")[0]
-
-    if local_num_threads > 1:
-        for nest_thread in range(1, local_num_threads):
-            addr = nest.GetStatus(recorder, "address")[0]
-            addr.append(nest_thread)
-            nest_filename = nest.GetStatus([addr], "filename")[0]
-            system_line = 'cat %s >> %s' % (nest_filename, merged_filename)
-            os.system(system_line)
-            os.remove(nest_filename)
-    if gather and len(node_list) > 1:
-        if rank() == 0:
-            raise Exception("gather not yet implemented")
-    return merged_filename
-
+set = common.set
+record = common.build_record('spikes', simulator)
+record_v = common.build_record('v', simulator)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -649,8 +410,8 @@ class Population(common.Population):
         if not self.label:
             self.label = 'population%d' % Population.nPop
         self.recorders = {}
-        for variable in RECORDING_DEVICE_NAMES:
-            self.recorders[variable] = Recorder(variable, population=self)
+        for variable in simulator.RECORDING_DEVICE_NAMES:
+            self.recorders[variable] = simulator.Recorder(variable, population=self)
         Population.nPop += 1
 
     def __getitem__(self, addr):
