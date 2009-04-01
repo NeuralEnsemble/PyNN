@@ -3,14 +3,14 @@
 # $Id:$
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, synapses
 
 
-class SynapseDynamics(common.SynapseDynamics):
+class SynapseDynamics(synapses.SynapseDynamics):
     def __init__(self, *args, **kwargs):
         raise NotImplementedError("Dynamic synapses are not available for this simulator.")
 
-class STDPMechanism(common.STDPMechanism):
+class STDPMechanism(synapses.STDPMechanism):
     def __init__(self, *args, **kwargs):
         raise NotImplementedError("STDP is not available for this simulator.")
 

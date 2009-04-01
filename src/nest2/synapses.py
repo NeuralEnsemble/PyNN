@@ -3,19 +3,10 @@
 # $Id$
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, synapses
 
 
-class SynapseDynamics(common.SynapseDynamics):
-    """
-    For specifying synapse short-term (faciliation, depression) and long-term
-    (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
-    `Projection.__init__()` or `connect()`.
-    """
-    
-    def __init__(self, fast=None, slow=None):
-        common.SynapseDynamics.__init__(self, fast, slow)
-
+SynapseDynamics = common.SynapseDynamics
 
 class STDPMechanism(common.STDPMechanism):
     """Specification of STDP models."""
@@ -29,7 +20,7 @@ class STDPMechanism(common.STDPMechanism):
                                       voltage_dependence, dendritic_delay_fraction,model)
 
 
-class TsodyksMarkramMechanism(common.TsodyksMarkramMechanism):
+class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     
     translations = common.build_translations(
         ('U', 'U'),
@@ -42,12 +33,12 @@ class TsodyksMarkramMechanism(common.TsodyksMarkramMechanism):
     native_name = 'tsodyks_synapse'
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
-        #common.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
+        #synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
         parameters = dict(locals()) # need the dict to get a copy of locals. When running
         parameters.pop('self')      # through coverage.py, for some reason, the pop() doesn't have any effect
         self.parameters = self.translate(parameters)
 
-class AdditiveWeightDependence(common.AdditiveWeightDependence):
+class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     """
     The amplitude of the weight change is fixed for depression (`A_minus`)
     and for potentiation (`A_plus`).
@@ -66,7 +57,7 @@ class AdditiveWeightDependence(common.AdditiveWeightDependence):
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        #common.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #synapses.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)
@@ -74,7 +65,7 @@ class AdditiveWeightDependence(common.AdditiveWeightDependence):
         self.parameters['mu_minus'] = 0.0
 
 
-class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
+class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     """
     The amplitude of the weight change depends on the current weight.
     For depression, Dw propto w-w_min
@@ -91,14 +82,14 @@ class MultiplicativeWeightDependence(common.MultiplicativeWeightDependence):
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        #common.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #synapses.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self') 
         self.parameters = self.translate(parameters)
         self.parameters['mu_plus'] = 1.0
         self.parameters['mu_minus'] = 1.0
 
-class AdditivePotentiationMultiplicativeDepression(common.AdditivePotentiationMultiplicativeDepression):
+class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
     """
     The amplitude of the weight change depends on the current weight for
     depression (Dw propto w-w_min) and is fixed for potentiation.
@@ -114,7 +105,7 @@ class AdditivePotentiationMultiplicativeDepression(common.AdditivePotentiationMu
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        #common.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
+        #synapses.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self') 
         self.parameters = self.translate(parameters)
@@ -122,7 +113,7 @@ class AdditivePotentiationMultiplicativeDepression(common.AdditivePotentiationMu
         self.parameters['mu_minus'] = 1.0
 
 
-class GutigWeightDependence(common.GutigWeightDependence):
+class GutigWeightDependence(synapses.GutigWeightDependence):
     """
     The amplitude of the weight change depends on the current weight.
     For depression, Dw propto w-w_min
@@ -141,13 +132,13 @@ class GutigWeightDependence(common.GutigWeightDependence):
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01,mu_plus=0.5,mu_minus=0.5):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        #common.GutigWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #synapses.GutigWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self') 
         self.parameters = self.translate(parameters)
 
 
-class SpikePairRule(common.SpikePairRule):
+class SpikePairRule(synapses.SpikePairRule):
     
     translations = common.build_translations(
         ('tau_plus',  'tau_plus'),
@@ -156,7 +147,7 @@ class SpikePairRule(common.SpikePairRule):
     possible_models = set(['stdp_synapse_hom','stdp_synapse']) #'stdp_synapse_hom'
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
-        #common.SpikePairRule.__init__(self, tau_plus, tau_minus)
+        #synapses.SpikePairRule.__init__(self, tau_plus, tau_minus)
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)
