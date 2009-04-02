@@ -517,9 +517,10 @@ class Projection(common.Projection):
                                    method, source, target,
                                    synapse_dynamics, label, rng)
 
-        self._target_ports = [] # holds port numbers
-        self._targets = []     # holds gids
-        self._sources = []     # holds gids
+        
+        ##self._target_ports = [] # holds port numbers
+        ##self._targets = []     # holds gids
+        ##self._sources = []     # holds gids
         self.synapse_type = target or 'excitatory'
 
         if isinstance(self.long_term_plasticity_mechanism, Set):
@@ -566,22 +567,25 @@ class Projection(common.Projection):
             synapse_defaults.update(self._stdp_parameters)
 
         nest.CopyModel(self._plasticity_model, self.plasticity_name, synapse_defaults)
+        self.connection_manager = simulator.ConnectionManager(self.plasticity_name)
         
         # Create connections
-        self.nconn = method.connect(self)
+        ##self.nconn = method.connect(self)
+        method.connect(self)
 
-        # Define a method to access individual connections
-        self.connection = simulator.ConnectionDict(self)
+        ### Define a method to access individual connections
+        ##self.connection = simulator.ConnectionList(self)
+        self.connections = self.connection_manager
 
     def __len__(self):
         """Return the total number of connections."""
-        return len(self._sources)
+        return len(self.connection_manager)
 
-    def connections(self):
-        """for conn in prj.connections()..."""
-        self.connection.reset()
-        for i in xrange(len(self)):
-            yield self.connection[i]
+    ##def connections(self):
+    ##    """for conn in prj.connections()..."""
+    ##    ##self.connection.reset()
+    ##    ##for i in xrange(len(self)):
+    ##    ##    yield self.connection[i]
 
     # --- Methods for setting connection parameters ----------------------------
 
@@ -685,7 +689,9 @@ class Projection(common.Projection):
         in the projection, a 2D weight array (with zero or None for non-existent
         connections).
         """
-        weights = self._get_connection_values(format, 'weight', gather)
+        ##weights = self._get_connection_values(format, 'weight', gather)
+        assert gather == True # for now
+        weights = self.connection_manager.get('weight', format, offset=(self.pre.first_id, self.post.first_id))
         # change of units
         if format == 'list':
             weights = [0.001*w for w in weights]
@@ -699,7 +705,8 @@ class Projection(common.Projection):
         in the projection, a 2D delay array (with None or 1e12 for non-existent
         connections).
         """
-        return self._get_connection_values(format, 'delay', gather)
+        ##return self._get_connection_values(format, 'delay', gather)
+        return self.connection_manager.get('delay', format, offset=(self.pre.first_id, self.post.first_id))
 
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the

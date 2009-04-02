@@ -204,87 +204,121 @@ class Recorder(object):
 class Connection(object):
     """Not part of the API as of 0.4."""
 
-    def __init__(self, pre, post, synapse_model):
-        self.pre = pre
-        self.post = post
-        self.synapse_model = synapse_model
-        try:
-            conn_dict = nest.GetConnections([pre], self.synapse_model)[0]
-        except nest.NESTError, errmsg:
-            raise common.ConnectionError("Cannot create Connection object: %s" % errmsg)
-        if (len(conn_dict['targets']) == 0):
-            raise common.ConnectionError("Presynaptic neuron with ID %d does not have any connections.")
-        if conn_dict:
-            self.port = len(conn_dict['targets'])-1
-        else:
-            raise Exception("Could not get port number for connection between %s and %s" % (pre, post))
+    def __init__(self, parent, index):
+        self.parent = parent
+        self.index = index
+
+    def id(self):
+        src = self.parent.sources[self.index]
+        port = self.parent.ports[self.index]
+        synapse_model = self.parent.synapse_model
+        return [[src], synapse_model, port]
+
+    @property
+    def source(self):
+        return self.parent.sources[self.index]
+    
+    @property
+    def target(self):
+        return self.parent.targets[self.index]
+
+    @property
+    def port(self):
+        return self.parent.ports[self.index]
 
     def _set_weight(self, w):
-        nest.SetConnection([self.pre], self.synapse_model, self.port, {'weight': w*1000.0})
+        args = self.id() + [{'weight': w*1000.0}]
+        nest.SetConnection(*args)
 
     def _get_weight(self):
-        # this needs to be modified to take account of threads
-        # also see nest.GetConnection (was nest.GetSynapseStatus)
-        conn_dict = nest.GetConnections([self.pre], self.synapse_model)[0]
-        if conn_dict:
-            return 0.001*conn_dict['weights'][self.port]
-        else:
-            return None
+        return 0.001*nest.GetConnection(*self.id())['weight']
 
     def _set_delay(self, d):
-        nest.SetConnection([self.pre], self.synapse_model, self.port, {'delay': d})
+        args = self.id() + [{'delay': d}]
+        nest.SetConnection(*args)
 
     def _get_delay(self):
         # this needs to be modified to take account of threads
         # also see nest.GetConnection (was nest.GetSynapseStatus)
-        conn_dict = nest.GetConnections([self.pre],'static_synapse')[0]
-        if conn_dict:
-            return conn_dict['delays'][self.port]
-        else:
-            return None
+        return nest.GetConnection(*self.id())['delay']
 
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
+    
 
-class ConnectionDict:
+class ConnectionManager:
     """docstring needed."""
 
-    def __init__(self, parent):
-        self.parent    = parent
-        self.port_idx  = 0
-        self.last_conn = (0,0)
-    
-    def reset(self):
-        self.port_idx  = 0
-        self.last_conn = (0,0)
+    def __init__(self, synapse_model='static_synapse'):
+        self.sources = []
+        self.targets = []
+        self.ports = []
+        self.synapse_model = synapse_model
 
-    def __getitem__(self, id):
-        """Returns a (source address, target port number) tuple."""
-        src = self.parent._sources[id]
-        tgt = self.parent._targets[id]
-        connections = nest.FindConnections([src],[tgt], self.parent.plasticity_name)
-        # We keep this counter to be sure that, when several connections have been
-        # established for the same source <-> target, we iterates over those connections
-        # Note that, for the moment, there may a problem if the sources/targets lists are
-        # not sorted according to the sources.
-        if (src,tgt) == self.last_conn:
-            self.port_idx += 1
+    def __getitem__(self, i):
+        """Returns a Connection object."""
+        if i < len(self):
+            return Connection(self, i)
         else:
-            self.port_idx  = 0
-            self.last_conn = (src,tgt)
-        return (src,connections['ports'][self.port_idx])
-
-def single_connect(source, target, weight, delay, synapse_type):
-    """
-    Private function to connect two neurons.
-    Used by `connect()` and the `Connector` classes.
-    """
-    weight = weight*1000 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
-                         # Using convention in this way is not ideal. We should
-                         # be able to look up the units used by each model somewhere.
-    try:
-        nest.Connect([source], [target], [weight], [delay], 'static_synapse')
-    except nest.NESTError, errmsg:
-        raise common.ConnectionError, errmsg
-    return Connection(source, target, 'static_synapse')
+            raise IndexError("%d > %d" % (i, len(self)-1))
+    
+    def __len__(self):
+        return len(self.sources)
+    
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+    
+    def connect(self, source, targets, weights, delays, synapse_type):
+        """
+        Connect a neuron to one or more other neurons.
+        """
+        # are we sure the targets are all on the current node?
+        weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+                                 # Using convention in this way is not ideal. We should
+                                 # be able to look up the units used by each model somewhere.
+        if common.is_listlike(source):
+            assert len(source) == 1
+            source = source[0]
+        if not common.is_listlike(targets):
+            targets = [targets]
+        assert len(targets) > 0
+        if isinstance(weights, numpy.ndarray):
+            weights = weights.tolist()
+        if isinstance(delays, numpy.ndarray):
+            delays = delays.tolist()
+        if len(targets) > 1:
+            connect = nest.DivergentConnect
+        else:
+            connect = nest.Connect
+        try:
+            connect([source], targets, weights, delays, self.synapse_model)
+        except nest.NESTError, e:
+            raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                                         e, source, targets, weights, delays, self.synapse_model))
+        self.sources.extend([source]*len(targets))
+        self.targets.extend(targets)
+        # get ports
+        connections = nest.GetConnections([source], self.synapse_model)[0]
+        n = len(connections['targets'])
+        ports = range(n-len(targets), n)
+        self.ports.extend(ports)
+    
+    def get(self, parameter_name, format, offset=(0,0)):
+        # this is a slow implementation, going through each connection one at a time
+        # better to use GetConnections, which means we should probably store
+        # connections in a dict, with source as keys and a list of ports as values
+        if format == 'list':
+            values = []
+            for src, port in zip(self.sources, self.ports):
+                values.append(nest.GetConnection([src], self.synapse_model, port)[parameter_name])
+        elif format == 'array':
+            values = numpy.zeros((self.pre.size, self.post.size))
+            for src, tgt, port in zip(self.sources, self.targets, self.ports):
+                # could instead get tgt from the 'target' entry with GetConnection
+                value = nest.GetConnection([src], self.synapse_model, port)[parameter_name]
+                values[src-offset[0], tgt-offset[1]] = value
+        else:
+            raise Exception("format must be 'list' or 'array', actually '%s'" % format)
+        return values
     

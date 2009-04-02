@@ -290,7 +290,8 @@ class Projection(common.Projection):
         """
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    source, target, synapse_dynamics, label, rng)
-        self.connections = []
+        self.connection_manager = simulator.ConnectionManager()
+        self.connections = self.connection_manager
         if not label:
             self.label = 'projection%d' % Projection.nProj
         if not rng:

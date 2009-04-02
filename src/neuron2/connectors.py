@@ -24,7 +24,7 @@ class HocConnector(object):
             src, tgt, weight, delay = conn_list[i][:]
             src = projection.pre[tuple(src)]
             tgt = projection.post[tuple(tgt)]
-            projection.connections.append(simulator.single_connect(src, tgt, weight, delay, projection.synapse_type))
+            projection.connection_manager.connect(src, tgt, weight, delay, projection.synapse_type)
 
 def probabilistic_connect(connector, projection, p):
     if isinstance(projection.rng, NativeRNG):
@@ -58,10 +58,10 @@ def probabilistic_connect(connector, projection, p):
         for tgt in projection.post:  # only local neurons
             if connector.allow_self_connections or projection.pre != projection.post or tgt != src:
                 if create[j]:
-                    projection.connections.append(
-                            simulator.single_connect(src, tgt,
-                                                     weights.next(), delays.next(),
-                                                     projection.synapse_type))
+                    projection.connection_manager.connect(src, tgt,
+                                                          weights.next(),
+                                                          delays.next(),
+                                                          projection.synapse_type)
             j += 1
     assert j == required_length
 
@@ -83,8 +83,7 @@ class OneToOneConnector(base_connectors.OneToOneConnector, HocConnector):
         if projection.pre.dim == projection.post.dim:
             for tgt in projection.post:
                 src = tgt - projection.post.first_id + projection.pre.first_id
-                projection.connections.append(
-                    simulator.single_connect(src, tgt, weights.next(), delays.next(), projection.synapse_type))
+                projection.connection_manager.connect(src, tgt, weights.next(), delays.next(), projection.synapse_type)
         else:
             raise Exception("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
 
@@ -152,8 +151,7 @@ class _FixedNumberConnector(HocConnector):
                         src = y; tgt = x
                     else:
                         raise Exception('Problem in _FixedNumberConnector')
-                    projection.connections.append(
-                        simulator.single_connect(src, tgt, weights.next(), delays.next(), projection.synapse_type))
+                    projection.connection_manager.connect(src, tgt, weights.next(), delays.next(), projection.synapse_type)
 
 
 class FixedNumberPreConnector(base_connectors.FixedNumberPreConnector, _FixedNumberConnector):

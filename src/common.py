@@ -55,6 +55,9 @@ class NothingToWriteError(Exception): pass
 def is_listlike(obj):
     return hasattr(obj, "__len__") and not isinstance(obj, basestring)
 
+def is_numeric(obj):
+    return isinstance(obj, float) or isinstance(obj, int) or isinstance(obj, long)
+
 def build_translations(*translation_list):
     """
     Build a translation dictionary from a list of translations/transformations.
@@ -96,10 +99,22 @@ def is_conductance(target_cell):
 def check_weight(weight, synapse_type, is_conductance):
     if weight is None:
         weight = DEFAULT_WEIGHT
-    if is_conductance:
-        weight = abs(weight) # weights must be positive for conductance-based synapses
-    elif synapse_type == 'inhibitory' and weight > 0:
-        weight *= -1         # and negative for inhibitory, current-based synapses
+    if is_listlike(weight):
+        weight = numpy.array(weight)
+        all_negative = (weight<=0).all()
+        all_positive = (weight>=0).all()
+        if not (all_negative or all_positive):
+            raise InvalidWeightError("Weights must be either all positive or all negative")
+    elif is_numeric(weight):
+        all_positive = weight >= 0    
+    else:
+        raise Exception("Weight must be a number or a list/array of numbers.")
+    if is_conductance or synapse_type == 'excitatory':
+        if not all_positive:
+            raise InvalidWeightError("Weights must be positive for conductance-based and/or excitatory synapses")
+    elif synapse_type == 'inhibitory':
+        if not all_negative:
+            raise InvalidWeightError("Weights must be negative for current-based, inhibitory synapses")
     return weight
 
 def check_delay(delay):
@@ -500,16 +515,15 @@ def build_connect(simulator):
         delay = check_delay(delay)
         if p < 1:
             rng = rng or numpy.random
-        connection_list = []
+        connection_manager = simulator.ConnectionManager()
         for tgt in target:
             sources = numpy.array(source)
             if p < 1:
                 rarr = rng.uniform(0, 1, len(source))
                 sources = sources[rarr<p]
             for src in sources:
-                nc = simulator.single_connect(src, tgt, weight, delay, synapse_type)
-                connection_list.append(nc)
-        return connection_list
+                connection_manager.connect(src, tgt, weight, delay, synapse_type)
+        return connection_manager
     return connect
 
 def set(cells, param, val=None):

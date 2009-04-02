@@ -42,45 +42,6 @@ def check_connections(prj, src, intended_targets):
     else:
         raise Exception("Problem getting connections for %s" % pre)
 
-
-
-class AllToAllConnector(connectors.AllToAllConnector):    
-
-    def connect(self, projection):
-        postsynaptic_neurons  = projection.post.local_cells.flatten()
-        target_list = postsynaptic_neurons.tolist()
-        for pre in projection.pre.cell.flat:
-            # if self connections are not allowed, check whether pre and post are the same
-            if not self.allow_self_connections:
-                target_list = postsynaptic_neurons.tolist()
-                if pre in target_list:
-                    target_list.remove(pre)
-            N = len(target_list)
-            weights = self.get_weights(N)
-            weights = _convertWeight(weights, projection.synapse_type).tolist()
-            delays = self.get_delays(N).tolist()
-            projection._targets += target_list
-            projection._sources += [pre]*N
-            nest.DivergentConnect([pre], target_list, weights, delays, projection.plasticity_name)
-            if CHECK_CONNECTIONS:
-                check_connections(projection, pre, target_list)
-        return len(projection._targets)
-
-class OneToOneConnector(connectors.OneToOneConnector):
-    
-    def connect(self, projection):
-        if projection.pre.dim == projection.post.dim:
-            projection._sources = projection.pre.cell.flatten()
-            projection._targets = projection.post.cell.flatten()
-            N = len(projection._sources)
-            weights = self.get_weights(N)
-            weights = _convertWeight(weights, projection.synapse_type).tolist()
-            delays = self.get_delays(N).tolist()
-            nest.Connect(projection._sources, projection._targets, weights, delays, projection.plasticity_name)
-            return projection.pre.size
-        else:
-            raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
-
 def probabilistic_connect(connector, projection, p):
     if projection.rng:
         if isinstance(projection.rng, NativeRNG):
@@ -92,6 +53,7 @@ def probabilistic_connect(connector, projection, p):
         rng = NumpyRNG()
         
     local = projection.post._mask_local
+    is_conductance = common.is_conductance(projection.post.index(0))
     for src in projection.pre.all():
         # ( the following two lines are a nice idea, but this needs some thought for
         #   the parallel case, to ensure reproducibility when varying the number
@@ -108,26 +70,48 @@ def probabilistic_connect(connector, projection, p):
         targets = projection.post.local_cells[create].tolist()
         
         weights = connector.get_weights(N, local)[create]
-        weights = _convertWeight(weights, projection.synapse_type).tolist()
-        delays  = connector.get_delays(N, local)[create].tolist()
+        weights = common.check_weight(weights, projection.synapse_type, is_conductance)
+        delays  = connector.get_delays(N, local)[create]
         
         if not connector.allow_self_connections and src in targets:
             assert len(targets) == len(weights) == len(delays)
             i = targets.index(src)
-            weights.pop(i)
-            delays.pop(i)
+            weights = numpy.delete(weights, i)
+            delays = numpy.delete(delays, i)
             targets.remove(src)
         
-        projection._targets += targets
-        projection._sources += [src]*len(targets)
-        try:
-            nest.DivergentConnect([src], targets, weights, delays, projection.plasticity_name)
-        except nest.NESTError, e:
-            raise common.ConnectionError("%s. src=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                                         e, src, targets, weights, delays, projection.plasticity_name))
+        if len(targets) > 0:
+            projection.connection_manager.connect(src, targets, weights, delays, projection.synapse_type)
         if CHECK_CONNECTIONS:
             check_connections(projection, src, targets)
-    return len(projection._sources)
+
+
+class AllToAllConnector(connectors.AllToAllConnector):    
+
+    def connect(self, projection):
+        probabilistic_connect(self, projection, 1.0)
+        
+
+class OneToOneConnector(connectors.OneToOneConnector):
+    
+    def connect(self, projection):
+        if projection.pre.dim == projection.post.dim:
+            N = projection.post.size
+            local = projection.post._mask_local
+            weights = self.get_weights(N, local)
+            is_conductance = common.is_conductance(projection.post.index(0))
+            weights = common.check_weight(weights, projection.synapse_type, is_conductance)
+            delays = self.get_delays(N, local)
+            for src, tgt, w, d in zip(projection.pre.local_cells,
+                                      projection.post.local_cells,
+                                      weights,
+                                      delays):
+                # the float is in case the values are of type numpy.float64, which NEST chokes on
+                projection.connection_manager.connect([src], [tgt], float(w), float(d), projection.synapse_type)
+                ##nest.Connect(projection._sources, projection._targets, weights, delays, projection.plasticity_name)
+        else:
+            raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
+
 
 class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
     
@@ -135,8 +119,7 @@ class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
         logging.info("Connecting %s to %s with probability %s" % (projection.pre.label,
                                                                   projection.post.label,
                                                                   self.p_connect))
-        nconn = probabilistic_connect(self, projection, self.p_connect)
-        return nconn
+        probabilistic_connect(self, projection, self.p_connect)
     
     
 class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector):
@@ -228,14 +211,17 @@ class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
 
             N = len(target_list)
             weights = self.get_weights(N)
-            weights = _convertWeight(weights, projection.synapse_type).tolist()
-            delays = self.get_delays(N).tolist()
-            nest.DivergentConnect([pre], target_list, weights, delays, projection.plasticity_name)
-            projection._sources += [pre]*N
-            projection._targets += target_list
+            is_conductance = common.is_conductance(projection.post.index(0))
+            weights = common.check_weight(weights, projection.synapse_type, is_conductance)
+            ##weights = _convertWeight(weights, projection.synapse_type).tolist()
+            delays = self.get_delays(N)
+            projection.connection_manager.connect(pre, target_list, weights, delays, projection.synapse_type)
+            ##nest.DivergentConnect([pre], target_list, weights, delays, projection.plasticity_name)
+            ##projection._sources += [pre]*N
+            ##projection._targets += target_list
             if CHECK_CONNECTIONS:
                 check_connections(projection, pre, target_list)
-        return len(projection._sources)
+        ##return len(projection._sources)
 
 
 class FixedNumberPreConnector(connectors.FixedNumberPreConnector):

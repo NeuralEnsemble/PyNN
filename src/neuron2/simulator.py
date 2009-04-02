@@ -236,28 +236,45 @@ class Connection(object):
         for name, value in parameters.items():
             setattr(self.weight_adjuster, name, value)
 
-def single_connect(source, target, weight, delay, synapse_type):
-    """
-    Private function to connect two neurons.
-    Used by `connect()` and the `Connector` classes.
-    """
-    if not isinstance(source, int) or source > state.gid_counter or source < 0:
-        errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, state.gid_counter)
-        raise common.ConnectionError(errmsg)
-    if not isinstance(target, common.IDMixin):
-        raise common.ConnectionError("Invalid target ID: %s" % target)
-    if synapse_type is None:
-        synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
-    # the next three lines should not be needed, as the weight and delay
-    # should have been checked prior to calling this function
-    weight = common.check_weight(weight, synapse_type, common.is_conductance(target))
-    delay = common.check_delay(delay)
+
+class ConnectionManager(object):
+    """docstring needed."""
+
+    def __init__(self, synapse_model=None):
+        self.connections = []
+
+    def __getitem__(self, i):
+        """Returns a Connection object."""
+        return self.connections[i]
     
-    synapse_object = getattr(target._cell, synapse_type)
-    nc = state.parallel_context.gid_connect(int(source), synapse_object)
-    nc.weight[0] = weight
-    nc.delay  = delay
-    return Connection(source, target, nc)
+    def __len__(self):
+        return len(self.connections)
+    
+    def __iter__(self):
+        return iter(self.connections)
+    
+    def connect(self, source, target, weight, delay, synapse_type):
+        """
+        Connect a neuron to another neuron.
+        """
+        if not isinstance(source, int) or source > state.gid_counter or source < 0:
+            errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, state.gid_counter)
+            raise common.ConnectionError(errmsg)
+        if not isinstance(target, common.IDMixin):
+            raise common.ConnectionError("Invalid target ID: %s" % target)
+        if synapse_type is None:
+            synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
+        # the next two lines should not be needed, as the weight and delay
+        # should have been checked prior to calling this function
+        weight = common.check_weight(weight, synapse_type, common.is_conductance(target))
+        delay = common.check_delay(delay)
+        
+        synapse_object = getattr(target._cell, synapse_type)
+        nc = state.parallel_context.gid_connect(int(source), synapse_object)
+        nc.weight[0] = weight
+        nc.delay  = delay
+        self.connections.append(Connection(source, target, nc))
+
 
 # The following are executed every time the module is imported.
 load_mechanisms() # maintains a list of mechanisms that have already been imported
