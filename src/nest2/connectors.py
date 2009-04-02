@@ -93,22 +93,33 @@ def probabilistic_connect(connector, projection, p):
         
     local = projection.post._mask_local
     for src in projection.pre.all():
-        # the following two lines are a nice idea, but this needs some thought for
-        # the parallel case, to ensure reproducibility when varying the number
-        # of processors
-        #N = rng.binomial(npost,self.p_connect,1)[0]
-        #targets = sample(postsynaptic_neurons, N)
-        rarr = rng.next(projection.post.size, 'uniform', (0, 1), mask_local=local)
+        # ( the following two lines are a nice idea, but this needs some thought for
+        #   the parallel case, to ensure reproducibility when varying the number
+        #   of processors
+        #      N = rng.binomial(npost,self.p_connect,1)[0]
+        #      targets = sample(postsynaptic_neurons, N)   # )
+        N = projection.post.size
+        # if running in parallel, rng.next(N) will not return N values, but only
+        # as many as are needed on this node, as determined by mask_local.
+        # Over the simulation as a whole (all nodes), N values will indeed be
+        # returned.
+        rarr = rng.next(N, 'uniform', (0, 1), mask_local=local)
         create = rarr<p
         targets = projection.post.local_cells[create].tolist()
-        if not connector.allow_self_connections and pre in targets:
-            targets.remove(pre)
-        N = projection.post.size
+        
         weights = connector.get_weights(N, local)[create]
         weights = _convertWeight(weights, projection.synapse_type).tolist()
         delays  = connector.get_delays(N, local)[create].tolist()
+        
+        if not connector.allow_self_connections and src in targets:
+            assert len(targets) == len(weights) == len(delays)
+            i = targets.index(src)
+            weights.pop(i)
+            delays.pop(i)
+            targets.remove(src)
+        
         projection._targets += targets
-        projection._sources += [src]*N
+        projection._sources += [src]*len(targets)
         try:
             nest.DivergentConnect([src], targets, weights, delays, projection.plasticity_name)
         except nest.NESTError, e:
@@ -120,42 +131,13 @@ def probabilistic_connect(connector, projection, p):
 
 class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
     
-    #def connect(self, projection): # new implementation. Not working yet
-    #    logging.info("Connecting %s to %s with probability %s" % (projection.pre.label,
-    #                                                              projection.post.label,
-    #                                                              self.p_connect))
-    #    nconn = probabilistic_connect(self, projection, self.p_connect)
-    #    return nconn
-        
-    def connect(self, projection): # old implementation
-        if projection.rng:
-            if isinstance(projection.rng, NativeRNG):
-                logging.warning("Warning: use of NativeRNG not implemented. Using NumpyRNG")
-                rng = numpy.random
-            else:
-                rng = projection.rng
-        else:
-            rng = numpy.random
-        postsynaptic_neurons = projection.post.local_cells
-        npost = len(postsynaptic_neurons)
-        for pre in projection.pre.all():
-            rarr = rng.uniform(0, 1, npost) # what about NativeRNG?
-            target_list = numpy.compress(numpy.less(rarr, self.p_connect), postsynaptic_neurons).tolist()
-            #N           = rng.binomial(npost,self.p_connect,1)[0]
-            #target_list = sample(postsynaptic_neurons, N)
-            # if self connections are not allowed, check whether pre and post are the same
-            if not self.allow_self_connections and pre in target_list:
-                target_list.remove(pre)
-            N = len(target_list)
-            weights = self.get_weights(N)
-            weights = _convertWeight(weights, projection.synapse_type).tolist()
-            delays  = self.get_delays(N).tolist()
-            projection._targets += target_list
-            projection._sources += [pre]*N
-            nest.DivergentConnect([pre], target_list, weights, delays, projection.plasticity_name)
-            if CHECK_CONNECTIONS:
-                check_connections(projection, pre, target_list)
-        return len(projection._sources)
+    def connect(self, projection): # new implementation. Not working yet
+        logging.info("Connecting %s to %s with probability %s" % (projection.pre.label,
+                                                                  projection.post.label,
+                                                                  self.p_connect))
+        nconn = probabilistic_connect(self, projection, self.p_connect)
+        return nconn
+    
     
 class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector):
     

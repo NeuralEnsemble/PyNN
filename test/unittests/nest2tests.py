@@ -514,7 +514,7 @@ class ProjectionInitTest(unittest.TestCase):
             for tgtP in [self.target6, self.target33]:
                 for rng in None, random.NumpyRNG(), random.NativeRNG():
                     prj = nest.Projection(srcP, tgtP, nest.FixedProbabilityConnector(0.5), rng=rng) 
-                    assert len(prj._sources) == len(prj._targets)
+                    self.assertEqual(len(prj._sources), len(prj._targets))
                     weights = []
                     for src, tgt in prj.connections():
                         #print nest.nest.GetConnections([src],[tgt])
