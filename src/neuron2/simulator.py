@@ -163,6 +163,7 @@ class _State(object):
         self.num_processes = int(self.parallel_context.nhost())
         self.mpi_rank = int(self.parallel_context.id())
         self.cvode = h.CVode()
+        self.max_delay = 1e12
     
     t = h_property('t')
     dt = h_property('dt')
@@ -187,8 +188,6 @@ def run(simtime):
     state.tstop = simtime
     logging.info("Running the simulation for %d ms" % simtime)
     state.parallel_context.psolve(state.tstop)
-    return state.t
-
 
 def finalize(quit=True):
     state.parallel_context.runworker()
@@ -218,19 +217,19 @@ def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
 class Connection(object):
 
     def __init__(self, source, target, nc):
-        self.pre = source
-        self.post = target
+        self.source = source
+        self.target = target
         self.nc = nc
         
     def useSTDP(self, mechanism, parameters, ddf):
         self.ddf = ddf
         self.weight_adjuster = getattr(h, mechanism)(0.5)
-        self.pre2wa = state.parallel_context.gid_connect(int(self.pre), self.weight_adjuster)
+        self.pre2wa = state.parallel_context.gid_connect(int(self.source), self.weight_adjuster)
         self.pre2wa.threshold = self.nc.threshold
         self.pre2wa.delay = self.nc.delay * (1-ddf)
         self.pre2wa.weight[0] = 1
         # directly create NetCon as wa is on the same machine as the post-synaptic cell
-        self.post2wa = h.NetCon(self.post._cell.source, self.weight_adjuster)
+        self.post2wa = h.NetCon(self.target._cell.source, self.weight_adjuster)
         self.pre2wa.threshold = 1
         self.pre2wa.delay = self.nc.delay * ddf
         self.pre2wa.weight[0] = -1
@@ -300,7 +299,7 @@ class ConnectionManager(object):
         elif format == 'array':
             values = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
             for c in self.connections:
-                values[c.pre-offset[0], c.post-offset[1]] = getattr(c, parameter_name)
+                values[c.source-offset[0], c.target-offset[1]] = getattr(c, parameter_name)
         else:
             raise Exception("format must be 'list' or 'array'")
         return values

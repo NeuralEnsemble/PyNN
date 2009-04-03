@@ -5,11 +5,9 @@ $Id$
 """
 
 import nest
-from pyNN import common, utility
+from pyNN import common
 from pyNN.random import *
-from pyNN import recording
-import numpy, types, sys, shutil, os, logging, copy, tempfile, re
-from math import *
+import numpy, os, logging, tempfile
 from pyNN.nest2.cells import *
 from pyNN.nest2.connectors import *
 from pyNN.nest2.synapses import *
@@ -17,9 +15,9 @@ from pyNN.nest2.electrodes import *
 from pyNN.nest2 import simulator
 Set = set
 
+common.simulator = simulator
 tempdirs       = []
 
-DEFAULT_BUFFER_SIZE = 10000
 NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
                       "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse"]
 
@@ -28,13 +26,6 @@ NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_h
 # ==============================================================================
 
 class ID(int, common.IDMixin):
-    """
-    Instead of storing ids as integers, we store them as ID objects,
-    which allows a syntax like:
-        p[3,4].tau_m = 20.0
-    where p is a Population object. The question is, how big a memory/performance
-    hit is it to replace integers with ID objects?
-    """
 
     def __init__(self, n):
         int.__init__(n)
@@ -45,6 +36,7 @@ class ID(int, common.IDMixin):
 
     def set_native_parameters(self, parameters):
         nest.SetStatus([self], [parameters])
+
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
@@ -83,36 +75,25 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     simulator but not by others.
     """
     global tempdir
-    log_file = "nest2.log"
-    if debug:
-        if isinstance(debug, basestring):
-            log_file = debug
-    utility.init_logging(log_file, debug, num_processes(), rank())
-    logging.info("Initialization of Nest")
+    
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
-    assert min_delay >= timestep, "min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep)
-
+    
     if 'verbosity' in extra_params:
         nest_verbosity = extra_params['verbosity'].upper()
     else:
         nest_verbosity = "WARNING"
     nest.sli_run("M_%s setverbosity" % nest_verbosity)
         
-
-    # reset the simulation kernel
-    nest.ResetKernel()
     # clear the sli stack, if this is not done --> memory leak cause the stack increases
     nest.sr('clear')
-    Projection.nProj = 0
+    
+    # reset the simulation kernel
+    nest.ResetKernel()
+    
+    # set tempdir
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
-
-    # set tempdir
-    try:
-        nest.SetKernelStatus({'data_path': tempdir,})
-    except nest.NESTError:    
-        nest.SetStatus([0], {'device_prefix': tempdir,})
-
+    nest.SetKernelStatus({'data_path': tempdir,})
 
     # set kernel RNG seeds
     num_threads = extra_params.get('threads') or 1
@@ -123,65 +104,45 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
         rng = NumpyRNG(rng_seeds_seed)
         rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100000).astype('int').tolist() 
     logging.debug("rng_seeds = %s" % rng_seeds)
-    nest.SetStatus([0],[{'local_num_threads': num_threads,
-                         'rng_seeds'        : rng_seeds}])
+    nest.SetKernelStatus({'local_num_threads': num_threads,
+                          'rng_seeds'        : rng_seeds})
 
     # Set min_delay and max_delay for all synapse models
     for synapse_model in NEST_SYNAPSE_TYPES:
-        # this is done in two steps, because otherwise NEST sometimes complains
-        #   "max_delay is not compatible with default delay"
-        nest.SetDefaults(synapse_model, {'delay' : min_delay, 'min_delay': min_delay, 'max_delay': max_delay})
+        nest.SetDefaults(synapse_model, {'delay' : min_delay,
+                                         'min_delay': min_delay,
+                                         'max_delay': max_delay})
 
     # set resolution
-    nest.SetStatus([0], {'resolution': timestep})
-    return nest.Rank()
+    nest.SetKernelStatus({'resolution': timestep})
+    return rank()
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    # We close the high level files opened by populations objects
-    # that may have not been written.
-
-    # NEST will soon close all its output files after the simulate function is over, therefore this step is not necessary
     global tempdirs
-
     # And we postprocess the low level files opened by record()
     # and record_v() method
     for recorder in simulator.recorder_list:
         recorder.write(gather=False, compatible_output=compatible_output)
-
     for tempdir in tempdirs:
-        os.system("rm -rf %s" %tempdir)
-        tempdirs.remove(tempdir)
+        shutil.rmtree(tempdir)
+    tempdirs = []
 
 def run(simtime):
     """Run the simulation for simtime ms."""
-    nest.Simulate(simtime)
+    simulator.run(simtime)
     return get_current_time()
 
-def get_current_time():
-    """Return the current time in the simulation."""
-    return nest.GetStatus([0])[0]['time']
+# ==============================================================================
+#   Functions returning information about the simulation state
+# ==============================================================================
 
-def get_time_step():
-    return nest.GetStatus([0])[0]['resolution']
-common.get_time_step = get_time_step
-
-def get_min_delay():
-    return nest.GetDefaults('static_synapse')['min_delay']
-common.get_min_delay = get_min_delay
-
-def get_max_delay():
-    return nest.GetDefaults('static_synapse')['max_delay']
-common.get_max_delay = get_max_delay
-
-def num_processes():
-    return nest.GetStatus([0])[0]['num_processes']
-common.num_processes = num_processes
-
-def rank():
-    """Return the MPI rank."""
-    return nest.Rank()
-common.rank = rank
+get_current_time = common.get_current_time
+get_time_step = common.get_time_step
+get_min_delay = common.get_min_delay
+get_max_delay = common.get_max_delay
+num_processes = common.num_processes
+rank = common.rank
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -216,7 +177,7 @@ def _create(cellclass, cellparams=None, n=1, parent=None):
 
 create = common.build_create(_create)
 
-connect = common.build_connect(simulator)
+connect = common.connect
 
 set = common.set
 
@@ -360,10 +321,10 @@ class Population(common.Population):
         # create list of neurons
         fixed_list = False
         if record_from:
-            if type(record_from) == types.ListType:
+            if isinstance(record_from, list):
                 fixed_list = True
                 n_rec = len(record_from)
-            elif type(record_from) == types.IntType:
+            elif isinstance(record_from, int):
                 n_rec = record_from
             else:
                 raise Exception("record_from must be a list or an integer")
@@ -528,23 +489,6 @@ class Projection(common.Projection):
         for src in self.pre.cell.flat:
             print src, nest.GetConnections([src], self.plasticity_name)  
 
-    def saveConnections(self, filename, gather=False):
-        """Save connections to file in a format suitable for reading in with the
-        'fromFile' method."""
-        if gather == True:
-            raise Exception("saveConnections(gather=True) not yet supported")
-        elif num_processes() > 1:
-            filename += '.%d' % rank()
-        f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
-        fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
-                                        "%s", "%g", "%g")
-        for c in self.connections:     
-            line = fmt  % (self.pre.locate(c.source),
-                           self.post.locate(c.target),
-                           c.weight,
-                           c.delay)
-            line = line.replace('(','[').replace(')',']')
-            f.write(line)
-        f.close()
+
 
 # ==============================================================================

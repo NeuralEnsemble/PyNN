@@ -6,7 +6,6 @@
 import logging
 import nest
 from pyNN import common, connectors
-from pyNN.nest2.__init__ import get_max_delay, get_min_delay
 import numpy
 from pyNN.random import RandomDistribution, NativeRNG, NumpyRNG
 from math import *

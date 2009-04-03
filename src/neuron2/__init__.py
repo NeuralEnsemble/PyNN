@@ -8,85 +8,22 @@ __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
 from pyNN.neuron2 import simulator
-from pyNN import common, utility
+from pyNN import common
 from pyNN.neuron2.cells import *
 from pyNN.neuron2.connectors import *
 from pyNN.neuron2.synapses import *
 from pyNN.neuron2.electrodes import *
 
-from math import *
-import sys
 import numpy
 import logging
-import operator
 
 # Global variables
 quit_on_end = True
-recorder_list = []
+common.simulator = simulator
 
 # ==============================================================================
-#   Functions for simulation set-up and control
+#   Utility classes and functions
 # ==============================================================================
-
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_params):
-    """
-    Should be called at the very beginning of a script.
-    extra_params contains any keyword arguments that are required by a given
-    simulator but not by others.
-    """
-    global quit_on_end
-    if not simulator.state.initialized:
-        utility.init_logging("neuron2.log", debug, num_processes(), rank())
-        logging.info("Initialization of NEURON (use setup(.., debug=True) to see a full logfile)")
-        simulator.state.initialized = True
-    simulator.state.dt = timestep
-    simulator.state.min_delay = min_delay
-    simulator.reset()
-    if 'quit_on_end' in extra_params:
-        quit_on_end = extra_params['quit_on_end']
-    if extra_params.has_key('use_cvode'):
-        simulator.state.cvode.active(int(extra_params['use_cvode']))
-    return rank()
-
-def end(compatible_output=True):
-    """Do any necessary cleaning up before exiting."""
-    for recorder in simulator.recorder_list:
-        recorder.write(gather=False, compatible_output=compatible_output)
-    simulator.finalize(quit_on_end)
-        
-def run(simtime):
-    """Run the simulation for simtime ms."""
-    simulator.run(simtime)
-
-# ==============================================================================
-#   Functions returning information about the simulation state
-# ==============================================================================
-
-def get_current_time():
-    """Return the current time in the simulation."""
-    return simulator.state.t
-#common.get_current_time = get_current_time
-
-def get_time_step():
-    return simulator.state.dt
-#common.get_time_step = get_time_step
-
-def get_min_delay():
-    return simulator.state.min_delay
-common.get_min_delay = get_min_delay
-
-common.get_max_delay = lambda: numpy.inf
-
-def num_processes():
-    return simulator.state.num_processes
-
-def rank():
-    """Return the MPI rank."""
-    return simulator.state.mpi_rank
-common.rank = rank
-
-def list_standard_models():
-    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
 
 class ID(int, common.IDMixin):
     
@@ -109,7 +46,55 @@ class ID(int, common.IDMixin):
     def set_native_parameters(self, parameters):
         for name, val in parameters.items():
             setattr(self._cell, name, val)
-            
+
+
+def list_standard_models():
+    """Return a list of all the StandardCellType classes available for this simulator."""
+    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+
+# ==============================================================================
+#   Functions for simulation set-up and control
+# ==============================================================================
+
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_params):
+    """
+    Should be called at the very beginning of a script.
+    extra_params contains any keyword arguments that are required by a given
+    simulator but not by others.
+    """
+    global quit_on_end
+    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
+    simulator.state.min_delay = min_delay
+    simulator.state.max_delay = max_delay
+    simulator.state.dt = timestep
+    simulator.reset()
+    if 'quit_on_end' in extra_params:
+        quit_on_end = extra_params['quit_on_end']
+    if extra_params.has_key('use_cvode'):
+        simulator.state.cvode.active(int(extra_params['use_cvode']))
+    return rank()
+
+def end(compatible_output=True):
+    """Do any necessary cleaning up before exiting."""
+    for recorder in simulator.recorder_list:
+        recorder.write(gather=False, compatible_output=compatible_output)
+    simulator.finalize(quit_on_end)
+        
+def run(simtime):
+    """Run the simulation for simtime ms."""
+    simulator.run(simtime)
+    return get_current_time()
+
+# ==============================================================================
+#   Functions returning information about the simulation state
+# ==============================================================================
+
+get_current_time = common.get_current_time
+get_time_step = common.get_time_step
+get_min_delay = common.get_min_delay
+get_max_delay = common.get_max_delay
+num_processes = common.num_processes
+rank = common.rank           
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -148,7 +133,7 @@ def _create(cellclass, cellparams, n, parent=None):
 
 create = common.build_create(_create)
 
-connect = common.build_connect(simulator)
+connect = common.connect
 
 set = common.set
 
@@ -366,27 +351,5 @@ class Projection(common.Projection):
             rarr = rand_distr.next(len(self))  
         logging.info("--- Projection[%s].__randomizeDelays__() ---" % self.label)
         self.setDelays(rarr)
-    
-    # --- Methods for writing/reading information to/from file. ----------------
-         
-    def saveConnections(self, filename, gather=False):
-        """Save connections to file in a format suitable for reading in with the
-        'fromFile' method."""
-        if gather:
-            raise Exception("saveConnections() with gather=True not yet implemented")
-        elif num_processes() > 1:
-            filename += '.%d' % rank()
-        logging.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
-        f = open(filename, 'w', 10000)
-        for c in self.connections:
-            line = "%s%s\t%s%s\t%g\t%g\n" % (self.pre.label,
-                                     self.pre.locate(c.pre),
-                                     self.post.label,
-                                     self.post.locate(c.post),
-                                     c.nc.weight[0],
-                                     c.nc.delay)
-            line = line.replace('(','[').replace(')',']')
-            f.write(line)
-        f.close()
 
 # ==============================================================================

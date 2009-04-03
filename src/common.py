@@ -10,8 +10,10 @@ import types, copy, sys
 import numpy
 import logging
 from math import *
-from pyNN import random
+from pyNN import random, utility
 from string import Template
+
+simulator = None # should be set by simulator-specific modules
 
 DEFAULT_WEIGHT = 0.0
 DEFAULT_BUFFER_SIZE = 10000
@@ -441,14 +443,27 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    dt = timestep
-    if min_delay > max_delay:
-        raise Exception("min_delay has to be less than or equal to max_delay.")
     invalid_extra_params = ('mindelay', 'maxdelay', 'dt')
     for param in invalid_extra_params:
         if param in extra_params:
             raise Exception("%s is not a valid argument for setup()" % param)
-
+    if min_delay > max_delay:
+        raise Exception("min_delay has to be less than or equal to max_delay.")
+    if min_delay < timestep:
+        "min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep)
+    
+    backend = simulator.__name__.replace('simulator', '')
+    log_file = "%s.log" % backend
+    if debug:
+        if isinstance(debug, basestring):
+            log_file = debug
+    if not simulator.state.initialized:
+        utility.init_logging(log_file, debug, num_processes(), rank())
+        logging.info("Initialization of %s (use setup(.., debug=True) to see a full logfile)" % backend)
+        simulator.state.initialized = True
+    
+    
+    
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     raise NotImplementedError
@@ -459,27 +474,23 @@ def run(simtime):
 
 def get_current_time():
     """Return the current time in the simulation."""
-    raise NotImplementedError
+    return simulator.state.t
 
 def get_time_step():
-    """Return the integration time step being used in the simulation.""" 
-    raise NotImplementedError
+    return simulator.state.dt
 
 def get_min_delay():
-    """Return the minimum allowed synaptic delay."""
-    raise NotImplementedError("common.get_min_delay() must be overridden by a simulator-specific function")
+    return simulator.state.min_delay
 
 def get_max_delay():
-    """Return the maximum allowed synaptic delay."""
-    raise NotImplementedError("common.get_max_delay() must be overridden by a simulator-specific function")
+    return simulator.state.max_delay
 
 def num_processes():
-    """When running a parallel simulation with MPI, return the number of processors being used."""
-    raise NotImplementedError
+    return simulator.state.num_processes
 
 def rank():
     """Return the MPI rank."""
-    raise NotImplementedError
+    return simulator.state.mpi_rank
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -500,32 +511,32 @@ def build_create(_create):
         return all_cells
     return create
 
-def build_connect(simulator):
-    def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
-        """Connect a source of spikes to a synaptic target. source and target can
-        both be individual cells or lists of cells, in which case all possible
-        connections are made with probability p, using either the random number
-        generator supplied, or the default rng otherwise.
-        Weights should be in nA or µS."""
-        logging.debug("connecting %s to %s on host %d" % (source, target, rank()))
-        if not is_listlike(source):
-            source = [source]
-        if not is_listlike(target):
-            target = [target]
-        weight = check_weight(weight, synapse_type, is_conductance(target))
-        delay = check_delay(delay)
+
+def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
+    """Connect a source of spikes to a synaptic target. source and target can
+    both be individual cells or lists of cells, in which case all possible
+    connections are made with probability p, using either the random number
+    generator supplied, or the default rng otherwise.
+    Weights should be in nA or µS."""
+    logging.debug("connecting %s to %s on host %d" % (source, target, rank()))
+    if not is_listlike(source):
+        source = [source]
+    if not is_listlike(target):
+        target = [target]
+    weight = check_weight(weight, synapse_type, is_conductance(target))
+    delay = check_delay(delay)
+    if p < 1:
+        rng = rng or numpy.random
+    connection_manager = simulator.ConnectionManager()
+    for tgt in target:
+        sources = numpy.array(source)
         if p < 1:
-            rng = rng or numpy.random
-        connection_manager = simulator.ConnectionManager()
-        for tgt in target:
-            sources = numpy.array(source)
-            if p < 1:
-                rarr = rng.uniform(0, 1, len(source))
-                sources = sources[rarr<p]
-            for src in sources:
-                connection_manager.connect(src, tgt, weight, delay, synapse_type)
-        return connection_manager
-    return connect
+            rarr = rng.uniform(0, 1, len(source))
+            sources = sources[rarr<p]
+        for src in sources:
+            connection_manager.connect(src, tgt, weight, delay, synapse_type)
+    return connection_manager
+
 
 def set(cells, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
@@ -1152,9 +1163,24 @@ class Projection(object):
         return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
     
     def saveConnections(self, filename, gather=False):
-        """Save connections to file in a format suitable for reading in with the
-        'fromFile' method."""
-        raise NotImplementedError()
+        """Save connections to file in a format suitable for reading in with a
+        FromFileConnector."""
+        if gather == True:
+            raise Exception("saveConnections(gather=True) not yet supported")
+        elif num_processes() > 1:
+            filename += '.%d' % rank()
+        logging.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
+        f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
+        fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
+                                        "%s", "%g", "%g")
+        for c in self.connections:     
+            line = fmt  % (self.pre.locate(c.source),
+                           self.post.locate(c.target),
+                           c.weight,
+                           c.delay)
+            line = line.replace('(','[').replace(')',']')
+            f.write(line)
+        f.close()
     
     def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file."""

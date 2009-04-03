@@ -201,6 +201,44 @@ class Recorder(object):
         else:
             raise Exception("Writing to file not yet supported for data recorded only to memory.")
 
+
+class _State(object):
+    """Represent the simulator state."""
+    
+    def __init__(self):
+        self.initialized = False
+
+    @property
+    def t(self):
+        return nest.GetKernelStatus()['time']
+    
+    #@property
+    #def dt(self):
+    #    return nest.GetKernelStatus()['resolution']
+    dt = property(fget=lambda self: nest.GetKernelStatus()['resolution'],
+                  fset=lambda self, timestep: nest.SetKernelStatus({'resolution': timestep}))
+    
+    @property
+    def min_delay(self):
+        return nest.GetDefaults('static_synapse')['min_delay']
+    
+    @property
+    def max_delay(self):
+        # any reason why not nest.GetKernelStatus()['min_delay']?
+        return nest.GetDefaults('static_synapse')['max_delay']
+    
+    @property
+    def num_processes(self):
+        return nest.GetKernelStatus()['num_processes']
+    
+    @property
+    def mpi_rank(self):
+        return nest.Rank()
+    
+
+def run(simtime):
+    nest.Simulate(simtime)
+
 class Connection(object):
     """Not part of the API as of 0.4."""
 
@@ -345,3 +383,6 @@ class ConnectionManager:
                 nest.SetConnection([src], self.synapse_model, port, {name: val})
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+
+state = _State()  # a Singleton, so only a single instance ever exists
+del _State
