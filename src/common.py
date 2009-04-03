@@ -47,6 +47,7 @@ class ConnectionError(Exception): pass
 class InvalidModelError(Exception): pass
 class RoundingWarning(Warning): pass
 class NothingToWriteError(Exception): pass
+class InvalidWeightError(Exception): pass
 
 # ==============================================================================
 #   Utility classes and functions
@@ -55,8 +56,8 @@ class NothingToWriteError(Exception): pass
 def is_listlike(obj):
     return hasattr(obj, "__len__") and not isinstance(obj, basestring)
 
-def is_numeric(obj):
-    return isinstance(obj, float) or isinstance(obj, int) or isinstance(obj, long)
+def is_number(obj):
+    return isinstance(obj, float) or isinstance(obj, int) or isinstance(obj, long) or isinstance(obj, numpy.float64)
 
 def build_translations(*translation_list):
     """
@@ -105,7 +106,7 @@ def check_weight(weight, synapse_type, is_conductance):
         all_positive = (weight>=0).all()
         if not (all_negative or all_positive):
             raise InvalidWeightError("Weights must be either all positive or all negative")
-    elif is_numeric(weight):
+    elif is_number(weight):
         all_positive = weight >= 0    
     else:
         raise Exception("Weight must be a number or a list/array of numbers.")
@@ -1233,6 +1234,7 @@ def next_n(sequence, N, start_index, mask_local):
         values = numpy.array(sequence[start_index:start_index+N], float)
         if mask_local is not None:
             assert mask_local.size == N
+            assert len(mask_local.shape) == 1, mask_local.shape
             values = values[mask_local]
     else:
         raise Exception("sequence is of type %s" % type(sequence))

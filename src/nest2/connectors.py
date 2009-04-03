@@ -4,8 +4,9 @@
 """
 
 import logging
+import nest
 from pyNN import common, connectors
-from pyNN.nest2.__init__ import nest, is_number, get_max_delay, get_min_delay
+from pyNN.nest2.__init__ import get_max_delay, get_min_delay
 import numpy
 from pyNN.random import RandomDistribution, NativeRNG, NumpyRNG
 from math import *
@@ -16,21 +17,6 @@ from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
 
 CHECK_CONNECTIONS = False
 
-class InvalidWeightError(Exception): pass
-
-def _convertWeight(w, synapse_type):
-    assert isinstance(w, numpy.ndarray), "by this point, single weights should have been transformed to arrays"
-    weight = w*1000.0
-    all_negative = (weight<=0).all()
-    all_positive = (weight>=0).all()
-    if not (all_negative or all_positive):
-        raise InvalidWeightError("Weights must be either all positive or all negative")
-    if synapse_type == 'inhibitory' and all_positive:
-        weight *= -1
-    elif synapse_type == 'excitatory':
-        if not all_positive:
-            raise InvalidWeightError("Weights must be positive for excitatory synapses")
-    return weight
 
 def check_connections(prj, src, intended_targets):
     conn_dict = nest.GetConnections([src], prj.plasticity_name)[0]
@@ -52,7 +38,7 @@ def probabilistic_connect(connector, projection, p):
     else:
         rng = NumpyRNG()
         
-    local = projection.post._mask_local
+    local = projection.post._mask_local.flatten()
     is_conductance = common.is_conductance(projection.post.index(0))
     for src in projection.pre.all():
         # ( the following two lines are a nice idea, but this needs some thought for
@@ -147,7 +133,8 @@ class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabil
         get_proba   = lambda d: eval(self.d_expression)
         get_weights = lambda d: eval(self.weights)
         get_delays  = lambda d: eval(self.delays)
-            
+        is_conductance = common.is_conductance(projection.post.index(0))
+        
         for pre in projection.pre.cell.flat:
             # We compute the distances from the post cell to all the others
             distances = common.distances(pre, projection.post, self.mask,
@@ -164,23 +151,26 @@ class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabil
                 idx = numpy.delete(idx, target_list.index(pre))
                 target_list.remove(pre)
             N = len(target_list)
+            
             # We deal with the fact that the user could have given a weights distance dependent
             if isinstance(self.weights,str):
                 weights = get_weights(distances[idx])
             else:
                 weights = self.get_weights(N)
-            weights = _convertWeight(weights, projection.synapse_type).tolist()
+            
+            weights = common.check_weight(weights, projection.synapse_type, is_conductance)
             # We deal with the fact that the user could have given a delays distance dependent
             if isinstance(self.delays,str):
-                delays = get_delays(distances[idx]).tolist()
+                delays = get_delays(distances[idx])
             else:
-                delays = self.get_delays(N).tolist()
-            projection._targets += target_list
-            projection._sources += [pre]*N 
-            nest.DivergentConnect([pre], target_list, weights, delays, projection.plasticity_name)
+                delays = self.get_delays(N)
+                
+            if len(target_list) > 0:
+                projection.connection_manager.connect(pre, target_list, weights, delays, projection.synapse_type)
+
             if CHECK_CONNECTIONS:
                 check_connections(projection, pre, target_list)
-        return len(projection._sources)
+        
 
 class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
     
@@ -213,15 +203,11 @@ class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
             weights = self.get_weights(N)
             is_conductance = common.is_conductance(projection.post.index(0))
             weights = common.check_weight(weights, projection.synapse_type, is_conductance)
-            ##weights = _convertWeight(weights, projection.synapse_type).tolist()
             delays = self.get_delays(N)
             projection.connection_manager.connect(pre, target_list, weights, delays, projection.synapse_type)
-            ##nest.DivergentConnect([pre], target_list, weights, delays, projection.plasticity_name)
-            ##projection._sources += [pre]*N
-            ##projection._targets += target_list
+
             if CHECK_CONNECTIONS:
                 check_connections(projection, pre, target_list)
-        ##return len(projection._sources)
 
 
 class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
@@ -252,17 +238,14 @@ class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
             
             N = len(source_list)
             weights = self.get_weights(N)
-            weights = _convertWeight(weights, projection.synapse_type).tolist()
-            delays = self.get_delays(N).tolist()
-
-            nest.ConvergentConnect(source_list, [post], weights, delays, projection.plasticity_name)
-            if CHECK_CONNECTIONS:
-                for src in source_list:
-                    check_connections(projection, src, [post])
-            projection._sources += source_list
-            projection._targets += [post]*N
-
-        return len(projection._sources)
+            is_conductance = common.is_conductance(projection.post.index(0))
+            weights = common.check_weight(weights, projection.synapse_type, is_conductance)
+            delays = self.get_delays(N)
+            
+            for source, w, d in zip(source_list, weights, delays):
+                projection.connection_manager.connect(source, [post], w, d, projection.synapse_type)
+                if CHECK_CONNECTIONS:
+                    check_connections(projection, source, [post])
 
 
 def _connect_from_list(conn_list, projection):
@@ -274,15 +257,7 @@ def _connect_from_list(conn_list, projection):
         src, tgt, weight, delay = conn_list[i][:]
         src = projection.pre[tuple(src)]
         tgt = projection.post[tuple(tgt)]
-        projection._sources.append(src)
-        projection._targets.append(tgt)
-        #weights.append(_convertWeight(weight, projection.synapse_type))
-        weights[i] = weight
-        delays[i] = delay
-    weights = _convertWeight(weights, projection.synapse_type)
-    nest.Connect(projection._sources, projection._targets, weights, delays, projection.plasticity_name)
-    return projection.pre.size
-
+        projection.connection_manager.connect(src, [tgt], weight, delay, projection.synapse_type)
 
 class FromListConnector(connectors.FromListConnector):
     

@@ -249,11 +249,14 @@ class Connection(object):
 class ConnectionManager:
     """docstring needed."""
 
-    def __init__(self, synapse_model='static_synapse'):
+    def __init__(self, synapse_model='static_synapse', parent=None):
         self.sources = []
         self.targets = []
         self.ports = []
         self.synapse_model = synapse_model
+        self.parent = parent
+        if parent is not None:
+            assert parent.plasticity_name == self.synapse_model
 
     def __getitem__(self, i):
         """Returns a Connection object."""
@@ -285,14 +288,14 @@ class ConnectionManager:
         assert len(targets) > 0
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()
+        elif isinstance(weights, float):
+            weights = [weights]
         if isinstance(delays, numpy.ndarray):
             delays = delays.tolist()
-        if len(targets) > 1:
-            connect = nest.DivergentConnect
-        else:
-            connect = nest.Connect
+        elif isinstance(delays, float):
+            delays = [delays]
         try:
-            connect([source], targets, weights, delays, self.synapse_model)
+            nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)
         except nest.NESTError, e:
             raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                          e, source, targets, weights, delays, self.synapse_model))
@@ -311,14 +314,34 @@ class ConnectionManager:
         if format == 'list':
             values = []
             for src, port in zip(self.sources, self.ports):
-                values.append(nest.GetConnection([src], self.synapse_model, port)[parameter_name])
+                value = nest.GetConnection([src], self.synapse_model, port)[parameter_name]
+                if parameter_name == "weight":
+                    value *= 0.001
+                values.append(value)
         elif format == 'array':
-            values = numpy.zeros((self.pre.size, self.post.size))
+            values = numpy.zeros((self.parent.pre.size, self.parent.post.size))
             for src, tgt, port in zip(self.sources, self.targets, self.ports):
                 # could instead get tgt from the 'target' entry with GetConnection
                 value = nest.GetConnection([src], self.synapse_model, port)[parameter_name]
+                # don't need to pass offset as arg, now we store the parent projection
+                # (offset is always 0,0 for connections created with connect())
                 values[src-offset[0], tgt-offset[1]] = value
+            if parameter_name == 'weight':
+                values *= 0.001
         else:
             raise Exception("format must be 'list' or 'array', actually '%s'" % format)
         return values
     
+    def set(self, name, value):
+        if common.is_number(value):
+            if name == 'weight':
+                value *= 1000.0
+            for src, port in zip(self.sources, self.ports):
+                nest.SetConnection([src], self.synapse_model, port, {name: value})
+        elif common.is_listlike(value):
+            if name == 'weight':
+                value = 1000.0*numpy.array(value)
+            for src, port, val in zip(self.sources, self.ports, value):
+                nest.SetConnection([src], self.synapse_model, port, {name: val})
+        else:
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
