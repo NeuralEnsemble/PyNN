@@ -133,7 +133,7 @@ class ConnectionTest(unittest.TestCase):
         
     def testConnectNonExistentPostCell(self):
         """connect(): Connecting to a non-existent cell should raise a ConnectionError."""
-        non_existent_cell = nest.ID(45678)
+        non_existent_cell = nest.simulator.ID(45678)
         non_existent_cell.cellclass = Exception
         self.assertRaises(common.ConnectionError, nest.connect, self.precells[0], [non_existent_cell])
         
@@ -267,7 +267,7 @@ class PopulationIteratorTest(unittest.TestCase):
         for net in self.net1, self.net2:
             ids = [i for i in net]
             self.assertEqual(ids, net.cell.flatten().tolist())
-            self.assert_(isinstance(ids[0], nest.ID))
+            self.assert_(isinstance(ids[0], nest.simulator.ID))
             
     def testAddressIter(self):
         for net in self.net1, self.net2:

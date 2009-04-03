@@ -22,31 +22,8 @@ quit_on_end = True
 common.simulator = simulator
 
 # ==============================================================================
-#   Utility classes and functions
+#   Utility functions
 # ==============================================================================
-
-class ID(int, common.IDMixin):
-    
-    def __init__(self, n):
-        int.__init__(n)
-        common.IDMixin.__init__(self)
-    
-    def _build_cell(self, cell_model, cell_parameters, parent=None):
-        gid = int(self)
-        self._cell = cell_model(**cell_parameters)          # create the cell object
-        simulator.register_gid(gid, self._cell.source, section=self._cell) # not adequate for multi-compartmental cells
-        self.parent = parent
-    
-    def get_native_parameters(self):
-        D = {}
-        for name in self._cell.parameter_names:
-            D[name] = getattr(self._cell, name)
-        return D
-    
-    def set_native_parameters(self, parameters):
-        for name, val in parameters.items():
-            setattr(self._cell, name, val)
-
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
@@ -100,38 +77,7 @@ rank = common.rank
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def _create(cellclass, cellparams, n, parent=None):
-    """
-    Function used by both `create()` and `Population.__init__()`
-    """
-    assert n > 0, 'n must be a positive integer'
-    if isinstance(cellclass, basestring): # cell defined in hoc template
-        try:
-            cell_model = getattr(simulator.h, cellclass)
-        except AttributeError:
-            raise common.InvalidModelError("There is no hoc template called %s" % cellclass)
-        cell_parameters = cellparams or {}
-    elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
-        celltype = cellclass(cellparams)
-        cell_model = celltype.model
-        cell_parameters = celltype.parameters
-    else:
-        cell_model = cellclass
-        cell_parameters = cellparams
-    first_id = simulator.state.gid_counter
-    last_id = simulator.state.gid_counter + n - 1
-    all_ids = numpy.array([id for id in range(first_id, last_id+1)], ID)
-    # mask_local is used to extract those elements from arrays that apply to the cells on the current node
-    mask_local = all_ids%num_processes()==rank() # round-robin distribution of cells between nodes
-    for i,(id,is_local) in enumerate(zip(all_ids, mask_local)):
-        if is_local:
-            all_ids[i] = ID(id)
-            all_ids[i]._build_cell(cell_model, cell_parameters, parent=parent)
-    simulator.initializer.register(*all_ids[mask_local])
-    simulator.state.gid_counter += n
-    return all_ids, mask_local, first_id, last_id
-
-create = common.build_create(_create)
+create = common.create
 
 connect = common.connect
 
@@ -182,7 +128,7 @@ class Population(common.Population):
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
         # The local cells are also stored in a list, for easy iteration
-        self.all_cells, self._mask_local, self.first_id, self.last_id = _create(cellclass, cellparams, self.size, parent=self)
+        self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
         self.local_cells = self.all_cells[self._mask_local]
         self.all_cells = self.all_cells.reshape(self.dim)
         self._mask_local = self._mask_local.reshape(self.dim)

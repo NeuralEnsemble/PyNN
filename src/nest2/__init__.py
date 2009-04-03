@@ -22,21 +22,8 @@ NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_h
                       "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse"]
 
 # ==============================================================================
-#   Utility classes and functions
+#   Utility functions
 # ==============================================================================
-
-class ID(int, common.IDMixin):
-
-    def __init__(self, n):
-        int.__init__(n)
-        common.IDMixin.__init__(self)
-
-    def get_native_parameters(self):
-        return nest.GetStatus([int(self)])[0]
-
-    def set_native_parameters(self, parameters):
-        nest.SetStatus([self], [parameters])
-
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
@@ -148,34 +135,34 @@ rank = common.rank
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def _create(cellclass, cellparams=None, n=1, parent=None):
-    """
-    Function used by both `create()` and `Population.__init__()`
-    """
-    assert n > 0, 'n must be a positive integer'
-    if isinstance(cellclass, basestring):  # celltype is not a standard cell
-        nest_model = cellclass
-        cell_parameters = cellparams or {}
-    elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
-        celltype = cellclass(cellparams)
-        nest_model = celltype.nest_name
-        cell_parameters = celltype.parameters
-    else:
-        raise Exception("Invalid cell type: %s" % type(cellclass))
-    cell_gids = nest.Create(nest_model, n)
-    if cell_parameters:
-        try:
-            nest.SetStatus(cell_gids, [cell_parameters])
-        except nest.NESTError:
-            print "NEST error when trying to set the following dictionary: %s" % self.cellparams
-            raise
-    first_id = cell_gids[0]
-    last_id = cell_gids[-1]
-    mask_local = numpy.array(nest.GetStatus(cell_gids, 'local'))
-    cell_gids = numpy.array([ID(gid) for gid in cell_gids], ID)
-    return cell_gids, mask_local, first_id, last_id
+#def _create(cellclass, cellparams=None, n=1, parent=None):
+#    """
+#    Function used by both `create()` and `Population.__init__()`
+#    """
+#    assert n > 0, 'n must be a positive integer'
+#    if isinstance(cellclass, basestring):  # celltype is not a standard cell
+#        nest_model = cellclass
+#        cell_parameters = cellparams or {}
+#    elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
+#        celltype = cellclass(cellparams)
+#        nest_model = celltype.nest_name
+#        cell_parameters = celltype.parameters
+#    else:
+#        raise Exception("Invalid cell type: %s" % type(cellclass))
+#    cell_gids = nest.Create(nest_model, n)
+#    if cell_parameters:
+#        try:
+#            nest.SetStatus(cell_gids, [cell_parameters])
+#        except nest.NESTError:
+#            print "NEST error when trying to set the following dictionary: %s" % self.cellparams
+#            raise
+#    first_id = cell_gids[0]
+#    last_id = cell_gids[-1]
+#    mask_local = numpy.array(nest.GetStatus(cell_gids, 'local'))
+#    cell_gids = numpy.array([ID(gid) for gid in cell_gids], ID)
+#    return cell_gids, mask_local, first_id, last_id
 
-create = common.build_create(_create)
+create = common.create
 
 connect = common.connect
 
@@ -215,7 +202,7 @@ class Population(common.Population):
         if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
             self.celltype = cellclass(cellparams)
         
-        self.all_cells, self._mask_local, self.first_id, self.last_id = _create(cellclass, cellparams, self.size, parent=self)
+        self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
         self.local_cells = self.all_cells[self._mask_local]
         self.all_cells = self.all_cells.reshape(self.dim)
         self._mask_local = self._mask_local.reshape(self.dim)

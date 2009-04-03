@@ -24,6 +24,29 @@ def load_mechanisms(path=pyNN_path[0]):
                 return
         raise Exception("NEURON mechanisms not found in %s." % os.path.join(path, 'hoc'))
 
+
+class ID(int, common.IDMixin):
+    
+    def __init__(self, n):
+        int.__init__(n)
+        common.IDMixin.__init__(self)
+    
+    def _build_cell(self, cell_model, cell_parameters, parent=None):
+        gid = int(self)
+        self._cell = cell_model(**cell_parameters)          # create the cell object
+        register_gid(gid, self._cell.source, section=self._cell) # not adequate for multi-compartmental cells
+        self.parent = parent
+    
+    def get_native_parameters(self):
+        D = {}
+        for name in self._cell.parameter_names:
+            D[name] = getattr(self._cell, name)
+        return D
+    
+    def set_native_parameters(self, parameters):
+        for name, val in parameters.items():
+            setattr(self._cell, name, val)
+
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
     
@@ -169,7 +192,38 @@ class _State(object):
     dt = h_property('dt')
     tstop = h_property('tstop')         # } do these really need to be stored in hoc?
     min_delay = h_property('min_delay') # }
-    
+
+def create_cells(cellclass, cellparams, n, parent=None):
+    """
+    Function used by both `create()` and `Population.__init__()`
+    """
+    assert n > 0, 'n must be a positive integer'
+    if isinstance(cellclass, basestring): # cell defined in hoc template
+        try:
+            cell_model = getattr(h, cellclass)
+        except AttributeError:
+            raise common.InvalidModelError("There is no hoc template called %s" % cellclass)
+        cell_parameters = cellparams or {}
+    elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
+        celltype = cellclass(cellparams)
+        cell_model = celltype.model
+        cell_parameters = celltype.parameters
+    else:
+        cell_model = cellclass
+        cell_parameters = cellparams
+    first_id = state.gid_counter
+    last_id = state.gid_counter + n - 1
+    all_ids = numpy.array([id for id in range(first_id, last_id+1)], ID)
+    # mask_local is used to extract those elements from arrays that apply to the cells on the current node
+    mask_local = all_ids%state.num_processes==state.mpi_rank # round-robin distribution of cells between nodes
+    for i,(id,is_local) in enumerate(zip(all_ids, mask_local)):
+        if is_local:
+            all_ids[i] = ID(id)
+            all_ids[i]._build_cell(cell_model, cell_parameters, parent=parent)
+    initializer.register(*all_ids[mask_local])
+    state.gid_counter += n
+    return all_ids, mask_local, first_id, last_id
+
 def reset():
     state.running = False
     state.t = 0

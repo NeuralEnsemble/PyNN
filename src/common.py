@@ -496,21 +496,18 @@ def rank():
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def build_create(_create):
-    def create(cellclass, cellparams=None, n=1):
-        """Create n cells all of the same type.
-        If n > 1, return a list of cell ids/references.
-        If n==1, return just the single id.
-        """
-        all_cells, mask_local, first_id, last_id = _create(cellclass, cellparams, n)
-        for id in all_cells:
-            id.cellclass = cellclass
-        all_cells = all_cells.tolist() # not sure this is desirable, but it is consistent with the other modules
-        if n == 1:
-            all_cells = all_cells[0]
-        return all_cells
-    return create
-
+def create(cellclass, cellparams=None, n=1):
+    """Create n cells all of the same type.
+    If n > 1, return a list of cell ids/references.
+    If n==1, return just the single id.
+    """
+    all_cells, mask_local, first_id, last_id = simulator.create_cells(cellclass, cellparams, n)
+    for id in all_cells:
+        id.cellclass = cellclass
+    all_cells = all_cells.tolist() # not sure this is desirable, but it is consistent with the other modules
+    if n == 1:
+        all_cells = all_cells[0]
+    return all_cells
 
 def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can

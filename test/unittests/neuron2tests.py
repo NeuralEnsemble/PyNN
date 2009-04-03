@@ -14,7 +14,7 @@ def is_NetCon(obj):
     return hasattr(obj, 'weight')
 
 def is_local(id):
-    return isinstance(id, neuron.ID)
+    return isinstance(id, neuron.simulator.ID)
 
 # ==============================================================================
 class CreationTest(unittest.TestCase):
@@ -334,7 +334,7 @@ class PopulationIteratorTest(unittest.TestCase):
         for net in self.net1, self.net2:
             ids = [i for i in net]
             self.assertEqual(ids, net.local_cells.tolist())
-            self.assert_(isinstance(ids[0], neuron.ID))
+            self.assert_(isinstance(ids[0], neuron.simulator.ID))
             
     def testAddressIter(self):
         for net in self.net1, self.net2:
