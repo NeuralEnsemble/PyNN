@@ -223,6 +223,7 @@ class Connection(object):
         self.nc = nc
         
     def useSTDP(self, mechanism, parameters, ddf):
+        self.ddf = ddf
         self.weight_adjuster = getattr(h, mechanism)(0.5)
         self.pre2wa = state.parallel_context.gid_connect(int(self.pre), self.weight_adjuster)
         self.pre2wa.threshold = self.nc.threshold
@@ -236,12 +237,30 @@ class Connection(object):
         for name, value in parameters.items():
             setattr(self.weight_adjuster, name, value)
 
+    def _set_weight(self, w):
+        self.nc.weight[0] = w
+
+    def _get_weight(self):
+        return self.nc.weight[0]
+
+    def _set_delay(self, d):
+        self.nc.delay = d
+        if hasattr(self, 'pre2wa'):
+            self.pre2wa.delay = float(d)*(1-self.ddf)
+            self.post2wa.delay = float(d)*self.ddf
+
+    def _get_delay(self):
+        return self.nc.delay
+
+    weight = property(_get_weight, _set_weight)
+    delay = property(_get_delay, _set_delay)
 
 class ConnectionManager(object):
     """docstring needed."""
 
-    def __init__(self, synapse_model=None):
+    def __init__(self, synapse_model=None, parent=None):
         self.connections = []
+        self.parent = parent
 
     def __getitem__(self, i):
         """Returns a Connection object."""
@@ -274,6 +293,27 @@ class ConnectionManager(object):
         nc.weight[0] = weight
         nc.delay  = delay
         self.connections.append(Connection(source, target, nc))
+
+    def get(self, parameter_name, format, offset=(0,0)):
+        if format == 'list':
+            values = [getattr(c, parameter_name) for c in self.connections]
+        elif format == 'array':
+            values = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
+            for c in self.connections:
+                values[c.pre-offset[0], c.post-offset[1]] = getattr(c, parameter_name)
+        else:
+            raise Exception("format must be 'list' or 'array'")
+        return values
+
+    def set(self, name, value):
+        if common.is_number(value):
+            for c in self:
+                setattr(c, name, value)
+        elif common.is_listlike(value):
+            for c,val in zip(self.connections, value):
+                setattr(c, name, val)
+        else:
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
 
 
 # The following are executed every time the module is imported.

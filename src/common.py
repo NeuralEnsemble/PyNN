@@ -1069,11 +1069,10 @@ class Projection(object):
                     else:
                         # we pass the set of models back to the simulator-specific module for it to deal with
                         self.long_term_plasticity_mechanism = possible_models
-                
-            
+                     
     def __len__(self):
         """Return the total number of connections."""
-        return self.nconn
+        return len(self.connection_manager)
     
     def __repr__(self):
         return 'Projection("%s")' % self.label
@@ -1088,7 +1087,7 @@ class Projection(object):
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
-        raise NotImplementedError()
+        self.connection_manager.set('weight', w)
     
     def randomizeWeights(self, rand_distr):
         """
@@ -1097,7 +1096,7 @@ class Projection(object):
         # Arguably, we could merge this with set_weights just by detecting the
         # argument type. It could make for easier-to-read simulation code to
         # give it a separate name, though. Comments?
-        raise NotImplementedError()
+        self.setWeights(rand_distr.next(len(self)))
     
     def setDelays(self, d):
         """
@@ -1105,43 +1104,52 @@ class Projection(object):
         value, or a list/1D array of length equal to the number of connections
         in the population.
         """
-        raise NotImplementedError()
+        self.connection_manager.set('delay', d)
     
     def randomizeDelays(self, rand_distr):
         """
         Set delays to random values taken from rand_distr.
         """
-        raise NotImplementedError()
-    
+        self.setDelays(rand_distr.next(len(self)))
+
     def setSynapseDynamics(self, param, value):
         """
         Set parameters of the synapse dynamics linked with the projection
         """
-        raise NotImplementedError()
-    
+        self.connection_manager.set(param, value)
+
     def randomizeSynapseDynamics(self, param, rand_distr):
         """
         Set parameters of the synapse dynamics to values taken from rand_distr
         """
-        raise NotImplementedError()
+        self.setSynapseDynamics(param, rand_distr.next(len(self)))
     
     # --- Methods for writing/reading information to/from file. ----------------
     
     def getWeights(self, format='list', gather=True):
         """
         Possible formats are: a list of length equal to the number of connections
-        in the projection, a 2D weight array (with zero or None for non-existent
+        in the projection, a 2D weight array (with NaN for non-existent
         connections).
         """
-        raise NotImplementedError()
-    
+        if gather:
+            logging.error("getWeights() with gather=True not yet implemented")
+        return self.connection_manager.get('weight', format, offset=(self.pre.first_id, self.post.first_id))
+            
     def getDelays(self, format='list', gather=True):
         """
         Possible formats are: a list of length equal to the number of connections
-        in the projection, a 2D delay array (with None or 1e12 for non-existent
+        in the projection, a 2D delay array (with NaN for non-existent
         connections).
         """
-        raise NotImplementedError()
+        if gather:
+            logging.error("getDelays() with gather=True not yet implemented")
+        return self.connection_manager.get('delay', format, offset=(self.pre.first_id, self.post.first_id))
+
+    def getSynapseDynamics(self, parameter_name, format='list', gather=True):
+        if gather:
+            logging.error("getSynapseDynamics() with gather=True not yet implemented")
+        return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
     
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the

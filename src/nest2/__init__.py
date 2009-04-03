@@ -512,54 +512,6 @@ class Projection(common.Projection):
 
         self.connections = self.connection_manager
 
-    def __len__(self):
-        """Return the total number of connections."""
-        return len(self.connection_manager)
-
-    # --- Methods for setting connection parameters ----------------------------
-
-    def setWeights(self, w):
-        """
-        w can be a single number, in which case all weights are set to this
-        value, or a list/1D array of length equal to the number of connections
-        in the population.
-        Weights should be in nA for current-based and µS for conductance-based
-        synapses.
-        """
-        self.connection_manager.set('weight', w)
-
-    def randomizeWeights(self, rand_distr):
-        """
-        Set weights to random values taken from rand_distr.
-        """
-        self.setWeights(rand_distr.next(len(self)))
-
-    def setDelays(self, d):
-        """
-        d can be a single number, in which case all delays are set to this
-        value, or a list/1D array of length equal to the number of connections
-        in the population.
-        """
-        self.connection_manager.set('delay', d)
-
-    def randomizeDelays(self, rand_distr):
-        """
-        Set delays to random values taken from rand_distr.
-        """
-        self.setDelays(rand_distr.next(len(self)))
-
-    def setSynapseDynamics(self, param, value):
-        """
-        Set parameters of the synapse dynamics linked with the projection
-        """
-        self.connection_manager.set(param, value)
-
-    def randomizeSynapseDynamics(self, param, rand_distr):
-        """
-        Set parameters of the synapse dynamics to values taken from rand_distr
-        """
-        self.setSynapseDynamics(param, rand_distr.next(len(self)))
-
 
     # --- Methods for writing/reading information to/from file. ----------------
 
@@ -574,28 +526,7 @@ class Projection(common.Projection):
                 print "\t%d\t%d\t%d" % (src, tgt, port)
         print "Connection data for the presynaptic population (%s)" % self.pre.label
         for src in self.pre.cell.flat:
-            print src, nest.GetConnections([src], self.plasticity_name)
-
-    def getWeights(self, format='list', gather=True):
-        """
-        Possible formats are: a list of length equal to the number of connections
-        in the projection, a 2D weight array (with zero or None for non-existent
-        connections).
-        """
-        weights = self.connection_manager.get('weight', format, offset=(self.pre.first_id, self.post.first_id))
-        return weights
-
-    def getDelays(self, format='list', gather=True):
-        """
-        Possible formats are: a list of length equal to the number of connections
-        in the projection, a 2D delay array (with None or 1e12 for non-existent
-        connections).
-        """
-        return self.connection_manager.get('delay', format, offset=(self.pre.first_id, self.post.first_id))
-
-    def getSynapseDynamics(self, parameter_name, format='list', gather=True):
-        return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
-        
+            print src, nest.GetConnections([src], self.plasticity_name)  
 
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
@@ -614,18 +545,6 @@ class Projection(common.Projection):
                            c.delay)
             line = line.replace('(','[').replace(')',']')
             f.write(line)
-        f.close()
-
-    def printWeights(self, filename, format='list', gather=True):
-        """Print synaptic weights to file."""
-        weights = self.getWeights(format=format, gather=gather)
-        f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
-        if format == 'list':
-            f.write("\n".join([str(w) for w in weights]))
-        elif format == 'array':
-            fmt = "%g "*len(self.post) + "\n"
-            for row in weights:
-                f.write(fmt % tuple(row))
         f.close()
 
 # ==============================================================================

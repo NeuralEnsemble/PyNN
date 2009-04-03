@@ -319,7 +319,7 @@ class ConnectionManager:
                     value *= 0.001
                 values.append(value)
         elif format == 'array':
-            values = numpy.zeros((self.parent.pre.size, self.parent.post.size))
+            values = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
             for src, tgt, port in zip(self.sources, self.targets, self.ports):
                 # could instead get tgt from the 'target' entry with GetConnection
                 value = nest.GetConnection([src], self.synapse_model, port)[parameter_name]

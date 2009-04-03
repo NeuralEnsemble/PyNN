@@ -290,7 +290,7 @@ class Projection(common.Projection):
         """
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    source, target, synapse_dynamics, label, rng)
-        self.connection_manager = simulator.ConnectionManager()
+        self.connection_manager = simulator.ConnectionManager(parent=self)
         self.connections = self.connection_manager
         if not label:
             self.label = 'projection%d' % Projection.nProj
@@ -331,68 +331,9 @@ class Projection(common.Projection):
         delays = [c.nc.delay for c in self.connections]
         assert min(delays) >= get_min_delay()
         
-        Projection.nProj += 1
-
-    def __len__(self):
-        """Return the total number of connections."""
-        return len(self.connections)            
+        Projection.nProj += 1           
     
     # --- Methods for setting connection parameters ----------------------------
-    
-    def setWeights(self, w):
-        """
-        w can be a single number, in which case all weights are set to this
-        value, or a list/1D array of length equal to the number of connections
-        in the population.
-        Weights should be in nA for current-based and µS for conductance-based
-        synapses.
-        """
-        if isinstance(w, float) or isinstance(w, int):
-            logging.info("Projection %s: setWeights(%s)" % (self.label, w))
-            for c in self.connections:
-                c.nc.weight[0] = w # should first check weight value is ok, i.e. +ve for conductance-based, -ve for inhibitory current-based, not outside the weight limits for STDP... 
-        elif isinstance(w, list) or isinstance(w, numpy.ndarray):
-            assert len(w) == len(self), "List of weights has length %d, Projection %s has length %d" % (len(w), self.label, len(self))
-            logging.info("Projection %s: setWeights(iterable(min=%s, max=%s))" % (self.label, min(w), max(w)))
-            for c, weight in zip(self.connections, w):
-                c.nc.weight[0] = weight
-        else:
-            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-        
-    def setDelays(self, d):
-        """
-        d can be a single number, in which case all delays are set to this
-        value, or a list/1D array of length equal to the number of connections
-        in the population.
-        """
-        if isinstance(d, float) or isinstance(d, int):
-            if d < get_min_delay():
-                raise Exception("Delays must be greater than or equal to the minimum delay, currently %g ms" % get_min_delay())
-            logging.info("Projection %s: setDelays(%s)" % (self.label, d))
-            for c in self.connections:
-                c.nc.delay = d
-            # if we have STDP, need to update pre2wa and post2wa delays as well
-            if self.synapse_dynamics and self.synapse_dynamics.slow:
-                ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
-                for pre2wa, post2wa in self.stdp_connections:
-                    pre2wa.delay = float(d)*(1-ddf)
-                    post2wa.delay = float(d)*ddf
-        elif isinstance(d, list) or isinstance(d, numpy.ndarray):
-            d = numpy.array(d)
-            if not (d-get_min_delay()>=0).all():
-                raise Exception("Delays must be greater than or equal to the minimum delay, currently %g ms" % get_min_delay())
-            assert len(d) == len(self), "List of delays has length %d, Projection %s has length %d" % (len(d), self.label, len(self))
-            logging.info("Projection %s: setDelays(iterable(min=%s, max=%s))" % (self.label, min(d), max(d)))
-            for c, delay in zip(self.connections, d):
-                c.nc.delay = delay
-            # if we have STDP, need to update pre2wa and post2wa delays as well
-            if self.synapse_dynamics and self.synapse_dynamics.slow:
-                ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
-                for (pre2wa, post2wa), delay in zip(self.stdp_connections, d):
-                    pre2wa.delay = float(delay)*(1-ddf)
-                    post2wa.delay = float(delay)*ddf
-        else:
-            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
     
     def randomizeWeights(self, rand_distr):
         """
@@ -427,47 +368,7 @@ class Projection(common.Projection):
         self.setDelays(rarr)
     
     # --- Methods for writing/reading information to/from file. ----------------
-    
-    def getWeights(self, format='list', gather=True):
-        """
-        Possible formats are: a list of length equal to the number of connections
-        in the projection, a 2D weight array (with zero or None for non-existent
-        connections).
-        """
-        if gather:
-            raise Exception("getWeights() with gather=True not yet implemented")
-        if format == 'list':
-            weights = [c.nc.weight[0] for c in self.connections]
-        elif format == 'array':
-            weights = numpy.zeros((self.pre.size, self.post.size))
-            pre_ids = self.pre.all_cells.flatten().tolist()
-            post_ids = self.post.all_cells.flatten().tolist()
-            for c in self.connections:
-                weights[pre_ids.index(c.pre), post_ids.index(c.post)] = c.nc.weight[0]
-        else:
-            raise Exception("format must be 'list' or 'array'")
-        return weights
-            
-    def getDelays(self, format='list', gather=True):
-        """
-        Possible formats are: a list of length equal to the number of connections
-        in the projection, a 2D delay array (with None or 1e12 for non-existent
-        connections).
-        """
-        if gather:
-            raise Exception("getDelays() with gather=True not yet implemented")
-        if format == 'list':
-            delays = [c.nc.delay for c in self.connections]
-        elif format == 'array':
-            delays = 1e12*numpy.ones((self.pre.size, self.post.size))
-            pre_ids = self.pre.all_cells.flatten().tolist()
-            post_ids = self.post.all_cells.flatten().tolist()
-            for c in self.connections:
-                delays[pre_ids.index(c.pre), post_ids.index(c.post)] = c.nc.delay
-        else:
-            raise Exception("format must be 'list' or 'array'")
-        return delays
-            
+         
     def saveConnections(self, filename, gather=False):
         """Save connections to file in a format suitable for reading in with the
         'fromFile' method."""
