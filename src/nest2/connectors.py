@@ -27,55 +27,13 @@ def check_connections(prj, src, intended_targets):
     else:
         raise Exception("Problem getting connections for %s" % pre)
 
-def probabilistic_connect(connector, projection, p):
-    if projection.rng:
-        if isinstance(projection.rng, NativeRNG):
-            logging.warning("Warning: use of NativeRNG not implemented. Using NumpyRNG")
-            rng = NumpyRNG()
-        else:
-            rng = projection.rng
-    else:
-        rng = NumpyRNG()
-        
-    local = projection.post._mask_local.flatten()
-    is_conductance = common.is_conductance(projection.post.index(0))
-    for src in projection.pre.all():
-        # ( the following two lines are a nice idea, but this needs some thought for
-        #   the parallel case, to ensure reproducibility when varying the number
-        #   of processors
-        #      N = rng.binomial(npost,self.p_connect,1)[0]
-        #      targets = sample(postsynaptic_neurons, N)   # )
-        N = projection.post.size
-        # if running in parallel, rng.next(N) will not return N values, but only
-        # as many as are needed on this node, as determined by mask_local.
-        # Over the simulation as a whole (all nodes), N values will indeed be
-        # returned.
-        rarr = rng.next(N, 'uniform', (0, 1), mask_local=local)
-        create = rarr<p
-        targets = projection.post.local_cells[create].tolist()
-        
-        weights = connector.get_weights(N, local)[create]
-        weights = common.check_weight(weights, projection.synapse_type, is_conductance)
-        delays  = connector.get_delays(N, local)[create]
-        
-        if not connector.allow_self_connections and src in targets:
-            assert len(targets) == len(weights) == len(delays)
-            i = targets.index(src)
-            weights = numpy.delete(weights, i)
-            delays = numpy.delete(delays, i)
-            targets.remove(src)
-        
-        if len(targets) > 0:
-            projection.connection_manager.connect(src, targets, weights, delays, projection.synapse_type)
-        if CHECK_CONNECTIONS:
-            check_connections(projection, src, targets)
 
+# ==============================================================================
+#   Connection method classes
+# ==============================================================================
 
-class AllToAllConnector(connectors.AllToAllConnector):    
-
-    def connect(self, projection):
-        probabilistic_connect(self, projection, 1.0)
-        
+AllToAllConnector = connectors.AllToAllConnector
+FixedProbabilityConnector = connectors.FixedProbabilityConnector
 
 class OneToOneConnector(connectors.OneToOneConnector):
     
@@ -97,14 +55,6 @@ class OneToOneConnector(connectors.OneToOneConnector):
         else:
             raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
 
-
-class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
-    
-    def connect(self, projection): # new implementation. Not working yet
-        logging.info("Connecting %s to %s with probability %s" % (projection.pre.label,
-                                                                  projection.post.label,
-                                                                  self.p_connect))
-        probabilistic_connect(self, projection, self.p_connect)
     
     
 class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector):

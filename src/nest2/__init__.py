@@ -5,17 +5,19 @@ $Id$
 """
 
 import nest
+from pyNN.nest2 import simulator
 from pyNN import common
+common.simulator = simulator
 from pyNN.random import *
 import numpy, os, logging, tempfile
 from pyNN.nest2.cells import *
 from pyNN.nest2.connectors import *
 from pyNN.nest2.synapses import *
 from pyNN.nest2.electrodes import *
-from pyNN.nest2 import simulator
+
 Set = set
 
-common.simulator = simulator
+
 tempdirs       = []
 
 NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
@@ -134,33 +136,6 @@ rank = common.rank
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
-
-#def _create(cellclass, cellparams=None, n=1, parent=None):
-#    """
-#    Function used by both `create()` and `Population.__init__()`
-#    """
-#    assert n > 0, 'n must be a positive integer'
-#    if isinstance(cellclass, basestring):  # celltype is not a standard cell
-#        nest_model = cellclass
-#        cell_parameters = cellparams or {}
-#    elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
-#        celltype = cellclass(cellparams)
-#        nest_model = celltype.nest_name
-#        cell_parameters = celltype.parameters
-#    else:
-#        raise Exception("Invalid cell type: %s" % type(cellclass))
-#    cell_gids = nest.Create(nest_model, n)
-#    if cell_parameters:
-#        try:
-#            nest.SetStatus(cell_gids, [cell_parameters])
-#        except nest.NESTError:
-#            print "NEST error when trying to set the following dictionary: %s" % self.cellparams
-#            raise
-#    first_id = cell_gids[0]
-#    last_id = cell_gids[-1]
-#    mask_local = numpy.array(nest.GetStatus(cell_gids, 'local'))
-#    cell_gids = numpy.array([ID(gid) for gid in cell_gids], ID)
-#    return cell_gids, mask_local, first_id, last_id
 
 create = common.create
 

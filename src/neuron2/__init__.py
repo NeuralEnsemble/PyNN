@@ -9,6 +9,8 @@ __version__ = "$Rev: 191 $"
 from pyNN.random import *
 from pyNN.neuron2 import simulator
 from pyNN import common
+common.simulator = simulator
+
 from pyNN.neuron2.cells import *
 from pyNN.neuron2.connectors import *
 from pyNN.neuron2.synapses import *
@@ -19,7 +21,7 @@ import logging
 
 # Global variables
 quit_on_end = True
-common.simulator = simulator
+
 
 # ==============================================================================
 #   Utility functions

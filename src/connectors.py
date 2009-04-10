@@ -4,9 +4,12 @@ Base Connector classes
 
 """
 
+import logging
 import numpy
-from math import *
-from common import Connector
+from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
+                  fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
+                  sin, sinh, sqrt, tan, tanh
+from common import Connector, simulator, distances
 from pyNN import random
 
 
@@ -20,6 +23,9 @@ class AllToAllConnector(Connector):
         Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
+
+    def connect(self, projection):
+        simulator.probabilistic_connect(self, projection, 1.0)
 
 
 class FromListConnector(Connector):
@@ -110,7 +116,13 @@ class FixedProbabilityConnector(Connector):
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
         assert 0 <= self.p_connect
-        
+    
+    def connect(self, projection):
+        logging.info("Connecting %s to %s with probability %s" % (projection.pre.label,
+                                                                  projection.post.label,
+                                                                  self.p_connect))
+        simulator.probabilistic_connect(self, projection, self.p_connect)    
+
         
 class DistanceDependentProbabilityConnector(Connector):
     """
@@ -153,3 +165,23 @@ class DistanceDependentProbabilityConnector(Connector):
             self.mask = numpy.array(self.mask)
         self.scale_factor = scale_factor
         self.offset = offset
+        
+    def connect(self, projection):
+        periodic_boundaries = self.periodic_boundaries
+        if periodic_boundaries is True:
+            dimensions = projection.post.dim
+            periodic_boundaries = tuple(numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions)))))
+        if periodic_boundaries:
+            print "Periodic boundaries activated and set to size ", periodic_boundaries
+        # this is not going to work for parallel sims
+        # either build up d gradually by iterating over local target cells,
+        # or use the local_mask somehow to pick out only part of the distance matrix
+        d = distances(projection.pre, projection.post, self.mask,
+                      self.scale_factor, self.offset,
+                      periodic_boundaries)
+        p_array = eval(self.d_expression)
+        if isinstance(self.weights,str):
+            raise Exception("The weights distance dependent are not implemented yet")
+        if isinstance(self.delays,str):
+            raise Exception("The delays distance dependent are not implemented yet")
+        simulator.probabilistic_connect(self, projection, p_array.flatten())

@@ -19,63 +19,25 @@ from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
 class HocConnector(object):
 
     def _process_conn_list(self, conn_list, projection):
-        """Extract fields from list of tuples and construct the hoc commands."""
+        #"""Extract fields from list of tuples and construct the hoc commands."""
         for i in xrange(len(conn_list)):
             src, tgt, weight, delay = conn_list[i][:]
             src = projection.pre[tuple(src)]
             tgt = projection.post[tuple(tgt)]
             projection.connection_manager.connect(src, tgt, weight, delay, projection.synapse_type)
 
-def probabilistic_connect(connector, projection, p):
-    if isinstance(projection.rng, NativeRNG):
-        rarr = simulator.nativeRNG_pick(projection.pre.size*projection.post.size,
-                                        projection.rng,
-                                        'uniform', (0,1))
-    else:
-        # We use concatenate, rather than just creating
-        # n=projection.pre.size*projection.post.size random numbers,
-        # in case of uneven distribution of neurons between MPI nodes
-        if projection.post.size > 1:
-            rarr = numpy.concatenate([projection.rng.next(projection.post.size,
-                                                          'uniform',
-                                                          (0,1),
-                                                          mask_local=projection.post._mask_local) \
-                                      for src in projection.pre.all()])
-        else:
-            rarr = projection.rng.next(len(projection.pre), 'uniform', (0,1))
-            if not hasattr(rarr, '__len__'): # rng.next(1) returns a float, not an array
-                # arguably, rng.next() should return a float, rng.next(1) an array of length 1
-                rarr = numpy.array([rarr])
-    j = 0
-    required_length = projection.pre.size * len(projection.post.local_cells) 
-    assert len(rarr) >= required_length, \
-           "Random array is too short (%d elements, needs %d)" % (len(rarr), required_length)
-        
-    create = rarr<p
-    weights = connector.weights_iterator()
-    delays = connector.delays_iterator()
-    for src in projection.pre.all(): # all neurons
-        for tgt in projection.post:  # only local neurons
-            if connector.allow_self_connections or projection.pre != projection.post or tgt != src:
-                if create[j]:
-                    projection.connection_manager.connect(src, tgt,
-                                                          weights.next(),
-                                                          delays.next(),
-                                                          projection.synapse_type)
-            j += 1
-    assert j == required_length
 
 # ==============================================================================
 #   Connection method classes
 # ==============================================================================
 
-class AllToAllConnector(base_connectors.AllToAllConnector, HocConnector):    
-    
-    def connect(self, projection):
-        probabilistic_connect(self, projection, 1.0)
-        
 
-class OneToOneConnector(base_connectors.OneToOneConnector, HocConnector):
+AllToAllConnector = base_connectors.AllToAllConnector
+FixedProbabilityConnector = base_connectors.FixedProbabilityConnector
+DistanceDependentProbabilityConnector = base_connectors.DistanceDependentProbabilityConnector
+ 
+     
+class OneToOneConnector(base_connectors.OneToOneConnector):
     
     def connect(self, projection):
         weights = self.weights_iterator()
@@ -88,37 +50,7 @@ class OneToOneConnector(base_connectors.OneToOneConnector, HocConnector):
             raise Exception("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
 
 
-class FixedProbabilityConnector(base_connectors.FixedProbabilityConnector, HocConnector):
-
-    def connect(self, projection):
-        logging.info("Connecting %s to %s with probability %s" % (projection.pre.label,
-                                                                  projection.post.label,
-                                                                  self.p_connect))
-        probabilistic_connect(self, projection, self.p_connect)
-
-class DistanceDependentProbabilityConnector(base_connectors.DistanceDependentProbabilityConnector, HocConnector):
-    
-    def connect(self, projection):
-        periodic_boundaries = self.periodic_boundaries
-        if periodic_boundaries is True:
-            dimensions = projection.post.dim
-            periodic_boundaries = tuple(numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions)))))
-        if periodic_boundaries:
-            print "Periodic boundaries activated and set to size ", periodic_boundaries
-        # this is not going to work for parallel sims
-        # either build up d gradually by iterating over local target cells,
-        # or use the local_mask somehow to pick out only part of the distance matrix
-        d = common.distances(projection.pre, projection.post, self.mask,
-                             self.scale_factor, self.offset,
-                             periodic_boundaries)
-        p_array = eval(self.d_expression)
-        if isinstance(self.weights,str):
-            raise Exception("The weights distance dependent are not implemented yet")
-        if isinstance(self.delays,str):
-            raise Exception("The delays distance dependent are not implemented yet")
-        probabilistic_connect(self, projection, p_array.flatten())
-
-class _FixedNumberConnector(HocConnector):
+class _FixedNumberConnector(object):
     
     def _connect(self, projection, x_list, y_list, type):
         weights = self.weights_iterator()

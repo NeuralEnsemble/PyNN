@@ -1,5 +1,5 @@
 from pyNN import __path__ as pyNN_path
-from pyNN import common, recording
+from pyNN import common, recording, random
 import platform
 import logging
 import numpy
@@ -367,6 +367,46 @@ class ConnectionManager(object):
                 setattr(c, name, val)
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+
+def probabilistic_connect(connector, projection, p):
+    if isinstance(projection.rng, random.NativeRNG):
+        rarr = nativeRNG_pick(projection.pre.size*projection.post.size,
+                              projection.rng,
+                              'uniform', (0,1))
+    else:
+        # We use concatenate, rather than just creating
+        # n=projection.pre.size*projection.post.size random numbers,
+        # in case of uneven distribution of neurons between MPI nodes
+        if projection.post.size > 1:
+            rarr = numpy.concatenate([projection.rng.next(projection.post.size,
+                                                          'uniform',
+                                                          (0,1),
+                                                          mask_local=projection.post._mask_local) \
+                                      for src in projection.pre.all()])
+        else:
+            rarr = projection.rng.next(len(projection.pre), 'uniform', (0,1))
+            if not hasattr(rarr, '__len__'): # rng.next(1) returns a float, not an array
+                # arguably, rng.next() should return a float, rng.next(1) an array of length 1
+                rarr = numpy.array([rarr])
+    j = 0
+    required_length = projection.pre.size * len(projection.post.local_cells) 
+    assert len(rarr) >= required_length, \
+           "Random array is too short (%d elements, needs %d)" % (len(rarr), required_length)
+        
+    create = rarr<p
+    weights = connector.weights_iterator()
+    delays = connector.delays_iterator()
+    for src in projection.pre.all(): # all neurons
+        for tgt in projection.post:  # only local neurons
+            if connector.allow_self_connections or projection.pre != projection.post or tgt != src:
+                if create[j]:
+                    projection.connection_manager.connect(src, tgt,
+                                                          weights.next(),
+                                                          delays.next(),
+                                                          projection.synapse_type)
+            j += 1
+    assert j == required_length
+
 
 
 # The following are executed every time the module is imported.
