@@ -17,7 +17,13 @@ August 2006
 $Id:VAbenchmarks.py 5 2007-04-16 15:01:24Z davison $
 """
 
-import sys
+import os, sys
+
+if not(os.path.isdir('Results')):
+    os.mkdir('Results')
+else:
+    print '/!\ Results directory was existing...'
+
 from copy import copy
 from math import *
 
@@ -26,12 +32,13 @@ if len(sys.argv) < 3:
     sys.exit(1)
 simulator = sys.argv[-2]
 benchmark = sys.argv[-1]
+simstring =  str(simulator)
 
 exec("from pyNN.%s import *" % simulator)
 
 from pyNN.random import NumpyRNG, RandomDistribution
 import pyNN.utility
-Timer = Timer()
+Timer = pyNN.utility.Timer()
 
 # === Define parameters ========================================================
 
@@ -153,7 +160,7 @@ if (benchmark == "COBA"):
     connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
 
 #for prj in connections.keys():
-    #connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator, np))
+    #connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simstring, np))
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id
@@ -180,9 +187,9 @@ I_rate = inh_cells.meanSpikeCount()*1000./tstop
 print "%d Writing data to file..." % node_id
 Timer.reset()
 
-exc_cells.printSpikes("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator, np))
-inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator, np))
-exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, np))
+exc_cells.printSpikes("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simstring, np))
+inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simstring, np))
+exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simstring, np))
 writeCPUTime = Timer.elapsedTime()
 
 tmp_string = "%d e→e  %d e→i  %d i→e  %d i→i" % (len(connections['e2e']), len(connections['e2i']), len(connections['i2e']), len(connections['i2i']))

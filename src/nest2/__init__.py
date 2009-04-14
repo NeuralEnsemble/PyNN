@@ -9,7 +9,7 @@ from pyNN.nest2 import simulator
 from pyNN import common
 common.simulator = simulator
 from pyNN.random import *
-import numpy, os, logging, tempfile
+import numpy, os, shutil, logging, tempfile
 from pyNN.nest2.cells import *
 from pyNN.nest2.connectors import *
 from pyNN.nest2.synapses import *
