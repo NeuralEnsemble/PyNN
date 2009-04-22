@@ -5,7 +5,7 @@
 
 from pyNN import common, connectors as base_connectors
 from pyNN.random import RandomDistribution, NativeRNG
-from pyNN.neuron2 import simulator
+
 import numpy
 import logging
 from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \

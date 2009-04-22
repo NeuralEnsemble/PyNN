@@ -372,6 +372,7 @@ class ConnectionManager:
             delays = delays.tolist()
         elif isinstance(delays, float):
             delays = [delays]
+            
         try:
             nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)
         except nest.NESTError, e:
@@ -423,50 +424,6 @@ class ConnectionManager:
                 nest.SetConnection([src], self.synapse_model, port, {name: val})
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-
-
-def probabilistic_connect(connector, projection, p):
-    if projection.rng:
-        if isinstance(projection.rng, random.NativeRNG):
-            logging.warning("Warning: use of NativeRNG not implemented. Using NumpyRNG")
-            rng = random.NumpyRNG()
-        else:
-            rng = projection.rng
-    else:
-        rng = random.NumpyRNG()
-        
-    local = projection.post._mask_local.flatten()
-    is_conductance = common.is_conductance(projection.post.index(0))
-    for src in projection.pre.all():
-        # ( the following two lines are a nice idea, but this needs some thought for
-        #   the parallel case, to ensure reproducibility when varying the number
-        #   of processors
-        #      N = rng.binomial(npost,self.p_connect,1)[0]
-        #      targets = sample(postsynaptic_neurons, N)   # )
-        N = projection.post.size
-        # if running in parallel, rng.next(N) will not return N values, but only
-        # as many as are needed on this node, as determined by mask_local.
-        # Over the simulation as a whole (all nodes), N values will indeed be
-        # returned.
-        rarr = rng.next(N, 'uniform', (0, 1), mask_local=local)
-        create = rarr<p
-        targets = projection.post.local_cells[create].tolist()
-        
-        weights = connector.get_weights(N, local)[create]
-        weights = common.check_weight(weights, projection.synapse_type, is_conductance)
-        delays  = connector.get_delays(N, local)[create]
-        
-        if not connector.allow_self_connections and src in targets:
-            assert len(targets) == len(weights) == len(delays)
-            i = targets.index(src)
-            weights = numpy.delete(weights, i)
-            delays = numpy.delete(delays, i)
-            targets.remove(src)
-        
-        if len(targets) > 0:
-            projection.connection_manager.connect(src, targets, weights, delays, projection.synapse_type)
-        if CHECK_CONNECTIONS:
-            check_connections(projection, src, targets)
 
 
 state = _State()  # a Singleton, so only a single instance ever exists

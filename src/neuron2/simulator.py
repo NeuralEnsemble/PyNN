@@ -239,7 +239,7 @@ def run(simtime):
         if state.num_processes > 1:
             assert local_minimum_delay >= state.min_delay,\
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, state.min_delay)
-    state.tstop = simtime
+    state.tstop += simtime
     logging.info("Running the simulation for %d ms" % simtime)
     state.parallel_context.psolve(state.tstop)
 
@@ -325,27 +325,33 @@ class ConnectionManager(object):
     def __iter__(self):
         return iter(self.connections)
     
-    def connect(self, source, target, weight, delay, synapse_type):
+    def connect(self, source, targets, weights, delays, synapse_type):
         """
-        Connect a neuron to another neuron.
+        Connect a neuron to one or more other neurons.
         """
         if not isinstance(source, int) or source > state.gid_counter or source < 0:
             errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, state.gid_counter)
             raise common.ConnectionError(errmsg)
-        if not isinstance(target, common.IDMixin):
-            raise common.ConnectionError("Invalid target ID: %s" % target)
-        if synapse_type is None:
-            synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
-        # the next two lines should not be needed, as the weight and delay
-        # should have been checked prior to calling this function
-        weight = common.check_weight(weight, synapse_type, common.is_conductance(target))
-        delay = common.check_delay(delay)
-        
-        synapse_object = getattr(target._cell, synapse_type)
-        nc = state.parallel_context.gid_connect(int(source), synapse_object)
-        nc.weight[0] = weight
-        nc.delay  = delay
-        self.connections.append(Connection(source, target, nc))
+        if not common.is_listlike(targets):
+            targets = [targets]
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(targets) > 0
+        for target in targets:
+            if not isinstance(target, common.IDMixin):
+                raise common.ConnectionError("Invalid target ID: %s" % target)
+              
+        assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
+        for target, weight, delay in zip(targets, weights, delays):
+            if synapse_type is None:
+                synapse_type = weight>=0 and 'excitatory' or 'inhibitory' 
+            synapse_object = getattr(target._cell, synapse_type)
+            nc = state.parallel_context.gid_connect(int(source), synapse_object)
+            nc.weight[0] = weight
+            nc.delay  = delay
+            self.connections.append(Connection(source, target, nc))
 
     def get(self, parameter_name, format, offset=(0,0)):
         if format == 'list':
@@ -367,46 +373,6 @@ class ConnectionManager(object):
                 setattr(c, name, val)
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-
-def probabilistic_connect(connector, projection, p):
-    if isinstance(projection.rng, random.NativeRNG):
-        rarr = nativeRNG_pick(projection.pre.size*projection.post.size,
-                              projection.rng,
-                              'uniform', (0,1))
-    else:
-        # We use concatenate, rather than just creating
-        # n=projection.pre.size*projection.post.size random numbers,
-        # in case of uneven distribution of neurons between MPI nodes
-        if projection.post.size > 1:
-            rarr = numpy.concatenate([projection.rng.next(projection.post.size,
-                                                          'uniform',
-                                                          (0,1),
-                                                          mask_local=projection.post._mask_local) \
-                                      for src in projection.pre.all()])
-        else:
-            rarr = projection.rng.next(len(projection.pre), 'uniform', (0,1))
-            if not hasattr(rarr, '__len__'): # rng.next(1) returns a float, not an array
-                # arguably, rng.next() should return a float, rng.next(1) an array of length 1
-                rarr = numpy.array([rarr])
-    j = 0
-    required_length = projection.pre.size * len(projection.post.local_cells) 
-    assert len(rarr) >= required_length, \
-           "Random array is too short (%d elements, needs %d)" % (len(rarr), required_length)
-        
-    create = rarr<p
-    weights = connector.weights_iterator()
-    delays = connector.delays_iterator()
-    for src in projection.pre.all(): # all neurons
-        for tgt in projection.post:  # only local neurons
-            if connector.allow_self_connections or projection.pre != projection.post or tgt != src:
-                if create[j]:
-                    projection.connection_manager.connect(src, tgt,
-                                                          weights.next(),
-                                                          delays.next(),
-                                                          projection.synapse_type)
-            j += 1
-    assert j == required_length
-
 
 
 # The following are executed every time the module is imported.

@@ -13,7 +13,8 @@ from math import *
 from pyNN import random, utility
 from string import Template
 
-simulator = None # should be set by simulator-specific modules
+if not 'simulator' in locals():
+    simulator = None # should be set by simulator-specific modules
 
 DEFAULT_WEIGHT = 0.0
 DEFAULT_BUFFER_SIZE = 10000
@@ -1024,7 +1025,12 @@ class Projection(object):
         self.post   = postsynaptic_population # } read-only
         self.target = target                  # }
         self.label  = label
-        self.rng    = rng
+        if isinstance(rng, random.AbstractRNG):
+            self.rng = rng
+        elif rng is None:
+            self.rng = random.NumpyRNG()
+        else:
+            raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
         self._method = method
         self.synapse_dynamics = synapse_dynamics
         self.connection = None # access individual connections. To be defined by child, simulator-specific classes

@@ -148,7 +148,7 @@ class ConnectionTest(unittest.TestCase):
     
     def testInvalidTargetId(self):
         """connect(): targets must be integers."""
-        self.postcells.append([])
+        self.postcells.append('99.9')
         self.assertRaises(common.ConnectionError, neuron.connect, self.precells, self.postcells)
 
     def testConnectTooSmallDelay(self):
