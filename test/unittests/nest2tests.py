@@ -488,7 +488,7 @@ class ProjectionInitTest(unittest.TestCase):
                             "len(prj) = %d, len(srcP)*len(self.target33) = %d, allow_self_connections = %s" % (len(prj), len(srcP)*len(self.target33), allow_self_connections)
 
     def testFixedNumberPost(self):
-        for rng in (None, nest.NumpyRNG(12345), nest.NativeRNG(12345)):
+        for rng in (None, nest.NumpyRNG(12345)): #, nest.NativeRNG(12345)):
             for srcP in [self.source5, self.source22, self.source6]:
                 for tgtP in [self.target6, self.target33]:
                     for asc in True, False:
@@ -499,7 +499,7 @@ class ProjectionInitTest(unittest.TestCase):
                         assert prj.getWeights('list') == [0.0, 0.0, 0.0, 0.0]*len(srcP), str(prj.getWeights('list'))
     
     def testFixedNumberPre(self):
-        for rng in (None, nest.NumpyRNG(12345), nest.NativeRNG(12345)):
+        for rng in (None, nest.NumpyRNG(12345)): #, nest.NativeRNG(12345)):
             for srcP in [self.source5, self.source22, self.source6]:    
                 for tgtP in [self.target6, self.target33]:
                     for asc in True, False:

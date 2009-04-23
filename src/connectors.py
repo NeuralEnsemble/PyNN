@@ -144,7 +144,35 @@ class FixedNumberPostConnector(common.Connector):
             assert numpy.all(numpy.array(n.next(100)) >= 0), "the random distribution produces negative numbers"
         else:
             raise Exception("n must be an integer or a RandomDistribution object")
+    
+    def connect(self, projection):
+        if isinstance(projection.rng, random.NativeRNG):
+            raise Exception("Warning: use of NativeRNG not implemented.")
+            
+        for source in projection.pre.all_cells.flat:
+            # pick n neurons at random
+            if hasattr(self, 'rand_distr'):
+                n = self.rand_distr.next()
+            else:
+                n = self.n
 
+            candidates = projection.post.all_cells.flatten().tolist()
+            if not self.allow_self_connections and projection.pre == projection.post:
+                candidates.remove(source)
+            targets = []
+            while len(targets) < n: # if the number of requested cells is larger than the size of the
+                                    # postsynaptic population, we allow multiple connections for a given cell
+                targets += [candidates[candidates.index(id)] for id in projection.rng.permutation(candidates)[0:n]]
+                # have to use index() because rng.permutation returns ints, not ID objects
+            targets = targets[:n]
+            
+            weights = self.get_weights(n)
+            is_conductance = common.is_conductance(projection.post.index(0))
+            weights = common.check_weight(weights, projection.synapse_type, is_conductance)
+            delays = self.get_delays(n)
+            
+            projection.connection_manager.connect(source, targets, weights, delays, projection.synapse_type)
+                    
 
 class FixedNumberPreConnector(common.Connector):
     """
@@ -165,6 +193,35 @@ class FixedNumberPreConnector(common.Connector):
         else:
             raise Exception("n must be an integer or a RandomDistribution object")
 
+    def connect(self, projection):
+        if isinstance(projection.rng, random.NativeRNG):
+            raise Exception("Warning: use of NativeRNG not implemented.")
+            
+        for target in projection.post.local_cells.flat:
+            # pick n neurons at random
+            if hasattr(self, 'rand_distr'):
+                n = self.rand_distr.next()
+            else:
+                n = self.n
+
+            candidates = projection.pre.all_cells.flatten().tolist()
+            if not self.allow_self_connections and projection.pre == projection.post:
+                candidates.remove(target)
+            sources = []
+            while len(sources) < n: # if the number of requested cells is larger than the size of the
+                                    # presynaptic population, we allow multiple connections for a given cell
+                sources += [candidates[candidates.index(id)] for id in projection.rng.permutation(candidates)[0:n]]
+                # have to use index() because rng.permutation returns ints, not ID objects
+            sources = sources[:n]
+            
+            weights = self.get_weights(n)
+            is_conductance = common.is_conductance(projection.post.index(0))
+            weights = common.check_weight(weights, projection.synapse_type, is_conductance)
+            delays = self.get_delays(n)
+            
+            for source, w, d in zip(sources, weights, delays):
+                projection.connection_manager.connect(source, [target], w, d, projection.synapse_type)
+                    
 
 class OneToOneConnector(common.Connector):
     """
@@ -245,12 +302,6 @@ class DistanceDependentProbabilityConnector(common.Connector):
         except ZeroDivisionError, err:
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
-        # We will use the numpy functions, so we need to parse the function
-        # given by the user to look for some key function and add numpy
-        # in front of them (or add from numpy import *)
-        #func = ['exp','log','sin','cos','cosh','sinh','tan','tanh']
-        #for item in func:
-            #self.d_expression = self.d_expression.replace(item,"numpy.%s" %item)
         self.allow_self_connections = allow_self_connections
         self.mask = DistanceDependentProbabilityConnector.AXES[axes]
         self.periodic_boundaries = periodic_boundaries
@@ -258,6 +309,12 @@ class DistanceDependentProbabilityConnector(common.Connector):
             self.mask = numpy.array(self.mask)
         self.scale_factor = scale_factor
         self.offset = offset
+        if isinstance(self.weights, basestring):
+            self.w_expr = self.weights
+            self.weights = numpy.empty((1,0))
+        if isinstance(self.delays, basestring):
+            self.d_expr = self.delays
+            self.delays = numpy.empty((1,0))
         
     def connect(self, projection):
         periodic_boundaries = self.periodic_boundaries
@@ -265,15 +322,19 @@ class DistanceDependentProbabilityConnector(common.Connector):
             dimensions = projection.post.dim
             periodic_boundaries = tuple(numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions)))))
         if periodic_boundaries:
-            print "Periodic boundaries activated and set to size ", periodic_boundaries
+            logging.info("Periodic boundaries activated and set to size %s" % str(periodic_boundaries))
         p = {}
+        
         for src in projection.pre.all():
             d = common.distances(src, projection.post, self.mask,
                                  self.scale_factor, self.offset,
                                  periodic_boundaries)
             p[src] = eval(self.d_expression).flatten()
-        if isinstance(self.weights,str):
-            raise Exception("The weights distance dependent are not implemented yet")
-        if isinstance(self.delays,str):
-            raise Exception("The delays distance dependent are not implemented yet")
+            if hasattr(self, 'w_expr'):
+                self.weights = numpy.concatenate((self.weights, eval(self.w_expr)), axis=1)
+            if hasattr(self, 'd_expr'):
+                self.delays = numpy.concatenate((self.delays, eval(self.d_expr)), axis=1)
+        
+        if hasattr(self.weights, 'shape'): self.weights = self.weights.flatten()
+        if hasattr(self.delays, 'shape'): self.delays = self.delays.flatten()
         probabilistic_connect(self, projection, p)
