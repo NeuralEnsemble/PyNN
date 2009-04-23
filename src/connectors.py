@@ -1,6 +1,6 @@
 # encoding: utf-8
 """
-Base common.Connector classes
+Base Connector classes
 
 """
 
@@ -86,9 +86,17 @@ class FromListConnector(common.Connector):
     def __init__(self, conn_list):
         common.Connector.__init__(self, 0., 0.)
         self.conn_list = conn_list        
+        
+    def connect(self, projection):
+        # slow: should maybe sort by pre
+        for i in xrange(len(self.conn_list)):
+            src, tgt, weight, delay = self.conn_list[i][:]
+            src = projection.pre[tuple(src)]
+            tgt = projection.post[tuple(tgt)]
+            projection.connection_manager.connect(src, [tgt], weight, delay, projection.synapse_type)
+    
 
-
-class FromFileConnector(common.Connector):
+class FromFileConnector(FromListConnector):
     """
     Make connections according to a list read from a file.
     """
@@ -97,7 +105,25 @@ class FromFileConnector(common.Connector):
         common.Connector.__init__(self, 0., 0.)
         self.filename = filename
         self.distributed = distributed
-       
+
+    def connect(self, projection):
+        if self.distributed:
+            self.filename += ".%d" % common.rank()
+        # open the file...
+        f = open(self.filename, 'r', 10000)
+        lines = f.readlines()
+        f.close()
+        # gather all the data in a list of tuples (one per line)
+        input_tuples = []
+        for line in lines:
+            single_line = line.rstrip()
+            src, tgt, w, d = single_line.split("\t", 4)
+            src = "[%s" % src.split("[",1)[1]
+            tgt = "[%s" % tgt.split("[",1)[1]
+            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
+        self.conn_list = input_tuples
+        FromListConnector.connect(self, projection)
+        
         
 class FixedNumberPostConnector(common.Connector):
     """
@@ -154,7 +180,24 @@ class OneToOneConnector(common.Connector):
     def __init__(self, weights=0.0, delays=None):
         common.Connector.__init__(self, weights, delays)
     
-    
+    def connect(self, projection):
+        if projection.pre.dim == projection.post.dim:
+            N = projection.post.size
+            local = projection.post._mask_local
+            weights = self.get_weights(N, local)
+            is_conductance = common.is_conductance(projection.post.index(0))
+            weights = common.check_weight(weights, projection.synapse_type, is_conductance)
+            delays = self.get_delays(N, local)
+            for tgt, w, d in zip(projection.post.local_cells,
+                                 weights,
+                                 delays):
+                src = tgt - projection.post.first_id + projection.pre.first_id
+                # the float is in case the values are of type numpy.float64, which NEST chokes on
+                projection.connection_manager.connect(src, [tgt], float(w), float(d), projection.synapse_type)
+        else:
+            raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
+
+
 class FixedProbabilityConnector(common.Connector):
     """
     For each pair of pre-post cells, the connection probability is constant.

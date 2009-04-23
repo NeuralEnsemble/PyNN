@@ -13,41 +13,21 @@ from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                   sin, sinh, sqrt, tan, tanh
 
 # ==============================================================================
-#   Utility functions/classes (not part of the API)
-# ==============================================================================
-
-class HocConnector(object):
-
-    def _process_conn_list(self, conn_list, projection):
-        #"""Extract fields from list of tuples and construct the hoc commands."""
-        for i in xrange(len(conn_list)):
-            src, tgt, weight, delay = conn_list[i][:]
-            src = projection.pre[tuple(src)]
-            tgt = projection.post[tuple(tgt)]
-            projection.connection_manager.connect(src, tgt, weight, delay, projection.synapse_type)
-
-
-# ==============================================================================
 #   Connection method classes
 # ==============================================================================
 
 
 AllToAllConnector = base_connectors.AllToAllConnector
+
 FixedProbabilityConnector = base_connectors.FixedProbabilityConnector
+
 DistanceDependentProbabilityConnector = base_connectors.DistanceDependentProbabilityConnector
- 
-     
-class OneToOneConnector(base_connectors.OneToOneConnector):
-    
-    def connect(self, projection):
-        weights = self.weights_iterator()
-        delays = self.delays_iterator()
-        if projection.pre.dim == projection.post.dim:
-            for tgt in projection.post:
-                src = tgt - projection.post.first_id + projection.pre.first_id
-                projection.connection_manager.connect(src, tgt, weights.next(), delays.next(), projection.synapse_type)
-        else:
-            raise Exception("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
+
+FromListConnector = base_connectors.FromListConnector
+
+FromFileConnector = base_connectors.FromFileConnector
+
+OneToOneConnector = base_connectors.OneToOneConnector
 
 
 class _FixedNumberConnector(object):
@@ -98,28 +78,4 @@ class FixedNumberPostConnector(base_connectors.FixedNumberPostConnector, _FixedN
         self._connect(projection, projection.post.all_cells.flatten().tolist(), projection.pre.all_cells.flatten(), 'post')
 
 
-class FromListConnector(base_connectors.FromListConnector, HocConnector):
-    
-    def connect(self, projection):
-        self._process_conn_list(self.conn_list, projection)
 
-    
-class FromFileConnector(base_connectors.FromFileConnector, HocConnector):
-    
-    def connect(self, projection):
-        if self.distributed:
-            myid = int(h.pc.id())
-            self.filename += ".%d" % myid
-        # open the file...
-        f = open(self.filename, 'r', 10000)
-        lines = f.readlines()
-        f.close()
-        # gather all the data in a list of tuples (one per line)
-        input_tuples = []
-        for line in lines:
-            single_line = line.rstrip()
-            src, tgt, w, d = single_line.split("\t", 4)
-            src = "[%s" % src.split("[",1)[1]
-            tgt = "[%s" % tgt.split("[",1)[1]
-            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
-        self._process_conn_list(input_tuples, projection)

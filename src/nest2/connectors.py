@@ -33,29 +33,15 @@ def check_connections(prj, src, intended_targets):
 # ==============================================================================
 
 AllToAllConnector = connectors.AllToAllConnector
+
 FixedProbabilityConnector = connectors.FixedProbabilityConnector
 
-class OneToOneConnector(connectors.OneToOneConnector):
-    
-    def connect(self, projection):
-        if projection.pre.dim == projection.post.dim:
-            N = projection.post.size
-            local = projection.post._mask_local
-            weights = self.get_weights(N, local)
-            is_conductance = common.is_conductance(projection.post.index(0))
-            weights = common.check_weight(weights, projection.synapse_type, is_conductance)
-            delays = self.get_delays(N, local)
-            for src, tgt, w, d in zip(projection.pre.local_cells,
-                                      projection.post.local_cells,
-                                      weights,
-                                      delays):
-                # the float is in case the values are of type numpy.float64, which NEST chokes on
-                projection.connection_manager.connect([src], [tgt], float(w), float(d), projection.synapse_type)
-                ##nest.Connect(projection._sources, projection._targets, weights, delays, projection.plasticity_name)
-        else:
-            raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
+FromListConnector = connectors.FromListConnector
 
-    
+FromFileConnector = connectors.FromFileConnector
+
+OneToOneConnector = connectors.OneToOneConnector
+
     
 class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector):
     
@@ -197,34 +183,5 @@ class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
                     check_connections(projection, source, [post])
 
 
-def _connect_from_list(conn_list, projection):
-    # slow: should maybe sort by pre and use DivergentConnect?
-    # or at least convert everything to a numpy array at the start
-    weights = numpy.empty((len(conn_list),))
-    delays = numpy.empty_like(weights)
-    for i in xrange(len(conn_list)):
-        src, tgt, weight, delay = conn_list[i][:]
-        src = projection.pre[tuple(src)]
-        tgt = projection.post[tuple(tgt)]
-        projection.connection_manager.connect(src, [tgt], weight, delay, projection.synapse_type)
-
-class FromListConnector(connectors.FromListConnector):
-    
-    def connect(self, projection):
-        return _connect_from_list(self.conn_list, projection)
 
 
-class FromFileConnector(connectors.FromFileConnector):
-    
-    def connect(self, projection):
-        f = open(self.filename, 'r', 10000)
-        lines = f.readlines()
-        f.close()
-        input_tuples = []
-        for line in lines:
-            single_line = line.rstrip()
-            src, tgt, w, d = single_line.split("\t", 4)
-            src = "[%s" % src.split("[",1)[1]
-            tgt = "[%s" % tgt.split("[",1)[1]
-            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
-        return _connect_from_list(input_tuples, projection)
