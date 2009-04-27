@@ -55,7 +55,7 @@ class Recorder(object):
     numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support different
                         'v': "%g"}      # formats for different columns
     formats = {'spikes': 'id t',
-               'v': 't v id'}
+               'v': 'id t v'}
     
     def __init__(self, variable, population=None, file=None):
         """
@@ -93,7 +93,9 @@ class Recorder(object):
         # compatible_output is not used, but is needed for compatibility with the nest2 module.
         # Does nest2 really need it?
         if self.population:
-                offset = self.population.first_id
+            offset = self.population.first_id
+        else:
+            offset = 0
                 
         if self.variable == 'spikes':
             data = numpy.empty((0,2))

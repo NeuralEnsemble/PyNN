@@ -110,7 +110,8 @@ def check_weight(weight, synapse_type, is_conductance):
         if not (all_negative or all_positive):
             raise InvalidWeightError("Weights must be either all positive or all negative")
     elif is_number(weight):
-        all_positive = weight >= 0    
+        all_positive = weight >= 0
+        all_negative = weight < 0
     else:
         raise Exception("Weight must be a number or a list/array of numbers.")
     if is_conductance or synapse_type == 'excitatory':
@@ -152,7 +153,7 @@ class IDMixin(object):
         self._cellclass = None
 
     def __getattr__(self, name):
-        if name in IDMixin.non_parameter_attributes:
+        if name in self.non_parameter_attributes:
             val = self.__getattribute__(name)
         else:
             try:
@@ -162,7 +163,7 @@ class IDMixin(object):
         return val
     
     def __setattr__(self, name, value):
-        if name in IDMixin.non_parameter_attributes:
+        if name in self.non_parameter_attributes:
             object.__setattr__(self, name, value)
         else:
             return self.set_parameters(**{name:value})

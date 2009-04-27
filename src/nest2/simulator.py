@@ -225,9 +225,6 @@ class _State(object):
     def t(self):
         return nest.GetKernelStatus()['time']
     
-    #@property
-    #def dt(self):
-    #    return nest.GetKernelStatus()['resolution']
     dt = property(fget=lambda self: nest.GetKernelStatus()['resolution'],
                   fset=lambda self, timestep: nest.SetKernelStatus({'resolution': timestep}))
     

@@ -39,6 +39,7 @@ class AbstractRNG:
         
         If n is 1, return a float, if n > 1, return a numpy array,
         if n <= 0, raise an Exception."""
+        # arguably, rng.next() should return a float, rng.next(1) an array of length 1
         raise NotImplementedError
 
     

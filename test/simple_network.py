@@ -140,8 +140,8 @@ class SimpleNetwork(object):
         return w
 
         
-def test():
-    import pyNN.nest2
+def test(sim):
+    
     params = ParameterSet({
         'system': { 'timestep': 0.1, 'min_delay': 0.1, 'max_delay': 10.0 },
         'input_spike_times': numpy.arange(5,105,10.0),
@@ -152,10 +152,11 @@ def test():
         'delays': 1.0,
     })
     SimpleNetwork.check_parameters(params)
-    net = SimpleNetwork(pyNN.nest2, params)
-    
+    net = SimpleNetwork(sim, params)
+    sim.run(100.0)
         
 # ==============================================================================
 if __name__ == "__main__":
-    test()
+    import pyNN.nest2
+    test(pyNN.nest2)
     
