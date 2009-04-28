@@ -517,6 +517,8 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
     Weights should be in nA or µS."""
+    # This duplicates code from the Connector/FixedProbabilityConnector classes
+    # should refactor to eliminate this repetition
     logging.debug("connecting %s to %s on host %d" % (source, target, rank()))
     if not is_listlike(source):
         source = [source]
@@ -528,7 +530,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         rng = rng or numpy.random
     connection_manager = simulator.ConnectionManager()
     for tgt in target:
-        sources = numpy.array(source)
+        sources = numpy.array(source, dtype=type(source))
         if p < 1:
             rarr = rng.uniform(0, 1, len(source))
             sources = sources[rarr<p]

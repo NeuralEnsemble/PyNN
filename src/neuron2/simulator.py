@@ -9,6 +9,7 @@ from neuron import h
 # Global variables
 nrn_dll_loaded = []
 recorder_list = []
+connection_managers = []
 
 def load_mechanisms(path=pyNN_path[0]):
     # this now exists in the NEURON distribution, so could probably be removed
@@ -314,8 +315,11 @@ class ConnectionManager(object):
     """docstring needed."""
 
     def __init__(self, synapse_model=None, parent=None):
+        global connection_managers
         self.connections = []
         self.parent = parent
+        connection_managers.append(self)
+        
 
     def __getitem__(self, i):
         """Returns a Connection object."""
