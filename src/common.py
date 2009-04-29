@@ -371,6 +371,8 @@ class StandardModelType(object):
         for name in parameters:
             D = cls.translations[name]
             pname = D['translated_name']
+            if is_listlike(cls.default_parameters[name]):
+                parameters[name] = numpy.array(parameters[name])
             try:
                 pval = eval(D['forward_transform'], globals(), parameters)
             except NameError, errmsg:
@@ -454,7 +456,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,
     if min_delay < timestep:
         "min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep)
     
-    backend = simulator.__name__.replace('simulator', '')
+    backend = simulator.__name__.replace('.simulator', '')
     log_file = "%s.log" % backend
     if debug:
         if isinstance(debug, basestring):
@@ -524,7 +526,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         source = [source]
     if not is_listlike(target):
         target = [target]
-    weight = check_weight(weight, synapse_type, is_conductance(target))
+    weight = check_weight(weight, synapse_type, is_conductance(target[0]))
     delay = check_delay(delay)
     if p < 1:
         rng = rng or numpy.random
