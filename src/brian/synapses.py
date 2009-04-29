@@ -3,14 +3,14 @@
 # $Id:$
 # ==============================================================================
 
-from pyNN import common, synapses
+from pyNN import common
 
 
-class SynapseDynamics(synapses.SynapseDynamics):
+class SynapseDynamics(common.SynapseDynamics):
     def __init__(self, fast=None, slow=None):
         synapses.SynapseDynamics.__init__(self, fast, slow)
 
-class STDPMechanism(synapses.STDPMechanism):
+class STDPMechanism(common.STDPMechanism):
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0):
         assert dendritic_delay_fraction == 1, """Brian does not currently support axonal delays:

@@ -4,8 +4,8 @@
 # ==============================================================================
 
 from pyNN import common, connectors
-from pyNN.brian.__init__ import numpy
-import brian_no_units_no_warnings
+import numpy
+#import brian_no_units_no_warnings
 import brian, types
 from pyNN.random import RandomDistribution, NativeRNG
 from math import *

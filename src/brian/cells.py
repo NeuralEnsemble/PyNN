@@ -1,45 +1,46 @@
 # ==============================================================================
-# Standard cells for nest1
+# Standard cells for brian
 # $Id: cells.py 294 2008-04-04 12:07:56Z apdavison $
 # ==============================================================================
 
 from pyNN import common, cells
-import brian_no_units_no_warnings
+#import brian_no_units_no_warnings
 from brian.library.synapses import *
 import brian
+from brian import mV, ms, nF, nA, uS
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     translations = common.build_translations(
-        ('v_rest',     'v_rest', 0.001),
-        ('v_reset',    'v_reset', 0.001),
-        ('cm',         'cm'), 
-        ('tau_m',      'tau_m', 0.001),
-        ('tau_refrac', 'tau_refrac',"max(get_time_step(), tau_refrac)", "tau_refrac"),
-        ('tau_syn_E',  'tau_syn_E', 0.001),
-        ('tau_syn_I',  'tau_syn_I', 0.001),
-        ('v_thresh',   'v_thresh', 0.001),
-        ('i_offset',   'i_offset'), 
-        ('v_init',     'v_init', 0.001),
+        ('v_rest',     'v_rest',     mV),
+        ('v_reset',    'v_reset',    mV),
+        ('cm',         'c_m',         nF), 
+        ('tau_m',      'tau_m',      ms),
+        ('tau_refrac', 'tau_refrac', ms),
+        ('tau_syn_E',  'tau_syn_E',  ms),
+        ('tau_syn_I',  'tau_syn_I',  ms),
+        ('v_thresh',   'v_thresh',   ms),
+        ('i_offset',   'i_offset',   nA), 
+        ('v_init',     'v_init',     ms),
     )
     eqs= brian.Equations('''
-        dv/dt  = (ge + gi - i_offset)/cm + (v_rest-v)/tau_m : volt
-        dge/dt = (2.7182818284590451*ye-ge)/tau_syn_E : 1 
-        dye/dt = -ye/tau_syn_E                        : 1
-        dgi/dt = (2.7182818284590451*yi-gi)/tau_syn_I : 1 
-        dyi/dt = -yi/tau_syn_I                        : 1
-        cm                                    : farad
-        tau_syn_E                             : second
-        tau_syn_I                             : second
-        tau_m                                 : second
-        v_rest                                : volt
-        i_offset                              : amp
+        dv/dt  = (ge + gi + i_offset)/c_m + (v_rest-v)/tau_m : mV
+        dge/dt = (2.7182818284590451*ye-ge)/tau_syn_E : nA
+        dye/dt = -ye/tau_syn_E                        : nA
+        dgi/dt = (2.7182818284590451*yi-gi)/tau_syn_I : nA
+        dyi/dt = -yi/tau_syn_I                        : nA
+        c_m                                    : nF
+        tau_syn_E                             : ms
+        tau_syn_I                             : ms
+        tau_m                                 : ms
+        v_rest                                : mV
+        i_offset                              : nA
         '''
         )
+    synapses = {'excitatory' : 'ye', 'inhibitory' : 'yi'}
 
-    synapses = {'exc' : 'ye', 'inh' : 'yi'}
 
 class IF_curr_exp(cells.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
@@ -47,100 +48,99 @@ class IF_curr_exp(cells.IF_curr_exp):
     excitatory and inhibitory synapses."""
     
     translations = common.build_translations(
-        ('v_rest',     'v_rest', 0.001),
-        ('v_reset',    'v_reset', 0.001),
-        ('cm',         'cm'), 
-        ('tau_m',      'tau_m', 0.001),
-        ('tau_refrac', 'tau_refrac',"max(get_time_step(), tau_refrac)", "tau_refrac"),
-        ('tau_syn_E',  'tau_syn_E', 0.001),
-        ('tau_syn_I',  'tau_syn_I', 0.001),
-        ('v_thresh',   'v_thresh', 0.001),
-        ('i_offset',   'i_offset'), 
-        ('v_init',     'v_init', 0.001),
+        ('v_rest',     'v_rest',     mV),
+        ('v_reset',    'v_reset',    mV),
+        ('cm',         'c_m',        nF), 
+        ('tau_m',      'tau_m',      ms),
+        ('tau_refrac', 'tau_refrac', ms),
+        ('tau_syn_E',  'tau_syn_E',  ms),
+        ('tau_syn_I',  'tau_syn_I',  ms),
+        ('v_thresh',   'v_thresh',   ms),
+        ('i_offset',   'i_offset',   nA), 
+        ('v_init',     'v_init',     mV),
     )
     eqs= brian.Equations('''
-        dv/dt  = (ge + gi - i_offset)/cm + (v_rest-v)/tau_m : volt
-        dge/dt = -ge/tau_syn_E                : 1
-        dgi/dt = -gi/tau_syn_I                : 1
-        tau_syn_E                             : second
-        tau_syn_I                             : second
-        tau_m                                 : second
-        cm                                    : farad
-        v_rest                                : volt
-        i_offset                              : amp
+        dv/dt  = (ie + ii + i_offset)/c_m + (v_rest-v)/tau_m : mV
+        die/dt = -ie/tau_syn_E                : nA
+        dii/dt = -ii/tau_syn_I                : nA
+        tau_syn_E                             : ms
+        tau_syn_I                             : ms
+        tau_m                                 : ms
+        c_m                                   : nF
+        v_rest                                : mV
+        i_offset                              : nA
         '''
         )
     
-    synapses = {'exc' : 'ge', 'inh' : 'gi'}
+    synapses = {'excitatory': 'ie', 'inhibitory': 'ii'}
     
 
 class IF_cond_alpha(cells.IF_cond_alpha):
     translations = common.build_translations(
-        ('v_rest',     'v_rest',0.001)    ,
-        ('v_reset',    'v_reset',0.001),
-        ('cm',         'cm'), 
-        ('tau_m',      'tau_m',0.001),
-        ('tau_refrac', 'tau_refrac', "max(get_time_step(), tau_refrac)", "tau_refrac"),
-        ('tau_syn_E',  'tau_syn_E',0.001),
-        ('tau_syn_I',  'tau_syn_I',0.001),
-        ('v_thresh',   'v_thresh',0.001),
-        ('i_offset',   'i_offset',0.001), 
-        ('e_rev_E',    'e_rev_E',0.001),
-        ('e_rev_I',    'e_rev_I',0.001),
-        ('v_init',     'v_init',0.001),
+        ('v_rest',     'v_rest',     mV),
+        ('v_reset',    'v_reset',    mV),
+        ('cm',         'c_m',        nF), 
+        ('tau_m',      'tau_m',      mV),
+        ('tau_refrac', 'tau_refrac', ms),
+        ('tau_syn_E',  'tau_syn_E',  ms),
+        ('tau_syn_I',  'tau_syn_I',  ms),
+        ('v_thresh',   'v_thresh',   mV),
+        ('i_offset',   'i_offset',   nA), 
+        ('e_rev_E',    'e_rev_E',    mV),
+        ('e_rev_I',    'e_rev_I',    mV),
+        ('v_init',     'v_init',     mV),
     )
     eqs= brian.Equations('''
-        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) - gi*(e_rev_I-v) - i_offset)/(0.001*cm) : volt
-        dge/dt = (2.7182818284590451*ye-ge)/tau_syn_E  : 1 
-        dye/dt = -ye/tau_syn_E                         : 1
-        dgi/dt = (2.7182818284590451*yi-gi)/tau_syn_I  : 1 
-        dyi/dt = -yi/tau_syn_I                         : 1
-        tau_syn_E                             : second
-        tau_syn_I                             : second
-        tau_m                                 : second
-        v_rest                                : volt
-        e_rev_E                               : volt
-        e_rev_I                               : volt
-        cm                                    : farad
-        i_offset                              : amp
+        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v) + i_offset)/c_m : mV
+        dge/dt = (2.7182818284590451*ye-ge)/tau_syn_E  : uS
+        dye/dt = -ye/tau_syn_E                         : uS
+        dgi/dt = (2.7182818284590451*yi-gi)/tau_syn_I  : uS 
+        dyi/dt = -yi/tau_syn_I                         : uS
+        tau_syn_E                             : ms
+        tau_syn_I                             : ms
+        tau_m                                 : ms
+        v_rest                                : mV
+        e_rev_E                               : mV
+        e_rev_I                               : mV
+        c_m                                   : nF
+        i_offset                              : nA
         '''
         )
-
-    synapses = {'exc' : 'ye', 'inh' : 'yi'}
+    synapses = {'excitatory': 'ye', 'inhibitory': 'yi'}
 
 class IF_cond_exp(cells.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and 
     exponentially-decaying post-synaptic conductance."""
     translations = common.build_translations(
-        ('v_rest',     'v_rest',0.001)    ,
-        ('v_reset',    'v_reset',0.001),
-        ('cm',         'cm'), 
-        ('tau_m',      'tau_m',0.001),
-        ('tau_refrac', 'tau_refrac',"max(get_time_step(), tau_refrac)", "tau_refrac"),
-        ('tau_syn_E',  'tau_syn_E',0.001),
-        ('tau_syn_I',  'tau_syn_I',0.001),
-        ('v_thresh',   'v_thresh',0.001),
-        ('i_offset',   'i_offset',0.001), 
-        ('e_rev_E',    'e_rev_E',0.001),
-        ('e_rev_I',    'e_rev_I',0.001),
-        ('v_init',     'v_init',0.001),
+        ('v_rest',     'v_rest',     mV),
+        ('v_reset',    'v_reset',    mV),
+        ('cm',         'cm',         nF), 
+        ('tau_m',      'tau_m',      ms),
+        ('tau_refrac', 'tau_refrac', ms),
+        ('tau_syn_E',  'tau_syn_E',  ms),
+        ('tau_syn_I',  'tau_syn_I',  ms),
+        ('v_thresh',   'v_thresh',   mV),
+        ('i_offset',   'i_offset',   nA), 
+        ('e_rev_E',    'e_rev_E',    mV),
+        ('e_rev_I',    'e_rev_I',    mV),
+        ('v_init',     'v_init',     mV),
     )
     eqs= brian.Equations('''
-        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) - gi*(e_rev_I-v) - i_offset)/(0.001*cm) : volt
-        dge/dt = -ge/tau_syn_E : 1
-        dgi/dt = -gi/tau_syn_I : 1
-        tau_syn_E              : second
-        tau_syn_I              : second
-        tau_m                  : second
-        cm                     : farad
-        v_rest                 : volt
-        e_rev_E                : volt
-        e_rev_I                : volt
-        i_offset               : amp
+        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v) + i_offset)/cm : mV
+        dge/dt = -ge/tau_syn_E : uS
+        dgi/dt = -gi/tau_syn_I : uS
+        tau_syn_E              : ms
+        tau_syn_I              : ms
+        tau_m                  : ms
+        cm                     : nF
+        v_rest                 : mV
+        e_rev_E                : mV
+        e_rev_I                : mV
+        i_offset               : nA
         '''
         )
-    
-    synapses = {'exc' : 'ge', 'inh' : 'gi'}
+    synapses = {'excitatory': 'ge', 'inhibitory': 'gi'}
+
 
 class IF_facets_hardware1(common.ModelNotAvailable):
     """Leaky integrate and fire model with conductance-based synapses and fixed
@@ -182,15 +182,13 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
     translations = common.build_translations(
-        ('spike_times', 'spike_times'),
+        ('spike_times', 'spiketimes', ms),
     )
-    
-    def __init__(self, parameters):
-        cells.SpikeSourceArray.__init__(self, parameters)
 
 
 class EIF_cond_alpha_isfa_ista(common.ModelNotAvailable):
     pass
+
 
 class HH_cond_exp(cells.HH_cond_exp):
     
@@ -240,8 +238,10 @@ class HH_cond_exp(cells.HH_cond_exp):
         i_offset               : amp
     ''')
 
+
 class SpikeSourceInhGamma(common.ModelNotAvailable):
     pass
+
 
 class IF_cond_exp_gsfa_grr(common.ModelNotAvailable):
     pass
