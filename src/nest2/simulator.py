@@ -355,6 +355,8 @@ class ConnectionManager:
         weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
+        if synapse_type == 'inhibitory':
+            weights = -1*weights
         if common.is_listlike(source):
             assert len(source) == 1
             source = source[0]
