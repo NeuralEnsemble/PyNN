@@ -4,6 +4,7 @@ Brian implementation of the PyNN API.
 $Id:$
 """
 
+import logging
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
 from pyNN import common
@@ -114,9 +115,33 @@ class Population(common.Population):
         
         if not self.label:
             self.label = 'population%d' % Population.nPop
+        self.recorders = {'spikes': simulator.Recorder('spikes', population=self),
+                          'v': simulator.Recorder('v', population=self)}
         Population.nPop += 1
         
-
+    def _record(self, record_what, record_from=None, rng=None, to_file=True):
+        """
+        Private method called by record() and record_v().
+        """
+        fixed_list=False
+        if isinstance(record_from, list): #record from the fixed list specified by user
+            fixed_list=True
+        elif record_from is None: # record from all cells:
+            record_from = self.all_cells.flatten()
+        elif isinstance(record_from, int): # record from a number of cells, selected at random  
+            # Each node will record N/nhost cells...
+            nrec = int(record_from/num_processes())
+            if not rng:
+                rng = numpy.random
+            record_from = rng.permutation(self.all_cells.flatten())[0:nrec]
+            # need ID objects, permutation returns integers
+            # ???
+        else:
+            raise Exception("record_from must be either a list of cells or the number of cells to record from")
+        # record_from is now a list or numpy array. We do not have to worry about whether the cells are
+        # local because the Recorder object takes care of this.
+        logging.info("%s.record('%s', %s)", self.label, record_what, record_from[:5])
+        self.recorders[record_what].record(record_from)
 
 class Projection(common.Projection):
     """

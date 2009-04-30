@@ -12,18 +12,19 @@ from math import *
 from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                   fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
                   sin, sinh, sqrt, tan, tanh
+ms = brian.ms
 
 def is_number(n):
     return type(n) == types.FloatType or type(n) == types.IntType or type(n) == numpy.float64
 
 def _targetConnection(Connector, projection):
     if projection.synapse_type == "excitatory" or projection.synapse_type is None:
-        target=projection.post.celltype.synapses['exc']
+        target=projection.post.celltype.synapses['excitatory']
     else:
-        target=projection.post.celltype.synapses['inh']
+        target=projection.post.celltype.synapses['inhibitory']
     src   = projection.pre.brian_cells
     tgt   = projection.post.brian_cells
-    delay = max(projection.pre.brian_cells.clock.dt,Connector.delays*0.001)
+    delay = max(projection.pre.brian_cells.clock.dt,Connector.delays*ms)
     connection = brian.Connection(src, tgt, target, delay=delay)
     return connection
 

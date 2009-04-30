@@ -7,7 +7,7 @@ from pyNN import common, cells
 #import brian_no_units_no_warnings
 from brian.library.synapses import *
 import brian
-from brian import mV, ms, nF, nA, uS
+from brian import mV, ms, nF, nA, uS, second
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):
@@ -155,8 +155,8 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
     translations = common.build_translations(
         ('rate',     'rate'),
-        ('start',    'start', 0.001),
-        ('duration', 'duration', 0.001),
+        ('start',    'start', ms),
+        ('duration', 'duration', ms),
     )
     
     class rates(object):
@@ -165,11 +165,11 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         parameters for later retrieval.
         """
         def __init__(self, start, duration, rate):
-            self.start = start
-            self.duration = duration
+            self.start = start*second
+            self.duration = duration*second
             self.rate = rate
         def __call__(self, t):
-            return (self.start <= t <= self.start + duration) and rate or 0.0
+            return (self.start <= t <= self.start + self.duration) and self.rate or 0.0
     
     def __init__(self, parameters):
         cells.SpikeSourcePoisson.__init__(self, parameters)
@@ -177,7 +177,8 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         duration = self.parameters['duration']
         rate     = self.parameters['rate']
         #self.fct = lambda t: (start <= t <= start + duration) and rate or 0.0
-        self.fct = rates(start, duration, rate)
+        self.fct = SpikeSourcePoisson.rates(start, duration, rate)
+    
     
 class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""

@@ -388,6 +388,9 @@ class StandardModelType(object):
         """Translate simulator-specific model parameters to standardized parameters."""
         standard_parameters = {}
         for name,D  in cls.translations.items():
+            if is_listlike(cls.default_parameters[name]):
+                tname = D['translated_name']
+                native_parameters[tname] = numpy.array(native_parameters[tname])
             try:
                 standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
             except NameError, errmsg:
@@ -789,7 +792,11 @@ class Population(object):
         'Random' set. Set the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-        raise NotImplementedError()
+        rarr = rand_distr.next(n=self.all_cells.size)
+        rarr = numpy.array(rarr)
+        logging.info("%s.rset('%s', %s)", self.label, parametername, rand_distr)
+        for cell,val in zip(self, rarr[self._mask_local.flatten()]):
+            setattr(cell, parametername, val)
     
     def _call(self, methodname, arguments):
         """
