@@ -1183,8 +1183,9 @@ class Projection(common.Projection):
     
     nProj = 0
     
-    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll',
-                 method_parameters=None, source=None, target=None,
+    def __init__(self, presynaptic_population, postsynaptic_population,
+                 method,
+                 source=None, target=None,
                  synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
@@ -1197,26 +1198,16 @@ class Projection(common.Projection):
                  
         If source and/or target are not given, default values are used.
         
-        method - string indicating which algorithm to use in determining
-                 connections.
-        Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
-        'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-        'fromFile', 'fromList'.
-        
-        method_parameters - dict containing parameters needed by the connection
-        method, although we should allow this to be a number or string if there
-        is only one parameter.
+        method - a Connector object, encapsulating the algorithm to use for
+                 connecting the neurons.
         
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
         
-        rng - since most of the connection methods need uniform random numbers,
-        it is probably more convenient to specify a RNG object here rather
-        than within method_parameters, particularly since some methods also use
-        random numbers to give variability in the number of connections per cell.
+        rng - specify an RNG object to be used by the Connector.
         """
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
-                                   method_parameters, source, target, synapse_dynamics, label, rng)
+                                   source, target, synapse_dynamics, label, rng)
         self.connections = []
         if not self.label:
             self.label = 'projection%d' % Projection.nProj
@@ -1243,12 +1234,9 @@ class Projection(common.Projection):
         self._syn_objref = _translate_synapse_type(self.synapse_type, extra_mechanism=self.short_term_plasticity_mechanism)
 
         ## Create connections
-        if isinstance(method, str):
-            connection_method = getattr(self,'_%s' % method)   
-            hoc_commands += connection_method(method_parameters)
-        elif isinstance(method, common.Connector):
-            hoc_commands += method.connect(self)
-            # delays should already be set to min_delay
+        assert isinstance(method, common.Connector)
+        hoc_commands += method.connect(self)
+        # delays should already be set to min_delay
         hoc_execute(hoc_commands, "--- Projection[%s].__init__() ---" %self.label)
         
         # By defaut, we set all the delays to min_delay, except if
@@ -1266,157 +1254,6 @@ class Projection(common.Projection):
     def __len__(self):
         """Return the total number of connections."""
         return len(self.connections)
-
-    # --- Connection methods ---------------------------------------------------
-    
-    def __connect(self, src, tgt):
-        """
-        Write hoc commands to connect a single pair of neurons.
-        """
-        cmdlist = ['nc = pc.gid_connect(%d,%s.object(%d).%s)' % (src,
-                                                                 self.post.hoc_label,
-                                                                 self.post.gidlist.index(tgt),
-                                                                 self._syn_objref),
-                'tmp = %s.append(nc)' % self.hoc_label]
-        self.connections.append((src, tgt))
-        return cmdlist
-    
-    def _allToAll(self, parameters=None):
-        """
-        Connect all cells in the presynaptic population to all cells in the
-        postsynaptic population.
-        """
-        allow_self_connections = True # when pre- and post- are the same population,
-                                      # is a cell allowed to connect to itself?
-        if parameters and parameters.has_key('allow_self_connections'):
-            allow_self_connections = parameters['allow_self_connections']
-        c = AllToAllConnector(allow_self_connections)
-        return c.connect(self)
-        
-    def _oneToOne(self, parameters=None):
-        """
-        Where the pre- and postsynaptic populations have the same size, connect
-        cell i in the presynaptic population to cell i in the postsynaptic
-        population for all i.
-        In fact, despite the name, this should probably be generalised to the
-        case where the pre and post populations have different dimensions, e.g.,
-        cell i in a 1D pre population of size n should connect to all cells
-        in row i of a 2D post population of size (n,m).
-        """
-        c = OneToOneConnector()
-        return c.connect(self)
-    
-    def _fixedProbability(self, parameters):
-        """
-        For each pair of pre-post cells, the connection probability is constant.
-        """
-        allow_self_connections = True
-        try:
-            p_connect = float(parameters)
-        except TypeError:
-            p_connect = parameters['p_connect']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-
-        c = FixedProbabilityConnector(p_connect=p_connect,
-                                      allow_self_connections=allow_self_connections)
-        return c.connect(self)    
-
-    def _distanceDependentProbability(self, parameters):
-        """
-        For each pair of pre-post cells, the connection probability depends on distance.
-        d_expression should be the right-hand side of a valid python expression
-        for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
-        """
-        allow_self_connections = True
-        if type(parameters) == types.StringType:
-            d_expression = parameters
-        else:
-            d_expression = parameters['d_expression']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-
-        c = DistanceDependentProbabilityConnector(d_expression=d_expression,
-                                                  allow_self_connections=allow_self_connections)
-        return c.connect(self)
-    
-    def _fixedNumber(self, parameters, connector_class):
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-            assert n > 0
-        elif type(parameters) == types.DictType:
-            if parameters.has_key('n'): # all cells have same number of connections
-                n = int(parameters['n'])
-                assert n > 0
-            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
-                n = parameters['rand_distr']
-                assert isinstance(n, RandomDistribution)
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        elif isinstance(parameters, RandomDistribution):
-            n = parameters
-        else:
-            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-        c = connector_class(n=n, allow_self_connections=allow_self_connections)
-        return c.connect(self)
-    
-    def _fixedNumberPre(self, parameters):
-        """Each presynaptic cell makes a fixed number of connections."""
-        return self._fixedNumber(parameters, FixedNumberPreConnector)
-            
-    def _fixedNumberPost(self, parameters):
-        """Each postsynaptic cell receives a fixed number of connections."""
-        return self._fixedNumber(parameters, FixedNumberPostConnector)
-    
-    def _fromFile(self, parameters):
-        """
-        Load connections from a file.
-        """
-        lines =[]
-        if type(parameters) == types.FileType:
-            fileobj = parameters
-            # should check here that fileobj is already open for reading
-            lines = fileobj.readlines()
-        elif type(parameters) == types.StringType:
-            filename = parameters
-            # now open the file...
-            f = open(filename,'r',10000)
-            lines = f.readlines()
-        elif type(parameters) == types.DictType:
-            # dict could have 'filename' key or 'file' key
-            # implement this...
-            raise "Argument type not yet implemented"
-        
-        # We read the file and gather all the data in a list of tuples (one per line)
-        input_tuples = []
-        for line in lines:
-            single_line = line.rstrip()
-            src, tgt, w, d = single_line.split("\t", 4)
-            src = "[%s" % src.split("[",1)[1]
-            tgt = "[%s" % tgt.split("[",1)[1]
-            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
-        f.close()
-        return self._fromList(input_tuples)
-    
-    def _fromList(self, conn_list):
-        """
-        Read connections from a list of tuples,
-        containing [pre_addr, post_addr, weight, delay]
-        where pre_addr and post_addr are both neuron addresses, i.e. tuples or
-        lists containing the neuron array coordinates.
-        """
-        hoc_commands = []
-        
-        # Then we go through those tuple and extract the fields
-        for i in xrange(len(conn_list)):
-            src, tgt, weight, delay = conn_list[i][:]
-            src = self.pre[tuple(src)]
-            tgt = self.post[tuple(tgt)]
-            hoc_commands += self.__connect(src, tgt)
-            hoc_commands += ['%s.object(%d).weight = %f' % (self.hoc_label, i, float(weight)), 
-                             '%s.object(%d).delay = %f'  % (self.hoc_label, i, float(delay))]
-        return hoc_commands
     
     # --- Methods for setting connection parameters ----------------------------
     

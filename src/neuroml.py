@@ -4,7 +4,7 @@ PyNN-->NeuroML
 $Id:$
 """
 
-from pyNN import common
+from pyNN import common, connectors, cells
 import math
 #import numpy, types, sys, shutil
 import sys
@@ -182,7 +182,7 @@ class IF_base(object):
 #   Standard cells
 # ==============================================================================
 
-class IF_curr_exp(common.IF_curr_exp):
+class IF_curr_exp(cells.IF_curr_exp):
     """Leaky integrate and fire model with fixed threshold and
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses"""
@@ -190,53 +190,53 @@ class IF_curr_exp(common.IF_curr_exp):
     def __init__(self, parameters):
         raise Exception('Cell type %s is not available in NeuroML' % self.__class__.__name__)
 
-class IF_curr_alpha(common.IF_curr_alpha):
+class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
     def __init__(self, parameters):
         raise Exception('Cell type %s is not available in NeuroML' % self.__class__.__name__)
 
-class IF_cond_exp(common.IF_cond_exp, IF_base):
+class IF_cond_exp(cells.IF_cond_exp, IF_base):
     """Leaky integrate and fire model with fixed threshold and 
     decaying-exponential post-synaptic conductance."""
     
     n = 0
     translations = common.build_translations(*[(name, name)
-                                               for name in common.IF_cond_exp.default_parameters])
+                                               for name in cells.IF_cond_exp.default_parameters])
     
     def __init__(self, parameters):
-        common.IF_cond_exp.__init__(self, parameters)
+        cells.IF_cond_exp.__init__(self, parameters)
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.synapse_type = "doub_exp_syn"
         self.__class__.n += 1
         
-class IF_cond_alpha(common.IF_cond_alpha, IF_base):
+class IF_cond_alpha(cells.IF_cond_alpha, IF_base):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
     
     n = 0
     translations = common.build_translations(*[(name, name)
-                                               for name in common.IF_cond_alpha.default_parameters])
+                                               for name in cells.IF_cond_alpha.default_parameters])
     
     def __init__(self, parameters):
-        common.IF_cond_alpha.__init__(self, parameters)
+        cells.IF_cond_alpha.__init__(self, parameters)
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.synapse_type = "alpha_syn"
         self.__class__.n += 1
 
-class SpikeSourcePoisson(common.SpikeSourcePoisson):
+class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
     def __init__(self, parameters):
-        common.SpikeSourcePoisson.__init__(self, parameters)
+        cells.SpikeSourcePoisson.__init__(self, parameters)
         raise Exception('Cell type %s not yet implemented' % self.__class__.__name__)
 
-class SpikeSourceArray(common.SpikeSourceArray):
+class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
     def __init__(self, parameters):
-        common.SpikeSourceArray.__init__(self, parameters)
+        cells.SpikeSourceArray.__init__(self, parameters)
         raise Exception('Cell type %s not yet implemented' % self.__class__.__name__)
 
 
@@ -285,9 +285,11 @@ def run(simtime):
     """Run the simulation for simtime ms."""
     pass # comment in NeuroML file
 
-def setRNGseeds(seedList):
-    """Globally set rng seeds."""
-    raise Exception('Not yet implemented')
+
+def get_min_delay():
+    return 0.0
+common.get_min_delay = get_min_delay
+
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -378,7 +380,97 @@ class Population(common.Population):
             channels_node.insertBefore(channel_node , channels_node.firstChild)
         for synapse_node in synapse_list:
             channels_node.appendChild(synapse_node)
-            
+
+
+class AlltoAllConnector(connectors.AllToAllConnector):
+    
+    def connect(self, projection):
+        connectivity_node = build_node('net:connectivity_pattern')
+        connectivity_node.appendChild( build_node('net:all_to_all',
+                                                  allow_self_connections=int(self.allow_self_connections)) )
+        return connectivity_node
+
+class OneToOneConnector(connectors.OneToOneConnector):
+    
+    def connect(self, projection):
+        connectivity_node = build_node('net:connectivity_pattern')
+        connectivity_node.appendChild( build_node('net:one_to_one') )
+        return connectivity_node
+
+class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
+    
+    def connect(self, projection):
+        connectivity_node = build_node('net:connectivity_pattern')
+        connectivity_node.appendChild( build_node('net:fixed_probability',
+                                                  probability=self.p_connect,
+                                                  allow_self_conections=int(self.allow_self_connections)) )
+        return connectivity_node
+
+
+class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
+    
+    def connect(self, projection):
+        if hasattr(self, "n"):
+            connectivity_node = build_node('net:connectivity_pattern')
+            connectivity_node.appendChild( build_node('net:per_cell_connection',
+                                                      num_per_source=self.n,
+                                                      direction="PreToPost",
+                                                      allow_self_connections = int(self.allow_self_connections)) )
+            return connectivity_node
+        else:
+            raise Exception('Connection with variable connection number not implemented.')
+    
+class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
+    
+    def connect(self, projection):
+        if hasattr(self, "n"):
+            connectivity_node = build_node('net:connectivity_pattern')
+            connectivity_node.appendChild( build_node('net:per_cell_connection',
+                                                      num_per_source=self.n,
+                                                      direction="PostToPre",
+                                                      allow_self_connections = int(self.allow_self_connections)) )
+            return connectivity_node
+        else:
+            raise Exception('Connection with variable connection number not implemented.')
+
+        
+class FromListConnector(connectors.FromListConnector):
+    
+    def connect(self, projection):
+        connections_node = build_node('net:connections')
+        for i in xrange(len(self.conn_list)):
+            src, tgt, weight, delay = self.conn_list[i][:]
+            src = self.pre[tuple(src)]
+            tgt = self.post[tuple(tgt)]
+            connection_node = build_node('net:connection', id=i)
+            connection_node.appendChild( build_node('net:pre', cell_id=src) )
+            connection_node.appendChild( build_node('net:post', cell_id=tgt) )
+            connection_node.appendChild( build_node('net:properties', internal_delay=delay, weight=weight) )
+            connections_node.appendChild(connection_node)
+        return connections_node
+
+
+class FromFileConnector(connectors.FromFileConnector):
+    
+    def connect(self, projection):
+        # now open the file...
+        f = open(self.filename,'r',10000)
+        lines = f.readlines()
+        f.close()
+        
+        # We read the file and gather all the data in a list of tuples (one per line)
+        input_tuples = []
+        for line in lines:
+            single_line = line.rstrip()
+            src, tgt, w, d = single_line.split("\t", 4)
+            src = "[%s" % src.split("[",1)[1]
+            tgt = "[%s" % tgt.split("[",1)[1]
+            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
+        f.close()
+        self.conn_list = input_tuples
+        FromListConnector.connect(projection)
+
+
 class Projection(common.Projection):
     """
     A container for all the connections of a given type (same synapse type and
@@ -389,8 +481,9 @@ class Projection(common.Projection):
     n = 0
     
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 method='allToAll', method_parameters=None,
-                 source=None, target=None, label=None, rng=None):
+                 method,
+                 source=None, target=None, synapse_dynamics=None,
+                 label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -399,24 +492,19 @@ class Projection(common.Projection):
         target - string specifying which synapse on the postsynaptic cell to connect to
         If source and/or target are not given, default values are used.
         
-        method - string indicating which algorithm to use in determining connections.
-        Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
-        'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-        'fromFile', 'fromList'
+        method - a Connector object, encapsulating the algorithm to use for
+                 connecting the neurons.
         
-        method_parameters - dict containing parameters needed by the connection method,
-        although we should allow this to be a number or string if there is only
-        one parameter.
+        synapse_dynamics - a `SynapseDynamics` object specifying which
+        synaptic plasticity mechanisms to use.
         
-        rng - since most of the connection methods need uniform random numbers,
-        it is probably more convenient to specify a RNG object here rather
-        than within method_parameters, particularly since some methods also use
-        random numbers to give variability in the number of connections per cell.
+        rng - specify an RNG object to be used by the Connector.
         """
         global projections_node
-        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, method_parameters, source, target, label, rng)
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
+                                   method, source, target, synapse_dynamics, label, rng)
         self.label = self.label or 'Projection%d' % Projection.n
-        connection_method = getattr(self,'_%s' % method)
+        connection_method = method
         if target:
             self.synapse_type = target
         else:
@@ -431,157 +519,10 @@ class Projection(common.Projection):
         synapse_node.appendChild( build_node('net:default_values', internal_delay=5, weight=1, threshold=-20) )
         projection_node.appendChild(synapse_node)
         
-        projection_node.appendChild( connection_method(method_parameters) )
+        projection_node.appendChild( connection_method.connect(self) )
         
         projections_node.appendChild(projection_node)
         Projection.n += 1
-        
-        
-    def _allToAll(self, parameters=None):
-        """
-        Connect all cells in the presynaptic population to all cells in the
-        postsynaptic population.
-        """
-        allow_self_connections = True # when pre- and post- are the same population,
-                                      # is a cell allowed to connect to itself?
-        if parameters and parameters.has_key('allow_self_connections'):
-            allow_self_connections = parameters['allow_self_connections']
-        connectivity_node = build_node('net:connectivity_pattern')
-        connectivity_node.appendChild( build_node('net:all_to_all', allow_self_connections=int(allow_self_connections)) )
-        return connectivity_node
-    
-    def _oneToOne(self, parameters=None):
-        """
-        Where the pre- and postsynaptic populations have the same size, connect
-        cell i in the presynaptic population to cell i in the postsynaptic
-        population for all i.
-        In fact, despite the name, this should probably be generalised to the
-        case where the pre and post populations have different dimensions, e.g.,
-        cell i in a 1D pre population of size n should connect to all cells
-        in row i of a 2D post population of size (n, m).
-        """
-        connectivity_node = build_node('net:connectivity_pattern')
-        connectivity_node.appendChild( build_node('net:one_to_one') )
-        return connectivity_node
-    
-    def _fixedProbability(self, parameters, synapse_type=None):
-        """
-        For each pair of pre-post cells, the connection probability is constant.
-        """
-        allow_self_connections = True
-        try:
-            p_connect = float(parameters)
-        except TypeError:
-            p_connect = parameters['p_connect']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        connectivity_node = build_node('net:connectivity_pattern')
-        connectivity_node.appendChild( build_node('net:fixed_probability',
-                                                  probability=p_connect,
-                                                  allow_self_conections=int(allow_self_connections)) )
-        return connectivity_node
-    
-    def _distanceDependentProbability(self, parameters, synapse_type=None):
-        """
-        For each pair of pre-post cells, the connection probability depends on distance.
-        d_expression should be the right-hand side of a valid python expression
-        for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
-        """
-        raise Exception("Method not yet implemented")
-    
-    def __fixedNumber(self, parameters, direction):
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-            assert n > 0
-            fixed = True
-        elif type(parameters) == types.DictType:
-            if parameters.has_key('n'): # all cells have same number of connections
-                n = int(parameters['n'])
-                assert n > 0
-                fixed = True
-            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
-                rand_distr = parameters['rand_distr']
-                assert isinstance(rand_distr, RandomDistribution)
-                fixed = False
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        elif isinstance(parameters, RandomDistribution):
-            rand_distr = parameters
-            fixed = False
-        else:
-            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-        if fixed:
-            connectivity_node = build_node('net:connectivity_pattern')
-            connectivity_node.appendChild( build_node('net:per_cell_connection',
-                                                      num_per_source=n,
-                                                      direction=direction,
-                                                      allow_self_connections = int(allow_self_connections)) )
-        else:
-            raise Exception('Connection with variable connection number not implemented.')
-    
-    def _fixedNumberPre(self, parameters):
-        """Each presynaptic cell makes a fixed number of connections."""
-        return self.__fixedNumber(parameters,"PreToPost")
 
-    def _fixedNumberPost(self, parameters):
-        """Each postsynaptic cell receives a fixed number of connections."""
-        return self.__fixedNumber(parameters,"PostToPre")
-    
-    def _fromFile(self, parameters):
-        """
-        Load connections from a file.
-        """
-        lines =[]
-        if type(parameters) == types.FileType:
-            fileobj = parameters
-            # should check here that fileobj is already open for reading
-            lines = fileobj.readlines()
-        elif type(parameters) == types.StringType:
-            filename = parameters
-            # now open the file...
-            f = open(filename,'r',1000)
-            lines = f.readlines()
-        elif type(parameters) == types.DictType:
-            # dict could have 'filename' key or 'file' key
-            # implement this...
-            raise "Argument type not yet implemented"
-        
-        # We read the file and gather all the data in a list of tuples (one per line)
-        input_tuples = []
-        for line in lines:
-            single_line = line.rstrip()
-            src, tgt, w, d = single_line.split("\t", 4)
-            src = "[%s" % src.split("[",1)[1]
-            tgt = "[%s" % tgt.split("[",1)[1]
-            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
-        f.close()
-        return self._fromList(input_tuples)
-    
-    def _fromList(self, conn_list):
-        """
-        Read connections from a list of tuples,
-        containing [pre_addr, post_addr, weight, delay]
-        where pre_addr and post_addr are both neuron addresses, i.e. tuples or
-        lists containing the neuron array coordinates.
-        """
-        connections_node = build_node('net:connections')
-        for i in xrange(len(conn_list)):
-            src, tgt, weight, delay = conn_list[i][:]
-            src = self.pre[tuple(src)]
-            tgt = self.post[tuple(tgt)]
-            connection_node = build_node('net:connection', id=i)
-            connection_node.appendChild( build_node('net:pre', cell_id=src) )
-            connection_node.appendChild( build_node('net:post', cell_id=tgt) )
-            connection_node.appendChild( build_node('net:properties', internal_delay=delay, weight=weight) )
-            connections_node.appendChild(connection_node)
-        return connections_node
-    
-# ==============================================================================
-#   Utility classes
-# ==============================================================================
-   
-Timer = common.Timer  # not really relevant here except for timing how long it takes
-                      # to write the XML file. Needed for API consistency.
 
 # ==============================================================================

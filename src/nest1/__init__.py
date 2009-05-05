@@ -831,7 +831,8 @@ class Projection(common.Projection):
                 assert isinstance(id, int)
                 return (pynest.getAddress(self.parent._sources[id]), self.parent._targetPorts[id])
     
-    def __init__(self, presynaptic_population, postsynaptic_population, method='allToAll', method_parameters=None, source=None, target=None, synapse_dynamics=None, label=None, rng=None):
+    def __init__(self, presynaptic_population, postsynaptic_population,
+                 method, source=None, target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
         
@@ -843,25 +844,16 @@ class Projection(common.Projection):
                  
         If source and/or target are not given, default values are used.
         
-        method - string indicating which algorithm to use in determining
-                 connections.
-        Allowed methods are 'allToAll', 'oneToOne', 'fixedProbability',
-        'distanceDependentProbability', 'fixedNumberPre', 'fixedNumberPost',
-        'fromFile', 'fromList'.
-        
-        method_parameters - dict containing parameters needed by the connection
-        method, although we should allow this to be a number or string if there
-        is only one parameter.
+        method - a Connector object, encapsulating the algorithm to use for
+                 connecting the neurons.
         
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
         
-        rng - since most of the connection methods need uniform random numbers,
-        it is probably more convenient to specify a RNG object here rather
-        than within method_parameters, particularly since some methods also use
-        random numbers to give variability in the number of connections per cell.
+        rng - specify an RNG object to be used by the Connector.
         """
-        common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method, method_parameters, source, target, synapse_dynamics, label, rng)
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
+                                   method, source, target, synapse_dynamics, label, rng)
         
         self._targetPorts = [] # holds port numbers
         self._targets = []     # holds gids
@@ -870,11 +862,8 @@ class Projection(common.Projection):
         self._plasticity_model = "static_synapse"
         self.synapse_type = target
         
-        if isinstance(method, str):
-            connection_method = getattr(self,'_%s' % method)   
-            self.nconn = connection_method(method_parameters)
-        elif isinstance(method, common.Connector):
-            self.nconn = method.connect(self)
+        assert isinstance(method, common.Connector)
+        self.nconn = method.connect(self)
 
         assert len(self._sources) == len(self._targets) == len(self._targetPorts), "Connection error. Source and target lists are of different lengths."
         self.connection = Projection.ConnectionDict(self)
@@ -893,222 +882,6 @@ class Projection(common.Projection):
         """for conn in prj.connections()..."""
         for i in xrange(len(self)):
             yield self.connection[i]
-    
-    # --- Connection methods ---------------------------------------------------
-    
-    def _allToAll(self, parameters=None):
-        """
-        Connect all cells in the presynaptic population to all cells in the postsynaptic population.
-        """
-        allow_self_connections = True # when pre- and post- are the same population,
-                                      # is a cell allowed to connect to itself?
-        if parameters and parameters.has_key('allow_self_connections'):
-            allow_self_connections = parameters['allow_self_connections']
-        c = AllToAllConnector(allow_self_connections)
-        return c.connect(self)
-    
-    def _oneToOne(self, parameters=None):
-        """
-        Where the pre- and postsynaptic populations have the same size, connect
-        cell i in the presynaptic population to cell i in the postsynaptic
-        population for all i.
-        In fact, despite the name, this should probably be generalised to the
-        case where the pre and post populations have different dimensions, e.g.,
-        cell i in a 1D pre population of size n should connect to all cells
-        in row i of a 2D post population of size (n,m).
-        """
-        c = OneToOneConnector()
-        return c.connect(self)
-
-    def _fixedProbability(self, parameters):
-        """
-        For each pair of pre-post cells, the connection probability is constant.
-        """
-        allow_self_connections = True
-        try:
-            p_connect = float(parameters)
-        except TypeError:
-            p_connect = parameters['p_connect']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        c = FixedProbabilityConnector(p_connect, allow_self_connections)
-        return c.connect(self)
-    
-    def _distanceDependentProbability(self, parameters):
-        """
-        For each pair of pre-post cells, the connection probability depends on distance.
-        d_expression should be the right-hand side of a valid python expression
-        for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
-        """
-        allow_self_connections = True
-        if type(parameters) == types.StringType:
-            d_expression = parameters
-        else:
-            d_expression = parameters['d_expression']
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        c = DistanceDependentProbabilityConnector(d_expression, allow_self_connections=allow_self_connections)
-        return c.connect(self)           
-                
-    def _fixedNumberPre(self, parameters):
-        """Each presynaptic cell makes a fixed number of connections."""
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-            assert n > 0
-            fixed = True
-        elif type(parameters) == types.DictType:
-            if parameters.has_key('n'): # all cells have same number of connections
-                n = int(parameters['n'])
-                assert n > 0
-                fixed = True
-            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
-                rand_distr = parameters['rand_distr']
-                assert isinstance(rand_distr, RandomDistribution)
-                fixed = False
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        elif isinstance(parameters, RandomDistribution):
-            rand_distr = parameters
-            fixed = False
-        else:
-            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-         
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-        if self.rng:
-            rng = self.rng
-        else:
-            rng = numpy.random
-        for pre in presynaptic_neurons:
-            pre_addr = pynest.getAddress(pre)
-            # Reserve space for connections
-            if not fixed:
-                n = rand_distr.next()
-            pynest.resCons(pre_addr, n)                
-            # pick n neurons at random
-            for post in rng.permutation(postsynaptic_neurons)[0:n]:
-                if allow_self_connections or (pre != post):
-                    self._sources.append(pre)
-                    self._targets.append(post)
-                    self._targetPorts.append(pynest.connect(pre_addr, pynest.getAddress(post)))
-    
-    def _fixedNumberPost(self, parameters):
-        """Each postsynaptic cell receives a fixed number of connections."""
-        allow_self_connections = True
-        if type(parameters) == types.IntType:
-            n = parameters
-            assert n > 0
-            fixed = True
-        elif type(parameters) == types.DictType:
-            if parameters.has_key('n'): # all cells have same number of connections
-                n = int(parameters['n'])
-                assert n > 0
-                fixed = True
-            elif parameters.has_key('rand_distr'): # number of connections per cell follows a distribution
-                rand_distr = parameters['rand_distr']
-                assert isinstance(rand_distr, RandomDistribution)
-                fixed = False
-            if parameters.has_key('allow_self_connections'):
-                allow_self_connections = parameters['allow_self_connections']
-        elif isinstance(parameters, RandomDistribution):
-            rand_distr = parameters
-            fixed = False
-        else:
-            raise Exception("Invalid argument type: should be an integer, dictionary or RandomDistribution object.")
-         
-        postsynaptic_neurons = numpy.reshape(self.post.cell,(self.post.cell.size,))
-        presynaptic_neurons  = numpy.reshape(self.pre.cell,(self.pre.cell.size,))
-        if self.rng:
-            rng = self.rng
-        else:
-            rng = numpy.random
-        for post in postsynaptic_neurons:
-            post_addr = pynest.getAddress(post)
-            # Reserve space for connections
-            if not fixed:
-                n = rand_distr.next()
-            pynest.resCons(post_addr, n)                
-            # pick n neurons at random
-            for pre in rng.permutation(presynaptic_neurons)[0:n]:
-                if allow_self_connections or (pre != post):
-                    self._sources.append(pre)
-                    self._targets.append(post)
-                    self._targetPorts.append(pynest.connect(pynest.getAddress(pre), post_addr))
-    
-    def _fromFile(self, parameters):
-        """
-        Load connections from a file.
-        """
-        filename = parameters
-        c = FromFileConnector(filename)
-        return c.connect(self)
-        
-    def _fromList(self, conn_list):
-        """
-        Read connections from a list of tuples,
-        containing [pre_addr, post_addr, weight, delay]
-        where pre_addr and post_addr are both neuron addresses, i.e. tuples or
-        lists containing the neuron array coordinates.
-        """
-        c = FromListConnector(conn_list)
-        return c.connect(self)
-        
-    def _2D_Gauss(self, parameters):
-        """
-        Source neuron is connected to a 2D targetd population with a spatial profile (Gauss).
-        parameters should have:
-        rng:
-        source_position: x,y of source neuron mapped to target populatio.
-        source_id: source id
-        n: number of synpases
-        sigma: sigma of the Gauss
-        """
-        def rcf_2D(parameters):
-            rng = parameters['rng']
-            pre_id = parameters['pre_id']
-            pre_position = parameters['pre_position']
-            n = parameters['n']
-            sigma = parameters['sigma']
-            weight = parameters['weight']
-            delay = parameters['delay']
-            
-            phi = rng.uniform(size=n)*(2.0*pi)
-            r = rng.normal(scale=sigma, size=n)
-            target_position_x = numpy.floor(pre_position[1]+r*numpy.cos(phi))
-            target_position_y = numpy.floor(pre_position[0]+r*numpy.sin(phi))
-            target_id = []
-            for syn_nr in range(len(target_position_x)):
-                #print syn_nr
-                try:
-                    # print target_position_x[syn_nr]
-                    target_id.append(self.post[(target_position_x[syn_nr], target_position_y[syn_nr])])
-                    # print target_id
-                except IndexError:
-                    target_id.append(False)
-            
-            pynest.divConnect(pre_id, target_id,[weight],[delay])
-        
-        
-        n = parameters['n']
-                
-        if n > 0:
-            ratio_dim_pre_post = ((1.*self.pre.dim[0])/(1.*self.post.dim[0]))
-            print 'ratio_dim_pre_post', ratio_dim_pre_post
-            run_id = 0
-
-            for pre in numpy.reshape(self.pre.cell,(self.pre.cell.size)):
-                #print 'pre', pre
-                run_id +=1
-                #print 'run_id', run_id
-                if numpy.mod(run_id,500) == 0:
-                    print 'run_id', run_id
-                
-                pre_position_tmp = self.pre.locate(pre)
-                parameters['pre_position'] = numpy.divide(pre_position_tmp, ratio_dim_pre_post)
-                parameters['pre_id'] = pre
-                #a=Projection(self.pre, self.post,'rcf_2D', parameters)
-                rcf_2D(parameters)
     
     # --- Methods for setting connection parameters ----------------------------
     

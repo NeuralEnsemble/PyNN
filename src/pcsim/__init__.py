@@ -976,10 +976,7 @@ class Projection(common.Projection, WDManager):
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
         
-        rng - since most of the connection methods need uniform random numbers,
-        it is probably more convenient to specify a RNG object here rather
-        than within method_parameters, particularly since some methods also use
-        random numbers to give variability in the number of connections per cell.
+        rng - specify an RNG object to be used by the Connector..
         """
         """
            PCSIM implementation specific comments:
