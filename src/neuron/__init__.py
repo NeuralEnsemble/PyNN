@@ -544,7 +544,7 @@ def rank():
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass, param_dict=None, n=1):
+def create(cellclass, cellparams=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -554,12 +554,12 @@ def create(cellclass, param_dict=None, n=1):
     
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, type):
-        celltype = cellclass(param_dict)
+        celltype = cellclass(cellparams)
         hoc_name = celltype.hoc_name
         hoc_commands, argstr = _hoc_arglist([celltype.parameters])
     elif isinstance(cellclass, str):
         hoc_name = cellclass
-        hoc_commands, argstr = _hoc_arglist([param_dict])
+        hoc_commands, argstr = _hoc_arglist([cellparams])
     argstr = argstr.strip().strip(',')
  
     # round-robin partitioning

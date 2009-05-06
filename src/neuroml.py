@@ -295,7 +295,7 @@ common.get_min_delay = get_min_delay
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass, param_dict=None, n=1):
+def create(cellclass, cellparams=None, n=1):
     """Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
     If n==1, return just the single id.

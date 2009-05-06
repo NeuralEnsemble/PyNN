@@ -19,7 +19,7 @@ def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     moose.PyMooseBase.endSimulation()
  
-def create(cellclass, param_dict=None, n=1):
+def create(cellclass, cellparams=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -29,15 +29,15 @@ def create(cellclass, param_dict=None, n=1):
     cell_gids = []
     if isinstance(cellclass, type):
 	for i in range(n):
-		print cellclass, param_dict
-		cell_type = cellclass(param_dict)
+		print cellclass, cellparams
+		cell_type = cellclass(cellparams)
                 cell = eval("Neuron."+cell_type.moose_name)(**cell_type.parameters)
 		cell_gids.append(cell.id)
         cell_gids = [ID(gid) for gid in cell_gids]
     elif isinstance(cellclass, str):  # celltype is not a standard cell
 	cellclass = eval(cellclass)
 	for i in range(n):
-		cell = cellclass(**param_dict)
+		cell = cellclass(**cellparams)
 		cell_gids.append(cell.id)
         cell_gids = [ID(gid) for gid in cell_gids]
     else:

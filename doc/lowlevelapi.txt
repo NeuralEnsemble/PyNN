@@ -61,17 +61,17 @@ stored in the ``default_values`` of the standard cell class, e.g.::
      'v_thresh': -50.0, 'tau_syn_E': 0.5, 'v_rest': -65.0, 'tau_syn_I': 0.5,
      'v_reset': -65.0}
 
-To use different parameter values, use the ``param_dict`` argument, e.g.::
+To use different parameter values, use the ``cellparams`` argument, e.g.::
 
-    >>> create(IF_curr_alpha, param_dict={'tau_m': 15.0, 'cm': 0.9}, n=10)
+    >>> create(IF_curr_alpha, cellparams={'tau_m': 15.0, 'cm': 0.9}, n=10)
 
 If you try to set a non-existent parameter, or pass an invalid value, PyNN will raise an Exception, e.g.::
 
-    >>> create(IF_curr_alpha, param_dict={'foo': 15.0})
+    >>> create(IF_curr_alpha, cellparams={'foo': 15.0})
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
       File "/usr/lib/python/site-packages/pyNN/nest1.py", line 228, in create
-        celltype = cellclass(param_dict)
+        celltype = cellclass(cellparams)
       File "/usr/lib/python/site-packages/pyNN/nest1.py", line 68, in __init__
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
       File "/usr/lib/python/site-packages/pyNN/common.py", line 113, in __init__
@@ -79,10 +79,10 @@ If you try to set a non-existent parameter, or pass an invalid value, PyNN will 
       File "/usr/lib/python/site-packages/pyNN/common.py", line 99, in checkParameters
         raise NonExistentParameterError(k)
     NonExistentParameterError: foo
-    >>> create(IF_curr_alpha, param_dict={'tau_m': 'bar'})
+    >>> create(IF_curr_alpha, cellparams={'tau_m': 'bar'})
     Traceback (most recent call last):
       File "/usr/lib/python/site-packages/pyNN/nest1.py", line 228, in create
-        celltype = cellclass(param_dict)
+        celltype = cellclass(cellparams)
       File "/usr/lib/python/site-packages/pyNN/nest1.py", line 68, in __init__
         common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
       File "/usr/lib/python/site-packages/pyNN/common.py", line 113, in __init__
@@ -104,7 +104,7 @@ Connecting neurons
 
 Any neuron that emits spikes can be connected to any neuron with at least one synapse using the ``connect()`` function, e.g.::
 
-    >>> spike_source = create(SpikeSourceArray, param_dict={'spike_times': [10.0, 20.0, 30.0]})
+    >>> spike_source = create(SpikeSourceArray, cellparams={'spike_times': [10.0, 20.0, 30.0]})
     >>> cell_list2 = create(IF_curr_exp, n=10)
     >>> connect(spike_source, cell_list2)
     
@@ -142,7 +142,7 @@ Setting neuron parameters
 There are many ways to change the parameters for individual neurons and post-synaptic mechanisms after creation of the neuron.
 To change a single parameter of a single neuron, just set the relevant attribute of the neuron ID object, e.g.::
 
-    >>> cells = create(IF_curr_exp, param_dict={'v_init': -70.0}, n=10)
+    >>> cells = create(IF_curr_exp, cellparams={'v_init': -70.0}, n=10)
     >>> cells[0].tau_m
     20.0
     >>> cells[0].tau_m = 15

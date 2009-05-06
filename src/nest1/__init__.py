@@ -168,7 +168,7 @@ def rank():
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass, param_dict=None, n=1):
+def create(cellclass, cellparams=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -176,15 +176,15 @@ def create(cellclass, param_dict=None, n=1):
     """
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, type):
-        celltype = cellclass(param_dict)
+        celltype = cellclass(cellparams)
         cell_gids = pynest.create(celltype.nest_name, n)
         cell_gids = [ID(pynest.getGID(gid)) for gid in cell_gids]
         pynest.setDict(cell_gids, celltype.parameters)
     elif isinstance(cellclass, str):  # celltype is not a standard cell
         cell_gids = pynest.create(cellclass, n)
         cell_gids = [ID(pynest.getGID(gid)) for gid in cell_gids]
-        if param_dict:
-            pynest.setDict(cell_gids, param_dict)
+        if cellparams:
+            pynest.setDict(cell_gids, cellparams)
     else:
         raise "Invalid cell type"
     for id in cell_gids:

@@ -441,7 +441,7 @@ def rank():
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass, param_dict=None, n=1):
+def create(cellclass, cellparams=None, n=1):
     """
     Create n cells all of the same type.
     If n > 1, return a list of cell ids/references.
@@ -457,10 +457,10 @@ def create(cellclass, param_dict=None, n=1):
         except:
             raise AttributeError("ERROR: Trying to create non-existent cellclass " + cellclass )
     if issubclass(cellclass, common.StandardCellType):
-        cellfactory = cellclass(param_dict).simObjFactory
+        cellfactory = cellclass(cellparams).simObjFactory
     else:
         if issubclass(cellclass, pypcsim.SimObject):
-            cellfactory = apply(cellclass, (), param_dict)
+            cellfactory = apply(cellclass, (), cellparams)
         else:
             raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
     cell_list = [ID(i) for i in pcsim_globals.net.add(cellfactory, n)]
