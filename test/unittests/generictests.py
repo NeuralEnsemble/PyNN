@@ -819,6 +819,7 @@ class ProjectionSetTest(unittest.TestCase):
         for c in prj1.connections:
             w2.append(c.weight)
         self.assertNotEqual(w1,w2)
+        self.assertEqual(w2[0], prj1.connections[0].weight)
         
     def testRandomizeDelays(self):
         # The probability of having two consecutive delay vectors that are equal should be effectively 0
@@ -865,6 +866,7 @@ class ProjectionGetTest(unittest.TestCase):
             prj.setWeights(weights_in)
             weights_out = numpy.array(prj.getWeights(format='array')).flatten()
             weights_out = weights_out.compress(weights_out>0)
+            self.assertEqual(weights_out[0], prj.connections[0].weight)
             self.assertEqual(weights_in.shape, weights_out.shape)
             assert_arrays_almost_equal(weights_in, weights_out, 1e-8)
             

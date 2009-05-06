@@ -462,7 +462,13 @@ connections)::
 
 ``getDelays()`` is analogous. ``printWeights()`` writes the weights to a file.
 
-[talk about accessing individual weights and delays via ``Projection.connections``]
+Access to the weights and delays of individual connections is by the ``connections`` attribute, e.g.::
+
+    >>> prj2_1.connections[0].weight
+    0.2
+    >>> prj2_1.connections[3].weight
+    0.1
+    
 
 The ``weightHistogram()`` method returns a histogram of the synaptic weights, with bins
 determined by the ``min``, ``max`` and ``nbins`` arguments passed to the method.
