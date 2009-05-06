@@ -42,7 +42,7 @@ setup(
     name = "PyNN",
     version = "0.5.0alpha",
     package_dir={'pyNN': 'src'},
-    packages = ['pyNN','pyNN.nest2old','pyNN.nest2', 'pyNN.nest1','pyNN.pcsim','pyNN.neuron','pyNN.neuron2','pyNN.brian'],
+    packages = ['pyNN','pyNN.nest2', 'pyNN.nest1', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.brian'],
     package_data = {'pyNN': ['hoc/*.hoc', 'hoc/*.mod']},
     author = "The NeuralEnsemble Community",
     author_email = "pynn@neuralensemble.org",

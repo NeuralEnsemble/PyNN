@@ -27,10 +27,10 @@ def run(cmd,engine):
     #print 'Running "', cmd, '" with', engine.upper()
     fail = False
     logfile = open("Results/%s_%s.log" % (cmd,engine), 'w')
-    if engine in ('nest1', 'pcsim', 'nest2', 'neuron', 'neuron2'):
+    if engine in ('nest1', 'pcsim', 'nest2', 'neuron', 'oldneuron', 'brian'):
         cmd = sys.executable + ' ' + cmd + '.py ' + engine
     else:
-        logging.error('Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", "neuron", "neuron2"' % engine)
+        logging.error('Invalid simulation engine "%s". Valid values are "nest1", "nest2", "pcsim", "neuron", "oldneuron", "brian"' % engine)
         
     p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
     p.wait()
@@ -207,7 +207,7 @@ def compare_rasters(script,mse_threshold,engines):
         
 if __name__ == "__main__":
     
-    engine_list = ["nest1", "neuron", "pcsim", "nest2", "neuron2"]
+    engine_list = ["nest1", "neuron", "pcsim", "nest2", "oldneuron", "brian"]
     for engine in engine_list:
         try:
             exec("import pyNN.%s" % engine)
