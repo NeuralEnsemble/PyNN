@@ -164,6 +164,12 @@ class IDSetGetTest(unittest.TestCase):
                         i = [1.0, 2.0]
                         cell.__setattr__(name, i)
                         o = list(cell.__getattr__(name))
+                        assert isinstance(i, list), type(i)
+                        assert isinstance(o, list), type(o)
+                        try:
+                            assert i == o, "%s (%s) != %s (%s)" % (i,o, type(i), type(o))
+                        except ValueError, errmsg:
+                            raise ValueError("%s. %s (%s) != %s (%s)" % (errmsg, i, type(i), o, type(o)))
                         self.assertEqual(i, o)
                     else:
                         if name == 'v_thresh':
@@ -635,7 +641,7 @@ class ProjectionTest(unittest.TestCase):
         p1 = sim.Population(10, sim.SpikeSourceArray)
         p2 = sim.Population(10, sim.IF_cond_exp)
         self.prj = sim.Projection(p1, p2, sim.OneToOneConnector())
-        
+                
     def test_describe(self):
         self.prj.describe()
         
@@ -644,6 +650,215 @@ class ProjectionTest(unittest.TestCase):
         self.prj.printWeights("weights_array.tmp", format='array', gather=False)
         # test needs completing. Should read in the weights and check they have the correct values
          
+         
+# ==============================================================================
+class ProjectionInitTest(unittest.TestCase):
+    """Tests of the __init__() method of the Projection class."""
+        
+    def setUp(self):
+        sim.setup()
+        sim.Population.nPop = 0
+        sim.Projection.nProj = 0
+        self.target33    = sim.Population((3,3), sim.IF_curr_alpha, label="target33")
+        self.target6     = sim.Population((6,), sim.IF_curr_alpha, label="target6")
+        self.target1     = sim.Population((1,), sim.IF_cond_exp, label="target1")
+        self.source5     = sim.Population((5,), sim.SpikeSourcePoisson, label="source5")
+        self.source22    = sim.Population((2,2), sim.SpikeSourcePoisson, label="source22")
+        self.source33    = sim.Population((3,3), sim.SpikeSourcePoisson, label="source33")
+        self.expoisson33 = sim.Population((3,3), sim.SpikeSourcePoisson,{'rate': 100}, label="expoisson33")
+        
+    def testAllToAll(self):
+        for srcP in [self.source5, self.source22, self.target33]:
+            for tgtP in [self.target6, self.target33]:
+                prj = sim.Projection(srcP, tgtP, sim.AllToAllConnector(allow_self_connections=False))
+                prj.setWeights(1.234)
+                weights = []
+                for c in prj.connections:
+                    weights.append(c.weight)
+                if srcP==tgtP:
+                    n = len(srcP)*(len(tgtP)-1)
+                else:
+                    n = len(srcP)*len(tgtP)
+                target_weights = [1.234]*n
+                self.assertEqual(weights, target_weights, msg="srcP=%s, tgtP=%s\n%s !=\n%s" % (srcP.label, tgtP.label, weights, target_weights))
+            
+    def testFixedProbability(self):
+        """For all connections created with "fixedProbability"..."""
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target1, self.target6, self.target33]:
+                prj = sim.Projection(srcP, tgtP, sim.FixedProbabilityConnector(0.5), rng=random.NumpyRNG(12345))
+                assert (0 < len(prj) < len(srcP)*len(tgtP)), 'len(prj) = %d, len(srcP)*len(tgtP) = %d' % (len(prj), len(srcP)*len(tgtP))
+                
+    def testOneToOne(self):
+        """For all connections created with "OneToOne" ..."""
+        prj = sim.Projection(self.source33, self.target33, sim.OneToOneConnector())
+        assert len(prj.connections) == len(self.target33.local_cells), prj.connections
+     
+    def testDistanceDependentProbability(self):
+        """For all connections created with "distanceDependentProbability"..."""
+        # Test should be improved..."
+        for rngclass in (random.NumpyRNG, random.NativeRNG):
+            for expr in ('exp(-d)', 'd < 0.5'):
+                prj = sim.Projection(self.source33, self.target33,
+                                        sim.DistanceDependentProbabilityConnector(d_expression=expr),
+                                        rng=rngclass(12345))
+                assert (0 < len(prj) < len(self.source33)*len(self.target33))
+        self.assertRaises(ZeroDivisionError, sim.DistanceDependentProbabilityConnector, d_expression="d/0.0")
+    
+    def testFixedNumberPre(self):
+        c1 = sim.FixedNumberPreConnector(10)
+        c2 = sim.FixedNumberPreConnector(3)
+        c3 = sim.FixedNumberPreConnector(random.RandomDistribution('poisson',[5]))
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                for c in c1, c2:
+                    prj1 = sim.Projection(srcP, tgtP, c)
+                    self.assertEqual(len(prj1.connections), c.n*len(tgtP))
+                prj3 = sim.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
+        self.assertRaises(Exception, sim.FixedNumberPreConnector, None)
+        
+    
+    def testFixedNumberPost(self):
+        c1 = sim.FixedNumberPostConnector(10)
+        c2 = sim.FixedNumberPostConnector(3)
+        c3 = sim.FixedNumberPostConnector(random.RandomDistribution('poisson',[5]))
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                for c in c1, c2:
+                    prj1 = sim.Projection(srcP, tgtP, c)
+                    self.assertEqual(len(prj1.connections), c.n*len(srcP))
+                prj2 = sim.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
+        self.assertRaises(Exception, sim.FixedNumberPostConnector, None)
+    
+    def testFromList(self):
+        c1 = sim.FromListConnector([
+            ([0,], [0,], 0.1, 0.1),
+            ([3,], [0,], 0.2, 0.11),
+            ([2,], [3,], 0.3, 0.12),
+            ([4,], [2,], 0.4, 0.13),
+            ([0,], [1,], 0.5, 0.14),
+            ])
+        prj = sim.Projection(self.source5, self.target6, c1)
+        self.assertEqual(len(prj.connections), 5)
+            
+    def testSaveAndLoad(self):
+        prj1 = sim.Projection(self.source33, self.target33, sim.OneToOneConnector())
+        prj1.setDelays(1)
+        prj1.setWeights(1.234)
+        prj1.saveConnections("connections.tmp", gather=False)
+        if sim.num_processes() > 1:
+            distributed = True
+        else:
+            distributed = False
+        prj2 = sim.Projection(self.source33, self.target33, sim.FromFileConnector("connections.tmp",
+                                                                                  distributed=distributed))
+        w1 = []; w2 = []; d1 = []; d2 = []
+        # For a connections scheme saved and reloaded, we test if the connections, their weights and their delays
+        # are equal.
+        for c1,c2 in zip(prj1.connections, prj2.connections):
+            w1.append(c1.weight)
+            w2.append(c2.weight)
+            d1.append(c1.delay)
+            d2.append(c2.delay)
+        assert (w1 == w2), 'w1 = %s\nw2 = %s' % (w1, w2)
+        assert (d1 == d2), 'd1 = %s\nd2 = %s' % (d1, d2)
+          
+    def testSettingDelays(self):
+        """Delays should be set correctly when using a Connector object."""
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                prj1 = sim.Projection(srcP, tgtP, sim.AllToAllConnector(delays=0.321))
+                assert prj1.connections[0].delay == 0.321, "Delay should be 0.321, actually %g" % prj1.connections[0].delay
+         
+
+class ProjectionSetTest(unittest.TestCase):
+    """Tests of the setWeights(), setDelays(), randomizeWeights() and
+    randomizeDelays() methods of the Projection class."""
+
+    def setUp(self):
+        self.target   = sim.Population((3,3), sim.IF_curr_alpha)
+        self.source   = sim.Population((3,3), sim.SpikeSourcePoisson,{'rate': 200})
+        self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345), distribution='uniform', parameters=(0.2,1)) 
+        self.distrib_Native= random.RandomDistribution(rng=random.NativeRNG(12345), distribution='uniform', parameters=(0.2,1)) 
+        
+    def testSetWeights(self):
+        prj1 = sim.Projection(self.source, self.target, sim.AllToAllConnector())
+        prj1.setWeights(2.345)
+        weights = []
+        for c in prj1.connections:
+            weights.append(c.weight)
+        result = 2.345*numpy.ones(len(prj1.connections))
+        self.assertEqual(weights, result.tolist())
+        
+    def testSetDelays(self):
+        prj1 = sim.Projection(self.source, self.target, sim.AllToAllConnector())
+        prj1.setDelays(2.345)
+        delays = []
+        for c in prj1.connections:
+            delays.append(c.delay)
+        result = 2.345*numpy.ones(len(prj1.connections))
+        self.assertEqual(delays, result.tolist())
+        
+    def testRandomizeWeights(self):
+        # The probability of having two consecutive weight vectors that are equal should be effectively 0
+        prj1 = sim.Projection(self.source, self.target, sim.AllToAllConnector())
+        prj1.randomizeWeights(self.distrib_Numpy)
+        w1 = []; w2 = [];
+        for c in prj1.connections:
+            w1.append(c.weight)
+        prj1.randomizeWeights(self.distrib_Numpy)        
+        for c in prj1.connections:
+            w2.append(c.weight)
+        self.assertNotEqual(w1,w2)
+        
+    def testRandomizeDelays(self):
+        # The probability of having two consecutive delay vectors that are equal should be effectively 0
+        prj1 = sim.Projection(self.source, self.target, sim.FixedProbabilityConnector(0.8))
+        prj1.randomizeDelays(self.distrib_Numpy)
+        d1 = []; d2 = [];
+        for c in prj1.connections:
+            d1.append(c.delay)
+        prj1.randomizeDelays(self.distrib_Numpy)        
+        for c in prj1.connections:
+            d2.append(c.delay)
+        self.assertNotEqual(d1,d2)
+         
+#===============================================================================
+class ProjectionGetTest(unittest.TestCase):
+    """Tests of the getWeights(), getDelays() methods of the Projection class."""
+
+    def setUp(self):
+        sim.setup(max_delay=0.5)
+        sim.Population.nPop = 0
+        self.target33 = sim.Population((3,3),sim.IF_curr_alpha)
+        self.target6  = sim.Population((6,),sim.IF_curr_alpha)
+        self.source5  = sim.Population((5,),sim.SpikeSourcePoisson)
+        self.source22 = sim.Population((2,2),sim.SpikeSourcePoisson)
+        self.prjlist = []
+        self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345),distribution='uniform',parameters=(0.1,0.5))
+        for tgtP in [self.target6, self.target33]:
+            for srcP in [self.source5, self.source22]:
+                for method in (sim.AllToAllConnector(), sim.FixedProbabilityConnector(p_connect=0.5)):
+                    self.prjlist.append(sim.Projection(srcP,tgtP,method))
+
+    def testGetWeightsWithList(self):
+        for prj in self.prjlist:
+            weights_in = self.distrib_Numpy.next(len(prj))
+            prj.setWeights(weights_in)
+            weights_out = numpy.array(prj.getWeights(format='list'))
+            assert_arrays_almost_equal(weights_in, weights_out, 1e-8)
+            
+    def testGetWeightsWithArray(self):
+        """Making 1D and removing weights <= 0 should turn the array format of getWeights()
+        into the list format."""
+        for prj in self.prjlist:
+            weights_in = self.distrib_Numpy.next(len(prj))
+            prj.setWeights(weights_in)
+            weights_out = numpy.array(prj.getWeights(format='array')).flatten()
+            weights_out = weights_out.compress(weights_out>0)
+            self.assertEqual(weights_in.shape, weights_out.shape)
+            assert_arrays_almost_equal(weights_in, weights_out, 1e-8)
+            
          
 #===============================================================================
 class ConnectorsTest(unittest.TestCase):
@@ -674,8 +889,13 @@ class ElectrodesTest(unittest.TestCase):
         for cell in cells:
             cell.inject(source)
                 
+    # what should happen if we inject multiple electrodes into a single cell?
+                
 #===============================================================================
 class StateTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.cells = sim.create(sim.IF_curr_exp) # brian chokes if there are no NeuronGroups in the Network object when net.run() is called
     
     def test_get_time(self):
         sim.setup()

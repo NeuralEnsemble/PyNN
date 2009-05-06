@@ -1195,15 +1195,18 @@ class Projection(object):
         f.close()
     
     def printWeights(self, filename, format='list', gather=True):
-        """Print synaptic weights to file."""
+        """Print synaptic weights to file. In the array format, zeros are printed
+        for non-existent connections."""
         weights = self.getWeights(format=format, gather=gather)
         f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
         if format == 'list':
             f.write("\n".join([str(w) for w in weights]))
         elif format == 'array':
-            fmt = "%g "*len(self.post) + "\n"
-            for row in weights:
-                f.write(fmt % tuple(row))
+            weights = numpy.where(numpy.isnan(weights), 0.0, weights)
+            numpy.savetxt(f, weights, "%g")
+            #fmt = "%g "*len(self.post) + "\n"
+            #for row in weights:
+            #    f.write(fmt % tuple(row))
         f.close()
     
     def weightHistogram(self, min=None, max=None, nbins=10):

@@ -51,7 +51,7 @@ def probabilistic_connect(connector, projection, p):
         weights = common.check_weight(weights, projection.synapse_type, is_conductance)
         delays  = connector.get_delays(N, local)[create]
         
-        if not connector.allow_self_connections and src in targets:
+        if not connector.allow_self_connections and projection.pre == projection.post and src in targets:
             assert len(targets) == len(weights) == len(delays)
             i = targets.index(src)
             weights = numpy.delete(weights, i)
@@ -245,10 +245,15 @@ class OneToOneConnector(common.Connector):
             is_conductance = common.is_conductance(projection.post.index(0))
             weights = common.check_weight(weights, projection.synapse_type, is_conductance)
             delays = self.get_delays(N, local)
+            
             for tgt, w, d in zip(projection.post.local_cells,
                                  weights,
                                  delays):
-                src = tgt - projection.post.first_id + projection.pre.first_id
+                id_class = type(tgt)
+                src = id_class(tgt - projection.post.first_id + projection.pre.first_id)
+                src.parent = projection.pre
+                if hasattr(projection.pre, "brian_cells"):
+                    src.parent_group = projection.pre.brian_cells
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
                 projection.connection_manager.connect(src, [tgt], float(w), float(d), projection.synapse_type)
         else:

@@ -144,6 +144,7 @@ class Population(common.Population):
         logging.info("%s.record('%s', %s)", self.label, record_what, record_from[:5])
         self.recorders[record_what].record(record_from)
 
+
 class Projection(common.Projection):
     """
     A container for all the connections of a given type (same synapse type and
@@ -180,83 +181,8 @@ class Projection(common.Projection):
         self._plasticity_model = "static_synapse"
         self.synapse_type = target
         
-        self.nconn = method.connect(self)
-        simulator.net.add(self._connections)
-    
-    def __len__(self):
-        """Return the total number of connections."""
-        return self._connections.W.getnnz()
-    
-    def connections(self):
-        """for conn in prj.connections()..."""
-        for i in xrange(len(self)):
-            yield self.connection[i]       
-    
-    # --- Methods for setting connection parameters ----------------------------
-    
-    def setWeights(self, w):
-        """
-        w can be a single number, in which case all weights are set to this
-        value, or a list/1D array of length equal to the number of connections
-        in the population.
-        Weights should be in nA for current-based and µS for conductance-based
-        synapses.
-        """
-        raise Exception("With Brian, weights should be specified in the connector object and can not be changed afterwards !")
-    
-    def randomizeWeights(self, rand_distr):
-        """
-        Set weights to random values taken from rand_distr.
-        """
-        raise Exception("With Brian, weights should be specified in the connector object and can not be changed afterwards !")
-    
-    def setDelays(self, d):
-        """
-        d can be a single number, in which case all delays are set to this
-        value, or a list/1D array of length equal to the number of connections
-        in the population.
-        """
-        raise Exception("With Brian, delays should be specified in the connector object and can not be changed afterwards !")
-    
-    def randomizeDelays(self, rand_distr):
-        """
-        Set delays to random values taken from rand_distr.
-        """
-        raise Exception("Method not available. Brian does not support non homogeneous delays!")
-    
-    def setSynapseDynamics(self, param, value):
-        """
-        Set parameters of the synapse dynamics linked with the projection
-        """
-        raise Exception("Method not available. Brian does not support dynamical synapses")
-    
-    
-    def randomizeSynapseDynamics(self, param, rand_distr):
-        """
-        Set parameters of the synapse dynamics to values taken from rand_distr
-        """
-        raise Exception("Method not available. Brian does not support dynamical synapses")
-    
-    # --- Methods for writing/reading information to/from file. ----------------
-    
-    def saveConnections(self, filename, gather=False):
-        """Save connections to file in a format suitable for reading in with the
-        'fromFile' method."""
-        raise NotImplementedError
-    
-    def printWeights(self, filename, format='list', gather=True):
-        """Print synaptic weights to file."""
-        raise NotImplementedError
-            
-    
-    def weightHistogram(self, min=None, max=None, nbins=10):
-        """
-        Return a histogram of synaptic weights.
-        If min and max are not given, the minimum and maximum weights are
-        calculated automatically.
-        """
-        # it is arguable whether functions operating on the set of weights
-        # should be put here or in an external module.
-        raise NotImplementedError
+        self.connection_manager = simulator.ConnectionManager(parent=self)
+        self.connections = self.connection_manager
+        method.connect(self)
 
         
