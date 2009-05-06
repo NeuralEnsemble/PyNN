@@ -653,6 +653,12 @@ class ProjectionTest(unittest.TestCase):
         self.prj.printWeights("weights_array.tmp", format='array', gather=False)
         # test needs completing. Should read in the weights and check they have the correct values
          
+    def test_iterator(self):
+        assert hasattr(self.prj, "connections")
+        assert not callable(self.prj.connections)
+        assert hasattr(self.prj.connections, "__iter__")
+        connections = [c for c in self.prj.connections]
+        self.assertEqual(len(connections), len(self.prj.pre))
          
 # ==============================================================================
 class ProjectionInitTest(unittest.TestCase):

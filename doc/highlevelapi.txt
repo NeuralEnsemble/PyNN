@@ -462,8 +462,11 @@ connections)::
 
 ``getDelays()`` is analogous. ``printWeights()`` writes the weights to a file.
 
+[talk about accessing individual weights and delays via ``Projection.connections``]
+
 The ``weightHistogram()`` method returns a histogram of the synaptic weights, with bins
 determined by the ``min``, ``max`` and ``nbins`` arguments passed to the method.
+
 
 Synaptic plasticity
 ===================
