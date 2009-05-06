@@ -3,10 +3,10 @@ Unit tests for pyNN/neuron.py.
 $Id$
 """
 
-import pyNN.neuron as neuron
+import pyNN.oldneuron as neuron
 import pyNN.common as common
 import pyNN.random as random
-from pyNN.neuron import *
+from pyNN.oldneuron import *
 import unittest, sys, numpy
 import numpy.random
 

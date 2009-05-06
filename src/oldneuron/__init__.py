@@ -13,9 +13,9 @@ from pyNN import __path__ as pyNN_path
 from pyNN.random import *
 from math import *
 from pyNN import common, utility
-from pyNN.neuron.cells import *
-from pyNN.neuron.connectors import *
-from pyNN.neuron.synapses import *
+from pyNN.oldneuron.cells import *
+from pyNN.oldneuron.connectors import *
+from pyNN.oldneuron.synapses import *
 import os.path
 import types
 import sys

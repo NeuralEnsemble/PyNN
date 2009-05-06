@@ -5,7 +5,7 @@
 
 from pyNN import common, connectors
 from pyNN.random import RandomDistribution, NativeRNG
-from pyNN.neuron.__init__ import hoc_execute, h, get_min_delay
+from pyNN.oldneuron.__init__ import hoc_execute, h, get_min_delay
 import numpy
 from math import *
 
