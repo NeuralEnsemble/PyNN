@@ -534,7 +534,7 @@ class ProjectionInitTest(unittest.TestCase):
         obtain the weight using the top-level HocObject"""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
-                prj1 = neuron.Projection(srcP, tgtP, 'allToAll')
+                prj1 = neuron.Projection(srcP, tgtP, neuron.AllToAllConnector())
                 prj2 = neuron.Projection(srcP, tgtP, neuron.AllToAllConnector())
                 prj1.setWeights(1.234)
                 prj2.setWeights(1.234)
@@ -549,34 +549,25 @@ class ProjectionInitTest(unittest.TestCase):
         """For all connections created with "fixedProbability"..."""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
-                prj1 = neuron.Projection(srcP, tgtP, 'fixedProbability', 0.5, rng=NumpyRNG(12345))
-                prj2 = neuron.Projection(srcP, tgtP, 'fixedProbability', 0.5, rng=NativeRNG(12345))
+                prj2 = neuron.Projection(srcP, tgtP, FixedProbabilityConnector(0.5), rng=NativeRNG(12345))
                 prj3 = neuron.Projection(srcP, tgtP, FixedProbabilityConnector(0.5), rng=NumpyRNG(12345))
-                assert (0 < len(prj1) < len(srcP)*len(tgtP)) \
-                       and (0 < len(prj2) < len(srcP)*len(tgtP)) \
+                assert (0 < len(prj2) < len(srcP)*len(tgtP)) \
                        and (0 < len(prj3) < len(srcP)*len(tgtP))
                 
     def testOneToOne(self):
         """For all connections created with "OneToOne" ..."""
-        prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
-        prj2 = neuron.Projection(self.source33, self.target33, neuron.OneToOneConnector())
-        assert len(prj1.connections) == len(self.target33.gidlist), prj1.connections
-        assert len(prj2.connections) == len(self.target33.gidlist), prj2.connections
+        prj = neuron.Projection(self.source33, self.target33, neuron.OneToOneConnector())
+        assert len(prj.connections) == len(self.target33.gidlist), prj.connections
      
     def testDistanceDependentProbability(self):
         """For all connections created with "distanceDependentProbability"..."""
         # Test should be improved..."
         for rngclass in (NumpyRNG, NativeRNG):
             for expr in ('exp(-d)', 'd < 0.5'):
-                prj1 = neuron.Projection(self.source33, self.target33,
-                                         'distanceDependentProbability',
-                                         {'d_expression' : expr}, rng=rngclass(12345))
-                prj2 = neuron.Projection(self.source33, self.target33,
+                prj = neuron.Projection(self.source33, self.target33,
                                          neuron.DistanceDependentProbabilityConnector(d_expression=expr),
                                          rng=rngclass(12345))
-                assert (0 < len(prj1) < len(self.source33)*len(self.target33)) \
-                   and (0 < len(prj2) < len(self.source33)*len(self.target33)) 
-                assert prj1.connections == prj2.connections, "%s %s" % (rngclass, expr)
+                assert (0 < len(prj) < len(self.source33)*len(self.target33)) 
 
     def testFixedNumberPre(self):
         c1 = neuron.FixedNumberPreConnector(10)
@@ -601,7 +592,7 @@ class ProjectionInitTest(unittest.TestCase):
                 prj2 = neuron.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
 
     def testSaveAndLoad(self):
-        prj1 = neuron.Projection(self.source33, self.target33, 'oneToOne')
+        prj1 = neuron.Projection(self.source33, self.target33, neuron.OneToOneConnector())
         prj1.setDelays(1)
         prj1.setWeights(1.234)
         prj1.saveConnections("connections.tmp", gather=False)
@@ -647,7 +638,7 @@ class ProjectionSetTest(unittest.TestCase):
         self.distrib_Native= RandomDistribution(rng=NativeRNG(12345), distribution='uniform', parameters=(0,1)) 
         
     def testSetWeights(self):
-        prj1 = neuron.Projection(self.source, self.target, 'allToAll')
+        prj1 = neuron.Projection(self.source, self.target, neuron.AllToAllConnector())
         prj1.setWeights(2.345)
         weights = []
         hoc_list = getattr(h, prj1.hoc_label)
@@ -658,7 +649,7 @@ class ProjectionSetTest(unittest.TestCase):
         assert (weights == result.tolist())
         
     def testSetDelays(self):
-        prj1 = neuron.Projection(self.source, self.target, 'allToAll')
+        prj1 = neuron.Projection(self.source, self.target, neuron.AllToAllConnector())
         prj1.setDelays(2.345)
         delays = []
         hoc_list = getattr(h, prj1.hoc_label)
@@ -670,8 +661,8 @@ class ProjectionSetTest(unittest.TestCase):
         
     def testRandomizeWeights(self):
         # The probability of having two consecutive weights vector that are equal should be 0
-        prj1 = neuron.Projection(self.source, self.target, 'allToAll')
-        prj2 = neuron.Projection(self.source, self.target, 'allToAll')
+        prj1 = neuron.Projection(self.source, self.target, neuron.AllToAllConnector())
+        prj2 = neuron.Projection(self.source, self.target, neuron.AllToAllConnector())
         prj1.randomizeWeights(self.distrib_Numpy)
         prj2.randomizeWeights(self.distrib_Native)
         w1 = []; w2 = []; w3 = []; w4 = []
@@ -693,8 +684,8 @@ class ProjectionSetTest(unittest.TestCase):
         
     def testRandomizeDelays(self):
         # The probability of having two consecutive delays vector that are equal should be 0
-        prj1 = neuron.Projection(self.source, self.target, 'allToAll')
-        prj2 = neuron.Projection(self.source, self.target, 'allToAll')
+        prj1 = neuron.Projection(self.source, self.target, neuron.AllToAllConnector())
+        prj2 = neuron.Projection(self.source, self.target, neuron.AllToAllConnector())
         prj1.randomizeDelays(self.distrib_Numpy)
         prj2.randomizeDelays(self.distrib_Native)
         d1 = []; d2 = []; d3 = []; d4 = []
@@ -799,7 +790,7 @@ class ProjectionSetTest(unittest.TestCase):
         # the topographical delay between them is linked to the distance
         self.source[0,0].position = (0,0,0)
         self.target[2,2].position = (0,10,0)
-        prj1 = neuron.Projection(self.source, self.target, 'allToAll')
+        prj1 = neuron.Projection(self.source, self.target, neuron.AllToAllConnector())
         rule="5.432*d"
         prj1.setTopographicDelays(rule)
         hoc_list = getattr(h, prj1.hoc_label)

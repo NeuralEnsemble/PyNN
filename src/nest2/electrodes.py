@@ -20,8 +20,7 @@ class DCSource(CurrentSource):
         if stop:
             nest.SetStatus(self._device, {'stop': float(stop)})
         
-    
-    
+        
 class StepCurrentSource(CurrentSource):
     
     def __init__(self, times, amplitudes):
@@ -29,6 +28,7 @@ class StepCurrentSource(CurrentSource):
         assert len(times) == len(amplitudes), "times and amplitudes must be the same size (len(times)=%d, len(amplitudes)=%d" % (len(times), len(amplitudes))
         nest.SetStatus(self._device, {'amplitude_times': numpy.array(times, 'float'),
                                       'amplitude_values': 1000.0*numpy.array(amplitudes, 'float')})
+        
         
 class NoisyCurrentSource(CurrentSource):
     

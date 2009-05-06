@@ -3,7 +3,7 @@
 # $Id$
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, cells
 
 class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-

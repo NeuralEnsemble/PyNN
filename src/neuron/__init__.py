@@ -179,7 +179,7 @@ def _hoc_arglist(paramlist):
             for k, v in item.items():
                 if type(v) == types.StringType:
                     dict_init_list += ['"%s", "%s"' % (k, v)]
-                elif type(v) == types.ListType:
+                elif common.is_listlike(v):
                     hoc_commands += ['objref argvec%d' % nvec,
                                      'argvec%d = new Vector(%d)' % (nvec, len(v))]
                     dict_init_list += ['"%s", argvec%d' % (k, nvec)]
@@ -1625,10 +1625,5 @@ class Projection(common.Projection):
         bins = numpy.arange(min, max, (max-min)/nbins)
         return numpy.histogram(self.getWeights(), bins) # returns n, bins
     
-# ==============================================================================
-#   Utility classes
-# ==============================================================================
-
-Timer = common.Timer
     
 # ==============================================================================

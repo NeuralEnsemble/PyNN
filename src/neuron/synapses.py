@@ -3,7 +3,10 @@
 # $Id$
 # ==============================================================================
 
-from pyNN import common
+from pyNN import common, synapses
+
+SynapseDynamics = common.SynapseDynamics
+STDPMechanism = common.STDPMechanism
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     
@@ -19,7 +22,7 @@ class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
         assert (x0 == 1 and y0 == 0), "It is not currently possible to set x0 and y0"
-        synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
+        #synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
         parameters = locals()
         parameters.pop('self')
         self.parameters = self.translate(parameters)
@@ -41,7 +44,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     possible_models = set(['StdwaSA',])
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
-        synapses.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #synapses.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = locals()
         parameters.pop('self') 
         self.parameters = self.translate(parameters)
@@ -62,7 +65,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     possible_models = set(['StdwaSoft',])
         
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
-        synapses.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #synapses.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = locals()
         parameters.pop('self') 
         self.parameters = self.translate(parameters)
@@ -77,7 +80,7 @@ class SpikePairRule(synapses.SpikePairRule):
     possible_models = set(['StdwaSA','StdwaSoft'])
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
-        synapses.SpikePairRule.__init__(self, tau_plus, tau_minus)
+        #synapses.SpikePairRule.__init__(self, tau_plus, tau_minus)
         parameters = locals()
         parameters.pop('self')
         self.parameters = self.translate(parameters)

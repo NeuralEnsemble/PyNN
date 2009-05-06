@@ -303,7 +303,7 @@ def distances(pre, post, mask=None, scale_factor=1.0, offset=0.0,
     d = numpy.zeros((x.shape[1], y.shape[1]), dtype=x.dtype)
     for i in xrange(x.shape[0]):
         diff2 = abs(x[i,:,None] - y[i,:])
-        if periodic_boundaries:
+        if periodic_boundaries is not None:
             dims  = diff2.shape
             diff2 = diff2.flatten()
             diff2 = numpy.minimum(diff2, periodic_boundaries[i]-diff2)

@@ -263,7 +263,10 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
         cell_parameters = celltype.parameters
     else:
         raise Exception("Invalid cell type: %s" % type(cellclass))
-    cell_gids = nest.Create(nest_model, n)
+    try:
+        cell_gids = nest.Create(nest_model, n)
+    except nest.NESTError, errmsg:
+        raise common.InvalidModelError(errmsg)
     if cell_parameters:
         try:
             nest.SetStatus(cell_gids, [cell_parameters])
@@ -277,7 +280,6 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
     return cell_gids, mask_local, first_id, last_id
 
 class Connection(object):
-    """Not part of the API as of 0.4."""
 
     def __init__(self, parent, index):
         self.parent = parent
@@ -313,8 +315,6 @@ class Connection(object):
         nest.SetConnection(*args)
 
     def _get_delay(self):
-        # this needs to be modified to take account of threads
-        # also see nest.GetConnection (was nest.GetSynapseStatus)
         return nest.GetConnection(*self.id())['delay']
 
     weight = property(_get_weight, _set_weight)
