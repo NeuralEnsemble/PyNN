@@ -52,6 +52,15 @@ class RoundingWarning(Warning): pass
 class NothingToWriteError(Exception): pass
 class InvalidWeightError(Exception): pass
 
+class RecordingError(Exception):
+    
+    def __init__(self, variable, cell_type):
+        self.variable = variable
+        self.cell_type = cell_type
+        
+    def __str__(self):
+        return "Cannot record %s from cell type %s" % (self.variable, self.cell_type.__class__.__name__)
+
 # ==============================================================================
 #   Utility classes and functions
 # ==============================================================================

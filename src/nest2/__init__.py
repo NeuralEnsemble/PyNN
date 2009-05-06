@@ -279,7 +279,7 @@ class Population(common.Population):
 
     def _record(self, variable, record_from=None, rng=None,to_file=True):
         if variable not in self.celltype.recordable:
-            raise Exception("Cannot record %s from cell type %s" % (variable, self.celltype.__class__.__name__))
+            raise common.RecordingError(variable, self.celltype)
         # create list of neurons
         fixed_list = False
         if record_from:

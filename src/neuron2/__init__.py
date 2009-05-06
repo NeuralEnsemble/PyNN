@@ -166,6 +166,8 @@ class Population(common.Population):
         """
         Private method called by record() and record_v().
         """
+        if record_what not in self.celltype.recordable:
+            raise common.RecordingError(record_what, self.celltype)
         fixed_list=False
         if isinstance(record_from, list): #record from the fixed list specified by user
             fixed_list=True

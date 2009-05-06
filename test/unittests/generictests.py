@@ -609,7 +609,10 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         if sim.rank() == 0:
             self.assert_( max(spikes) == 100.0, str(spikes) )
 
-                
+    def testRecordVmFromSpikeSource(self):
+        self.assertRaises(common.RecordingError, self.pop1.record_v)
+        
+    
 #===============================================================================
 class SynapticPlasticityTest(unittest.TestCase):
     
