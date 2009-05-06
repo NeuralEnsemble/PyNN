@@ -588,11 +588,15 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         v_thresh = -50.0
         uniformDistr = random.RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])
         self.pop2.randomInit(uniformDistr)
-        self.pop2.record_v([self.pop2[0,0], self.pop2[1,1]])
+        cells_to_record = [self.pop2[0,0], self.pop2[1,1]]
+        self.pop2.record_v(cells_to_record)
         simtime = 10.0
         sim.running = False
         sim.run(simtime)
         self.pop2.print_v("temp_neuron.v", gather=True, compatible_output=True)
+        vm = self.pop2.get_v()
+        self.assertEqual(vm.shape, ((1+int(10.0/0.1))*len(cells_to_record), 3))
+        
     
     def testRecordWithSpikeTimesGreaterThanSimTime(self):
         """
@@ -919,6 +923,27 @@ class StateTest(unittest.TestCase):
         self.assertEqual(sim.get_time_step(), 0.1)
         sim.setup(timestep=0.05)
         self.assertEqual(sim.get_time_step(), 0.05)
+                
+#===============================================================================
+class SpikeSourceTest(unittest.TestCase):
+    
+    def test_end_of_poisson(self):
+        # see ticket:127
+        start = 100.0
+        rate = 50.0
+        duration = 400.0
+        n = 10
+        simtime = start + duration + 100.0
+        PNs = sim.Population(n, sim.SpikeSourcePoisson, cellparams={'start': start, 'rate': rate, 'duration': duration})
+        PNs.record()
+        sim.run(simtime)
+        spikes = PNs.getSpikes()[:,1]
+        assert min(spikes) >= start, min(spikes)
+        assert max(spikes) <= start+duration, max(spikes)
+        expected_count = duration/1000.0*rate*n
+        diff = abs(len(spikes)-expected_count)/expected_count
+        assert diff < 0.1
+    
                 
 # ==============================================================================
 if __name__ == "__main__":
