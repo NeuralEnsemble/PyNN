@@ -739,7 +739,7 @@ class ProjectionInitTest(unittest.TestCase):
         c4 = sim.FixedNumberPostConnector(10, allow_self_connections=False)
         for srcP in [self.source5, self.source22, self.target33]:
             for tgtP in [self.target6, self.target33]:
-                for c in c1, c2:
+                for c in c1, c2, c4:
                     prj1 = sim.Projection(srcP, tgtP, c)
                     self.assertEqual(len(prj1.connections), c.n*len(srcP))
                 prj2 = sim.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
