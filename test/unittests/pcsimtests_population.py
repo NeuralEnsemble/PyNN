@@ -301,41 +301,33 @@ class ProjectionInitTest(unittest.TestCase):
         self.expoisson33 = Population((3,3),SpikeSourcePoisson,{'rate': 100})
         
     def testAllToAll(self):
-        """For all connections created with "allToAll" it should be possible to obtain the weights"""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
-                prj1 = Projection(srcP, tgtP, 'allToAll')
-                prj2 = Projection(srcP, tgtP, AllToAllConnector())
-                for prj in prj1, prj2:
-                   prj.setWeights(1.234)
-                   weights = []
-                   for i in range(len(prj)):
-                       weights.append(pcsim_globals.net.object(prj.pcsim_projection[i]).W)
-                   for w in weights:
-                       self.assertAlmostEqual(w,1.234*1e-9, places = 7)
+                prj = Projection(srcP, tgtP, AllToAllConnector())
+                prj.setWeights(1.234)
+                weights = []
+                for i in range(len(prj)):
+                    weights.append(pcsim_globals.net.object(prj.pcsim_projection[i]).W)
+                for w in weights:
+                    self.assertAlmostEqual(w,1.234*1e-9, places = 7)
 
     def testFixedProbability(self):
-        """For all connections created with "fixedProbability" ..."""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
-                prj1 = Projection(srcP, tgtP, 'fixedProbability', 0.5)
-                prj2 = Projection(srcP, tgtP, 'fixedProbability', 0.5)
-                assert (0 < len(prj1) < len(srcP)*len(tgtP)) and (0 < len(prj2) < len(srcP)*len(tgtP))
+                prj = Projection(srcP, tgtP, FixedProbabilityConnector(0.5))
+                assert (0 < len(prj) < len(srcP)*len(tgtP))
                 
     def testOneToOne(self):
-        """For all connections created with "OneToOne" ..."""
-        prj1 = Projection(self.source33, self.target33, 'oneToOne')
-        prj2 = Projection(self.source33, self.target33, OneToOneConnector())
-        assert len(prj1) == self.source33.size
-        assert len(prj2) == self.source33.size
+        prj = Projection(self.source33, self.target33, OneToOneConnector())
+        assert len(prj) == self.source33.size
      
     def testDistantDependentProbability(self):
         """For all connections created with "distanceDependentProbability" ..."""
         # Test should be improved..."
         distrib_Numpy = random.RandomDistribution('uniform',(0,1),random.NumpyRNG(12345)) 
         distrib_Native= random.RandomDistribution('Uniform',(0,1),NativeRNG(12345)) 
-        prj1 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 2], distrib_Numpy)
-        prj2 = Projection(self.source33, self.target33, 'distanceDependentProbability',[ 0.1, 3], distrib_Native)
+        prj1 = Projection(self.source33, self.target33, DistanceDependentProbabilityConnector([ 0.1, 2]), distrib_Numpy)
+        prj2 = Projection(self.source33, self.target33, DistanceDependentProbabilityConnector([ 0.1, 3]), distrib_Native)
         assert (0 < len(prj1) < len(self.source33)*len(self.target33)) and (0 < len(prj2) < len(self.source33)*len(self.target33))
 
     def testFromList(self):
@@ -360,7 +352,7 @@ class ProjectionInitTest(unittest.TestCase):
         assert arrays_almost_equal(d_out, d, 1e-7), "Max difference is %g" % max_array_diff(d_out,d)
     
     def testSaveAndLoad(self):
-        prj1 = Projection(self.source33, self.target33, 'oneToOne')
+        prj1 = Projection(self.source33, self.target33, OneToOneConnector())
         prj1.setDelays(1)
         prj1.setWeights(1.234)
         prj1.saveConnections("connections.tmp")
@@ -382,7 +374,7 @@ class ProjectionSetTest(unittest.TestCase):
         self.distrib_Native= random.RandomDistribution('Uniform',(0,1),NativeRNG(12345)) 
         
     def testsetWeights(self):
-        prj1 = Projection(self.source, self.target, 'allToAll')
+        prj1 = Projection(self.source, self.target, AllToAllConnector())
         prj1.setWeights(2.345)
         weights = []
         for i in range(len(prj1)):
@@ -392,8 +384,8 @@ class ProjectionSetTest(unittest.TestCase):
          
     def testrandomizeWeights(self):
         # The probability of having two consecutive weights vector that are equal should be 0
-        prj1 = Projection(self.source, self.target, 'allToAll')
-        prj2 = Projection(self.source, self.target, 'allToAll')
+        prj1 = Projection(self.source, self.target, AllToAllConnector())
+        prj2 = Projection(self.source, self.target, AllToAllConnector())
         prj1.randomizeWeights(self.distrib_Numpy)
         prj2.randomizeWeights(self.distrib_Native)
         w1 = []; w2 = []; w3 = []; w4 = []

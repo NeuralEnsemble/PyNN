@@ -22,7 +22,7 @@ try:
         return str(ll.ansistyle.Text(col,str(text)))
 except ImportError:
     def colour(col, text):
-            return text
+        return text
 
 
 def notify(msg="Simulation finished.", subject="Simulation finished.", smtphost=SMTPHOST, address=EMAIL):

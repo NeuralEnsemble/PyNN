@@ -468,12 +468,15 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,
     if min_delay < timestep:
         "min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep)
     
-    backend = simulator.__name__.replace('.simulator', '')
-    log_file = "%s.log" % backend
+    if simulator:
+        backend = simulator.__name__.replace('.simulator', '')
+        log_file = "%s.log" % backend
+    else:
+        log_file = "pyNN.log"
     if debug:
         if isinstance(debug, basestring):
             log_file = debug
-    if not simulator.state.initialized:
+    if simulator and not simulator.state.initialized:
         utility.init_logging(log_file, debug, num_processes(), rank())
         logging.info("Initialization of %s (use setup(.., debug=True) to see a full logfile)" % backend)
         simulator.state.initialized = True

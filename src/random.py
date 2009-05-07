@@ -13,7 +13,7 @@ import logging
 import numpy.random
 try:
     import pygsl.rng
-except ImportError:
+except (ImportError, Warning):
     import warnings
     warnings.warn("GSL random number generators not available")
 import time

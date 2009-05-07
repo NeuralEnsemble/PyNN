@@ -58,6 +58,13 @@ class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
         wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
         return decider, wiring_method, self.weights, self.delays
 
+#class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector):
+#    
+#    def connect(self, projection):
+#        decider = pypcsim.EuclideanDistanceRandomConnections(method_parameters[0], method_parameters[1]) 
+#        wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
+#        return decider, wiring_method, self.weights, self.delays
+
 class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
     
     def connect(self, projection):

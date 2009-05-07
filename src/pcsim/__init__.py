@@ -65,7 +65,7 @@ class NativeRNG(pyNN.random.NativeRNG):
             self.seed = int(datetime.today().microsecond)
         self.rndEngine.seed(self.seed)
     
-    def next(self, n=1, distribution='Uniform', parameters={'a':0,'b':1}):        
+    def next(self, n=1, distribution='Uniform', parameters={'a':0,'b':1}, mask_local=None):        
         """Return n random numbers from the distribution.
         If n is 1, return a float, if n > 1, return a numpy array,
         if n <= 0, raise an Exception."""
@@ -999,10 +999,7 @@ class Projection(common.Projection, WDManager):
                                    synapse_dynamics, label, rng)
         
         # Determine connection decider
-        if isinstance(method, str):
-            weight = None
-            delay = None
-            decider, wiring_method, weight, delay = method.connect(self)
+        decider, wiring_method, weight, delay = method.connect(self)
         
         weight = self.getWeight(weight)
         self.is_conductance = hasattr(self.post.pcsim_population.object(0),'ErevExc')
@@ -1211,11 +1208,6 @@ class Projection(common.Projection, WDManager):
         f.close()
     
 
-# ==============================================================================
-#   Utility classes
-# ==============================================================================
 
-Timer = common.Timer
-     
 # ==============================================================================
 

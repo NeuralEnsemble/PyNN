@@ -148,7 +148,10 @@ def sanitize_spike_times(spike_times):
     if mask.sum() < len(bins):
         logging.warn("Spikes have been thrown away because they were too close together.")
         logging.debug(spike_times[(1-mask).astype('bool')])
-    return spike_times[mask]
+    if len(spike_times) > 0:
+        return spike_times[mask]
+    else:
+        return spike_times
 
 class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
