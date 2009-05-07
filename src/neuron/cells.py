@@ -253,14 +253,14 @@ class BretteGerstnerIF(SingleCompartmentNeuron):
             rec.record(self.spike_times)
     
     
-class RandomSpikeSource(hclass(h.NetStim)):
+class RandomSpikeSource(hclass(h.NetStimFD)):
     
-    parameter_names = ('start', 'interval', 'number')
+    parameter_names = ('start', 'interval', 'duration')
     
-    def __init__(self, start=0, interval=1e12, number=0):
+    def __init__(self, start=0, interval=1e12, duration=0):
         self.start = start
         self.interval = interval
-        self.number = number
+        self.duration = duration
         self.noise = 1
         self.spike_times = h.Vector(0)
         self.source = self
@@ -436,7 +436,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     translations = common.build_translations(
         ('start',    'start'),
         ('rate',     'interval',  "1000.0/rate",  "1000.0/interval"),
-        ('duration', 'number',    "rate/1000.0*duration", "number*interval"),
+        ('duration', 'duration'),
     )
     model = RandomSpikeSource
 
