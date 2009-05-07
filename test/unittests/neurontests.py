@@ -230,8 +230,8 @@ class RecordTest(unittest.TestCase):
         self.assertEqual(self.native_cells[0]._cell.vtrace, None)
         
     def testRecordGSyn(self):
-        self.cells[0]._cell.record_gsyn('esyn', 1)
-        assert hasattr(self.gsyn_trace['esyn'], 'size') # hoc Vector object
+        self.single_cell._cell.record_gsyn('esyn', 1)
+        assert hasattr(self.single_cell._cell.gsyn_trace['esyn'], 'size') # hoc Vector object
 
 # ==============================================================================
 class PopulationInitTest(unittest.TestCase):

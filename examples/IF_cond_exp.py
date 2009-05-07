@@ -28,6 +28,7 @@ connE = connect(spike_sourceE, ifcell, weight=0.006, synapse_type='excitatory',d
 connI = connect(spike_sourceI, ifcell, weight=0.02, synapse_type ='inhibitory',delay=4.0)
     
 record_v(ifcell, "Results/IF_cond_exp_%s.v" % simulator_name)
+record_gsyn(ifcell, "Results/IF_cond_exp_%s.gsyn" % simulator_name)
 run(200.0)
 
 end()

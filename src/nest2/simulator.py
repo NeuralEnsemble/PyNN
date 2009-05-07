@@ -320,7 +320,7 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
                 cell_parameters['V_m'] = v_init
             nest.SetStatus(cell_gids, [cell_parameters])
         except nest.NESTError:
-            print "NEST error when trying to set the following dictionary: %s" % self.cellparams
+            print "NEST error when trying to set the following dictionary: %s" % cell_parameters
             raise
     first_id = cell_gids[0]
     last_id = cell_gids[-1]
