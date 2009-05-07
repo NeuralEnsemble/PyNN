@@ -623,7 +623,6 @@ class Population(object):
         self.parent = parent
         for i in range(1, self.ndim):
             self.size *= self.dim[i]
-        ##self.cell = None # to be defined by child, simulator-specific classes
     
     def __getitem__(self, addr):
         """Return a representation of the cell with coordinates given by addr,
@@ -631,15 +630,16 @@ class Population(object):
            Note that __getitem__ is called when using [] access, e.g.
              p = Population(...)
              p[2,3] is equivalent to p.__getitem__((2,3)).
+           Also accepts slices, e.g.
+             p[0,3:6]
+           which returns an array of cells.
         """
-        if isinstance(addr, int):
+        if isinstance(addr, (int, slice)):
             addr = (addr,)
         if len(addr) == self.ndim:
             id = self.all_cells[addr]
         else:
             raise InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
-        if addr != self.locate(id):
-            raise IndexError, 'Invalid cell address %s' % str(addr)
         return id
     
     def __iter__(self):
