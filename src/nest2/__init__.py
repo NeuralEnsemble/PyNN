@@ -231,7 +231,10 @@ class Population(common.Population):
                     raise common.InvalidParameterValueError
                 
                 # Then we do the call to SetStatus
-                if key in self.celltype.scaled_parameters():
+                if key == 'v_init':
+                    for cell in self.local_cells:
+                        cell._v_init = value
+                elif key in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[key]
                     value = eval(translation['forward_transform'], globals(), {key:value})
                     nest.SetStatus(self.local_cells,translation['translated_name'],value)
@@ -264,7 +267,10 @@ class Population(common.Population):
                     self.celltype.default_parameters[parametername]
                 except Exception:
                     raise common.NonExistentParameterError(parametername, self.celltype.__class__)
-                if parametername in self.celltype.scaled_parameters():
+                if parametername == 'v_init':
+                    for cell,val in zip(self.local_cells, rarr):
+                        cell._v_init = val
+                elif parametername in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[parametername]
                     rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
                     nest.SetStatus(self.local_cells,translation['translated_name'],rarr)

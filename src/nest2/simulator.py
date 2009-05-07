@@ -17,9 +17,14 @@ class ID(int, common.IDMixin):
         common.IDMixin.__init__(self)
 
     def get_native_parameters(self):
-        return nest.GetStatus([int(self)])[0]
+        parameters = nest.GetStatus([int(self)])[0]
+        if self._v_init:
+            parameters['v_init'] = self._v_init
+        return parameters
 
     def set_native_parameters(self, parameters):
+        if 'v_init' in parameters:
+            self._v_init = parameters.pop('v_init')
         nest.SetStatus([self], [parameters])
 
 def _merge_files(recorder, gather):
@@ -269,6 +274,9 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
         raise common.InvalidModelError(errmsg)
     if cell_parameters:
         try:
+            v_init = cell_parameters.pop('v_init', None)
+            if v_init:
+                cell_parameters['V_m'] = v_init
             nest.SetStatus(cell_gids, [cell_parameters])
         except nest.NESTError:
             print "NEST error when trying to set the following dictionary: %s" % self.cellparams
@@ -277,6 +285,8 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
     last_id = cell_gids[-1]
     mask_local = numpy.array(nest.GetStatus(cell_gids, 'local'))
     cell_gids = numpy.array([ID(gid) for gid in cell_gids], ID)
+    for cell in cell_gids:
+        cell._v_init = v_init
     return cell_gids, mask_local, first_id, last_id
 
 class Connection(object):

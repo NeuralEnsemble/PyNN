@@ -19,7 +19,7 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
         ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
-        ('v_init',     'V_m'),
+        ('v_init',     'v_init'),
     )
     nest_name = "iaf_psc_alpha"
 
@@ -39,7 +39,7 @@ class IF_curr_exp(cells.IF_curr_exp):
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
         ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
-        ('v_init',     'V_m'),
+        ('v_init',     'v_init'),
     )
     nest_name = 'iaf_psc_exp'
 
@@ -60,7 +60,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
-        ('v_init',     'V_m'),
+        ('v_init',     'v_init'),
     )
     nest_name = "iaf_cond_alpha"
         
@@ -81,7 +81,7 @@ class IF_cond_exp(cells.IF_cond_exp):
         ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
-        ('v_init',     'V_m'),
+        ('v_init',     'v_init'),
     )
     nest_name = "iaf_cond_exp"
 
@@ -108,7 +108,7 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
         ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
-        ('v_init',     'V_m'),
+        ('v_init',     'v_init'),
         ('tau_sfa',    'tau_sfa'),
         ('e_rev_sfa',  'E_sfa'),
         ('q_sfa',      'q_sfa'),
@@ -164,7 +164,7 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('tau_syn_E',  'tau_ex'),
         ('tau_syn_I',  'tau_in'),
         ('i_offset',   'I_stim', 1000.0),
-        ('v_init',     'V_m'),
+        ('v_init',     'v_init'),
     )
     nest_name = "hh_cond_exp_traub"
         
@@ -181,7 +181,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     """
 
     translations = common.build_translations(
-        ('v_init'    , 'V_m'),
+        ('v_init'    , 'v_init'),
         ('w_init'    , 'w',         1000.0),  # nA -> pA
         ('cm'        , 'C_m',       1000.0),  # nF -> pF
         ('tau_refrac', 't_ref'), 

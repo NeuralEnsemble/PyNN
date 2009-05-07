@@ -155,7 +155,7 @@ class IDMixin(object):
     
     non_parameter_attributes = ('parent', '_cellclass', 'cellclass',
                                 '_position', 'position', 'hocname', '_cell',
-                                'inject')
+                                'inject', '_v_init')
     
     def __init__(self):
         self.parent = None
