@@ -89,14 +89,15 @@ class Recorder(object):
             for id in new_ids:
                 id._cell.record_v(1)
         
-    def get(self, gather=False, compatible_output=True):
+    def get(self, gather=False, compatible_output=True, offset=None):
         """Returns the recorded data."""
         # compatible_output is not used, but is needed for compatibility with the nest2 module.
         # Does nest2 really need it?
-        if self.population:
-            offset = self.population.first_id
-        else:
-            offset = 0
+        if offset is None:
+            if self.population:
+                offset = self.population.first_id
+            else:
+                offset = 0
                 
         if self.variable == 'spikes':
             data = numpy.empty((0,2))
@@ -118,7 +119,7 @@ class Recorder(object):
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):
-        data = self.get(gather)
+        data = self.get(gather, offset=0)
         filename = file or self.filename
         recording.rename_existing(filename)
         try:
