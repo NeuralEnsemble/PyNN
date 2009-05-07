@@ -593,9 +593,12 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         simtime = 10.0
         sim.running = False
         sim.run(simtime)
-        self.pop2.print_v("temp_neuron.v", gather=True, compatible_output=True)
+        self.pop2.print_v("temp.v", gather=True, compatible_output=True)
         vm = self.pop2.get_v()
         self.assertEqual(vm.shape, ((1+int(10.0/0.1))*len(cells_to_record), 3))
+        vm_fromfile = numpy.loadtxt("temp.v")
+        #print vm_fromfile
+        self.assertEqual(vm_fromfile.shape, ((1+int(10.0/0.1))*len(cells_to_record), 2))
         
     
     def testRecordWithSpikeTimesGreaterThanSimTime(self):

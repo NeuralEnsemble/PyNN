@@ -234,6 +234,7 @@ class Population(common.Population):
                 if key == 'v_init':
                     for cell in self.local_cells:
                         cell._v_init = value
+                    nest.SetStatus(self.local_cells, "V_m", val) # not correct, since could set v_init in the middle of a simulation
                 elif key in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[key]
                     value = eval(translation['forward_transform'], globals(), {key:value})
@@ -270,6 +271,7 @@ class Population(common.Population):
                 if parametername == 'v_init':
                     for cell,val in zip(self.local_cells, rarr):
                         cell._v_init = val
+                    nest.SetStatus(self.local_cells, "V_m", rarr) # not correct, since could set v_init in the middle of a simulation
                 elif parametername in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[parametername]
                     rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})

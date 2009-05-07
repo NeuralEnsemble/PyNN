@@ -15,6 +15,7 @@ class ID(int, common.IDMixin):
     def __init__(self, n):
         int.__init__(n)
         common.IDMixin.__init__(self)
+        self._v_init = None
 
     def get_native_parameters(self):
         parameters = nest.GetStatus([int(self)])[0]
@@ -25,6 +26,7 @@ class ID(int, common.IDMixin):
     def set_native_parameters(self, parameters):
         if 'v_init' in parameters:
             self._v_init = parameters.pop('v_init')
+            parameters['V_m'] = self._v_init # not correct, since could set v_init in the middle of a simulation, but until we add a proper reset mechanism, this will do.
         nest.SetStatus([self], [parameters])
 
 def _merge_files(recorder, gather):
@@ -129,6 +131,10 @@ class Recorder(object):
         elif nest.GetStatus(self._device,'to_memory')[0]:
             data = nest.GetStatus(self._device,'events')[0]
             data = recording.convert_compatible_output(data, self.population, self.variable,compatible_output)
+        if self.variable == 'v': # NEST does not record the values at t=0 or t=simtime, so we add them now
+            initial = [[id, 0.0, id.v_init] for id in self.recorded]
+            final = [[id, state.t, nest.GetStatus([id], 'V_m')[0]] for id in self.recorded]
+            data = numpy.concatenate((initial, data, final))
         return data
     
     def _get_header(self, file_name):
@@ -168,15 +174,31 @@ class Recorder(object):
         # what if the data was only saved to memory?
         if self.file is not False:
             nest_filename = _merge_files(self._device, gather)
+            if self.variable == 'v':
+                initial = ["%d\t%g\t%g\n" % (id, 0.0, id.v_init) for id in self.recorded]
+                final = ["%d\t%g\t%g\n" % (id, state.t, nest.GetStatus([id], 'V_m')[0]) for id in self.recorded]
+                f = open("tmp_before", "w")
+                f.writelines(initial)
+                f.close()
+                f = open("tmp_after", "w")
+                f.writelines(final)
+                f.close()
+                os.system("cat tmp_before %s tmp_after > %s_tmp" % (nest_filename, user_file))
+                os.remove("tmp_before")
+                os.remove("tmp_after")
+            else:
+                os.system("cat %s > %s_tmp" % (nest_filename, user_file))
             if compatible_output:
                 # We should do the post processing (i.e the compatible output) in a distributed
                 # manner to speed up the thing. The only problem that will arise is the headers, 
                 # that should be taken into account to be really clean. Otherwise, if the # symbol
                 # is escaped while reading the file, there is no problem
-               recording.write_compatible_output(nest_filename, user_file,
-                                                 self.variable,
-                                                 Recorder.formats[self.variable],
-                                                 self.population, common.get_time_step())
+                recording.write_compatible_output("%s_tmp" % user_file,
+                                                  user_file,
+                                                  self.variable,
+                                                  Recorder.formats[self.variable],
+                                                  self.population, common.get_time_step())
+                os.remove("%s_tmp" % user_file)
             else:
                 if isinstance(user_file, basestring):
                     os.system('cat %s > %s' % (nest_filename, user_file))
@@ -426,7 +448,7 @@ class ConnectionManager:
             if name == 'weight':
                 value *= 1000.0
             for src, port in zip(self.sources, self.ports):
-                nest.SetConnection([src], self.synapse_model, port, {name: value})
+                nest.SetConnection([src], self.synapse_model, port, {name: float(value)})
         elif common.is_listlike(value):
             if name == 'weight':
                 value = 1000.0*numpy.array(value)
