@@ -285,8 +285,9 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
     last_id = cell_gids[-1]
     mask_local = numpy.array(nest.GetStatus(cell_gids, 'local'))
     cell_gids = numpy.array([ID(gid) for gid in cell_gids], ID)
-    for cell in cell_gids:
-        cell._v_init = v_init
+    if cell_parameters and v_init:
+        for cell in cell_gids:
+            cell._v_init = v_init
     return cell_gids, mask_local, first_id, last_id
 
 class Connection(object):

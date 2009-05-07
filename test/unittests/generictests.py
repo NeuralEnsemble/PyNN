@@ -731,7 +731,6 @@ class ProjectionInitTest(unittest.TestCase):
                 prj3 = sim.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
         self.assertRaises(Exception, sim.FixedNumberPreConnector, None)
         
-    
     def testFixedNumberPost(self):
         c1 = sim.FixedNumberPostConnector(10)
         c2 = sim.FixedNumberPostConnector(3)

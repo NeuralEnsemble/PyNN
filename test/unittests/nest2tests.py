@@ -586,7 +586,7 @@ class ProjectionInitTest(unittest.TestCase):
                 if "curr" in tgtP.celltype.__class__.__name__:
                     prj = nest.Projection(srcP, tgtP, connector, target='inhibitory')
                     weights_out = numpy.array(prj.getWeights(format='list'))
-                    assert arrays_almost_equal(weights_in, weights_out, 1e-9), '(%s) %s != %s' % (syn_type, weights_in, weights_out)
+                    assert arrays_almost_equal(weights_in, weights_out, 1e-9), '%s != %s' % (weights_in, weights_out)
                 else:
                     self.assertRaises(common.InvalidWeightError, nest.Projection, srcP, tgtP, connector, target='inhibitory')
                 
