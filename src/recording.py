@@ -46,7 +46,7 @@ def rename_existing(filename):
         os.system('mv %s %s_old' % (filename, filename))
         logging.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
 
-def convert_compatible_output(data, population, variable,compatible_output=True):
+def convert_compatible_output(data, population, variable, compatible_output=True, scale_factor=1):
     """
     !!! NEST specific !!!
     """
@@ -56,20 +56,22 @@ def convert_compatible_output(data, population, variable,compatible_output=True)
         padding = 0
         
     if variable == 'spikes':
-        return numpy.array((data['times'],data['senders']- padding)).T
+        data = numpy.array((data['times'],data['senders']- padding)).T
     elif variable == 'v':
         if compatible_output:
-            return numpy.array((data['potentials'],data['senders']- padding)).T
+            data = numpy.array((data['potentials'],data['senders']- padding)).T
         else:
             return numpy.array((data['times'],data['senders']- padding,data['potentials'])).T
-    elif variable == 'conductance':
+    elif variable == 'gsyn':
         if compatible_output:
-            return numpy.array((data['exc_conductance'],data['inh_conductance'],data['senders']- padding)).T
+            data = numpy.array((data['exc_conductance'],data['inh_conductance'],data['senders']- padding)).T
         else:
-            return numpy.array((data['times'],data['senders']- padding,data['exc_conductance'],data['inh_conductance'])).T
-            
+            data = numpy.array((data['times'],data['senders']- padding,data['exc_conductance'],data['inh_conductance'])).T
+    if scale_factor != 1:
+        data *= scale_factor
+    return data
     
-def write_compatible_output(sim_filename, user_filename, variable, input_format, population, dt):
+def write_compatible_output(sim_filename, user_filename, variable, input_format, population, dt, scale_factor=1):
     """
     Rewrite simulation data in a standard format:
         spiketime (in ms) cell_id-min(cell_id)
@@ -113,12 +115,17 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
             ge_column = input_format.index('ge')
             gi_column = input_format.index('gi')
             result.write("# n = %d\n" % len(data))
+            if scale_factor != 1:
+                data[:,ge_column] *= scale_factor
+                data[:,gi_column] *= scale_factor
             for idx in xrange(len(data)):
                 result.write("%g\t%g\t%d\n" % (data[idx][ge_column], data[idx][gi_column], data[idx][id_column])) # ge gi id
         elif data.shape[1] == 3: # voltage files
             v_column = input_format.index('v')
             #result.write("# n = %d\n" % int(nest.GetStatus([0], "time")[0]/dt))
             result.write("# n = %d\n" % len(data))
+            if scale_factor != 1:
+                data[:,v_column] *= scale_factor
             for idx in xrange(len(data)):
                 result.write("%g\t%d\n" % (data[idx][v_column], data[idx][id_column])) # v id
         elif data.shape[1] == 2: # spike files

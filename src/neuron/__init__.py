@@ -89,6 +89,8 @@ record = common.build_record('spikes', simulator)
 
 record_v = common.build_record('v', simulator)
 
+record_gsyn = common.build_record('gsyn', simulator)
+
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
@@ -119,7 +121,8 @@ class Population(common.Population):
         """
         common.Population.__init__(self, dims, cellclass, cellparams, label)
         self.recorders = {'spikes': simulator.Recorder('spikes', population=self),
-                          'v': simulator.Recorder('v', population=self)}
+                          'v': simulator.Recorder('v', population=self),
+                          'gsyn': simulator.Recorder('gsyn', population=self)}
         self.label = self.label or 'population%d' % Population.nPop
         if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
             self.celltype = cellclass(cellparams)

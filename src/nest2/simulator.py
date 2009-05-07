@@ -5,8 +5,8 @@ import numpy
 import os
 
 RECORDING_DEVICE_NAMES = {'spikes': 'spike_detector',
-                          'v': 'voltmeter',
-                          'conductance': 'conductancemeter'}
+                          'v':      'voltmeter',
+                          'gsyn':   'conductancemeter'}
 CHECK_CONNECTIONS = False
 recorder_list = []
 
@@ -59,8 +59,11 @@ class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
     
     formats = {'spikes': 'id t',
-               'v': 'id t v',
-               'conductance':'id t ge gi'}
+               'v':      'id t v',
+               'gsyn':   'id t ge gi'}
+    scale_factors = {'spikes': 1,
+                     'v': 1,
+                     'gsyn': 0.001} # units conversion
     
     def __init__(self, variable, population=None, file=None):
         """
@@ -92,7 +95,7 @@ class Recorder(object):
         nest.SetStatus(self._device, device_parameters)
 
     def record(self, ids):
-        """Add the cells in `ids` to the set of recorded cells."""
+        """Add the cells in `ids` to the set of recorded cells."""            
         if self._device is None:
             self._create_device()
         ids = set(ids)
@@ -130,11 +133,18 @@ class Recorder(object):
                 data = numpy.empty([0, ncol])
         elif nest.GetStatus(self._device,'to_memory')[0]:
             data = nest.GetStatus(self._device,'events')[0]
-            data = recording.convert_compatible_output(data, self.population, self.variable,compatible_output)
+            data = recording.convert_compatible_output(data,
+                                                       self.population,
+                                                       self.variable,
+                                                       compatible_output,
+                                                       Recorder.scale_factors[self.variable])
         if self.variable == 'v': # NEST does not record the values at t=0 or t=simtime, so we add them now
             initial = [[id, 0.0, id.v_init] for id in self.recorded]
             final = [[id, state.t, nest.GetStatus([id], 'V_m')[0]] for id in self.recorded]
             data = numpy.concatenate((initial, data, final))
+        elif self.variable == 'gsyn':
+            initial = [[id, 0.0, 0.0, 0.0] for id in self.recorded]
+            data = numpy.concatenate((initial, data)) # seems to be no way to get the final synaptic conductances
         return data
     
     def _get_header(self, file_name):
@@ -177,6 +187,13 @@ class Recorder(object):
             if self.variable == 'v':
                 initial = ["%d\t%g\t%g\n" % (id, 0.0, id.v_init) for id in self.recorded]
                 final = ["%d\t%g\t%g\n" % (id, state.t, nest.GetStatus([id], 'V_m')[0]) for id in self.recorded]
+            elif self.variable == 'gsyn':
+                initial = ["%d\t%g\t%g\t%g\n" % (id, 0.0, 0.0, 0.0) for id in self.recorded]
+                final = []
+            else:
+                initial = []
+                final = []
+            if initial or final:
                 f = open("tmp_before", "w")
                 f.writelines(initial)
                 f.close()
@@ -197,7 +214,9 @@ class Recorder(object):
                                                   user_file,
                                                   self.variable,
                                                   Recorder.formats[self.variable],
-                                                  self.population, common.get_time_step())
+                                                  self.population,
+                                                  common.get_time_step(),
+                                                  Recorder.scale_factors[self.variable])
                 os.remove("%s_tmp" % user_file)
             else:
                 if isinstance(user_file, basestring):

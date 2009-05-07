@@ -52,11 +52,14 @@ class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
     
     numpy1_1_formats = {'spikes': "%g\t%d",
-                        'v': "%g\t%g\t%d"}
+                        'v': "%g\t%g\t%d",
+                        'gsyn': "%g\t%g\t%g\t%d"}
     numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support different
-                        'v': "%g"}      # formats for different columns
+                        'v': "%g",      # formats for different columns
+                        'gsyn': "%g"}
     formats = {'spikes': 'id t',
-               'v': 'id t v'}
+               'v': 'id t v',
+               'gsyn': 'id t ge gi'}
     
     def __init__(self, variable, population=None, file=None):
         """
@@ -88,6 +91,12 @@ class Recorder(object):
         elif self.variable == 'v':
             for id in new_ids:
                 id._cell.record_v(1)
+        elif self.variable == 'gsyn':
+            for id in new_ids:
+                id._cell.record_gsyn("excitatory", 1)
+                id._cell.record_gsyn("inhibitory", 1)
+        else:
+            raise Exception("Recording of %s not implemented." % self.variable)
         
     def get(self, gather=False, compatible_output=True, offset=None):
         """Returns the recorded data."""
@@ -116,6 +125,16 @@ class Recorder(object):
                 #new_data = numpy.array([numpy.ones(v.shape)*id, t, v]).T                
                 new_data = numpy.array([numpy.ones(v.shape)*(id-offset), t, v]).T
                 data = numpy.concatenate((data, new_data))
+        elif self.variable == 'gsyn':
+            data = numpy.empty((0,4))
+            for id in self.recorded:
+                ge = numpy.array(id._cell.gsyn_trace['excitatory'])
+                gi = numpy.array(id._cell.gsyn_trace['inhibitory'])
+                t = numpy.array(id._cell.record_times)             
+                new_data = numpy.array([numpy.ones(ge.shape)*(id-offset), t, ge, gi]).T
+                data = numpy.concatenate((data, new_data))
+        else:
+            raise Exception("Recording of %s not implemented." % self.variable)
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):

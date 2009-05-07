@@ -438,7 +438,7 @@ class StandardModelType(object):
 class StandardCellType(StandardModelType):
     """Base class for standardized cell model classes."""
 
-    recordable = ['spikes', 'v', 'gesyn', 'gisyn']
+    recordable = ['spikes', 'v', 'gsyn']
     synapse_types = ('excitatory', 'inhibitory')
 
 
@@ -477,7 +477,6 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,
         utility.init_logging(log_file, debug, num_processes(), rank())
         logging.info("Initialization of %s (use setup(.., debug=True) to see a full logfile)" % backend)
         simulator.state.initialized = True
-    
     
     
 def end(compatible_output=True):
@@ -581,6 +580,10 @@ def build_record(variable, simulator):
         record.__doc__ = """
             Record membrane potential to a file. source can be an individual cell or
             a list of cells."""
+    elif variable == 'gsyn':
+        record.__doc__ = """
+            Record synaptic conductances to a file. source can be an individual cell
+            or a list of cells."""
     return record
 
 # ==============================================================================
@@ -854,15 +857,15 @@ class Population(object):
         """
         self._record('v', record_from, rng, to_file)
 
-    def record_c(self, record_from=None, rng=None, to_file=True):
+    def record_gsyn(self, record_from=None, rng=None, to_file=True):
         """
-        If record_from is not given, record the synaptic conductance for all cells in
-        the Population.
+        If record_from is not given, record synaptic conductances
+        for all cells in the Population.
         record_from can be an integer - the number of cells to record from, chosen
         at random (in this case a random number generator can also be supplied)
         - or a list containing the ids of the cells to record.
         """
-        self._record('conductance', record_from, rng, to_file)
+        self._record('gsyn', record_from, rng, to_file)
 
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
@@ -924,7 +927,7 @@ class Population(object):
         """
         return self.recorders['v'].get(gather, compatible_output)
     
-    def print_c(self, filename, gather=True, compatible_output=True):
+    def print_gsyn(self, filename, gather=True, compatible_output=True):
         """
         Write synaptic conductance traces to file.
         If compatible_output is True, the format is "t g cell_id",
@@ -937,14 +940,14 @@ class Population(object):
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        self.recorders['conductance'].write(filename, gather, compatible_output)
+        self.recorders['gsyn'].write(filename, gather, compatible_output)
     
-    def get_c(self, gather=True, compatible_output=True):
+    def get_gsyn(self, gather=True, compatible_output=True):
         """
         Return a 3-column numpy array containing cell ids and synaptic
         conductances for recorded cells.
         """
-        return self.recorders['conductance'].get(gather, compatible_output)
+        return self.recorders['gsyn'].get(gather, compatible_output)
         
     def meanSpikeCount(self, gather=True):
         """

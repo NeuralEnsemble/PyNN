@@ -66,6 +66,7 @@ class SingleCompartmentNeuron(nrn.Section):
         # for recording spikes
         self.spike_times = h.Vector(0)
         self.gsyn_trace = {}
+        self.recording_time = 0
 
     def area(self):
         return pi*self.L*self.seg.diam
@@ -108,20 +109,29 @@ class SingleCompartmentNeuron(nrn.Section):
         if active:
             self.vtrace = h.Vector()
             self.vtrace.record(self(0.5)._ref_v)
-            self.record_times = h.Vector()
-            #h('tmp = %s.record(&t)' % self.record_times.name)
-            self.record_times.record(h._ref_t)
+            if not self.recording_time:
+                self.record_times = h.Vector()
+                self.record_times.record(h._ref_t)
+                self.recording_time += 1
         else:
             self.vtrace = None
-            self.record_times = None
+            self.recording_time -= 1
+            if self.recording_time == 0:
+                self.record_times = None
     
     def record_gsyn(self, syn_name, active):
         if active:
             self.gsyn_trace[syn_name] = h.Vector()
-            # need to create MyExpSyn, with g as range variable
             self.gsyn_trace[syn_name].record(getattr(self, syn_name)._ref_g)
+            if not self.recording_time:
+                self.record_times = h.Vector()
+                self.record_times.record(h._ref_t)
+                self.recording_time += 1
         else:
             self.gsyn_trace[syn_name] = None
+            self.recording_time -= 1
+            if self.recording_time == 0:
+                self.record_times = None
     
     def memb_init(self, v_init=None):
         if v_init:

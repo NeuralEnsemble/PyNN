@@ -147,6 +147,8 @@ record = common.build_record('spikes', simulator)
 
 record_v = common.build_record('v', simulator)
 
+record_gsyn = common.build_record('gsyn', simulator)
+
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.

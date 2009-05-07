@@ -532,8 +532,9 @@ class PopulationRecordTest(unittest.TestCase): # to write later
     def setUp(self):
         self.pop1 = sim.Population((3,3), sim.SpikeSourcePoisson,{'rate': 20})
         self.pop2 = sim.Population((3,3), sim.IF_curr_alpha)
-        #self.pop3 = sim.Population((3,3), sim.EIF_cond_alpha_isfa_ista)
-        self.pops =[self.pop1, self.pop2] #, self.pop3]
+        self.pop3 = sim.Population((3,3), sim.IF_cond_alpha)
+        #self.pop4 = sim.Population((3,3), sim.EIF_cond_alpha_isfa_ista)
+        self.pops =[self.pop1, self.pop2, self.pop3] #, self.pop3]
 
     def tearDown(self):
         if hasattr(sim.simulator, 'reset'):
@@ -600,6 +601,17 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         #print vm_fromfile
         self.assertEqual(vm_fromfile.shape, ((1+int(10.0/0.1))*len(cells_to_record), 2))
         
+    def testSynapticConductanceRecording(self):
+        # current-based synapses
+        self.assertRaises(common.RecordingError, self.pop2.record_gsyn)
+        # conductance-based synapses
+        cells_to_record = [self.pop3[1,0], self.pop3[2,2]]
+        self.pop3.record_gsyn(cells_to_record)
+        simtime = 10.0
+        sim.running = False
+        sim.run(simtime)
+        gsyn = self.pop3.get_gsyn()
+        self.assertEqual(gsyn.shape, ((1+int(10.0/0.1))*len(cells_to_record), 4))
     
     def testRecordWithSpikeTimesGreaterThanSimTime(self):
         """

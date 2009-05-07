@@ -22,6 +22,7 @@ class IF_curr_alpha(StandardCellType):
         'v_thresh'   : -50.0,   # Spike threshold in mV.
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
+    recordable = ['spikes', 'v']
 
 class IF_curr_exp(StandardCellType):
     """Leaky integrate and fire model with fixed threshold and
@@ -40,6 +41,7 @@ class IF_curr_exp(StandardCellType):
         'v_thresh'   : -50.0,   # Spike threshold in mV.
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
+    recordable = ['spikes', 'v']
 
 class IF_cond_alpha(StandardCellType):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
@@ -59,6 +61,7 @@ class IF_cond_alpha(StandardCellType):
         'i_offset'   : 0.0,     # Offset current in nA
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
+    recordable = ['spikes', 'v', 'gsyn']
     
 class IF_cond_exp(StandardCellType):
     """Leaky integrate and fire model with fixed threshold and 
@@ -78,6 +81,7 @@ class IF_cond_exp(StandardCellType):
         'i_offset'   : 0.0,     # Offset current in nA
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
+    recordable = ['spikes', 'v', 'gsyn']
 
 class IF_cond_exp_gsfa_grr(StandardCellType):
     """Linear leaky integrate and fire model with fixed threshold,
@@ -109,9 +113,9 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
         'q_sfa'      : 15.0,    # Quantal spike-frequency adaptation conductance increase in nS
         'tau_rr'     : 2.0,     # Time constant of the relative refractory mechanism in ms
         'e_rev_rr'   : -75.0,   # relative refractory mechanism conductance reversal potential in mV
-        'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS
-        
+        'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS   
     }
+    recordable = ['spikes', 'v', 'gsyn']
 
     
 class IF_facets_hardware1(StandardCellType):
@@ -132,6 +136,7 @@ class IF_facets_hardware1(StandardCellType):
         'v_rest'    :  -65.0,     # mV
         'v_thresh'  :  -55.0      # mV
     }
+    recordable = ['spikes', 'v', 'gsyn']
 
 
 class HH_cond_exp(StandardCellType):
@@ -153,6 +158,7 @@ class HH_cond_exp(StandardCellType):
         'i_offset'  : 0.0,
         'v_init'    : -65.0,
     }
+    recordable = ['spikes', 'v', 'gsyn']
 
 class EIF_cond_alpha_isfa_ista(StandardCellType):
     """Exponential integrate and fire neuron with spike triggered and
@@ -185,6 +191,7 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
         'e_rev_I'   : -80.0,  # Inhibitory reversal potential in mV.
         'tau_syn_I' : 5.0,    # Rise time of the inhibitory synaptic conductance in ms (alpha function).
     }
+    recordable = ['spikes', 'v', 'gsyn']
 
 class EIF_cond_exp_isfa_ista(StandardCellType):
     """Exponential integrate and fire neuron with spike triggered and
@@ -217,6 +224,7 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
         'e_rev_I'   : -80.0,  # Inhibitory reversal potential in mV.
         'tau_syn_I' : 5.0,    # Decay time constant of the inhibitory synaptic conductance in ms.
     }
+    recordable = ['spikes', 'v', 'gsyn']
 
 class SpikeSourcePoisson(StandardCellType):
     """Spike source, generating spikes according to a Poisson process."""
