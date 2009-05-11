@@ -39,7 +39,7 @@ class CreationTest(unittest.TestCase):
     def testCreateStandardCellWithParams(self):
         """create(): Parameters set on creation should be the same as retrieved with the top-level HocObject"""
         ifcell = sim.create(sim.IF_curr_alpha,{'tau_syn_E':3.141592654})
-        self.assertAlmostEqual(ifcell.tau_syn_E, 3.141592654, places=9)
+        self.assertAlmostEqual(ifcell.tau_syn_E, 3.141592654, places=6)
         
     def testCreateInvalidCell(self):
         """create(): Trying to create a cell type which is not a standard cell or
@@ -136,7 +136,7 @@ class IDSetGetTest(unittest.TestCase):
     and for both lone and in-population IDs."""
     
     model_list = []
-    default_dp = 5
+    default_dp = 4
     decimal_places = {'duration': 2, 'start': 2}
         
     def setUp(self):
@@ -268,17 +268,17 @@ class SetValueTest(unittest.TestCase):
         sim.set(self.single_cell, 'v_init', -67.8)
         for cell in self.cells:
             try:
-                assert cell.tau_m == 35.7
+                self.assertAlmostEqual(cell.tau_m, 35.7, 5)
             except AttributeError: # if cell is not on this node
                 pass
-        assert self.single_cell.v_init == -67.8
+        self.assertAlmostEqual(self.single_cell.v_init, -67.8, 6)
 
     def testSetDict(self):
         sim.set(self.cells, {'tau_m': 35.7, 'tau_syn_E': 5.432})
         for cell in self.cells:
             try:
-                assert cell.tau_syn_E == 5.432
-                assert cell.tau_m == 35.7
+                self.assertAlmostEqual(cell.tau_syn_E, 5.432, 6)
+                self.assertAlmostEqual(cell.tau_m, 35.7, 5)
             except AttributeError: # if cell is not on this node
                 pass
             
@@ -370,7 +370,7 @@ class PopulationIteratorTest(unittest.TestCase):
         for net in self.net1, self.net2:
             ids = [i for i in net]
             self.assertEqual(ids, net.local_cells.tolist())
-            self.assert_(isinstance(ids[0], sim.simulator.ID))
+            self.assert_(isinstance(ids[0], common.IDMixin))
             
     def testAddressIter(self):
         for net in self.net1, self.net2:
@@ -425,13 +425,13 @@ class PopulationSetTest(unittest.TestCase):
         """Population.set()"""
         self.p1.set({'tau_m': 43.21})
         for cell in self.p1:
-            assert cell.tau_m == 43.21
+            self.assertAlmostEqual(cell.tau_m, 43.21, 6)
     
     def testSetFromPair(self):
         """Population.set(): A parameter set as a string, value pair should be retrievable using the top-level HocObject"""
         self.p1.set('tau_m', 12.34)
         for cell in self.p1:
-            assert cell.tau_m == 12.34
+            self.assertAlmostEqual(cell.tau_m, 12.34, 6)
         
     def testSetOnlyChangesTheDesiredParameters(self):
         before = [cell.get_parameters() for cell in self.p1]
@@ -469,14 +469,14 @@ class PopulationSetTest(unittest.TestCase):
     def test_tset(self):
         tau_m = numpy.arange(10.0, 16.0, 0.1).reshape((5,4,3))
         self.p1.tset("tau_m", tau_m)
-        self.assertEqual(self.p1[0,0,0].tau_m, 10.0)
-        self.assertEqual(self.p1[0,0,1].tau_m, 10.1)
-        self.assertAlmostEqual(self.p1[0,3,1].tau_m, 11.0, 9)
+        self.assertAlmostEqual(self.p1[0,0,0].tau_m, 10.0, 6)
+        self.assertAlmostEqual(self.p1[0,0,1].tau_m, 10.1, 6)
+        self.assertAlmostEqual(self.p1[0,3,1].tau_m, 11.0, 6)
         
         spike_times = numpy.arange(40.0).reshape(2,2,10)
         self.p2.tset("spike_times", spike_times)
-        self.assertEqual(list(self.p2[0,0].spike_times), numpy.arange(10.0).tolist())
-        self.assertEqual(list(self.p2[1,1].spike_times), numpy.arange(30.0,40.0).tolist())
+        assert_arrays_almost_equal(self.p2[0,0].spike_times, numpy.arange(10.0), 1e-9)
+        assert_arrays_almost_equal(self.p2[1,1].spike_times, numpy.arange(30.0,40.0), 1e-9)
                 
     def testTSetInvalidDimensions(self):
         """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
@@ -499,7 +499,7 @@ class PopulationSetTest(unittest.TestCase):
         self.p1.rset('cm', rd1)
         output_values = self.p1.get('cm', as_array=True)
         input_values = rd2.next(len(self.p1)).reshape(self.p1.dim)
-        assert_arrays_almost_equal(input_values, output_values, 1e-12)
+        assert_arrays_almost_equal(input_values, output_values, 1e-7)
                 
 #===============================================================================                
 class PopulationPositionsTest(unittest.TestCase):
@@ -537,7 +537,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         self.pops =[self.pop1, self.pop2, self.pop3] #, self.pop3]
 
     def tearDown(self):
-        if hasattr(sim.simulator, 'reset'):
+        if hasattr(sim, 'simulator') and hasattr(sim.simulator, 'reset'):
             sim.simulator.reset()
 
     def testRecordAll(self):
@@ -708,7 +708,7 @@ class ProjectionInitTest(unittest.TestCase):
                 else:
                     n = len(srcP)*len(tgtP)
                 target_weights = [1.234]*n
-                self.assertEqual(weights, target_weights, msg="srcP=%s, tgtP=%s\n%s !=\n%s" % (srcP.label, tgtP.label, weights, target_weights))
+                assert_arrays_almost_equal(numpy.array(weights), numpy.array(target_weights), 1e-7) #msg="srcP=%s, tgtP=%s\n%s !=\n%s" % (srcP.label, tgtP.label, weights, target_weights))
             
     def testFixedProbability(self):
         """For all connections created with "fixedProbability"..."""
@@ -797,7 +797,7 @@ class ProjectionInitTest(unittest.TestCase):
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 prj1 = sim.Projection(srcP, tgtP, sim.AllToAllConnector(delays=0.321))
-                assert prj1.connections[0].delay == 0.321, "Delay should be 0.321, actually %g" % prj1.connections[0].delay
+                self.assertAlmostEqual(prj1.connections[0].delay, 0.321, 6)
          
 
 class ProjectionSetTest(unittest.TestCase):
@@ -817,7 +817,7 @@ class ProjectionSetTest(unittest.TestCase):
         for c in prj1.connections:
             weights.append(c.weight)
         result = 2.345*numpy.ones(len(prj1.connections))
-        self.assertEqual(weights, result.tolist())
+        assert_arrays_almost_equal(numpy.array(weights), result, 1e-7)
         
     def testSetDelays(self):
         prj1 = sim.Projection(self.source, self.target, sim.AllToAllConnector())
@@ -826,7 +826,7 @@ class ProjectionSetTest(unittest.TestCase):
         for c in prj1.connections:
             delays.append(c.delay)
         result = 2.345*numpy.ones(len(prj1.connections))
-        self.assertEqual(delays, result.tolist())
+        assert_arrays_almost_equal(numpy.array(delays), result, 1e-7)
         
     def testRandomizeWeights(self):
         # The probability of having two consecutive weight vectors that are equal should be effectively 0
@@ -876,7 +876,7 @@ class ProjectionGetTest(unittest.TestCase):
             weights_in = self.distrib_Numpy.next(len(prj))
             prj.setWeights(weights_in)
             weights_out = numpy.array(prj.getWeights(format='list'))
-            assert_arrays_almost_equal(weights_in, weights_out, 1e-8)
+            assert_arrays_almost_equal(weights_in, weights_out, 1e-7)
             
     def testGetWeightsWithArray(self):
         """Making 1D and removing weights <= 0 should turn the array format of getWeights()

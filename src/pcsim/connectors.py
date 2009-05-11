@@ -69,14 +69,14 @@ class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
     
     def connect(self, projection):
         
-        decider = pypcsim.DegreeDistributionConnections(pypcsim.ConstantNumber(self.fixedpre), pypcsim.DegreeDistributionConnections.incoming)
+        decider = pypcsim.DegreeDistributionConnections(pypcsim.ConstantNumber(self.n), pypcsim.DegreeDistributionConnections.incoming)
         wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
         return decider, wiring_method, self.weights, self.delays
 
 class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
     
     def connect(self, projection):
-        decider = pypcsim.DegreeDistributionConnections(pypcsim.ConstantNumber(self.fixedpost), pypcsim.DegreeDistributionConnections.outgoing)
+        decider = pypcsim.DegreeDistributionConnections(pypcsim.ConstantNumber(self.n), pypcsim.DegreeDistributionConnections.outgoing)
         wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
         return decider, wiring_method, self.weights, self.delays
     

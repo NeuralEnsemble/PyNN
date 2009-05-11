@@ -7,6 +7,8 @@ from pyNN import common, synapses
 import pypcsim
 
 synapse_models = [s for s in dir(pypcsim) if 'Synapse' in s]
+
+SynapseDynamics = common.SynapseDynamics
         
 class STDPMechanism(common.STDPMechanism):
     """Specification of STDP models."""
@@ -35,7 +37,7 @@ class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     #native_name = pypcsim.DynamicStdpSynapse
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
-        synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
+        #synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
         parameters = dict(locals()) # need the dict to get a copy of locals. When running
         parameters.pop('self')      # through coverage.py, for some reason, the pop() doesn't have any effect
         self.parameters = self.translate(parameters)
@@ -61,7 +63,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by PCSIM.")
-        synapses.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #synapses.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)
@@ -89,7 +91,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by PCSIM.")
-        synapses.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+        #synapses.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)
@@ -115,7 +117,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by PCSIM.")
-        synapses.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
+        #synapses.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)
@@ -144,7 +146,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01, mu_plus=0.5, mu_minus=0.5): # units?
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by PCSIM.")
-        synapses.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
+        #synapses.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)
@@ -162,7 +164,7 @@ class SpikePairRule(synapses.SpikePairRule):
                            pypcsim.DynamicStdpCondExpSynapse])
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
-        synapses.SpikePairRule.__init__(self, tau_plus, tau_minus)
+        #synapses.SpikePairRule.__init__(self, tau_plus, tau_minus)
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)

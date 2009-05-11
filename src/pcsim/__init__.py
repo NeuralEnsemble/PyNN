@@ -22,6 +22,7 @@ import pypcsim
 from pyNN.pcsim.cells import *
 from pyNN.pcsim.connectors import *
 from pyNN.pcsim.synapses import *
+from pyNN.pcsim import simulator
 
 try:
     import tables
@@ -455,14 +456,14 @@ def create(cellclass, cellparams=None, n=1):
         try:
             cellclass = getattr(pypcsim, cellclass)
         except:
-            raise AttributeError("ERROR: Trying to create non-existent cellclass " + cellclass )
+            raise common.InvalidModelError("Trying to create non-existent cellclass " + cellclass )
     if issubclass(cellclass, common.StandardCellType):
         cellfactory = cellclass(cellparams).simObjFactory
     else:
         if issubclass(cellclass, pypcsim.SimObject):
             cellfactory = apply(cellclass, (), cellparams)
         else:
-            raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
+            raise common.InvalidModelError('Trying to create non-existent cellclass ' + cellclass.__name__ )
     cell_list = [ID(i) for i in pcsim_globals.net.add(cellfactory, n)]
     #cell_list = pcsim_globals.net.add(cellfactory, n)
     for id in cell_list:
@@ -480,6 +481,8 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     global pcsim_globals
     if weight is None:  weight = 0.0
     if delay  is None:  delay = pcsim_globals.minDelay
+    if delay < get_min_delay():
+        raise common.ConnectionError("Delay (%g ms) must be >= the minimum delay (%g ms)" % (delay, get_min_delay()))
     # Convert units
     delay = delay / 1000 # Delays in pcsim are specified in seconds
     if isinstance(target, list):
@@ -517,6 +520,8 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
             connections = pcsim_globals.net.connect(source, target, syn_factory)
+            if not common.is_listlike(connections):
+                connections = [connections]
             return connections
         else:
             if type(source) != types.ListType:
@@ -539,6 +544,8 @@ def set(cells, param, val=None):
     giving the parameter name, in which case val is the parameter value.
     cellclass must be supplied for doing translation of parameter names."""   
     param_dict = checkParams(param, val)
+    if not common.is_listlike(cells):
+        cells = [cells]
     for cell in cells:
         cell.set_parameters(**param_dict)
     
@@ -623,7 +630,7 @@ class Population(common.Population):
         
         if isinstance(cellclass, str):
             if not cellclass in dir(pypcsim):
-                raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
+                raise common.InvalidModelError('Trying to create non-existent cellclass ' + cellclass )
             cellclass = getattr(pypcsim, cellclass)
             self.celltype = cellclass
         if issubclass(cellclass, common.StandardCellType):
@@ -641,6 +648,8 @@ class Population(common.Population):
         self.pcsim_population = pypcsim.CuboidGridObjectPopulation(pcsim_globals.net, pypcsim.GridPoint3D(0,0,0), pypcsim.Volume3DSize(dims[0], dims[1], dims[2]), self.cellfactory)
         self.cell = numpy.array(self.pcsim_population.idVector())
         self.cell -= self.cell[0]
+        self.all_cells = self.cell
+        self.local_cells = numpy.array(self.pcsim_population.localIndexes())
         
         if not self.label:
             self.label = 'population%d' % Population.nPop         
@@ -769,6 +778,10 @@ class Population(common.Population):
             values = numpy.copy(value_array) # we do not wish to change the original value_array in case it needs to be reused in user code
             for cell, val in zip(self, values.flat):
                 cell.set_parameters(**{parametername: val})
+        elif len(value_array.shape) == len(self.dim[0:self.actual_ndim])+1: # the values are themselves 1D arrays
+            for cell,addr in zip(self.ids(), self.addresses()):
+                val = value_array[addr]
+                setattr(cell, parametername, val)
         else:
             raise common.InvalidDimensionsError
         
@@ -845,6 +858,8 @@ class Population(common.Population):
         - or a list containing the ids of the cells to record.         
         """
         """ PCSIM: IMPLEMENTED by an array of recorders """
+        if 'v' not in self.celltype.recordable:
+            raise common.RecordingError('v', self.celltype)
         if isinstance(record_from, int):             
             if not rng:   rng = pyNN.random.RandomDistribution(rng=NativeRNG(seed = datetime.today().microsecond),
                                                                distribution='UniformInteger',
@@ -854,8 +869,11 @@ class Population(common.Population):
             src_indices = record_from
         else:
             src_indices = range(self.pcsim_population.size())
-        sources = [ self.pcsim_population[i] for i in src_indices ]
+        sources = [ self.pcsim_population[i] for i in src_indices ]                
         self.vm_rec = FieldMultiChannelRecorder(sources, None, src_indices)
+     
+    def record_gsyn(self, record_from=None, rng=None):
+        raise NotImplementedError
      
     def printSpikes(self, filename, gather=True, compatible_output=True):
         """
@@ -1093,6 +1111,8 @@ class Projection(common.Projection, WDManager):
             self.label = 'projection%d' % Projection.nProj
         if not rng:
             self.rng = numpy.random.RandomState()
+            
+        self.connections = simulator.ConnectionManager(parent=self)
         Projection.nProj += 1
 
     def __len__(self):

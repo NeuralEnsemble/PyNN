@@ -223,7 +223,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         ('e_rev_I'   , 'ErevInh',   1e-3), 
         ('tau_syn_I' , 'TauSynInh',  1e-3),
     )
-    pcsim_name = "CbaEIFCondAlphaNeuron"
+    pcsim_name = "aEIFCondAlphaNeuron"
     simObjFactory = None
     setterMethods = {}
     
@@ -235,7 +235,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
                   'Vinit','Inoise','Iinject', 'ErevExc', 
                   'TauSynExc', 'ErevInh', 'TauSynInh'):
             limited_parameters[k] = self.parameters[k]
-        self.simObjFactory = pypcsim.CbaEIFCondAlphaNeuron(**limited_parameters)
+        self.simObjFactory = getattr(pypcsim, EIF_cond_alpha_isfa_ista.pcsim_name)(**limited_parameters)
 
 class IF_facets_hardware1(common.ModelNotAvailable):
     pass
