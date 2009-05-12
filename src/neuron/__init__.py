@@ -165,31 +165,7 @@ class Population(common.Population):
         for cell,val in zip(self, rarr[self._mask_local.flatten()]):
             setattr(cell, parametername, val)
 
-    def _record(self, record_what, record_from=None, rng=None, to_file=True):
-        """
-        Private method called by record() and record_v().
-        """
-        if record_what not in self.celltype.recordable:
-            raise common.RecordingError(record_what, self.celltype)
-        fixed_list=False
-        if isinstance(record_from, list): #record from the fixed list specified by user
-            fixed_list=True
-        elif record_from is None: # record from all cells:
-            record_from = self.all_cells.flatten()
-        elif isinstance(record_from, int): # record from a number of cells, selected at random  
-            # Each node will record N/nhost cells...
-            nrec = int(record_from/num_processes())
-            if not rng:
-                rng = numpy.random
-            record_from = rng.permutation(self.all_cells.flatten())[0:nrec]
-            # need ID objects, permutation returns integers
-            # ???
-        else:
-            raise Exception("record_from must be either a list of cells or the number of cells to record from")
-        # record_from is now a list or numpy array. We do not have to worry about whether the cells are
-        # local because the Recorder object takes care of this.
-        logging.info("%s.record('%s', %s)", self.label, record_what, record_from[:5])
-        self.recorders[record_what].record(record_from)
+
 
         
 class Projection(common.Projection):

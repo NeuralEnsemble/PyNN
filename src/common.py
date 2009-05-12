@@ -841,6 +841,31 @@ class Population(object):
     def can_record(self, variable):
         return (variable in self.celltype.recordable)
 
+    def _record(self, variable, record_from=None, rng=None, to_file=True):
+        """
+        Private method called by record() and record_v().
+        """
+        if not self.can_record(variable):
+            raise RecordingError(variable, self.celltype)
+        if isinstance(record_from, list): #record from the fixed list specified by user
+            pass
+        elif record_from is None: # record from all cells:
+            record_from = self.all_cells.flatten()
+        elif isinstance(record_from, int): # record from a number of cells, selected at random  
+            # Each node will record N/nhost cells...
+            nrec = int(record_from/num_processes())
+            if not rng:
+                rng = random.NumpyRNG()
+            record_from = rng.permutation(self.all_cells.flatten())[0:nrec]
+            # need ID objects, permutation returns integers
+            # ???
+        else:
+            raise Exception("record_from must be either a list of cells or the number of cells to record from")
+        # record_from is now a list or numpy array. We do not have to worry about whether the cells are
+        # local because the Recorder object takes care of this.
+        logging.info("%s.record('%s', %s)", self.label, variable, record_from[:5])
+        self.recorders[variable].record(record_from)
+
     def record(self, record_from=None, rng=None, to_file=True):
         """
         If record_from is not given, record spikes from all cells in the Population.

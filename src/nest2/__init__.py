@@ -288,35 +288,7 @@ class Population(common.Population):
                nest.SetStatus(self.local_cells, parametername, rarr)
 
     def _record(self, variable, record_from=None, rng=None,to_file=True):
-        if variable not in self.celltype.recordable:
-            raise common.RecordingError(variable, self.celltype)
-        # create list of neurons
-        fixed_list = False
-        if record_from:
-            if isinstance(record_from, list):
-                fixed_list = True
-                n_rec = len(record_from)
-            elif isinstance(record_from, int):
-                n_rec = record_from
-            else:
-                raise Exception("record_from must be a list or an integer")
-        else:
-            n_rec = self.size
-
-        if variable == 'spikes':
-            self.n_rec = n_rec
-
-        tmp_list = []
-        if (fixed_list == True):
-            #for neuron in record_from:
-            #    tmp_list = [neuron for neuron in record_from]
-            tmp_list = record_from
-        else:
-            if not rng:
-                rng = numpy.random
-            tmp_list = rng.permutation(numpy.reshape(self.cell, (self.cell.size,)))[0:n_rec]
-    
-        self.recorders[variable].record(tmp_list)
+        common.Population._record(self, variable, record_from, rng, to_file)
         nest.SetStatus(self.recorders[variable]._device, {'to_file': to_file, 'to_memory' : not to_file})
     
     def meanSpikeCount(self, gather=True):
