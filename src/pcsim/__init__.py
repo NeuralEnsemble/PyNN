@@ -37,22 +37,6 @@ import operator
 
 Set = set
 
-def checkParams(param, val=None):
-    """Check parameters are of valid types, normalise the different ways of
-       specifying parameters and values by putting everything in a dict.
-       Called by set() and Population.set()."""
-    if isinstance(param, str):
-        if isinstance(val, float) or isinstance(val, int):
-            param_dict = {param:float(val)}
-        elif isinstance(val, str):
-            param_dict = {param:val}
-        else:
-            raise common.InvalidParameterValueError
-    elif isinstance(param, dict):
-        param_dict = param
-    else:
-        raise common.InvalidParameterValueError
-    return param_dict
 
 # ==============================================================================
 #   Utility classes
@@ -84,165 +68,7 @@ class NativeRNG(pyNN.random.NativeRNG):
         
         
         
-class SpikesMultiChannelRecorder(object):
-    
-    def __init__(self, source, filename=None, source_indices=None, gather=False, parent=None):        
-        self.filename = filename
-        self.gather = gather
-        self.recordings = []        
-        self.record(source, source_indices)
-        self.parent = parent
-                
-    def record(self, sources, src_indices = None):
-        """
-            Add celllist list to the list of the cells for which spikes 
-            are recorded by this spikes multi recorder
-        """
-        if type(sources) != types.ListType:
-            sources = [sources]
-        if not src_indices:
-            src_indices = range(len(self.recordings), len(self.recordings) + len(sources))
-        
-        if type(sources) != types.ListType:
-            sources = [sources]        
-        for i, src in zip(src_indices, sources):
-            src_id = pypcsim.SimObject.ID(src)    
-            rec = simulator.net.create(pypcsim.SpikeTimeRecorder(), pypcsim.SimEngine.ID(src_id.node, src_id.eng))            
-            simulator.net.connect(src, rec, pypcsim.Time.sec(0))            
-            if (src_id.node == simulator.net.mpi_rank()):                
-                self.recordings += [ (i, rec, src) ]
-                            
-    def saveSpikesH5(self, filename = None):
-        if filename:
-            self.filename = filename
-        if (simulator.net.mpi_rank() != 0):
-            self.filename += ".node." + net.mpi_rank()
-        try:
-            h5file = tables.openFile(self.filename, mode = "w", title = "spike recordings")
-        except NameError:
-            raise Exception("Use of this function requires PyTables.")
-        for rec_info in self.recordings:
-            spikes = array([rec_ids[1]] + simulator.net.object(rec_ids[0]).getSpikeTimes())
-            h5file.createArray(h5file.root, "spikes_" + str(rec_ids[1]), spikes, "")
-            h5file.flush()
-        h5file.close()
-        
-    def saveSpikesText(self, filename=None, compatible_output=True):
-        if filename:
-            self.filename = filename
-        if (simulator.net.mpi_rank() != 0):    
-            self.filename += ".node." + net.mpi_rank()
-        f = file(self.filename, "w",10000)
-        all_spikes = []
-        if compatible_output:
-            for i, rec, src in self.recordings:            
-                spikes =  1000.0*numpy.array(simulator.net.object(rec).getSpikeTimes())
-                all_spikes += zip(spikes, [ i for k in xrange(len(spikes)) ])
-        else:
-            for i, rec, src in self.recordings:            
-                spikes =  simulator.net.object(rec).getSpikeTimes()
-                all_spikes += zip( [ i for k in xrange(len(spikes)) ], spikes)
-        all_spikes = sorted(all_spikes, key=operator.itemgetter(1))
-        f.write("# dt = %g\n" % simulator.state.dt)
-        if self.parent:
-            f.write("# first_id = %d\n# last_id = %d\n" % (self.parent.cell[0], self.parent.cell[-1]))
-        for spike in all_spikes:
-            f.write("%s\t%s\n" % spike )                
-        f.close()        
-    
-    def getSpikes(self):
-        all_spikes = numpy.zeros((0,2))
-        for i, rec, src in self.recordings:            
-            spikes =  1000.0*numpy.array(simulator.net.object(rec).getSpikeTimes())
-            spikes = spikes.reshape((len(spikes),1))
-            ids = i*numpy.ones(spikes.shape)
-            ids_spikes = numpy.concatenate((ids, spikes), axis=1)
-            all_spikes = numpy.concatenate((all_spikes, ids_spikes), axis=0)
-        return all_spikes
-    
-    def meanSpikeCount(self):
-        count = 0
-        for i, rec, src in self.recordings:
-            count += simulator.net.object(rec).spikeCount()
-        return count / len(self.recordings)
-        
-    
 
-class FieldMultiChannelRecorder:
-    
-    def __init__(self, sources, filename = None, src_indices = None, gather = False, fieldname = "Vm"):        
-        self.filename = filename
-        self.fieldname = fieldname
-        self.gather = gather
-        self.recordings = []
-        self.record(sources, src_indices)
-                        
-    def record(self, sources, src_indices = None):
-        """
-            Add celllist to the list of the cells for which field values
-            are recorded by this field multi recorder
-        """
-        if type(sources) != types.ListType:
-            sources = [sources]
-        if not src_indices:
-            src_indices = range(len(self.recordings), len(self.recordings) + len(sources))
-        
-        for i, src in zip(src_indices, sources):
-            src_id = pypcsim.SimObject.ID(src)
-            rec = simulator.net.create(pypcsim.AnalogRecorder(), pypcsim.SimEngine.ID(src_id.node, src_id.eng))
-            simulator.net.connect(src, self.fieldname, rec, 0, pypcsim.Time.sec(0))
-            if (src_id.node == simulator.net.mpi_rank()):
-                self.recordings += [ (i, rec, src) ]
-                
-    def saveValuesH5(self, filename = None):
-        if filename:
-            self.filename = filename
-        if (simulator.net.mpi_rank() != 0):
-            self.filename += ".node." + simulator.net.mpi_rank()
-        try:
-            h5file = tables.openFile(filename, mode = "w", title = self.filename + " recordings")
-        except NameError:
-            raise Exception("Use of this function requires PyTables.")
-        for i, rec, src in self.recordings:
-            analog_values = array([i] + simulator.net.object(rec).getRecordedValues())
-            h5file.createArray(h5file.root, self.fieldname + "_" + str(src), analog_values, "")
-            h5file.flush()
-        h5file.close()
-        
-    def saveValuesText(self, filename = None, compatible_output=True):
-        if filename:
-            self.filename = filename
-        if (simulator.net.mpi_rank() != 0):
-            self.filename += ".node." + simulator.net.net.mpi_rank()
-        f = file(self.filename, "w",10000)
-        all_spikes = []
-        if compatible_output:
-            f.write("# dt = %g\n" % simulator.state.dt)
-            f.write("# n = %d\n" % len(simulator.net.object(self.recordings[0][1]).getRecordedValues()))
-            for i, rec, src in self.recordings:
-                analog_values =  simulator.net.object(rec).getRecordedValues()
-                for v in analog_values:
-                    f.write("%g\t%d\n" % (float(v)*1000.0, i)) # convert from mV to V
-            
-        else:
-            for i, rec, src in self.recordings:
-                analog_values =  [i] +  list(simulator.net.object(rec).getRecordedValues())
-                for v in analog_values:
-                    f.write("%s " % v)                
-                f.write("\n")
-        f.close()
-
-    def get_v(self):
-        all_vm = numpy.zeros((0,3))
-        for i, rec, src in self.recordings:            
-            vm = 1000.0*numpy.array(simulator.net.object(rec).getRecordedValues())
-            vm = vm.reshape((len(vm),1))
-            dt = get_time_step()
-            t = numpy.arange(0, dt*len(vm), dt).reshape((len(vm),1))
-            ids = i*numpy.ones(vm.shape)
-            ids_t_vm = numpy.concatenate((ids, t, vm), axis=1)
-            all_vm = numpy.concatenate((all_vm, ids_t_vm), axis=0)
-        return all_vm
     
 
 class ID(long, common.IDMixin):
@@ -527,42 +353,9 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     except exceptions.Exception, e:
         raise common.ConnectionError(e)
     
-
-def set(cells, param, val=None):
-    """Set one or more parameters of an individual cell or list of cells.
-    param can be a dict, in which case val should not be supplied, or a string
-    giving the parameter name, in which case val is the parameter value.
-    cellclass must be supplied for doing translation of parameter names."""   
-    param_dict = checkParams(param, val)
-    if not common.is_listlike(cells):
-        cells = [cells]
-    for cell in cells:
-        cell.set_parameters(**param_dict)
-    
-
-def record(source, filename):
-    """Record spikes to a file. source can be an individual cell or a list of
-    cells."""
-    # would actually like to be able to record to an array and choose later
-    # whether to write to a file.
-    
-    if filename in simulator.spikes_multi_rec:
-        simulator.spikes_multi_rec[filename].record(source)    
-    simulator.spikes_multi_rec[filename] = SpikesMultiChannelRecorder(source, filename)
-            
-    
-
-def record_v(source, filename):
-    """
-    Record membrane potential to a file. source can be an individual cell or
-    a list of cells."""
-    # would actually like to be able to record to an array and
-    # choose later whether to write to a file.
-    
-    if filename in simulator.vm_multi_rec:
-        simulator.vm_multi_rec[filename].record(source)
-    simulator.vm_multi_rec[filename] = FieldMultiChannelRecorder(source, filename)
-
+set = common.set    
+record = common.build_record('spikes', simulator)
+record_v = common.build_record('v', simulator)
             
 
 # ==============================================================================
@@ -635,15 +428,24 @@ class Population(common.Population):
         
             
         # CuboidGridPopulation(SimNetwork &net, GridPoint3D origin, Volume3DSize dims, SimObjectFactory &objFactory)
-        self.pcsim_population = pypcsim.CuboidGridObjectPopulation(simulator.net, pypcsim.GridPoint3D(0,0,0), pypcsim.Volume3DSize(dims[0], dims[1], dims[2]), self.cellfactory)
+        self.pcsim_population = pypcsim.CuboidGridObjectPopulation(
+                                    simulator.net,
+                                    pypcsim.GridPoint3D(0,0,0),
+                                    pypcsim.Volume3DSize(dims[0], dims[1], dims[2]),
+                                    self.cellfactory)
         self.cell = numpy.array(self.pcsim_population.idVector())
+        self.first_id = 0
         self.cell -= self.cell[0]
         self.all_cells = self.cell
         self.local_cells = numpy.array(self.pcsim_population.localIndexes())
         
+        self.recorders = {'spikes': simulator.Recorder('spikes', population=self),
+                          'v': simulator.Recorder('v', population=self),
+                          'gsyn': simulator.Recorder('gsyn', population=self)}
+        
+        
         if not self.label:
             self.label = 'population%d' % Population.nPop         
-        self.record_from = { 'spiketimes': [], 'vtrace': [] }        
         Population.nPop += 1
         
         
@@ -675,14 +477,6 @@ class Population(common.Population):
     
     def __iter__(self):
         return self.__gid_gen()
-
-    def __address_gen(self):
-        """
-        Generator to produce an iterator over all cells on this node,
-        returning addresses.
-        """
-        for i in self.__iter__():
-            yield self.locate(i)
     
     def __gid_gen(self):
         """
@@ -694,12 +488,6 @@ class Population(common.Population):
             id = ID(i-ids[0])
             id.parent = self
             yield id
-            
-    def addresses(self):
-        return self.__address_gen()
-    
-    def ids(self):
-        return self.__iter__()
         
     def locate(self, id):
         """Given an element id in a Population, return the coordinates.
@@ -744,20 +532,6 @@ class Population(common.Population):
         """Return the total number of cells in the population."""
         return self.pcsim_population.size()
         
-    def set(self, param, val=None):
-        """
-        Set one or more parameters for every cell in the population. param
-        can be a dict, in which case val should not be supplied, or a string
-        giving the parameter name, in which case val is the parameter value.
-        val can be a numeric value, or list of such (e.g. for setting spike times).
-        e.g. p.set("tau_m",20.0).
-             p.set({'tau_m':20,'v_rest':-65})
-        """
-        """PCSIM: iteration through all elements """
-        param_dict = checkParams(param, val)
-        for cell in self:
-            cell.set_parameters(**param_dict)
-        
     def tset(self, parametername, value_array):
         """
         'Topographic' set. Set the value of parametername to the values in
@@ -800,8 +574,6 @@ class Population(common.Population):
             obj = simulator.net.object(self.pcsim_population[i])
             if obj: apply( obj, methodname, (), arguments)
         
-        
-    
     def _tcall(self, methodname, objarr):
         """
         `Topographic' call. Calls the method methodname() for every cell in the 
@@ -815,145 +587,6 @@ class Population(common.Population):
             obj = simulator.net.object(self.pcsim_population[i])
             if obj: apply( obj, methodname, (), arguments)
         
-
-    def record(self, record_from=None, rng=None):
-        """
-        If record_from is not given, record spikes from all cells in the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids of the cells to record.
-        """
-        """
-          The current implementation allows only one invocation of this method per population
-        """
-        """ PCSIM: IMPLEMENTED by an array of recorders at python level"""
-        if isinstance(record_from, int):
-            if not rng:   rng = pyNN.random.RandomDistribution(rng=NativeRNG(seed = datetime.today().microsecond),
-                                                               distribution='UniformInteger',
-                                                               parameters=(0, len(self)-1))
-            src_indices = [ int(i) for i in rng.next(record_from) ]            
-        elif record_from:
-            src_indices = record_from
-        else:
-            src_indices  = range(self.pcsim_population.size())
-        sources = [ self.pcsim_population[i] for i in src_indices ]
-        self.spike_rec = SpikesMultiChannelRecorder(sources, None, src_indices, parent=self)
-        
-    def record_v(self, record_from=None, rng=None):
-        """
-        If record_from is not given, record the membrane potential for all cells in
-        the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids of the cells to record.         
-        """
-        """ PCSIM: IMPLEMENTED by an array of recorders """
-        if 'v' not in self.celltype.recordable:
-            raise common.RecordingError('v', self.celltype)
-        if isinstance(record_from, int):             
-            if not rng:   rng = pyNN.random.RandomDistribution(rng=NativeRNG(seed = datetime.today().microsecond),
-                                                               distribution='UniformInteger',
-                                                               parameters=(0, len(self)-1))
-            src_indices = [ int(i) for i in rng.next(record_from) ]             
-        elif record_from:
-            src_indices = record_from
-        else:
-            src_indices = range(self.pcsim_population.size())
-        sources = [ self.pcsim_population[i] for i in src_indices ]                
-        self.vm_rec = FieldMultiChannelRecorder(sources, None, src_indices)
-     
-    def record_gsyn(self, record_from=None, rng=None):
-        raise NotImplementedError
-     
-    def printSpikes(self, filename, gather=True, compatible_output=True):
-        """
-        Write spike times to file.
-        
-        If compatible_output is True, the format is "spiketime cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        This allows easy plotting of a `raster' plot of spiketimes, with one
-        line for each cell.
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-        
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        spike files.
-        
-        For parallel simulators, if gather is True, all data will be gathered
-        to the master node and a single output file created there. Otherwise, a
-        file will be written on each node, containing only the cells simulated
-        on that node.
-        """        
-        """PCSIM: implemented by corresponding recorders at python level """
-        self.spike_rec.saveSpikesText(filename, compatible_output=compatible_output)
-        
-        
-    def print_v(self, filename, gather=True, compatible_output=True):
-        """
-        Write membrane potential traces to file.
-        
-        If compatible_output is True, the format is "v cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-        
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        voltage files.
-        
-        For parallel simulators, if gather is True, all data will be gathered
-        to the master node and a single output file created there. Otherwise, a
-        file will be written on each node, containing only the cells simulated
-        on that node.
-        """
-        """PCSIM: will be implemented by corresponding analog recorders at python level object  """
-        self.vm_rec.saveValuesText(filename, compatible_output=compatible_output)
-    
-    def getSpikes(self, gather=True):
-        """
-        Return a 2-column numpy array containing cell ids and spike times for
-        recorded cells.
-
-        Useful for small populations, for example for single neuron Monte-Carlo.
-        """
-        return self.spike_rec.getSpikes()
-    
-    def get_v(self, gather=True, compatible_output=True):
-        """
-        Return a 2-column numpy array containing cell ids and spike times for
-        recorded cells.
-
-        Useful for small populations, for example for single neuron Monte-Carlo.
-
-        """
-        return self.vm_rec.get_v()
-    
-    def meanSpikeCount(self, gather=True):         
-        """
-            Returns the mean number of spikes per neuron.
-            NOTE: This method works in PCSIM only if you invoke the record
-                  during setup of the population. And the mean spike count
-                  takes into account only the neurons that are recorded, not all neurons.
-                  Implemented in this way because cells in PCSIM don't have
-                  actual internal recording mechanisms. All recordings are done with 
-                  SpikeTimeRecorder SimObjects and spike messages between cells and 
-                  recorders. 
-        """
-        if self.spike_rec:
-            return self.spike_rec.meanSpikeCount()
-        return 0;
-
-    def randomInit(self, rand_distr):
-        """
-        Set initial membrane potentials for all the cells in the population to
-        random values.
-        """
-        """ PCSIM: can be reduced to rset() where parameterName is Vinit"""
-        self.rset("v_init", rand_distr)
-
 
 class Projection(common.Projection, WDManager):
     """

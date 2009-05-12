@@ -958,7 +958,7 @@ class SpikeSourceTest(unittest.TestCase):
         assert max(spikes) <= start+duration, max(spikes)
         expected_count = duration/1000.0*rate*n
         diff = abs(len(spikes)-expected_count)/expected_count
-        assert diff < 0.1
+        assert diff < 0.1, str(diff)
     
                 
 # ==============================================================================
