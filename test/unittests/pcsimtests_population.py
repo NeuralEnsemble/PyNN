@@ -41,7 +41,7 @@ class PopulationInitTest(unittest.TestCase):
     def testInitWithParams(self):
         """Population.__init__(): Parameters set on creation should be the same as retrieved with HocToPy.get()"""
         popul = Population((3,3),IF_curr_alpha,{'tau_syn_E':3.141592654})
-        tau_syn = pcsim_globals.net.object(popul.getObjectID(popul[2,2])).TauSynExc 
+        tau_syn = simulator.net.object(popul.getObjectID(popul[2,2])).TauSynExc 
         self.assertAlmostEqual(tau_syn, 0.003141592654, places=5)
     
     def testInitWithLabel(self):
@@ -138,14 +138,14 @@ class PopulationSetTest(unittest.TestCase):
     def testSetFromDict(self):
         """Population.set(): Parameters set in a dict should all be retrievable from PyPCSIM directly"""
         self.popul1.set({'tau_m':43.21})
-        self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(8)).taum, 0.04321, places = 5)
+        self.assertAlmostEqual( simulator.net.object(self.popul1.getObjectID(8)).taum, 0.04321, places = 5)
 #     
     def testSetFromPair(self):
        """Population.set(): A parameter set as a string,value pair should be retrievable using PyPCSIM directly"""
        self.popul1.set('tau_m',12.34)
        self.popul1.set('v_init',-65.0)
-       self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).taum, 0.01234, places=5)
-       self.assertAlmostEqual( pcsim_globals.net.object(self.popul1.getObjectID(3)).Vinit, -0.065, places=5)
+       self.assertAlmostEqual( simulator.net.object(self.popul1.getObjectID(3)).taum, 0.01234, places=5)
+       self.assertAlmostEqual( simulator.net.object(self.popul1.getObjectID(3)).Vinit, -0.065, places=5)
       
     
     def testSetInvalidFromPair(self):
@@ -169,7 +169,7 @@ class PopulationSetTest(unittest.TestCase):
     def testSetWithNonStandardModel(self):
         """Population.set(): Parameters set in a dict should all be retrievable using PyPCSIM interface directly"""
         self.popul2.set({'Rm':4.5e6})
-        self.assertAlmostEqual( pcsim_globals.net.object(self.popul2.getObjectID(3)).Rm , 4.5e6, places = 10)
+        self.assertAlmostEqual( simulator.net.object(self.popul2.getObjectID(3)).Rm , 4.5e6, places = 10)
         
     def testTSet(self):
         """Population.tset(): The valueArray passed should be retrievable using the PyPCSIM interface """
@@ -177,7 +177,7 @@ class PopulationSetTest(unittest.TestCase):
         self.popul1.tset('i_offset', array_in)
         for i in 0,1,2:
             for j in 0,1,2:
-                self.assertAlmostEqual( array_in[i,j], pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Iinject*1e9 , places = 7 )
+                self.assertAlmostEqual( array_in[i,j], simulator.net.object(self.popul1.getObjectID(self.popul1[i,j])).Iinject*1e9 , places = 7 )
     
     def testTSetArrayUnchanged(self):
        array_in1 = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]])
@@ -202,8 +202,8 @@ class PopulationSetTest(unittest.TestCase):
                       random.RandomDistribution(rng=NativeRNG(),
                                                 distribution='Uniform',
                                                 parameters=[10.0, 30.0]))
-        self.assertNotEqual(pcsim_globals.net.object(self.popul1.getObjectID(3)).taum,
-                            pcsim_globals.net.object(self.popul1.getObjectID(6)).taum)
+        self.assertNotEqual(simulator.net.object(self.popul1.getObjectID(3)).taum,
+                            simulator.net.object(self.popul1.getObjectID(6)).taum)
         
     def testRSetNumpy(self):
          """Population.rset(): with numpy rng."""
@@ -217,7 +217,7 @@ class PopulationSetTest(unittest.TestCase):
          output_values = numpy.zeros((3,3),numpy.float)
          for i in 0,1,2:
              for j in 0,1,2:    
-                 output_values[i,j] = 1e9*pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
+                 output_values[i,j] = 1e9*simulator.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
          input_values = rd2.next(9)
          output_values = output_values.reshape((9,))
          for i in range(9):
@@ -236,12 +236,12 @@ class PopulationSetTest(unittest.TestCase):
          output_values_2 = numpy.zeros((3,3),numpy.float)
          for i in 0,1,2:
              for j in 0,1,2:
-                 output_values_1[i,j] = pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
+                 output_values_1[i,j] = simulator.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
                  
          self.popul1.rset('cm', rd2)
          for i in 0,1,2:
              for j in 0,1,2:
-                 output_values_2[i,j] = pcsim_globals.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
+                 output_values_2[i,j] = simulator.net.object(self.popul1.getObjectID(self.popul1[i,j])).Cm
 
          output_values_1 = output_values_1.reshape((9,))
          output_values_2 = output_values_2.reshape((9,))
@@ -307,7 +307,7 @@ class ProjectionInitTest(unittest.TestCase):
                 prj.setWeights(1.234)
                 weights = []
                 for i in range(len(prj)):
-                    weights.append(pcsim_globals.net.object(prj.pcsim_projection[i]).W)
+                    weights.append(simulator.net.object(prj.pcsim_projection[i]).W)
                 for w in weights:
                     self.assertAlmostEqual(w,1.234*1e-9, places = 7)
 
@@ -378,7 +378,7 @@ class ProjectionSetTest(unittest.TestCase):
         prj1.setWeights(2.345)
         weights = []
         for i in range(len(prj1)):
-            weights.append(pcsim_globals.net.object(prj1[i]).W)
+            weights.append(simulator.net.object(prj1[i]).W)
         for w in weights:
             self.assertAlmostEqual(w, 2.345*1e-9)         
          
@@ -390,13 +390,13 @@ class ProjectionSetTest(unittest.TestCase):
         prj2.randomizeWeights(self.distrib_Native)
         w1 = []; w2 = []; w3 = []; w4 = []
         for i in range(len(prj1)):
-            w1.append(pcsim_globals.net.object(prj1[i]).W)
-            w2.append(pcsim_globals.net.object(prj1[i]).W)
+            w1.append(simulator.net.object(prj1[i]).W)
+            w2.append(simulator.net.object(prj1[i]).W)
         prj1.randomizeWeights(self.distrib_Numpy)
         prj2.randomizeWeights(self.distrib_Native)
         for i in range(len(prj1)):
-            w3.append(pcsim_globals.net.object(prj1[i]).W)
-            w4.append(pcsim_globals.net.object(prj1[i]).W)  
+            w3.append(simulator.net.object(prj1[i]).W)
+            w4.append(simulator.net.object(prj1[i]).W)  
         self.assertNotEqual(w1,w3) and self.assertNotEqual(w2,w4)
 
         

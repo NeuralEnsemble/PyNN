@@ -14,6 +14,8 @@ import sys
 
 import pyNN.random
 from pyNN import common
+from pyNN.pcsim import simulator
+common.simulator = simulator
 import os.path
 import types
 import sys
@@ -22,7 +24,7 @@ import pypcsim
 from pyNN.pcsim.cells import *
 from pyNN.pcsim.connectors import *
 from pyNN.pcsim.synapses import *
-from pyNN.pcsim import simulator
+from pyNN.pcsim.electrodes import *
 
 try:
     import tables
@@ -32,7 +34,6 @@ import exceptions
 from datetime import datetime
 import operator
 
-from pyNN.pcsim.pcsim_globals import pcsim_globals
 
 Set = set
 
@@ -101,27 +102,27 @@ class SpikesMultiChannelRecorder(object):
             sources = [sources]
         if not src_indices:
             src_indices = range(len(self.recordings), len(self.recordings) + len(sources))
-        global pcsim_globals
+        
         if type(sources) != types.ListType:
             sources = [sources]        
         for i, src in zip(src_indices, sources):
             src_id = pypcsim.SimObject.ID(src)    
-            rec = pcsim_globals.net.create(pypcsim.SpikeTimeRecorder(), pypcsim.SimEngine.ID(src_id.node, src_id.eng))            
-            pcsim_globals.net.connect(src, rec, pypcsim.Time.sec(0))            
-            if (src_id.node == pcsim_globals.net.mpi_rank()):                
+            rec = simulator.net.create(pypcsim.SpikeTimeRecorder(), pypcsim.SimEngine.ID(src_id.node, src_id.eng))            
+            simulator.net.connect(src, rec, pypcsim.Time.sec(0))            
+            if (src_id.node == simulator.net.mpi_rank()):                
                 self.recordings += [ (i, rec, src) ]
                             
     def saveSpikesH5(self, filename = None):
         if filename:
             self.filename = filename
-        if (pcsim_globals.net.mpi_rank() != 0):
+        if (simulator.net.mpi_rank() != 0):
             self.filename += ".node." + net.mpi_rank()
         try:
             h5file = tables.openFile(self.filename, mode = "w", title = "spike recordings")
         except NameError:
             raise Exception("Use of this function requires PyTables.")
         for rec_info in self.recordings:
-            spikes = array([rec_ids[1]] + pcsim_globals.net.object(rec_ids[0]).getSpikeTimes())
+            spikes = array([rec_ids[1]] + simulator.net.object(rec_ids[0]).getSpikeTimes())
             h5file.createArray(h5file.root, "spikes_" + str(rec_ids[1]), spikes, "")
             h5file.flush()
         h5file.close()
@@ -129,20 +130,20 @@ class SpikesMultiChannelRecorder(object):
     def saveSpikesText(self, filename=None, compatible_output=True):
         if filename:
             self.filename = filename
-        if (pcsim_globals.net.mpi_rank() != 0):    
+        if (simulator.net.mpi_rank() != 0):    
             self.filename += ".node." + net.mpi_rank()
         f = file(self.filename, "w",10000)
         all_spikes = []
         if compatible_output:
             for i, rec, src in self.recordings:            
-                spikes =  1000.0*numpy.array(pcsim_globals.net.object(rec).getSpikeTimes())
+                spikes =  1000.0*numpy.array(simulator.net.object(rec).getSpikeTimes())
                 all_spikes += zip(spikes, [ i for k in xrange(len(spikes)) ])
         else:
             for i, rec, src in self.recordings:            
-                spikes =  pcsim_globals.net.object(rec).getSpikeTimes()
+                spikes =  simulator.net.object(rec).getSpikeTimes()
                 all_spikes += zip( [ i for k in xrange(len(spikes)) ], spikes)
         all_spikes = sorted(all_spikes, key=operator.itemgetter(1))
-        f.write("# dt = %g\n" % pcsim_globals.dt)
+        f.write("# dt = %g\n" % simulator.state.dt)
         if self.parent:
             f.write("# first_id = %d\n# last_id = %d\n" % (self.parent.cell[0], self.parent.cell[-1]))
         for spike in all_spikes:
@@ -152,7 +153,7 @@ class SpikesMultiChannelRecorder(object):
     def getSpikes(self):
         all_spikes = numpy.zeros((0,2))
         for i, rec, src in self.recordings:            
-            spikes =  1000.0*numpy.array(pcsim_globals.net.object(rec).getSpikeTimes())
+            spikes =  1000.0*numpy.array(simulator.net.object(rec).getSpikeTimes())
             spikes = spikes.reshape((len(spikes),1))
             ids = i*numpy.ones(spikes.shape)
             ids_spikes = numpy.concatenate((ids, spikes), axis=1)
@@ -162,7 +163,7 @@ class SpikesMultiChannelRecorder(object):
     def meanSpikeCount(self):
         count = 0
         for i, rec, src in self.recordings:
-            count += pcsim_globals.net.object(rec).spikeCount()
+            count += simulator.net.object(rec).spikeCount()
         return count / len(self.recordings)
         
     
@@ -185,25 +186,25 @@ class FieldMultiChannelRecorder:
             sources = [sources]
         if not src_indices:
             src_indices = range(len(self.recordings), len(self.recordings) + len(sources))
-        global pcsim_globals
+        
         for i, src in zip(src_indices, sources):
             src_id = pypcsim.SimObject.ID(src)
-            rec = pcsim_globals.net.create(pypcsim.AnalogRecorder(), pypcsim.SimEngine.ID(src_id.node, src_id.eng))
-            pcsim_globals.net.connect(src, self.fieldname, rec, 0, pypcsim.Time.sec(0))
-            if (src_id.node == pcsim_globals.net.mpi_rank()):
+            rec = simulator.net.create(pypcsim.AnalogRecorder(), pypcsim.SimEngine.ID(src_id.node, src_id.eng))
+            simulator.net.connect(src, self.fieldname, rec, 0, pypcsim.Time.sec(0))
+            if (src_id.node == simulator.net.mpi_rank()):
                 self.recordings += [ (i, rec, src) ]
                 
     def saveValuesH5(self, filename = None):
         if filename:
             self.filename = filename
-        if (pcsim_globals.net.mpi_rank() != 0):
-            self.filename += ".node." + pcsim_globals.net.mpi_rank()
+        if (simulator.net.mpi_rank() != 0):
+            self.filename += ".node." + simulator.net.mpi_rank()
         try:
             h5file = tables.openFile(filename, mode = "w", title = self.filename + " recordings")
         except NameError:
             raise Exception("Use of this function requires PyTables.")
         for i, rec, src in self.recordings:
-            analog_values = array([i] + pcsim_globals.net.object(rec).getRecordedValues())
+            analog_values = array([i] + simulator.net.object(rec).getRecordedValues())
             h5file.createArray(h5file.root, self.fieldname + "_" + str(src), analog_values, "")
             h5file.flush()
         h5file.close()
@@ -211,21 +212,21 @@ class FieldMultiChannelRecorder:
     def saveValuesText(self, filename = None, compatible_output=True):
         if filename:
             self.filename = filename
-        if (pcsim_globals.net.mpi_rank() != 0):
-            self.filename += ".node." + pcsim_globals.net.net.mpi_rank()
+        if (simulator.net.mpi_rank() != 0):
+            self.filename += ".node." + simulator.net.net.mpi_rank()
         f = file(self.filename, "w",10000)
         all_spikes = []
         if compatible_output:
-            f.write("# dt = %g\n" % pcsim_globals.dt)
-            f.write("# n = %d\n" % len(pcsim_globals.net.object(self.recordings[0][1]).getRecordedValues()))
+            f.write("# dt = %g\n" % simulator.state.dt)
+            f.write("# n = %d\n" % len(simulator.net.object(self.recordings[0][1]).getRecordedValues()))
             for i, rec, src in self.recordings:
-                analog_values =  pcsim_globals.net.object(rec).getRecordedValues()
+                analog_values =  simulator.net.object(rec).getRecordedValues()
                 for v in analog_values:
                     f.write("%g\t%d\n" % (float(v)*1000.0, i)) # convert from mV to V
             
         else:
             for i, rec, src in self.recordings:
-                analog_values =  [i] +  list(pcsim_globals.net.object(rec).getRecordedValues())
+                analog_values =  [i] +  list(simulator.net.object(rec).getRecordedValues())
                 for v in analog_values:
                     f.write("%s " % v)                
                 f.write("\n")
@@ -234,7 +235,7 @@ class FieldMultiChannelRecorder:
     def get_v(self):
         all_vm = numpy.zeros((0,3))
         for i, rec, src in self.recordings:            
-            vm = 1000.0*numpy.array(pcsim_globals.net.object(rec).getRecordedValues())
+            vm = 1000.0*numpy.array(simulator.net.object(rec).getRecordedValues())
             vm = vm.reshape((len(vm),1))
             dt = get_time_step()
             t = numpy.arange(0, dt*len(vm), dt).reshape((len(vm),1))
@@ -261,7 +262,7 @@ class ID(long, common.IDMixin):
         if self.parent:
             pcsim_cell = self.parent.pcsim_population.object(self)
         else:
-            pcsim_cell = pcsim_globals.net.object(self)
+            pcsim_cell = simulator.net.object(self)
         return pcsim_cell
     
     def get_native_parameters(self):
@@ -319,7 +320,7 @@ class WDManager(object):
         if d is not None:
             delay = d
         else:
-            delay = pcsim_globals.minDelay
+            delay = simulator.state.min_delay
         return delay
     
     def convertWeight(self, w, conductance):
@@ -374,69 +375,58 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     simulator but not by others.
     For pcsim, the possible arguments are 'construct_rng_seed' and 'simulation_rng_seed'.
     """
-    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
-    global pcsim_globals, dt
-    pcsim_globals.t = 0
-    pcsim_globals.dt = timestep
-    pcsim_globals.minDelay = min_delay
-    pcsim_globals.maxDelay = max_delay
-    if pcsim_globals.constructRNGSeed is None:
+ 
+    
+    simulator.state.t = 0
+    simulator.state.dt = timestep
+    simulator.state.min_delay = min_delay
+    simulator.max_delay = max_delay
+    if simulator.state.constructRNGSeed is None:
         if extra_params.has_key('construct_rng_seed'):
             construct_rng_seed = extra_params['construct_rng_seed']
         else:
             construct_rng_seed = datetime.today().microsecond
-        pcsim_globals.constructRNGSeed = construct_rng_seed
-    if pcsim_globals.simulationRNGSeed is None:
+        simulator.state.constructRNGSeed = construct_rng_seed
+    if simulator.state.simulationRNGSeed is None:
         if extra_params.has_key('simulation_rng_seed'):
             simulation_rng_seed = extra_params['simulation_rng_seed']
         else:
             simulation_rng_seed = datetime.today().microsecond
-        pcsim_globals.simulationRNGSeed = simulation_rng_seed
+        simulator.state.simulationRNGSeed = simulation_rng_seed
     if extra_params.has_key('threads'):
-        pcsim_globals.net = pypcsim.DistributedMultiThreadNetwork(extra_params['threads'],
-                                                                  pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), pcsim_globals.constructRNGSeed, pcsim_globals.simulationRNGSeed))
+        simulator.net = pypcsim.DistributedMultiThreadNetwork(extra_params['threads'],
+                                                                  pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), simulator.state.constructRNGSeed, simulator.state.simulationRNGSeed))
     else:
-        pcsim_globals.net = pypcsim.DistributedSingleThreadNetwork(pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), pcsim_globals.constructRNGSeed, pcsim_globals.simulationRNGSeed))
-    pcsim_globals.spikes_multi_rec = {}
-    pcsim_globals.vm_multi_rec = {}
-    return pcsim_globals.net.mpi_rank()
+        simulator.net = pypcsim.DistributedSingleThreadNetwork(pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), simulator.state.constructRNGSeed, simulator.state.simulationRNGSeed))
+    simulator.spikes_multi_rec = {}
+    simulator.vm_multi_rec = {}
+    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
+    return simulator.net.mpi_rank()
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    global pcsim_globals
-    for filename, rec in pcsim_globals.vm_multi_rec.items():
+    
+    for filename, rec in simulator.vm_multi_rec.items():
         rec.saveValuesText(compatible_output=compatible_output)
-    for filename, rec in pcsim_globals.spikes_multi_rec.items():
+    for filename, rec in simulator.spikes_multi_rec.items():
         rec.saveSpikesText(compatible_output=compatible_output)    
-    pcsim_globals.vm_multi_rec = {}     
-    pcsim_globals.spikes_multi_rec = {}
+    simulator.vm_multi_rec = {}     
+    simulator.spikes_multi_rec = {}
      
 
 def run(simtime):
     """Run the simulation for simtime ms."""
-    global pcsim_globals
-    pcsim_globals.t += simtime
-    pcsim_globals.net.advance(int(simtime / pcsim_globals.dt ))
+    
+    simulator.state.t += simtime
+    simulator.net.advance(int(simtime / simulator.state.dt ))
     return get_current_time()
 
-def get_current_time():
-    """Return the current time in the simulation."""
-    return pcsim_globals.t
-
-def get_time_step():
-    return pcsim_globals.dt
-common.get_time_step = get_time_step
-
-def get_min_delay():
-    return pcsim_globals.minDelay
-common.get_min_delay = get_min_delay
-
-def num_processes():
-    return pcsim_globals.net.mpi_size()
-
-def rank():
-    """Return the MPI rank."""
-    return pcsim_globals.net.mpi_rank()
+get_current_time = common.get_current_time
+get_time_step = common.get_time_step
+get_min_delay = common.get_min_delay
+get_max_delay = common.get_max_delay
+num_processes = common.num_processes
+rank = common.rank
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
@@ -448,8 +438,8 @@ def create(cellclass, cellparams=None, n=1):
     If n > 1, return a list of cell ids/references.
     If n==1, return just the single id.
     """
-    global pcsim_globals
-    if pcsim_globals.net is None:
+    
+    if simulator.net is None:
         setup()
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, str):
@@ -464,8 +454,8 @@ def create(cellclass, cellparams=None, n=1):
             cellfactory = apply(cellclass, (), cellparams)
         else:
             raise common.InvalidModelError('Trying to create non-existent cellclass ' + cellclass.__name__ )
-    cell_list = [ID(i) for i in pcsim_globals.net.add(cellfactory, n)]
-    #cell_list = pcsim_globals.net.add(cellfactory, n)
+    cell_list = [ID(i) for i in simulator.net.add(cellfactory, n)]
+    #cell_list = simulator.net.add(cellfactory, n)
     for id in cell_list:
         id.cellclass = cellclass
     if n == 1:
@@ -478,9 +468,9 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     connections are made with probability p, using either the random number
     generator supplied, or the default rng otherwise.
     Weights should be in nA or µS."""
-    global pcsim_globals
+    
     if weight is None:  weight = 0.0
-    if delay  is None:  delay = pcsim_globals.minDelay
+    if delay  is None:  delay = simulator.state.min_delay
     if delay < get_min_delay():
         raise common.ConnectionError("Delay (%g ms) must be >= the minimum delay (%g ms)" % (delay, get_min_delay()))
     # Convert units
@@ -490,7 +480,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     else:
         firsttarget = target
     try:
-        if hasattr(pcsim_globals.net.object(firsttarget),'ErevExc'):
+        if hasattr(simulator.net.object(firsttarget),'ErevExc'):
             weight = 1e-6 * weight # Convert from µS to S    
         else:
             weight = 1e-9 * weight # Convert from nA to A
@@ -519,7 +509,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     # Create connections
     try:
         if type(source) != types.ListType and type(target) != types.ListType:
-            connections = pcsim_globals.net.connect(source, target, syn_factory)
+            connections = simulator.net.connect(source, target, syn_factory)
             if not common.is_listlike(connections):
                 connections = [connections]
             return connections
@@ -528,9 +518,9 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
                 source = [source]
             if type(target) != types.ListType:
                 target = [target]
-            src_popul = pypcsim.SimObjectPopulation(pcsim_globals.net, source)
-            dest_popul = pypcsim.SimObjectPopulation(pcsim_globals.net, target)
-            connections = pypcsim.ConnectionsProjection(src_popul, dest_popul, syn_factory, pypcsim.RandomConnections(p), pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net), True)
+            src_popul = pypcsim.SimObjectPopulation(simulator.net, source)
+            dest_popul = pypcsim.SimObjectPopulation(simulator.net, target)
+            connections = pypcsim.ConnectionsProjection(src_popul, dest_popul, syn_factory, pypcsim.RandomConnections(p), pypcsim.SimpleAllToAllWiringMethod(simulator.net), True)
             return connections.idVector()
     except exceptions.TypeError, e:
         raise common.ConnectionError(e)
@@ -555,10 +545,10 @@ def record(source, filename):
     cells."""
     # would actually like to be able to record to an array and choose later
     # whether to write to a file.
-    global pcsim_globals
-    if filename in pcsim_globals.spikes_multi_rec:
-        pcsim_globals.spikes_multi_rec[filename].record(source)    
-    pcsim_globals.spikes_multi_rec[filename] = SpikesMultiChannelRecorder(source, filename)
+    
+    if filename in simulator.spikes_multi_rec:
+        simulator.spikes_multi_rec[filename].record(source)    
+    simulator.spikes_multi_rec[filename] = SpikesMultiChannelRecorder(source, filename)
             
     
 
@@ -568,10 +558,10 @@ def record_v(source, filename):
     a list of cells."""
     # would actually like to be able to record to an array and
     # choose later whether to write to a file.
-    global pcsim_globals
-    if filename in pcsim_globals.vm_multi_rec:
-        pcsim_globals.vm_multi_rec[filename].record(source)
-    pcsim_globals.vm_multi_rec[filename] = FieldMultiChannelRecorder(source, filename)
+    
+    if filename in simulator.vm_multi_rec:
+        simulator.vm_multi_rec[filename].record(source)
+    simulator.vm_multi_rec[filename] = FieldMultiChannelRecorder(source, filename)
 
             
 
@@ -645,7 +635,7 @@ class Population(common.Population):
         
             
         # CuboidGridPopulation(SimNetwork &net, GridPoint3D origin, Volume3DSize dims, SimObjectFactory &objFactory)
-        self.pcsim_population = pypcsim.CuboidGridObjectPopulation(pcsim_globals.net, pypcsim.GridPoint3D(0,0,0), pypcsim.Volume3DSize(dims[0], dims[1], dims[2]), self.cellfactory)
+        self.pcsim_population = pypcsim.CuboidGridObjectPopulation(simulator.net, pypcsim.GridPoint3D(0,0,0), pypcsim.Volume3DSize(dims[0], dims[1], dims[2]), self.cellfactory)
         self.cell = numpy.array(self.pcsim_population.idVector())
         self.cell -= self.cell[0]
         self.all_cells = self.cell
@@ -807,7 +797,7 @@ class Population(common.Population):
         """ This works nicely for PCSIM for simulator specific cells, 
             because cells (SimObject classes) are directly wrapped in python """
         for i in xrange(0, len(self)):
-            obj = pcsim_globals.net.object(self.pcsim_population[i])
+            obj = simulator.net.object(self.pcsim_population[i])
             if obj: apply( obj, methodname, (), arguments)
         
         
@@ -822,7 +812,7 @@ class Population(common.Population):
         """
         """ PCSIM: iteration at the python level and apply"""
         for i in xrange(0, len(self)):
-            obj = pcsim_globals.net.object(self.pcsim_population[i])
+            obj = simulator.net.object(self.pcsim_population[i])
             if obj: apply( obj, methodname, (), arguments)
         
 
@@ -1011,7 +1001,7 @@ class Projection(common.Projection, WDManager):
                    of the synapse objects associated to the created connections.
                    
         """
-        global pcsim_globals
+        
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    method, source, target,
                                    synapse_dynamics, label, rng)
@@ -1029,7 +1019,7 @@ class Projection(common.Projection, WDManager):
         
         delay  = self.getDelay(delay)
         if isinstance(delay, pyNN.random.RandomDistribution) or hasattr(delay, '__len__'):
-            d = pcsim_globals.minDelay/1000.
+            d = simulator.state.min_delay/1000.
         else:
             d = self.convertDelay(delay)
 
@@ -1136,10 +1126,10 @@ class Projection(common.Projection, WDManager):
         w = self.convertWeight(w, self.is_conductance)
         if isinstance(w, float) or isinstance(w, int):
             for i in range(len(self)):
-                pcsim_globals.net.object(self.pcsim_projection[i]).W = w
+                simulator.net.object(self.pcsim_projection[i]).W = w
         else:
             for i in range(len(self)):
-                pcsim_globals.net.object(self.pcsim_projection[i]).W = w[i]
+                simulator.net.object(self.pcsim_projection[i]).W = w[i]
     
     def randomizeWeights(self, rand_distr):
         """
@@ -1151,7 +1141,7 @@ class Projection(common.Projection, WDManager):
         rand_distr = self.convertWeight(rand_distr, self.is_conductance)
         weights = rand_distr.next(len(self))
         for i in range(len(self)):
-            pcsim_globals.net.object(self.pcsim_projection[i]).W = weights[i]
+            simulator.net.object(self.pcsim_projection[i]).W = weights[i]
      
     def setDelays(self, d):
         """
@@ -1163,11 +1153,11 @@ class Projection(common.Projection, WDManager):
         d = self.convertDelay(d)
         if isinstance(d, float) or isinstance(d, int):
             for i in range(len(self)):
-                pcsim_globals.net.object(self.pcsim_projection[i]).delay = d
+                simulator.net.object(self.pcsim_projection[i]).delay = d
         else:
-            assert 1000.0*min(d) >= pcsim_globals.minDelay, "Smallest delay %g ms must be larger than %g ms" % (min(d), pcsim_globals.minDelay)
+            assert 1000.0*min(d) >= simulator.state.min_delay, "Smallest delay %g ms must be larger than %g ms" % (min(d), simulator.state.min_delay)
             for i in range(len(self)):
-                pcsim_globals.net.object(self.pcsim_projection[i]).delay = d[i]
+                simulator.net.object(self.pcsim_projection[i]).delay = d[i]
     
     def randomizeDelays(self, rand_distr):
         """
@@ -1176,7 +1166,7 @@ class Projection(common.Projection, WDManager):
         rand_distr = self.convertDelay(rand_distr)
         delays = rand_distr.next(len(self))
         for i in range(len(self)):
-            pcsim_globals.net.object(self.pcsim_projection[i]).delay = delays[i]
+            simulator.net.object(self.pcsim_projection[i]).delay = delays[i]
     
     def getWeights(self, format='list', gather=True):
         """

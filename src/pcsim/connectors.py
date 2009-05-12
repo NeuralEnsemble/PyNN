@@ -5,7 +5,7 @@
 
 from pyNN import common, connectors
 import pypcsim
-from pyNN.pcsim.pcsim_globals import pcsim_globals
+from pyNN.pcsim import simulator
 import numpy
 
 
@@ -36,7 +36,7 @@ class AllToAllConnector(connectors.AllToAllConnector):
         
         # what about allow_self_connections?
         decider = pypcsim.RandomConnections(1)
-        wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
+        wiring_method = pypcsim.DistributedSyncWiringMethod(simulator.net)
         return decider, wiring_method, self.weights, self.delays
 
 class OneToOneConnector(connectors.OneToOneConnector):
@@ -45,7 +45,7 @@ class OneToOneConnector(connectors.OneToOneConnector):
         
         if projection.pre.dim == projection.post.dim:
             decider = pypcsim.RandomConnections(1)
-            wiring_method = pypcsim.OneToOneWiringMethod(pcsim_globals.net)
+            wiring_method = pypcsim.OneToOneWiringMethod(simulator.net)
             return decider, wiring_method, self.weights, self.delays
         else:
             raise Exception("Connection method not yet implemented for the case where presynaptic and postsynaptic Populations have different sizes.")
@@ -55,14 +55,14 @@ class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
     def connect(self, projection):
         
         decider = pypcsim.RandomConnections(float(self.p_connect))
-        wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
+        wiring_method = pypcsim.DistributedSyncWiringMethod(simulator.net)
         return decider, wiring_method, self.weights, self.delays
 
 #class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector):
 #    
 #    def connect(self, projection):
 #        decider = pypcsim.EuclideanDistanceRandomConnections(method_parameters[0], method_parameters[1]) 
-#        wiring_method = pypcsim.DistributedSyncWiringMethod(pcsim_globals.net)
+#        wiring_method = pypcsim.DistributedSyncWiringMethod(simulator.net)
 #        return decider, wiring_method, self.weights, self.delays
 
 class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
@@ -70,14 +70,14 @@ class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
     def connect(self, projection):
         
         decider = pypcsim.DegreeDistributionConnections(pypcsim.ConstantNumber(self.n), pypcsim.DegreeDistributionConnections.incoming)
-        wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
+        wiring_method = pypcsim.SimpleAllToAllWiringMethod(simulator.net)
         return decider, wiring_method, self.weights, self.delays
 
 class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
     
     def connect(self, projection):
         decider = pypcsim.DegreeDistributionConnections(pypcsim.ConstantNumber(self.n), pypcsim.DegreeDistributionConnections.outgoing)
-        wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
+        wiring_method = pypcsim.SimpleAllToAllWiringMethod(simulator.net)
         return decider, wiring_method, self.weights, self.delays
     
 class FromListConnector(connectors.FromListConnector):
@@ -93,7 +93,7 @@ class FromListConnector(connectors.FromListConnector):
         self.delays = conn_array[:,3]
         lcp = ListConnectionPredicate(conn_array[:,0:2])
         decider = pypcsim.PredicateBasedConnections(lcp)
-        wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
+        wiring_method = pypcsim.SimpleAllToAllWiringMethod(simulator.net)
         # pcsim does not yet deal with having lists of weights, delays, so for now we just return 0 values
         # and will set the weights, delays later
         return decider, wiring_method, self.weights, self.delays
@@ -117,7 +117,7 @@ class FromFileConnector(connectors.FromFileConnector):
         self.delays = conn_array[:,3]
         lcp = ListConnectionPredicate(conn_array[:,0:2])
         decider = pypcsim.PredicateBasedConnections(lcp)
-        wiring_method = pypcsim.SimpleAllToAllWiringMethod(pcsim_globals.net)
+        wiring_method = pypcsim.SimpleAllToAllWiringMethod(simulator.net)
         # pcsim does not yet deal with having lists of weights, delays, so for now we just return 0 values
         # and will set the weights, delays later
         return decider, wiring_method, self.weights, self.delays
