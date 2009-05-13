@@ -54,7 +54,7 @@ class CreationTest(unittest.TestCase):
     def testCreatePCSIMCell(self):
         """create(): First cell created should have index 0."""        
         
-        cellid = create('CbLifNeuron',{'Rm': 2.3e6,'Cm': 1e-9})
+        cellid = create(CbLifNeuron, {'Rm': 2.3e6,'Cm': 1e-9})
         assert isinstance(simulator.net.object(cellid), CbLifNeuron )
         self.assertAlmostEqual(simulator.net.object(cellid).Rm, 2.3e6, places = 6)
         self.assertAlmostEqual(simulator.net.object(cellid).Cm,  1e-9, places = 6)
@@ -84,20 +84,20 @@ class ConnectionTest(unittest.TestCase):
         """connect(): The first connection created should have id 0."""        
         
         conn = connect(self.precells[0],self.postcells[0])
-        assert isinstance( simulator.net.object(conn[0]), SimpleScalingSpikingSynapse)
+        assert isinstance( conn[0].pcsim_connection, SimpleScalingSpikingSynapse)
         
     def testConnectTwoCellsWithWeight(self):
         """connect(): Weight set should match weight retrieved."""        
         
         conn_id = connect(self.precells[0],self.postcells[0],weight=0.1234)[0]
-        weight = simulator.net.object(conn_id).W
+        weight = conn_id.pcsim_connection.W
         self.assertAlmostEqual( weight*1e9 , 0.1234 , places = 8, msg = "Weight set (0.1234) does not match weight retrieved (%s)" % (weight*1e9,) )
     
     def testConnectTwoCellsWithDelay(self):
         """connect(): Delay set should match delay retrieved."""
         
         conn_id = connect(self.precells[0],self.postcells[0],delay=4.321)[0]
-        delay = simulator.net.object(conn_id).delay
+        delay = conn_id.pcsim_connection.delay
         self.assertAlmostEqual( delay, 0.004321, places = 8, msg = "Delay set (0.004321 s) does not match delay retrieved (%s s)." % delay )
         
     
