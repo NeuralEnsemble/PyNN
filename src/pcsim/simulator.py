@@ -32,7 +32,7 @@ class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
     
     fieldnames = {'v': 'Vm',
-                  'gsyn': None}
+                  'gsyn': 'psr'}
     numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support different
                         'v': "%g",      # formats for different columns
                         'gsyn': "%g"}
@@ -75,7 +75,7 @@ class Recorder(object):
                                  pypcsim.SimEngine.ID(src_id.node, src_id.eng))            
                 net.connect(pcsim_id, rec, pypcsim.Time.sec(0))
                 self.recorders[id] = rec
-        elif self.variable in ('v', 'gsyn'):
+        elif self.variable == 'v':
             for id in new_ids:
                 #if self.population:
                 #    pcsim_id = self.population.pcsim_population[int(id)]
@@ -107,7 +107,7 @@ class Recorder(object):
                 spikes = spikes.flatten()
                 spikes = spikes[spikes<=state.t+1e-9]
                 if len(spikes) > 0:    
-                    new_data = numpy.array([numpy.ones(spikes.shape)*(id-offset), spikes]).T
+                    new_data = numpy.array([numpy.ones(spikes.shape, dtype=int)*(id-offset), spikes]).T
                     data = numpy.concatenate((data, new_data))           
         elif self.variable == 'v':
             data = numpy.empty((0,3))
@@ -117,7 +117,7 @@ class Recorder(object):
                 v = v.flatten()
                 dt = state.dt
                 t = numpy.arange(0, dt*len(v), dt).flatten()              
-                new_data = numpy.array([numpy.ones(v.shape)*(id-offset), t, v]).T
+                new_data = numpy.array([numpy.ones(v.shape, dtype=int)*(id-offset), t, v]).T
                 data = numpy.concatenate((data, new_data))
         elif self.variable == 'gsyn':
             raise NotImplementedError
@@ -223,9 +223,9 @@ def create_cells(cellclass, cellparams, n, parent=None):
     # mask_local is used to extract those elements from arrays that apply to the cells on the current node
     mask_local = numpy.array([is_local(id) for id in all_ids])
     for i,(id,local) in enumerate(zip(all_ids, mask_local)):
-        if local:
-            all_ids[i] = ID(id)
-            all_ids[i].parent = parent
+        #if local:
+        all_ids[i] = ID(id)
+        all_ids[i].parent = parent
     return all_ids, mask_local, first_id, last_id
 
 

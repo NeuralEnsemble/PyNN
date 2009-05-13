@@ -171,28 +171,21 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
                                                                   pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), simulator.state.constructRNGSeed, simulator.state.simulationRNGSeed))
     else:
         simulator.net = pypcsim.DistributedSingleThreadNetwork(pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), simulator.state.constructRNGSeed, simulator.state.simulationRNGSeed))
-    simulator.spikes_multi_rec = {}
-    simulator.vm_multi_rec = {}
+    
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     return simulator.net.mpi_rank()
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    
-    for filename, rec in simulator.vm_multi_rec.items():
-        rec.saveValuesText(compatible_output=compatible_output)
-    for filename, rec in simulator.spikes_multi_rec.items():
-        rec.saveSpikesText(compatible_output=compatible_output)    
-    simulator.vm_multi_rec = {}     
-    simulator.spikes_multi_rec = {}
+    for recorder in simulator.recorder_list:
+        recorder.write(gather=False, compatible_output=compatible_output)
      
 
 def run(simtime):
     """Run the simulation for simtime ms."""
-    
     simulator.state.t += simtime
     simulator.net.advance(int(simtime / simulator.state.dt ))
-    return get_current_time()
+    return simulator.state.t
 
 get_current_time = common.get_current_time
 get_time_step = common.get_time_step
