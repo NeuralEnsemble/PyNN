@@ -71,7 +71,7 @@ class ConnectionTest(unittest.TestCase):
         conn_list = sim.connect(self.precells[0], self.postcells[0], weight=0.1234)
         if conn_list:
             weight = conn_list[0].weight
-            self.assertEqual(weight, 0.1234)
+            self.assertAlmostEqual(weight, 0.1234, 6)
             
     def testConnectTwoCellsWithDelay(self):
         conn_list = sim.connect(self.precells[0], self.postcells[0], delay=4.321)
@@ -80,7 +80,7 @@ class ConnectionTest(unittest.TestCase):
             if simulator == 'nest2':
                 self.assertEqual(round(delay, 1), 4.4) # NEST rounds delays to the timestep, 0.1 here
             else:
-                self.assertEqual(delay, 4.321) 
+                self.assertAlmostEqual(delay, 4.321, 6) 
     
     def testConnectManyToOne(self):
         """connect(): Connecting n sources to one target should return a list of size n,
@@ -626,7 +626,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         spikes = spike_source.getSpikes()
         spikes = spikes[:,1]
         if sim.rank() == 0:
-            self.assert_( max(spikes) == 100.0, str(spikes) )
+            self.assertAlmostEqual(max(spikes), 100.0, 6)
 
     def testRecordVmFromSpikeSource(self):
         self.assertRaises(common.RecordingError, self.pop1.record_v)
@@ -888,7 +888,7 @@ class ProjectionGetTest(unittest.TestCase):
             weights_out = weights_out.compress(weights_out>0)
             self.assertEqual(weights_out[0], prj.connections[0].weight)
             self.assertEqual(weights_in.shape, weights_out.shape)
-            assert_arrays_almost_equal(weights_in, weights_out, 1e-8)
+            assert_arrays_almost_equal(weights_in, weights_out, 1e-7)
             
          
 #===============================================================================

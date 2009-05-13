@@ -38,7 +38,7 @@ class NonExistentParameterError(Exception):
             self.model_name = model
             self.valid_parameter_names = ['unknown']
         else:
-            raise Exception("When raising a NonExistentParameterError, model must be a class or a string")
+            raise Exception("When raising a NonExistentParameterError, model must be a class or a string, not a %s" % type(model))
 
     def __str__(self):
         return "%s (valid parameters for %s are: %s)" % (self.parameter_name,
