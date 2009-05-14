@@ -1,6 +1,6 @@
 # ==============================================================================
 # Connection method classes for neuron
-# $Id: connectors.py 361 2008-06-12 16:17:59Z apdavison $
+# $Id:$
 # ==============================================================================
 
 from pyNN.connectors import AllToAllConnector, \

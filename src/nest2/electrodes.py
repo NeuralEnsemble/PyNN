@@ -26,6 +26,8 @@ class StepCurrentSource(CurrentSource):
     def __init__(self, times, amplitudes):
         self._device = nest.Create('step_current_generator')
         assert len(times) == len(amplitudes), "times and amplitudes must be the same size (len(times)=%d, len(amplitudes)=%d" % (len(times), len(amplitudes))
+        times.append(1e12)                 # work around for 
+        amplitudes.append(amplitudes[-1])  # bug in NEST
         nest.SetStatus(self._device, {'amplitude_times': numpy.array(times, 'float'),
                                       'amplitude_values': 1000.0*numpy.array(amplitudes, 'float')})
         

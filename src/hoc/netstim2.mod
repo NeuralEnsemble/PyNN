@@ -1,5 +1,5 @@
 : Based on:
-:     $Id: netstim.mod 2212 2008-09-08 14:32:26Z hines $
+:     $Id$
 : but with fixed duration rather than fixed number of spikes
 : Modified by Andrew Davison, UNIC, CNRS
 

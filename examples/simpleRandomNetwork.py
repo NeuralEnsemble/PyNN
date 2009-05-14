@@ -5,7 +5,7 @@ projecting to a 2D population of IF_curr_alpha neurons.
 Andrew Davison, UNIC, CNRS
 August 2006
 
-$Id: simpleNetwork.py 206 2008-02-07 15:03:38Z apdavison $
+$Id$
 """
 
 import sys

@@ -535,10 +535,12 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         self.pop3 = sim.Population((3,3), sim.IF_cond_alpha)
         #self.pop4 = sim.Population((3,3), sim.EIF_cond_alpha_isfa_ista)
         self.pops =[self.pop1, self.pop2, self.pop3] #, self.pop3]
-
-    def tearDown(self):
         if hasattr(sim, 'simulator') and hasattr(sim.simulator, 'reset'):
             sim.simulator.reset()
+
+    #def tearDown(self):
+    #    if hasattr(sim, 'simulator') and hasattr(sim.simulator, 'reset'):
+    #        sim.simulator.reset()
 
     def testRecordAll(self):
         """Population.record(): not a full test, just checking there are no Exceptions raised."""
@@ -577,6 +579,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         sim.run(simtime)
         rate = self.pop1.meanSpikeCount()*1000/simtime
         if sim.rank() == 0: # only on master node
+            ##print self.pop1.recorders['spikes'].recorders
             assert (20*0.8 < rate) and (rate < 20*1.2), "rate is %s" % rate
         #rate = self.pop3.meanSpikeCount()*1000/simtime
         #self.assertEqual(rate, 0.0)
@@ -797,7 +800,10 @@ class ProjectionInitTest(unittest.TestCase):
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 prj1 = sim.Projection(srcP, tgtP, sim.AllToAllConnector(delays=0.321))
-                self.assertAlmostEqual(prj1.connections[0].delay, 0.321, 6)
+                if simulator != 'nest2':
+                    self.assertAlmostEqual(prj1.connections[0].delay, 0.321, 6)
+                else:
+                    self.assertAlmostEqual(prj1.connections[0].delay, 0.4, 6) # nest rounds delays to the timestep
          
 
 class ProjectionSetTest(unittest.TestCase):
@@ -825,7 +831,10 @@ class ProjectionSetTest(unittest.TestCase):
         delays = []
         for c in prj1.connections:
             delays.append(c.delay)
-        result = 2.345*numpy.ones(len(prj1.connections))
+        if simulator != 'nest2':
+            result = 2.345*numpy.ones(len(prj1.connections))
+        else:
+            result = 2.4*numpy.ones(len(prj1.connections)) # nest rounds delays up
         assert_arrays_almost_equal(numpy.array(delays), result, 1e-7)
         
     def testRandomizeWeights(self):

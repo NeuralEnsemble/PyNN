@@ -127,7 +127,7 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
             if scale_factor != 1:
                 data[:,v_column] *= scale_factor
             for idx in xrange(len(data)):
-                result.write("%g\t%d\n" % (data[idx][v_column], data[idx][id_column])) # v id
+                result.write("%g\t%d\n" % (data[idx][v_column], int(data[idx][id_column]))) # v id
         elif data.shape[1] == 2: # spike files
             for idx in xrange(len(data)):
                 result.write("%g\t%d\n" % (data[idx][time_column], data[idx][id_column])) # time id

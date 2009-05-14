@@ -296,7 +296,7 @@ class DistanceDependentProbabilityConnector(common.Connector):
             'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': None, None: None}
     
     def __init__(self, d_expression, axes=None, scale_factor=1.0, offset=0.0,
-                 periodic_boundaries=False, allow_self_connections=True,
+                 periodic_boundaries=None, allow_self_connections=True,
                  weights=0.0, delays=None):
         common.Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)

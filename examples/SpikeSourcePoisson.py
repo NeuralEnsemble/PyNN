@@ -4,7 +4,7 @@ Simple test of recording a SpikeSourcePoisson object
 Andrew Davison, UNIC, CNRS
 September 2006
 
-$Id: IF_curr_exp.py 43 2007-05-10 14:06:33Z apdavison $
+$Id$
 """
 
 import sys

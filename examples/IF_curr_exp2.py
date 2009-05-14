@@ -1,6 +1,6 @@
 """
 
-$Id: IF_curr_exp.py 97 2007-06-07 12:09:56Z Pierre $
+$Id$
 """
 
 import sys

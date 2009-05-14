@@ -7,6 +7,9 @@ from pyNN import common, recording
 
 recorder_list = []
 
+def reset():
+    net.reset()
+
 class _State(object):
     """Represent the simulator state."""
     
@@ -70,10 +73,11 @@ class Recorder(object):
                 #    pcsim_id = self.population.pcsim_population[int(id)]
                 #else:
                 pcsim_id = int(id)
-                src_id = pypcsim.SimObject.ID(pcsim_id)    
+                src_id = pypcsim.SimObject.ID(pcsim_id)
                 rec = net.create(pypcsim.SpikeTimeRecorder(),
                                  pypcsim.SimEngine.ID(src_id.node, src_id.eng))            
                 net.connect(pcsim_id, rec, pypcsim.Time.sec(0))
+                assert id not in self.recorders
                 self.recorders[id] = rec
         elif self.variable == 'v':
             for id in new_ids:
