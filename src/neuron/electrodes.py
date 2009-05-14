@@ -14,11 +14,12 @@ class DCSource(CurrentSource):
     
     def inject_into(self, cell_list):
         for id in cell_list:
-            iclamp = h.IClamp(0.5, sec=id._cell)
-            iclamp.delay = self.start
-            iclamp.dur = self.stop-self.start
-            iclamp.amp = self.amplitude
-            self._devices.append(iclamp)
+            if id.local:
+                iclamp = h.IClamp(0.5, sec=id._cell)
+                iclamp.delay = self.start
+                iclamp.dur = self.stop-self.start
+                iclamp.amp = self.amplitude
+                self._devices.append(iclamp)
     
 class StepCurrentSource(CurrentSource):
     
@@ -29,9 +30,10 @@ class StepCurrentSource(CurrentSource):
     
     def inject_into(self, cell_list):
         for id in cell_list:
-            iclamp = h.IClamp(0.5, sec=id._cell)
-            iclamp.delay = 0.0
-            iclamp.dur = 1e12
-            iclamp.amp = 0.0
-            self._devices.append(iclamp)
-            self.amplitudes.play(iclamp._ref_amp, self.times)
+            if id.local:
+                iclamp = h.IClamp(0.5, sec=id._cell)
+                iclamp.delay = 0.0
+                iclamp.dur = 1e12
+                iclamp.amp = 0.0
+                self._devices.append(iclamp)
+                self.amplitudes.play(iclamp._ref_amp, self.times)

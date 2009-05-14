@@ -7,6 +7,12 @@ import pyNN.random as random
 import numpy
 import unittest
 
+def assert_arrays_almost_equal(a, b, threshold):
+    if not (abs(a-b) < threshold).all():
+        err_msg = "%s != %s" % (a, b)
+        err_msg += "\nlargest difference = %g" % abs(a-b).max()
+        raise unittest.TestCase.failureException(err_msg)
+
 # ==============================================================================
 class SimpleTests(unittest.TestCase):
     """Simple tests on a single RNG function."""
@@ -59,6 +65,14 @@ class ParallelTests(unittest.TestCase):
         self.assertEqual(len(draw0), 3)
         self.assertEqual(len(draw1), 2)
         self.assertNotEqual(draw0.tolist(), draw1.tolist())
+
+    def test_permutation(self):
+        rng0 = random.NumpyRNG(seed=1000, rank=0, num_processes=2, parallel_safe=True)
+        rng1 = random.NumpyRNG(seed=1000, rank=1, num_processes=2, parallel_safe=True)
+        A = range(10)
+        perm0 = rng0.permutation(A)
+        perm1 = rng1.permutation(A)
+        assert_arrays_almost_equal(perm0, perm1, 1e-99)
 
 class NativeRNGTests(unittest.TestCase):
     

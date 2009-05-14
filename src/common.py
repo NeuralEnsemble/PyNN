@@ -51,6 +51,7 @@ class InvalidModelError(Exception): pass
 class RoundingWarning(Warning): pass
 class NothingToWriteError(Exception): pass
 class InvalidWeightError(Exception): pass
+class NotLocalError(Exception): pass
 
 class RecordingError(Exception):
     
@@ -100,7 +101,7 @@ def is_conductance(target_cell):
     Returns True if the target cell uses conductance-based synapses, False if it
     uses current-based synapses, and None if the synapse-basis cannot be determined.
     """
-    if hasattr(target_cell, 'cellclass'):
+    if target_cell.local and hasattr(target_cell, 'cellclass'):
         if isinstance(target_cell.cellclass, type):
             is_conductance = "cond" in target_cell.cellclass.__name__
         else:
@@ -129,6 +130,8 @@ def check_weight(weight, synapse_type, is_conductance):
     elif synapse_type == 'inhibitory':
         if not all_negative:
             raise InvalidWeightError("Weights must be negative for current-based, inhibitory synapses")
+    else: # is_conductance is None. This happens if the cell does not exist on the current node.
+        logging.debug("Can't check weight, conductance status unknown.")
     return weight
 
 def check_delay(delay):
@@ -155,11 +158,12 @@ class IDMixin(object):
     
     non_parameter_attributes = ('parent', '_cellclass', 'cellclass',
                                 '_position', 'position', 'hocname', '_cell',
-                                'inject', '_v_init')
+                                'inject', '_v_init', 'local')
     
     def __init__(self):
         self.parent = None
         self._cellclass = None
+        self.local = True
 
     def __getattr__(self, name):
         if name in self.non_parameter_attributes:
@@ -181,22 +185,28 @@ class IDMixin(object):
         """Set cell parameters, given as a sequence of parameter=value arguments."""
         # if some of the parameters are computed from the values of other
         # parameters, need to get and translate all parameters
-        if self.is_standard_cell():
-            computed_parameters = self.cellclass.computed_parameters()
-            have_computed_parameters = numpy.any([p_name in computed_parameters for p_name in parameters])
-            if have_computed_parameters:     
-                all_parameters = self.get_parameters()
-                all_parameters.update(parameters)
-                parameters = all_parameters
-            parameters = self.cellclass.translate(parameters)
-        self.set_native_parameters(parameters)
+        if self.local:
+            if self.is_standard_cell():
+                computed_parameters = self.cellclass.computed_parameters()
+                have_computed_parameters = numpy.any([p_name in computed_parameters for p_name in parameters])
+                if have_computed_parameters:     
+                    all_parameters = self.get_parameters()
+                    all_parameters.update(parameters)
+                    parameters = all_parameters
+                parameters = self.cellclass.translate(parameters)
+            self.set_native_parameters(parameters)
+        else:
+            raise NotLocalError("Cannot set parameters for a cell that does not exist on this node.")
     
     def get_parameters(self):
         """Return a dict of all cell parameters."""
-        parameters  = self.get_native_parameters()
-        if self.is_standard_cell():
-            parameters = self.cellclass.reverse_translate(parameters)
-        return parameters
+        if self.local:
+            parameters = self.get_native_parameters()
+            if self.is_standard_cell():
+                parameters = self.cellclass.reverse_translate(parameters)
+            return parameters
+        else:
+            raise NotLocalError("Cannot obtain parameters for a cell that does not exist on this node.")
 
     def _set_cellclass(self, cellclass):
         if self.parent is None and self._cellclass is None:
@@ -246,13 +256,14 @@ class IDMixin(object):
         time they are requested and then cached.
         """
         if self.parent:
-            index = numpy.where(self.parent.cell.flatten() == int(self))[0][0]
+            #index = numpy.where(self.parent.all_cells.flatten() == int(self))[0][0]
+            index = int(self) - self.parent.first_id
             return self.parent.positions[:, index]  
         else:
             try:
                 return self._position
             except (AttributeError, KeyError):
-                self._position = (float(self), 0.0, 0.0)
+                self._position = numpy.array((self, 0.0, 0.0), float)
                 return self._position
 
     position = property(_get_position, _set_position)
@@ -520,7 +531,7 @@ def create(cellclass, cellparams=None, n=1):
     If n==1, return just the single id.
     """
     all_cells, mask_local, first_id, last_id = simulator.create_cells(cellclass, cellparams, n)
-    for id in all_cells:
+    for id in all_cells[mask_local]:
         id.cellclass = cellclass
     all_cells = all_cells.tolist() # not sure this is desirable, but it is consistent with the other modules
     if n == 1:
@@ -540,18 +551,21 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         source = [source]
     if not is_listlike(target):
         target = [target]
-    weight = check_weight(weight, synapse_type, is_conductance(target[0]))
     delay = check_delay(delay)
     if p < 1:
         rng = rng or numpy.random
     connection_manager = simulator.ConnectionManager()
     for tgt in target:
+        if not isinstance(tgt, IDMixin):
+            raise ConnectionError("target is not a cell, actually %s" % type(tgt))
         sources = numpy.array(source, dtype=type(source))
         if p < 1:
             rarr = rng.uniform(0, 1, len(source))
             sources = sources[rarr<p]
-        for src in sources:
-            connection_manager.connect(src, tgt, weight, delay, synapse_type)
+        if tgt.local:
+            weight = check_weight(weight, synapse_type, is_conductance(tgt))
+            for src in sources:
+                connection_manager.connect(src, tgt, weight, delay, synapse_type)
     return connection_manager
 
 
@@ -565,7 +579,7 @@ def set(cells, param, val=None):
         cells = [cells]
     # see comment in Population.set() below about the efficiency of the
     # following
-    for cell in cells:
+    for cell in (cell for cell in cells if cell.local):
         cell.set_parameters(**param)
 
 def build_record(variable, simulator):
@@ -740,15 +754,20 @@ class Population(object):
         nearest = distances.argmin()
         return self.index(nearest)
     
-    def get(self, parameter_name, as_array=False):
+    def get(self, parameter_name, as_array=False): # would be nice to add a 'gather' argument
         """
         Get the values of a parameter for every cell in the population.
         """
         # if all the cells have the same value for this parameter, should
         # we return just the number, rather than an array?
-        values = [getattr(cell, parameter_name) for cell in self]
         if as_array:
-            values = numpy.array(values).reshape(self.dim)
+            values = numpy.NaN*numpy.ones(self.dim)
+            for cell in self.all():
+                addr = self.locate(cell)
+                if cell.local:
+                    values[addr] = getattr(cell, parameter_name)
+        else:
+            values = [getattr(cell, parameter_name) for cell in self]
         return values
             
     def set(self, param, val=None):
@@ -1004,17 +1023,21 @@ class Population(object):
                 lines += ['This population is a subpopulation of population $parent_label']
             lines += ["-> Cells are aranged on a ${ndim}D grid of size $dim",
                       "-> Celltype is $celltype",
-                      "-> ID range is $first_id-$last_id",
-                      "-> Cell Parameters used for cell[0] are: "]
-            for name, value in self.index(0).get_parameters().items():
-                lines += ["    | %-12s: %s" % (name, value)]
+                      "-> ID range is $first_id-$last_id",]
+            if len(self.local_cells) > 0:
+                lines += ["-> Cell Parameters used for first cell on this node are: "]
+                for name, value in self.local_cells[0].get_parameters().items():
+                    lines += ["    | %-12s: %s" % (name, value)]
+            else:
+                lines += ["-> There are no cells on this node."]
             lines += ["--- End of Population description ----"]
             template = "\n".join(lines)
             
         context = self.__dict__.copy()
-        first_id = self.local_cells[0]
-        context.update(local_first_id=first_id)
-        context.update(cell_parameters=first_id.get_parameters())
+        if len(self.local_cells) > 0:
+            first_id = self.local_cells[0]
+            context.update(local_first_id=first_id)
+            context.update(cell_parameters=first_id.get_parameters())
         context.update(celltype=self.celltype.__class__.__name__)
         context.update(n_cells=len(self))
         context.update(n_cells_local=len(self.local_cells))
@@ -1077,7 +1100,7 @@ class Projection(object):
         if isinstance(rng, random.AbstractRNG):
             self.rng = rng
         elif rng is None:
-            self.rng = random.NumpyRNG()
+            self.rng = random.NumpyRNG(seed=151985012, rank=rank(), num_processes=num_processes(), parallel_safe=True)
         else:
             raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
         self._method = method

@@ -205,8 +205,6 @@ class Projection(common.Projection):
         self.connections = self.connection_manager
         if not label:
             self.label = 'projection%d' % Projection.nProj
-        if not rng:
-            self.rng = NumpyRNG()
         self.synapse_type = target or 'excitatory'
         
         ## Deal with short-term synaptic plasticity
@@ -240,7 +238,8 @@ class Projection(common.Projection):
         # as this should already have been done in the Connector object, so
         # we could probably remove it.
         delays = [c.nc.delay for c in self.connections]
-        assert min(delays) >= get_min_delay()
+        if delays:
+            assert min(delays) >= get_min_delay()
         
         Projection.nProj += 1           
     

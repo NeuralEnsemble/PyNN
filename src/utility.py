@@ -1,6 +1,6 @@
 """
 A collection of utility functions.
-$Id:$
+$Id$
 """
 
 # If there is a settings.py file on the path, defaults will be
@@ -13,6 +13,7 @@ except ImportError:
 import sys
 import logging
 import time
+import os
 
 red     = 0010; green  = 0020; yellow = 0030; blue = 0040;
 magenta = 0050; cyan   = 0060; bright = 0100
@@ -38,7 +39,10 @@ def notify(msg="Simulation finished.", subject="Simulation finished.", smtphost=
             server.quit()
 
 def get_script_args(script, n_args):
-    script_index = sys.argv.index(script)
+    try:
+        script_index = sys.argv.index(script)
+    except ValueError:
+        script_index = sys.argv.index(os.path.abspath(script))
     args = sys.argv[script_index+1:script_index+1+n_args]
     if len(args) != n_args:
         raise Exception("Script requires %d arguments, you supplied %d" % (n_args, len(args)))

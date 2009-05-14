@@ -1,13 +1,13 @@
 """
 Unit tests for all simulators
-$Id:$
+$Id$
 """
 
 import sys
 import unittest
 import numpy
 import os
-from pyNN import common, random
+from pyNN import common, random, utility
 
 def assert_arrays_almost_equal(a, b, threshold):
     if not (abs(a-b) < threshold).all():
@@ -25,12 +25,15 @@ class CreationTest(unittest.TestCase):
     def testCreateStandardCell(self):
         for cellclass in sim.list_standard_models():
             ifcell = sim.create(cellclass)
-            assert isinstance(ifcell, common.IDMixin)
+            assert isinstance(ifcell, common.IDMixin), type(ifcell)
         
     def testCreateStandardCells(self):
         for cellclass in sim.list_standard_models():
             ifcells = sim.create(cellclass, n=10)
             self.assertEqual(len(ifcells), 10)
+            local_cells = [cell for cell in ifcells if cell.local]
+            cells_per_process = 10.0/sim.num_processes()
+            self.assert_(numpy.floor(cells_per_process) <= len(local_cells) <=  numpy.ceil(cells_per_process), "cells per process: %d, local cells: %d" % (cells_per_process, len(local_cells)))
        
     def testCreateStandardCellsWithNegative_n(self):
         """create(): n must be positive definite"""
@@ -39,7 +42,8 @@ class CreationTest(unittest.TestCase):
     def testCreateStandardCellWithParams(self):
         """create(): Parameters set on creation should be the same as retrieved with the top-level HocObject"""
         ifcell = sim.create(sim.IF_curr_alpha,{'tau_syn_E':3.141592654})
-        self.assertAlmostEqual(ifcell.tau_syn_E, 3.141592654, places=6)
+        if ifcell.local:
+            self.assertAlmostEqual(ifcell.tau_syn_E, 3.141592654, places=6)
         
     def testCreateInvalidCell(self):
         """create(): Trying to create a cell type which is not a standard cell or
@@ -64,11 +68,15 @@ class ConnectionTest(unittest.TestCase):
     def testConnectTwoCells(self):
         conn_list = sim.connect(self.precells[0], self.postcells[0])
         # conn will be an empty list if it does not exist on that node
-        self.assertEqual(len(conn_list), 1)
+        if self.postcells[0].local:
+            self.assertEqual(len(conn_list), 1)
+        else:
+            self.assertEqual(len(conn_list), 0)
         
     def testConnectTwoCellsWithWeight(self):
         """connect(): Weight set should match weight retrieved."""
         conn_list = sim.connect(self.precells[0], self.postcells[0], weight=0.1234)
+        print [c.weight for c in conn_list]
         if conn_list:
             weight = conn_list[0].weight
             self.assertAlmostEqual(weight, 0.1234, 6)
@@ -87,30 +95,34 @@ class ConnectionTest(unittest.TestCase):
         each element being the id number of a netcon."""
         conn_list = sim.connect(self.precells, self.postcells[0])
         # connections are only created on the node containing the post-syn
-        self.assertEqual(len(conn_list), len(self.precells))
+        if self.postcells[0].local:
+            self.assertEqual(len(conn_list), len(self.precells))
+        else:
+            self.assertEqual(len(conn_list), 0)
         
     def testConnectOneToMany(self):
         """connect(): Connecting one source to n targets should return a list of target ports."""
         conn_list = sim.connect(self.precells[0], self.postcells)
-        cells_on_this_node = len([i for i in self.postcells if is_local(i)])
+        cells_on_this_node = len([i for i in self.postcells if i.local])
         self.assertEqual(len(conn_list),  cells_on_this_node)
         
     def testConnectManyToMany(self):
         """connect(): Connecting m sources to n targets should return a list of length m x n"""
         conn_list = sim.connect(self.precells, self.postcells)
-        cells_on_this_node = len([i for i in self.postcells if is_local(i)])
+        cells_on_this_node = len([i for i in self.postcells if i.local])
         expected_length = cells_on_this_node*len(self.precells)
         self.assertEqual(len(conn_list), expected_length, "%d != %d" % (len(conn_list), expected_length))
         
     def testConnectWithProbability(self):
         """connect(): If p=0.5, it is very unlikely that either zero or the maximum number of connections should be created."""
         conn_list = sim.connect(self.precells, self.postcells, p=0.5)
-        cells_on_this_node = len([i for i in self.postcells if is_local(i)])
+        cells_on_this_node = len([i for i in self.postcells if i.local])
         assert 0 < len(conn_list) < len(self.precells)*cells_on_this_node, 'Number of connections is %d: this is very unlikely (although possible).' % len(conn_list)
     
     def testConnectNonExistentPreCell(self):
         """connect(): Connecting from non-existent cell should raise a ConnectionError."""
-        self.assertRaises(common.ConnectionError, sim.connect, 12345, self.postcells[0])
+        if self.postcells[0].local:
+            self.assertRaises(common.ConnectionError, sim.connect, 12345, self.postcells[0])
         
     def testConnectNonExistentPostCell(self):
         """connect(): Connecting to a non-existent cell should raise a ConnectionError."""
@@ -155,8 +167,8 @@ class IDSetGetTest(unittest.TestCase):
     def testSetGet(self):
         """__setattr__(), __getattr__(): sanity check"""
         for cell_class in IDSetGetTest.model_list:
-            cell_list = (self.cells[cell_class.__name__][0],
-                         self.populations[cell_class.__name__][0])
+            cell_list = [cell for cell in self.cells[cell_class.__name__] if cell.local] + \
+                        [cell for cell in self.populations[cell_class.__name__].local_cells]
             parameter_names = cell_class.default_parameters.keys()
             for cell in cell_list:
                 for name in parameter_names:
@@ -204,8 +216,8 @@ class IDSetGetTest(unittest.TestCase):
         default_dp = 6
         decimal_places = {'duration': 2, 'start': 2}
         for cell_class in IDSetGetTest.model_list:
-            cell_list = (self.cells[cell_class.__name__][0],
-                         self.populations[cell_class.__name__][0])
+            cell_list = [cell for cell in self.cells[cell_class.__name__] if cell.local] + \
+                        [cell for cell in self.populations[cell_class.__name__].local_cells]
             parameter_names = cell_class.default_parameters.keys()
             if 'v_thresh' in parameter_names: # make sure 'v_thresh' comes first
                 parameter_names.remove('v_thresh')
@@ -246,7 +258,7 @@ class IDSetGetTest(unittest.TestCase):
         for name, pop in self.populations.items():
             assert isinstance(pop[0], common.IDMixin)
             assert 'cellclass' in pop[0].non_parameter_attributes
-            self.assertEqual(pop[0].cellclass.__name__, name)
+            self.assertEqual(pop.local_cells[0].cellclass.__name__, name)
         self.assertRaises(Exception, setattr, pop[0].cellclass, 'dummy')
         
     def testGetSetPosition(self):
@@ -269,9 +281,10 @@ class SetValueTest(unittest.TestCase):
         for cell in self.cells:
             try:
                 self.assertAlmostEqual(cell.tau_m, 35.7, 5)
-            except AttributeError: # if cell is not on this node
+            except common.NotLocalError: # if cell is not on this node
                 pass
-        self.assertAlmostEqual(self.single_cell.v_init, -67.8, 6)
+        if self.single_cell.local:
+            self.assertAlmostEqual(self.single_cell.v_init, -67.8, 6)
 
     def testSetDict(self):
         sim.set(self.cells, {'tau_m': 35.7, 'tau_syn_E': 5.432})
@@ -279,7 +292,7 @@ class SetValueTest(unittest.TestCase):
             try:
                 self.assertAlmostEqual(cell.tau_syn_E, 5.432, 6)
                 self.assertAlmostEqual(cell.tau_m, 35.7, 5)
-            except AttributeError: # if cell is not on this node
+            except common.NotLocalError: # if cell is not on this node
                 pass
             
     def testSetNonExistentParameter(self):
@@ -464,19 +477,25 @@ class PopulationSetTest(unittest.TestCase):
     def testRandomInit(self):
         rd = random.RandomDistribution('uniform', [-75,-55])
         self.p1.randomInit(rd)
-        self.assertNotEqual(self.p1[0,0,0].v_init, self.p1[0,0,1].v_init)
+        #self.assertNotEqual(self.p1[0,0,0].v_init, self.p1[0,0,1].v_init)
+        self.assertNotEqual(self.p1.local_cells[0].v_init, self.p1.local_cells[1].v_init)
                 
     def test_tset(self):
         tau_m = numpy.arange(10.0, 16.0, 0.1).reshape((5,4,3))
         self.p1.tset("tau_m", tau_m)
-        self.assertAlmostEqual(self.p1[0,0,0].tau_m, 10.0, 6)
-        self.assertAlmostEqual(self.p1[0,0,1].tau_m, 10.1, 6)
-        self.assertAlmostEqual(self.p1[0,3,1].tau_m, 11.0, 6)
+        
+        for addr, val in ( ((0,0,0), 10.0),
+                           ((0,0,1), 10.1),
+                           ((0,3,1), 11.0)):
+            if self.p1[addr].local:
+                self.assertAlmostEqual(self.p1[addr].tau_m, val, 6)
         
         spike_times = numpy.arange(40.0).reshape(2,2,10)
         self.p2.tset("spike_times", spike_times)
-        assert_arrays_almost_equal(self.p2[0,0].spike_times, numpy.arange(10.0), 1e-9)
-        assert_arrays_almost_equal(self.p2[1,1].spike_times, numpy.arange(30.0,40.0), 1e-9)
+        if self.p2[0,0].local:
+            assert_arrays_almost_equal(self.p2[0,0].spike_times, numpy.arange(10.0), 1e-9)
+        if self.p2[1,1].local:
+            assert_arrays_almost_equal(self.p2[1,1].spike_times, numpy.arange(30.0,40.0), 1e-9)
                 
     def testTSetInvalidDimensions(self):
         """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
@@ -498,8 +517,9 @@ class PopulationSetTest(unittest.TestCase):
                                          parameters=[0.9,1.1])
         self.p1.rset('cm', rd1)
         output_values = self.p1.get('cm', as_array=True)
+        mask = (1-numpy.isnan(output_values)).astype(bool)
         input_values = rd2.next(len(self.p1)).reshape(self.p1.dim)
-        assert_arrays_almost_equal(input_values, output_values, 1e-7)
+        assert_arrays_almost_equal(input_values[mask], output_values[mask], 1e-7)
                 
 #===============================================================================                
 class PopulationPositionsTest(unittest.TestCase):
@@ -680,7 +700,7 @@ class ProjectionTest(unittest.TestCase):
         assert not callable(self.prj.connections)
         assert hasattr(self.prj.connections, "__iter__")
         connections = [c for c in self.prj.connections]
-        self.assertEqual(len(connections), len(self.prj.pre))
+        self.assertEqual(len(connections), len(self.prj.pre.local_cells))
          
 # ==============================================================================
 class ProjectionInitTest(unittest.TestCase):
@@ -707,9 +727,10 @@ class ProjectionInitTest(unittest.TestCase):
                 for c in prj.connections:
                     weights.append(c.weight)
                 if srcP==tgtP:
-                    n = len(srcP)*(len(tgtP)-1)
+                    n = (len(srcP)-1)*len(tgtP.local_cells)                    
                 else:
-                    n = len(srcP)*len(tgtP)
+                    n = len(srcP)*len(tgtP.local_cells)
+                self.assertEqual(len(weights), n)
                 target_weights = [1.234]*n
                 assert_arrays_almost_equal(numpy.array(weights), numpy.array(target_weights), 1e-7) #msg="srcP=%s, tgtP=%s\n%s !=\n%s" % (srcP.label, tgtP.label, weights, target_weights))
             
@@ -717,8 +738,9 @@ class ProjectionInitTest(unittest.TestCase):
         """For all connections created with "fixedProbability"..."""
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target1, self.target6, self.target33]:
-                prj = sim.Projection(srcP, tgtP, sim.FixedProbabilityConnector(0.5), rng=random.NumpyRNG(12345))
-                assert (0 < len(prj) < len(srcP)*len(tgtP)), 'len(prj) = %d, len(srcP)*len(tgtP) = %d' % (len(prj), len(srcP)*len(tgtP))
+                prj = sim.Projection(srcP, tgtP, sim.FixedProbabilityConnector(0.5), rng=random.NumpyRNG(12345, rank=sim.rank(), num_processes=sim.num_processes()))
+                if len(tgtP.local_cells) > 1:
+                    assert (0 < len(prj) < len(srcP)*len(tgtP.local_cells)), 'len(prj) = %d, len(srcP)*len(tgtP.local_cells) = %d' % (len(prj), len(srcP)*len(tgtP.local_cells))
                 
     def testOneToOne(self):
         """For all connections created with "OneToOne" ..."""
@@ -728,11 +750,11 @@ class ProjectionInitTest(unittest.TestCase):
     def testDistanceDependentProbability(self):
         """For all connections created with "distanceDependentProbability"..."""
         # Test should be improved..."
-        for rngclass in (random.NumpyRNG, random.NativeRNG):
+        for rngclass in (random.NumpyRNG,): # random.NativeRNG):
             for expr in ('exp(-d)', 'd < 0.5'):
                 prj = sim.Projection(self.source33, self.target33,
                                         sim.DistanceDependentProbabilityConnector(d_expression=expr),
-                                        rng=rngclass(12345))
+                                        rng=rngclass(12345, rank=sim.rank(), num_processes=sim.num_processes()))
                 assert (0 < len(prj) < len(self.source33)*len(self.target33))
         self.assertRaises(ZeroDivisionError, sim.DistanceDependentProbabilityConnector, d_expression="d/0.0")
     
@@ -745,7 +767,7 @@ class ProjectionInitTest(unittest.TestCase):
             for tgtP in [self.target6, self.target33]:
                 for c in c1, c2, c4:
                     prj1 = sim.Projection(srcP, tgtP, c)
-                    self.assertEqual(len(prj1.connections), c.n*len(tgtP))
+                    self.assertEqual(len(prj1.connections), c.n*len(tgtP.local_cells))
                 prj3 = sim.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
         self.assertRaises(Exception, sim.FixedNumberPreConnector, None)
         
@@ -758,20 +780,32 @@ class ProjectionInitTest(unittest.TestCase):
             for tgtP in [self.target6, self.target33]:
                 for c in c1, c2, c4:
                     prj1 = sim.Projection(srcP, tgtP, c)
-                    self.assertEqual(len(prj1.connections), c.n*len(srcP))
+                    #print sim.rank(), c.n, len(srcP), c.n*len(srcP), len(prj1.connections)
+                    if sim.num_processes() == 1:
+                        self.assertEqual(len(prj1.connections), c.n*len(srcP))
+                    else:
+                        # could perhaps use MPI to sum connection length from all nodes to check the sum equals n
+                        conn_per_node = float(c.n*len(srcP))/sim.num_processes()
+                        self.assert_(0.8*conn_per_node < len(prj1.connections) < 1.2*conn_per_node+2, "len(connections)=%d, conn_per_node=%d" % (len(prj1.connections), conn_per_node) )
+                    
                 prj2 = sim.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
         self.assertRaises(Exception, sim.FixedNumberPostConnector, None)
     
     def testFromList(self):
-        c1 = sim.FromListConnector([
+        connection_list = [
             ([0,], [0,], 0.1, 0.1),
             ([3,], [0,], 0.2, 0.11),
             ([2,], [3,], 0.3, 0.12),
             ([4,], [2,], 0.4, 0.13),
             ([0,], [1,], 0.5, 0.14),
-            ])
+            ]
+        c1 = sim.FromListConnector(connection_list)
         prj = sim.Projection(self.source5, self.target6, c1)
-        self.assertEqual(len(prj.connections), 5)
+        n_local = 0
+        for src, tgt, w, d in connection_list:
+            if prj.post[tuple(tgt)].local:
+                n_local += 1
+        self.assertEqual(len(prj.connections), n_local)
             
     def testSaveAndLoad(self):
         prj1 = sim.Projection(self.source33, self.target33, sim.OneToOneConnector())
@@ -972,8 +1006,13 @@ class SpikeSourceTest(unittest.TestCase):
                 
 # ==============================================================================
 if __name__ == "__main__":
-    simulator = sys.argv[1]
+    simulator = utility.get_script_args(__file__, 1)[0]
+    
     sys.argv.remove(simulator) # because unittest.main() processes sys.argv
+    if simulator == 'neuron':
+        sys.argv = sys.argv[sys.argv.index(__file__):]
+    
+    #print sys.argv
     sim = __import__("pyNN.%s" % simulator, None, None, [simulator])
     sim.setup()
     unittest.main()

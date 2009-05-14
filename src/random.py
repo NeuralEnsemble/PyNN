@@ -69,7 +69,7 @@ class NumpyRNG(AbstractRNG):
         """Return n random numbers from the distribution.
         
         If n >= 0, return a numpy array,
-        if n < 0, raise an Exception."""      
+        if n < 0, raise an Exception."""
         if n == 0:
             rarr = numpy.random.rand(0) # We return an empty array
         elif n > 0:
@@ -78,13 +78,16 @@ class NumpyRNG(AbstractRNG):
                 # having exactly the same random numbers independent of the
                 # number of processors (m), we only need generate n/m+1 per node
                 # (assuming round-robin distribution of cells between processors)
-                n = n/self.num_processes + 1 
+                if mask_local is None:
+                    n = n/self.num_processes + 1
+                else:
+                    n = mask_local.sum()
             rarr = getattr(self.rng, distribution)(size=n, *parameters)
         else:
             raise ValueError, "The sample number must be positive"
         if self.parallel_safe and self.num_processes > 1:
             # strip out the random numbers that should be used on other processors.
-            if mask_local:
+            if mask_local is not None:
                 assert mask_local.size == n
                 rarr = rarr[mask_local]    
             else:
@@ -96,6 +99,10 @@ class NumpyRNG(AbstractRNG):
             return rarr[0]
         else:
             return rarr
+
+    def describe(self):
+        return "NumpyRNG() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
+            self.seed, self.rank, self.num_processes, self.parallel_safe and "Is" or "Not")
 
 class GSLRNG(AbstractRNG):
     """Wrapper for the GSL random number generators."""

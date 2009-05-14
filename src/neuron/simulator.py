@@ -32,12 +32,11 @@ class ID(int, common.IDMixin):
         int.__init__(n)
         common.IDMixin.__init__(self)
     
-    def _build_cell(self, cell_model, cell_parameters, parent=None):
+    def _build_cell(self, cell_model, cell_parameters):
         gid = int(self)
         self._cell = cell_model(**cell_parameters)          # create the cell object
         register_gid(gid, self._cell.source, section=self._cell) # not adequate for multi-compartmental cells
-        self.parent = parent
-    
+        
     def get_native_parameters(self):
         D = {}
         for name in self._cell.parameter_names:
@@ -47,6 +46,7 @@ class ID(int, common.IDMixin):
     def set_native_parameters(self, parameters):
         for name, val in parameters.items():
             setattr(self._cell, name, val)
+
 
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
@@ -240,9 +240,13 @@ def create_cells(cellclass, cellparams, n, parent=None):
     # mask_local is used to extract those elements from arrays that apply to the cells on the current node
     mask_local = all_ids%state.num_processes==state.mpi_rank # round-robin distribution of cells between nodes
     for i,(id,is_local) in enumerate(zip(all_ids, mask_local)):
+        all_ids[i] = ID(id)
+        all_ids[i].parent = parent
         if is_local:
-            all_ids[i] = ID(id)
-            all_ids[i]._build_cell(cell_model, cell_parameters, parent=parent)
+            all_ids[i].local = True
+            all_ids[i]._build_cell(cell_model, cell_parameters)
+        else:
+            all_ids[i].local = False
     initializer.register(*all_ids[mask_local])
     state.gid_counter += n
     return all_ids, mask_local, first_id, last_id

@@ -20,8 +20,7 @@ def probabilistic_connect(connector, projection, p):
     probabilities for all the local targets of that pre-synaptic cell.
     """
     if isinstance(projection.rng, random.NativeRNG):
-        logging.warning("Warning: use of NativeRNG not implemented. Using NumpyRNG")
-        rng = random.NumpyRNG()
+        raise Exception("Use of NativeRNG not implemented.")
     else:
         rng = projection.rng
     
@@ -44,7 +43,10 @@ def probabilistic_connect(connector, projection, p):
         if common.is_number(p):
             create = rarr < p
         else:
-            create = rarr < p[src]
+            create = rarr < p[src][local]
+        if create.shape != projection.post.local_cells.shape:
+            logging.warning("Too many random numbers. Discarding the excess. Did you specify MPI rank and number of processes when you created the random number generator?")
+            create = create[:projection.post.local_cells.size]
         targets = projection.post.local_cells[create].tolist()
         
         weights = connector.get_weights(N, local)[create]
@@ -91,9 +93,10 @@ class FromListConnector(common.Connector):
         # slow: should maybe sort by pre
         for i in xrange(len(self.conn_list)):
             src, tgt, weight, delay = self.conn_list[i][:]
-            src = projection.pre[tuple(src)]
+            src = projection.pre[tuple(src)]           
             tgt = projection.post[tuple(tgt)]
-            projection.connection_manager.connect(src, [tgt], weight, delay, projection.synapse_type)
+            if tgt.local:
+                projection.connection_manager.connect(src, [tgt], weight, delay, projection.synapse_type)
     
 
 class FromFileConnector(FromListConnector):
@@ -164,14 +167,22 @@ class FixedNumberPostConnector(common.Connector):
                                     # postsynaptic population, we allow multiple connections for a given cell
                 targets += [candidates[candidates.index(id)] for id in projection.rng.permutation(candidates)[0:n]]
                 # have to use index() because rng.permutation returns ints, not ID objects
-            targets = targets[:n]
+            
+            targets = numpy.array(targets[:n], dtype=common.IDMixin)
             
             weights = self.get_weights(n)
             is_conductance = common.is_conductance(projection.post.index(0))
             weights = common.check_weight(weights, projection.synapse_type, is_conductance)
             delays = self.get_delays(n)
             
-            projection.connection_manager.connect(source, targets, weights, delays, projection.synapse_type)
+            local = numpy.array([tgt.local for tgt in targets])
+            if local.size > 0:
+                targets = targets[local]
+                weights = weights[local]
+                delays = delays[local]
+            targets = targets.tolist()
+            if len(targets) > 0:
+                projection.connection_manager.connect(source, targets, weights, delays, projection.synapse_type)
                     
 
 class FixedNumberPreConnector(common.Connector):
