@@ -32,7 +32,10 @@ class CreationTest(unittest.TestCase):
             ifcells = sim.create(cellclass, n=10)
             self.assertEqual(len(ifcells), 10)
             local_cells = [cell for cell in ifcells if cell.local]
-            cells_per_process = 10.0/sim.num_processes()
+            if hasattr(cellclass, 'always_local') and cellclass.always_local:
+                cells_per_process = 10.0
+            else:
+                cells_per_process = 10.0/sim.num_processes()
             self.assert_(numpy.floor(cells_per_process) <= len(local_cells) <=  numpy.ceil(cells_per_process), "cells per process: %d, local cells: %d" % (cells_per_process, len(local_cells)))
        
     def testCreateStandardCellsWithNegative_n(self):
@@ -59,15 +62,15 @@ class ConnectionTest(unittest.TestCase):
     """Tests of the connect() function."""
     
     def setUp(self):
-        self.postcells = sim.create(sim.IF_curr_alpha, n=3)
         self.precells = sim.create(sim.SpikeSourcePoisson, n=5)
+        self.postcells = sim.create(sim.IF_curr_alpha, n=3)
+        
         
     def tearDown(self):
         pass
         
     def testConnectTwoCells(self):
         conn_list = sim.connect(self.precells[0], self.postcells[0])
-        # conn will be an empty list if it does not exist on that node
         if self.postcells[0].local:
             self.assertEqual(len(conn_list), 1)
         else:
@@ -76,7 +79,6 @@ class ConnectionTest(unittest.TestCase):
     def testConnectTwoCellsWithWeight(self):
         """connect(): Weight set should match weight retrieved."""
         conn_list = sim.connect(self.precells[0], self.postcells[0], weight=0.1234)
-        print [c.weight for c in conn_list]
         if conn_list:
             weight = conn_list[0].weight
             self.assertAlmostEqual(weight, 0.1234, 6)
@@ -700,7 +702,7 @@ class ProjectionTest(unittest.TestCase):
         assert not callable(self.prj.connections)
         assert hasattr(self.prj.connections, "__iter__")
         connections = [c for c in self.prj.connections]
-        self.assertEqual(len(connections), len(self.prj.pre.local_cells))
+        self.assertEqual(len(connections), len(self.prj.post.local_cells))
          
 # ==============================================================================
 class ProjectionInitTest(unittest.TestCase):
@@ -786,7 +788,7 @@ class ProjectionInitTest(unittest.TestCase):
                     else:
                         # could perhaps use MPI to sum connection length from all nodes to check the sum equals n
                         conn_per_node = float(c.n*len(srcP))/sim.num_processes()
-                        self.assert_(0.8*conn_per_node < len(prj1.connections) < 1.2*conn_per_node+2, "len(connections)=%d, conn_per_node=%d" % (len(prj1.connections), conn_per_node) )
+                        self.assert_(0.8*conn_per_node < len(prj1.connections) < 1.2*conn_per_node+2, "len(connections)=%d, conn_per_node=%d prj=%s, n=%d" % (len(prj1.connections), conn_per_node, prj1.label, c.n) )
                     
                 prj2 = sim.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
         self.assertRaises(Exception, sim.FixedNumberPostConnector, None)
@@ -924,7 +926,7 @@ class ProjectionGetTest(unittest.TestCase):
     def testGetWeightsWithArray(self):
         """Making 1D and removing weights <= 0 should turn the array format of getWeights()
         into the list format."""
-        for prj in self.prjlist:
+        for prj in self.prjlist: 
             weights_in = self.distrib_Numpy.next(len(prj))
             prj.setWeights(weights_in)
             weights_out = numpy.array(prj.getWeights(format='array')).flatten()

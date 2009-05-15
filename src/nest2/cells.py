@@ -212,6 +212,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         ('duration', 'stop',    "start+duration", "stop-start"),
     )
     nest_name = 'poisson_generator'
+    always_local = True
     
     def __init__(self, parameters):
         cells.SpikeSourcePoisson.__init__(self, parameters)
@@ -235,6 +236,7 @@ class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
         ('duration', 'stop',   "duration+start", "stop-start"),
     )
     nest_name = 'inh_gamma_generator'
+    always_local = True
     
     def __init__(self, parameters):
         cells.SpikeSourceInhGamma.__init__(self, parameters)
@@ -247,4 +249,5 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     translations = common.build_translations(
         ('spike_times', 'spike_times'),
     )
-    nest_name = 'spike_generator' 
+    nest_name = 'spike_generator'
+    always_local = True

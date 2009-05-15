@@ -253,39 +253,39 @@ class Population(common.Population):
                 except Exception:
                     raise common.InvalidParameterValueError
 
-    def rset(self, parametername, rand_distr):
-        """
-        'Random' set. Set the value of parametername to a value taken from
-        rand_distr, which should be a RandomDistribution object.
-        """
-        if isinstance(rand_distr.rng, NativeRNG):
-            raise Exception('rset() not yet implemented for NativeRNG')
-        else:
-            #rarr = rand_distr.next(n=len(self.local_cells))
-            rarr = rand_distr.next(n=self.size)
-            assert len(rarr) >= len(self.local_cells), "The length of rarr (%d) must be greater than that of local_cells (%d)" % (len(rarr), len(self.local_cells))
-            rarr = rarr[:len(self.local_cells)]
-            if not isinstance(self.celltype, str):
-                try:
-                    self.celltype.default_parameters[parametername]
-                except Exception:
-                    raise common.NonExistentParameterError(parametername, self.celltype.__class__)
-                if parametername == 'v_init':
-                    for cell,val in zip(self.local_cells, rarr):
-                        cell._v_init = val
-                    nest.SetStatus(self.local_cells, "V_m", rarr) # not correct, since could set v_init in the middle of a simulation
-                elif parametername in self.celltype.scaled_parameters():
-                    translation = self.celltype.translations[parametername]
-                    rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
-                    nest.SetStatus(self.local_cells,translation['translated_name'],rarr)
-                elif parametername in self.celltype.simple_parameters():
-                    translation = self.celltype.translations[parametername]
-                    nest.SetStatus(self.local_cells, translation['translated_name'], rarr)
-                else:
-                    for cell,val in zip(self.local_cells, rarr):
-                        setattr(cell, parametername, val)
-            else:
-               nest.SetStatus(self.local_cells, parametername, rarr)
+    #def rset(self, parametername, rand_distr):
+    #    """
+    #    'Random' set. Set the value of parametername to a value taken from
+    #    rand_distr, which should be a RandomDistribution object.
+    #    """
+    #    if isinstance(rand_distr.rng, NativeRNG):
+    #        raise Exception('rset() not yet implemented for NativeRNG')
+    #    else:
+    #        #rarr = rand_distr.next(n=len(self.local_cells))
+    #        rarr = rand_distr.next(n=self.size)
+    #        assert len(rarr) >= len(self.local_cells), "The length of rarr (%d) must be greater than that of local_cells (%d)" % (len(rarr), len(self.local_cells))
+    #        rarr = rarr[:len(self.local_cells)]
+    #        if not isinstance(self.celltype, str):
+    #            try:
+    #                self.celltype.default_parameters[parametername]
+    #            except Exception:
+    #                raise common.NonExistentParameterError(parametername, self.celltype.__class__)
+    #            if parametername == 'v_init':
+    #                for cell,val in zip(self.local_cells, rarr):
+    #                    cell._v_init = val
+    #                nest.SetStatus(self.local_cells, "V_m", rarr) # not correct, since could set v_init in the middle of a simulation
+    #            elif parametername in self.celltype.scaled_parameters():
+    #                translation = self.celltype.translations[parametername]
+    #                rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
+    #                nest.SetStatus(self.local_cells,translation['translated_name'],rarr)
+    #            elif parametername in self.celltype.simple_parameters():
+    #                translation = self.celltype.translations[parametername]
+    #                nest.SetStatus(self.local_cells, translation['translated_name'], rarr)
+    #            else:
+    #                for cell,val in zip(self.local_cells, rarr):
+    #                    setattr(cell, parametername, val)
+    #        else:
+    #           nest.SetStatus(self.local_cells, parametername, rarr)
 
     def _record(self, variable, record_from=None, rng=None,to_file=True):
         common.Population._record(self, variable, record_from, rng, to_file)

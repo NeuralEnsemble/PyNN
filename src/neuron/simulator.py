@@ -375,13 +375,14 @@ class ConnectionManager(object):
               
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
         for target, weight, delay in zip(targets, weights, delays):
-            if synapse_type is None:
-                synapse_type = weight>=0 and 'excitatory' or 'inhibitory' 
-            synapse_object = getattr(target._cell, synapse_type)
-            nc = state.parallel_context.gid_connect(int(source), synapse_object)
-            nc.weight[0] = weight
-            nc.delay  = delay
-            self.connections.append(Connection(source, target, nc))
+            if target.local:
+                if synapse_type is None:
+                    synapse_type = weight>=0 and 'excitatory' or 'inhibitory' 
+                synapse_object = getattr(target._cell, synapse_type)
+                nc = state.parallel_context.gid_connect(int(source), synapse_object)
+                nc.weight[0] = weight
+                nc.delay  = delay
+                self.connections.append(Connection(source, target, nc))
 
     def get(self, parameter_name, format, offset=(0,0)):
         if format == 'list':
@@ -389,7 +390,12 @@ class ConnectionManager(object):
         elif format == 'array':
             values = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
             for c in self.connections:
-                values[c.source-offset[0], c.target-offset[1]] = getattr(c, parameter_name)
+                value = getattr(c, parameter_name)
+                addr = (c.source-offset[0], c.target-offset[1])
+                if numpy.isnan(values[addr]):
+                    values[addr] = value
+                else:
+                    values[addr] += value
         else:
             raise Exception("format must be 'list' or 'array'")
         return values

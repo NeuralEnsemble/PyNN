@@ -562,10 +562,9 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         if p < 1:
             rarr = rng.uniform(0, 1, len(source))
             sources = sources[rarr<p]
-        if tgt.local:
-            weight = check_weight(weight, synapse_type, is_conductance(tgt))
-            for src in sources:
-                connection_manager.connect(src, tgt, weight, delay, synapse_type)
+        weight = check_weight(weight, synapse_type, is_conductance(tgt))
+        for src in sources:
+            connection_manager.connect(src, tgt, weight, delay, synapse_type)
     return connection_manager
 
 
@@ -1216,7 +1215,8 @@ class Projection(object):
         """
         Possible formats are: a list of length equal to the number of connections
         in the projection, a 2D weight array (with NaN for non-existent
-        connections).
+        connections). Note that for the array format, if there is more than
+        one connection between two cells, the summed weight will be given.
         """
         if gather:
             logging.error("getWeights() with gather=True not yet implemented")

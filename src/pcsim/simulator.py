@@ -230,6 +230,7 @@ def create_cells(cellclass, cellparams, n, parent=None):
         #if local:
         all_ids[i] = ID(id)
         all_ids[i].parent = parent
+        all_ids[i].local = local
     return all_ids, mask_local, first_id, last_id
 
 

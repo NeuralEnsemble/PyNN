@@ -95,8 +95,7 @@ class FromListConnector(common.Connector):
             src, tgt, weight, delay = self.conn_list[i][:]
             src = projection.pre[tuple(src)]           
             tgt = projection.post[tuple(tgt)]
-            if tgt.local:
-                projection.connection_manager.connect(src, [tgt], weight, delay, projection.synapse_type)
+            projection.connection_manager.connect(src, [tgt], weight, delay, projection.synapse_type)
     
 
 class FromFileConnector(FromListConnector):
@@ -175,12 +174,13 @@ class FixedNumberPostConnector(common.Connector):
             weights = common.check_weight(weights, projection.synapse_type, is_conductance)
             delays = self.get_delays(n)
             
-            local = numpy.array([tgt.local for tgt in targets])
-            if local.size > 0:
-                targets = targets[local]
-                weights = weights[local]
-                delays = delays[local]
+            #local = numpy.array([tgt.local for tgt in targets])
+            #if local.size > 0:
+            #    targets = targets[local]
+            #    weights = weights[local]
+            #    delays = delays[local]
             targets = targets.tolist()
+            #print common.rank(), source, targets
             if len(targets) > 0:
                 projection.connection_manager.connect(source, targets, weights, delays, projection.synapse_type)
                     

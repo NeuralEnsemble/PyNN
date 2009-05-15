@@ -50,7 +50,7 @@ def _merge_files(recorder, gather):
             os.system(system_line)
             os.remove(nest_filename)
     if gather and len(node_list) > 1:
-        if rank() == 0:
+        if state.mpi_rank == 0:
             raise Exception("gather not yet implemented")
     return merged_filename
 
@@ -175,7 +175,7 @@ class Recorder(object):
         user_file = file or self.file
         if isinstance(user_file, basestring):
             if common.num_processes() > 1:
-                user_file += '.%d' % rank()
+                user_file += '.%d' % state.mpi_rank
             recording.rename_existing(user_file)
         logging.debug("Recorder is writing '%s' to file '%s' with gather=%s and compatible_output=%s" % (self.variable,
                                                                                                          user_file,
@@ -425,19 +425,43 @@ class ConnectionManager:
             delays = delays.tolist()
         elif isinstance(delays, float):
             delays = [delays]
+        
+        initial_ports = {}
+        for tgt in targets:
+            try:
+                initial_ports[tgt] = nest.FindConnections([source], [tgt], self.synapse_model)['ports']
+            except nest.NESTError, e:
+                raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                                             e, source, targets, weights, delays, self.synapse_model))
             
         try:
             nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)
         except nest.NESTError, e:
             raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                          e, source, targets, weights, delays, self.synapse_model))
-        self.sources.extend([source]*len(targets))
-        self.targets.extend(targets)
-        # get ports
-        connections = nest.GetConnections([source], self.synapse_model)[0]
-        n = len(connections['targets'])
-        ports = range(n-len(targets), n)
-        self.ports.extend(ports)
+        
+        final_ports = {}
+        for tgt in targets:
+            final_ports[tgt] = nest.FindConnections([source], [tgt], self.synapse_model)['ports']
+        
+        #print "\n", state.mpi_rank, source, "initial:", initial_ports, "final:", final_ports
+        
+        #all_new_ports = []
+        local_targets = final_ports.keys()
+        local_targets.sort()
+        for tgt in local_targets:
+            #new_ports = final_ports[tgt].difference(initial_ports[tgt])
+            new_ports = final_ports[tgt][len(initial_ports[tgt]):]
+            #if state.mpi_rank == 0:
+            #    print "-", state.mpi_rank, tgt, initial_ports[tgt], final_ports[tgt], new_ports
+            n = len(new_ports)
+            if n > 0:   
+                self.sources.extend([source]*n)
+                self.targets.extend([tgt*n])     
+                self.ports.extend(new_ports)
+                #all_new_ports.extend(new_ports)
+                
+        #print state.mpi_rank, source, targets, all_new_ports, nest.GetConnections([source], self.synapse_model)[0]['targets']
     
     def get(self, parameter_name, format, offset=(0,0)):
         # this is a slow implementation, going through each connection one at a time
@@ -457,7 +481,11 @@ class ConnectionManager:
                 value = nest.GetConnection([src], self.synapse_model, port)[parameter_name]
                 # don't need to pass offset as arg, now we store the parent projection
                 # (offset is always 0,0 for connections created with connect())
-                values[src-offset[0], tgt-offset[1]] = value
+                addr = (src-offset[0], tgt-offset[1])
+                if numpy.isnan(values[addr]):
+                    values[addr] = value
+                else:
+                    values[addr] += value
             if parameter_name == 'weight':
                 values *= 0.001
         else:
@@ -474,6 +502,8 @@ class ConnectionManager:
             if name == 'weight':
                 value = 1000.0*numpy.array(value)
             for src, port, val in zip(self.sources, self.ports, value):
+                #if state.mpi_rank == 0:
+                #    print state.mpi_rank, "setting:", src, port, val
                 nest.SetConnection([src], self.synapse_model, port, {name: val})
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
