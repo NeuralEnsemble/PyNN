@@ -411,7 +411,8 @@ class PopulationSpikesTest(unittest.TestCase):
         self.p1.record()
         sim.run(100.0)
         output_spike_array = self.p1.getSpikes()
-        assert_arrays_almost_equal(self.input_spike_array, output_spike_array, 1e-11)
+        if sim.rank() == 0:
+            assert_arrays_almost_equal(self.input_spike_array, output_spike_array, 1e-11)
     
     def testPopulationRecordTwice(self):
         """Neurons should not be recorded twice.
@@ -422,7 +423,8 @@ class PopulationSpikesTest(unittest.TestCase):
         sim.run(100.0)
         output_spike_array = self.p1.getSpikes()
         self.assertEqual(self.input_spike_array.shape, (10,2))
-        self.assertEqual(self.input_spike_array.shape, output_spike_array.shape)
+        if sim.rank() == 0:
+            self.assertEqual(self.input_spike_array.shape, output_spike_array.shape)
 
 #===============================================================================
 class PopulationSetTest(unittest.TestCase):
@@ -621,10 +623,11 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         sim.run(simtime)
         self.pop2.print_v("temp.v", gather=True, compatible_output=True)
         vm = self.pop2.get_v()
-        self.assertEqual(vm.shape, ((1+int(10.0/0.1))*len(cells_to_record), 3))
-        vm_fromfile = numpy.loadtxt("temp.v")
-        #print vm_fromfile
-        self.assertEqual(vm_fromfile.shape, ((1+int(10.0/0.1))*len(cells_to_record), 2))
+        if sim.rank() == 0:
+            self.assertEqual(vm.shape, ((1+int(10.0/0.1))*len(cells_to_record), 3))
+            vm_fromfile = numpy.loadtxt("temp.v")
+            #print vm_fromfile
+            self.assertEqual(vm_fromfile.shape, ((1+int(10.0/0.1))*len(cells_to_record), 2))
         
     def testSynapticConductanceRecording(self):
         # current-based synapses
@@ -636,7 +639,8 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         sim.running = False
         sim.run(simtime)
         gsyn = self.pop3.get_gsyn()
-        self.assertEqual(gsyn.shape, ((1+int(10.0/0.1))*len(cells_to_record), 4))
+        if sim.rank() == 0:
+            self.assertEqual(gsyn.shape, ((1+int(10.0/0.1))*len(cells_to_record), 4))
     
     def testRecordWithSpikeTimesGreaterThanSimTime(self):
         """

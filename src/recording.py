@@ -8,6 +8,10 @@ import tempfile
 import logging
 import os.path
 import numpy
+try:
+    from mpi4py import MPI
+except ImportError:
+    MPI = None
 
 DEFAULT_BUFFER_SIZE = 10000
 
@@ -222,6 +226,27 @@ def readArray(filename, sepchar=None, skipchar='#'):
         #if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
     return a
 
+def gather(data):
+    # gather 1D or 2D numpy arrays
+    assert isinstance(data, numpy.ndarray)
+    assert len(data.shape) < 3
+    comm = MPI.COMM_WORLD
+    ROOT = 0
+    # first we pass the data size
+    size = data.size
+    sizes = comm.gather(size, root=ROOT) or []
+    # now we pass the data
+    displacements = [sum(sizes[:i]) for i in range(len(sizes))]
+    #print comm.rank, sizes, displacements, data
+    gdata = numpy.empty(sum(sizes))
+    comm.Gatherv([data.flatten(), size, MPI.DOUBLE], [gdata, (sizes,displacements), MPI.DOUBLE], root=ROOT)
+    if len(data.shape) == 1:
+        return gdata
+    else:
+        num_columns = data.shape[1]
+        return gdata.reshape((gdata.size/num_columns, num_columns))
+  
+
 
 class StandardTextFile(object):
     
@@ -240,4 +265,3 @@ class StandardTextFile(object):
         # write data
         numpy.savetxt(self.fileobj, data, fmt = '%s', delimiter='\t')
         self.fileobj.close()
- 

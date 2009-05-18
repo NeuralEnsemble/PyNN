@@ -135,12 +135,14 @@ class Recorder(object):
                 data = numpy.concatenate((data, new_data))
         else:
             raise Exception("Recording of %s not implemented." % self.variable)
+        if gather:
+            data = recording.gather(data)
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):
         data = self.get(gather, offset=0)
         filename = file or self.filename
-        recording.rename_existing(filename)
+        #recording.rename_existing(filename) # commented out because it causes problems when running with mpirun and a shared filesystem. Probably a timing problem
         try:
             numpy.savetxt(filename, data, Recorder.numpy1_0_formats[self.variable], delimiter='\t')
         except AttributeError, errmsg:
