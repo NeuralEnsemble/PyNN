@@ -42,7 +42,10 @@ def get_script_args(script, n_args):
     try:
         script_index = sys.argv.index(script)
     except ValueError:
-        script_index = sys.argv.index(os.path.abspath(script))
+        try:
+            script_index = sys.argv.index(os.path.abspath(script))
+        except ValueError:
+            script_index = 0 # ipython sets __file__ to 'IPython/FakeModule.pyc'
     args = sys.argv[script_index+1:script_index+1+n_args]
     if len(args) != n_args:
         raise Exception("Script requires %d arguments, you supplied %d" % (n_args, len(args)))

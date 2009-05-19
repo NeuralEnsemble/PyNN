@@ -231,6 +231,7 @@ class Projection(common.Projection):
                 # node with the pre-synaptic neurons for ddf>0.5 and on the node
                 # with the post-synaptic neuron (as is done now) for ddf<0.5
                 raise Exception("STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
+            self._stdp_parameters['allow_update_on_post'] = int(False) # for compatibility with NEST
             for c in self.connections:
                 c.useSTDP(self.long_term_plasticity_mechanism, self._stdp_parameters, ddf)
         

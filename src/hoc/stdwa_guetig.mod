@@ -9,6 +9,7 @@ NEURON {
 	RANGE interval, tlast_pre, tlast_post, M, P
 	RANGE deltaw, wmax, wmin, aLTP, aLTD, tauLTP, tauLTD, on
         RANGE muLTP, muLTD
+        RANGE allow_update_on_post
 	POINTER wsyn
 }
 
@@ -40,7 +41,9 @@ PARAMETER {
 	aLTD    = 0.00106	: amplitude of LTD steps
         muLTP   = 0.0
         muLTD   = 0.0
-	on	= 1		: allows learning to be turned on and off globally
+	on	= 1		: allows learning to be turned on and off
+        allow_update_on_post = 1 : if this is true, we update the weight on receiving both pre- and post-synaptic spikes
+                                 : if it is false, weight updates are accumulated and applied only for a pre-synaptic spike
 }
 
 NET_RECEIVE (w) {
@@ -48,14 +51,17 @@ NET_RECEIVE (w) {
 		P = P*exp((tlast_pre-t)/tauLTP) + aLTP
 		interval = tlast_post - t	: interval is negative
 		tlast_pre = t
-		deltaw = (wsyn-wmin)^muLTD * M * exp(interval/tauLTD)
+		deltaw = deltaw + (wsyn-wmin)^muLTD * M * exp(interval/tauLTD)
 	} else {				: this is a post-synaptic spike
 		M = M*exp((tlast_post-t)/tauLTD) - aLTD
 		interval = t - tlast_pre	: interval is positive
 		tlast_post = t
-		deltaw = (wmax-wsyn)^muLTP * P * exp(-interval/tauLTP)
+		deltaw = deltaw + (wmax-wsyn)^muLTP * P * exp(-interval/tauLTP)
 	}
 	if (on) {
+            if (w >= 0 || allow_update_on_post) {
 		wsyn = wsyn + deltaw
+                deltaw = 0.0
+            }
 	}
 }
