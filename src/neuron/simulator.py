@@ -135,7 +135,7 @@ class Recorder(object):
                 data = numpy.concatenate((data, new_data))
         else:
             raise Exception("Recording of %s not implemented." % self.variable)
-        if gather:
+        if gather and state.num_processes > 1:
             data = recording.gather(data)
         return data
     
@@ -212,6 +212,8 @@ class _State(object):
         self.mpi_rank = int(self.parallel_context.id())
         self.cvode = h.CVode()
         self.max_delay = 1e12
+        h('objref plastic_connections')
+        h.plastic_connections = []
     
     t = h_property('t')
     dt = h_property('dt')
@@ -313,11 +315,15 @@ class Connection(object):
         self.pre2wa.weight[0] = 1
         # directly create NetCon as wa is on the same machine as the post-synaptic cell
         self.post2wa = h.NetCon(self.target._cell.source, self.weight_adjuster)
-        self.pre2wa.threshold = 1
-        self.pre2wa.delay = self.nc.delay * ddf
-        self.pre2wa.weight[0] = -1
+        self.post2wa.threshold = 1
+        self.post2wa.delay = self.nc.delay * ddf
+        self.post2wa.weight[0] = -1
         for name, value in parameters.items():
             setattr(self.weight_adjuster, name, value)
+        # setpointer
+        i = len(h.plastic_connections)
+        h.plastic_connections.append(self)
+        h('setpointer plastic_connections._[%d].weight_adjuster.wsyn, plastic_connections._[%d].nc.weight' % (i,i))
 
     def _set_weight(self, w):
         self.nc.weight[0] = w

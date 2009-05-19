@@ -1431,8 +1431,8 @@ class SynapseDynamics(object):
     
     def describe(self, template='standard'):
         if template == 'standard':
-            lines = ["Short-term plasticity mechanism: $slow",
-                     "Long-term plasticity mechanism: $fast"]
+            lines = ["Short-term plasticity mechanism: $fast",
+                     "Long-term plasticity mechanism: $slow"]
             template = "\n".join(lines)
         context = {'fast': self.fast and self.fast.describe() or 'None',
                    'slow': self.slow and self.slow.describe() or 'None'}
@@ -1459,6 +1459,9 @@ class STDPMechanism(object):
         self.voltage_dependence = voltage_dependence
         self.dendritic_delay_fraction = dendritic_delay_fraction
         self.model = model # see comment in Projection.__init__()
+        
+    def describe(self):
+        return "STDP mechanism (this description needs to be filled out)."
 
 class STDPWeightDependence(StandardModelType):
     """Abstract base class for models of STDP weight dependence."""
