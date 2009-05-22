@@ -3,6 +3,7 @@ from pyNN import common, recording, random
 import logging
 import numpy
 import os
+import tempfile
 
 RECORDING_DEVICE_NAMES = {'spikes': 'spike_detector',
                           'v':      'voltmeter',
@@ -29,30 +30,6 @@ class ID(int, common.IDMixin):
             parameters['V_m'] = self._v_init # not correct, since could set v_init in the middle of a simulation, but until we add a proper reset mechanism, this will do.
         nest.SetStatus([self], [parameters])
 
-def _merge_files(recorder, gather):
-    """
-    Combine data from multiple files (one per thread and per process) into a single file.
-    Returns the filename of the merged file.
-    """
-    status = nest.GetStatus([0])[0]
-    local_num_threads = status['local_num_threads']
-    node_list = range(nest.GetStatus([0], "num_processes")[0])
-
-    # Combine data from different threads to the zeroeth thread
-    merged_filename = nest.GetStatus(recorder, "filename")[0]
-
-    if local_num_threads > 1:
-        for nest_thread in range(1, local_num_threads):
-            addr = nest.GetStatus(recorder, "address")[0]
-            addr.append(nest_thread)
-            nest_filename = nest.GetStatus([addr], "filename")[0]
-            system_line = 'cat %s >> %s' % (nest_filename, merged_filename)
-            os.system(system_line)
-            os.remove(nest_filename)
-    if gather and len(node_list) > 1:
-        if state.mpi_rank == 0:
-            raise Exception("gather not yet implemented")
-    return merged_filename
 
 
 class Recorder(object):
@@ -61,6 +38,12 @@ class Recorder(object):
     formats = {'spikes': 'id t',
                'v':      'id t v',
                'gsyn':   'id t ge gi'}
+    numpy1_1_formats = {'spikes': "%g\t%d",
+                        'v': "%g\t%g\t%d",
+                        'gsyn': "%g\t%g\t%g\t%d"}
+    numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support different
+                        'v': "%g",      # formats for different columns
+                        'gsyn': "%g"}
     scale_factors = {'spikes': 1,
                      'v': 1,
                      'gsyn': 0.001} # units conversion
@@ -79,6 +62,15 @@ class Recorder(object):
         self.recorded = set([])        
         # we defer creating the actual device until it is needed.
         self._device = None
+        if self.population is not None:
+            self._id_offset = self.population.first_id
+        else:
+            self._id_offset = 0
+        self._local_files_merged = False
+        self._gathered = False
+        
+    def in_memory(self):
+        return nest.GetStatus(self._device, 'to_memory')[0]
 
     def _create_device(self):
         device_name = RECORDING_DEVICE_NAMES[self.variable]
@@ -90,16 +82,18 @@ class Recorder(object):
             device_parameters.update(to_file=False, to_memory=True)
         else: # (includes self.file is None)
             device_parameters.update(to_file=True, to_memory=False)
-        # line needed for old version of nest 2.0
-        #device_parameters.pop('to_memory')
         nest.SetStatus(self._device, device_parameters)
 
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""            
         if self._device is None:
             self._create_device()
-        ids = set(ids)
+        if self.population:
+            ids = set([id for id in ids if id in self.population.local_cells])
+        else:
+            ids = set([id for id in ids if id.local])
         new_ids = list( ids.difference(self.recorded) )
+        
         self.recorded = self.recorded.union(ids)
         
         device_name = nest.GetStatus(self._device, "model")[0]
@@ -110,155 +104,141 @@ class Recorder(object):
         else:
             raise Exception("%s is not a valid recording device" % device_name)
     
+    def _make_compatible(self, data):
+        # add initial and final values
+        # NEST does not record the values at t=0 or t=simtime, so we add them now
+        if self.variable == 'v':
+            initial = [[id, 0.0, id.v_init] for id in self.recorded]
+            t = state.t # needs to be done on all nodes
+            final = [[id, t, nest.GetStatus([id], 'V_m')[0]] for id in self.recorded]
+            if self.recorded:
+                data = numpy.concatenate((initial, data, final))
+        elif self.variable == 'gsyn':
+            initial = [[id, 0.0, 0.0, 0.0] for id in self.recorded]
+            if self.recorded:
+                data = numpy.concatenate((initial, data)) # seems to be no way to get the final synaptic conductances
+        # scale data
+        scale_factor = Recorder.scale_factors[self.variable]
+        if scale_factor != 1:
+            data *= scale_factor
+         # apply id offset
+        data[:,0] = data[:,0] - self._id_offset
+        return data
+    
+    def _events_to_array(self, events):
+        ids = events['senders']
+        times = events['times']
+        if self.variable == 'spikes':
+            data = numpy.array((ids, times)).T
+        elif self.variable == 'v':
+            data = numpy.array((ids, times, events['potentials'])).T
+        elif self.variable == 'gsyn':
+            data = numpy.array((ids, times, events['exc_conductance'], events['inh_conductance'])).T
+        return data
+                   
+    def _read_data_from_memory(self, gather, compatible_output):
+        data = nest.GetStatus(self._device,'events')[0] # only for spikes?
+        if compatible_output:
+            data = self._events_to_array(data)
+            data = self._make_compatible(data)
+        if gather:
+            data = recording.gather(data)
+        return data
+                     
+    def _read_data(self, gather, compatible_output):
+        if gather:
+            if self._gathered:
+                self._gathered_file.seek(0)
+                data = numpy.load(self._gathered_file)
+            else:
+                local_data = self._read_local_data(compatible_output)
+                if self.population and hasattr(self.population.celltype, 'always_local') and self.population.celltype.always_local:
+                    data = local_data # for always_local cells, no need to gather
+                else:
+                    data = recording.gather(local_data) 
+                self._gathered_file = tempfile.TemporaryFile()
+                numpy.save(self._gathered_file, data)
+                self._gathered = True
+            return data
+        else:
+            return self._read_local_data(compatible_output)
+                        
+    def _read_local_data(self, compatible_output):
+        if self._local_files_merged:
+            self._merged_file.seek(0)
+            data = numpy.load(self._merged_file)
+        else:
+            if state.num_threads > 1:
+                nest_files = []
+                for nest_thread in range(1, state.num_threads):
+                    addr = nest.GetStatus(self._device, "address")[0]
+                    addr.append(nest_thread)
+                    nest_files.append(nest.GetStatus([addr], "filename")[0])
+            else:
+                nest_files = [nest.GetStatus(self._device, "filename")[0]]
+            # possibly we can just keep on saving to the end of self._merged_file, instead of concatenating everything in memory
+            data = numpy.concatenate([recording.readArray(nest_file, sepchar=None) for nest_file in nest_files])
+            if data.size == 0:
+                ncol = len(Recorder.formats[self.variable].split())
+                data = numpy.empty([0, ncol])
+            if compatible_output:
+                data = self._make_compatible(data)
+            self._merged_file = tempfile.TemporaryFile()
+            numpy.save(self._merged_file, data)
+            self._local_files_merged = True
+        return data
+    
     def get(self, gather=False, compatible_output=True):
         """Returns the recorded data."""
         if self._device is None:
             raise common.NothingToWriteError("No cells recorded, so no data to return")
-        if nest.GetStatus(self._device, 'to_file')[0]:
-            if 'filename' in nest.GetStatus(self._device)[0]:
-                nest_filename = _merge_files(self._device, gather)
-                data = recording.readArray(nest_filename, sepchar=None)
-            else:
-                data = numpy.array([])
-            #os.remove(nest_filename)
-            if data.size > 0:
-                # the following returns indices, not IDs. I'm not sure this is what we want.
-                if self.population is not None:
-                    padding = self.population.cell.flatten()[0]
-                else:
-                    padding = 0
-                data[:,0] = data[:,0] - padding
-            else:
-                ncol = len(Recorder.formats[self.variable].split())
-                data = numpy.empty([0, ncol])
-        elif nest.GetStatus(self._device,'to_memory')[0]:
-            data = nest.GetStatus(self._device,'events')[0]
-            data = recording.convert_compatible_output(data,
-                                                       self.population,
-                                                       self.variable,
-                                                       compatible_output,
-                                                       Recorder.scale_factors[self.variable])
-        if self.variable == 'v': # NEST does not record the values at t=0 or t=simtime, so we add them now
-            initial = [[id, 0.0, id.v_init] for id in self.recorded]
-            final = [[id, state.t, nest.GetStatus([id], 'V_m')[0]] for id in self.recorded]
-            data = numpy.concatenate((initial, data, final))
-        elif self.variable == 'gsyn':
-            initial = [[id, 0.0, 0.0, 0.0] for id in self.recorded]
-            data = numpy.concatenate((initial, data)) # seems to be no way to get the final synaptic conductances
+        
+        if self.in_memory():
+            data = self._read_data_from_memory(gather, compatible_output)
+        else: # in file
+            data = self._read_data(gather, compatible_output)
         return data
-    
-    def _get_header(self, file_name):
-        header = {}
-        if os.path.exists(file_name):
-            f = open(file_name, 'r')
-            for line in f:
-                if line[0] == '#':
-                    key, value = line[1:].split("=")
-                    header[key.strip()] = value.strip()
-        else:
-            logging.warning("File %s does not exist, so could not get header." % file_name)
-        return header
-    
-    def _strip_header(self, input_file_name, output_file_name):
-        if os.path.exists(input_file_name):
-            fin = open(input_file_name, 'r')
-            fout = open(output_file_name, 'a')
-            for line in fin:
-                if line[0] != '#':
-                    fout.write(line)
-            fin.close()
-            fout.close()
     
     def write(self, file=None, gather=False, compatible_output=True):
         if self._device is None:
             raise common.NothingToWriteError("No cells recorded, so no data to write to file.")
         user_file = file or self.file
         if isinstance(user_file, basestring):
-            if common.num_processes() > 1:
+            if gather==False and state.num_processes > 1:
                 user_file += '.%d' % state.mpi_rank
-            recording.rename_existing(user_file)
+            #recording.rename_existing(user_file)
         logging.debug("Recorder is writing '%s' to file '%s' with gather=%s and compatible_output=%s" % (self.variable,
                                                                                                          user_file,
                                                                                                          gather,
                                                                                                          compatible_output))
-        # what if the data was only saved to memory?
-        if self.file is not False:
-            nest_filename = _merge_files(self._device, gather)
-            if self.variable == 'v':
-                initial = ["%d\t%g\t%g\n" % (id, 0.0, id.v_init) for id in self.recorded]
-                final = ["%d\t%g\t%g\n" % (id, state.t, nest.GetStatus([id], 'V_m')[0]) for id in self.recorded]
-            elif self.variable == 'gsyn':
-                initial = ["%d\t%g\t%g\t%g\n" % (id, 0.0, 0.0, 0.0) for id in self.recorded]
-                final = []
-            else:
-                initial = []
-                final = []
-            if initial or final:
-                f = open("tmp_before", "w")
-                f.writelines(initial)
-                f.close()
-                f = open("tmp_after", "w")
-                f.writelines(final)
-                f.close()
-                os.system("cat tmp_before %s tmp_after > %s_tmp" % (nest_filename, user_file))
-                os.remove("tmp_before")
-                os.remove("tmp_after")
-            else:
-                os.system("cat %s > %s_tmp" % (nest_filename, user_file))
+        data = self.get(gather, compatible_output)
+        dt = state.dt
+        if state.mpi_rank == 0 or gather==False:
+            numpy.savetxt(user_file, data, Recorder.numpy1_0_formats[self.variable], delimiter='\t')
             if compatible_output:
-                # We should do the post processing (i.e the compatible output) in a distributed
-                # manner to speed up the thing. The only problem that will arise is the headers, 
-                # that should be taken into account to be really clean. Otherwise, if the # symbol
-                # is escaped while reading the file, there is no problem
-                recording.write_compatible_output("%s_tmp" % user_file,
-                                                  user_file,
-                                                  self.variable,
+                recording.write_compatible_output(user_file, user_file, self.variable,
                                                   Recorder.formats[self.variable],
-                                                  self.population,
-                                                  common.get_time_step(),
-                                                  Recorder.scale_factors[self.variable])
-                os.remove("%s_tmp" % user_file)
+                                                  self.population, dt)
+
+    def count(self, gather=False):
+        """
+        Return the number of data points for each cell, as a dict. This is mainly
+        useful for spike counts or for variable-time-step integration methods.
+        """
+        N = {}
+        if self.variable == 'spikes':
+            if nest.GetStatus(self._device,'to_memory')[0]:
+                events = nest.GetStatus(self._device, 'events')
+                for id in self.recorded:
+                    mask = events['senders'] == int(id)
+                    N[id] = events['times'][mask].count()
             else:
-                if isinstance(user_file, basestring):
-                    os.system('cat %s > %s' % (nest_filename, user_file))
-                elif hasattr(user_file, 'write'):
-                    nest_file = open(nest_filename)
-                    user_file.write(nest_file.read())
-                    nest_file.close()
-                else:
-                    raise Exception('Must provide a filename or an open file')
-            np = common.num_processes()
-            logging.debug("num_processes() = %s" % np)
-            if gather == True and common.rank() == 0 and np > 1:
-                root_file = file or self.filename
-                logging.debug("Gathering files generated by different nodes into %s" % root_file)
-                n_cells = 0
-                recording.rename_existing(root_file)
-                for node in xrange(np):
-                    node_file = root_file + '.%d' % node
-                    logging.debug("node_file = %s" % node_file)
-                    if os.path.exists(node_file):
-                        # merge headers
-                        header = self._get_header(node_file)
-                        logging.debug(str(header))
-                        if header.has_key('n'):
-                            n_cells += int(header['n'])
-                        #os.system('cat %s >> %s' % (node_file, root_file))
-                        self._strip_header(node_file, root_file)
-                        os.system('rm %s' % node_file)
-                # write header for gathered file
-                f = open("tmp_header", 'w')
-                header['n'] = n_cells
-                for k,v in header.items():
-                    f.write("# %s = %s\n" % (k,v))
-                f.close()
-                os.system('cat %s >> tmp_header' % root_file)
-                os.system('mv tmp_header %s' % root_file)
-            # don't want to remove nest_filename at this point in case the user wants to access the data
-            # a second time (e.g. with both getSpikes() and printSpikes()), but we should
-            # maintain a list of temporary files to be deleted at the end of the simulation
+                raise Exception("count() not yet supported for writing to file.")
         else:
-            raise Exception("Writing to file not yet supported for data recorded only to memory.")
+            raise Exception("Only implemented for spikes.")
+        if gather and state.num_processes > 1:
+            N = recording.gather_dict(N)
+        return N
 
 
 class _State(object):
@@ -291,6 +271,10 @@ class _State(object):
     def mpi_rank(self):
         return nest.Rank()
     
+    @property
+    def num_threads(self):
+        return nest.GetKernelStatus()['local_num_threads']
+
 
 def run(simtime):
     nest.Simulate(simtime)

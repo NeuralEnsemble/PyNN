@@ -80,7 +80,7 @@ class Recorder(object):
         if self.population:
             ids = set([id for id in ids if id in self.population.local_cells])
         else:
-            ids = set(ids) # how to decide if the cell is local?
+            ids = set([id for id in ids if id.local])
         new_ids = list( ids.difference(self.recorded) )
         
         self.recorded = self.recorded.union(ids)
@@ -157,6 +157,22 @@ class Recorder(object):
             recording.write_compatible_output(filename, filename, self.variable,
                                               Recorder.formats[self.variable],
                                               self.population, state.dt)
+        
+    def count(self, gather=False):
+        """
+        Return the number of data points for each cell, as a dict. This is mainly
+        useful for spike counts or for variable-time-step integration methods.
+        """
+        N = {}
+        if self.variable == 'spikes':
+            for id in self.recorded:
+                N[id] = id._cell.spike_times.size()
+        else:
+            raise Exception("Only implemented for spikes.")
+        if gather and state.num_processes > 1:
+            N = recording.gather_dict(N)
+        return N
+        
         
 class _Initializer(object):
     

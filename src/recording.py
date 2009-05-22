@@ -15,6 +15,10 @@ except ImportError:
 
 DEFAULT_BUFFER_SIZE = 10000
 
+if MPI:
+    mpi_comm = MPI.COMM_WORLD
+MPI_ROOT = 0
+
 #class RecordingManager(object):
 #    
 #    def __init__(self, setup_function, get_function):
@@ -50,30 +54,7 @@ def rename_existing(filename):
         os.system('mv %s %s_old' % (filename, filename))
         logging.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
 
-def convert_compatible_output(data, population, variable, compatible_output=True, scale_factor=1):
-    """
-    !!! NEST specific !!!
-    """
-    if population is not None:
-        padding = population.first_id
-    else:
-        padding = 0
-        
-    if variable == 'spikes':
-        data = numpy.array((data['times'],data['senders']- padding)).T
-    elif variable == 'v':
-        if compatible_output:
-            data = numpy.array((data['potentials'],data['senders']- padding)).T
-        else:
-            return numpy.array((data['times'],data['senders']- padding,data['potentials'])).T
-    elif variable == 'gsyn':
-        if compatible_output:
-            data = numpy.array((data['exc_conductance'],data['inh_conductance'],data['senders']- padding)).T
-        else:
-            data = numpy.array((data['times'],data['senders']- padding,data['exc_conductance'],data['inh_conductance'])).T
-    if scale_factor != 1:
-        data *= scale_factor
-    return data
+
     
 def write_compatible_output(sim_filename, user_filename, variable, input_format, population, dt, scale_factor=1):
     """
@@ -106,10 +87,11 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
     result.write("# dt = %g\n" % dt)
         
     if N > 0:
-        data[:,0] = data[:,0] - padding
+        ##this is currently done in the individual modules# data[:,0] = data[:,0] - padding
+        
         # sort
-        #indx = data.argsort(axis=0, kind='mergesort')[:,0] # will quicksort (not stable) work?
-        #data = data[indx]
+        ##indx = data.argsort(axis=0, kind='mergesort')[:,0] # will quicksort (not stable) work?
+        ##data = data[indx]
         
         input_format = input_format.split()
         time_column = input_format.index('t')
@@ -131,10 +113,10 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
             if scale_factor != 1:
                 data[:,v_column] *= scale_factor
             for idx in xrange(len(data)):
-                result.write("%g\t%d\n" % (data[idx][v_column], int(data[idx][id_column]))) # v id
+                result.write("%g\t%g\n" % (data[idx][v_column], int(data[idx][id_column]))) # v id
         elif data.shape[1] == 2: # spike files
             for idx in xrange(len(data)):
-                result.write("%g\t%d\n" % (data[idx][time_column], data[idx][id_column])) # time id
+                result.write("%g\t%g\n" % (data[idx][time_column], data[idx][id_column])) # time id
         else:
             raise Exception("Data file should have 2,3 or 4 columns, actually has %d" % data.shape[1])
     else:
@@ -230,22 +212,31 @@ def gather(data):
     # gather 1D or 2D numpy arrays
     assert isinstance(data, numpy.ndarray)
     assert len(data.shape) < 3
-    comm = MPI.COMM_WORLD
-    ROOT = 0
     # first we pass the data size
     size = data.size
-    sizes = comm.gather(size, root=ROOT) or []
+    sizes = mpi_comm.gather(size, root=MPI_ROOT) or []
     # now we pass the data
     displacements = [sum(sizes[:i]) for i in range(len(sizes))]
-    #print comm.rank, sizes, displacements, data
+    #print mpi_comm.rank, sizes, displacements, data
     gdata = numpy.empty(sum(sizes))
-    comm.Gatherv([data.flatten(), size, MPI.DOUBLE], [gdata, (sizes,displacements), MPI.DOUBLE], root=ROOT)
+    mpi_comm.Gatherv([data.flatten(), size, MPI.DOUBLE], [gdata, (sizes,displacements), MPI.DOUBLE], root=MPI_ROOT)
     if len(data.shape) == 1:
         return gdata
     else:
         num_columns = data.shape[1]
         return gdata.reshape((gdata.size/num_columns, num_columns))
   
+def gather_dict(D):
+    # Note that if the same key exists on multiple nodes, the value from the
+    # node with the highest rank will appear in the final dict.
+    Ds = mpi_comm.gather(D, root=MPI_ROOT)
+    if Ds:
+        for otherD in Ds:
+            D.update(otherD)
+    return D
+
+def mpi_sum(x):
+    return mpi_comm.allreduce(x, op=MPI.SUM)
 
 
 class StandardTextFile(object):

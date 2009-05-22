@@ -6,7 +6,7 @@ $Id$
 
 import nest
 from pyNN.nest2 import simulator
-from pyNN import common
+from pyNN import common, recording
 common.simulator = simulator
 from pyNN.random import *
 import numpy, os, shutil, logging, tempfile
@@ -287,7 +287,7 @@ class Population(common.Population):
     #        else:
     #           nest.SetStatus(self.local_cells, parametername, rarr)
 
-    def _record(self, variable, record_from=None, rng=None,to_file=True):
+    def _record(self, variable, record_from=None, rng=None, to_file=True):
         common.Population._record(self, variable, record_from, rng, to_file)
         nest.SetStatus(self.recorders[variable]._device, {'to_file': to_file, 'to_memory' : not to_file})
     
@@ -299,15 +299,19 @@ class Population(common.Population):
         # This is a rough approximation, because in fact each nodes is only multiplying 
         # the frequency of the recorders by the number of processes. To do better, we need a MPI
         # package to send informations to node 0. Nevertheless, it works for threaded mode
-        node_list = range(nest.GetStatus([0], "total_num_virtual_procs")[0])
+        if gather:
+            node_list = range(nest.GetKernelStatus()["total_num_virtual_procs"])
+        else:
+            node_list = [rank()]
         n_spikes  = 0
         for node in node_list:
             nest.sps(self.recorders['spikes']._device[0])
             nest.sr("%d GetAddress %d append" %(self.recorders['spikes']._device[0], node))
-            ##nest.sr("GetStatus /events get")
             nest.sr("GetStatus /n_events get")
             n_spikes += nest.spp()
         n_rec = len(self.recorders['spikes'].recorded)
+        if gather and num_processes()>1:
+            n_rec = recording.mpi_sum(n_rec)
         return float(n_spikes)/n_rec
 
     def getSubPopulation(self, cell_list, label=None):

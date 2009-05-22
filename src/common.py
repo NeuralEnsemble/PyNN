@@ -999,9 +999,9 @@ class Population(object):
         """
         Returns the mean number of spikes per neuron.
         """
-        n_spikes = len(self.recorders['spikes'].get(gather))
-        n_rec = len(self.recorders['spikes'].recorded)
-        return float(n_spikes)/n_rec
+        spike_counts = self.recorders['spikes'].count(gather)
+        total_spikes = sum(spike_counts.values())
+        return float(total_spikes)/len(spike_counts)
     
     def describe(self, template='standard'):
         """

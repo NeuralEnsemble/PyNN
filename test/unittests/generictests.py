@@ -9,7 +9,14 @@ import numpy
 import os
 from pyNN import common, random, utility
 
+try:
+    from mpi4py import MPI
+except ImportError:
+    MPI = None
+
 def assert_arrays_almost_equal(a, b, threshold):
+    if a.shape != b.shape:
+        raise unittest.TestCase.failureException("Shape mismatch: a.shape=%s, b.shape=%s" % (a.shape, b.shape))
     if not (abs(a-b) < threshold).all():
         err_msg = "%s != %s" % (a, b)
         err_msg += "\nlargest difference = %g" % abs(a-b).max()
@@ -260,8 +267,10 @@ class IDSetGetTest(unittest.TestCase):
         for name, pop in self.populations.items():
             assert isinstance(pop[0], common.IDMixin)
             assert 'cellclass' in pop[0].non_parameter_attributes
-            self.assertEqual(pop.local_cells[0].cellclass.__name__, name)
-        self.assertRaises(Exception, setattr, pop[0].cellclass, 'dummy')
+            if len(pop.local_cells)>0:
+                self.assertEqual(pop.local_cells[0].cellclass.__name__, name)
+        if len(pop.local_cells)>0:
+            self.assertRaises(Exception, setattr, pop[0].cellclass, 'dummy')
         
     def testGetSetPosition(self):
         for cell_group in self.cells.values():
@@ -790,9 +799,12 @@ class ProjectionInitTest(unittest.TestCase):
                     if sim.num_processes() == 1:
                         self.assertEqual(len(prj1.connections), c.n*len(srcP))
                     else:
-                        # could perhaps use MPI to sum connection length from all nodes to check the sum equals n
-                        conn_per_node = float(c.n*len(srcP))/sim.num_processes()
-                        self.assert_(0.8*conn_per_node < len(prj1.connections) < 1.2*conn_per_node+2, "len(connections)=%d, conn_per_node=%d prj=%s, n=%d" % (len(prj1.connections), conn_per_node, prj1.label, c.n) )
+                        if MPI:
+                            total_connections = MPI.COMM_WORLD.allreduce(len(prj1.connections), op=MPI.SUM)
+                            self.assertEqual(total_connections, c.n*len(srcP))
+                        else:
+                            conn_per_node = float(c.n*len(srcP))/sim.num_processes()
+                            self.assert_(0.8*conn_per_node < len(prj1.connections) < 1.2*conn_per_node+2, "len(connections)=%d, conn_per_node=%d prj=%s, n=%d" % (len(prj1.connections), conn_per_node, prj1.label, c.n) )
                     
                 prj2 = sim.Projection(srcP, tgtP, c3) # just a test that no Exceptions are raised
         self.assertRaises(Exception, sim.FixedNumberPostConnector, None)
@@ -935,7 +947,8 @@ class ProjectionGetTest(unittest.TestCase):
             prj.setWeights(weights_in)
             weights_out = numpy.array(prj.getWeights(format='array')).flatten()
             weights_out = weights_out.compress(weights_out>0)
-            self.assertEqual(weights_out[0], prj.connections[0].weight)
+            if weights_out.size > 0:
+                self.assertEqual(weights_out[0], prj.connections[0].weight)
             self.assertEqual(weights_in.shape, weights_out.shape)
             assert_arrays_almost_equal(weights_in, weights_out, 1e-7)
             
@@ -1004,7 +1017,7 @@ class SpikeSourceTest(unittest.TestCase):
         sim.run(simtime)
         spikes = PNs.getSpikes()[:,1]
         assert min(spikes) >= start, min(spikes)
-        assert max(spikes) <= start+duration, max(spikes)
+        assert max(spikes) <= start+duration, "%g > %g" % (max(spikes), start+duration)
         expected_count = duration/1000.0*rate*n
         diff = abs(len(spikes)-expected_count)/expected_count
         assert diff < 0.1, str(diff)
