@@ -191,51 +191,52 @@ class SpikeSourceArray(cells.SpikeSourceArray):
             standard_parameters['spike_times'] *= 1000.0 
         return standard_parameters
 
-
-class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
-    """
-    Exponential integrate and fire neuron with spike triggered and sub-threshold
-    adaptation currents (isfa, ista reps.) according to:
-    
-    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
-    an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
-
-    See also: IF_cond_exp_gsfa_grr
-    """
-
-    translations = common.build_translations(
-        ('v_init'    , 'Vinit',     1e-3),  # mV -> V
-        ('w_init'    , 'w',         1e-9),  # nA -> A
-        ('cm'        , 'Cm',        1e-9),  # nF -> F
-        ('tau_refrac', 'Trefract',  1e-3),  # ms -> s 
-        ('v_spike'   , 'Vpeak',     1e-3),
-        ('v_reset'   , 'Vr',        1e-3),
-        ('v_rest'    , 'El',        1e-3),
-        ('tau_m'     , 'gl',        "1e-6*cm/tau_m", "Cm/gl"), # units correct?
-        ('i_offset'  , 'Iinject',   1e-9),
-        ('a'         , 'a',         1e-9),       
-        ('b'         , 'b',         1e-9),
-        ('delta_T'   , 'slope',     1e-3), 
-        ('tau_w'     , 'tau_w',     1e-3), 
-        ('v_thresh'  , 'Vt',        1e-3), 
-        ('e_rev_E'   , 'ErevExc',   1e-3),
-        ('tau_syn_E' , 'TauSynExc', 1e-3), 
-        ('e_rev_I'   , 'ErevInh',   1e-3), 
-        ('tau_syn_I' , 'TauSynInh',  1e-3),
-    )
-    pcsim_name = "aEIFCondAlphaNeuron"
-    simObjFactory = None
-    setterMethods = {}
-    
-    def __init__(self, parameters):
-        cells.EIF_cond_alpha_isfa_ista.__init__(self, parameters)              
-        self.parameters['Inoise'] = 0.0
-        limited_parameters = {} # problem that Trefract is not implemented
-        for k in ('a','b','Vt','Vr','El','gl','Cm','tau_w','slope','Vpeak',
-                  'Vinit','Inoise','Iinject', 'ErevExc', 
-                  'TauSynExc', 'ErevInh', 'TauSynInh'):
-            limited_parameters[k] = self.parameters[k]
-        self.simObjFactory = getattr(pypcsim, EIF_cond_alpha_isfa_ista.pcsim_name)(**limited_parameters)
+class EIF_cond_alpha_isfa_ista(common.ModelNotAvailable):
+    pass
+#class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
+#    """
+#    Exponential integrate and fire neuron with spike triggered and sub-threshold
+#    adaptation currents (isfa, ista reps.) according to:
+#    
+#    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
+#    an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
+#
+#    See also: IF_cond_exp_gsfa_grr
+#    """
+#
+#    translations = common.build_translations(
+#        ('v_init'    , 'Vinit',     1e-3),  # mV -> V
+#        ('w_init'    , 'w',         1e-9),  # nA -> A
+#        ('cm'        , 'Cm',        1e-9),  # nF -> F
+#        ('tau_refrac', 'Trefract',  1e-3),  # ms -> s 
+#        ('v_spike'   , 'Vpeak',     1e-3),
+#        ('v_reset'   , 'Vr',        1e-3),
+#        ('v_rest'    , 'El',        1e-3),
+#        ('tau_m'     , 'gl',        "1e-6*cm/tau_m", "Cm/gl"), # units correct?
+#        ('i_offset'  , 'Iinject',   1e-9),
+#        ('a'         , 'a',         1e-9),       
+#        ('b'         , 'b',         1e-9),
+#        ('delta_T'   , 'slope',     1e-3), 
+#        ('tau_w'     , 'tau_w',     1e-3), 
+#        ('v_thresh'  , 'Vt',        1e-3), 
+#        ('e_rev_E'   , 'ErevExc',   1e-3),
+#        ('tau_syn_E' , 'TauSynExc', 1e-3), 
+#        ('e_rev_I'   , 'ErevInh',   1e-3), 
+#        ('tau_syn_I' , 'TauSynInh',  1e-3),
+#    )
+#    pcsim_name = "aEIFCondAlphaNeuron"
+#    simObjFactory = None
+#    setterMethods = {}
+#    
+#    def __init__(self, parameters):
+#        cells.EIF_cond_alpha_isfa_ista.__init__(self, parameters)              
+#        self.parameters['Inoise'] = 0.0
+#        limited_parameters = {} # problem that Trefract is not implemented
+#        for k in ('a','b','Vt','Vr','El','gl','Cm','tau_w','slope','Vpeak',
+#                  'Vinit','Inoise','Iinject', 'ErevExc', 
+#                  'TauSynExc', 'ErevInh', 'TauSynInh'):
+#            limited_parameters[k] = self.parameters[k]
+#        self.simObjFactory = getattr(pypcsim, EIF_cond_alpha_isfa_ista.pcsim_name)(**limited_parameters)
 
 class IF_facets_hardware1(common.ModelNotAvailable):
     pass

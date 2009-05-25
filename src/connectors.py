@@ -261,7 +261,8 @@ class OneToOneConnector(common.Connector):
                                  weights,
                                  delays):
                 id_class = type(tgt)
-                src = id_class(tgt - projection.post.first_id + projection.pre.first_id)
+                #src = id_class(tgt - projection.post.first_id + projection.pre.first_id) # assumes ids in a Population are consecutive
+                src = id_class(projection.pre.index(projection.post.id_to_index(tgt)))
                 src.parent = projection.pre
                 if hasattr(projection.pre, "brian_cells"):
                     src.parent_group = projection.pre.brian_cells

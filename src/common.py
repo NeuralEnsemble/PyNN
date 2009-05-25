@@ -256,8 +256,7 @@ class IDMixin(object):
         time they are requested and then cached.
         """
         if self.parent:
-            #index = numpy.where(self.parent.all_cells.flatten() == int(self))[0][0]
-            index = int(self) - self.parent.first_id
+            index = self.parent.id_to_index(self)
             return self.parent.positions[:, index]  
         else:
             try:
@@ -691,21 +690,29 @@ class Population(object):
         # a slower (for large populations) implementation that does not make
         # this assumption is:
         #   return tuple([a.tolist()[0] for a in numpy.where(self.all_cells == id)])
-        id = id - self.first_id
+        idx = self.id_to_index(id)
         if self.ndim == 3:
             rows = self.dim[1]; cols = self.dim[2]
-            i = id/(rows*cols); remainder = id%(rows*cols)
+            i = idx/(rows*cols); remainder = idx%(rows*cols)
             j = remainder/cols; k = remainder%cols
             coords = (i,j,k)
         elif self.ndim == 2:
             cols = self.dim[1]
-            i = id/cols; j = id%cols
+            i = idx/cols; j = idx%cols
             coords = (i,j)
         elif self.ndim == 1:
-            coords = (id,)
+            coords = (idx,)
         else:
             raise common.InvalidDimensionsError
         return coords
+    
+    def id_to_index(self, id):
+        """
+        Given the ID of a cell in the Population, return its index (order in the
+        Population).
+        >>> assert id_to_index(p.index(5)) == 5
+        """
+        return id - self.first_id # this assumes ids are consecutive
     
     def index(self, n):
         """

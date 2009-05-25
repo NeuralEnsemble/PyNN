@@ -66,11 +66,10 @@ class NativeRNG(pyNN.random.NativeRNG):
         else:
             return values 
         
-        
-
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
+    setup()
     standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
     for cell_class in standard_cell_types:
         try:
@@ -148,12 +147,6 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     simulator but not by others.
     For pcsim, the possible arguments are 'construct_rng_seed' and 'simulation_rng_seed'.
     """
- 
-    
-    simulator.state.t = 0
-    simulator.state.dt = timestep
-    simulator.state.min_delay = min_delay
-    simulator.state.max_delay = max_delay
     if simulator.state.constructRNGSeed is None:
         if extra_params.has_key('construct_rng_seed'):
             construct_rng_seed = extra_params['construct_rng_seed']
@@ -172,6 +165,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     else:
         simulator.net = pypcsim.DistributedSingleThreadNetwork(pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), simulator.state.constructRNGSeed, simulator.state.simulationRNGSeed))
     
+    simulator.state.t = 0
+    simulator.state.dt = timestep
+    simulator.state.min_delay = min_delay
+    simulator.state.max_delay = max_delay
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
     return simulator.net.mpi_rank()
 
@@ -438,6 +435,9 @@ class Population(common.Population):
     ##    if coords:
     ##        assert coords == pcsim_coords, " coords = %s, pcsim_coords = %s " % (coords, pcsim_coords)
     ##    return coords
+    
+    def id_to_index(self, id):
+        return self.all_ids.tolist().index(id) # because ids may not be consecutive when running a distributed sim
     
     ##def getObjectID(self, index):
     ##    return self.pcsim_population[index]

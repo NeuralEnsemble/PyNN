@@ -9,6 +9,7 @@ recorder_list = []
 
 def reset():
     net.reset()
+    state.t = 0.0
 
 class _State(object):
     """Represent the simulator state."""
@@ -16,7 +17,6 @@ class _State(object):
     def __init__(self):
         self.initialized = False
         self.t = 0.0
-        self.dt = None
         self.min_delay = None
         self.max_delay = None
         self.constructRNGSeed = None
@@ -29,6 +29,9 @@ class _State(object):
     @property
     def mpi_rank(self):
         return net.mpi_rank()
+
+    dt = property(fget=lambda: net.get_dt().in_ms(),
+                  fset=lambda x: net.set_dt(pypcsim.Time.ms(x)))
 
 
 class Recorder(object):
@@ -107,7 +110,11 @@ class Recorder(object):
             data = numpy.empty((0,2))
             for id in self.recorded:
                 rec = self.recorders[id]
-                spikes = 1000.0*numpy.array(net.object(rec).getSpikeTimes())
+                if isinstance(net.object(id), pypcsim.SpikingInputNeuron):
+                    spikes = 1000.0*numpy.array(net.object(id).getSpikeTimes()) # is this special case really necessary?
+                    spikes = spikes[spikes<=state.t]
+                else:
+                    spikes = 1000.0*numpy.array(net.object(rec).getSpikeTimes())
                 spikes = spikes.flatten()
                 spikes = spikes[spikes<=state.t+1e-9]
                 if len(spikes) > 0:    
@@ -148,6 +155,17 @@ class Recorder(object):
                                               Recorder.formats[self.variable],
                                               self.population, state.dt)
 
+    def count(self, gather=False):
+        N = {}
+        if self.variable == 'spikes':
+            for id in self.recorded:
+                N[id] = net.object(self.recorders[id]).spikeCount()
+        else:
+            raise Exception("Only implemented for spikes.")
+        if gather and state.num_processes > 1:
+            N = recording.gather_dict(N)
+        return N
+              
 
 class ID(long, common.IDMixin):
     """
@@ -326,7 +344,8 @@ class ConnectionManager(object):
                 c = net.connect(source, target, syn_factory)
             except RuntimeError, e:
                 raise common.ConnectionError(e)
-            self.connections.append(Connection(source, target, net.object(c), 1.0/weight_scale_factor))
+            if target.local:
+                self.connections.append(Connection(source, target, net.object(c), 1.0/weight_scale_factor))
             
     def get(self, parameter_name, format, offset=(0,0)):
         if format == 'list':

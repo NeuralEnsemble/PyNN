@@ -1025,13 +1025,13 @@ class SpikeSourceTest(unittest.TestCase):
                 
 # ==============================================================================
 if __name__ == "__main__":
-    simulator = utility.get_script_args(__file__, 1)[0]
+    sim_name = utility.get_script_args(__file__, 1)[0]
     
-    sys.argv.remove(simulator) # because unittest.main() processes sys.argv
-    if simulator == 'neuron':
+    sys.argv.remove(sim_name) # because unittest.main() processes sys.argv
+    if sim_name == 'neuron':
         sys.argv = sys.argv[sys.argv.index(__file__):]
     
     #print sys.argv
-    sim = __import__("pyNN.%s" % simulator, None, None, [simulator])
+    sim = __import__("pyNN.%s" % sim_name, None, None, [sim_name])
     sim.setup()
     unittest.main()
