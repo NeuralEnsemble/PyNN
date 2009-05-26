@@ -437,7 +437,7 @@ class Population(common.Population):
     ##    return coords
     
     def id_to_index(self, id):
-        return self.all_ids.tolist().index(id) # because ids may not be consecutive when running a distributed sim
+        return self.all_cells.flatten().tolist().index(id) # because ids may not be consecutive when running a distributed sim
     
     ##def getObjectID(self, index):
     ##    return self.pcsim_population[index]
@@ -552,11 +552,6 @@ class Projection(common.Projection, WDManager):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    method, source, target,
                                    synapse_dynamics, label, rng)
-        if not label:
-            self.label = 'projection%d' % Projection.nProj
-        logging.info("--- Projection[%s].__init__() ---" %self.label)
-        if not rng:
-            self.rng = pyNN.random.NumpyRNG()
         self.synapse_type = target or 'excitatory'
         self.connection_manager = simulator.ConnectionManager(parent=self)
         self.connections = self.connection_manager

@@ -30,8 +30,8 @@ class _State(object):
     def mpi_rank(self):
         return net.mpi_rank()
 
-    dt = property(fget=lambda: net.get_dt().in_ms(),
-                  fset=lambda x: net.set_dt(pypcsim.Time.ms(x)))
+    dt = property(fget=lambda self: net.get_dt().in_ms(),
+                  fset=lambda self,x: net.set_dt(pypcsim.Time.ms(x)))
 
 
 class Recorder(object):
@@ -353,7 +353,11 @@ class ConnectionManager(object):
         elif format == 'array':
             values = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
             for c in self:
-                values[c.source-offset[0], c.target-offset[1]] = getattr(c, parameter_name)
+                if self.parent:
+                    addr = (self.parent.pre.id_to_index(c.source), self.parent.post.id_to_index(c.target))
+                else:
+                    addr = (c.source-offset[0], c.target-offset[1])
+                values[addr] = getattr(c, parameter_name)
         else:
             raise Exception("format must be 'list' or 'array'")
         return values        

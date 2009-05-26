@@ -1111,7 +1111,7 @@ class Projection(object):
             raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
         self._method = method
         self.synapse_dynamics = synapse_dynamics
-        self.connection = None # access individual connections. To be defined by child, simulator-specific classes
+        #self.connection = None # access individual connections. To be defined by child, simulator-specific classes
         self.weights = []
         if label is None:
             if self.pre.label and self.post.label:
