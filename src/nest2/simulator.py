@@ -105,18 +105,14 @@ class Recorder(object):
             raise Exception("%s is not a valid recording device" % device_name)
     
     def _make_compatible(self, data):
-        # add initial and final values
+        # add initial values
         # NEST does not record the values at t=0 or t=simtime, so we add them now
         if self.variable == 'v':
             initial = [[id, 0.0, id.v_init] for id in self.recorded]
-            t = state.t # needs to be done on all nodes
-            final = [[id, t, nest.GetStatus([id], 'V_m')[0]] for id in self.recorded]
-            if self.recorded:
-                data = numpy.concatenate((initial, data, final))
         elif self.variable == 'gsyn':
             initial = [[id, 0.0, 0.0, 0.0] for id in self.recorded]
-            if self.recorded:
-                data = numpy.concatenate((initial, data)) # seems to be no way to get the final synaptic conductances
+        if self.recorded:
+            data = numpy.concatenate((initial, data))
         # scale data
         scale_factor = Recorder.scale_factors[self.variable]
         if scale_factor != 1:
@@ -246,6 +242,7 @@ class _State(object):
     
     def __init__(self):
         self.initialized = False
+        self.running = False
 
     @property
     def t(self):
@@ -277,6 +274,9 @@ class _State(object):
 
 
 def run(simtime):
+    if not state.running:
+        simtime += state.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
+        state.running = True
     nest.Simulate(simtime)
 
 def create_cells(cellclass, cellparams=None, n=1, parent=None):
@@ -390,17 +390,17 @@ class ConnectionManager:
         Connect a neuron to one or more other neurons.
         """
         # are we sure the targets are all on the current node?
-        weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
-                                 # Using convention in this way is not ideal. We should
-                                 # be able to look up the units used by each model somewhere.
-        if synapse_type == 'inhibitory':
-            weights = -1*weights
         if common.is_listlike(source):
             assert len(source) == 1
             source = source[0]
         if not common.is_listlike(targets):
             targets = [targets]
         assert len(targets) > 0
+        weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+                                 # Using convention in this way is not ideal. We should
+                                 # be able to look up the units used by each model somewhere.
+        if synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
+            weights = -1*weights # NEST wants negative values for inhibitory weights, even if these are conductances
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()
         elif isinstance(weights, float):
