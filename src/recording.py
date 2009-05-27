@@ -210,6 +210,8 @@ def readArray(filename, sepchar=None, skipchar='#'):
 
 def gather(data):
     # gather 1D or 2D numpy arrays
+    if MPI is None:
+        raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
     assert isinstance(data, numpy.ndarray)
     assert len(data.shape) < 3
     # first we pass the data size

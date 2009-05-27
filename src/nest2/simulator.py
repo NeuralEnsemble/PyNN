@@ -106,12 +106,14 @@ class Recorder(object):
     
     def _make_compatible(self, data):
         # add initial values
-        # NEST does not record the values at t=0 or t=simtime, so we add them now
+        # NEST does not record the value at t=0 so we add it now
         if self.variable == 'v':
             initial = [[id, 0.0, id.v_init] for id in self.recorded]
         elif self.variable == 'gsyn':
             initial = [[id, 0.0, 0.0, 0.0] for id in self.recorded]
-        if self.recorded:
+        else:
+            initial = None
+        if initial and self.recorded:
             data = numpy.concatenate((initial, data))
         # scale data
         scale_factor = Recorder.scale_factors[self.variable]
@@ -137,12 +139,12 @@ class Recorder(object):
         if compatible_output:
             data = self._events_to_array(data)
             data = self._make_compatible(data)
-        if gather:
+        if gather and state.num_processes > 1:
             data = recording.gather(data)
         return data
                      
     def _read_data(self, gather, compatible_output):
-        if gather:
+        if gather and state.num_processes > 1:
             if self._gathered:
                 self._gathered_file.seek(0)
                 data = numpy.load(self._gathered_file)
