@@ -8,7 +8,7 @@ class CurrentSource(object):
 
 
     def inject_into(self, cell_list):
-        if simulator.state.num_processes() == 1:
+        if simulator.state.num_processes == 1:
             delay = 0.0
         else:
             delay = simulator.state.min_delay # perhaps it would be better to replicate the current source on each node, to avoid this delay

@@ -94,7 +94,7 @@ class ConnectionTest(unittest.TestCase):
         conn_list = sim.connect(self.precells[0], self.postcells[0], delay=4.321)
         if conn_list:
             delay = conn_list[0].delay
-            if simulator == 'nest2':
+            if sim_name == 'nest2':
                 self.assertEqual(round(delay, 1), 4.4) # NEST rounds delays to the timestep, 0.1 here
             else:
                 self.assertAlmostEqual(delay, 4.321, 6) 

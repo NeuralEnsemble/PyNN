@@ -160,13 +160,23 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
             simulation_rng_seed = datetime.today().microsecond
         simulator.state.simulationRNGSeed = simulation_rng_seed
     if extra_params.has_key('threads'):
-        simulator.net = pypcsim.DistributedMultiThreadNetwork(extra_params['threads'],
-                                                                  pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), simulator.state.constructRNGSeed, simulator.state.simulationRNGSeed))
+        simulator.net = pypcsim.DistributedMultiThreadNetwork(
+                            extra_params['threads'],
+                            pypcsim.SimParameter( pypcsim.Time.ms(timestep),
+                                                  pypcsim.Time.ms(min_delay),
+                                                  pypcsim.Time.ms(max_delay),
+                                                  simulator.state.constructRNGSeed,
+                                                  simulator.state.simulationRNGSeed))
     else:
-        simulator.net = pypcsim.DistributedSingleThreadNetwork(pypcsim.SimParameter( pypcsim.Time.ms(timestep), pypcsim.Time.ms(min_delay), pypcsim.Time.ms(max_delay), simulator.state.constructRNGSeed, simulator.state.simulationRNGSeed))
+        simulator.net = pypcsim.DistributedSingleThreadNetwork(
+                            pypcsim.SimParameter( pypcsim.Time.ms(timestep),
+                                                  pypcsim.Time.ms(min_delay),
+                                                  pypcsim.Time.ms(max_delay),
+                                                  simulator.state.constructRNGSeed,
+                                                  simulator.state.simulationRNGSeed))
     
     simulator.state.t = 0
-    simulator.state.dt = timestep
+    #simulator.state.dt = timestep # seems to mess up the net object
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
@@ -265,7 +275,7 @@ connect = common.connect
 set = common.set    
 record = common.build_record('spikes', simulator)
 record_v = common.build_record('v', simulator)
-            
+record_gsyn = common.build_record('gsyn', simulator)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of

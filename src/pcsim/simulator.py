@@ -30,8 +30,7 @@ class _State(object):
     def mpi_rank(self):
         return net.mpi_rank()
 
-    dt = property(fget=lambda self: net.get_dt().in_ms(),
-                  fset=lambda self,x: net.set_dt(pypcsim.Time.ms(x)))
+    dt = property(fget=lambda self: net.get_dt().in_ms()) #, fset=lambda self,x: net.set_dt(pypcsim.Time.ms(x)))
 
 
 class Recorder(object):
@@ -94,7 +93,7 @@ class Recorder(object):
                 net.connect(pcsim_id, Recorder.fieldnames[self.variable], rec, 0, pypcsim.Time.sec(0))
                 self.recorders[id] = rec
         else:
-            raise Exception("Recording of %s not implemented." % self.variable)
+            raise NotImplementedError("Recording of %s not implemented." % self.variable)
 
     def get(self, gather=False, compatible_output=True, offset=None):
         """Returns the recorded data."""
@@ -126,8 +125,10 @@ class Recorder(object):
                 rec = self.recorders[id]
                 v = 1000.0*numpy.array(net.object(rec).getRecordedValues())
                 v = v.flatten()
+                final_v = 1000.0*net.object(id).getVm()
+                v = numpy.append(v, final_v)
                 dt = state.dt
-                t = numpy.arange(0, dt*len(v), dt).flatten()              
+                t = dt*numpy.arange(v.size)
                 new_data = numpy.array([numpy.ones(v.shape, dtype=int)*(id-offset), t, v]).T
                 data = numpy.concatenate((data, new_data))
         elif self.variable == 'gsyn':
