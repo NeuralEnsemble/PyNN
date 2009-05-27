@@ -1,3 +1,4 @@
+# encoding: utf-8
 # ==============================================================================
 # Standard cells for neuron
 # $Id$
@@ -35,7 +36,7 @@ class SingleCompartmentNeuron(nrn.Section):
         'conductance' : { 'exp': h.ExpSyn,  'alpha': h.AlphaSyn },
     }
 
-    def __init__(self, syn_type, syn_shape, tau_m, c_m, v_rest, i_offset,
+    def __init__(self, syn_type, syn_shape, c_m, i_offset,
                  v_init, tau_e, tau_i, e_e, e_i):
         
         # initialise Section object with 'pas' mechanism
@@ -43,8 +44,7 @@ class SingleCompartmentNeuron(nrn.Section):
         self.seg = self(0.5)
         self.L = 100
         self.seg.diam = 1000/pi # gives area = 1e-3 cm2
-        self.insert('pas')
-        
+                
         self.syn_type = syn_type
         self.syn_shape = syn_shape
         
@@ -69,37 +69,16 @@ class SingleCompartmentNeuron(nrn.Section):
         self.recording_time = 0
 
     def area(self):
+        """Membrane area in µm²"""
         return pi*self.L*self.seg.diam
 
-    def __set_tau_m(self, value):
-        #print "setting tau_m to", value, "cm =", self.seg.cm
-        self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
-    def __get_tau_m(self):
-        #print "tau_m = ", 1e-3*self.seg.cm/self.seg.pas.g, "cm = ", self.seg.cm
-        return 1e-3*self.seg.cm/self.seg.pas.g
-
-    def __get_cm(self):
-        #print "cm = ", self.seg.cm
-        return self.seg.cm
-    def __set_cm(self, value): # when we set cm, need to change g to maintain the same value of tau_m
-        #print "setting cm to", value
-        tau_m = self.tau_m
-        self.seg.cm = value
-        self.tau_m = tau_m
-
-    tau_m    = property(fget=__get_tau_m, fset=__set_tau_m)
-    c_m      = property(fget=__get_cm, fset=__set_cm) # if the property were called 'cm'
-                                                      # it would never get accessed as the
-                                                      # built-in Section.cm would always
-                                                      # be used first
+    c_m      = _new_property('seg', 'cm')
     i_offset = _new_property('stim', 'amp')
     tau_e    = _new_property('esyn', 'tau')
     tau_i    = _new_property('isyn', 'tau')
     e_e      = _new_property('esyn', 'e')
     e_i      = _new_property('isyn', 'e')
-    v_rest   = _new_property('seg.pas', 'e')
-    # what about v_init?
-
+    
     def record(self, active):
         if active:
             rec = h.NetCon(self.source, None)
@@ -167,15 +146,46 @@ class SingleCompartmentNeuron(nrn.Section):
             setattr(self, name, param_dict[name])
 
 
-class StandardIF(SingleCompartmentNeuron):
+class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
+    
+    def __init__(self, syn_type, syn_shape, tau_m, c_m, v_rest, i_offset,
+                 v_init, tau_e, tau_i, e_e, e_i):
+        SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
+                                         v_init, tau_e, tau_i, e_e, e_i)
+        self.insert('pas')
+        
+    def __set_tau_m(self, value):
+        #print "setting tau_m to", value, "cm =", self.seg.cm
+        self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+    def __get_tau_m(self):
+        #print "tau_m = ", 1e-3*self.seg.cm/self.seg.pas.g, "cm = ", self.seg.cm
+        return 1e-3*self.seg.cm/self.seg.pas.g
+
+    def __get_cm(self):
+        #print "cm = ", self.seg.cm
+        return self.seg.cm
+    def __set_cm(self, value): # when we set cm, need to change g to maintain the same value of tau_m
+        #print "setting cm to", value
+        tau_m = self.tau_m
+        self.seg.cm = value
+        self.tau_m = tau_m
+
+    v_rest = _new_property('seg.pas', 'e')
+    tau_m  = property(fget=__get_tau_m, fset=__set_tau_m)
+    c_m    = property(fget=__get_cm, fset=__set_cm) # if the property were called 'cm'
+                                                    # it would never get accessed as the
+                                                    # built-in Section.cm would always
+                                                    # be used first
+
+
+class StandardIF(LeakySingleCompartmentNeuron):
     """docstring"""
     
     def __init__(self, syn_type, syn_shape, tau_m=20, c_m=1.0, v_rest=-65,
                  v_thresh=-55, t_refrac=2, i_offset=0, v_reset=None,
                  v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70):
-        SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
-                                         i_offset, v_init,
-                                         tau_e, tau_i, e_e, e_i)
+        LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
+                                         i_offset, v_init, tau_e, tau_i, e_e, e_i)
         if v_reset is None:
             v_reset = v_rest
         if v_init is None:
@@ -198,7 +208,7 @@ class StandardIF(SingleCompartmentNeuron):
     t_refrac = _new_property('spike_reset', 'trefrac')
     
     
-class BretteGerstnerIF(SingleCompartmentNeuron):
+class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     """docstring"""
     
     def __init__(self, syn_type, syn_shape, tau_m=20, c_m=1.0, v_rest=-65,
@@ -206,7 +216,7 @@ class BretteGerstnerIF(SingleCompartmentNeuron):
                  v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70,
                  v_spike=0.0, v_reset=-70.6, A=4.0, B=0.0805, tau_w=144.0,
                  w_init=0.0, delta=2.0):
-        SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
+        LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
                                          i_offset, v_init,
                                          tau_e, tau_i, e_e, e_i)
         if v_init is None:
@@ -262,6 +272,33 @@ class BretteGerstnerIF(SingleCompartmentNeuron):
             rec = h.NetCon(self.source, None, sec=self)
             rec.record(self.spike_times)
     
+
+class SingleCompartmentTraub(SingleCompartmentNeuron):
+    
+    def __init__(self, syn_type, syn_shape, c_m=1.0, e_leak=-65,
+                 i_offset=0, v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70,
+                 gbar_Na=20000, gbar_K=6000, g_leak=10, ena=50,
+                 ek=-90, v_offset=-63):
+        SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
+                                         v_init, tau_e, tau_i, e_e, e_i)
+        if v_init is None:
+            v_init = v_rest
+        self.source = self.seg._ref_v
+        self.insert('k_ion')
+        self.insert('na_ion')
+        self.insert('hh_traub')
+        self.parameter_names = ['c_m', 'e_leak', 'i_offset', 'v_init', 'tau_e',
+                                'tau_i', 'gbar_Na', 'gbar_K', 'g_leak', 'ena',
+                                'ek', 'v_offset']
+        if syn_type == 'conductance':
+            self.parameter_names.extend(['e_e', 'e_i'])
+        self.set_parameters(locals())
+        
+    e_leak   = _new_property('seg.hh_traub', 'el')
+    v_offset = _new_property('seg.hh_traub', 'vT')
+    gbar_Na  = _new_property('seg.hh_traub', 'gnabar')
+    gbar_K   = _new_property('seg.hh_traub', 'gkbar')
+    g_leak   = _new_property('seg.hh_traub', 'gl')
     
 class RandomSpikeSource(hclass(h.NetStimFD)):
     
@@ -438,7 +475,33 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
         self.parameters['c_m']       = 0.2
         self.parameters['t_refrac']  = 1.0
         self.parameters['e_e']       = 0.0
-        
+    
+       
+class HH_cond_exp(cells.HH_cond_exp):
+    
+    translations = common.build_translations(
+        ('gbar_Na',    'gbar_Na', 1e-6),   
+        ('gbar_K',     'gbar_K', 1e-6),    
+        ('g_leak',     'g_leak', 1e-6),    
+        ('cm',         'c_m'),  
+        ('v_offset',   'v_offset'),
+        ('e_rev_Na',   'ena'),
+        ('e_rev_K',    'ek'), 
+        ('e_rev_leak', 'e_leak'),
+        ('e_rev_E',    'e_e'),
+        ('e_rev_I',    'e_i'),
+        ('tau_syn_E',  'tau_e'),
+        ('tau_syn_I',  'tau_i'),
+        ('i_offset',   'i_offset'),
+        ('v_init',     'v_init'),
+    )
+    model = SingleCompartmentTraub
+
+    def __init__(self, parameters):
+        cells.HH_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
+                                                     # values for not-specified parameters.
+        self.parameters['syn_type']  = 'conductance'
+        self.parameters['syn_shape'] = 'exp'
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
