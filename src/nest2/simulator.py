@@ -20,7 +20,7 @@ class ID(int, common.IDMixin):
 
     def get_native_parameters(self):
         parameters = nest.GetStatus([int(self)])[0]
-        if self._v_init:
+        if self._v_init is not None:
             parameters['v_init'] = self._v_init
         return parameters
 
@@ -302,7 +302,7 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
     if cell_parameters:
         try:
             v_init = cell_parameters.pop('v_init', None)
-            if v_init:
+            if v_init is not None:
                 cell_parameters['V_m'] = v_init
             nest.SetStatus(cell_gids, [cell_parameters])
         except nest.NESTError:
@@ -314,7 +314,7 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
     cell_gids = numpy.array([ID(gid) for gid in cell_gids], ID)
     for gid, local in zip(cell_gids, mask_local):
         gid.local = local
-    if cell_parameters and v_init:
+    if cell_parameters and v_init is not None:
         for cell in cell_gids:
             cell._v_init = v_init
     return cell_gids, mask_local, first_id, last_id
