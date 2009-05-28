@@ -4,16 +4,17 @@ pypcsim implementation of the PyNN API.
 
     Dejan Pecevski   dejan@igi.tugraz.at
     Thomas Natschlaeger   thomas.natschlaeger@scch.at
+    Andrew Davison   davison@unic.cnrs-gif.fr
         
-    December 2006
-    $Id$
+    December 2006-
+$Id$
 """
 __version__ = "$Revision$"
 
 import sys
 
 import pyNN.random
-from pyNN import common
+from pyNN import common, __doc__
 from pyNN.pcsim import simulator
 common.simulator = simulator
 import os.path

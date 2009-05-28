@@ -1,8 +1,74 @@
 # encoding: utf-8
 """
-Defines the PyNN classes and functions, and hence the FACETS API.
-The simulator-specific classes should inherit from these and have the same
-arguments.
+Defines a common implementation of the PyNN API.
+
+Simulator modules are not required to use any of the code herein, provided they
+provide the correct interface, but it is suggested that they use as much as is
+consistent with good performance (optimisations may require overriding some of
+the default definitions given here).
+
+Exceptions:
+    InvalidParameterError
+    NonExistentParameterError
+    InvalidDimensionsError
+    ConnectionError
+    InvalidModelError
+    RoundingWarning
+    NothingToWriteError
+    InvalidWeightError
+    NotLocalError
+    RecordingError    
+
+Utility functions and classes:
+    is_listlike()
+    is_number()
+    is_conductance()
+    check_weight()
+    check_delay()
+    distance()
+    distances()
+    next_n()
+    ConstIter
+    
+Accessing individual neurons:
+    IDMixin
+
+Standard cells/parameter translation:
+    build_translations()    
+    StandardModelType
+    StandardCellType
+    ModelNotAvailable
+    
+Common API implementation/base classes:
+  1. Simulation set-up and control:
+    setup()
+    end()
+    run()
+    get_time_step()
+    get_current_time()
+    get_min_delay()
+    get_max_delay()
+    rank()
+    num_processes()
+
+  2. Creating, connecting and recording from individual neurons:
+    create()
+    connect()
+    set()
+    build_record()
+
+  3. Creating, connecting and recording from populations of neurons:
+    Population
+    Projection
+    Connector
+    
+  4. Specification of synaptic plasticity:
+    SynapseDynamics
+    ShortTermPlasticityMechanism
+    STDPMechanism
+    STDPWeightDependence
+    STDPTimingDependence
+
 $Id$
 """
 
@@ -63,7 +129,7 @@ class RecordingError(Exception):
         return "Cannot record %s from cell type %s" % (self.variable, self.cell_type.__class__.__name__)
 
 # ==============================================================================
-#   Utility classes and functions
+#   Utility functions and classes
 # ==============================================================================
 
 def is_listlike(obj):
@@ -71,30 +137,6 @@ def is_listlike(obj):
 
 def is_number(obj):
     return isinstance(obj, float) or isinstance(obj, int) or isinstance(obj, long) or isinstance(obj, numpy.float64)
-
-def build_translations(*translation_list):
-    """
-    Build a translation dictionary from a list of translations/transformations.
-    """
-    translations = {}
-    for item in translation_list:
-        assert 2 <= len(item) <= 4, "Translation tuples must have between 2 and 4 items. Actual content: %s" % str(item)
-        pynn_name = item[0]
-        sim_name = item[1]
-        if len(item) == 2: # no transformation
-            f = pynn_name
-            g = sim_name
-        elif len(item) == 3: # simple multiplicative factor
-            scale_factor = item[2]
-            f = "float(%g)*%s" % (scale_factor, pynn_name)
-            g = "%s/float(%g)" % (sim_name, scale_factor)
-        elif len(item) == 4: # more complex transformation
-            f = item[2]
-            g = item[3]
-        translations[pynn_name] = {'translated_name': sim_name,
-                                   'forward_transform': f,
-                                   'reverse_transform': g}
-    return translations
 
 def is_conductance(target_cell):
     """
@@ -142,6 +184,86 @@ def check_delay(delay):
         raise ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, get_min_delay(), get_max_delay()))
     return delay
 
+def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
+             periodic_boundaries=None): # may need to add an offset parameter
+    """
+    Return the Euclidian distance between two cells.
+    `mask` allows only certain dimensions to be considered, e.g.::
+      * to ignore the z-dimension, use `mask=array([0,1])`
+      * to ignore y, `mask=array([0,2])`
+      * to just consider z-distance, `mask=array([2])`
+    `scale_factor` allows for different units in the pre- and post- position
+    (the post-synaptic position is multipied by this quantity).
+    """
+    d = src.position - scale_factor*(tgt.position + offset)
+    
+    if not periodic_boundaries == None:
+        d = numpy.minimum(abs(d), periodic_boundaries-abs(d))
+    if mask is not None:
+        d = d[mask]
+    return numpy.sqrt(numpy.dot(d, d))
+
+def distances(pre, post, mask=None, scale_factor=1.0, offset=0.0,
+              periodic_boundaries=None):
+    """
+    Calculate the entire distance matrix at once.
+    From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
+    """
+    # Note that `mask` is not used.
+    if isinstance(pre, Population):
+        x = pre.positions
+    else: 
+        x = pre.position
+        x = x.reshape(3, 1)
+    if isinstance(post, Population):
+        y = post.positions
+    else: 
+        y = post.position
+        y = y.reshape(3, 1)
+    y = scale_factor*(y + offset)
+    d = numpy.zeros((x.shape[1], y.shape[1]), dtype=x.dtype)
+    for i in xrange(x.shape[0]):
+        diff2 = abs(x[i,:,None] - y[i,:])
+        if periodic_boundaries is not None:
+            dims  = diff2.shape
+            diff2 = diff2.flatten()
+            diff2 = numpy.minimum(diff2, periodic_boundaries[i]-diff2)
+            diff2 = diff2.reshape(dims)
+        diff2 **= 2
+        d += diff2
+    numpy.sqrt(d, d)
+    return d
+
+class ConstIter(object):
+    """An iterator that always returns the same value."""
+    def __init__(self, x):
+        self.x = x
+    def next(self):
+        return self.x
+
+def next_n(sequence, N, start_index, mask_local):
+    assert isinstance(N, int), "N is %s, should be an integer" % N
+    if isinstance(sequence, random.RandomDistribution):
+        values = numpy.array(sequence.next(N, mask_local=mask_local))
+    elif isinstance(sequence, (int, float)):
+        if mask_local is not None:
+            assert mask_local.size == N
+            N = mask_local.sum()
+            assert isinstance(N, int), "N is %s, should be an integer" % N
+        values = numpy.ones((N,))*float(sequence)
+    elif hasattr(sequence, "__len__"):
+        values = numpy.array(sequence[start_index:start_index+N], float)
+        if mask_local is not None:
+            assert mask_local.size == N
+            assert len(mask_local.shape) == 1, mask_local.shape
+            values = values[mask_local]
+    else:
+        raise Exception("sequence is of type %s" % type(sequence))
+    return values
+
+# ==============================================================================
+#   Accessing individual neurons
+# ==============================================================================
 
 class IDMixin(object):
     """
@@ -272,61 +394,33 @@ class IDMixin(object):
         current_source.inject_into([self])
         
 
-def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
-             periodic_boundaries=None): # may need to add an offset parameter
-    """
-    Return the Euclidian distance between two cells.
-    `mask` allows only certain dimensions to be considered, e.g.::
-      * to ignore the z-dimension, use `mask=array([0,1])`
-      * to ignore y, `mask=array([0,2])`
-      * to just consider z-distance, `mask=array([2])`
-    `scale_factor` allows for different units in the pre- and post- position
-    (the post-synaptic position is multipied by this quantity).
-    """
-    d = src.position - scale_factor*(tgt.position + offset)
-    
-    if not periodic_boundaries == None:
-        d = numpy.minimum(abs(d), periodic_boundaries-abs(d))
-    if mask is not None:
-        d = d[mask]
-    return numpy.sqrt(numpy.dot(d, d))
-
-
-def distances(pre, post, mask=None, scale_factor=1.0, offset=0.0,
-              periodic_boundaries=None):
-    """
-    Calculate the entire distance matrix at once.
-    From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
-    """
-    # Note that `mask` is not used.
-    if isinstance(pre, Population):
-        x = pre.positions
-    else: 
-        x = pre.position
-        x = x.reshape(3, 1)
-    if isinstance(post, Population):
-        y = post.positions
-    else: 
-        y = post.position
-        y = y.reshape(3, 1)
-    y = scale_factor*(y + offset)
-    d = numpy.zeros((x.shape[1], y.shape[1]), dtype=x.dtype)
-    for i in xrange(x.shape[0]):
-        diff2 = abs(x[i,:,None] - y[i,:])
-        if periodic_boundaries is not None:
-            dims  = diff2.shape
-            diff2 = diff2.flatten()
-            diff2 = numpy.minimum(diff2, periodic_boundaries[i]-diff2)
-            diff2 = diff2.reshape(dims)
-        diff2 **= 2
-        d += diff2
-    numpy.sqrt(d, d)
-    return d
-
-
 # ==============================================================================
 #   Standard cells
 # ==============================================================================
+
+def build_translations(*translation_list):
+    """
+    Build a translation dictionary from a list of translations/transformations.
+    """
+    translations = {}
+    for item in translation_list:
+        assert 2 <= len(item) <= 4, "Translation tuples must have between 2 and 4 items. Actual content: %s" % str(item)
+        pynn_name = item[0]
+        sim_name = item[1]
+        if len(item) == 2: # no transformation
+            f = pynn_name
+            g = sim_name
+        elif len(item) == 3: # simple multiplicative factor
+            scale_factor = item[2]
+            f = "float(%g)*%s" % (scale_factor, pynn_name)
+            g = "%s/float(%g)" % (sim_name, scale_factor)
+        elif len(item) == 4: # more complex transformation
+            f = item[2]
+            g = item[3]
+        translations[pynn_name] = {'translated_name': sim_name,
+                                   'forward_transform': f,
+                                   'reverse_transform': g}
+    return translations
 
 class StandardModelType(object):
     """Base class for standardized cell model and synapse model classes."""
@@ -1330,34 +1424,6 @@ class Projection(object):
 # ==============================================================================
 #   Connection method classes
 # ==============================================================================
-
-class ConstIter(object):
-    """An iterator that always returns the same value."""
-    def __init__(self, x):
-        self.x = x
-    def next(self):
-        return self.x
-
-
-def next_n(sequence, N, start_index, mask_local):
-    assert isinstance(N, int), "N is %s, should be an integer" % N
-    if isinstance(sequence, random.RandomDistribution):
-        values = numpy.array(sequence.next(N, mask_local=mask_local))
-    elif isinstance(sequence, (int, float)):
-        if mask_local is not None:
-            assert mask_local.size == N
-            N = mask_local.sum()
-            assert isinstance(N, int), "N is %s, should be an integer" % N
-        values = numpy.ones((N,))*float(sequence)
-    elif hasattr(sequence, "__len__"):
-        values = numpy.array(sequence[start_index:start_index+N], float)
-        if mask_local is not None:
-            assert mask_local.size == N
-            assert len(mask_local.shape) == 1, mask_local.shape
-            values = values[mask_local]
-    else:
-        raise Exception("sequence is of type %s" % type(sequence))
-    return values
 
 class Connector(object):
     """Base class for Connector classes."""

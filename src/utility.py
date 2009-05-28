@@ -1,5 +1,20 @@
 """
-A collection of utility functions.
+A collection of utility functions and classes.
+
+Functions:
+    colour()          - allows output of different coloured text on stdout.
+    notify()          - send an e-mail when a simulation has finished.
+    get_script_args() - get the command line arguments to the script, however
+                        it was run (python, nrniv, mpirun, etc.).
+    init_logging()    - convenience function for setting up logging to file and
+                        to the screen.
+    
+Classes:
+    MultiSim - a small framework to make it easier to compare results between
+               different simulators.
+    Timer    - a convenience wrapper around the time.time() function from the
+               standard library.
+
 $Id$
 """
 

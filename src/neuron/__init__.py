@@ -8,7 +8,7 @@ __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
 from pyNN.neuron import simulator
-from pyNN import common
+from pyNN import common, __doc__
 common.simulator = simulator
 
 from pyNN.neuron.cells import *

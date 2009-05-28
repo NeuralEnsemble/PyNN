@@ -1,7 +1,17 @@
 # encoding: utf-8
 """
-Base Connector classes
+Base Connector classes with default implementation.
 
+    AllToAllConnector
+    OneToOneConnector
+    FixedProbabilityConnector
+    DistanceDependentProbabilityConnector
+    FixedNumberPreConnector
+    FixedNumberPostConnector
+    FromListConnector
+    FromFileConnector
+
+$Id$
 """
 
 import logging
@@ -12,7 +22,7 @@ from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
 from pyNN import random, common
 
 
-def probabilistic_connect(connector, projection, p):
+def _probabilistic_connect(connector, projection, p):
     """
     
     p may be either a float 0<=p<=1, or a dict containing a float array
@@ -64,7 +74,6 @@ def probabilistic_connect(connector, projection, p):
             projection.connection_manager.connect(src, targets, weights, delays, projection.synapse_type)
 
 
-
 class AllToAllConnector(common.Connector):
     """
     Connects all cells in the presynaptic population to all cells in the
@@ -77,7 +86,7 @@ class AllToAllConnector(common.Connector):
         self.allow_self_connections = allow_self_connections
 
     def connect(self, projection):
-        probabilistic_connect(self, projection, 1.0)
+        _probabilistic_connect(self, projection, 1.0)
 
 
 class FromListConnector(common.Connector):
@@ -288,7 +297,7 @@ class FixedProbabilityConnector(common.Connector):
         logging.info("Connecting %s to %s with probability %s" % (projection.pre.label,
                                                                   projection.post.label,
                                                                   self.p_connect))
-        probabilistic_connect(self, projection, self.p_connect)    
+        _probabilistic_connect(self, projection, self.p_connect)    
 
         
 class DistanceDependentProbabilityConnector(common.Connector):
@@ -354,4 +363,4 @@ class DistanceDependentProbabilityConnector(common.Connector):
         
         if hasattr(self.weights, 'shape'): self.weights = self.weights.flatten()
         if hasattr(self.delays, 'shape'): self.delays = self.delays.flatten()
-        probabilistic_connect(self, projection, p)
+        _probabilistic_connect(self, projection, p)

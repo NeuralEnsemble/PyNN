@@ -4,7 +4,7 @@ Introduction
 
 PyNN (pronounced 'pine' ) is a Python package for simulator-independent specification of neuronal network models. 
 
-In other words, you can write the code for a model once, using the PyNN API, and then run it without modification on any simulator that PyNN supports (currently NEURON_, NEST_ and PCSIM_). 
+In other words, you can write the code for a model once, using the PyNN API, and then run it without modification on any simulator that PyNN supports (currently NEURON_, NEST_, PCSIM_ and Brian_). 
 
 The API has two parts, a low-level, procedural API (functions ``create()``, ``connect()``, ``set()``, ``record()``, ``record_v()``), and a [wiki:HighLevelAPI high-level, object-oriented API] (classes ``Population`` and ``Projection``, which have methods like ``set()``, ``record()``, ``setWeights()``, etc.). 
 
@@ -22,6 +22,7 @@ If you have questions or comments about PyNN, please post a message in the "pynn
 .. _NEURON: http://www.neuron.yale.edu/neuron/
 .. _NEST:   http://www.nest-initiative.org/?page=Software
 .. _PCSIM:  http://sourceforge.net/projects/pcsim/
+.. _Brian:  http://briansimulator.org/
 .. _`Subversion repository`: https://neuralensemble.org/svn/PyNN/trunk
 .. _`PyNN website`: https://neuralensemble.org/PyNN/
 .. _`NeuralEnsemble Google group`: http://groups.google.com/group/neuralensemble

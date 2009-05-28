@@ -1,9 +1,16 @@
 """
-Provides wrappers for several random number generators, giving them all a
+Provides wrappers for several random number generators (RNGs), giving them all a
 common interface so that they can be used interchangeably in PyNN.
 
 Note however that we have so far made no effort to implement parameter
 translation, and parameter names/order may be different for the different RNGs.
+
+Classes:
+    NumpyRNG           - uses the numpy.random.RandomState RNG
+    GSLRNG             - uses the RNGs from the Gnu Scientific Library 
+    NativeRNG          - indicates to the simulator that it should use it's own,
+                         built-in RNG
+    RandomDistribution - produces random numbers from a specific distribution
 
 $Id:random.py 188 2008-01-29 10:03:59Z apdavison $
 """
@@ -103,6 +110,7 @@ class NumpyRNG(AbstractRNG):
     def describe(self):
         return "NumpyRNG() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
             self.seed, self.rank, self.num_processes, self.parallel_safe and "Is" or "Not")
+
 
 class GSLRNG(AbstractRNG):
     """Wrapper for the GSL random number generators."""
@@ -208,4 +216,5 @@ class RandomDistribution:
         return res
         
     def __str__(self):
-        return "RandomDistribution('%(name)s', %(parameters)s, %(rng)s)" % self.__dict__ 
+        return "RandomDistribution('%(name)s', %(parameters)s, %(rng)s)" % self.__dict__
+    

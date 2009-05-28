@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-PyNEST v2 implementation of the PyNN API.
+NEST v2 implementation of the PyNN API.
 $Id$
 """
-
 import nest
 from pyNN.nest2 import simulator
-from pyNN import common, recording
+from pyNN import common, recording, __doc__
 common.simulator = simulator
 from pyNN.random import *
 import numpy, os, shutil, logging, tempfile

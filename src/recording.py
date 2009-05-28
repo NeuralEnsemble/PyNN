@@ -1,6 +1,10 @@
 """
 Defines classes and functions for managing recordings (spikes, membrane
 potential etc).
+
+These classes and functions are not part of the PyNN API, and are only for
+internal use.
+
 $Id$
 """
 
@@ -19,43 +23,11 @@ if MPI:
     mpi_comm = MPI.COMM_WORLD
 MPI_ROOT = 0
 
-#class RecordingManager(object):
-#    
-#    def __init__(self, setup_function, get_function):
-#        """
-#        `setup_function` should take a variable, a source list, and an optional filename
-#        and return an identifier.
-#        `get_function` should take the identifier returned by `setup_function` and
-#        return the recorded spikes, Vm trace, etc.
-#        
-#        Example:
-#        rm = RecordingManager(_nest_record, _nest_get)
-#        """
-#        # create temporary directory
-#        tempdir = tempfile.mkdtemp()
-#        # initialise mapping from recording identifiers to temporary filenames
-#        self.recorder_list = []
-#        # for parallel simulations, determine if this is the master node
-#        self._setup = setup_function
-#        self._get = get_function
-#    
-#    def add_recording(self, sources, variable, filename=None):
-#        recorder = self._setup(variable, sources, filename)
-#        self.recorder_list.append(recorder)
-#    
-#    def get_recording(self, recording_id):
-#        return self._get(recording_id)
-#    
-#    def write(self, recording_id, filename_or_obj, format="compatible", gather=True):
-#        pass
-
 def rename_existing(filename):
     if os.path.exists(filename):
         os.system('mv %s %s_old' % (filename, filename))
         logging.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
 
-
-    
 def write_compatible_output(sim_filename, user_filename, variable, input_format, population, dt, scale_factor=1):
     """
     Rewrite simulation data in a standard format:

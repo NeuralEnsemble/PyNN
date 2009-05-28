@@ -1,6 +1,17 @@
 """
 Definition of default parameters (and hence, standard parameter names) for
-standard dynamic synapse models.
+standard dynamic synapse models. 
+
+Classes for specifying short-term plasticity (facilitation/depression):
+    TsodyksMarkramMechanism
+    
+Classes for defining STDP rules:
+    AdditiveWeightDependence
+    MultiplicativeWeightDependence
+    AdditivePotentiationMultiplicativeDepression
+    GutigWeightDependence
+    SpikePairRule
+    
 """
 
 from common import ShortTermPlasticityMechanism, STDPWeightDependence, STDPTimingDependence

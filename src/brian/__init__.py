@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 Brian implementation of the PyNN API.
-$Id:$
+$Id$
 """
 
 import logging
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
-from pyNN import common
+from pyNN import common, __doc__
 common.simulator = simulator
 
 from pyNN.brian.cells import *

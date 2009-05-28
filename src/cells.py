@@ -1,6 +1,29 @@
 """
 Definition of default parameters (and hence, standard parameter names) for
 standard cell models.
+
+Plain integrate-and-fire models:
+    IF_curr_exp
+    IF_curr_alpha
+    IF_cond_exp
+    IF_cond_alpha
+    
+Integrate-and-fire with adaptation:
+    IF_cond_exp_gsfa_grr
+    EIF_cond_alpha_isfa_ista
+    EIF_cond_exp_isfa_ista    
+    
+Integrate-and-fire model for use with the FACETS hardware
+    IF_facets_hardware1
+    
+Hodgkin-Huxley model
+    HH_cond_exp
+
+Spike sources (input neurons) 
+    SpikeSourcePoisson
+    SpikeSourceArray
+    SpikeSourceInhGamma
+               
 """
 
 import numpy
