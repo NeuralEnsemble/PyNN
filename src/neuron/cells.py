@@ -54,8 +54,8 @@ class SingleCompartmentNeuron(nrn.Section):
         synapse_model = StandardIF.synapse_models[syn_type][syn_shape]
         self.esyn = synapse_model(0.5, sec=self)
         self.isyn = synapse_model(0.5, sec=self)
-        self.excitatory = self.esyn # } aliases
-        self.inhibitory = self.isyn # }
+        #self.excitatory = self.esyn # } aliases
+        #self.inhibitory = self.isyn # }
         
         # insert current source
         self.stim = h.IClamp(0.5, sec=self)
@@ -67,6 +67,14 @@ class SingleCompartmentNeuron(nrn.Section):
         self.spike_times = h.Vector(0)
         self.gsyn_trace = {}
         self.recording_time = 0
+
+    @property
+    def excitatory(self):
+        return self.esyn
+
+    @property
+    def inhibitory(self):
+        return self.isyn
 
     def area(self):
         """Membrane area in µm²"""
@@ -118,6 +126,7 @@ class SingleCompartmentNeuron(nrn.Section):
         self.seg.v = self.v_init
 
     def use_Tsodyks_Markram_synapses(self, ei, U, tau_rec, tau_facil, u0):
+        print "Using Tsodyks-Markram synapses for %s synapses." % ei
         if self.syn_type == 'current':
             raise Exception("Tsodyks-Markram mechanism only available for conductance-based synapses.")
         elif ei == 'excitatory':
@@ -140,6 +149,9 @@ class SingleCompartmentNeuron(nrn.Section):
         syn.tau_rec = tau_rec
         syn.tau_facil = tau_facil
         syn.u0 = u0
+        # change the mechanism that is being recorded
+        if self.gsyn_trace[ei] is not None:
+            self.gsyn_trace[ei].record(syn._ref_g)
 
     def set_parameters(self, param_dict):
         for name in self.parameter_names:
