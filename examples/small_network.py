@@ -1,5 +1,4 @@
 """
-
 Small network created with the Population and Projection classes
 
 Andrew Davison, UNIC, CNRS
@@ -9,11 +8,10 @@ $Id$
 
 """
 
-import sys
 import numpy
+from pyNN.utility import get_script_args
 
-simulator_name = sys.argv[-1]
-
+simulator_name = get_script_args(__file__, 1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
 
 # === Define parameters ========================================================
@@ -39,14 +37,14 @@ simtime    = 1000.0      # (ms)
 
 setup(timestep=dt, max_delay=syn_delay)
 
-cells = Population((n,), IF_curr_alpha, cell_params, "cells")
+cells = Population(n, IF_curr_alpha, cell_params, "cells")
 
 number = int(2*simtime*input_rate/1000.0)
 numpy.random.seed(26278342)
 spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number))
 assert spike_times.max() > simtime
 
-spike_source = Population((n,), SpikeSourceArray,{'spike_times': spike_times})
+spike_source = Population(n, SpikeSourceArray,{'spike_times': spike_times})
 
 cells.record()
 cells.record_v()
@@ -59,8 +57,8 @@ input_conns.setDelays(syn_delay)
 
 run(simtime)
 
-cells.printSpikes("Results/small_network_%s.ras" % (simulator_name, ))
-cells.print_v("Results/small_network_%s.v" % (simulator_name, ))
+cells.printSpikes("Results/small_network_%s.ras" % simulator_name)
+cells.print_v("Results/small_network_%s.v" % simulator_name)
 
 print "Mean firing rate: ", cells.meanSpikeCount()*1000.0/simtime, "Hz"
 

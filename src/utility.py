@@ -53,7 +53,7 @@ def notify(msg="Simulation finished.", subject="Simulation finished.", smtphost=
             server.sendmail(address, address, msg)
             server.quit()
 
-def get_script_args(script, n_args):
+def get_script_args(script, n_args, usage=''):
     try:
         script_index = sys.argv.index(script)
     except ValueError:
@@ -63,7 +63,8 @@ def get_script_args(script, n_args):
             script_index = 0 # ipython sets __file__ to 'IPython/FakeModule.pyc'
     args = sys.argv[script_index+1:script_index+1+n_args]
     if len(args) != n_args:
-        raise Exception("Script requires %d arguments, you supplied %d" % (n_args, len(args)))
+        usage = usage or "Script requires %d arguments, you supplied %d" % (n_args, len(args))
+        raise Exception(usage)
     return args
     
 def init_logging(logfile, debug=False, num_processes=1, rank=0):

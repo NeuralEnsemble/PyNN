@@ -9,11 +9,10 @@ August 2006
 $Id$
 """
 
-import sys
 import numpy
+from pyNN.utility import get_script_args
 
-simulator_name = sys.argv[-1]
-
+simulator_name = get_script_args(__file__, 1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
 
 tstop = 1000.0 # all times in milliseconds

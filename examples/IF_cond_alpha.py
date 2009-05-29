@@ -1,5 +1,12 @@
 """
-Simple test to compare iaf_neuron in NEST with StandardIF in NEURON.
+A single IF neuron with alpha-function shaped, conductance-based synapses, fed by
+two spike sources.
+
+Run as:
+
+$ python IF_cond_alpha.py <simulator>
+
+where <simulator> is 'neuron', 'nest2', etc
 
 Andrew Davison, UNIC, CNRS
 May 2006
@@ -7,11 +14,11 @@ May 2006
 $Id$
 """
 
-import sys
+from pyNN.utility import get_script_args
 
-simulator_name = sys.argv[-1]
-
+simulator_name = get_script_args(__file__, 1)[0] 
 exec("from pyNN.%s import *" % simulator_name)
+
 
 setup(timestep=0.1, min_delay=0.1, max_delay=4.0, debug=True)
 

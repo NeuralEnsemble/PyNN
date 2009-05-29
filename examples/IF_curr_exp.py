@@ -1,5 +1,12 @@
 """
-Simple test to compare iaf_exp_neuron2 in PyNEST with StandardIF in NEURON.
+A single IF neuron with exponential, current-based synapses, fed by two
+spike sources.
+
+Run as:
+
+$ python IF_curr_exp.py <simulator>
+
+where <simulator> is 'neuron', 'nest2', etc
 
 Andrew Davison, UNIC, CNRS
 September 2006
@@ -7,10 +14,9 @@ September 2006
 $Id$
 """
 
-import sys
+from pyNN.utility import get_script_args
 
-simulator_name = sys.argv[-1]
-
+simulator_name = get_script_args(__file__, 1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
 
 
@@ -28,6 +34,7 @@ connE = connect(spike_sourceE, ifcell, weight=1.5, synapse_type='excitatory', de
 connI = connect(spike_sourceI, ifcell, weight=-1.5, synapse_type='inhibitory', delay=4.0)
     
 record_v(ifcell, "Results/IF_curr_exp_%s.v" % simulator_name)
+
 run(200.0)
   
 end()

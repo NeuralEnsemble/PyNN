@@ -1,34 +1,44 @@
 """
-Simple test of HH_cond_exp standard model
+A single-compartment Hodgkin-Huxley neuron with exponential, conductance-based
+synapses, fed by two spike sources.
+
+Run as:
+
+$ python HH_cond_exp.py <simulator>
+
+where <simulator> is 'neuron', 'nest2', etc
 
 Andrew Davison, UNIC, CNRS
 July 2007
 
-$Id:$
+$Id$
 """
 
-import sys
+from pyNN.utility import get_script_args
 
-if hasattr(sys,"argv"):     # run using python
-    simulator = sys.argv[-1]
-else:
-    simulator = "neuron"    # run using nrngui -python
+simulator_name = get_script_args(__file__, 1)[0]  
+exec("from pyNN.%s import *" % simulator_name)
 
 
-exec("from pyNN.%s import *" % simulator)
+setup(timestep=0.01, min_delay=0.1, max_delay=4.0, quit_on_end=False)
 
+params = {'i_offset': -0.0, 'gbar_Na': 0.0, 'gbar_K': 0.0, 'g_leak': 0.0}
+#params = {'i_offset': 0.0}
+hhcell = create(HH_cond_exp, params)
 
-setup(timestep=0.01,min_delay=0.01,max_delay=4.0)
-
-hhcell = create(HH_cond_exp)
-
-spike_sourceE = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(5,105,10)]})
-spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(100,255,10)]})
+#spike_sourceE = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(5,105,10)]})
+#spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(100,255,10)]})
  
-connE = connect(spike_sourceE, hhcell, weight=1.5, synapse_type='excitatory', delay=2.0)
-connI = connect(spike_sourceI, hhcell, weight=-1.5, synapse_type='inhibitory', delay=4.0)
+#connE = connect(spike_sourceE, hhcell, weight=0.02, synapse_type='excitatory', delay=2.0)
+#connI = connect(spike_sourceI, hhcell, weight=0.05, synapse_type='inhibitory', delay=4.0)
     
-record_v(hhcell, "HH_cond_exp_%s.v" % simulator)
+record_v(hhcell, "Results/HH_cond_exp_%s.v" % simulator_name)
+record_gsyn(hhcell, "Results/HH_cond_exp_%s.gsyn" % simulator_name)
+
+if simulator_name == "nest2":
+    nest.SetStatus(simulator.recorder_list[0]._device, {'to_memory': True})
+    nest.SetStatus(simulator.recorder_list[1]._device, {'to_memory': True})
+
 run(200.0)
 
 end()

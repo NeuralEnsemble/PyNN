@@ -1,5 +1,5 @@
 """
-Simple network with a 1D population of poisson spike sources
+Simple network with a 1D population of Poisson spike sources
 projecting to a 2D population of IF_curr_alpha neurons.
 
 Andrew Davison, UNIC, CNRS
@@ -8,11 +8,10 @@ August 2006
 $Id$
 """
 
-import sys
 import numpy
+from pyNN.utility import get_script_args
 
-simulator_name = sys.argv[-1]
-
+simulator_name = get_script_args(__file__, 1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
 
 tstop = 1000.0
@@ -27,6 +26,7 @@ number = int(2*tstop*rate/1000.0)
 numpy.random.seed(26278342)
 spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/rate, size=number))
 assert spike_times.max() > tstop
+print spike_times.min()
 
 input_population  = Population(1, SpikeSourceArray, {'spike_times': spike_times }, "input")
 
@@ -41,7 +41,7 @@ run(tstop)
 
 output_population.printSpikes("Results/simpleNetwork_output_%s.ras" % simulator_name)
 input_population.printSpikes("Results/simpleNetwork_input_%s.ras" % simulator_name)
-output_population.print_v("Results/simpleNetwork_output_%s.v" % simulator_name)
+output_population.print_v("Results/simpleNetwork_%s.v" % simulator_name)
 
 end()
 
