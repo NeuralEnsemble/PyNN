@@ -140,7 +140,7 @@ class Recorder(object):
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):
-        data = self.get(gather, offset=0)
+        data = self.get(gather)
         filename = file or self.filename
         #recording.rename_existing(filename) # commented out because it causes problems when running with mpirun and a shared filesystem. Probably a timing problem
         try:
@@ -153,7 +153,7 @@ class Recorder(object):
             for row in data:
                 f.write('\t'.join([fmt%val for val in row]) + '\n')
             f.close()
-        if compatible_output:
+        if compatible_output and state.mpi_rank==0: # would be better to distribute this step
             recording.write_compatible_output(filename, filename, self.variable,
                                               Recorder.formats[self.variable],
                                               self.population, state.dt)

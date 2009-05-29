@@ -926,10 +926,10 @@ class Population(object):
         'Random' set. Set the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-        rarr = rand_distr.next(n=self.all_cells.size)
+        rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
         rarr = numpy.array(rarr)
         logging.info("%s.rset('%s', %s)", self.label, parametername, rand_distr)
-        for cell,val in zip(self, rarr[self._mask_local.flatten()]):
+        for cell,val in zip(self, rarr):
             setattr(cell, parametername, val)
     
     def _call(self, methodname, arguments):

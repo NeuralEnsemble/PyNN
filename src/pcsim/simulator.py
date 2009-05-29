@@ -138,7 +138,7 @@ class Recorder(object):
         return data
 
     def write(self, file=None, gather=False, compatible_output=True):
-        data = self.get(gather, offset=0)
+        data = self.get(gather)
         filename = file or self.filename
         recording.rename_existing(filename)
         try:

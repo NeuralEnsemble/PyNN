@@ -159,10 +159,10 @@ class Population(common.Population):
             native_rand_distr = getattr(rng, rand_distr.name)
             rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick() for i in range(self.all_cells.size-1)]
         else:
-            rarr = rand_distr.next(n=self.all_cells.size)
+            rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
         rarr = numpy.array(rarr)
         logging.info("%s.rset('%s', %s)", self.label, parametername, rand_distr)
-        for cell,val in zip(self, rarr[self._mask_local.flatten()]):
+        for cell,val in zip(self, rarr):
             setattr(cell, parametername, val)
 
 
