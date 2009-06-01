@@ -244,6 +244,36 @@ class IF_facets_hardware1(common.ModelNotAvailable):
 class HH_cond_exp(common.ModelNotAvailable):
     pass
 
+#class HH_cond_exp(cells.HH_cond_exp):
+#    """docstring needed here."""
+#    
+#    translations = common.build_translations(
+#        ('gbar_Na',    'gbar_Na'),   
+#        ('gbar_K',     'gbar_K'),    
+#        ('g_leak',     'Rm',    '1/g_leak', '1/Rm'),    # check HHNeuronTraubMiles91.h, not sure this is right
+#        ('cm',         'Cm',    1000.0),  
+#        ('v_offset',   'V_T'), # PCSIM fixes V_T at -63 mV
+#        ('e_rev_Na',   'E_Na'),
+#        ('e_rev_K',    'E_K'), 
+#        ('e_rev_leak', 'Vresting'), # check HHNeuronTraubMiles91.h, not sure this is right
+#        ('e_rev_E',    'ErevExc'),
+#        ('e_rev_I',    'ErevInh'),
+#        ('tau_syn_E',  'TauSynExc'),
+#        ('tau_syn_I',  'TauSynInh'),
+#        ('i_offset',   'Iinject', 1000.0),
+#        ('v_init',     'v_init'),
+#    )
+#    pcsim_name = "HHNeuronTraubMiles91"    
+#    simObjFactory = None
+#    setterMethods = {}
+#        
+#    def __init__(self, parameters):
+#        cells.HH_cond_exp.__init__(self, parameters)
+#        self.parameters['Inoise'] = 0.0
+#        self.simObjFactory = pypcsim.LIFCondAlphaNeuron(**self.parameters)
+        
+        
+        
 class SpikeSourceInhGamma(common.ModelNotAvailable):
     pass
 

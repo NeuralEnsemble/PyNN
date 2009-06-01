@@ -8,6 +8,29 @@ import pypcsim
 
 synapse_models = [s for s in dir(pypcsim) if 'Synapse' in s]
 
+def get_synapse_models(criterion):
+    return set([s for s in synapse_models if criterion in s])
+
+conductance_based_synapse_models = get_synapse_models("Cond")
+current_based_synapse_models = get_synapse_models("Curr")
+alpha_function_synapse_models = get_synapse_models("Alpha")
+double_exponential_synapse_models = get_synapse_models("DoubleExp")
+single_exponential_synapse_models = get_synapse_models("Exp").difference(double_exponential_synapse_models)
+#stdp_synapse_models = get_synapse_models("Stdp")
+stdp_synapse_models = set(["StaticStdpSynapse",  # CurrExp
+                           "StaticStdpCondExpSynapse",
+                           "DynamicStdpSynapse", # CurrExp
+                           "DynamicStdpCondExpSynapse"])
+#dynamic_synapse_models = get_synapse_models("Dynamic")
+dynamic_synapse_models = set(["DynamicSpikingSynapse", # DynamicCurrExpSynapse
+                              "DynamicCondExpSynapse",
+                              "DynamicCurrAlphaSynapse",
+                              "DynamicCondAlphaSynapse",
+                              "DynamicStdpSynapse", # CurrExp
+                              "DynamicStdpCondExpSynapse",
+                              # there don't seem to be any alpha-function STDP synapse models
+                             ])
+
 SynapseDynamics = common.SynapseDynamics
         
 class STDPMechanism(common.STDPMechanism):
@@ -31,10 +54,8 @@ class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
         ('y0', 'f0')   # translation is correct
                        # need to look at the source code
     )
-    #possible_models = set([s for s in synapse_models if "Dynamic" in s])
-    possible_models = set([pypcsim.DynamicStdpSynapse,
-                           pypcsim.DynamicStdpCondExpSynapse])
-    #native_name = pypcsim.DynamicStdpSynapse
+    #possible_models = get_synapse_models("Dynamic")
+    possible_models = dynamic_synapse_models
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
         #synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
@@ -57,8 +78,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
         ('A_plus',    'Apos', '1e-9*A_plus*w_max', '1e9*Apos/w_max'),  # note that here Apos and Aneg
         ('A_minus',   'Aneg', '-1e-9*A_minus*w_max', '-1e9*Aneg/w_max'), # have the same units as the weight
     )
-    possible_models = set([pypcsim.DynamicStdpSynapse,
-                           pypcsim.DynamicStdpCondExpSynapse])
+    possible_models = stdp_synapse_models
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
@@ -85,8 +105,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         ('A_plus',    'Apos'),     # here Apos and Aneg
         ('A_minus',   'Aneg', -1), # are dimensionless
     )
-    possible_models = set([pypcsim.DynamicStdpSynapse,
-                           pypcsim.DynamicStdpCondExpSynapse])
+    possible_models = stdp_synapse_models
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
@@ -98,6 +117,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         self.parameters['useFroemkeDanSTDP'] = False
         self.parameters['mupos'] = 1.0
         self.parameters['muneg'] = 1.0
+        self.parameters.pop('w_min_always_zero_in_PCSIM')
 
 
 class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
@@ -111,8 +131,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         ('A_plus',    'Apos', 1e-9), # Apos has the same units as the weight
         ('A_minus',   'Aneg', -1),   # Aneg is dimensionless
     )
-    possible_models = set([pypcsim.DynamicStdpSynapse,
-                           pypcsim.DynamicStdpCondExpSynapse])
+    possible_models = stdp_synapse_models
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
@@ -124,7 +143,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         self.parameters['useFroemkeDanSTDP'] = False
         self.parameters['mupos'] = 0.0
         self.parameters['muneg'] = 1.0
-
+        self.parameters.pop('w_min_always_zero_in_PCSIM')
 
 class GutigWeightDependence(synapses.GutigWeightDependence):
     """
@@ -140,8 +159,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         ('mu_plus',   'mupos'),
         ('mu_minus',  'muneg')
     )
-    possible_models = set([pypcsim.DynamicStdpSynapse,
-                           pypcsim.DynamicStdpCondExpSynapse])
+    possible_models = stdp_synapse_models
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01, mu_plus=0.5, mu_minus=0.5): # units?
         if w_min != 0:
@@ -151,6 +169,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         parameters.pop('self')
         self.parameters = self.translate(parameters)
         self.parameters['useFroemkeDanSTDP'] = False
+        self.parameters.pop('w_min_always_zero_in_PCSIM')
         
 
 class SpikePairRule(synapses.SpikePairRule):
@@ -159,9 +178,7 @@ class SpikePairRule(synapses.SpikePairRule):
         ('tau_plus',  'taupos', 1e-3),
         ('tau_minus', 'tauneg', 1e-3), 
     )
-    #possible_models = set([s for s in synapse_models if 'EachPairStdp' in s]) #'stdp_synapse_hom'
-    possible_models = set([pypcsim.DynamicStdpSynapse,
-                           pypcsim.DynamicStdpCondExpSynapse])
+    possible_models = stdp_synapse_models
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
         #synapses.SpikePairRule.__init__(self, tau_plus, tau_minus)
@@ -169,3 +186,4 @@ class SpikePairRule(synapses.SpikePairRule):
         parameters.pop('self')
         self.parameters = self.translate(parameters)
         self.parameters['STDPgap'] = 0.0
+        

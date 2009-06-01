@@ -563,13 +563,8 @@ class Projection(common.Projection, WDManager):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    method, source, target,
                                    synapse_dynamics, label, rng)
-        self.synapse_type = target or 'excitatory'
-        self.connection_manager = simulator.ConnectionManager(parent=self)
-        self.connections = self.connection_manager
-        method.connect(self)
-        Projection.nProj += 1        
-        
-        self.is_conductance = "cond" in self.post.celltype.__class__.__name__ 
+        self.is_conductance = "cond" in self.post.celltype.__class__.__name__
+        self.synapse_shape = ("alpha" in self.post.celltype.__class__.__name__) and "alpha" or "exp"
         
         ### Determine connection decider
         ##decider, wiring_method, weight, delay = method.connect(self)
@@ -588,61 +583,96 @@ class Projection(common.Projection, WDManager):
         ##else:
         ##    d = self.convertDelay(delay)
         ##
-        ### handle synapse dynamics
-        ##if self.synapse_dynamics:
-        ##    
-        ##    # choose the right model depending on whether we have conductance- or current-based synapses
-        ##    if self.is_conductance:
-        ##        possible_models = Set([pypcsim.DynamicStdpCondExpSynapse])
-        ##    else:
-        ##        possible_models = Set([pypcsim.DynamicStdpSynapse])
-        ##        
-        ##    plasticity_parameters = {}
-        ##    
-        ##    # we need to know the synaptic time constant, which is a property of the
-        ##    # post-synaptic cell in PyNN. Here, we get it from the Population initial
-        ##    # value, but this is a problem if tau_syn varies from cell to cell
-        ##    if target in (None, 'excitatory'):
-        ##        tau_syn = self.post.celltype.parameters['TauSynExc']
-        ##    elif target == 'inhibitory':
-        ##        tau_syn = self.post.celltype.parameters['TauSynInh']
-        ##    else:
-        ##        raise Exception("Currently, target must be one of 'excitatory', 'inhibitory' with dynamic synapses")
-        ##
-        ##    if self.synapse_dynamics.fast:
-        ##        possible_models = possible_models.intersection(self.short_term_plasticity_mechanism)
-        ##        plasticity_parameters.update(self._short_term_plasticity_parameters)
-        ##        # perhaps need to ensure that STDP is turned off here, to be turned back on by the next block
-        ##    if self.synapse_dynamics.slow:
-        ##        possible_models = possible_models.intersection(self.long_term_plasticity_mechanism)
-        ##        plasticity_parameters.update(self._stdp_parameters)
-        ##        dendritic_delay = self.synapse_dynamics.slow.dendritic_delay_fraction * d
-        ##        transmission_delay = d - dendritic_delay
-        ##        plasticity_parameters.update({'back_delay': 2*dendritic_delay})
-        ##        
-        ##    if not self.synapse_dynamics.fast: # turn off short-term plasticity
-        ##        plasticity_parameters.update({'U': 1.0, 'D': 0.0, 'F': 0.0, 'u0': 1.0, 'r0': 1.0, 'f0': -1})
-        ##    assert len(possible_models) == 1, str(possible_models)
-        ##    synapse_type = list(possible_models)[0]
-        ##    self.syn_factory = synapse_type(Winit=w, delay=d, tau=tau_syn,
-        ##                                    **plasticity_parameters)
-        ##else:
-        ##    if not target:
-        ##        self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, w, d)
-        ##    elif isinstance(target, int):
-        ##        self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(target, w, d)
-        ##    else:
-        ##        if isinstance(target, str):
-        ##            if target == 'excitatory':
-        ##                self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, w, d)
-        ##            elif target == 'inhibitory':
-        ##                self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(2, w, d)
-        ##            else:
-        ##                target = eval(target)
-        ##                self.syn_factory = target({})
-        ##        else:
-        ##            self.syn_factory = target
-        ##    
+        # handle synapse dynamics
+        if common.is_listlike(method.weights):
+            w = method.weights[0]
+        else:
+            w = method.weights
+        if common.is_listlike(method.delays):
+            d = min(method.delays)
+        else:
+            d = method.delays
+            
+        plasticity_parameters = {}
+        if self.synapse_dynamics:
+            
+            # choose the right model depending on whether we have conductance- or current-based synapses
+            if self.is_conductance:
+                possible_models = get_synapse_models("Cond")
+            else:
+                possible_models = get_synapse_models("Curr").union(get_synapse_models("CuBa"))
+            if self.synapse_shape == 'alpha':
+                possible_models = possible_models.intersection(get_synapse_models("Alpha"))
+            else:
+                possible_models = possible_models.intersection(get_synapse_models("Exp")).difference(get_synapse_models("DoubleExp"))
+            if not self.is_conductance and self.synapse_shape is "exp":
+                possible_models.add("StaticStdpSynapse")
+                possible_models.add("StaticSpikingSynapse")
+                possible_models.add("DynamicStdpSynapse")
+                possible_models.add("DynamicSpikingSynapse")
+                
+            # we need to know the synaptic time constant, which is a property of the
+            # post-synaptic cell in PyNN. Here, we get it from the Population initial
+            # value, but this is a problem if tau_syn varies from cell to cell
+            if target in (None, 'excitatory'):
+                tau_syn = self.post.celltype.parameters['TauSynExc']
+                if self.is_conductance:
+                    e_syn = self.post.celltype.parameters['ErevExc']
+            elif target == 'inhibitory':
+                tau_syn = self.post.celltype.parameters['TauSynInh']
+                if self.is_conductance:
+                    e_syn = self.post.celltype.parameters['ErevInh']
+            else:
+                raise Exception("Currently, target must be one of 'excitatory', 'inhibitory' with dynamic synapses")
+
+            if self.is_conductance:
+                plasticity_parameters.update(Erev=e_syn)
+                weight_scale_factor = 1e-6
+            else:
+                weight_scale_factor = 1e-9
+            
+            if self.synapse_dynamics.fast:
+                possible_models = possible_models.intersection(self.short_term_plasticity_mechanism)
+                plasticity_parameters.update(self._short_term_plasticity_parameters)
+                # perhaps need to ensure that STDP is turned off here, to be turned back on by the next block
+            else:
+                possible_models = possible_models.difference(dynamic_synapse_models) # imported from synapses module
+            if self.synapse_dynamics.slow:
+                possible_models = possible_models.intersection(self.long_term_plasticity_mechanism)
+                plasticity_parameters.update(self._stdp_parameters)
+                dendritic_delay = self.synapse_dynamics.slow.dendritic_delay_fraction * d
+                transmission_delay = d - dendritic_delay
+                plasticity_parameters.update({'back_delay': 2*0.001*dendritic_delay, 'Winit': w*weight_scale_factor})
+            else:
+                possible_models = possible_models.difference(stdp_synapse_models)
+                plasticity_parameters.update({'W': w*weight_scale_factor})
+                
+            if len(possible_models) == 0:
+                raise common.NoModelAvailableError("The synapse model requested is not available.")
+            synapse_type = getattr(pypcsim, list(possible_models)[0])
+            try:
+                self.syn_factory = synapse_type(delay=d, tau=tau_syn,
+                                                **plasticity_parameters)
+            except Exception, err:
+                err.args = ("%s\nActual arguments were: delay=%g, tau=%g, plasticity_parameters=%s" % (err.message, d, tau_syn, plasticity_parameters),) + err.args[1:]
+                raise
+        else:
+            if not target:
+                self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, w, d)
+            elif isinstance(target, int):
+                self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(target, w, d)
+            else:
+                if isinstance(target, str):
+                    if target == 'excitatory':
+                        self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, w, d)
+                    elif target == 'inhibitory':
+                        self.syn_factory = pypcsim.SimpleScalingSpikingSynapse(2, w, d)
+                    else:
+                        target = eval(target)
+                        self.syn_factory = target({})
+                else:
+                    self.syn_factory = target
+           
         ##self.pcsim_projection = pypcsim.ConnectionsProjection(self.pre.pcsim_population, self.post.pcsim_population, 
         ##                                                      self.syn_factory, decider, wiring_method, collectIDs = True,
         ##                                                      collectPairs=True)
@@ -661,14 +691,16 @@ class Projection(common.Projection, WDManager):
         ##elif hasattr(delay, '__len__'):
         ##    assert len(delay) == len(self), "Weight array does not have the same number of elements as the Projection %d != %d" % (len(weight),len(self))
         ##    self.setDelays(delay)
-        ##
-        ##if not self.label:
-        ##    self.label = 'projection%d' % Projection.nProj
-        ##if not rng:
-        ##    self.rng = numpy.random.RandomState()
-        ##    
-        ##self.connections = simulator.ConnectionManager(parent=self)
-        ##Projection.nProj += 1
+
+        self.synapse_type = self.syn_factory #target or 'excitatory'
+        #print "synapse_type = ", self.synapse_type, plasticity_parameters
+        self.connection_manager = simulator.ConnectionManager(parent=self)
+        self.connections = self.connection_manager
+        method.connect(self)
+        Projection.nProj += 1        
+        
+    # The commented-out code in this class has been left there as it may be
+    # useful when we start (re-)optimizing the implementation
 
     ##def __len__(self):
     ##    """Return the total number of connections."""

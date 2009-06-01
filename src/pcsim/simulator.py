@@ -329,15 +329,14 @@ class ConnectionManager(object):
             weight_scale_factor = 1e-9 # Convert from nA to A
         
         synapse_type = synapse_type or "excitatory"
-        syn_target_id = ConnectionManager.synapse_target_ids[synapse_type]
-                
         if isinstance(synapse_type, basestring):
+            syn_target_id = ConnectionManager.synapse_target_ids[synapse_type]
             syn_factory = pypcsim.SimpleScalingSpikingSynapse(
                               syn_target_id, weights[0], delays[0])
         elif isinstance(synapse_type, pypcsim.SimObject):
             syn_factory = synapse_type
         else:
-            raise Exception("synapse_type must be a string or a PCSIM synapse factory.")
+            raise common.ConnectionError("synapse_type must be a string or a PCSIM synapse factory. Actual type is %s" % type(synapse_type))
         for target, weight, delay in zip(targets, weights, delays):
             syn_factory.W = weight*weight_scale_factor
             syn_factory.delay = delay*0.001 # ms --> s

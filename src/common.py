@@ -114,6 +114,7 @@ class NonExistentParameterError(Exception):
 class InvalidDimensionsError(Exception): pass
 class ConnectionError(Exception): pass
 class InvalidModelError(Exception): pass
+class NoModelAvailableError(Exception): pass
 class RoundingWarning(Warning): pass
 class NothingToWriteError(Exception): pass
 class InvalidWeightError(Exception): pass
@@ -1236,7 +1237,7 @@ class Projection(object):
                 if len(possible_models) == 1 :
                     self.long_term_plasticity_mechanism = list(possible_models)[0]
                 elif len(possible_models) == 0 :
-                    raise Exception("No available plasticity models")
+                    raise NoModelAvailableError("No available plasticity models")
                 elif len(possible_models) > 1 :
                     if self.synapse_dynamics.slow.model:
                         # addition of the `model` attribute (see r415) is a pragmatic solution
@@ -1251,7 +1252,7 @@ class Projection(object):
                         if self.synapse_dynamics.slow.model in list(possible_models):
                             self.long_term_plasticity_mechanism = self.synapse_dynamics.slow.model
                         else:
-                            print "The particular model %s does not exists !" %self.synapse_dynamics.slow.model
+                            print "The particular model %s does not exist !" %self.synapse_dynamics.slow.model
                     else:
                         # we pass the set of models back to the simulator-specific module for it to deal with
                         self.long_term_plasticity_mechanism = possible_models
