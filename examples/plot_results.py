@@ -15,6 +15,7 @@ e.g. python plot_results.py IF_curr_exp 0.1
 import sys
 import os
 import pylab
+import warnings
 pylab.rcParams['interactive'] = True
 
 example = sys.argv[1]
@@ -42,7 +43,14 @@ sizes = pylab.array([vm.size for vm in vm_data.values()])
 if not all(sizes == sizes[0]):
 #if not pcsim_data.shape == nest_data.shape == neuron_data.shape:
     errmsg = "Data has different lengths. " + ", ".join(["%s: %s" % (simulator, vm.shape) for simulator, vm in vm_data.items()])
-    raise Exception(errmsg)
+    errmsg += "Trimming to the length of the shortest."
+    warnings.warn(errmsg)
+    new_length = min([vm.shape[0] for vm in vm_data.values()])
+    for simulator in vm_data:
+        vm_data[simulator] = vm_data[simulator][:new_length,:]
+    for simulator in gsyn_data:
+        gsyn_data[simulator] = gsyn_data[simulator][:new_length,:]
+    
 
 t = dt*pylab.arange(vm_data[vm_data.keys()[0]].shape[0])
 

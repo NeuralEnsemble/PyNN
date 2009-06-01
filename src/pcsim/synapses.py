@@ -73,12 +73,17 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     """
     
     translations = common.build_translations(
-        ('w_max',     'Wex',  1e-9), # unit conversion
+        ('w_max',     'Wex',  1e-9), # unit conversion. This exposes a limitation of the current
+                                     # translation machinery, because this value depends on the
+                                     # type of the post-synaptic cell. We currently work around
+                                     # this using the "scales_with_weight" attribute, although
+                                     # this breaks reverse translation.
         ('w_min',     'w_min_always_zero_in_PCSIM'),
         ('A_plus',    'Apos', '1e-9*A_plus*w_max', '1e9*Apos/w_max'),  # note that here Apos and Aneg
         ('A_minus',   'Aneg', '-1e-9*A_minus*w_max', '-1e9*Aneg/w_max'), # have the same units as the weight
     )
     possible_models = stdp_synapse_models
+    scales_with_weight = ['Wex', 'Apos', 'Aneg']
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
@@ -106,6 +111,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         ('A_minus',   'Aneg', -1), # are dimensionless
     )
     possible_models = stdp_synapse_models
+    scales_with_weight = ['Wex']
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
@@ -132,6 +138,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         ('A_minus',   'Aneg', -1),   # Aneg is dimensionless
     )
     possible_models = stdp_synapse_models
+    scales_with_weight = ['Wex', 'Apos']
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:

@@ -643,9 +643,14 @@ class Projection(common.Projection, WDManager):
                 dendritic_delay = self.synapse_dynamics.slow.dendritic_delay_fraction * d
                 transmission_delay = d - dendritic_delay
                 plasticity_parameters.update({'back_delay': 2*0.001*dendritic_delay, 'Winit': w*weight_scale_factor})
+                # hack to work around the limitations of the translation method
+                if self.is_conductance:
+                    for name in self.synapse_dynamics.slow.weight_dependence.scales_with_weight:
+                        plasticity_parameters[name] *= 1e3 # a scale factor of 1e-9 is always applied in the translation stage
             else:
                 possible_models = possible_models.difference(stdp_synapse_models)
                 plasticity_parameters.update({'W': w*weight_scale_factor})
+                
                 
             if len(possible_models) == 0:
                 raise common.NoModelAvailableError("The synapse model requested is not available.")
@@ -693,7 +698,7 @@ class Projection(common.Projection, WDManager):
         ##    self.setDelays(delay)
 
         self.synapse_type = self.syn_factory #target or 'excitatory'
-        #print "synapse_type = ", self.synapse_type, plasticity_parameters
+        print "synapse_type = ", self.synapse_type, plasticity_parameters
         self.connection_manager = simulator.ConnectionManager(parent=self)
         self.connections = self.connection_manager
         method.connect(self)
