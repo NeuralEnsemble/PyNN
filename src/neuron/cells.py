@@ -126,6 +126,8 @@ class SingleCompartmentNeuron(nrn.Section):
     def use_Tsodyks_Markram_synapses(self, ei, U, tau_rec, tau_facil, u0):
         if self.syn_type == 'current':
             raise Exception("Tsodyks-Markram mechanism only available for conductance-based synapses.")
+        elif self.syn_shape == 'alpha':
+            raise Exception("Tsodyks-Markram mechanism not available for alpha-function-shaped synapses.")
         elif ei == 'excitatory':
             tau_syn = self.tau_e
             e_syn = self.e_e
