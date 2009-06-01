@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 NEST v2 implementation of the PyNN API.
+
 $Id$
 """
 import nest

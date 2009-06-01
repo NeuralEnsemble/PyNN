@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Brian implementation of the PyNN API.
+
 $Id$
 """
 

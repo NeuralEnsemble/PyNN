@@ -1,7 +1,8 @@
-# ==============================================================================
-# Connection method classes for neuron
-# $Id:$
-# ==============================================================================
+"""
+Connection method classes for the neuron module
+
+$Id$
+"""
 
 from pyNN.connectors import AllToAllConnector, \
                             OneToOneConnector, \

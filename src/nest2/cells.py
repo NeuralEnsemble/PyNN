@@ -1,6 +1,7 @@
 """
- Standard cells for nest2
- $Id$
+Standard cells for nest2
+
+$Id$
 """
 
 from pyNN import common, cells

@@ -1,7 +1,8 @@
-# ==============================================================================
-# Standard cells for brian
-# $Id$
-# ==============================================================================
+"""
+Standard cells for the brian module
+
+$Id$
+"""
 
 from pyNN import common, cells
 #import brian_no_units_no_warnings

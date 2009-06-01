@@ -1,3 +1,29 @@
+"""
+Implementation of the "low-level" functionality used by the common
+implementation of the API.
+
+Functions and classes useable by the common implementation:
+
+Functions:
+    create_cells()
+    run()
+
+Classes:
+    ID
+    Recorder
+    ConnectionManager
+    Connection
+    
+Attributes:
+    state -- a singleton instance of the _State class.
+    recorder_list
+
+All other functions and classes are private, and should not be used by other
+modules.
+    
+$Id:$
+"""
+
 import nest
 from pyNN import common, recording, random
 import logging

@@ -1,7 +1,7 @@
 # encoding: utf-8
 """
 nrnpython implementation of the PyNN API.
-                                                      
+ 
 $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 """
 __version__ = "$Rev: 191 $"

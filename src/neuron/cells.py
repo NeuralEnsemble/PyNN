@@ -1,8 +1,9 @@
 # encoding: utf-8
-# ==============================================================================
-# Standard cells for neuron
-# $Id$
-# ==============================================================================
+"""
+Standard cells for the neuron module.
+
+$Id$
+"""
 
 from pyNN import common, cells
 from neuron import h, nrn, hclass

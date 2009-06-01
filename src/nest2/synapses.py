@@ -1,7 +1,8 @@
-# ==============================================================================
-# Synapse Dynamics classes for nest2
-# $Id$
-# ==============================================================================
+"""
+Synapse Dynamics classes for nest2
+
+$Id$
+"""
 
 from pyNN import common, synapses
 

@@ -1,7 +1,8 @@
-# ==============================================================================
-# Standard cells for pcsim
-# $Id$
-# ==============================================================================
+"""
+Standard cells for pcsim
+
+$Id$
+"""
 
 from pyNN import common, cells
 import pypcsim

@@ -1,7 +1,8 @@
-# ==============================================================================
-# Synapse Dynamics classes for nest1
-# $Id:$
-# ==============================================================================
+"""
+Synapse Dynamics classes for the brian module.
+
+$Id$
+"""
 
 from pyNN import common
 

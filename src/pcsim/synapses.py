@@ -1,7 +1,8 @@
-# ==============================================================================
-# Synapse Dynamics classes for pcsim
-# $Id$
-# ==============================================================================
+"""
+Synapse Dynamics classes for pcsim
+
+$Id$
+"""
 
 from pyNN import common, synapses
 import pypcsim

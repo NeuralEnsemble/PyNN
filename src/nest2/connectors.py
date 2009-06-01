@@ -1,6 +1,7 @@
 """
- Connection method classes for nest
- $Id$
+Connection method classes for nest
+
+$Id$
 """
 
 from pyNN.connectors import AllToAllConnector, \

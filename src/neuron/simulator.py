@@ -1,3 +1,31 @@
+"""
+Implementation of the "low-level" functionality used by the common
+implementation of the API.
+
+Functions and classes useable by the common implementation:
+
+Functions:
+    create_cells()
+    reset()
+    run()
+    finalize()
+
+Classes:
+    ID
+    Recorder
+    ConnectionManager
+    Connection
+    
+Attributes:
+    state -- a singleton instance of the _State class.
+    recorder_list
+
+All other functions and classes are private, and should not be used by other
+modules.
+    
+$Id:$
+"""
+
 from pyNN import __path__ as pyNN_path
 from pyNN import common, recording, random
 import platform
@@ -27,23 +55,37 @@ def load_mechanisms(path=pyNN_path[0]):
 
 
 class ID(int, common.IDMixin):
+    __doc__ = common.IDMixin.__doc__
     
     def __init__(self, n):
+        """Create an ID object with numerical value `n`."""
         int.__init__(n)
         common.IDMixin.__init__(self)
     
     def _build_cell(self, cell_model, cell_parameters):
+        """
+        Create a cell in NEURON, and register its global ID.
+        
+        `cell_model` -- one of the cell classes defined in the
+                        `neuron.cells` module (more generally, any class that
+                        implements a certain interface, but I haven't
+                        explicitly described that yet).
+        `cell_parameters` -- a dictionary containing the parameters used to
+                             initialise the cell model.
+        """
         gid = int(self)
         self._cell = cell_model(**cell_parameters)          # create the cell object
         register_gid(gid, self._cell.source, section=self._cell) # not adequate for multi-compartmental cells
         
     def get_native_parameters(self):
+        """Return a dictionary of parameters for the NEURON cell model."""
         D = {}
         for name in self._cell.parameter_names:
             D[name] = getattr(self._cell, name)
         return D
     
     def set_native_parameters(self, parameters):
+        """Set parameters of the NEURON cell model from a dictionary."""
         for name, val in parameters.items():
             setattr(self._cell, name, val)
 
@@ -63,10 +105,15 @@ class Recorder(object):
     
     def __init__(self, variable, population=None, file=None):
         """
-        `file` should be one of:
-            a file-name,
-            `None` (write to a temporary file)
-            `False` (write to memory).
+        Create a recorder.
+        
+        `variable` -- "spikes", "v" or "gsyn"
+        `population` -- the Population instance which is being recorded by the
+                        recorder (optional)
+        `file` -- one of:
+            - a file-name,
+            - `None` (write to a temporary file)
+            - `False` (write to memory).
         """
         self.variable = variable
         self.filename = file or None
@@ -99,7 +146,7 @@ class Recorder(object):
             raise Exception("Recording of %s not implemented." % self.variable)
         
     def get(self, gather=False, compatible_output=True, offset=None):
-        """Returns the recorded data."""
+        """Return the recorded data as a Numpy array."""
         # compatible_output is not used, but is needed for compatibility with the nest2 module.
         # Does nest2 really need it?
         if offset is None:
@@ -140,6 +187,7 @@ class Recorder(object):
         return data
     
     def write(self, file=None, gather=False, compatible_output=True):
+        """Write recorded data to file."""
         data = self.get(gather)
         filename = file or self.filename
         #recording.rename_existing(filename) # commented out because it causes problems when running with mpirun and a shared filesystem. Probably a timing problem
@@ -175,19 +223,36 @@ class Recorder(object):
         
         
 class _Initializer(object):
+    """
+    Manage initialization of NEURON cells. Rather than create an
+    `FInializeHandler` instance for each cell that needs to initialize itself,
+    we create a single instance, and use an instance of this class to maintain
+    a list of cells that need to be initialized.
+    
+    Public methods:
+        register()
+    """
     
     def __init__(self):
+        """
+        Create an `FinitializeHandler` object in Hoc, which will call the
+        `_initialize()` method when NEURON is initialized.
+        """
         self.cell_list = []
         self.population_list = []
         h('objref initializer')
         h.initializer = self
-        self.fih = h.FInitializeHandler("initializer.initialize()")
+        self.fih = h.FInitializeHandler("initializer._initialize()")
     
     #def __call__(self):
     #    """This is to make the Initializer a Singleton."""
     #    return self
     
     def register(self, *items):
+        """
+        Add items to the list of cells/populations to be initialized. Cell
+        objects must have a `memb_init()` method.
+        """
         for item in items:
             if isinstance(item, common.Population):
                 if "Source" not in item.celltype.__class__.__name__: # don't do memb_init() on spike sources
@@ -196,7 +261,8 @@ class _Initializer(object):
                 if hasattr(item._cell, "memb_init"):
                     self.cell_list.append(item)
     
-    def initialize(self):
+    def _initialize(self):
+        """Call `memb_init()` for all registered cell objects."""
         logging.info("Initializing membrane potential of %d cells and %d Populations." % \
                      (len(self.cell_list), len(self.population_list)))
         for cell in self.cell_list:
@@ -205,7 +271,9 @@ class _Initializer(object):
             for cell in population:
                 cell._cell.memb_init()
 
+
 def h_property(name):
+    """Create a property that accesses a global variable in Hoc."""
     def _get(self):
         return getattr(h,name)
     def _set(self, val):
@@ -217,6 +285,9 @@ class _State(object):
     """Represent the simulator state."""
     
     def __init__(self):
+        """
+        Initialize the simulator.
+        """
         self.gid_counter = 0
         self.running = False
         self.initialized = False
@@ -236,9 +307,19 @@ class _State(object):
     tstop = h_property('tstop')         # } do these really need to be stored in hoc?
     min_delay = h_property('min_delay') # }
 
+
 def create_cells(cellclass, cellparams, n, parent=None):
     """
-    Function used by both `create()` and `Population.__init__()`
+    Create cells in NEURON.
+    
+    `cellclass`  -- a PyNN standard cell or a native NEURON cell class that
+                   implements an as-yet-undescribed interface.
+    `cellparams` -- a dictionary of cell parameters.
+    `n`          -- the number of cells to create
+    `parent`     -- the parent Population, or None if the cells don't belong to
+                    a Population.
+    
+    This function is used by both `create()` and `Population.__init__()`
     """
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, basestring): # cell defined in hoc template
@@ -272,11 +353,13 @@ def create_cells(cellclass, cellparams, n, parent=None):
     return all_ids, mask_local, first_id, last_id
 
 def reset():
+    """Reset the state of the current network to time t = 0."""
     state.running = False
     state.t = 0
     state.tstop = 0
 
 def run(simtime):
+    """Advance the simulation for a certain time."""
     if not state.running:
         state.running = True
         local_minimum_delay = state.parallel_context.set_maxstep(10)
@@ -291,6 +374,7 @@ def run(simtime):
     state.parallel_context.psolve(state.tstop)
 
 def finalize(quit=True):
+    """Finish using NEURON."""
     state.parallel_context.runworker()
     state.parallel_context.done()
     if quit:
@@ -298,9 +382,11 @@ def finalize(quit=True):
         h.quit()
 
 def is_point_process(obj):
+    """Determine whether a particular object is a NEURON point process."""
     return hasattr(obj, 'loc')
 
 def register_gid(gid, source, section=None):
+    """Register a global ID with the global `ParallelContext` instance."""
     state.parallel_context.set_gid2node(gid, state.mpi_rank)  # assign the gid to this node
     if is_point_process(source):
         nc = h.NetCon(source, None)                          # } associate the cell spike source
@@ -309,6 +395,7 @@ def register_gid(gid, source, section=None):
     state.parallel_context.cell(gid, nc)              # } with the gid (using a temporary NetCon)
 
 def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
+    """Pick random numbers from a Hoc Random object."""
     native_rng = h.Random(0 or rng.seed)
     rarr = [getattr(native_rng, distribution)(*parameters)]
     rarr.extend([native_rng.repick() for j in xrange(n-1)])
@@ -316,6 +403,11 @@ def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
 
 
 class Connection(object):
+    """
+    Store an individual plastic connection and information about it. Provide an
+    interface that allows access to the connection's weight, delay and other
+    attributes.
+    """
 
     def __init__(self, source, target, nc):
         self.source = source
@@ -358,6 +450,7 @@ class Connection(object):
 
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
+
 
 class ConnectionManager(object):
     """docstring needed."""
