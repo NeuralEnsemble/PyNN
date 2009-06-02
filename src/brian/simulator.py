@@ -23,7 +23,7 @@ Attributes:
 All other functions and classes are private, and should not be used by other
 modules.
     
-$Id:$
+$Id$
 """
 
 import logging
@@ -43,9 +43,12 @@ Hz = brian.Hz
 recorder_list = []
 ZERO_WEIGHT = 1e-99
 
+
+# --- Internal Brian functionality -------------------------------------------- 
+
 def _new_property(obj_hierarchy, attr_name, units):
     """
-    Returns a new property, mapping attr_name to obj_hierarchy.attr_name.
+    Return a new property, mapping attr_name to obj_hierarchy.attr_name.
     
     For example, suppose that an object of class A has an attribute b which
     itself has an attribute c which itself has an attribute d. Then placing
@@ -60,6 +63,16 @@ def _new_property(obj_hierarchy, attr_name, units):
         return getattr(obj, attr_name)/units
     return property(fset=set, fget=get)
 
+def nesteddictwalk(d):
+    """
+    Walk a nested dict structure, returning all values in all dicts.
+    """
+    for value1 in d.values():
+        if isinstance(value1, dict):
+            for value2 in nesteddictwalk(value1):  # recurse into subdict
+                yield value2
+        else:
+            yield value1
 
 class ThresholdNeuronGroup(brian.NeuronGroup):
     
@@ -136,21 +149,57 @@ class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
     spiketimes = property(fget=_get_spiketimes, fset=_set_spiketimes)
 
 
+# --- For implementation of get_time_step() and similar functions --------------
+
+class _State(object):
+    """Represent the simulator state."""
+    
+    def __init__(self):
+        """Initialize the simulator."""
+        self.simclock = None
+        self.initialized = False
+        self.num_processes = 1
+        self.mpi_rank = 0
+        self.min_delay = numpy.NaN
+        self.max_delay = numpy.NaN
+        
+    def _get_dt(self):
+        if self.simclock is None:
+            raise Exception("Simulation timestep not yet set. Need to call setup()")
+        return self.simclock.dt/ms
+    def _set_dt(self, timestep):
+        if self.simclock is None or timestep != self._get_dt():
+            self.simclock = brian.Clock(dt=timestep*ms)
+    dt = property(fget=_get_dt, fset=_set_dt)
+
+    @property
+    def t(self):
+        return self.simclock.t/ms
+
+def reset():
+    """Reset the state of the current network to time t = 0."""
+    state.simclock.reinit()
+
+def run(simtime):
+    """Advance the simulation for a certain time."""
+    # The run() command of brian accepts seconds
+    net.run(simtime*ms)
+    
+    
+# --- For implementation of access to individual neurons' parameters -----------
+    
 class ID(int, common.IDMixin):
-    """
-    Instead of storing ids as integers, we store them as ID objects,
-    which allows a syntax like:
-        p[3,4].tau_m = 20.0
-    where p is a Population object.
-    """
+    __doc__ = common.IDMixin.__doc__
 
     non_parameter_attributes = list(common.IDMixin.non_parameter_attributes) + ['parent_group']
 
     def __init__(self, n):
+        """Create an ID object with numerical value `n`."""
         int.__init__(n)
         common.IDMixin.__init__(self)
     
     def get_native_parameters(self):
+        """Return a dictionary of parameters for the Brian cell model."""
         params = {}
         assert hasattr(self.parent_group, "parameter_names"), str(self.cellclass)
         for name in self.parent_group.parameter_names:
@@ -170,6 +219,7 @@ class ID(int, common.IDMixin):
         return params
     
     def set_native_parameters(self, parameters):
+        """Set parameters of the Brian cell model from a dictionary."""
         for name, value in parameters.items():
             if name in ['v_thresh', 'v_reset', 'tau_refrac', 'start', 'rate', 'duration']:
                 setattr(self.parent_group, name, value)
@@ -181,6 +231,9 @@ class ID(int, common.IDMixin):
                 #    raise IndexError("%s. index=%d, self.parent_group.spiketimes=%s" % (errmsg, int(self), self.parent_group.spiketimes))
             else:
                 setattr(self.parent_group[int(self)], name, value)
+
+
+# --- For implementation of record_X()/get_X()/print_X() -----------------------
 
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
@@ -195,10 +248,15 @@ class Recorder(object):
   
     def __init__(self, variable, population=None, file=None):
         """
-        `file` should be one of:
-            a file-name,
-            `None` (write to a temporary file)
-            `False` (write to memory).
+        Create a recorder.
+        
+        `variable` -- "spikes", "v" or "gsyn"
+        `population` -- the Population instance which is being recorded by the
+                        recorder (optional)
+        `file` -- one of:
+            - a file-name,
+            - `None` (write to a temporary file)
+            - `False` (write to memory).
         """
         self.variable = variable
         self.filename = file or None
@@ -207,6 +265,7 @@ class Recorder(object):
         self._device = None # defer creation until first call of record()
     
     def _create_device(self, group):
+        """Create a Brian recording device."""
         if self.variable == 'spikes':
             device = brian.SpikeMonitor(group, record=True)
         else:
@@ -226,7 +285,7 @@ class Recorder(object):
                                                              range(len(self._device.record))))
     
     def get(self, gather=False, compatible_output=True):
-        """Returns the recorded data."""
+        """Return the recorded data as a Numpy array."""
         if self.population:
             offset = self.population.first_id
         else:
@@ -243,6 +302,7 @@ class Recorder(object):
         return data
         
     def write(self, file=None, gather=False, compatible_output=True):
+        """Write recorded data to file."""
         data = self.get(gather)
         filename = file or self.filename
         recording.rename_existing(filename)
@@ -260,46 +320,28 @@ class Recorder(object):
             recording.write_compatible_output(filename, filename, self.variable,
                                               Recorder.formats[self.variable],
                                               self.population, state.dt)
-        
-        
 
-class _State(object):
-    """Represent the simulator state."""
     
-    def __init__(self):
-        self.simclock = None
-        self.initialized = False
-        self.num_processes = 1
-        self.mpi_rank = 0
-        self.min_delay = numpy.NaN
-        self.max_delay = numpy.NaN
-        
-    
-    def _get_dt(self):
-        if self.simclock is None:
-            raise Exception("Simulation timestep not yet set. Need to call setup()")
-        return self.simclock.dt/ms
-    def _set_dt(self, timestep):
-        if self.simclock is None or timestep != self._get_dt():
-            self.simclock = brian.Clock(dt=timestep*ms)
-    dt = property(fget=_get_dt, fset=_set_dt)
-
-    @property
-    def t(self):
-        return self.simclock.t/ms
-
-def reset():
-    state.simclock.reinit()
-
-def run(simtime):
-    """Run the simulation for simtime ms."""
-    # The run() command of brian accepts seconds
-    net.run(simtime*ms)
-    
+# --- For implementation of create() and Population.__init__() ----------------- 
     
 def create_cells(cellclass, cellparams=None, n=1, parent=None):
     """
-    Function used by both `create()` and `Population.__init__()`
+    Create cells in Brian.
+    
+    `cellclass`  -- a PyNN standard cell or a native Brian cell class.
+    `cellparams` -- a dictionary of cell parameters.
+    `n`          -- the number of cells to create
+    `parent`     -- the parent Population, or None if the cells don't belong to
+                    a Population.
+    
+    This function is used by both `create()` and `Population.__init__()`
+    
+    Return:
+        - a 1D array of all cell IDs
+        - a 1D boolean array indicating which IDs are present on the local MPI
+          node
+        - the ID of the first cell created
+        - the ID of the last cell created
     """
     # currently, we create a single NeuronGroup for create(), but
     # arguably we should use n NeuronGroups each containing a single cell
@@ -355,9 +397,24 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
     return cell_list, mask_local, first_id, last_id
 
 
-class Connection(object):
+# --- For implementation of connect() and Connector classes --------------------
 
+class Connection(object):
+    """
+    Provide an interface that allows access to the connection's weight, delay
+    and other attributes.
+    """
+    
     def __init__(self, brian_connection, index):
+        """
+        Create a new connection.
+        
+        `brian_connection` -- a Brian Connection object (may contain
+                              many connections).
+        `index` -- the index of the current connection within
+                   `brian_connection`, i.e. the nth non-zero element
+                   in the weight array.
+        """
         # the index is the nth non-zero element
         self.bc = brian_connection
         n_rows,n_cols = self.bc.W.shape
@@ -366,6 +423,11 @@ class Connection(object):
         #print "creating connection with index", index, "and address", self.addr
 
     def __get_address(self, index):
+        """
+        Return the (i,j) indices of the element in the weight/delay matrices
+        that corresponds to the connection with the given index, i.e. the
+        nth non-zero element in the weight array where n=index.
+        """
         count = 0
         for i, row in enumerate(self.bc.W.data):
             new_count = count + len(row)
@@ -380,40 +442,39 @@ class Connection(object):
         self.bc[self.addr] = w*self.bc.weight_units
 
     def _get_weight(self):
+        """Synaptic weight in nA or µS."""
         return float(self.bc[self.addr]/self.bc.weight_units)
 
     def _set_delay(self, d):
         self.bc.delay[self.addr] = d*ms
 
     def _get_delay(self):
+        """Synaptic delay in ms."""
         return float(self.bc.delay[self.addr]/ms)
 
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
     
 
-def nesteddictwalk(d):
-    """
-    Walk a nested dict structure, returning all values in all dicts.
-    """
-    for value1 in d.values():
-        if isinstance(value1, dict):
-            for value2 in nesteddictwalk(value1):  # recurse into subdict
-                yield value2
-        else:
-            yield value1
-            
-
 class ConnectionManager(object):
-    """docstring needed."""
+    """
+    Manage synaptic connections, providing methods for creating, listing,
+    accessing individual connections.
+    """
 
     def __init__(self, synapse_model=None, parent=None):
+        """
+        Create a new ConnectionManager.
+        
+        `synapse_model` -- not used. Present for consistency with other simulators.
+        `parent` -- the parent `Projection`, if any.
+        """
         self.parent = parent
         self.connections = {}
         self.n = 0
 
     def __getitem__(self, i):
-        """Returns a Connection object."""
+        """Return the `i`th connection as a Connection object."""
         j = 0
         for bc in nesteddictwalk(self.connections):
             assert isinstance(bc, brian.Connection), str(bc)
@@ -425,18 +486,31 @@ class ConnectionManager(object):
         raise Exception("No such connection. i=%d. connection object lengths=%s" % (i, str([c.W.getnnz() for c in nesteddictwalk(self.connections)])))
     
     def __len__(self):
+        """Return the total number of connections in this manager."""
         return self.n
     
     def __connection_generator(self):
+        """Yield each connection in turn."""
         for bc in nesteddictwalk(self.connections):
             for j in range(bc.W.getnnz()):
                 yield Connection(bc, j)
                 
-    
     def __iter__(self):
+        """Return an iterator over all connections in this manager."""
         return self.__connection_generator()
     
     def _get_brian_connection(self, source_group, target_group, synapse_obj, weight_units):
+        """
+        Return the Brian Connection object that connects two NeuronGroups with a
+        given synapse model.
+        
+        source_group -- presynaptic Brian NeuronGroup.
+        target_group -- postsynaptic Brian NeuronGroup
+        synapse_obj  -- name of the variable that will be modified by synaptic
+                        input.
+        weight_units -- Brian Units object: nA for current-based synapses,
+                        uS for conductance-based synapses.
+        """
         bc = None
         syn_id = id(synapse_obj)
         src_id = id(source_group)
@@ -464,7 +538,18 @@ class ConnectionManager(object):
     
     def connect(self, source, targets, weights, delays, synapse_type):
         """
-        Connect a neuron to one or more other neurons.
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `source`  -- the ID of the pre-synaptic cell.
+        `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        `synapse_type` -- a string identifying the synapse to connect to. Should
+                          be "excitatory", "inhibitory", or any other key in the
+                          `synapses` attibute of the celltype class. May be
+                          `None`, which is treated the same as "excitatory".
         """
         #print "connecting", source, "to", targets, "with weights", weights, "and delays", delays
         if not common.is_listlike(targets):
@@ -509,6 +594,21 @@ class ConnectionManager(object):
         self.n += len(targets)
         
     def get(self, parameter_name, format, offset=(0,0)):
+        """
+        Get the values of a given attribute (weight or delay) for all
+        connections in this manager.
+        
+        `parameter_name` -- name of the attribute whose values are wanted.
+        `format` -- "list" or "array". Array format implicitly assumes that all
+                    connections belong to a single Projection.
+        `offset` -- not used. Present for consistency with other simulators.
+        
+        Return a list or a 2D Numpy array. The array element X_ij contains the
+        attribute value for the connection from the ith neuron in the pre-
+        synaptic Population to the jth neuron in the post-synaptic Population,
+        if such a connection exists. If there are no such connections, X_ij will
+        be NaN.
+        """
         if self.parent is None:
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
         synapse_obj = self.parent.post.celltype.synapses[self.parent.target or "excitatory"]
@@ -540,6 +640,13 @@ class ConnectionManager(object):
         return values
         
     def set(self, name, value):
+        """
+        Set connection attributes for all connections in this manager.
+        
+        `name`  -- attribute name
+        `value` -- the attribute numeric value, or a list/1D array of such
+                   values of the same length as the number of local connections.
+        """
         if self.parent is None:
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
         synapse_obj = self.parent.post.celltype.synapses[self.parent.target or "excitatory"]
@@ -568,6 +675,9 @@ class ConnectionManager(object):
         else:
             raise Exception("Values must be scalars or lists/arrays")
                 
+
+# --- Initialization, and module attributes ------------------------------------
+
 state = _State()  # a Singleton, so only a single instance ever exists
 del _State
 net = brian.Network()
