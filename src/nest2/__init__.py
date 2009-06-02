@@ -163,6 +163,8 @@ class Population(common.Population):
 
     def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
+        Create a population of neurons all of the same type.
+        
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
           e.g., (10,10) will create a two-dimensional population of size 10x10.
@@ -197,8 +199,9 @@ class Population(common.Population):
 
     def set(self, param, val=None):
         """
-        Set one or more parameters for every cell in the population. param
-        can be a dict, in which case val should not be supplied, or a string
+        Set one or more parameters for every cell in the population.
+        
+        param can be a dict, in which case val should not be supplied, or a string
         giving the parameter name, in which case val is the parameter value.
         val can be a numeric value, or list of such (e.g. for setting spike times).
         e.g. p.set("tau_m",20.0).

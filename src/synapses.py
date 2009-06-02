@@ -17,7 +17,10 @@ Classes for defining STDP rules:
 from common import ShortTermPlasticityMechanism, STDPWeightDependence, STDPTimingDependence
 
 class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):
-    """ """
+    """
+    Synapse exhibiting facilitation and depression, implemented using the model
+    of Tsodyks and Markram.
+    """
     default_parameters = {
         'U': 0.5,   # use parameter
         'tau_rec': 100.0, # depression time constant (ms)

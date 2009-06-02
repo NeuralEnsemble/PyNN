@@ -144,17 +144,21 @@ class GSLRNG(AbstractRNG):
 
     
 class NativeRNG(AbstractRNG):
-    """Signals that the simulator's own native RNG should be used.
+    """
+    Signals that the simulator's own native RNG should be used.
     Each simulator module should implement a class of the same name which
-    inherits from this and which sets the seed appropriately."""
+    inherits from this and which sets the seed appropriately.
+    """
     
     def __str__(self):
         return "AbstractRNG(seed=%s)" % self.seed
 
 
 class RandomDistribution:
-    """Class which defines a next(n) method which returns an array of n random
-       numbers from a given distribution."""
+    """
+    Class which defines a next(n) method which returns an array of n random
+    numbers from a given distribution.
+    """
        
     def __init__(self, distribution='uniform', parameters=[], rng=None, boundaries=None, constrain="clip"):
         """

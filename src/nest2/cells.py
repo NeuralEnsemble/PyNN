@@ -7,8 +7,10 @@ $Id$
 from pyNN import common, cells
  
 class IF_curr_alpha(cells.IF_curr_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
+    """
+    Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic current.
+    """
 
     translations = common.build_translations(
         ('v_rest',     'E_L'),
@@ -26,9 +28,11 @@ class IF_curr_alpha(cells.IF_curr_alpha):
 
 
 class IF_curr_exp(cells.IF_curr_exp):
-    """Leaky integrate and fire model with fixed threshold and
+    """
+    Leaky integrate and fire model with fixed threshold and
     decaying-exponential post-synaptic current. (Separate synaptic currents for
-    excitatory and inhibitory synapses."""
+    excitatory and inhibitory synapses.
+    """
     
     translations = common.build_translations(
         ('v_rest',     'E_L'),
@@ -46,8 +50,10 @@ class IF_curr_exp(cells.IF_curr_exp):
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic conductance."""
+    """
+    Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic conductance.
+    """
 
     translations = common.build_translations(
         ('v_rest',     'E_L')    ,
@@ -67,8 +73,10 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         
 
 class IF_cond_exp(cells.IF_cond_exp):
-    """Leaky integrate and fire model with fixed threshold and 
-    exponentially-decaying post-synaptic conductance."""
+    """
+    Leaky integrate and fire model with fixed threshold and 
+    exponentially-decaying post-synaptic conductance.
+    """
     
     translations = common.build_translations(
         ('v_rest',     'E_L')    ,
@@ -88,7 +96,8 @@ class IF_cond_exp(cells.IF_cond_exp):
 
 
 class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
-    """Linear leaky integrate and fire model with fixed threshold,
+    """
+    Linear leaky integrate and fire model with fixed threshold,
     decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
     and a conductance-based relative refractory mechanism.
 
@@ -121,7 +130,8 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
 
 
 class IF_facets_hardware1(cells.IF_facets_hardware1):
-    """Leaky integrate and fire model with conductance-based synapses and fixed 
+    """
+    Leaky integrate and fire model with conductance-based synapses and fixed 
     threshold as it is resembled by the FACETS Hardware Stage 1. For further 
     details regarding the hardware model see the FACETS-internal Wiki:
     https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
@@ -149,7 +159,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
         
 
 class HH_cond_exp(cells.HH_cond_exp):
-    """docstring needed here."""
+    """Single-compartment Hodgkin-Huxley model."""
     
     translations = common.build_translations(
         ('gbar_Na',    'g_Na'),   
@@ -221,11 +231,12 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
 
 class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
-    """Spike source, generating realizations of an inhomogeneous gamma process, employing
-    the thinning method.
+    """
+    Spike source, generating realizations of an inhomogeneous gamma process,
+    employing the thinning method.
 
-    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
-    and renewal theories. Neural Computation 19: 2958-3010.
+    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond
+    mean-adaptation and renewal theories. Neural Computation 19: 2958-3010.
     """
 
     translations = common.build_translations(

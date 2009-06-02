@@ -6,7 +6,7 @@ Classes:
     StepCurrentSource  -- a step-wise time-varying current.
     NoisyCurrentSource -- a Gaussian whitish noise current.
 
-$Id:$
+$Id$
 """
 
 import nest

@@ -8,7 +8,7 @@ consistent with good performance (optimisations may require overriding some of
 the default definitions given here).
 
 Exceptions:
-    InvalidParameterError
+    InvalidParameterValueError
     NonExistentParameterError
     InvalidDimensionsError
     ConnectionError
@@ -620,7 +620,9 @@ def rank():
 # ==============================================================================
 
 def create(cellclass, cellparams=None, n=1):
-    """Create n cells all of the same type.
+    """
+    Create n cells all of the same type.
+    
     If n > 1, return a list of cell ids/references.
     If n==1, return just the single id.
     """
@@ -633,11 +635,14 @@ def create(cellclass, cellparams=None, n=1):
     return all_cells
 
 def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
-    """Connect a source of spikes to a synaptic target. source and target can
-    both be individual cells or lists of cells, in which case all possible
-    connections are made with probability p, using either the random number
-    generator supplied, or the default rng otherwise.
-    Weights should be in nA or µS."""
+    """
+    Connect a source of spikes to a synaptic target.
+    
+    source and target can both be individual cells or lists of cells, in which
+    case all possible connections are made with probability p, using either the
+    random number generator supplied, or the default rng otherwise.
+    Weights should be in nA or µS.
+    """
     # This duplicates code from the Connector/FixedProbabilityConnector classes
     # should refactor to eliminate this repetition
     logging.debug("connecting %s to %s on host %d" % (source, target, rank()))
@@ -663,9 +668,12 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
 
 
 def set(cells, param, val=None):
-    """Set one or more parameters of an individual cell or list of cells.
+    """
+    Set one or more parameters of an individual cell or list of cells.
+    
     param can be a dict, in which case val should not be supplied, or a string
-    giving the parameter name, in which case val is the parameter value."""
+    giving the parameter name, in which case val is the parameter value.
+    """
     if val:
         param = {param:val}
     if not hasattr(cells, '__len__'):
@@ -677,8 +685,10 @@ def set(cells, param, val=None):
 
 def build_record(variable, simulator):
     def record(source, filename):
-        """Record spikes to a file. source can be an individual cell or a list of
-        cells."""
+        """
+        Record spikes to a file. source can be an individual cell or a list of
+        cells.
+        """
         # would actually like to be able to record to an array and choose later
         # whether to write to a file.
         if not hasattr(source, '__len__'):
@@ -709,6 +719,8 @@ class Population(object):
     
     def __init__(self, dims, cellclass, cellparams=None, label=None, parent=None):
         """
+        Create a population of neurons all of the same type.
+        
         dims should be a tuple containing the population dimensions, or a single
           integer, for a one-dimensional population.
           e.g., (10,10) will create a two-dimensional population of size 10x10.
@@ -735,14 +747,15 @@ class Population(object):
             self.size *= self.dim[i]
     
     def __getitem__(self, addr):
-        """Return a representation of the cell with coordinates given by addr,
-           suitable for being passed to other methods that require a cell id.
-           Note that __getitem__ is called when using [] access, e.g.
-             p = Population(...)
-             p[2,3] is equivalent to p.__getitem__((2,3)).
-           Also accepts slices, e.g.
-             p[0,3:6]
-           which returns an array of cells.
+        """
+        Return a representation of the cell with coordinates given by addr,
+        suitable for being passed to other methods that require a cell id.
+        Note that __getitem__ is called when using [] access, e.g.
+            p = Population(...)
+            p[2,3] is equivalent to p.__getitem__((2,3)).
+        Also accepts slices, e.g.
+            p[0,3:6]
+        which returns an array of cells.
         """
         if isinstance(addr, (int, slice)):
             addr = (addr,)
@@ -777,9 +790,10 @@ class Population(object):
         return self.all_cells.flat
     
     def locate(self, id):
-        """Given an element id in a Population, return the coordinates.
-               e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
-                         7 9
+        """
+        Given an element id in a Population, return the coordinates.
+            e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
+                      7 9
         """
         # this implementation assumes that ids are consecutive
         # a slower (for large populations) implementation that does not make
@@ -1078,6 +1092,7 @@ class Population(object):
     def print_gsyn(self, filename, gather=True, compatible_output=True):
         """
         Write synaptic conductance traces to file.
+        
         If compatible_output is True, the format is "t g cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
@@ -1301,7 +1316,8 @@ class Projection(object):
 
     def setSynapseDynamics(self, param, value):
         """
-        Set parameters of the synapse dynamics linked with the projection
+        Set parameters of the dynamic synapses for all connections in this
+        Projection.
         """
         self.connection_manager.set(param, value)
 
@@ -1315,6 +1331,8 @@ class Projection(object):
     
     def getWeights(self, format='list', gather=True):
         """
+        Get synaptic weights for all connections in this Projection.
+        
         Possible formats are: a list of length equal to the number of connections
         in the projection, a 2D weight array (with NaN for non-existent
         connections). Note that for the array format, if there is more than
@@ -1326,6 +1344,8 @@ class Projection(object):
             
     def getDelays(self, format='list', gather=True):
         """
+        Get synaptic delays for all connections in this Projection.
+        
         Possible formats are: a list of length equal to the number of connections
         in the projection, a 2D delay array (with NaN for non-existent
         connections).
@@ -1335,13 +1355,19 @@ class Projection(object):
         return self.connection_manager.get('delay', format, offset=(self.pre.first_id, self.post.first_id))
 
     def getSynapseDynamics(self, parameter_name, format='list', gather=True):
+        """
+        Get parameters of the dynamic synapses for all connections in this
+        Projection.
+        """
         if gather:
             logging.error("getSynapseDynamics() with gather=True not yet implemented")
         return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
     
     def saveConnections(self, filename, gather=False):
-        """Save connections to file in a format suitable for reading in with a
-        FromFileConnector."""
+        """
+        Save connections to file in a format suitable for reading in with a
+        FromFileConnector.
+        """
         if gather == True:
             raise Exception("saveConnections(gather=True) not yet supported")
         elif num_processes() > 1:

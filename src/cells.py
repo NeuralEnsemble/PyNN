@@ -30,8 +30,10 @@ import numpy
 from common import StandardCellType
 
 class IF_curr_alpha(StandardCellType):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
+    """
+    Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic current.
+    """
     
     default_parameters = {
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
@@ -48,9 +50,11 @@ class IF_curr_alpha(StandardCellType):
     recordable = ['spikes', 'v']
 
 class IF_curr_exp(StandardCellType):
-    """Leaky integrate and fire model with fixed threshold and
+    """
+    Leaky integrate and fire model with fixed threshold and
     decaying-exponential post-synaptic current. (Separate synaptic currents for
-    excitatory and inhibitory synapses"""
+    excitatory and inhibitory synapses.
+    """
     
     default_parameters = {
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
@@ -67,8 +71,10 @@ class IF_curr_exp(StandardCellType):
     recordable = ['spikes', 'v']
 
 class IF_cond_alpha(StandardCellType):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic conductance."""
+    """
+    Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic conductance.
+    """
     
     default_parameters = {
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
@@ -87,8 +93,10 @@ class IF_cond_alpha(StandardCellType):
     recordable = ['spikes', 'v', 'gsyn']
     
 class IF_cond_exp(StandardCellType):
-    """Leaky integrate and fire model with fixed threshold and 
-    exponentially-decaying post-synaptic conductance."""
+    """
+    Leaky integrate and fire model with fixed threshold and 
+    exponentially-decaying post-synaptic conductance.
+    """
     
     default_parameters = {
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
@@ -107,7 +115,8 @@ class IF_cond_exp(StandardCellType):
     recordable = ['spikes', 'v', 'gsyn']
 
 class IF_cond_exp_gsfa_grr(StandardCellType):
-    """Linear leaky integrate and fire model with fixed threshold,
+    """
+    Linear leaky integrate and fire model with fixed threshold,
     decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
     and a conductance-based relative refractory mechanism.
 
@@ -115,7 +124,6 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
     and renewal theories. Neural Computation 19: 2958-3010.
 
     See also: EIF_cond_alpha_isfa_ista
-
     """
     
     default_parameters = {
@@ -142,8 +150,10 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
 
     
 class IF_facets_hardware1(StandardCellType):
-    """Leaky integrate and fire model with conductance-based synapses and fixed 
+    """
+    Leaky integrate and fire model with conductance-based synapses and fixed 
     threshold as it is resembled by the FACETS Hardware Stage 1. 
+    
     The following parameters can be assumed for a corresponding software
     simulation: cm = 0.2 nF, tau_refrac = 1.0 ms, e_rev_E = 0.0 mV.  
     For further details regarding the hardware model see the FACETS-internal Wiki:
@@ -184,14 +194,14 @@ class HH_cond_exp(StandardCellType):
     recordable = ['spikes', 'v', 'gsyn']
 
 class EIF_cond_alpha_isfa_ista(StandardCellType):
-    """Exponential integrate and fire neuron with spike triggered and
+    """
+    Exponential integrate and fire neuron with spike triggered and
     sub-threshold adaptation currents (isfa, ista reps.) according to:
     
     Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model
     as an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
     See also: IF_cond_exp_gsfa_grr, EIF_cond_exp_isfa_ista
-
     """
     
     default_parameters = {
@@ -217,14 +227,14 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
     recordable = ['spikes', 'v', 'gsyn']
 
 class EIF_cond_exp_isfa_ista(StandardCellType):
-    """Exponential integrate and fire neuron with spike triggered and
+    """
+    Exponential integrate and fire neuron with spike triggered and
     sub-threshold adaptation currents (isfa, ista reps.) according to:
     
     Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model
     as an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
     See also: IF_cond_exp_gsfa_grr, EIF_cond_alpha_isfa_ista
-
     """
     
     default_parameters = {
@@ -261,7 +271,8 @@ class SpikeSourcePoisson(StandardCellType):
     synapse_types = ()
 
 class SpikeSourceInhGamma(StandardCellType):
-    """Spike source, generating realizations of an inhomogeneous gamma process,
+    """
+    Spike source, generating realizations of an inhomogeneous gamma process,
     employing the thinning method.
 
     See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond
