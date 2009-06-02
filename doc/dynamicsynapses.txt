@@ -8,8 +8,6 @@ other properties, such as rise-time) varies depending on the recent history of
 post- and/or pre-synaptic activity, we use the same idea as for neurons, of
 standardized, named models that have the same interface and behaviour across
 simulators, even if the underlying implementation may be very different.
-[note: does the approach of using strings for native models also work, as for
-neurons?]
 
 Where the approach for dynamic synapses differs from that for neurons is that
 we attempt a greater degree of compositionality, i.e. we decompose models into
@@ -47,6 +45,8 @@ the mechanism.
 An example of defining a ``Projection`` with depressing synapses,
 but no long-term plasticity::
 
+    >>> pre = post = Population(50, IF_cond_exp)
+
     >>> params = {'U': 0.5, 'tau_rec': 100.0, 'tau_facil': 0.0}
     >>> depressing_syn = SynapseDynamics(fast=TsodyksMarkramMechanism(**params))
     >>> prj = Projection(pre, post, AllToAllConnector(),
@@ -63,3 +63,5 @@ value)::
     ... )
     >>> prj2 = Projection(pre, post, FixedProbabilityConnector(p_connect=0.1),
     ...                   synapse_dynamics=SynapseDynamics(slow=stdp_model))
+
+There are a number of examples of networks using synaptic plasticity in the ``examples`` directory of the source distribution.

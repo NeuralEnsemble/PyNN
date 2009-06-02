@@ -5,6 +5,7 @@ Script to run doctests.
 
 import doctest
 import sys
+import os
 from optparse import OptionParser
 
 optionflags = doctest.IGNORE_EXCEPTION_DETAIL+doctest.NORMALIZE_WHITESPACE
@@ -56,7 +57,7 @@ if __name__ == "__main__":
     # Process command line
     parser = OptionParser(usage="usage: %prog [options] FILE")
     parser.add_option("-s", "--simulator", dest="simulator",
-                      type="choice", choices=('nest1', 'nest2', 'neuron', 'pcsim'),
+                      type="choice", choices=('nest2', 'neuron', 'pcsim', 'brian'),
                       help="run doctests with SIMULATOR", metavar="SIMULATOR",
                       default='nest2')
     parser.add_option("--strict", action="store_true", dest="strict", default=False,

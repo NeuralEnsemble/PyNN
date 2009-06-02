@@ -1137,7 +1137,7 @@ class Population(object):
                      'Population called $label is made of $n_cells cells [$n_cells_local being local]']
             if self.parent:
                 lines += ['This population is a subpopulation of population $parent_label']
-            lines += ["-> Cells are aranged on a ${ndim}D grid of size $dim",
+            lines += ["-> Cells are arranged on a ${ndim}D grid of size $dim",
                       "-> Celltype is $celltype",
                       "-> ID range is $first_id-$last_id",]
             if len(self.local_cells) > 0:

@@ -8,9 +8,9 @@ Importing PyNN
 The simulator used by a PyNN script is determined by which module is imported from the PyNN package, e.g.::
 
     >>> from pyNN.neuron import * #doctest: +SKIP
-    >>> from pyNN.nest1 import *  #doctest: +SKIP
-    >>> from pyNN.nest2 import *  #doctest: +SKIP
+    >>> from pyNN.nest import *  #doctest: +SKIP
     >>> from pyNN.pcsim import *  #doctest: +SKIP
+    >>> from pyNN.brian import *  #doctest: +SKIP
     
 After this line, all PyNN code is independent of the simulator used, although it is possible to include
 simulator-specific code in the script as well (if simulator-independence is not important to you, or
@@ -37,17 +37,16 @@ Neurons are created with the ``create()`` function. To create a single integrate
 
     >>> create(IF_curr_alpha)
     
-Here, ``IF_curr_alpha`` is a particular class of IF neuron with alpha-function shaped synaptic currents, that will work with any PyNN simulation engine, whether NEURON, NEST or PCSIM.
+Here, ``IF_curr_alpha`` is a particular class of IF neuron with alpha-function shaped synaptic currents, that will work with any PyNN simulation engine, whether NEURON, NEST, PCSIM or Brian.
 ``IF_curr_alpha`` is a so-called 'standard cell', implemented as a Python class.
 For more information, see the section StandardCells.
 
 You don't have to use standard cells.
 You can also use any neuron model that is available in an individual simulator, although of course your simulation will then only run with that simulator, for example::
 
-    >>> create('iaf_neuron')
+    >>> create('iaf_neuron') #doctest: +SKIP
     
 ``iaf_neuron`` is a neuron model available in the NEST simulator.
-Note that the model name has to be given as a string for simulator-specific models.
 
 To create many neurons at once, add the ``n`` argument, e.g.::
 
@@ -132,7 +131,7 @@ For conductance-based synapses, weights should always be positive, since the eff
 
 If the neuron model has more than one synapse mechanism, or more than one synaptic location, the particular synapse to which the connection should be made is specified with the ``synapse_type`` argument, e.g.::
 
-    >>> connect(source_list, target_list, weight=1.5, delay=0.5, synapse_type='inhibitory')
+    >>> connect(source_list, target_list, weight=-1.5, delay=0.5, synapse_type='inhibitory')
 
 (the attribute ``synapse_types`` of all standard cell objects contains a list of the synapse types for that cell type).
 
@@ -177,16 +176,29 @@ can be set and retrieved using the `position` attribute of the neuron ID::
 
     >>> cells[0].position = (75, 456, 56)
     >>> cells[0].position
-    (75, 456, 56)
+    array([ 75, 456, 56])
     
 Positions must always be in 3D, and may be given as integers or floating-point values, and as tuples or as numpy arrays.
 No specific scale of units is assumed, although many parts of PyNN do assume a Euclidean coordinate system.
 
+Injecting current
+=================
+
+Most standard cells have an `i_offset` parameter, which allows a constant current to be
+injected into a neuron. If you want to have a time varying current, you may create a
+``CurrentSource`` object and connect it to the neuron either using the ``inject()`` method of the
+neuron ID or using the ``inject_into()`` method of the ``CurrentSource``::
+
+    >>> pulse = DCSource(amplitude=0.5, start=20.0, stop=80.0)
+    >>> steps = StepCurrentSource(times=[0.0, 50.0, 100.0], amplitudes=[0.1, 0.2, 0.3])
+    >>> pulse.inject_into(cells[3:7])
+    >>> cells[9].inject(steps)
+
 Recording spikes and membrane potential
 =======================================
 
-To record action potentials use the ``record()`` function and to record membrane potential use the ``record_v()`` function.
-The arguments for both functions are a cell id or list of ids, and a filename, e.g.::
+To record action potentials use the ``record()`` function, to record membrane potential use the ``record_v()`` function and to record synaptic conductances use the ``record_gsyn()`` function.
+The arguments for all three functions are a cell id or list of ids, and a filename, e.g.::
 
     >>> record(cell, "spikes.dat")
     >>> record_v(cell_list, "Vm.dat")
@@ -239,5 +251,5 @@ Just as a simulation must be begun with a call to ``setup()``, it must be ended 
 Examples
 ========
 
-There are several example scripts in the ``test`` directory of the source distribution.
+There are several example scripts in the ``examples`` directory of the source distribution.
     

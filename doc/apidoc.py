@@ -299,7 +299,7 @@ def build_document():
     
     highlevel = Section("Object-oriented interface for creating, connecting and recording networks",
                         simulator)
-    highlevel.add_classes("Population", "Projection")
+    highlevel.add_classes("Population", "ID", "Projection")
     highlevel.add_abbreviated_classes(["AllToAllConnector", "OneToOneConnector",
         "FixedProbabilityConnector", "DistanceDependentProbabilityConnector",
         "FixedNumberPreConnector", "FixedNumberPostConnector",

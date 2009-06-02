@@ -50,7 +50,7 @@ The above examples all use PyNN standard cell models. It is also possible to use
 
     >>> p4 = Population(20, 'iaf_neuron', cellparams={'Tau': 15.0, 'C': 0.001}) #doctest: +SKIP
     
-This example will work with NEST but not with NEURON or PCSIM.
+This example will work with NEST but not with NEURON, PCSIM or Brian.
                         
 Addressing individual neurons
 =============================
@@ -109,6 +109,23 @@ To access the 'i'th neuron in a Population, use the ``index()`` method, e.g.,::
       File "/home/andrew/dev/pyNN/neuron/__init__.py", line 759, in index
         return self.fullgidlist[n]
     IndexError: index out of bounds
+    
+Conversely, if you have an ID, and you wish to obtain its index, use the ``id_to_index()`` method::
+
+    >>> p3.id_to_index(200)
+    0
+    >>> p3.id_to_index(259)
+    59
+
+
+Accessing groups of neurons
+===========================
+
+To access several neurons at once, use slice notation, e.g., to access all the neurons in the first row of a 2D Population, use::
+
+    >>> p1[0,:]
+    [20, 21, 22]
+    
 
 Setting parameter values
 ========================
@@ -194,19 +211,33 @@ The ``Population.ids()`` method produces the same result. To iterate over cells 
     (1, 2)
     ...
     
+Injecting current
+=================
+
+As for individual cells, time-varying currents may be injected into all the
+cells of a Population using either the ``inject_into()`` method of the
+``CurrentSource`` or the ``inject()`` method of the ``Population``::
+
+    >>> times = numpy.arange(0.0, 100.0, 1.0)
+    >>> amplitudes = 0.1*numpy.sin(times*numpy.pi/100.0)
+    >>> sine_wave = StepCurrentSource(times, amplitudes)
+    >>> p1.inject(sine_wave)
+    >>> sine_wave.inject_into(p2)
+    
 Recording
 =========
 
 Recording spike times is done with the method ``record()``.
 Recording membrane potential is done with the method ``record_v()``.
-Both methods have identical argument lists.
+Recording synaptic conductances is done with the method ``record_gsyn()``.
+All three methods have identical argument lists.
 Some examples::
 
     >>> p1.record()                            # record from all neurons in the population
     >>> p1.record(10)                          # record from 10 neurons chosen at random
     >>> p1.record([p1[0,0], p1[0,1], p1[0,2]]) # record from specific neurons
 
-Writing the recorded values to file is done with a second pair of methods, ``printSpikes()`` and ``print_v()``, e.g.::
+Writing the recorded values to file is done with a second triple of methods, ``printSpikes()``, ``print_v()`` and ``print_gsyn()``, e.g.::
 
     >>> p1.printSpikes("spikefile.dat")
 
@@ -215,8 +246,10 @@ This facilitates comparisons across simulators, but of course has some performac
 To get output in the native format of the simulator, add ``compatible_output=False`` to the argument list.
 
 When running a distributed simulation, each node records only those neurons that it simulates.
-By default, at the end of the simulation all nodes send their recorded data to the master node so that all values are written to a single output file. [Note that this does not work yet for nest2, not sure about pcsim].
+By default, at the end of the simulation all nodes send their recorded data to the master node so that all values are written to a single output file.
 Again, there is a performance penalty for this, so if you wish each node to write its own file, add ``gather=False`` to the argument list.
+
+If you wish to obtain the recorded data within the simulation script, for plotting or further analysis, there is a further triple of methods, ``getSpikes()``, ``get_v()`` and ``get_gsyn()``. Again, there is a ``gather`` option for distributed simulations.
 
 Position in space
 =================
@@ -249,6 +282,30 @@ PyNN currently only provides one such measure, the mean number of spikes per neu
     0.0
     
 More such statistical measures are planned for future releases.
+
+Getting information about a ``Population``
+==========================================
+
+A summary of the state of a ``Population`` may be obtained with the ``describe()`` method::
+
+    >>> print p1.describe() #doctest: +NORMALIZE_WHITESPACE
+    ------- Population description -------
+    Population called population0 is made of 100 cells [100 being local]
+    -> Cells are aranged on a 2D grid of size (10, 10)
+    -> Celltype is IF_curr_exp
+    -> ID range is 0-99
+    -> Cell Parameters used for first cell on this node are: 
+        | tau_refrac  : 0.0
+        | tau_m       : 20.0
+        | i_offset    : 0.1
+        | cm          : 1.0
+        | v_init      : -60.5305869553
+        | v_thresh    : -50.0
+        | tau_syn_E   : 5.0
+        | v_rest      : -65.0
+        | tau_syn_I   : 5.0
+        | v_reset     : -65.0
+    --- End of Population description ----
 
 
 Connecting two ``Population``\s with a ``Projection``
@@ -333,9 +390,7 @@ In more abstract models, it is often useful to be able to avoid edge effects by 
 
     >>> connector = DistanceDependentProbabilityConnector("exp(-abs(d))", periodic_boundaries=(500, 500, 0))
     
-calculates distance on the surface of a torus of circumference 500 µm (wrap-around in the x- and y-dimensions but not z)
-[really need to test this, and improve the docstrings]
-
+calculates distance on the surface of a torus of circumference 500 µm (wrap-around in the x- and y-dimensions but not z).
 
 Divergent/fan-out connections
 -----------------------------
@@ -389,7 +444,7 @@ Specific connection patterns not covered by the methods above can be obtained by
 User-defined connection algorithms
 ----------------------------------
 
-If you wish to use a specific connection/wiring algorithm not covered by the PyNN built-in ones, the simplest option is to construct a list of connections and use the ``FromListConnector`` class. By looking at the code for the built-in ``Connector``\s, it should also be quite straightforward to write your own ``Connector`` class, although this must be done separately for each simulator you wish to use. In a future release, we plan to make writing new simulator-independent ``Connector``\s much simpler.
+If you wish to use a specific connection/wiring algorithm not covered by the PyNN built-in ones, the simplest option is to construct a list of connections and use the ``FromListConnector`` class. By looking at the code for the built-in ``Connector``\s, it should also be quite straightforward to write your own ``Connector`` class.
 
 
 Setting synaptic weights and delays
@@ -450,7 +505,7 @@ Accessing weights and delays
 
 To get the weights of all connections in the ``Projection``, use the ``getWeights()`` method.
 Two formats are available. ``'list'`` returns a list of length equal to the number of connections
-in the projection, ``'array'`` returns a 2D weight array (with zero or None for non-existent
+in the projection, ``'array'`` returns a 2D weight array (with NaN for non-existent
 connections)::
 
     >>> prj2_1.getWeights(format='list')[3:7]
@@ -473,6 +528,21 @@ Access to the weights and delays of individual connections is by the ``connectio
 The ``weightHistogram()`` method returns a histogram of the synaptic weights, with bins
 determined by the ``min``, ``max`` and ``nbins`` arguments passed to the method.
 
+Getting information about a ``Projection``
+==========================================
+
+As for ``Population``, a summary of the state of a ``Projection`` may be obtained with the ``describe()`` method::
+
+    >>> print prj2_1.describe()
+    ------- Projection description -------
+    Projection projection0 from Input Population [100 cells] to population0 [100 cells]
+        | Connector : <pyNN.connectors.AllToAllConnector object at 0x8742c2c>
+        | Weights : 0.0
+        | Delays : 0.1
+        | Plasticity : None
+        | Num. connections : 10000
+    ---- End of Projection description -----
+
 
 Synaptic plasticity
 ===================
@@ -483,4 +553,4 @@ Dynamic synapses (short-term and long-term plasticity) are discussed in the next
 Examples
 ========
 
-There are several examples of networks built with the high-level API in the ``test`` directory of the source distribution.
+There are several examples of networks built with the high-level API in the ``examples`` directory of the source distribution.

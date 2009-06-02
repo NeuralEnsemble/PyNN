@@ -9,7 +9,7 @@ To obtain a list of all the standard models available in a given simulator, use 
 
     >>> from pyNN import neuron
     >>> neuron.list_standard_models()
-    [<class 'pyNN.neuron.cells.IF_cond_alpha'>, <class 'pyNN.neuron.cells.IF_curr_exp'>, <class 'pyNN.neuron.cells.SpikeSourceArray'>, <class 'pyNN.neuron.cells.IF_cond_exp'>, <class 'pyNN.neuron.cells.IF_facets_hardware1'>, <class 'pyNN.neuron.cells.SpikeSourcePoisson'>, <class 'pyNN.neuron.cells.EIF_cond_alpha_isfa_ista'>, <class 'pyNN.neuron.cells.IF_curr_alpha'>]
+    [<class 'pyNN.neuron.cells.HH_cond_exp'>, <class 'pyNN.neuron.cells.IF_curr_exp'>, <class 'pyNN.neuron.cells.IF_facets_hardware1'>, <class 'pyNN.neuron.cells.IF_cond_alpha'>, <class 'pyNN.neuron.cells.IF_cond_exp'>, <class 'pyNN.neuron.cells.SpikeSourcePoisson'>, <class 'pyNN.neuron.cells.EIF_cond_exp_isfa_ista'>, <class 'pyNN.neuron.cells.SpikeSourceArray'>, <class 'pyNN.neuron.cells.IF_curr_alpha'>, <class 'pyNN.neuron.cells.EIF_cond_alpha_isfa_ista'>]
 
 Integrate-and-fire neurons
 ==========================
@@ -19,7 +19,7 @@ IF_curr_alpha
 
 Leaky integrate and fire model with fixed threshold and alpha-function-shaped post-synaptic current.
 
-Availability: NEST v1, NEST v2, NEURON, PCSIM
+Availability: NEST, NEURON, PCSIM, Brian
 
 ==============  =============  =====  ========================================
 Name            Default value  Units  Description
@@ -42,7 +42,7 @@ IF_curr_exp
 Leaky integrate and fire model with fixed threshold and decaying-exponential post-synaptic current.
 (Separate synaptic currents for excitatory and inhibitory synapses.
     
-Availability: NEST v1, NEST v2, NEURON, PCSIM
+Availability: NEST, NEURON, PCSIM, Brian
     
 ==============  =============  =====  =========================================
 Name            Default value  Units  Description
@@ -65,7 +65,7 @@ _____________
 
 Leaky integrate and fire model with fixed threshold and alpha-function-shaped post-synaptic conductance.
 
-Availability: NEST v1, NEST v2, NEURON, PCSIM
+Availability: NEST, NEURON, PCSIM, Brian
 
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
@@ -90,7 +90,7 @@ IF_cond_exp
 
 Leaky integrate and fire model with fixed threshold and decaying-exponential post-synaptic conductance.
     
-Availability: NEST v2, NEURON, PCSIM
+Availability: NEST, NEURON, PCSIM, Brian
     
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
@@ -113,9 +113,9 @@ Name            Default value  Units  Description
 HH_cond_exp
 -----------
 
-Single-compartment Hodgkin-Huxley-type neuron with transient sodium and delayed-rectifier potassium currents using the ion channel models from ???Traub?.
+Single-compartment Hodgkin-Huxley-type neuron with transient sodium and delayed-rectifier potassium currents using the ion channel models from Traub.
     
-Availability: NEST v2, NEURON, PCSIM
+Availability: NEST, NEURON
 
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
@@ -144,7 +144,7 @@ Adaptive exponential integrate and fire neuron according to
   Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
   an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
-Availability: NEST v2, NEURON, PCSIM
+Availability: NEST, NEURON
 
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
@@ -178,8 +178,7 @@ SpikeSourcePoisson
 
 Spike source, generating spikes according to a Poisson process.
 
-Availability: NEST, NEURON, PCSIM
-[note problems with this in NEST]
+Availability: NEST, NEURON, PCSIM, Brian
 
 ============  =============  ======  ==========================
 Name          Default value  Units   Description
@@ -194,7 +193,7 @@ SpikeSourceArray
 ----------------
 Spike source generating spikes at the times given in the ``spike_times`` array.
 
-Availability: NEST, NEURON, PCSIM
+Availability: NEST, NEURON, PCSIM, Brian
 
 ===============  =============  ======  ==========================
 Name             Default value  Units   Description

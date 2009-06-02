@@ -6,14 +6,14 @@ The text files in this directory (including this one) are in reStructuredText_ f
 
     $ rst2html.py --initial-header-level=2 highlevelapi.txt > highlevelapi.html
 
-API documentation is generated using the ``wikidoc.py`` script, which can produce MediaWiki, Trac Wiki, or LaTeX formats (but not, currently, reStructuredText).
+API documentation is generated using the ``apidoc.py`` script, which can produce MediaWiki, Trac Wiki, or LaTeX formats (but not, currently, reStructuredText).
 
-Many of the files contain examples of interactive python sessions. The validity of this code can be tested by running::
+Many of the files contain examples of interactive Python sessions. The validity of this code can be tested by running::
 
-    $ python testdocs.py -s nest1 FILE.txt
-    $ python testdocs.py -s nest2 FILE.txt
-    $ python testdocs.py -s pcsim FILE.txt
     $ python testdocs.py -s neuron FILE.txt
+    $ python testdocs.py -s nest FILE.txt
+    $ python testdocs.py -s pcsim FILE.txt
+    $ python testdocs.py -s brian FILE.txt
     
 Error messages due to differences in neuron id numbers between simulators can be ignored.
 

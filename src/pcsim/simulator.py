@@ -32,7 +32,7 @@ import numpy
 from pyNN import common, recording
 
 recorder_list = []
-
+connection_managers = []
 
 # --- Internal PCSIM functionality -------------------------------------------- 
 
