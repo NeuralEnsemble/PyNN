@@ -287,6 +287,8 @@ class Recorder(object):
             self._merged_file.seek(0)
             data = numpy.load(self._merged_file)
         else:
+            if "filename" not in nest.GetStatus(self._device)[0]: # indicates that run() has not been called.
+                raise common.NothingToWriteError("No data. Have you called run()?")
             if state.num_threads > 1:
                 nest_files = []
                 for nest_thread in range(1, state.num_threads):
@@ -643,20 +645,33 @@ class ConnectionManager:
         `value` -- the attribute numeric value, or a list/1D array of such
                    values of the same length as the number of local connections.
         """
-        if common.is_number(value):
-            if name == 'weight':
-                value *= 1000.0
-            for src, port in zip(self.sources, self.ports):
-                nest.SetConnection([src], self.synapse_model, port, {name: float(value)})
-        elif common.is_listlike(value):
-            if name == 'weight':
-                value = 1000.0*numpy.array(value)
-            for src, port, val in zip(self.sources, self.ports, value):
-                #if state.mpi_rank == 0:
-                #    print state.mpi_rank, "setting:", src, port, val
-                nest.SetConnection([src], self.synapse_model, port, {name: val})
-        else:
+        if not (common.is_number(value) or common.is_listlike(value)):
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+        
+        plural_name = name + 's'
+        
+        source_cells = list(set(self.sources))
+        source_array = numpy.array(self.sources)
+        port_array = numpy.array(self.ports)
+        
+        if common.is_listlike(value):
+            assert len(value) == len(port_array)
+            value = numpy.array(value)
+        if name == 'weight':
+            value *= 1000.0
+        
+        i = 0
+        for src in source_cells:
+            all_values = numpy.array(nest.GetConnections([src], self.synapse_model)[0][plural_name])
+            ports = port_array[source_array==src]
+            if common.is_number(value):
+                all_values[ports] = value
+            else:
+                all_values[ports] = value[i:i+len(ports)]
+                i += len(ports)
+            nest.SetConnections([src], self.synapse_model, [{plural_name: all_values.tolist()}])
+            
+        
 
 
 # --- Initialization, and module attributes ------------------------------------
