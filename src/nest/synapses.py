@@ -1,5 +1,5 @@
 """
-Synapse Dynamics classes for nest2
+Synapse Dynamics classes for nest
 
 $Id$
 """

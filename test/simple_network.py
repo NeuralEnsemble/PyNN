@@ -157,6 +157,6 @@ def test(sim):
         
 # ==============================================================================
 if __name__ == "__main__":
-    import pyNN.nest2
-    test(pyNN.nest2)
+    import pyNN.nest
+    test(pyNN.nest)
     

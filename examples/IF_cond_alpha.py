@@ -6,7 +6,7 @@ Run as:
 
 $ python IF_cond_alpha.py <simulator>
 
-where <simulator> is 'neuron', 'nest2', etc
+where <simulator> is 'neuron', 'nest', etc
 
 Andrew Davison, UNIC, CNRS
 May 2006

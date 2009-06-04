@@ -1,5 +1,5 @@
 """
-Current source classes for the nest2 module.
+Current source classes for the nest module.
 
 Classes:
     DCSource           -- a single pulse of current of constant amplitude.

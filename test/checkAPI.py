@@ -13,7 +13,7 @@ $Id$
 
 import re, string, types, getopt, sys, shutil, os, inspect, math
 shutil.copy('dummy_hoc.py','hoc.py')
-from pyNN import common, nest1, nest2, neuron, pcsim
+from pyNN import common, nest, neuron, pcsim, brian
 os.remove('hoc.py') #; os.remove('hoc.pyc')
 
 
@@ -52,7 +52,7 @@ exclude_list = ['__module__','__doc__','__builtins__','__file__','__class__',
                 '_tcall', '_call',
                 ] + dir(math)
 
-module_list = [nest1, nest2, neuron, pcsim]
+module_list = [nest, neuron, pcsim, brian]
 
 if coloured:
     def colour(col,text):

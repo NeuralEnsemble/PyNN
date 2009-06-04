@@ -6,11 +6,11 @@ import re
 from itertools import chain
 import types
 import pyNN.common
-import pyNN.nest2
+import pyNN.nest
 import pyNN.random
 import pyNN.utility
 
-simulator = "pyNN.nest2"
+simulator = "pyNN.nest"
 
 wiki_format = dict(
     default_arg  = '%s<span style="color:grey;">=%s</span>',

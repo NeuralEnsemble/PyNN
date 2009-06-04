@@ -51,7 +51,7 @@ Classes for creating, connecting, modifying and recording from neurons
     Current injection: DCSource, StepCurrentSource, NoisyCurrentSource.
 
 Available simulator modules:
-    nest2
+    nest
     neuron
     pcsim
     brian
@@ -63,5 +63,5 @@ Other modules:
 """
 
 __version__ = '0.5alpha ( $Rev$)'.replace(' $','')
-__all__ = ["common", "random", "nest1", "nest2", "neuron", "oldneuron", "pcsim", 'brian' ]
+__all__ = ["common", "random", "nest", "neuron", "pcsim", 'brian' ]
 

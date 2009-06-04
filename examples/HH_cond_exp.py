@@ -6,7 +6,7 @@ Run as:
 
 $ python HH_cond_exp.py <simulator>
 
-where <simulator> is 'neuron', 'nest2', etc
+where <simulator> is 'neuron', 'nest', etc
 
 Andrew Davison, UNIC, CNRS
 July 2007
@@ -35,7 +35,7 @@ hhcell = create(HH_cond_exp, params)
 record_v(hhcell, "Results/HH_cond_exp_%s.v" % simulator_name)
 record_gsyn(hhcell, "Results/HH_cond_exp_%s.gsyn" % simulator_name)
 
-if simulator_name == "nest2":
+if simulator_name == "nest":
     nest.SetStatus(simulator.recorder_list[0]._device, {'to_memory': True})
     nest.SetStatus(simulator.recorder_list[1]._device, {'to_memory': True})
 

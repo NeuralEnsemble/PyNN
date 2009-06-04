@@ -1,9 +1,9 @@
 """
-Unit tests for pyNN/nest2.py.
+Unit tests for pyNN.nest module
 $Id:nesttests.py 5 2007-04-16 15:01:24Z davison $
 """
 
-import pyNN.nest2 as nest
+import pyNN.nest as nest
 import pyNN.common as common
 import pyNN.random as random
 import unittest

@@ -6,7 +6,7 @@ Run as:
 
 $ python IF_curr_exp2.py <simulator>
 
-where <simulator> is 'neuron', 'nest2', etc
+where <simulator> is 'neuron', 'nest', etc
 
 $Id$
 """

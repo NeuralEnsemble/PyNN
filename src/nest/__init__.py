@@ -5,15 +5,15 @@ NEST v2 implementation of the PyNN API.
 $Id$
 """
 import nest
-from pyNN.nest2 import simulator
+from pyNN.nest import simulator
 from pyNN import common, recording, __doc__
 common.simulator = simulator
 from pyNN.random import *
 import numpy, os, shutil, logging, tempfile
-from pyNN.nest2.cells import *
-from pyNN.nest2.connectors import *
-from pyNN.nest2.synapses import *
-from pyNN.nest2.electrodes import *
+from pyNN.nest.cells import *
+from pyNN.nest.connectors import *
+from pyNN.nest.synapses import *
+from pyNN.nest.electrodes import *
 
 Set = set
 

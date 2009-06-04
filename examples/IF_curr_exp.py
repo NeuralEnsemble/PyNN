@@ -6,7 +6,7 @@ Run as:
 
 $ python IF_curr_exp.py <simulator>
 
-where <simulator> is 'neuron', 'nest2', etc
+where <simulator> is 'neuron', 'nest', etc
 
 Andrew Davison, UNIC, CNRS
 September 2006

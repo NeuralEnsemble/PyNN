@@ -11,8 +11,8 @@ if len(sys.argv) < 2:
     sys.exit(1)
 benchmark = sys.argv[1]
 
-simulators = ('neuron', 'nest2', 'pcsim')
-#simulators = ['nest2']
+simulators = ('neuron', 'nest', 'pcsim')
+#simulators = ['nest']
 nodes = (1,)
 #nodes = (1,2,4)
 v_thresh = -50.0

@@ -1,5 +1,5 @@
 """
-Standard cells for nest2
+Standard cells for nest
 
 $Id$
 """

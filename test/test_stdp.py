@@ -14,7 +14,7 @@ Calculates the difference in weight trajectories between the simulators
 
 import numpy
 from time import time
-from pyNN import nest2, neuron, pcsim
+from pyNN import nest, neuron, pcsim
 from pyNN.utility import MultiSim
 from NeuroTools.parameters import ParameterSet
 from NeuroTools.stgen import StGen
@@ -22,7 +22,7 @@ from simple_network import SimpleNetwork
 from calc import STDPSynapse
 
 PLOT_FIGURES = True
-sim_list = [nest2, neuron, pcsim]
+sim_list = [nest, neuron, pcsim]
 sim_time = 200.0
 spike_interval = 20.0 # ms
 recording_interval = 1.0
