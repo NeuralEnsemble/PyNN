@@ -53,7 +53,7 @@ class AbstractRNG:
 class NumpyRNG(AbstractRNG):
     """Wrapper for the numpy.random.RandomState class (Mersenne Twister PRNG)."""
     
-    def __init__(self, seed=None, rank=0, num_processes=1, parallel_safe=False):
+    def __init__(self, seed=None, rank=0, num_processes=1, parallel_safe=True):
         AbstractRNG.__init__(self, seed)
         self.rng = numpy.random.RandomState()
         if self.seed:
