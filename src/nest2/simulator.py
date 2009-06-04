@@ -584,7 +584,7 @@ class ConnectionManager:
             n = len(new_ports)
             if n > 0:   
                 self.sources.extend([source]*n)
-                self.targets.extend([tgt*n])     
+                self.targets.extend([tgt]*n)     
                 self.ports.extend(new_ports)
                 #all_new_ports.extend(new_ports)
                 
@@ -651,25 +651,44 @@ class ConnectionManager:
         plural_name = name + 's'
         
         source_cells = list(set(self.sources))
-        source_array = numpy.array(self.sources)
-        port_array = numpy.array(self.ports)
+        source_cells.sort()
+        source_array = numpy.array(self.sources)  # these values
+        target_array = numpy.array(self.targets)  # are all for connections
+        port_array = numpy.array(self.ports)      # on the local node        
         
         if common.is_listlike(value):
             assert len(value) == len(port_array)
             value = numpy.array(value)
         if name == 'weight':
             value *= 1000.0
+        elif name == 'delay':
+            pass
+        else:
+            translation = self.parent.synapse_dynamics.reverse_translate({name: value})
+            name, value = translation.items()[0]
         
         i = 0
         for src in source_cells:
-            all_values = numpy.array(nest.GetConnections([src], self.synapse_model)[0][plural_name])
-            ports = port_array[source_array==src]
+            connection_dict = nest.GetConnections([src], self.synapse_model)[0]
+            #print connection_dict
+            # obtain arrays of all targets, and current values, for this source
+            all_targets = numpy.array(connection_dict['targets'])
+            all_values = numpy.array(connection_dict[plural_name])
+            # extract the ports that are relevant to this source
+            this_source = source_array==src
+            ports = port_array[this_source]
+            # determine current values just for the local MPI node
+            local_targets = target_array[this_source]
+            local_mask = numpy.array([tgt in local_targets for tgt in all_targets])
+            local_values = all_values[local_mask]
             if common.is_number(value):
-                all_values[ports] = value
+                local_new_values = value
             else:
-                all_values[ports] = value[i:i+len(ports)]
+                local_new_values = value[i:i+len(ports)]
                 i += len(ports)
-            nest.SetConnections([src], self.synapse_model, [{plural_name: all_values.tolist()}])
+            # now set the new values for the local connections 
+            local_values[ports] = local_new_values
+            nest.SetConnections([src], self.synapse_model, [{plural_name: local_values.tolist()}])
             
         
 
