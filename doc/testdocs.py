@@ -28,12 +28,18 @@ class MyOutputChecker(doctest.OutputChecker):
         else:
             if want == '':
                 return True
-            else:
+            else:  
                 try:
                     int(want) and int(got) # where the output is an id
                     return True
                 except ValueError:
-                    return doctest.OutputChecker.check_output(self, want, got, optionflags)
+                    try:
+                        if round(float(want), 9) == round(float(got), 9):
+                            return True
+                        else:
+                            return doctest.OutputChecker.check_output(self, want, got, optionflags)
+                    except ValueError:
+                        return doctest.OutputChecker.check_output(self, want, got, optionflags)
 
 def mytestfile(filename, globs, optionflags, strict=False):
     parser = doctest.DocTestParser()
@@ -51,6 +57,12 @@ def mytestfile(filename, globs, optionflags, strict=False):
     runner.summarize()
     return runner.failures, runner.tries
 
+def print_script(filename, simulator):
+    parser = doctest.DocTestParser()
+    s = open(filename).read()
+    script = "".join([ex.source for ex in parser.get_examples(s) if "+SKIP" not in ex.source])
+    print "from pyNN.%s import *\nsetup(max_delay=10.0, debug=True)\n" % simulator + script
+
 # ==============================================================================
 if __name__ == "__main__":
     
@@ -62,6 +74,8 @@ if __name__ == "__main__":
                       default='nest2')
     parser.add_option("--strict", action="store_true", dest="strict", default=False,
                   help="Use the original doctest output checker, not the more lax local version.")
+    parser.add_option("-p", "--print", action="store_true", default=False, dest="dump",
+                      help="Just print out the script extracted from the document, don't run the test.")
 
     if 'nrniv' in sys.argv[0]:
         (options, args) = parser.parse_args(sys.argv[5:])
@@ -74,8 +88,13 @@ if __name__ == "__main__":
         sys.exit(1)
     
     # Run test
-    exec("from pyNN.%s import *" % options.simulator)
-    setup(max_delay=10.0,debug=True)
-    mytestfile(docfile, globs=globals(), optionflags=optionflags, strict=options.strict)
+    if options.dump:
+        print_script(docfile, options.simulator)
+    else:
+        exec("from pyNN.%s import *" % options.simulator)
+        setup(max_delay=10.0,debug=True)
+        if options.simulator == "neuron":
+            create(IF_curr_alpha) # this is to use up ID 0, making the IDs agree with NEST.
+        mytestfile(docfile, globs=globals(), optionflags=optionflags, strict=options.strict)
 
     sys.exit(0)

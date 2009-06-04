@@ -13,6 +13,7 @@ import nest
 import numpy
 from simulator import state
 from pyNN.random import NumpyRNG, NativeRNG
+from pyNN.common import Population
 
 # should really use the StandardModel machinery to allow reverse translations
 
@@ -21,6 +22,11 @@ class CurrentSource(object):
     
     def inject_into(self, cell_list):
         """Inject this current source into some cells."""
+        for id in cell_list:
+            if 'v' not in id.cellclass.recordable:
+                raise TypeError("Can't inject current into a spike source.")
+        if isinstance(cell_list, Population):
+            cell_list = [cell for cell in cell_list]
         nest.DivergentConnect(self._device, cell_list)
     
 
@@ -60,8 +66,14 @@ class StepCurrentSource(CurrentSource):
         """
         self._device = nest.Create('step_current_generator')
         assert len(times) == len(amplitudes), "times and amplitudes must be the same size (len(times)=%d, len(amplitudes)=%d" % (len(times), len(amplitudes))
-        times.append(1e12)                 # work around for 
-        amplitudes.append(amplitudes[-1])  # bug in NEST
+        try:
+            times.append(1e12)                 # work around for
+        except AttributeError:
+            numpy.append(times, 1e12)
+        try:
+            amplitudes.append(amplitudes[-1])  # bug in NEST
+        except AttributeError:
+            numpy.append(amplitudes, amplitudes[-1])
         nest.SetStatus(self._device, {'amplitude_times': numpy.array(times, 'float'),
                                       'amplitude_values': 1000.0*numpy.array(amplitudes, 'float')})
         

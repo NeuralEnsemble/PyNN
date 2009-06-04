@@ -5,7 +5,7 @@ Classes:
     DCSource           -- a single pulse of current of constant amplitude.
     StepCurrentSource  -- a step-wise time-varying current.
 
-$Id:$
+$Id$
 """
 
 from neuron import h
@@ -63,6 +63,8 @@ class StepCurrentSource(CurrentSource):
         """Inject this current source into some cells."""
         for id in cell_list:
             if id.local:
+                if 'v' not in id.cellclass.recordable:
+                    raise TypeError("Can't inject current into a spike source.")
                 iclamp = h.IClamp(0.5, sec=id._cell)
                 iclamp.delay = 0.0
                 iclamp.dur = 1e12

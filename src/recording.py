@@ -69,6 +69,9 @@ def write_compatible_output(sim_filename, user_filename, variable, input_format,
         time_column = input_format.index('t')
         id_column = input_format.index('id')
         
+        if len(data.shape) != 2:
+            raise Exception("Problem reading data file %s. data.shape is %s" % (sim_filename, str(data.shape)))
+        
         if data.shape[1] == 4: # conductance files
             ge_column = input_format.index('ge')
             gi_column = input_format.index('gi')
@@ -172,8 +175,14 @@ def readArray(filename, sepchar=None, skipchar='#'):
         if (len(stripped_line) != 0):
             if (stripped_line[0] != skipchar):
                 items = stripped_line.split(sepchar)
-                data.append(map(float, items))
-    a = numpy.array(data)
+                try:
+                    data.append(map(float, items))
+                except ValueError, e:
+                    raise ValueError("%s. items=%s. filename=%s" % (e, items, filename))
+    try:
+        a = numpy.array(data)
+    except ValueError, e:
+        raise ValueError("%s\ndata[:10] = %s\ndata[-10:] = %s\nfilename=%s" % (e, data[:10], data[-10:], filename))
     if a.size > 0:
         (Nrow, Ncol) = a.shape
         #logging.debug(str(a.shape))

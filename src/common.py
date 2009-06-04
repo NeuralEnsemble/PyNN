@@ -821,6 +821,7 @@ class Population(object):
         Population).
         >>> assert id_to_index(p.index(5)) == 5
         """
+        assert self.first_id <= id <= self.last_id 
         return id - self.first_id # this assumes ids are consecutive
     
     def index(self, n):
@@ -1166,6 +1167,14 @@ class Population(object):
         else:
             return Template(template).substitute(context)
     
+    def inject(self, current_source):
+        """
+        Connect a current source to all cells in the Population.
+        """
+        if 'v' not in self.celltype.recordable:
+            raise TypeError("Can't inject current into a spike source.")
+        current_source.inject_into(self)
+    
     def getSubPopulation(self, cells):
         """
         Returns a sub population from a population object. The shape of cells will
@@ -1285,10 +1294,11 @@ class Projection(object):
         """
         w can be a single number, in which case all weights are set to this
         value, or a list/1D array of length equal to the number of connections
-        in the population.
+        in the projection.
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
+        # should perhaps add a "distribute" argument, for symmetry with "gather" in getWeights()
         self.connection_manager.set('weight', w)
     
     def randomizeWeights(self, rand_distr):
@@ -1304,7 +1314,7 @@ class Projection(object):
         """
         d can be a single number, in which case all delays are set to this
         value, or a list/1D array of length equal to the number of connections
-        in the population.
+        in the projection.
         """
         self.connection_manager.set('delay', d)
     
@@ -1317,7 +1327,7 @@ class Projection(object):
     def setSynapseDynamics(self, param, value):
         """
         Set parameters of the dynamic synapses for all connections in this
-        Projection.
+        projection.
         """
         self.connection_manager.set(param, value)
 
@@ -1417,8 +1427,8 @@ class Projection(object):
         """
         if template == 'standard':
             lines = ["------- Projection description -------",
-                     "Projection $label from $pre_label [$pre_n_cells cells] to $post_label [$post_n_cells cells]",
-                     "    | Connector : $_method",
+                     "Projection '$label' from '$pre_label' [$pre_n_cells cells] to '$post_label' [$post_n_cells cells]",
+                     "    | Connector : $connector",
                      "    | Weights : $weights",
                      "    | Delays : $delays",
                      "    | Plasticity : $plasticity",
@@ -1436,6 +1446,7 @@ class Projection(object):
             'post_n_cells': self.post.size,
             'weights': str(self._method.weights),
             'delays': str(self._method.delays),
+            'connector': self._method.__class__.__name__
         })
         if self.synapse_dynamics:
             context.update(plasticity=self.synapse_dynamics.describe())

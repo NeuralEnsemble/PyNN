@@ -233,8 +233,12 @@ class Population(common.Population):
                 except Exception:
                     raise common.NonExistentParameterError(key, self.celltype.__class__)
                 if type(value) != type(self.celltype.default_parameters[key]):
-                    raise common.InvalidParameterValueError
-                
+                    if isinstance(value, int) and isinstance(self.celltype.default_parameters[key], float):
+                        value = float(value)
+                    else:
+                        raise common.InvalidParameterValueError("The parameter %s should be a %s, you supplied a %s" % (key,
+                                                                                                                        type(self.celltype.default_parameters[key]),
+                                                                                                                        type(value)))
                 # Then we do the call to SetStatus
                 if key == 'v_init':
                     for cell in self.local_cells:

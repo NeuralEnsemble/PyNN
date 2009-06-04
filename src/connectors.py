@@ -260,7 +260,7 @@ class OneToOneConnector(common.Connector):
     def connect(self, projection):
         if projection.pre.dim == projection.post.dim:
             N = projection.post.size
-            local = projection.post._mask_local
+            local = projection.post._mask_local.flatten()
             weights = self.get_weights(N, local)
             is_conductance = common.is_conductance(projection.post.index(0))
             weights = common.check_weight(weights, projection.synapse_type, is_conductance)
@@ -356,6 +356,8 @@ class DistanceDependentProbabilityConnector(common.Connector):
                                  self.scale_factor, self.offset,
                                  periodic_boundaries)
             p[src] = eval(self.d_expression).flatten()
+            if p[src].dtype == 'bool':
+                p[src] = p[src].astype(float)
             if hasattr(self, 'w_expr'):
                 self.weights = numpy.concatenate((self.weights, eval(self.w_expr)), axis=1)
             if hasattr(self, 'd_expr'):
