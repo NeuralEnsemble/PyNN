@@ -64,4 +64,17 @@ value)::
     >>> prj2 = Projection(pre, post, FixedProbabilityConnector(p_connect=0.1),
     ...                   synapse_dynamics=SynapseDynamics(slow=stdp_model))
 
+Just as with synaptic weights and delays for static synapses, the parameters of
+dynamic synapses can be obtained and set with the ``getSynapseDynamics()``,
+``setSynapseDynamics()`` and ``randomizeSynapseDynamics()`` methods of the
+``Projection`` class::
+
+    >>> prj.setSynapseDynamics('tau_rec', 50.0)
+    >>> prj.getSynapseDynamics('tau_rec')[:5]
+    [50.0, 50.0, 50.0, 50.0, 50.0]
+    >>> distr = RandomDistribution('normal', [0.02, 0.05])
+    >>> prj2.randomizeSynapseDynamics('w_max', distr)
+    >>> prj2.getSynapseDynamics('w_max')[:5]
+    aofuha
+
 There are a number of examples of networks using synaptic plasticity in the ``examples`` directory of the source distribution.

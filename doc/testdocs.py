@@ -30,11 +30,11 @@ class MyOutputChecker(doctest.OutputChecker):
                 return True
             else:  
                 try:
-                    int(want) and int(got) # where the output is an id
+                    long(want) and long(got) # where the output is an id (PCSIM uses longs, the others use ints, but long will work for them).
                     return True
                 except ValueError:
                     try:
-                        if round(float(want), 9) == round(float(got), 9):
+                        if round(float(want), 8) == round(float(got), 8):
                             return True
                         else:
                             return doctest.OutputChecker.check_output(self, want, got, optionflags)
