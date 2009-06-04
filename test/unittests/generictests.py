@@ -921,12 +921,12 @@ class ProjectionGetTest(unittest.TestCase):
     def setUp(self):
         sim.setup(max_delay=0.5)
         sim.Population.nPop = 0
-        self.target33 = sim.Population((3,3),sim.IF_curr_alpha)
-        self.target6  = sim.Population((6,),sim.IF_curr_alpha)
-        self.source5  = sim.Population((5,),sim.SpikeSourcePoisson)
-        self.source22 = sim.Population((2,2),sim.SpikeSourcePoisson)
+        self.target33 = sim.Population((3,3), sim.IF_curr_alpha, label="target33")
+        self.target6  = sim.Population((6,), sim.IF_curr_alpha, label="target6")
+        self.source5  = sim.Population((5,), sim.SpikeSourcePoisson, label="source5")
+        self.source22 = sim.Population((2,2), sim.IF_curr_exp, label="source22")
         self.prjlist = []
-        self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345),distribution='uniform',parameters=(0.1,0.5))
+        self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345), distribution='uniform', parameters=(0.1,0.5))
         for tgtP in [self.target6, self.target33]:
             for srcP in [self.source5, self.source22]:
                 for method in (sim.AllToAllConnector(), sim.FixedProbabilityConnector(p_connect=0.5)):

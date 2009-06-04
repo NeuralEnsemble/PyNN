@@ -203,8 +203,7 @@ class Projection(common.Projection):
                                    source, target, synapse_dynamics, label, rng)
         self.connection_manager = simulator.ConnectionManager(parent=self)
         self.connections = self.connection_manager
-        if not label:
-            self.label = 'projection%d' % Projection.nProj
+        
         self.synapse_type = target or 'excitatory'
         
         ## Deal with short-term synaptic plasticity

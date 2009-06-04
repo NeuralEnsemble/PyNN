@@ -586,10 +586,14 @@ class Projection(common.Projection, WDManager):
         # handle synapse dynamics
         if common.is_listlike(method.weights):
             w = method.weights[0]
+        elif hasattr(method.weights, "next"): # random distribution
+            w = 0.0 # actual value used here shouldn't matter. Actual values will be set in the Connector.
         else:
             w = method.weights
         if common.is_listlike(method.delays):
             d = min(method.delays)
+        elif hasattr(method.delays, "next"): # random distribution
+            d = get_min_delay() # actual value used here shouldn't matter. Actual values will be set in the Connector.
         else:
             d = method.delays
             
@@ -698,7 +702,6 @@ class Projection(common.Projection, WDManager):
         ##    self.setDelays(delay)
 
         self.synapse_type = self.syn_factory #target or 'excitatory'
-        print "synapse_type = ", self.synapse_type, plasticity_parameters
         self.connection_manager = simulator.ConnectionManager(parent=self)
         self.connections = self.connection_manager
         method.connect(self)

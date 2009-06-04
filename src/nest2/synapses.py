@@ -53,7 +53,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
         ('A_plus',    'lambda'),
         ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
     )
-    possible_models = set(['stdp_synapse_hom','stdp_synapse']) #'stdp_synapse_hom'
+    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
@@ -78,7 +78,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         ('A_plus',    'lambda'),
         ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
     )
-    possible_models = set(['stdp_synapse_hom','stdp_synapse']) #'stdp_synapse_hom'
+    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
         
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         if w_min != 0:
@@ -101,7 +101,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         ('A_plus',    'lambda'),
         ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
     )
-    possible_models = set(['stdp_synapse_hom','stdp_synapse']) #'stdp_synapse_hom'
+    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
         
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         if w_min != 0:
@@ -128,7 +128,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         ('mu_plus',   'mu_plus'),
         ('mu_minus',  'mu_minus'),
     )
-    possible_models = set(['stdp_synapse_hom','stdp_synapse']) #'stdp_synapse_hom'
+    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
         
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01,mu_plus=0.5,mu_minus=0.5):
         if w_min != 0:
@@ -145,7 +145,7 @@ class SpikePairRule(synapses.SpikePairRule):
         ('tau_plus',  'tau_plus'),
         ('tau_minus', 'tau_minus'), # defined in post-synaptic neuron
     )
-    possible_models = set(['stdp_synapse_hom','stdp_synapse']) #'stdp_synapse_hom'
+    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
         #synapses.SpikePairRule.__init__(self, tau_plus, tau_minus)
