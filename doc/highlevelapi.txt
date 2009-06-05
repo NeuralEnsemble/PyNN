@@ -355,8 +355,10 @@ Trying to connect two ``Population``\s with different dimensions will raise an E
       File "/home/andrew/dev/pyNN/neuron/__init__.py", line 220, in __init__
         method.connect(self)
       File "/home/andrew/dev/pyNN/connectors.py", line 281, in connect
-        raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
-    InvalidDimensionsError: OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.
+        raise common.InvalidDimensionsError("OneToOneConnector does not support
+                   presynaptic and postsynaptic Populations of different sizes.")
+    InvalidDimensionsError: OneToOneConnector does not support presynaptic and
+                            postsynaptic Populations of different sizes.
     
     
 Connecting neurons with a fixed probability

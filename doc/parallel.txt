@@ -83,9 +83,9 @@ Now, PyNN will ensure the seed is different on each node, and will generate
 only as many numbers as are actually needed on each node.
 
 Note that the above applies only to the random number generators provided by the
-PyNN `random` module, not to the native RNGs used internally by each simulator.
-This means that, for example, you should prefer `SpikeSourceArray` (for which
+PyNN ``random`` module, not to the native RNGs used internally by each simulator.
+This means that, for example, you should prefer ``SpikeSourceArray`` (for which
 you can generate Poisson spike times using a parallel-safe RNG) to
-`SpikeSourcePoisson`, which uses the simulator's internal RNG, if you care about
+``SpikeSourcePoisson``, which uses the simulator's internal RNG, if you care about
 being independent of the number of processors.
 

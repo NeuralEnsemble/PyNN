@@ -26,7 +26,7 @@ else:
 
 vm_data = {}
 gsyn_data = {}
-for simulator in 'PCSIM', 'NEST2', 'NEURON', 'Brian':
+for simulator in 'PCSIM', 'NEST', 'NEURON', 'Brian':
     datafile = "Results/%s_%s.v" % (example, simulator.lower())
     if os.path.exists(datafile):
         data = pylab.load(datafile)

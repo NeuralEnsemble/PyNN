@@ -1,6 +1,21 @@
+===========
+Release 0.5 (r???)
+===========
+to r639...
 
-to r592...
+* Renamed `nest2` to `nest`.
 
+* Random number generators  now "parallel_safe" by default.
+
+* Added documentation on running parallel simulations.
+
+* Trying a new method of getting the last data points out of NEST: we always simulate to `t+dt`. This should be fine until we implement the possibility of accessing Vm directly from the `ID` object (see ticket:35). In the meantime, hopefully the NEST guys will change this behaviour.
+
+* `gather=True` now works for all modules, even without a shared filesystem (requires `mpi4py`).
+
+* Added an `allow_update_on_post` option to the NEURON weight adjuster mechanisms. This is set to 0 (false) for consistency with NEST, which means that weight updates are accumulated and are applied only on a pre-synaptic spike, although I'm not yet sure (a) what the correct behaviour really is, (b) what PCSIM and Brian do.
+
+* The `pcsim` module is now implemented in terms of the common implementation, using just `net.add()` and `net.connect()`. I have just commented out the old code (using `CuboidGridObjectPopulation`s and `ConnectionsProjection`s) rather than deleting it, as it will probably be mostly re-used when optimizing later.
 
 * `Population.__getitem__()` now accepts slices (see ticket:21).
 
@@ -50,7 +65,6 @@ method implementing divergent connect.
 * `test/explore_space.py` is now working. The test script saves results to a NeuroTools datastore, which the `explore_space` script can later retrieve. Only plotting does not work in distributed mode due to lack of X-display.
 
 * STDP testing improved. `nest`, `pcsim` and `neuron` now give pretty similar results for `SpikePairRule` with `AdditiveWeightDependence`. I think some of the remaining differences are due to sampling the weights every millisecond, rather than at the beginning of each PSP. We need to develop an API for recording weights in PyNN (PCSIM and NEURON can record the weights directly, rather than by sampling, not sure about NEST).
-
 However, I suspect there are some fundamental differences in the algorithms (notably *when* weight changes get applied), that may make it impossible to completely reconcile the results.
 
 * Moved the `MultiSim` class from `test/multisim.py` into the `utility` module.

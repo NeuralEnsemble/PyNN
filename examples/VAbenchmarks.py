@@ -35,14 +35,14 @@ threads  = 1
 rngseed  = 98765
 parallel_safe = True
 
-n        = 500  # number of cells
+n        = 4000  # number of cells
 r_ei     = 4.0   # number of excitatory cells:number of inhibitory cells
 pconn    = 0.02  # connection probability
 stim_dur = 50.   # (ms) duration of random stimulation
 rate     = 100.  # (Hz) frequency of the random stimulation
 
 dt       = 0.1   # (ms) simulation timestep
-tstop    = 400  # (ms) simulaton duration
+tstop    = 1000  # (ms) simulaton duration
 delay    = 0.2
 
 # Cell parameters

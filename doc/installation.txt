@@ -2,7 +2,7 @@
 Installation
 ============
 
-Use of PyNN_ requires that you have Python and the numpy_ package installed, plus at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
+Use of PyNN_ requires that you have Python (version 2.5 or 2.6) and a recent version of the numpy_ package installed, plus at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
 
 Installing PyNN
 ===============
@@ -23,7 +23,8 @@ Test it using something like the following::
     
 (This assumes you have NEST installed).
 
-With NEURON as the simulator, PyNN-specific membrane mechanisms are loaded when importing the ``neuron`` module::
+With NEURON as the simulator, make sure you install NEURON *before* you install PyNN.
+The PyNN installation will then compile PyNN-specific membrane mechanisms, which are loaded when importing the ``neuron`` module::
    
     >>> from pyNN.neuron import *
     NEURON -- Release 7.0 (281:80827e3cd201) 2009-01-16
@@ -32,9 +33,11 @@ With NEURON as the simulator, PyNN-specific membrane mechanisms are loaded when 
 
     loading membrane mechanisms from /home/andrew/dev/pyNN/hoc/i686/.libs/libnrnmech.so
     Additional mechanisms from files
-    IF_BG5.mod alphaisyn.mod alphasyn.mod expisyn.mod hh_traub.mod netstim2.mod refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod tmgsyn.mod vecstim.mod
+    IF_BG5.mod alphaisyn.mod alphasyn.mod expisyn.mod hh_traub.mod netstim2.mod
+    refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod
+    stdwa_symm.mod tmgsyn.mod vecstim.mod
 
-If your model relies on other NMODL mechanisms, call the `load_mechanisms()` function with the path to the directory containing the ``.mod`` files.
+If your model relies on other NMODL mechanisms, call the ``load_mechanisms()`` function with the path to the directory containing the ``.mod`` files.
 
 
 Installing NEURON
@@ -109,7 +112,16 @@ Now try it out::
        Version 1.9-8128 Apr 23 2009 14:09:00
     ...
     >>> nest.Models()
-    ['ac_generator', 'aeif_cond_alpha', 'aeif_w_meter', 'conductancemeter', 'cont_delay_synapse', 'correlation_detector', 'dc_generator', 'hh_cond_exp_traub', 'hh_psc_alpha', 'iaf_cond_alpha', 'iaf_cond_exp', 'iaf_cond_exp_sfa_rr', 'iaf_neuron', 'iaf_psc_alpha', 'iaf_psc_alpha_canon', 'iaf_psc_alpha_presc', 'iaf_psc_delta', 'iaf_psc_delta_canon', 'iaf_psc_exp', 'layer', 'layer_3d', 'layer_unrestricted', 'mip_generator', 'noise_generator', 'parrot_neuron', 'poisson_generator', 'poisson_generator_ps', 'proxynode', 'pulsepacket_generator', 'spike_detector', 'spike_generator', 'static_synapse', 'static_synapse_hom_wd', 'stdp_pl_synapse_hom', 'stdp_synapse', 'stdp_synapse_hom', 'step_current_generator', 'subnet', 'tsodyks_synapse', 'voltmeter']
+    ['ac_generator', 'aeif_cond_alpha', 'aeif_w_meter', 'conductancemeter',
+     'cont_delay_synapse', 'correlation_detector', 'dc_generator', 'hh_cond_exp_traub',
+     'hh_psc_alpha', 'iaf_cond_alpha', 'iaf_cond_exp', 'iaf_cond_exp_sfa_rr',
+     'iaf_neuron', 'iaf_psc_alpha', 'iaf_psc_alpha_canon', 'iaf_psc_alpha_presc',
+     'iaf_psc_delta', 'iaf_psc_delta_canon', 'iaf_psc_exp', 'layer', 'layer_3d',
+     'layer_unrestricted', 'mip_generator', 'noise_generator', 'parrot_neuron',
+     'poisson_generator', 'poisson_generator_ps', 'proxynode', 'pulsepacket_generator',
+     'spike_detector', 'spike_generator', 'static_synapse', 'static_synapse_hom_wd',
+     'stdp_pl_synapse_hom', 'stdp_synapse', 'stdp_synapse_hom',
+     'step_current_generator', 'subnet', 'tsodyks_synapse', 'voltmeter']
     
 Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may need to install a newer version of the `GNU Scientific Library`_ and then recompile NEST.
 
@@ -117,7 +129,7 @@ Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may
 Installing PCSIM
 ================
 
-PCSIM_ is available to download from `<http://www.lsm.tugraz.at/pcsim/>`_:
+PCSIM_ is available to download from `<http://sourceforge.net/projects/pcsim/>`_:
 
 For compilation instructions, see the files in the ``HowTos`` directory.
 
@@ -129,9 +141,9 @@ Instructions for downloading and installing Brian_ are available from `<http://w
 
 
 
-.. _PyNN: http://neuralensemble.org/trac/PyNN
+.. _PyNN: http://neuralensemble.org/PyNN
 .. _numpy: http://numpy.scipy.org/
-.. _PCSIM: http://sourceforge.net/projects/pcsim/
+.. _PCSIM: http://www.lsm.tugraz.at/pcsim/
 .. _Brian: http://www.briansimulator.org/
 .. _`PyNN download page`: https://neuralensemble.kip.uni-heidelberg.de/trac/PyNN/wiki/Download
 .. _`distutils`: http://docs.python.org/inst/inst.html
