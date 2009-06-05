@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 Definition of default parameters (and hence, standard parameter names) for
 standard dynamic synapse models. 
@@ -31,6 +32,14 @@ class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):
     }
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
+        """
+        Create a new specification for a short-term plasticity mechanism.
+        
+        `U` -- use parameter
+        `tau_rec` -- depression time constant (ms)
+        `tau_facil` -- facilitation time constant (ms)
+        `u0`, `x0`, `y0` -- initial conditions.
+        """
         raise NotImplementedError
     
 
@@ -49,14 +58,27 @@ class AdditiveWeightDependence(STDPWeightDependence):
     }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
+        """
+        Create a new specification for the weight-dependence of an STDP rule.
+        
+        `w_min`   -- minimum synaptic weight, in the same units as the weight, i.e.
+                     µS or nA.
+        `w_max`   -- maximum synaptic weight.
+        `A_plus`  -- synaptic weight increase as a fraction of `w_max` when the
+                     pre-synaptic spike precedes the post-synaptic spike by an
+                     infinitessimal amount.
+        `A_minus` -- synaptic weight decrease as a fraction of `w_max` when the
+                     pre-synaptic spike lags the post-synaptic spike by an
+                     infinitessimal amount.
+        """
         raise NotImplementedError
 
 
 class MultiplicativeWeightDependence(STDPWeightDependence):
     """
     The amplitude of the weight change depends on the current weight.
-    For depression, Dw propto w-w_min
-    For potentiation, Dw propto w_max-w
+    For depression, Δw ∝ w - w_min
+    For potentiation, Δw ∝ w_max - w
     """
     default_parameters = {
         'w_min'  : 0.0,
@@ -66,13 +88,26 @@ class MultiplicativeWeightDependence(STDPWeightDependence):
     }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
+        """
+        Create a new specification for the weight-dependence of an STDP rule.
+        
+        `w_min`   -- minimum synaptic weight, in the same units as the weight, i.e.
+                     µS or nA.
+        `w_max`   -- maximum synaptic weight.
+        `A_plus`  -- synaptic weight increase as a fraction of `w_max-w` when the
+                     pre-synaptic spike precedes the post-synaptic spike by an
+                     infinitessimal amount.
+        `A_minus` -- synaptic weight decrease as a fraction of `w-w_min` when the
+                     pre-synaptic spike lags the post-synaptic spike by an
+                     infinitessimal amount.
+        """
         raise NotImplementedError
     
 
 class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
     """
     The amplitude of the weight change depends on the current weight for
-    depression (Dw propto w) and is fixed for potentiation.
+    depression (Δw ∝ w) and is fixed for potentiation.
     """
 
     default_parameters = {
@@ -83,10 +118,27 @@ class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
     }
 
     def __init__(self, w_min=0.0,  w_max=1.0, A_plus=0.01, A_minus=0.01):
+        """
+        Create a new specification for the weight-dependence of an STDP rule.
+        
+        `w_min`   -- minimum synaptic weight, in the same units as the weight, i.e.
+                     µS or nA.
+        `w_max`   -- maximum synaptic weight.
+        `A_plus`  -- synaptic weight increase as a fraction of `w_max` when the
+                     pre-synaptic spike precedes the post-synaptic spike by an
+                     infinitessimal amount.
+        `A_minus` -- synaptic weight decrease as a fraction of `w-w_min` when the
+                     pre-synaptic spike lags the post-synaptic spike by an
+                     infinitessimal amount.
+        """
         raise NotImplementedError
 
     
 class GutigWeightDependence(STDPWeightDependence):
+    """
+    The amplitude of the weight change depends on (w_max-w)^mu_plus for
+    potentiation and (w-w_min)^mu_minus for depression.
+    """
     
     default_parameters = {
         'w_min'   : 0.0,
@@ -98,6 +150,21 @@ class GutigWeightDependence(STDPWeightDependence):
     }
 
     def __init__(self, w_min=0.0,  w_max=1.0, A_plus=0.01, A_minus=0.01,mu_plus=0.5,mu_minus=0.5):
+        """
+        Create a new specification for the weight-dependence of an STDP rule.
+        
+        `w_min`    -- minimum synaptic weight, in the same units as the weight, i.e.
+                      µS or nA.
+        `w_max`    -- maximum synaptic weight.
+        `A_plus`   -- synaptic weight increase as a fraction of `(w_max-w)^mu_plus`
+                      when the pre-synaptic spike precedes the post-synaptic
+                      spike by an infinitessimal amount.
+        `A_minus`  -- synaptic weight decrease as a fraction of `(w-w_min)^mu_minus`
+                      when the pre-synaptic spike lags the post-synaptic spike
+                      by an infinitessimal amount.
+        `mu_plus`  -- see above
+        `mu_minus` -- see above
+        """
         raise NotImplementedError
 
 # Not yet implemented for any module
@@ -106,6 +173,10 @@ class GutigWeightDependence(STDPWeightDependence):
 
 
 class SpikePairRule(STDPTimingDependence):
+    """
+    The amplitude of the weight change depends only on the relative timing of
+    spike pairs, not triplets, etc.
+    """
     
     default_parameters = {
         'tau_plus':  20.0,
@@ -113,4 +184,12 @@ class SpikePairRule(STDPTimingDependence):
     }
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
+        """
+        Create a new specification for the timing-dependence of an STDP rule.
+        
+        `tau_plus`  -- time constant of the positive part of the STDP curve, in
+                       milliseconds.
+        `tau_minus` -- time constant of the negative part of the STDP curve, in
+                       milliseconds.
+        """
         raise NotImplementedError #_abstract_method(self)

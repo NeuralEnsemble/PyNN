@@ -85,12 +85,13 @@ if not 'simulator' in locals():
 DEFAULT_WEIGHT = 0.0
 DEFAULT_BUFFER_SIZE = 10000
 
-class InvalidParameterValueError(Exception): pass
+class InvalidParameterValueError(Exception):
+    """Inappropriate parameter value"""
+    pass # should subclass ValueError?
 
 class NonExistentParameterError(Exception):
     """
-    Raised when an attempt is made to access a model parameter that does not
-    exist.
+    Model parameter does not exist.
     """
     
     def __init__(self, parameter_name, model):
@@ -111,16 +112,40 @@ class NonExistentParameterError(Exception):
                                                          self.model_name,
                                                          ", ".join(self.valid_parameter_names))
 
-class InvalidDimensionsError(Exception): pass
-class ConnectionError(Exception): pass
-class InvalidModelError(Exception): pass
-class NoModelAvailableError(Exception): pass
-class RoundingWarning(Warning): pass
-class NothingToWriteError(Exception): pass
-class InvalidWeightError(Exception): pass
-class NotLocalError(Exception): pass
+class InvalidDimensionsError(Exception):
+    """Argument has inappropriate shape/dimensions."""
+    pass
 
-class RecordingError(Exception):
+class ConnectionError(Exception):
+    """Attempt to create an invalid connection or access a non-existent connection."""
+    pass
+
+class InvalidModelError(Exception):
+    """Attempt to use a non-existent model type."""
+    pass
+
+class NoModelAvailableError(Exception):
+    """The simulator does not implement the requested model."""
+    pass
+
+class RoundingWarning(Warning):
+    """The argument has been rounded to a lower level of precision by the simulator."""
+    pass
+
+class NothingToWriteError(Exception):
+    """There is no data available to write."""
+    pass # subclass IOError?
+
+class InvalidWeightError(Exception): # subclass ValueError? or InvalidParameterValueError?
+    """Invalid value for the synaptic weight."""
+    pass
+
+class NotLocalError(Exception):
+    """Attempt to access a cell or connection that does not exist on this node (but exists elsewhere)."""
+    pass
+
+class RecordingError(Exception): # subclass AttributeError?
+    """Attempt to record a variable that does not exist for this cell type."""
     
     def __init__(self, variable, cell_type):
         self.variable = variable
@@ -128,6 +153,7 @@ class RecordingError(Exception):
         
     def __str__(self):
         return "Cannot record %s from cell type %s" % (self.variable, self.cell_type.__class__.__name__)
+
 
 # ==============================================================================
 #   Utility functions and classes
@@ -600,19 +626,23 @@ def get_current_time():
     return simulator.state.t
 
 def get_time_step():
+    """Return the integration time step."""
     return simulator.state.dt
 
 def get_min_delay():
+    """Return the minimum allowed synaptic delay."""
     return simulator.state.min_delay
 
 def get_max_delay():
+    """Return the maximum allowed synaptic delay."""
     return simulator.state.max_delay
 
 def num_processes():
+    """Return the number of MPI processes."""
     return simulator.state.num_processes
 
 def rank():
-    """Return the MPI rank."""
+    """Return the MPI rank of the current node."""
     return simulator.state.mpi_rank
 
 # ==============================================================================
@@ -1123,7 +1153,7 @@ class Population(object):
     
     def describe(self, template='standard'):
         """
-        Returns a human readable description of the population
+        Returns a human-readable description of the population
         """
         if template == 'standard':
             #lines = ['==== Population $label ====',
@@ -1423,7 +1453,7 @@ class Projection(object):
     
     def describe(self, template='standard'):
         """
-        Returns a human readable description of the projection
+        Return a human-readable description of the projection
         """
         if template == 'standard':
             lines = ["------- Projection description -------",
@@ -1537,10 +1567,18 @@ class SynapseDynamics(object):
     """
     
     def __init__(self, fast=None, slow=None):
+        """
+        Create a new specification for a dynamic synapse, combining a `fast`
+        component (short-term facilitation/depression) and a `slow` component
+        (long-term potentiation/depression).
+        """
         self.fast = fast
         self.slow = slow
     
     def describe(self, template='standard'):
+        """
+        Return a human-readable description of the synaptic properties.
+        """
         if template == 'standard':
             lines = ["Short-term plasticity mechanism: $fast",
                      "Long-term plasticity mechanism: $slow"]
@@ -1564,15 +1602,38 @@ class STDPMechanism(object):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
-                 voltage_dependence=None, dendritic_delay_fraction=1.0, model=None):
+                 voltage_dependence=None, dendritic_delay_fraction=1.0): #, model=None):
+        """
+        Create a new specification for an STDP mechanism, by combining a
+        weight-dependence, a timing-dependence, and, optionally, a voltage-
+        dependence.
+        
+        For point neurons, the synaptic delay `d` can be interpreted either as
+        occurring purely in the pre-synaptic axon + synaptic cleft, in which
+        case the synaptic plasticity mechanism 'sees' the post-synaptic spike
+        immediately and the pre-synaptic spike after a delay `d`
+        (`dendritic_delay_fraction = 0`) or as occurring purely in the post-
+        synaptic dendrite, in which case the pre-synaptic spike is seen
+        immediately, and the post-synaptic spike after a delay `d`
+        (`dendritic_delay_fraction = 1`), or as having both pre- and post-
+        synaptic components (`dendritic_delay_fraction` between 0 and 1).
+        
+        In a future version of the API, we will allow the different
+        components of the synaptic delay to be specified separately in
+        milliseconds.
+        """
         self.timing_dependence = timing_dependence
         self.weight_dependence = weight_dependence
         self.voltage_dependence = voltage_dependence
         self.dendritic_delay_fraction = dendritic_delay_fraction
-        self.model = model # see comment in Projection.__init__()
+        #self.model = model # see comment in Projection.__init__()
         
     def describe(self):
+        """
+        Return a human-readable description of the STDP mechanism.
+        """
         return "STDP mechanism (this description needs to be filled out)."
+
 
 class STDPWeightDependence(StandardModelType):
     """Abstract base class for models of STDP weight dependence."""
