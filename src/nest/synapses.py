@@ -13,12 +13,12 @@ class STDPMechanism(common.STDPMechanism):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
-                 voltage_dependence=None, dendritic_delay_fraction=1.0, model=None):
+                 voltage_dependence=None, dendritic_delay_fraction=1.0):
         assert dendritic_delay_fraction == 1, """NEST does not currently support axonal delays:
                                                  for the purpose of STDP calculations all delays
                                                  are assumed to be dendritic."""
         common.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
-                                      voltage_dependence, dendritic_delay_fraction,model)
+                                      voltage_dependence, dendritic_delay_fraction)
 
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
