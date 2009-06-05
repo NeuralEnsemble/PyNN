@@ -22,15 +22,13 @@ exec("from pyNN.%s import *" % simulator_name)
 
 setup(timestep=0.01, min_delay=0.1, max_delay=4.0, quit_on_end=False)
 
-params = {'i_offset': -0.0, 'gbar_Na': 0.0, 'gbar_K': 0.0, 'g_leak': 0.0}
-#params = {'i_offset': 0.0}
 hhcell = create(HH_cond_exp, params)
 
-#spike_sourceE = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(5,105,10)]})
-#spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(100,255,10)]})
+spike_sourceE = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(5,105,10)]})
+spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(100,255,10)]})
  
-#connE = connect(spike_sourceE, hhcell, weight=0.02, synapse_type='excitatory', delay=2.0)
-#connI = connect(spike_sourceI, hhcell, weight=0.05, synapse_type='inhibitory', delay=4.0)
+connE = connect(spike_sourceE, hhcell, weight=0.02, synapse_type='excitatory', delay=2.0)
+connI = connect(spike_sourceI, hhcell, weight=0.05, synapse_type='inhibitory', delay=4.0)
     
 record_v(hhcell, "Results/HH_cond_exp_%s.v" % simulator_name)
 record_gsyn(hhcell, "Results/HH_cond_exp_%s.gsyn" % simulator_name)

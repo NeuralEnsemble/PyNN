@@ -1,7 +1,6 @@
 """
-Simple network, using only the low-level interface,
-with a 1D population of poisson spike sources
-projecting to a 2D population of IF_curr_alpha neurons.
+Simple network, using only the low-level interface, with a Poisson spike source
+projecting to a pair of IF_curr_alpha neurons.
 
 Andrew Davison, UNIC, CNRS
 August 2006

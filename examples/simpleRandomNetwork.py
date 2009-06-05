@@ -32,7 +32,7 @@ n_spikes = int(2*tstop*input_rate/1000.0)
 spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential', [1000.0/input_rate]))
 input_population  = Population(3, SpikeSourceArray, {'spike_times': spike_times }, "input")
 
-output_population = Population(20, IF_curr_alpha, cell_params, "output")
+output_population = Population((5,5), IF_curr_alpha, cell_params, "output")
 
 connector = FixedProbabilityConnector(0.5, weights=1.0)
 projection = Projection(input_population, output_population, connector, rng=rng)

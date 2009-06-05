@@ -1,6 +1,8 @@
 """
 Conversion of the Brunel network implemented in nest-1.0.13/examples/brunel.sli
-to use PyNN
+to use PyNN.
+
+Brunel N (2000) Dynamics of sparsely connected networks of excitatory and inhibitory spiking neurons. J Comput Neurosci 8:183-208
 
 Andrew Davison, UNIC, CNRS
 May 2006

@@ -1,6 +1,5 @@
 """
-Simple network with a 1D population of Poisson spike sources
-projecting to a 2D population of IF_curr_alpha neurons.
+Simple network with a Poisson spike source projecting to a pair of IF_curr_alpha neurons
 
 Andrew Davison, UNIC, CNRS
 August 2006

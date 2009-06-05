@@ -145,6 +145,6 @@ Instructions for downloading and installing Brian_ are available from `<http://w
 .. _numpy: http://numpy.scipy.org/
 .. _PCSIM: http://www.lsm.tugraz.at/pcsim/
 .. _Brian: http://www.briansimulator.org/
-.. _`PyNN download page`: https://neuralensemble.kip.uni-heidelberg.de/trac/PyNN/wiki/Download
+.. _`PyNN download page`: https://neuralensemble.org/trac/PyNN/wiki/Download
 .. _`distutils`: http://docs.python.org/inst/inst.html
 .. _`GNU Scientific Library`: http://www.gnu.org/software/gsl/
