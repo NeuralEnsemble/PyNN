@@ -44,7 +44,7 @@ class AbstractRNG:
     def next(self, n=1, distribution='uniform', parameters=[]):
         """Return n random numbers from the distribution.
         
-        If n is 1, return a float, if n > 1, return a numpy array,
+        If n is 1, return a float, if n > 1, return a Numpy array,
         if n <= 0, raise an Exception."""
         # arguably, rng.next() should return a float, rng.next(1) an array of length 1
         raise NotImplementedError
@@ -115,7 +115,7 @@ class NumpyRNG(AbstractRNG):
 class GSLRNG(AbstractRNG):
     """Wrapper for the GSL random number generators."""
        
-    def __init__(self, seed=None, type='mt19937'):
+    def __init__(self, seed=None, type='mt19937', rank=0, num_processes=1, parallel_safe=True):
         AbstractRNG.__init__(self, seed)
         self.rng = getattr(pygsl.rng, type)()
         if self.seed  :
@@ -128,21 +128,42 @@ class GSLRNG(AbstractRNG):
         """This is to give GSLRNG the same methods as the GSL RNGs."""
         return getattr(self.rng, name)
     
-    def next(self, n=1, distribution='uniform', parameters=[]):
+    def next(self, n=1, distribution='uniform', parameters=[], mask_local=None):
         """Return n random numbers from the distribution.
         
         If n is 1, return a float, if n > 1, return a numpy array,
         if n < 0, raise an Exception."""
-        p = parameters + [n]
         if n == 0:
             return numpy.random.rand(0) # We return an empty array
         if n > 0:
+            if self.num_processes > 1 and not self.parallel_safe:
+                # n is the number for the whole model, so if we do not care about
+                # having exactly the same random numbers independent of the
+                # number of processors (m), we only need generate n/m+1 per node
+                # (assuming round-robin distribution of cells between processors)
+                if mask_local is None:
+                    n = n/self.num_processes + 1
+                else:
+                    n = mask_local.sum()
+            p = parameters + [n]
             return getattr(self.rng, distribution)(*p)
         else:
             raise ValueError, "The sample number must be positive"
+        if self.parallel_safe and self.num_processes > 1:
+            # strip out the random numbers that should be used on other processors.
+            if mask_local is not None:
+                assert mask_local.size == n
+                rarr = rarr[mask_local]    
+            else:
+                # This assumes that the first neuron in a population is always created on
+                # the node with rank 0, and that neurons are distributed in a round-robin
+                # This assumption is not true for NEST
+                rarr = rarr[numpy.arange(self.rank, len(rarr), self.num_processes)]
+        if len(rarr) == 1:
+            return rarr[0]
+        else:
+            return rarr
 
-
-    
 class NativeRNG(AbstractRNG):
     """
     Signals that the simulator's own native RNG should be used.
