@@ -111,9 +111,10 @@ class NoisyCurrentSource(CurrentSource):
                      across simulators, use one of the other RNG types. If not
                      specified, a NumpyRNG is used.
         """
-        self.rng = rng or NumpyRNG
+        self.rng = rng or NumpyRNG()
         self.dt = dt or state.dt
-        assert self.dt%dt == 0
+        if dt:
+            assert self.dt%dt == 0
         self.start = start
         self.stop = stop
         self.mean = mean
@@ -121,9 +122,9 @@ class NoisyCurrentSource(CurrentSource):
         if isinstance(rng, NativeRNG):
             self._device = nest.Create('noise_generator')
             nest.SetStatus(self._device, {'mean': mean*1000.0,
-                                          'std': stdev*1000.0,
-                                          'start': float(start),
-                                          'dt': dt})
+                                           'std': stdev*1000.0,
+                                           'start': float(start),
+                                           'dt': self.dt})
             if stop:
                 nest.SetStatus(self._device, {'stop': float(stop)})
         else:
