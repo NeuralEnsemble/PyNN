@@ -13,7 +13,7 @@ $Id$
 
 from pyNN.utility import get_script_args, Timer
 
-simulator_name = get_script_args(__file__, 1)[0]  
+simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
 
 from pyNN.random import NumpyRNG, RandomDistribution
@@ -187,10 +187,10 @@ run(simtime)
 simCPUTime = timer.elapsedTime()
 
 print "%d Writing data to file." % rank
-exfilename  = "Results/Brunel_exc_%s_np%d.ras" % (simulator_name, np) # output file for excit. population  
-infilename  = "Results/Brunel_inh_%s_np%d.ras" % (simulator_name, np) # output file for inhib. population  
-vexfilename = "Results/Brunel_exc_%s_np%d.v"   % (simulator_name, np) # output file for membrane potential traces
-vinfilename = "Results/Brunel_inh_%s_np%d.v"   % (simulator_name, np) # output file for membrane potential traces
+exfilename  = "Results/Brunel_exc_np%d_%s.ras" % (np, simulator_name) # output file for excit. population  
+infilename  = "Results/Brunel_inh_np%d_%s.ras" % (np, simulator_name) # output file for inhib. population  
+vexfilename = "Results/Brunel_exc_np%d_%s.v"   % (np, simulator_name) # output file for membrane potential traces
+vinfilename = "Results/Brunel_inh_np%d_%s.v"   % (np, simulator_name) # output file for membrane potential traces
 
 # write data to file
 E_net.printSpikes(exfilename)

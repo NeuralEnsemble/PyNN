@@ -16,7 +16,7 @@ $Id$
 
 from pyNN.utility import get_script_args
 
-simulator_name = get_script_args(__file__, 1)[0]  
+simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
 
 

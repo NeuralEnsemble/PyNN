@@ -53,14 +53,27 @@ def notify(msg="Simulation finished.", subject="Simulation finished.", smtphost=
             server.sendmail(address, address, msg)
             server.quit()
 
-def get_script_args(script, n_args, usage=''):
-    try:
-        script_index = sys.argv.index(script)
-    except ValueError:
-        try:
-            script_index = sys.argv.index(os.path.abspath(script))
+def get_script_args(n_args, usage=''):
+    """
+    Get command line arguments.
+    
+    This works by finding the name of the main script and assuming any
+    arguments after this in sys.argv are arguments to the script.
+    It would be nicer to use optparse, but this doesn't seem to work too well
+    with nrniv or mpirun.
+    """
+    calling_frame = sys._getframe(1)
+    if '__file__' in calling_frame.f_locals:
+        script = calling_frame.f_locals['__file__']
+        try:    
+            script_index = sys.argv.index(script)
         except ValueError:
-            script_index = 0 # ipython sets __file__ to 'IPython/FakeModule.pyc'
+            try:
+                script_index = sys.argv.index(os.path.abspath(script))
+            except ValueError:
+                script_index = 0
+    else:
+        script_index = 0
     args = sys.argv[script_index+1:script_index+1+n_args]
     if len(args) != n_args:
         usage = usage or "Script requires %d arguments, you supplied %d" % (n_args, len(args))

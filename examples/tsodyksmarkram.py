@@ -10,7 +10,7 @@ $Id$
 import numpy
 from pyNN.utility import get_script_args
 
-simulator_name = get_script_args(__file__, 1)[0]  
+simulator_name = get_script_args(1)[0]  
 exec("import pyNN.%s as sim" % simulator_name)
 
 sim.setup(debug=True, quit_on_end=False)

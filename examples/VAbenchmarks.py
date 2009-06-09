@@ -24,7 +24,7 @@ from pyNN.utility import get_script_args, Timer
 usage = """Usage: python VAbenchmarks.py <simulator> <benchmark>
            <simulator> is either neuron, nest, brian or pcsim
            <benchmark> is either CUBA or COBA."""
-simulator_name, benchmark = get_script_args(__file__, 2, usage)  
+simulator_name, benchmark = get_script_args(2, usage)  
 exec("from pyNN.%s import *" % simulator_name)
 
 timer = Timer()

@@ -9,7 +9,7 @@ $Id: simple_STDP.py 607 2009-05-19 15:04:35Z apdavison $
 
 import numpy
 from pyNN.utility import get_script_args
-sim_name = get_script_args(__file__, 1)[0]   
+sim_name = get_script_args(1)[0]   
 exec("from pyNN.%s import *" % sim_name)
 
 setup(timestep=0.001, min_delay=0.1, max_delay=1.0, debug=True, quit_on_end=False)

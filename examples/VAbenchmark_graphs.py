@@ -11,7 +11,7 @@ if len(sys.argv) < 2:
     sys.exit(1)
 benchmark = sys.argv[1]
 
-simulators = ('neuron', 'nest', 'pcsim')
+simulators = ('neuron', 'nest', 'pcsim', 'brian')
 #simulators = ['nest']
 nodes = (1,)
 #nodes = (1,2,4)
