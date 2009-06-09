@@ -75,7 +75,7 @@ connect = common.connect
 set = common.set
 record = common.build_record('spikes', simulator)
 record_v = common.build_record('v', simulator)
-
+record_gsyn = common.build_record('gsyn', simulator)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -118,9 +118,17 @@ class Population(common.Population):
         if not self.label:
             self.label = 'population%d' % Population.nPop
         self.recorders = {'spikes': simulator.Recorder('spikes', population=self),
-                          'v': simulator.Recorder('v', population=self)}
+                          'v': simulator.Recorder('v', population=self),
+                          'gsyn': simulator.Recorder('gsyn', population=self),}
         Population.nPop += 1
         
+    def meanSpikeCount(self, gather=True):
+        """ 
+        Returns the mean number of spikes per neuron. 
+        """
+        rec = self.recorders['spikes']
+        return float(rec._devices[0].nspikes)/len(rec.recorded) 
+
 
 class Projection(common.Projection):
     """

@@ -16,13 +16,13 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     shaped post-synaptic current."""
     translations = common.build_translations(
         ('v_rest',     'v_rest',     mV),
-        ('v_reset',    'v_reset',    mV),
+        ('v_reset',    'v_reset'),
         ('cm',         'c_m',         nF), 
         ('tau_m',      'tau_m',      ms),
-        ('tau_refrac', 'tau_refrac', ms),
+        ('tau_refrac', 'tau_refrac'),
         ('tau_syn_E',  'tau_syn_E',  ms),
         ('tau_syn_I',  'tau_syn_I',  ms),
-        ('v_thresh',   'v_thresh',   ms),
+        ('v_thresh',   'v_thresh'),
         ('i_offset',   'i_offset',   nA), 
         ('v_init',     'v_init',     ms),
     )
@@ -51,13 +51,13 @@ class IF_curr_exp(cells.IF_curr_exp):
     
     translations = common.build_translations(
         ('v_rest',     'v_rest',     mV),
-        ('v_reset',    'v_reset',    mV),
+        ('v_reset',    'v_reset'),
         ('cm',         'c_m',        nF), 
         ('tau_m',      'tau_m',      ms),
-        ('tau_refrac', 'tau_refrac', ms),
+        ('tau_refrac', 'tau_refrac'),
         ('tau_syn_E',  'tau_syn_E',  ms),
         ('tau_syn_I',  'tau_syn_I',  ms),
-        ('v_thresh',   'v_thresh',   ms),
+        ('v_thresh',   'v_thresh'),
         ('i_offset',   'i_offset',   nA), 
         ('v_init',     'v_init',     mV),
     )
@@ -81,13 +81,13 @@ class IF_curr_exp(cells.IF_curr_exp):
 class IF_cond_alpha(cells.IF_cond_alpha):
     translations = common.build_translations(
         ('v_rest',     'v_rest',     mV),
-        ('v_reset',    'v_reset',    mV),
+        ('v_reset',    'v_reset'),
         ('cm',         'c_m',        nF), 
         ('tau_m',      'tau_m',      mV),
-        ('tau_refrac', 'tau_refrac', ms),
+        ('tau_refrac', 'tau_refrac'),
         ('tau_syn_E',  'tau_syn_E',  ms),
         ('tau_syn_I',  'tau_syn_I',  ms),
-        ('v_thresh',   'v_thresh',   mV),
+        ('v_thresh',   'v_thresh'),
         ('i_offset',   'i_offset',   nA), 
         ('e_rev_E',    'e_rev_E',    mV),
         ('e_rev_I',    'e_rev_I',    mV),
@@ -117,13 +117,13 @@ class IF_cond_exp(cells.IF_cond_exp):
     exponentially-decaying post-synaptic conductance."""
     translations = common.build_translations(
         ('v_rest',     'v_rest',     mV),
-        ('v_reset',    'v_reset',    mV),
+        ('v_reset',    'v_reset'),
         ('cm',         'cm',         nF), 
         ('tau_m',      'tau_m',      ms),
-        ('tau_refrac', 'tau_refrac', ms),
+        ('tau_refrac', 'tau_refrac'),
         ('tau_syn_E',  'tau_syn_E',  ms),
         ('tau_syn_I',  'tau_syn_I',  ms),
-        ('v_thresh',   'v_thresh',   mV),
+        ('v_thresh',   'v_thresh'),
         ('i_offset',   'i_offset',   nA), 
         ('e_rev_E',    'e_rev_E',    mV),
         ('e_rev_I',    'e_rev_I',    mV),
@@ -159,9 +159,9 @@ class IF_facets_hardware1(common.ModelNotAvailable):
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
     translations = common.build_translations(
-        ('rate',     'rate', Hz),
-        ('start',    'start', ms),
-        ('duration', 'duration', ms),
+        ('rate',     'rate'),
+        ('start',    'start'),
+        ('duration', 'duration'),
     )
     
     class rates(object):
@@ -174,10 +174,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
             self.duration = duration*ms
             self.rate = rate*Hz
         def __call__(self, t):
-            #print self.start
-            #print self.duration
-            #print self.rate
-            #print t
+            #print t, self.start, self.duration, self.rate
             return (self.start <= t <= self.start + self.duration) and self.rate or 0.0*Hz
     
     def __init__(self, parameters):

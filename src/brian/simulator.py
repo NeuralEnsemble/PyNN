@@ -80,7 +80,7 @@ class ThresholdNeuronGroup(brian.NeuronGroup):
         brian.NeuronGroup.__init__(self, n, model=equations,
                                    threshold=-50.0*mV,
                                    reset=-60.0*mV,
-                                   refractory=100.0*ms,
+                                   refractory=100.0*ms, # this is set to a very large value as it acts as a maximum refractoriness
                                    compile=True,
                                    clock=state.simclock,
                                    max_delay=state.max_delay*ms,
@@ -116,10 +116,10 @@ class PoissonGroupWithDelays(brian.PoissonGroup):
             self.rates=rates
             self._S0[0]=self.rates(self.clock.t)
         else:
-            self._variable_rate=False
-            self._S[0,:]=rates
-            self._S0[0]=rates
-        #self.var_index={'rate':0}
+            self._variable_rate = False
+            self._S[0,:] = rates
+            self._S0[0] = rates
+        #self.var_index = {'rate':0}
         self.parameter_names = ['rate', 'start', 'duration']
 
     start = _new_property('rates', 'start', ms)
@@ -241,10 +241,11 @@ class Recorder(object):
     numpy1_1_formats = {'spikes': "%d\t%g",
                         'v': "%d\t%g\t%g"}
     numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support different
-                        'v': "%g"}      # formats for different columns
+                        'v': "%g",
+                        'gsyn': "%g",}      # formats for different columns
     formats = {'spikes': 'id t',
                'v': 'id t v',
-               'conductance':'id ge gi t'} #???
+               'gsyn':'id t ge gi'} #???
   
     def __init__(self, variable, population=None, file=None):
         """
@@ -258,31 +259,41 @@ class Recorder(object):
             - `None` (write to a temporary file)
             - `False` (write to memory).
         """
+        assert variable in Recorder.formats
         self.variable = variable
         self.filename = file or None
         self.population = population # needed for writing header information
         self.recorded = set([])
-        self._device = None # defer creation until first call of record()
+        self._devices = [] # defer creation until first call of record()
     
-    def _create_device(self, group):
+    def _create_devices(self, group):
         """Create a Brian recording device."""
         if self.variable == 'spikes':
-            device = brian.SpikeMonitor(group, record=True)
-        else:
-            device = brian.StateMonitor(group, self.variable, record=True, clock=state.simclock)
-        net.add(device)
-        return device
+            devices = [brian.SpikeMonitor(group, record=True)]
+        elif self.variable == 'v':
+            devices = [brian.StateMonitor(group, 'v', record=True, clock=state.simclock)]
+        elif self.variable == 'gsyn':
+            example_cell = list(self.recorded)[0]
+            varname = example_cell.cellclass.synapses['excitatory']
+            device1 = brian.StateMonitor(group, varname, record=True, clock=state.simclock)
+            varname = example_cell.cellclass.synapses['inhibitory']
+            device2 = brian.StateMonitor(group, varname, record=True, clock=state.simclock)
+            devices = [device1, device2]
+        for device in devices:
+            net.add(device)
+        return devices
     
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
         #update StateMonitor.record and StateMonitor.recordindex
-        if self._device is None:
-            self._device = self._create_device(ids[0].parent_group)
         self.recorded = self.recorded.union(ids)
+        if len(self._devices) == 0:
+            self._devices = self._create_devices(ids[0].parent_group)
         if self.variable is not 'spikes':
-            self._device.record = list(self.recorded)
-            self._device.recordindex = dict((i,j) for i,j in zip(self._device.record,
-                                                             range(len(self._device.record))))
+            for device in self._devices:
+                device.record = list(self.recorded)
+                device.recordindex = dict((i,j) for i,j in zip(device.record,
+                                                               range(len(device.record))))
     
     def get(self, gather=False, compatible_output=True):
         """Return the recorded data as a Numpy array."""
@@ -291,13 +302,22 @@ class Recorder(object):
         else:
             offset = 0
         if self.variable == 'spikes':
-            data = numpy.array([(id, time/ms) for (id, time) in self._device.spikes if id in self.recorded])
+            data = numpy.array([(id, time/ms) for (id, time) in self._devices[0].spikes if id in self.recorded])
         elif self.variable == 'v':
-            values = self._device.values/mV
-            times = self._device.times/ms
+            values = self._devices[0].values/mV
+            times = self._devices[0].times/ms
             data = numpy.empty((0,3))
             for id, row in enumerate(values):
                 new_data = numpy.array([numpy.ones(row.shape)*(id-offset), times, row]).T
+                data = numpy.concatenate((data, new_data))
+        elif self.variable == 'gsyn':
+            values1 = self._devices[0].values/uS
+            values2 = self._devices[1].values/uS
+            times = self._devices[0].times/ms
+            data = numpy.empty((0,4))
+            for id, (row1, row2) in enumerate(zip(values1, values2)):
+                assert row1.shape == row2.shape
+                new_data = numpy.array([numpy.ones(row1.shape)*(id-offset), times, row1, row2]).T
                 data = numpy.concatenate((data, new_data))
         return data
         
@@ -320,7 +340,7 @@ class Recorder(object):
             recording.write_compatible_output(filename, filename, self.variable,
                                               Recorder.formats[self.variable],
                                               self.population, state.dt)
-
+        
     
 # --- For implementation of create() and Population.__init__() ----------------- 
     
@@ -559,7 +579,8 @@ class ConnectionManager(object):
         if isinstance(delays, float):
             delays = [delays]
         assert len(targets) > 0
-        assert isinstance(source, common.IDMixin), str(type(source))
+        if not isinstance(source, common.IDMixin):
+            raise common.ConnectionError("source should be an ID object, actually %s" % type(source))
         for target in targets:
             if not isinstance(target, common.IDMixin):
                 raise common.ConnectionError("Invalid target ID: %s" % target)
@@ -626,13 +647,13 @@ class ConnectionManager(object):
         else:
             raise Exception("Getting parameters other than weight and delay not yet supported.")
         
-        values = M.todense()        
+        values = M.toarray()        
         values = numpy.where(values==0, numpy.nan, values)
         mask = values>0
         values = numpy.where(values<=ZERO_WEIGHT, 0.0, values)
         values /= units
         if format == 'list':
-            values = values[mask].tolist()
+            values = values[mask].flatten().tolist()
         elif format == 'array':
             pass
         else:
