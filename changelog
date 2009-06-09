@@ -1,7 +1,37 @@
-===========
-Release 0.5 (r???)
-===========
-to r639...
+=============
+Release 0.5.0 (r???)
+=============
+
+There have been rather few changes to the API in this version, which has
+focused rather on improving the simulator interfaces and on an internal
+code-reorganization which aims to make PyNN easier to test, maintain and
+extend.
+
+Principal API changes:
+
+    * Removed the 'string' connection methods from the `Projection` constructor.
+      The `method` argument now *must* be a `Connector` object, not a string.
+    * Can now record synaptic conductances.
+    * Can now access weights and delays of individual connections one-at-a-time
+      within a `Projection` through `Connection` objects.
+    * Added an interface for injecting arbitrary time-varying currents into cells.
+    * Added `get_v()` and `get_gsyn()` methods to the `Population` class, enabling
+      membrane potential and synaptic conductances to be read directly into memory,
+      rather than saved to file.
+    
+Improvements to simulator back-ends:
+    * Implemented an interface for the Brian simulator.
+    * Re-implementated the interface to NEURON, to use the new functionality in v7.0.
+    * Removed support for version 1 of NEST. The module for NEST v2 is now simply called `pyNN.nest`.
+    * The PCSIM implementation is now more complete, and more compatible with the
+      other back-ends.
+    * Behind-the-scenes refactoring to implement the API in terms of a small number
+      of low-level, simulator-specific operations. This reduces redundancy between
+      simulator modules, and makes it easier to extend PyNN, since if new
+      functionality uses the low-level operations, it only needs to be written once,
+      not once for each simulator.
+
+Details:
 
 * Renamed `nest2` to `nest`.
 
@@ -48,7 +78,7 @@ method implementing divergent connect.
 
 * `Population` attributes `all_cells` and `local_cells` are now an official part of the API (`cell` is as an alias for `local_cells` for now since it was widely used, if not officially part of the API, in 0.4).
 
-* Removed the 'string' connection methods from the `Projection` constructor. The `method` argument now *must* be a `Connector` object, not a string
+* Removed the 'string' connection methods from the `Projection` constructor. The `method` argument now *must* be a `Connector` object, not a string.
 
 * Standard cell types now know what things can be recorded from them (`recordable` attribute).
 
@@ -95,11 +125,7 @@ However, I suspect there are some fundamental differences in the algorithms (not
 
 * Added the possibility of giving an expression for distant-dependent weights and delays in the `DistanceDependentProbabilityConnector`.
 
-* Harmonization of `describe()` methods across simulators, by moving its definition into `common`. 
-
-`describe()` now returns a string, rather than printing directly to stdout. This lets it be used for writing to log files, etc. You will now have to use `print p.describe()` to obtain the old behaviour.
-
-`describe()` now also takes a `template` argument, allowing the output to be customized.
+* Harmonization of `describe()` methods across simulators, by moving its definition into `common`. `describe()` now returns a string, rather than printing directly to stdout. This lets it be used for writing to log files, etc. You will now have to use `print p.describe()` to obtain the old behaviour.`describe()` now also takes a `template` argument, allowing the output to be customized.
 
 * Added an interface for injecting arbitrary currents into cells.
 
@@ -112,7 +138,6 @@ Usage example:
   cell.inject(current_source1)            # two alternatives
   current_source2.inject_into([cell]) 
 }}}
-
 `DCSource` and `StepCurrentSource` are available in the `nest2`, `neuron` and `brian` modules. `NoisyCurrentSource` is only available in `nest2` for the time being, but it will be straightforward to add it for the other backends. Adding `ACSource`, etc., should be straightforward.
 
 * Optimised setting of parameter values by checking whether the list of parameters to be set contains any computed parameters, and only getting/translating all parameters in this case. Before, each time we wanted to set a parameter, we always got all the native_parameters and translated them even when there was a one-to-one correspondence between parameters.
@@ -133,9 +158,9 @@ Usage example:
 
 * Added `get_v()` method to the `Population` class, enabling membrane potential to be read directly into memory, rather than saved to file.
 
-===========
-Release 0.4 (r342)
-===========
+=============
+Release 0.4.0 (r342)
+=============
 
 * Added a `quit_on_end` extra argument to `neuron.setup()`
 

@@ -96,24 +96,24 @@ for simulator in simulators:
         subplot = figure.add_axes([x,y0+dy,0.4*w,h])
         plot_hist(subplot, isihist, pylab.arange(0, 8, 0.2), 0.2,
             xlabel="Inter-spike interval (ms)", xticks=pylab.log([3,10,30,100,1000]),
-            xticklabels=['3','10','30','100','1000'], xmin=pylab.log(2)) #, ymax=1.0e4)
+            xticklabels=['3','10','30','100','1000'], xmin=pylab.log(2), ymax=0.006)
         subplot.set_title('Exc')
         
         isihist, bins = inh_spikedata.isi_hist(bins)
         subplot = figure.add_axes([x+0.45*dx,y0+dy,0.4*w,h])
         plot_hist(subplot, isihist, pylab.arange(0,8,0.2),0.2,
             xlabel="Inter-spike interval (ms)", xticks=pylab.log([3,10,30,100,1000]),
-            xticklabels=['3','10','30','100','1000'], xmin=pylab.log(2)) #, ymax=0.2e4)
+            xticklabels=['3','10','30','100','1000'], xmin=pylab.log(2), ymax=0.006)
         subplot.set_title('Inh')
         
         # Histograms of coefficients of variation of ISI
         bins = pylab.arange(0, 3, 0.1)
-        for dataset, xoffset, ymax in zip([exc_spikedata, inh_spikedata], [0.0, 0.45*dx], [800,200]):
+        for dataset, xoffset, ymax in zip([exc_spikedata, inh_spikedata], [0.0, 0.45*dx], [2.5,2.5]):
             cvhist, bins = dataset.cv_isi_hist(bins)
         
             #cvhist = nstats.histc(cvs,bins)
             subplot = figure.add_axes([x+xoffset,y0,0.4*w,h])
-            plot_hist(subplot, cvhist, bins, 0.1, xlabel="ISI CV") #, ymax=ymax)
+            plot_hist(subplot, cvhist, bins, 0.1, xlabel="ISI CV", ymax=ymax)
         
         x += dx
 

@@ -1004,6 +1004,7 @@ class Population(object):
         self.rset('v_init', rand_distr)
 
     def can_record(self, variable):
+        """Determine whether `variable` can be recorded from this population."""
         return (variable in self.celltype.recordable)
 
     def _record(self, variable, record_from=None, rng=None, to_file=True):
