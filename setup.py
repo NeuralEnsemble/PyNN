@@ -40,16 +40,35 @@ class build(_build):
       
 setup(
     name = "PyNN",
-    version = "0.5.0beta",
+    version = "0.6pre",
     package_dir={'pyNN': 'src'},
     packages = ['pyNN','pyNN.nest', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.brian'],
     package_data = {'pyNN': ['hoc/*.hoc', 'hoc/*.mod']},
     author = "The NeuralEnsemble Community",
     author_email = "pynn@neuralensemble.org",
     description = "A Python package for simulator-independent specification of neuronal network models",
-    license = "CeCILL",
+        long_description = """In other words, you can write the code for a model once, using the PyNN API and the Python_ programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON, NEST, PCSIM and Brian).
+
+The API has two parts, a low-level, procedural API (functions ``create()``, ``connect()``, ``set()``, ``record()``, ``record_v()``), and a high-level, object-oriented API (classes ``Population`` and ``Projection``, which have methods like ``set()``, ``record()``, ``setWeights()``, etc.). 
+
+The low-level API is good for small networks, and perhaps gives more flexibility. The high-level API is good for hiding the details and the book-keeping, allowing you to concentrate on the overall structure of your model.
+
+The other thing that is required to write a model once and run it on multiple simulators is standard cell and synapse models. PyNN translates standard cell-model names and parameter names into simulator-specific names, e.g. standard model ``IF_curr_alpha`` is ``iaf_neuron`` in NEST and ``StandardIF`` in NEURON, while ``SpikeSourcePoisson`` is a ``poisson_generator`` in NEST and a ``NetStim`` in NEURON.
+
+Even if you don't wish to run simulations on multiple simulators, you may benefit from writing your simulation code using PyNN's powerful, high-level interface. In this case, you can use any neuron or synapse model supported by your simulator, and are not restricted to the standard models.
+
+PyNN is a work in progress, but is already being used for several large-scale simulation projects.""",
+    license = "CeCILL http://www.cecill.info",
     keywords = "computational neuroscience simulation neuron nest pcsim neuroml",
     url = "http://neuralensemble.org/PyNN/",
+    classifiers = ['Development Status :: 4 - Beta',
+                   'Environment :: Console',
+                   'Intended Audience :: Science/Research',
+                   'License :: Other/Proprietary License',
+                   'Natural Language :: English',
+                   'Operating System :: OS Independent',
+                   'Programming Language :: Python',
+                   'Topic :: Scientific/Engineering'],
     cmdclass = {'build': build},
 )
 
