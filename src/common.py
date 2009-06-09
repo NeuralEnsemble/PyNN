@@ -1205,15 +1205,7 @@ class Population(object):
         if 'v' not in self.celltype.recordable:
             raise TypeError("Can't inject current into a spike source.")
         current_source.inject_into(self)
-    
-    def getSubPopulation(self, cells):
-        """
-        Returns a sub population from a population object. The shape of cells will
-        determine the dimensions of the sub population. cells should contains cells
-        member of the parent population.
-        Ex z = pop.getSubPopulation([pop[1],pop[3],pop[5]])
-        """
-        raise NotImplementedError()
+
     
 # ==============================================================================
 
@@ -1354,19 +1346,6 @@ class Projection(object):
         Set delays to random values taken from rand_distr.
         """
         self.setDelays(rand_distr.next(len(self)))
-
-    def setSynapseDynamics(self, param, value):
-        """
-        Set parameters of the dynamic synapses for all connections in this
-        projection.
-        """
-        self.connection_manager.set(param, value)
-
-    def randomizeSynapseDynamics(self, param, rand_distr):
-        """
-        Set parameters of the synapse dynamics to values taken from rand_distr
-        """
-        self.setSynapseDynamics(param, rand_distr.next(len(self)))
     
     # --- Methods for writing/reading information to/from file. ----------------
     
@@ -1394,15 +1373,6 @@ class Projection(object):
         if gather:
             logging.error("getDelays() with gather=True not yet implemented")
         return self.connection_manager.get('delay', format, offset=(self.pre.first_id, self.post.first_id))
-
-    def getSynapseDynamics(self, parameter_name, format='list', gather=True):
-        """
-        Get parameters of the dynamic synapses for all connections in this
-        Projection.
-        """
-        if gather:
-            logging.error("getSynapseDynamics() with gather=True not yet implemented")
-        return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
     
     def saveConnections(self, filename, gather=False):
         """

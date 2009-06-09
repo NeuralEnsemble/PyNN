@@ -5,7 +5,7 @@ Classes:
     DCSource           -- a single pulse of current of constant amplitude.
     StepCurrentSource  -- a step-wise time-varying current.
 
-$Id:$
+$Id$
 """
 
 from brian import ms, nA, network_operation

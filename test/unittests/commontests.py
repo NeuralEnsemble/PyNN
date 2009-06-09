@@ -1,6 +1,6 @@
 """
 Unit tests for the common, cells, synapses, connectors modules
-$Id:$
+$Id$
 """
 
 import sys
