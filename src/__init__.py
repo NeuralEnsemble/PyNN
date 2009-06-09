@@ -62,6 +62,6 @@ Other modules:
 
 """
 
-__version__ = '0.5 ( $Rev$)'.replace(' $','')
+__version__ = '0.5.1pre ( $Rev$)'.replace(' $','')
 __all__ = ["common", "random", "nest", "neuron", "pcsim", 'brian' ]
 
