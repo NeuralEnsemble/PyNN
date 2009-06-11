@@ -218,8 +218,8 @@ class StandardIF(LeakySingleCompartmentNeuron):
     v_thresh = _new_property('spike_reset', 'vthresh')
     v_reset  = _new_property('spike_reset', 'vreset')
     t_refrac = _new_property('spike_reset', 'trefrac')
-    
-    
+
+
 class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     """docstring"""
     
@@ -235,8 +235,7 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
             v_init = v_rest
     
         # insert Brette-Gerstner spike mechanism
-        self.insert('IF_BG5')
-        self.seg.IF_BG5.surf = self.area()
+        self.adexp = h.AdExpIF(0.5, sec=self)
         self.source = self.seg._ref_v
         
         self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',
@@ -247,33 +246,33 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
     
-    v_thresh = _new_property('seg.IF_BG5', 'Vtr')
-    v_reset  = _new_property('seg.IF_BG5', 'Vbot')
-    t_refrac = _new_property('seg.IF_BG5', 'Ref')
-    B        = _new_property('seg.IF_BG5',  'b')
-    A        = _new_property('seg.IF_BG5',  'a')
-    # using 'A' because for some bizarre reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"   
-    tau_w    = _new_property('seg.IF_BG5',  'tau_w')
-    delta    = _new_property('seg.IF_BG5',  'delta')
-    w_init   = _new_property('seg.IF_BG5',  'w_init') # w_init not defined in .mod file - needs to be
+    v_thresh = _new_property('adexp', 'v_thresh')
+    v_reset  = _new_property('adexp', 'v_reset')
+    t_refrac = _new_property('adexp', 't_refrac')
+    B        = _new_property('adexp',  'b')
+    A        = _new_property('adexp',  'a')
+    ## using 'A' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"   
+    tau_w    = _new_property('adexp',  'tau_w')
+    delta    = _new_property('adexp',  'delta')
+    w_init   = _new_property('adexp',  'w_init') # w_init not defined in .mod file - needs to be
     v_init   = _new_property('seg',  'v') #?? something involving FInitialize
     
     def __set_v_spike(self, value):
-        self.seg.IF_BG5.Vspike = value
-        self.seg.IF_BG5.Vtop = value + 10.0
+        self.adexp.v_spike = value
+        self.adexp.v_peak = value + 10.0
     def __get_v_spike(self):
-        return self.seg.IF_BG5.Vspike
+        return self.adexp.v_spike
     v_spike = property(fget=__get_v_spike, fset=__set_v_spike)
     
     def __set_tau_m(self, value):
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
-        self.seg.IF_BG5.GL = self.seg.pas.g
+        self.adexp.GL = self.seg.pas.g * self.area() * 1e-2 # S/cm2 to uS
     def __get_tau_m(self):
         return 1e-3*self.seg.cm/self.seg.pas.g
-
+    
     def __set_v_rest(self, value):
         self.seg.pas.e = value
-        self.seg.IF_BG5.EL = value
+        self.adexp.EL = value
     def __get_v_rest(self):
         return self.seg.pas.e
     tau_m  = property(fget=__get_tau_m, fset=__set_tau_m)   
@@ -283,7 +282,7 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
         if active:
             rec = h.NetCon(self.source, None, sec=self)
             rec.record(self.spike_times)
-    
+
 
 class SingleCompartmentTraub(SingleCompartmentNeuron):
     

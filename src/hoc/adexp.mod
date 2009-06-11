@@ -12,7 +12,7 @@
 :   J. Neurophysiol. 94: 3637-3642, 2005.
 :  
 : Implemented by Andrew Davison. UNIC, CNRS, March 2009.
-: $Id:$
+: $Id: adexp.mod_ 601 2009-05-14 10:17:16Z apdavison $
 
 NEURON {
     POINT_PROCESS AdExpIF
@@ -72,7 +72,7 @@ BREAKPOINT {
     i_refrac = g_refrac*(v-v_reset)
     i_exp = - GL*delta*exp((v-v_thresh)/delta)
     i = i_exp + w + i_refrac
-    :printf("BP: t = %f  dt = %f  v = %f  vv = %f w = %f  i_refrac = %f  i_exp = %f  i = %f  delta_v = %f\n", t, dt, v, vv, w, i_refrac, i_exp, i, delta_v)
+    :printf("BP: t = %f  dt = %f  v = %f  w = %f  i_refrac = %f  i_exp = %f  i = %f\n", t, dt, v, w, i_refrac, i_exp, i)
 }
 
 
@@ -86,7 +86,7 @@ NET_RECEIVE (weight) {
         w = w + b
         net_send(spikewidth, 2)
         net_event(t)
-        printf("spike: t = %f  v = %f   w = %f   i = %f\n", t, v, w, i)
+        :printf("spike: t = %f  v = %f   w = %f   i = %f\n", t, v, w, i)
     } else if (flag == 2) { : end of spike, beginning of refractory period
         v = v_reset
         g_refrac = g_on
@@ -95,11 +95,11 @@ NET_RECEIVE (weight) {
         } else { : also the end of the refractory period
             g_refrac = 0
         }
-        printf("refrac: t = %f  v = %f   w = %f   i = %f\n", t, v, w, i)
+        :printf("refrac: t = %f  v = %f   w = %f   i = %f\n", t, v, w, i)
     } else if (flag == 3) { : end of refractory period
         v = v_reset
         g_refrac = 0
-        printf("end_refrac: t = %f  v = %f   w = %f   i = %f\n", t, v, w, i)
+        :printf("end_refrac: t = %f  v = %f   w = %f   i = %f\n", t, v, w, i)
     } else if (flag == 4) { : watch membrane potential
         WATCH (v > v_spike) 1
     }

@@ -209,7 +209,7 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
         'w_init'    : 0.0,    # Initial spike-adaptation current in nA
         'cm'        : 0.281,  # Capacitance of the membrane in nF
         'tau_refrac': 0.0,    # Duration of refractory period in ms.
-        'v_spike'   : 0.0,    # Spike detection threshold in mV.
+        'v_spike'   : -40.0,    # Spike detection threshold in mV.
         'v_reset'   : -70.6,  # Reset value for V_m after a spike. In mV.
         'v_rest'    : -70.6,  # Resting membrane potential (Leak reversal potential) in mV.
         'tau_m'     : 9.3667, # Membrane time constant in ms
