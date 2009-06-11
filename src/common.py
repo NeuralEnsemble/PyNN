@@ -1005,7 +1005,10 @@ class Population(object):
 
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
-        return (variable in self.celltype.recordable)
+        if isinstance(self.celltype, StandardCellType):
+            return (variable in self.celltype.recordable)
+        else:
+            return True # for now, not able to check for native cells, although it should be possible in principle
 
     def _record(self, variable, record_from=None, rng=None, to_file=True):
         """

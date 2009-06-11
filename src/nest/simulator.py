@@ -197,7 +197,10 @@ class Recorder(object):
         data to give appropriate units, and apply an offset to the ID values.
         """
         if self.variable == 'v':
-            initial = [[id, 0.0, id.v_init] for id in self.recorded]
+            try:
+                initial = [[id, 0.0, id.v_init] for id in self.recorded]
+            except common.NonExistentParameterError:
+                initial = [[id, 0.0, id.v_rest] for id in self.recorded]
         elif self.variable == 'gsyn':
             initial = [[id, 0.0, 0.0, 0.0] for id in self.recorded]
         else:

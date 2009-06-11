@@ -47,5 +47,5 @@ http://www.frontiersin.org/neuroinformatics/paper/10.3389/neuro.11/011.2008/
 .. _PCSIM:  http://sourceforge.net/projects/pcsim/
 .. _Brian:  http://briansimulator.org/
 .. _`Subversion repository`: https://neuralensemble.org/svn/PyNN/trunk
-.. _`PyNN website`: https://neuralensemble.org/PyNN/
+.. _`PyNN website`: http://neuralensemble.org/PyNN/
 .. _`NeuralEnsemble Google group`: http://groups.google.com/group/neuralensemble
