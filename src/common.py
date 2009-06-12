@@ -1235,18 +1235,21 @@ class Projection(object):
         presynaptic_population and postsynaptic_population - Population objects.
         
         source - string specifying which attribute of the presynaptic cell
-                 signals action potentials
+                 signals action potentials. This is only needed for
+                 multicompartmental cells with branching axons or dendrodendritic
+                 synapses. All standard cells have a single source, and this
+                 is the default.
                  
         target - string specifying which synapse on the postsynaptic cell to
-                 connect to
-                 
-        If source and/or target are not given, default values are used.
+                 connect to. For standard cells, this can be 'excitatory' or
+                 'inhibitory'. For non-standard cells, it could be 'NMDA', etc.
+                 If target is not given, the default values of 'excitatory' is used.
         
         method - a Connector object, encapsulating the algorithm to use for
                  connecting the neurons.
         
         synapse_dynamics - a `SynapseDynamics` object specifying which
-        synaptic plasticity mechanisms to use.
+                 synaptic plasticity mechanisms to use.
         
         rng - specify an RNG object to be used by the Connector.
         """

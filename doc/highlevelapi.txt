@@ -325,9 +325,9 @@ A ``Projection`` object is a container for all the synaptic connections between 
 A ``Projection`` is created by specifying a pre-synaptic ``Population``, a post-synaptic ``Population`` and a ``Connector`` object, which determines
 the algorithm used to wire up the neurons, e.g.::
 
-    >>> prj2_1 = Projection(p2, p1, method=AllToAllConnector())
+    >>> prj2_1 = Projection(p2, p1, method=AllToAllConnector(), target='excitatory')
     
-This connects ``p2`` (pre-synaptic) to ``p1`` (post-synaptic), using an '``AllToAllConnector``' object, which connects every neuron in the pre-synaptic population to every neuron in the post-synaptic population.
+This connects ``p2`` (pre-synaptic) to ``p1`` (post-synaptic) with excitatory synapses, using an '``AllToAllConnector``' object, which connects every neuron in the pre-synaptic population to every neuron in the post-synaptic population.
 The currently available ``Connector`` classes are explained below. It is fairly straightforward for a user to write a new ``Connector`` class if they
 wish to use a connection algorithm not already available in PyNN.
 
