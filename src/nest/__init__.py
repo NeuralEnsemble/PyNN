@@ -96,14 +96,15 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     nest.SetKernelStatus({'local_num_threads': num_threads,
                           'rng_seeds'        : rng_seeds})
 
+    # set resolution
+    nest.SetKernelStatus({'resolution': timestep})
+
     # Set min_delay and max_delay for all synapse models
     for synapse_model in NEST_SYNAPSE_TYPES:
         nest.SetDefaults(synapse_model, {'delay' : min_delay,
                                          'min_delay': min_delay,
                                          'max_delay': max_delay})
-
-    # set resolution
-    nest.SetKernelStatus({'resolution': timestep})
+    
     return rank()
 
 def end(compatible_output=True):

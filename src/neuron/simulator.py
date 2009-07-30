@@ -109,7 +109,7 @@ class _Initializer(object):
         self.population_list = []
         h('objref initializer')
         h.initializer = self
-        self.fih = h.FInitializeHandler("initializer._initialize()")
+        self.fih = h.FInitializeHandler(0, "initializer._initialize()")
     
     #def __call__(self):
     #    """This is to make the Initializer a Singleton."""
@@ -151,6 +151,7 @@ class _State(object):
         self.initialized = False
         h('min_delay = 0')
         h('tstop = 0')
+        h('steps_per_ms = 1/dt')
         self.parallel_context = h.ParallelContext()
         self.parallel_context.spike_compress(1,0)
         self.num_processes = int(self.parallel_context.nhost())
@@ -161,7 +162,12 @@ class _State(object):
         h.plastic_connections = []
     
     t = h_property('t')
-    dt = h_property('dt')
+    def __get_dt(self):
+        return h.dt
+    def __set_dt(self, dt):
+        h.steps_per_ms = 1.0/dt
+        h.dt = dt
+    dt = property(fget=__get_dt, fset=__set_dt)
     tstop = h_property('tstop')         # } do these really need to be stored in hoc?
     min_delay = h_property('min_delay') # }
 
@@ -566,6 +572,8 @@ class ConnectionManager(object):
                 nc = state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
                 nc.delay  = delay
+                if hasattr(source._cell, 'get_threshold'):
+                    nc.threshold = source._cell.get_threshold()
                 self.connections.append(Connection(source, target, nc))
 
     def get(self, parameter_name, format, offset=(0,0)):

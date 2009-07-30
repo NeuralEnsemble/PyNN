@@ -170,7 +170,7 @@ def is_conductance(target_cell):
     Returns True if the target cell uses conductance-based synapses, False if it
     uses current-based synapses, and None if the synapse-basis cannot be determined.
     """
-    if target_cell.local and hasattr(target_cell, 'cellclass'):
+    if hasattr(target_cell, 'local') and target_cell.local and hasattr(target_cell, 'cellclass'):
         if isinstance(target_cell.cellclass, type):
             is_conductance = "cond" in target_cell.cellclass.__name__
         else:
@@ -315,7 +315,7 @@ class IDMixin(object):
         self.local = True
 
     def __getattr__(self, name):
-        if name in self.non_parameter_attributes:
+        if name in self.non_parameter_attributes or not self.is_standard_cell():
             val = self.__getattribute__(name)
         else:
             try:
@@ -325,7 +325,7 @@ class IDMixin(object):
         return val
     
     def __setattr__(self, name, value):
-        if name in self.non_parameter_attributes:
+        if name in self.non_parameter_attributes or not self.is_standard_cell():
             object.__setattr__(self, name, value)
         else:
             return self.set_parameters(**{name:value})
@@ -685,8 +685,8 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
         rng = rng or numpy.random
     connection_manager = simulator.ConnectionManager()
     for tgt in target:
-        if not isinstance(tgt, IDMixin):
-            raise ConnectionError("target is not a cell, actually %s" % type(tgt))
+        #if not isinstance(tgt, IDMixin):
+        #    raise ConnectionError("target is not a cell, actually %s" % type(tgt))
         sources = numpy.array(source, dtype=type(source))
         if p < 1:
             rarr = rng.uniform(0, 1, len(source))
@@ -1146,6 +1146,12 @@ class Population(object):
         conductances for recorded cells.
         """
         return self.recorders['gsyn'].get(gather, compatible_output)
+        
+    def get_spike_counts(self, gather=True):
+        """
+        Returns the number of spikes for each neuron.
+        """
+        return self.recorders['spikes'].count(gather)
         
     def meanSpikeCount(self, gather=True):
         """

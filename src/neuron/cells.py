@@ -48,6 +48,7 @@ class SingleCompartmentNeuron(nrn.Section):
                 
         self.syn_type = syn_type
         self.syn_shape = syn_shape
+        self.v_init = v_init
         
         # insert synapses
         assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
@@ -66,6 +67,7 @@ class SingleCompartmentNeuron(nrn.Section):
         self.spike_times = h.Vector(0)
         self.gsyn_trace = {}
         self.recording_time = 0
+        
 
     @property
     def excitatory(self):
@@ -122,7 +124,9 @@ class SingleCompartmentNeuron(nrn.Section):
     def memb_init(self, v_init=None):
         if v_init:
             self.v_init = v_init
-        self.seg.v = self.v_init
+        for seg in self:
+            seg.v = self.v_init
+        #self.seg.v = self.v_init
 
     def use_Tsodyks_Markram_synapses(self, ei, U, tau_rec, tau_facil, u0):
         if self.syn_type == 'current':
@@ -165,6 +169,8 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
                                          v_init, tau_e, tau_i, e_e, e_i)
         self.insert('pas')
+        if v_init is None:
+            self.v_init = v_rest
         
     def __set_tau_m(self, value):
         #print "setting tau_m to", value, "cm =", self.seg.cm
@@ -200,8 +206,6 @@ class StandardIF(LeakySingleCompartmentNeuron):
                                          i_offset, v_init, tau_e, tau_i, e_e, e_i)
         if v_reset is None:
             v_reset = v_rest
-        if v_init is None:
-            v_init = v_rest
         
         # insert spike reset mechanism
         self.spike_reset = h.ResetRefrac(0.5, sec=self)
@@ -231,8 +235,6 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
         LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
                                          i_offset, v_init,
                                          tau_e, tau_i, e_e, e_i)
-        if v_init is None:
-            v_init = v_rest
     
         # insert Brette-Gerstner spike mechanism
         self.adexp = h.AdExpIF(0.5, sec=self)
@@ -255,7 +257,7 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     tau_w    = _new_property('adexp',  'tau_w')
     delta    = _new_property('adexp',  'delta')
     w_init   = _new_property('adexp',  'w_init') # w_init not defined in .mod file - needs to be
-    v_init   = _new_property('seg',  'v') #?? something involving FInitialize
+    #v_init   = _new_property('seg',  'v') #?? something involving FInitialize
     
     def __set_v_spike(self, value):
         self.adexp.v_spike = value
@@ -280,9 +282,13 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     
     def record(self, active):
         if active:
-            rec = h.NetCon(self.source, None, sec=self)
-            rec.record(self.spike_times)
+            self.rec = h.NetCon(self.source, None,
+                                self.get_threshold(), 0.0, 0.0,
+                                sec=self)
+            self.rec.record(self.spike_times)
 
+    def get_threshold(self):
+        return self.adexp.v_spike
 
 class SingleCompartmentTraub(SingleCompartmentNeuron):
     
@@ -293,7 +299,7 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
                                          v_init, tau_e, tau_i, e_e, e_i)
         if v_init is None:
-            v_init = v_rest
+            self.v_init = v_rest
         self.source = self.seg._ref_v
         self.insert('k_ion')
         self.insert('na_ion')
@@ -310,6 +316,10 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
     gbar_Na  = _new_property('seg.hh_traub', 'gnabar')
     gbar_K   = _new_property('seg.hh_traub', 'gkbar')
     g_leak   = _new_property('seg.hh_traub', 'gl')
+    
+    def get_threshold(self):
+        return 10.0
+    
     
 class RandomSpikeSource(hclass(h.NetStimFD)):
     

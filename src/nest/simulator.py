@@ -175,10 +175,7 @@ class Recorder(object):
         """Add the cells in `ids` to the set of recorded cells."""            
         if self._device is None:
             self._create_device()
-        if self.population:
-            ids = set([id for id in ids if id in self.population.local_cells])
-        else:
-            ids = set([id for id in ids if id.local])
+        ids = set([id for id in ids if id.local])
         new_ids = list( ids.difference(self.recorded) )
         
         self.recorded = self.recorded.union(ids)
@@ -352,14 +349,21 @@ class Recorder(object):
         """
         N = {}
         if self.variable == 'spikes':
-            if nest.GetStatus(self._device,'to_memory')[0]:
+            if self.in_memory():
                 events = nest.GetStatus(self._device, 'events')
                 for id in self.recorded:
                     mask = events['senders'] == int(id)
                     N[id] = events['times'][mask].count()
             else:
-                raise Exception("count() not yet supported for writing to file.")
-        else:
+                spikes = self.get(gather, compatible_output=False)
+                print spikes[:20]
+                print spikes[:20,0]
+                for id in spikes[:,0].astype(int):
+                    if id in N:
+                        N[id] += 1
+                    else:
+                        N[id] = 1
+        else:        
             raise Exception("Only implemented for spikes.")
         if gather and state.num_processes > 1:
             N = recording.gather_dict(N)
@@ -542,6 +546,8 @@ class ConnectionManager:
         if not common.is_listlike(targets):
             targets = [targets]
         assert len(targets) > 0
+        if synapse_type not in ('excitatory', 'inhibitory', None):
+            raise common.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
         weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.

@@ -34,7 +34,7 @@ PARAMETER {
     v_spike  = -40   (mV)   : spike detection threshold
     v_peak   = 0     (mV)   : peak of spike
     t_refrac = 1     (ms)   : refractory period
-    g_on    = 1e12   (uS)   : refractory clamp conductance
+    g_on    = 1e6   (uS)   : refractory clamp conductance
     spikewidth = 1e-12 (ms) : must be less than trefrac
     
     a 	    = 0.004  (uS)   : level of adaptation

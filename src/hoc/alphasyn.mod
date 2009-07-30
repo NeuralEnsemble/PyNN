@@ -8,7 +8,7 @@ of spike times and weights.
 Andrew P. Davison, UNIC, CNRS, May 2006
 ENDCOMMENT
 
-DEFINE MAX_SPIKES 100
+DEFINE MAX_SPIKES 1000
 DEFINE CUTOFF 20
 
 NEURON {

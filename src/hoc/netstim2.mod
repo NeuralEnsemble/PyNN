@@ -37,7 +37,6 @@ INITIAL {
 		noise = 1
 	}
 	if (start >= 0 && duration > 0) {
-		on = 1
 		: randomize the first spike so on average it occurs at
 		: start + noise*interval
 		event = start + invl(interval) - interval*(1. - noise)
@@ -45,7 +44,10 @@ INITIAL {
 		if (event < 0) {
 			event = 0
 		}
-		net_send(event, 3)
+                if (event < start+duration) {
+                        on = 1
+                        net_send(event, 3)
+                }
 	}
 }	
 
@@ -116,10 +118,12 @@ PROCEDURE next_invl() {
 	if (t+event >= start+duration) {
 		on = 0
 	}
+        :printf("t=%g, event=%g, t+event=%g, on=%g\n", t, event, t+event, on) 
 }
 
 NET_RECEIVE (w) {
 	if (flag == 0) { : external event
+                :printf("external event\n")
 		if (w > 0 && on == 0) { : turn on spike sequence
 			: but not if a netsend is on the queue
 			init_sequence(t)
@@ -136,9 +140,11 @@ NET_RECEIVE (w) {
 		if (on == 1) { : but ignore if turned off by external event
 			init_sequence(t)
 			net_send(0, 1)
+                        :printf("init_sequence(%g)\n", t)
 		}
 	}
 	if (flag == 1 && on == 1) {
+                :printf("%g %g\n", t, on)
 		net_event(t)
 		next_invl()
 		if (on == 1) {
