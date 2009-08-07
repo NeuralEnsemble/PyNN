@@ -45,14 +45,15 @@ class _State(object):
     
     def __init__(self):
         self.initialized = False
-        self.running = False
+        self.running     = False
+        self.optimize    = False
 
     @property
     def t(self):
         return nest.GetKernelStatus()['time']
     
     dt = property(fget=lambda self: nest.GetKernelStatus()['resolution'],
-                  fset=lambda self, timestep: nest.SetKernelStatus({'resolution': timestep}))
+                  fset=lambda self, timestep: nest.SetKernelStatus({'resolution': timestep}))    
     
     @property
     def min_delay(self):
@@ -484,7 +485,7 @@ class Connection(object):
         return nest.GetConnection(*self.id())['delay']
 
     weight = property(_get_weight, _set_weight)
-    delay = property(_get_delay, _set_delay)
+    delay  = property(_get_delay, _set_delay)
     
 
 class ConnectionManager:
@@ -518,7 +519,10 @@ class ConnectionManager:
     
     def __len__(self):
         """Return the number of connections on the local MPI node."""
-        return len(self.sources)
+        if state.optimize:
+            return nest.GetDefaults(self.synapse_model)['num_connections']
+        else:
+            return len(self.sources)
     
     def __iter__(self):
         """Return an iterator over all connections on the local MPI node."""
@@ -562,42 +566,49 @@ class ConnectionManager:
         elif isinstance(delays, float):
             delays = [delays]
         
-        initial_ports = {}
-        for tgt in targets:
-            try:
-                initial_ports[tgt] = nest.FindConnections([source], [tgt], self.synapse_model)['ports']
-            except nest.NESTError, e:
-                raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
+        if not state.optimize:        
+            initial_ports = {}
+            for tgt in targets:
+                try:
+                    initial_ports[tgt] = nest.FindConnections([source], [tgt], self.synapse_model)['ports']
+                except nest.NESTError, e:
+                    raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                              e, source, targets, weights, delays, self.synapse_model))
             
-        try:
-            nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)
-        except nest.NESTError, e:
-            raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
+            try:
+                nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)            
+            except nest.NESTError, e:
+                raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                          e, source, targets, weights, delays, self.synapse_model))
         
-        final_ports = {}
-        for tgt in targets:
-            final_ports[tgt] = nest.FindConnections([source], [tgt], self.synapse_model)['ports']
+            final_ports = {}
+            for tgt in targets:
+                final_ports[tgt] = nest.FindConnections([source], [tgt], self.synapse_model)['ports']
         
-        #print "\n", state.mpi_rank, source, "initial:", initial_ports, "final:", final_ports
-        
-        #all_new_ports = []
-        local_targets = final_ports.keys()
-        local_targets.sort()
-        for tgt in local_targets:
-            #new_ports = final_ports[tgt].difference(initial_ports[tgt])
-            new_ports = final_ports[tgt][len(initial_ports[tgt]):]
-            #if state.mpi_rank == 0:
-            #    print "-", state.mpi_rank, tgt, initial_ports[tgt], final_ports[tgt], new_ports
-            n = len(new_ports)
-            if n > 0:   
-                self.sources.extend([source]*n)
-                self.targets.extend([tgt]*n)     
-                self.ports.extend(new_ports)
+            #print "\n", state.mpi_rank, source, "initial:", initial_ports, "final:", final_ports        
+            #all_new_ports = []
+            local_targets = final_ports.keys()
+            local_targets.sort()
+            for tgt in local_targets:
+                #new_ports = final_ports[tgt].difference(initial_ports[tgt])
+                new_ports = final_ports[tgt][len(initial_ports[tgt]):]
+                #if state.mpi_rank == 0:
+                #    print "-", state.mpi_rank, tgt, initial_ports[tgt], final_ports[tgt], new_ports
+                n = len(new_ports)
+                if n > 0:   
+                    self.sources.extend([source]*n)
+                    self.targets.extend([tgt]*n)     
+                    self.ports.extend(new_ports)
                 #all_new_ports.extend(new_ports)
                 
-        #print state.mpi_rank, source, targets, all_new_ports, nest.GetConnections([source], self.synapse_model)[0]['targets']
+            #print state.mpi_rank, source, targets, all_new_ports, nest.GetConnections([source], self.synapse_model)[0]['targets']
+        elif state.optimize:
+            try:
+                nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)            
+            except nest.NESTError, e:
+                raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                                         e, source, targets, weights, delays, self.synapse_model))
+        
     
     def get(self, parameter_name, format, offset=(0,0)):
         """
@@ -663,7 +674,7 @@ class ConnectionManager:
         source_cells.sort()
         source_array = numpy.array(self.sources)  # these values
         target_array = numpy.array(self.targets)  # are all for connections
-        port_array = numpy.array(self.ports)      # on the local node        
+        port_array   = numpy.array(self.ports)      # on the local node        
         
         if common.is_listlike(value):
             assert len(value) == len(port_array)

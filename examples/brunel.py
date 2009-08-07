@@ -18,6 +18,9 @@ exec("from pyNN.%s import *" % simulator_name)
 
 from pyNN.random import NumpyRNG, RandomDistribution
 
+from pyNN.nest.simulator import state
+state.optimize = True
+
 timer = Timer()
 
 # === Define parameters ========================================================
