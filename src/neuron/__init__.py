@@ -40,6 +40,14 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
+
+    NEURON specific extra_params:
+
+    quit_on_end - defaults to True ... exit on PyNN.end()
+    use_cvode - use the NEURON cvode solver? Defaults to False?
+
+    returns: MPI rank?
+
     """
     global quit_on_end
     common.setup(timestep, min_delay, max_delay, debug, **extra_params)
