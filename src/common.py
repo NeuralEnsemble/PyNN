@@ -881,7 +881,7 @@ class Population(object):
 
     def _set_positions(self, pos_array):
         assert isinstance(pos_array, numpy.ndarray)
-        assert pos_array.shape == (3, self.size)
+        assert pos_array.shape == (3, self.size), "%s != %s" % (pos_array.shape, (3, self.size))
         self._positions = pos_array.copy() # take a copy in case pos_array is changed later
 
     positions = property(_get_positions, _set_positions,

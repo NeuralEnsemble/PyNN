@@ -124,6 +124,7 @@ class SingleCompartmentNeuron(nrn.Section):
     def memb_init(self, v_init=None):
         if v_init:
             self.v_init = v_init
+        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
         for seg in self:
             seg.v = self.v_init
         #self.seg.v = self.v_init
@@ -169,8 +170,6 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
                                          v_init, tau_e, tau_i, e_e, e_i)
         self.insert('pas')
-        if v_init is None:
-            self.v_init = v_rest
         
     def __set_tau_m(self, value):
         #print "setting tau_m to", value, "cm =", self.seg.cm
@@ -202,11 +201,12 @@ class StandardIF(LeakySingleCompartmentNeuron):
     def __init__(self, syn_type, syn_shape, tau_m=20, c_m=1.0, v_rest=-65,
                  v_thresh=-55, t_refrac=2, i_offset=0, v_reset=None,
                  v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70):
-        LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
-                                         i_offset, v_init, tau_e, tau_i, e_e, e_i)
+        if v_init is None:
+            v_init = v_rest
         if v_reset is None:
             v_reset = v_rest
-        
+        LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
+                                              i_offset, v_init, tau_e, tau_i, e_e, e_i)       
         # insert spike reset mechanism
         self.spike_reset = h.ResetRefrac(0.5, sec=self)
         self.spike_reset.vspike = 40 # (mV) spike height
@@ -218,6 +218,7 @@ class StandardIF(LeakySingleCompartmentNeuron):
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
+        
 
     v_thresh = _new_property('spike_reset', 'vthresh')
     v_reset  = _new_property('spike_reset', 'vreset')
@@ -232,9 +233,11 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
                  v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70,
                  v_spike=0.0, v_reset=-70.6, A=4.0, B=0.0805, tau_w=144.0,
                  w_init=0.0, delta=2.0):
-        LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
-                                         i_offset, v_init,
-                                         tau_e, tau_i, e_e, e_i)
+        if v_init is None:
+            v_init = v_rest
+        LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m,
+                                              c_m, v_rest, i_offset, v_init,
+                                              tau_e, tau_i, e_e, e_i)
     
         # insert Brette-Gerstner spike mechanism
         self.adexp = h.AdExpIF(0.5, sec=self)
@@ -242,28 +245,27 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
         
         self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',
                                 'i_offset', 'v_reset', 'v_init', 'tau_e', 'tau_i',
-                                'v_thresh', 'A', 'B', 'tau_w', 'delta', 'w_init',
-                                'v_spike']
+                                'A', 'B', 'tau_w', 'delta', 'w_init', 'v_spike']
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
     
-    v_thresh = _new_property('adexp', 'v_thresh')
-    v_reset  = _new_property('adexp', 'v_reset')
-    t_refrac = _new_property('adexp', 't_refrac')
+    v_thresh = _new_property('adexp', 'vthresh')
+    v_reset  = _new_property('adexp', 'vreset')
+    t_refrac = _new_property('adexp', 'trefrac')
     B        = _new_property('adexp',  'b')
     A        = _new_property('adexp',  'a')
     ## using 'A' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"   
-    tau_w    = _new_property('adexp',  'tau_w')
+    tau_w    = _new_property('adexp',  'tauw')
     delta    = _new_property('adexp',  'delta')
-    w_init   = _new_property('adexp',  'w_init') # w_init not defined in .mod file - needs to be
+    w_init   = _new_property('adexp',  'winit') # w_init not defined in .mod file - needs to be
     #v_init   = _new_property('seg',  'v') #?? something involving FInitialize
     
     def __set_v_spike(self, value):
-        self.adexp.v_spike = value
-        self.adexp.v_peak = value + 10.0
+        self.adexp.vspike = value
+        self.adexp.vpeak = value + 10.0
     def __get_v_spike(self):
-        return self.adexp.v_spike
+        return self.adexp.vspike
     v_spike = property(fget=__get_v_spike, fset=__set_v_spike)
     
     def __set_tau_m(self, value):
@@ -288,7 +290,7 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
             self.rec.record(self.spike_times)
 
     def get_threshold(self):
-        return self.adexp.v_spike
+        return self.adexp.vspike
 
 class SingleCompartmentTraub(SingleCompartmentNeuron):
     
@@ -296,10 +298,10 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
                  i_offset=0, v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70,
                  gbar_Na=20000, gbar_K=6000, g_leak=10, ena=50,
                  ek=-90, v_offset=-63):
+        if v_init is None:
+            v_init = v_rest
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
                                          v_init, tau_e, tau_i, e_e, e_i)
-        if v_init is None:
-            self.v_init = v_rest
         self.source = self.seg._ref_v
         self.insert('k_ion')
         self.insert('na_ion')
@@ -310,7 +312,9 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
-        
+
+    # not sure ena and ek are handled correctly
+    
     e_leak   = _new_property('seg.hh_traub', 'el')
     v_offset = _new_property('seg.hh_traub', 'vT')
     gbar_Na  = _new_property('seg.hh_traub', 'gnabar')
