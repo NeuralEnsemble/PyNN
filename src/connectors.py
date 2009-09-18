@@ -366,12 +366,8 @@ class OneToOneConnector(common.Connector):
             for tgt, w, d in zip(projection.post.local_cells,
                                  weights,
                                  delays):
-                id_class = type(tgt)
-                #src = id_class(tgt - projection.post.first_id + projection.pre.first_id) # assumes ids in a Population are consecutive
-                src = id_class(projection.pre.index(projection.post.id_to_index(tgt)))
-                src.parent = projection.pre
-                if hasattr(projection.pre, "brian_cells"):
-                    src.parent_group = projection.pre.brian_cells
+                src = projection.pre.index(projection.post.id_to_index(tgt))
+                
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
                 projection.connection_manager.connect(src, [tgt], float(w), float(d), projection.synapse_type)
         else:
