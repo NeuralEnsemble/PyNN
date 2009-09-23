@@ -8,13 +8,15 @@ __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
 from pyNN.neuron import simulator
-from pyNN import common, __doc__
+from pyNN import common, recording, __doc__
 common.simulator = simulator
+recording.simulator = simulator
 
 from pyNN.neuron.cells import *
 from pyNN.neuron.connectors import *
 from pyNN.neuron.synapses import *
 from pyNN.neuron.electrodes import *
+from pyNN.neuron.recording import *
 
 import numpy
 import logging
@@ -128,9 +130,9 @@ class Population(common.Population):
         label is an optional name for the population.
         """
         common.Population.__init__(self, dims, cellclass, cellparams, label)
-        self.recorders = {'spikes': simulator.Recorder('spikes', population=self),
-                          'v': simulator.Recorder('v', population=self),
-                          'gsyn': simulator.Recorder('gsyn', population=self)}
+        self.recorders = {'spikes': Recorder('spikes', population=self),
+                          'v': Recorder('v', population=self),
+                          'gsyn': Recorder('gsyn', population=self)}
         self.label = self.label or 'population%d' % Population.nPop
         if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
             self.celltype = cellclass(cellparams)

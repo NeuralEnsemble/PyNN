@@ -8,12 +8,15 @@ import nest
 from pyNN.nest import simulator
 from pyNN import common, recording, __doc__
 common.simulator = simulator
+recording.simulator = simulator
+
 from pyNN.random import *
 import numpy, os, shutil, logging, tempfile
 from pyNN.nest.cells import *
 from pyNN.nest.connectors import *
 from pyNN.nest.synapses import *
 from pyNN.nest.electrodes import *
+from pyNN.nest.recording import *
 
 Set = set
 
@@ -194,8 +197,8 @@ class Population(common.Population):
         if not self.label:
             self.label = 'population%d' % Population.nPop
         self.recorders = {}
-        for variable in simulator.RECORDING_DEVICE_NAMES:
-            self.recorders[variable] = simulator.Recorder(variable, population=self)
+        for variable in RECORDING_DEVICE_NAMES:
+            self.recorders[variable] = Recorder(variable, population=self)
         Population.nPop += 1
 
     def set(self, param, val=None):

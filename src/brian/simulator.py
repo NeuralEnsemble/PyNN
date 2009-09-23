@@ -31,7 +31,7 @@ import brian
 import numpy
 from itertools import izip
 import scipy.sparse
-from pyNN import common, cells, recording
+from pyNN import common, cells
 
 mV = brian.mV
 ms = brian.ms
@@ -231,115 +231,6 @@ class ID(int, common.IDMixin):
                 #    raise IndexError("%s. index=%d, self.parent_group.spiketimes=%s" % (errmsg, int(self), self.parent_group.spiketimes))
             else:
                 setattr(self.parent_group[int(self)], name, value)
-
-
-# --- For implementation of record_X()/get_X()/print_X() -----------------------
-
-class Recorder(object):
-    """Encapsulates data and functions related to recording model variables."""
-  
-    numpy1_1_formats = {'spikes': "%d\t%g",
-                        'v': "%d\t%g\t%g"}
-    numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support different
-                        'v': "%g",
-                        'gsyn': "%g",}      # formats for different columns
-    formats = {'spikes': 'id t',
-               'v': 'id t v',
-               'gsyn':'id t ge gi'} #???
-  
-    def __init__(self, variable, population=None, file=None):
-        """
-        Create a recorder.
-        
-        `variable` -- "spikes", "v" or "gsyn"
-        `population` -- the Population instance which is being recorded by the
-                        recorder (optional)
-        `file` -- one of:
-            - a file-name,
-            - `None` (write to a temporary file)
-            - `False` (write to memory).
-        """
-        assert variable in Recorder.formats
-        self.variable = variable
-        self.filename = file or None
-        self.population = population # needed for writing header information
-        self.recorded = set([])
-        self._devices = [] # defer creation until first call of record()
-    
-    def _create_devices(self, group):
-        """Create a Brian recording device."""
-        if self.variable == 'spikes':
-            devices = [brian.SpikeMonitor(group, record=True)]
-        elif self.variable == 'v':
-            devices = [brian.StateMonitor(group, 'v', record=True, clock=state.simclock)]
-        elif self.variable == 'gsyn':
-            example_cell = list(self.recorded)[0]
-            varname = example_cell.cellclass.synapses['excitatory']
-            device1 = brian.StateMonitor(group, varname, record=True, clock=state.simclock)
-            varname = example_cell.cellclass.synapses['inhibitory']
-            device2 = brian.StateMonitor(group, varname, record=True, clock=state.simclock)
-            devices = [device1, device2]
-        for device in devices:
-            net.add(device)
-        return devices
-    
-    def record(self, ids):
-        """Add the cells in `ids` to the set of recorded cells."""
-        #update StateMonitor.record and StateMonitor.recordindex
-        self.recorded = self.recorded.union(ids)
-        if len(self._devices) == 0:
-            self._devices = self._create_devices(ids[0].parent_group)
-        if self.variable is not 'spikes':
-            for device in self._devices:
-                device.record = list(self.recorded)
-                device.recordindex = dict((i,j) for i,j in zip(device.record,
-                                                               range(len(device.record))))
-    
-    def get(self, gather=False, compatible_output=True):
-        """Return the recorded data as a Numpy array."""
-        if self.population:
-            offset = self.population.first_id
-        else:
-            offset = 0
-        if self.variable == 'spikes':
-            data = numpy.array([(id, time/ms) for (id, time) in self._devices[0].spikes if id in self.recorded])
-        elif self.variable == 'v':
-            values = self._devices[0].values/mV
-            times = self._devices[0].times/ms
-            data = numpy.empty((0,3))
-            for id, row in enumerate(values):
-                new_data = numpy.array([numpy.ones(row.shape)*(id-offset), times, row]).T
-                data = numpy.concatenate((data, new_data))
-        elif self.variable == 'gsyn':
-            values1 = self._devices[0].values/uS
-            values2 = self._devices[1].values/uS
-            times = self._devices[0].times/ms
-            data = numpy.empty((0,4))
-            for id, (row1, row2) in enumerate(zip(values1, values2)):
-                assert row1.shape == row2.shape
-                new_data = numpy.array([numpy.ones(row1.shape)*(id-offset), times, row1, row2]).T
-                data = numpy.concatenate((data, new_data))
-        return data
-        
-    def write(self, file=None, gather=False, compatible_output=True):
-        """Write recorded data to file."""
-        data = self.get(gather)
-        filename = file or self.filename
-        recording.rename_existing(filename)
-        try:
-            numpy.savetxt(filename, data, Recorder.numpy1_0_formats[self.variable], delimiter='\t')
-        except AttributeError, errmsg:
-            # we assume the error is due to the lack of savetxt in older versions of numpy and
-            # so provide a cut-down version of that function
-            f = open(filename, 'w')
-            fmt = Recorder.numpy1_0_formats[self.variable]
-            for row in data:
-                f.write('\t'.join([fmt%val for val in row]) + '\n')
-            f.close()
-        if compatible_output:
-            recording.write_compatible_output(filename, filename, self.variable,
-                                              Recorder.formats[self.variable],
-                                              self.population, state.dt)
         
     
 # --- For implementation of create() and Population.__init__() ----------------- 

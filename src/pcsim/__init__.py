@@ -14,9 +14,10 @@ __version__ = "$Revision$"
 import sys
 
 import pyNN.random
-from pyNN import common, __doc__
+from pyNN import common, recording, __doc__
 from pyNN.pcsim import simulator
 common.simulator = simulator
+recording.simulator = simulator
 import os.path
 import types
 import sys
@@ -26,6 +27,7 @@ from pyNN.pcsim.cells import *
 from pyNN.pcsim.connectors import *
 from pyNN.pcsim.synapses import *
 from pyNN.pcsim.electrodes import *
+from pyNN.pcsim.recording import *
 
 try:
     import tables
@@ -361,9 +363,9 @@ class Population(common.Population):
         self._mask_local = self._mask_local.reshape(self.dim)
         self.cell = self.all_cells # temporary, awaiting harmonisation
         
-        self.recorders = {'spikes': simulator.Recorder('spikes', population=self),
-                          'v': simulator.Recorder('v', population=self),
-                          'gsyn': simulator.Recorder('gsyn', population=self)}
+        self.recorders = {'spikes': Recorder('spikes', population=self),
+                          'v': Recorder('v', population=self),
+                          'gsyn': Recorder('gsyn', population=self)}
         
         
         if not self.label:

@@ -28,7 +28,7 @@ $Id$
 """
 
 from pyNN import __path__ as pyNN_path
-from pyNN import common, recording, random
+from pyNN import common, random
 import platform
 import logging
 import numpy
@@ -238,139 +238,6 @@ class ID(int, common.IDMixin):
         """Set parameters of the NEURON cell model from a dictionary."""
         for name, val in parameters.items():
             setattr(self._cell, name, val)
-
-
-# --- For implementation of record_X()/get_X()/print_X() -----------------------
-
-class Recorder(object):
-    """Encapsulates data and functions related to recording model variables."""
-    
-    numpy1_1_formats = {'spikes': "%g\t%d",
-                        'v': "%g\t%g\t%d",
-                        'gsyn': "%g\t%g\t%g\t%d"}
-    numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support different
-                        'v': "%g",      # formats for different columns
-                        'gsyn': "%g"}
-    formats = {'spikes': 'id t',
-               'v': 'id t v',
-               'gsyn': 'id t ge gi'}
-    
-    def __init__(self, variable, population=None, file=None):
-        """
-        Create a recorder.
-        
-        `variable` -- "spikes", "v" or "gsyn"
-        `population` -- the Population instance which is being recorded by the
-                        recorder (optional)
-        `file` -- one of:
-            - a file-name,
-            - `None` (write to a temporary file)
-            - `False` (write to memory).
-        """
-        self.variable = variable
-        self.filename = file or None
-        self.population = population # needed for writing header information
-        self.recorded = set([])
-        
-    def record(self, ids):
-        """Add the cells in `ids` to the set of recorded cells."""
-        logging.debug('Recorder.record(%s)', str(ids))
-        if self.population:
-            ids = set([id for id in ids if id in self.population.local_cells])
-        else:
-            ids = set([id for id in ids if id.local])
-        new_ids = list( ids.difference(self.recorded) )
-        
-        self.recorded = self.recorded.union(ids)
-        logging.debug('Recorder.recorded = %s' % self.recorded)
-        if self.variable == 'spikes':
-            for id in new_ids:
-                id._cell.record(1)
-        elif self.variable == 'v':
-            for id in new_ids:
-                id._cell.record_v(1)
-        elif self.variable == 'gsyn':
-            for id in new_ids:
-                id._cell.record_gsyn("excitatory", 1)
-                id._cell.record_gsyn("inhibitory", 1)
-        else:
-            raise Exception("Recording of %s not implemented." % self.variable)
-        
-    def get(self, gather=False, compatible_output=True, offset=None):
-        """Return the recorded data as a Numpy array."""
-        # compatible_output is not used, but is needed for compatibility with the nest2 module.
-        # Does nest2 really need it?
-        if offset is None:
-            if self.population:
-                offset = self.population.first_id
-            else:
-                offset = 0
-                
-        if self.variable == 'spikes':
-            data = numpy.empty((0,2))
-            for id in self.recorded:
-                spikes = numpy.array(id._cell.spike_times)
-                spikes = spikes[spikes<=state.t+1e-9]
-                if len(spikes) > 0:    
-                    new_data = numpy.array([numpy.ones(spikes.shape)*(id-offset), spikes]).T
-                    data = numpy.concatenate((data, new_data))
-        elif self.variable == 'v':
-            data = numpy.empty((0,3))
-            for id in self.recorded:
-                v = numpy.array(id._cell.vtrace)  
-                t = numpy.array(id._cell.record_times)
-                #new_data = numpy.array([t, v, numpy.ones(v.shape)*id]).T
-                #new_data = numpy.array([numpy.ones(v.shape)*id, t, v]).T                
-                new_data = numpy.array([numpy.ones(v.shape)*(id-offset), t, v]).T
-                data = numpy.concatenate((data, new_data))
-        elif self.variable == 'gsyn':
-            data = numpy.empty((0,4))
-            for id in self.recorded:
-                ge = numpy.array(id._cell.gsyn_trace['excitatory'])
-                gi = numpy.array(id._cell.gsyn_trace['inhibitory'])
-                t = numpy.array(id._cell.record_times)             
-                new_data = numpy.array([numpy.ones(ge.shape)*(id-offset), t, ge, gi]).T
-                data = numpy.concatenate((data, new_data))
-        else:
-            raise Exception("Recording of %s not implemented." % self.variable)
-        if gather and state.num_processes > 1:
-            data = recording.gather(data)
-        return data
-    
-    def write(self, file=None, gather=False, compatible_output=True):
-        """Write recorded data to file."""
-        data = self.get(gather)
-        filename = file or self.filename
-        #recording.rename_existing(filename) # commented out because it causes problems when running with mpirun and a shared filesystem. Probably a timing problem
-        try:
-            numpy.savetxt(filename, data, Recorder.numpy1_0_formats[self.variable], delimiter='\t')
-        except AttributeError, errmsg:
-            # we assume the error is due to the lack of savetxt in older versions of numpy and
-            # so provide a cut-down version of that function
-            f = open(filename, 'w')
-            fmt = Recorder.numpy1_0_formats[self.variable]
-            for row in data:
-                f.write('\t'.join([fmt%val for val in row]) + '\n')
-            f.close()
-        if compatible_output and state.mpi_rank==0: # would be better to distribute this step
-            recording.write_compatible_output(filename, filename, self.variable,
-                                              Recorder.formats[self.variable],
-                                              self.population, state.dt)
-        
-    def count(self, gather=False):
-        """
-        Return the number of data points for each cell, as a dict. This is mainly
-        useful for spike counts or for variable-time-step integration methods.
-        """
-        N = {}
-        if self.variable == 'spikes':
-            for id in self.recorded:
-                N[id] = id._cell.spike_times.size()
-        else:
-            raise Exception("Only implemented for spikes.")
-        if gather and state.num_processes > 1:
-            N = recording.gather_dict(N)
-        return N
         
 
 # --- For implementation of create() and Population.__init__() -----------------

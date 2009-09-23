@@ -8,13 +8,15 @@ $Id$
 import logging
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
-from pyNN import common, __doc__
+from pyNN import common, recording, __doc__
 common.simulator = simulator
+recording.simulator = simulator
 
 from pyNN.brian.cells import *
 from pyNN.brian.connectors import *
 from pyNN.brian.synapses import *
 from pyNN.brian.electrodes import *
+from pyNN.brian.recording import *
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
@@ -117,9 +119,9 @@ class Population(common.Population):
         
         if not self.label:
             self.label = 'population%d' % Population.nPop
-        self.recorders = {'spikes': simulator.Recorder('spikes', population=self),
-                          'v': simulator.Recorder('v', population=self),
-                          'gsyn': simulator.Recorder('gsyn', population=self),}
+        self.recorders = {'spikes': Recorder('spikes', population=self),
+                          'v': Recorder('v', population=self),
+                          'gsyn': Recorder('gsyn', population=self),}
         Population.nPop += 1
         
     def meanSpikeCount(self, gather=True):

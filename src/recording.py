@@ -12,12 +12,20 @@ import tempfile
 import logging
 import os.path
 import numpy
+import os
 try:
     from mpi4py import MPI
 except ImportError:
     MPI = None
 
 DEFAULT_BUFFER_SIZE = 10000
+
+numpy1_1_formats = {'spikes': "%g\t%d",
+                    'v': "%g\t%g\t%d",
+                    'gsyn': "%g\t%g\t%g\t%d"}
+numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support different
+                    'v': "%g",      # formats for different columns
+                    'gsyn': "%g"}
 
 if MPI:
     mpi_comm = MPI.COMM_WORLD
@@ -28,166 +36,15 @@ def rename_existing(filename):
         os.system('mv %s %s_old' % (filename, filename))
         logging.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
 
-def write_compatible_output(sim_filename, user_filename, variable, input_format, population, dt, scale_factor=1):
+def _savetxt(filename, data, format, delimiter):
     """
-    Rewrite simulation data in a standard format:
-        spiketime (in ms) cell_id-min(cell_id)
+    Due to the lack of savetxt in older versions of numpy
+    we provide a cut-down version of that function.
     """
-    logging.info("Writing %s in compatible format (was %s)" % (user_filename, sim_filename))
-                    
-    # Writing spiketimes, cell_id-min(cell_id)                    
-    # open file
-    
-    try: 
-        N = os.path.getsize(sim_filename)
-    except Exception:
-        N = 0
-    
-    # First read the data (in case sim_filename and user_filename are identical)
-    if N > 0:
-        data = readArray(sim_filename, sepchar=None)
-        
-    # Write header info (e.g., dimensions of the population)
-    result = open(user_filename,'w',DEFAULT_BUFFER_SIZE)
-    if population is not None:
-        result.write("# dimensions = %s\n" %list(population.dim))
-        result.write("# first_id = %d\n" % 0)
-        result.write("# last_id = %d\n" % (len(population)-1,))
-        padding = population.first_id
-    else:
-        padding = 0
-    result.write("# dt = %g\n" % dt)
-        
-    if N > 0:
-        ##this is currently done in the individual modules# data[:,0] = data[:,0] - padding
-        
-        # sort
-        ##indx = data.argsort(axis=0, kind='mergesort')[:,0] # will quicksort (not stable) work?
-        ##data = data[indx]
-        
-        input_format = input_format.split()
-        time_column = input_format.index('t')
-        id_column = input_format.index('id')
-        
-        if len(data.shape) != 2:
-            raise Exception("Problem reading data file %s. data.shape is %s" % (sim_filename, str(data.shape)))
-        
-        if data.shape[1] == 4: # conductance files
-            ge_column = input_format.index('ge')
-            gi_column = input_format.index('gi')
-            result.write("# n = %d\n" % len(data))
-            if scale_factor != 1:
-                data[:,ge_column] *= scale_factor
-                data[:,gi_column] *= scale_factor
-            for idx in xrange(len(data)):
-                result.write("%g\t%g\t%d\n" % (data[idx][ge_column], data[idx][gi_column], data[idx][id_column])) # ge gi id
-        elif data.shape[1] == 3: # voltage files
-            v_column = input_format.index('v')
-            #result.write("# n = %d\n" % int(nest.GetStatus([0], "time")[0]/dt))
-            result.write("# n = %d\n" % len(data))
-            if scale_factor != 1:
-                data[:,v_column] *= scale_factor
-            for idx in xrange(len(data)):
-                result.write("%g\t%g\n" % (data[idx][v_column], int(data[idx][id_column]))) # v id
-        elif data.shape[1] == 2: # spike files
-            for idx in xrange(len(data)):
-                result.write("%g\t%g\n" % (data[idx][time_column], data[idx][id_column])) # time id
-        else:
-            raise Exception("Data file should have 2,3 or 4 columns, actually has %d" % data.shape[1])
-    else:
-        logging.info("%s is empty" % sim_filename)
-        result.write("# n = 0\n")
-    result.close()
-
-def write_compatible_output1(data_source, user_filename, variable, input_format, population, dt):
-    """
-    Rewrite simulation data in a standard format:
-        spiketime (in ms) cell_id-min(cell_id)
-    """
-    if isinstance(data_source, numpy.ndarray):
-        logging.info("Writing %s in compatible format (from memory)" % user_filename)
-        N = len(data_source)
-    else: # assume data is a filename or open file object
-        logging.info("Writing %s in compatible format (was %s)" % (user_filename, data_source))
-        try: 
-            N = os.path.getsize(data_source)
-        except Exception:
-            N = 0
-    
-    if N > 0:
-        user_file = StandardTextFile(user_filename)    
-        # Write header info (e.g., dimensions of the population)
-        metadata = {}
-        if population is not None:
-            metadata.update({
-                'dimensions': str(list(population.dim)),
-                'first_id': 0,
-                'last_id': len(population)-1
-            })
-            id_offset = population.first_id
-        else:
-            id_offset = 0
-        metadata['dt'] = dt
-        
-        input_format = input_format.split()
-        time_column = input_format.index('t')
-        id_column = input_format.index('id')
-        
-        if variable == 'conductance':
-            ge_column = input_format.index('ge')
-            gi_column = input_format.index('gi')
-            column_map = [ge_column, gi_column, id_column]
-        elif variable == 'v': # voltage files
-            v_column = input_format.index('v')
-            column_map = [v_column, id_column]
-        elif variable == 'spikes': # spike files
-            column_map = [time_column, id_column]
-        else:
-            raise Exception("Invalid variable")
-        
-        # Read/select data
-        if isinstance(data_source, numpy.ndarray):
-            data_array = data_source[:, column_map]
-        else: # assume data is a filename or open file object
-            #data_array = numpy.loadtxt(data_source, usecols=column_map)
-            data_array = readArray(data_source, sepchar=None)
-        data_array[:,-1] -= id_offset # replies on fact that id is always last column
-        metadata['n'] = data_array.shape[0]
-        
-        user_file.write(data_array, metadata)
-    else:
-        logging.warning("%s is empty or does not exist" % data_source)
-
-def readArray(filename, sepchar=None, skipchar='#'):
-    """
-    (Pylab has a great load() function, but it is not necessary to import
-    it into pyNN. The fromfile() function of numpy has trouble on several
-    machines with Python 2.5, so that's why a dedicated readArray function
-    has been created to load from file the spike raster or the membrane potentials
-    saved by the simulators).
-    """
-    myfile = open(filename, "r", DEFAULT_BUFFER_SIZE)
-    contents = myfile.readlines()
-    myfile.close()
-    data = []
-    for line in contents:
-        stripped_line = line.lstrip()
-        if (len(stripped_line) != 0):
-            if (stripped_line[0] != skipchar):
-                items = stripped_line.split(sepchar)
-                try:
-                    data.append(map(float, items))
-                except ValueError, e:
-                    raise ValueError("%s. items=%s. filename=%s" % (e, items, filename))
-    try:
-        a = numpy.array(data)
-    except ValueError, e:
-        raise ValueError("%s\ndata[:10] = %s\ndata[-10:] = %s\nfilename=%s" % (e, data[:10], data[-10:], filename))
-    if a.size > 0:
-        (Nrow, Ncol) = a.shape
-        #logging.debug(str(a.shape))
-        #if ((Nrow == 1) or (Ncol == 1)): a = numpy.ravel(a)
-    return a
+    f = open(filename, 'w')
+    for row in data:
+        f.write(delimiter.join([format%val for val in row]) + '\n')
+    f.close()
 
 def gather(data):
     # gather 1D or 2D numpy arrays
@@ -222,6 +79,142 @@ def mpi_sum(x):
     return mpi_comm.allreduce(x, op=MPI.SUM)
 
 
+class Recorder(object):
+    """Encapsulates data and functions related to recording model variables."""
+    
+
+    formats = {'spikes': 'id t',
+               'v': 'id t v',
+               'gsyn': 'id t ge gi'}
+    
+    def __init__(self, variable, population=None, file=None):
+        """
+        Create a recorder.
+        
+        `variable` -- "spikes", "v" or "gsyn"
+        `population` -- the Population instance which is being recorded by the
+                        recorder (optional)
+        `file` -- one of:
+            - a file-name,
+            - `None` (write to a temporary file)
+            - `False` (write to memory).
+        """
+        assert variable in Recorder.formats
+        self.variable = variable
+        self.filename = file
+        self.population = population # needed for writing header information
+        self.recorded = set([])
+        
+    def record(self, ids):
+        """Add the cells in `ids` to the set of recorded cells."""
+        logging.debug('Recorder.record(%s)', str(ids))
+        if self.population:
+            ids = set([id for id in ids if id in self.population.local_cells])
+        else:
+            ids = set([id for id in ids if id.local])
+        new_ids = list( ids.difference(self.recorded) )
+        
+        self.recorded = self.recorded.union(ids)
+        logging.debug('Recorder.recorded = %s' % self.recorded)
+        self._record(new_ids)
+        
+    def get(self, gather=False, compatible_output=True, offset=None):
+        """Return the recorded data as a Numpy array."""
+        raise NotImplementedError
+    
+    def write(self, file=None, gather=False, compatible_output=True):
+        """Write recorded data to file."""
+        filename = file or self.filename
+        #rename_existing(filename)
+        if isinstance(filename, basestring):
+            if gather==False and simulator.state.num_processes > 1:
+                filename += '.%d' % simulator.state.mpi_rank
+        logging.debug("Recorder is writing '%s' to file '%s' with gather=%s and compatible_output=%s" % (self.variable,
+                                                                                                         filename,
+                                                                                                         gather,
+                                                                                                         compatible_output))
+        data = self.get(gather, compatible_output)
+        if simulator.state.mpi_rank == 0 or gather==False:
+            if compatible_output:
+                data, metadata = self._make_compatible(data, filename)
+            else:
+                metadata = {}
+            # Open the output file and write the data
+            user_file = StandardTextFile(filename)    
+            user_file.write(data, metadata)
+    
+    def _make_compatible(self, data_source, user_filename):
+        """
+        Rewrite simulation data in a standard format:
+            spiketime (in ms) cell_id-min(cell_id)
+        """
+        if isinstance(data_source, numpy.ndarray):
+            logging.info("Writing %s in compatible format (from memory)" % user_filename)
+            N = len(data_source)
+        else: # assume data is a filename or open file object
+            logging.info("Writing %s in compatible format (was %s)" % (user_filename, data_source))
+            try: 
+                N = os.path.getsize(data_source)
+            except Exception:
+                N = 0
+        
+        if N > 0:
+            # Write header info (e.g., dimensions of the population)
+            metadata = {}
+            if self.population is not None:
+                metadata.update({
+                    'dimensions': str(list(self.population.dim)),
+                    'first_id': 0,
+                    'last_id': len(self.population)-1
+                })
+                id_offset = self.population.first_id
+            else:
+                id_offset = 0
+            metadata['dt'] = simulator.state.dt
+            
+            input_format = self.formats[self.variable].split()
+            time_column = input_format.index('t')
+            id_column = input_format.index('id')
+            
+            if self.variable == 'conductance':
+                ge_column = input_format.index('ge')
+                gi_column = input_format.index('gi')
+                column_map = [ge_column, gi_column, id_column]
+            elif self.variable == 'v': # voltage files
+                v_column = input_format.index('v')
+                column_map = [v_column, id_column]
+            elif self.variable == 'spikes': # spike files
+                column_map = [time_column, id_column]
+            else:
+                raise Exception("Invalid variable")
+            
+            # Read/select data
+            if isinstance(data_source, numpy.ndarray):
+                data_array = data_source[:, column_map]
+            else: # assume data is a filename or open file object
+                data_array = numpy.loadtxt(data_source, usecols=column_map)
+            data_array[:,-1] -= id_offset # replies on fact that id is always last column
+            metadata['n'] = data_array.shape[0]
+        else:
+            logging.warning("%s is empty or does not exist" % data_source)
+            data_array = []
+            metadata = {}
+        return data_array, metadata
+    
+    def count(self, gather=False):
+        """
+        Return the number of data points for each cell, as a dict. This is mainly
+        useful for spike counts or for variable-time-step integration methods.
+        """
+        if self.variable == 'spikes':
+            N = self._local_count()
+        else:
+            raise Exception("Only implemented for spikes.")
+        if gather and simulator.state.num_processes > 1:
+            N = recording.gather_dict(N)
+        return N
+    
+
 class StandardTextFile(object):
     
     
@@ -237,5 +230,6 @@ class StandardTextFile(object):
         header_lines = ["# %s = %s" % item for item in metadata.items()]
         self.fileobj.write("\n".join(header_lines) + '\n')
         # write data
-        numpy.savetxt(self.fileobj, data, fmt = '%s', delimiter='\t')
+        savetxt = getattr(numpy, 'savetxt', _savetxt)
+        savetxt(self.fileobj, data, fmt='%s', delimiter='\t')
         self.fileobj.close()
