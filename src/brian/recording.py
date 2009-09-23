@@ -68,3 +68,5 @@ class Recorder(recording.Recorder):
                 new_data = numpy.array([numpy.ones(row1.shape)*id, times, row1, row2]).T
                 data = numpy.concatenate((data, new_data))
         return data
+
+simulator.Recorder = Recorder

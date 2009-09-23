@@ -94,3 +94,5 @@ class Recorder(recording.Recorder):
         if gather and simulator.state.num_processes > 1:
             N = recording.gather_dict(N)
         return N
+    
+simulator.Recorder = Recorder

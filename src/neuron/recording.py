@@ -60,3 +60,5 @@ class Recorder(recording.Recorder):
         for id in self.recorded:
             N[id] = id._cell.spike_times.size()
         return N
+
+simulator.Recorder = Recorder

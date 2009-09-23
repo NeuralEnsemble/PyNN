@@ -208,3 +208,5 @@ class Recorder(recording.Recorder):
                 else:
                     N[id] = 1
         return N
+    
+simulator.Recorder = Recorder # very inelegant. Need to rethink the module structure
