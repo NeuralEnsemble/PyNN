@@ -257,6 +257,12 @@ When running a distributed simulation, each node records only those neurons that
 By default, at the end of the simulation all nodes send their recorded data to the master node so that all values are written to a single output file.
 Again, there is a performance penalty for this, so if you wish each node to write its own file, add ``gather=False`` to the argument list.
 
+It is possible to save data in various different formats. The default (if you pass a filename) is a text file, but you can also save in various binary formats. To save in HDF5 format, for example::
+
+    >>> h5file = recording.files.HDF5ArrayFile("spikefile.h5", "w")
+    >>> p1.printSpikes(h5file)
+    >>> h5file.close()
+
 If you wish to obtain the recorded data within the simulation script, for plotting or further analysis, there is a further triple of methods, ``getSpikes()``, ``get_v()`` and ``get_gsyn()``. Again, there is a ``gather`` option for distributed simulations.
 
 Position in space

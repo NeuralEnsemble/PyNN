@@ -7,7 +7,9 @@ import sys
 import unittest
 import numpy
 import os
-from pyNN import common, random, utility
+import cPickle as pickle
+from pyNN import common, random, utility, recording
+import tables
 
 try:
     from mpi4py import MPI
@@ -408,9 +410,10 @@ class PopulationSpikesTest(unittest.TestCase):
     def setUp(self):
         sim.setup()
         self.spiketimes = numpy.arange(5,105,10.0)
-        spiketimes_2D = self.spiketimes.reshape((len(self.spiketimes),1))
-        self.input_spike_array = numpy.concatenate((numpy.zeros(spiketimes_2D.shape, 'float'), spiketimes_2D),
-                                                   axis=1)
+        #spiketimes_2D = self.spiketimes.reshape((len(self.spiketimes),1))
+        #self.input_spike_array = numpy.concatenate((numpy.zeros(spiketimes_2D.shape, 'float'), spiketimes_2D),
+        #                                           axis=1)
+        self.input_spike_array = self.spiketimes
         self.p1 = sim.Population(1, sim.SpikeSourceArray, {'spike_times': self.spiketimes})
     
     def tearDown(self):
@@ -419,7 +422,7 @@ class PopulationSpikesTest(unittest.TestCase):
     def testGetSpikes(self):
         self.p1.record()
         sim.run(100.0)
-        output_spike_array = self.p1.getSpikes()
+        output_spike_array = self.p1.getSpikes()[:,1]
         if sim.rank() == 0:
             assert_arrays_almost_equal(self.input_spike_array, output_spike_array, 1e-11)
     
@@ -431,9 +434,9 @@ class PopulationSpikesTest(unittest.TestCase):
         self.p1.record()
         sim.run(100.0)
         output_spike_array = self.p1.getSpikes()
-        self.assertEqual(self.input_spike_array.shape, (10,2))
+        self.assertEqual(self.input_spike_array.shape, (10,))
         if sim.rank() == 0:
-            self.assertEqual(self.input_spike_array.shape, output_spike_array.shape)
+            self.assertEqual(self.input_spike_array.size, output_spike_array.shape[0])
 
 #===============================================================================
 class PopulationSetTest(unittest.TestCase):
@@ -1022,6 +1025,66 @@ class SpikeSourceTest(unittest.TestCase):
         diff = abs(len(spikes)-expected_count)/expected_count
         assert diff < 0.1, str(diff)
     
+class FileTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.pop = sim.Population((3,3), sim.IF_curr_alpha)
+        if hasattr(sim, 'simulator') and hasattr(sim.simulator, 'reset'):
+            sim.simulator.reset()
+        rng = random.NumpyRNG(123)
+        v_reset  = -65.0
+        v_thresh = -50.0
+        uniformDistr = random.RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])
+        self.pop.randomInit(uniformDistr)
+        self.cells_to_record = [self.pop[0,0], self.pop[1,1]]
+        self.pop.record_v(self.cells_to_record)
+        simtime = 10.0
+        sim.running = False
+        sim.run(simtime)
+        
+    def test_text_file(self):
+        output_file = recording.files.StandardTextFile("temp_v.txt", 'w')
+        self.pop.print_v(output_file, gather=True, compatible_output=True)
+        vm = self.pop.get_v()
+        if sim.rank() == 0:
+            self.assertEqual(vm.shape, ((1+int(10.0/0.1))*len(self.cells_to_record), 3))
+            vm_fromfile = numpy.loadtxt(output_file.name)
+            #print vm_fromfile
+            self.assertEqual(vm_fromfile.shape, ((1+int(10.0/0.1))*len(self.cells_to_record), 2))
+                
+    def test_pickle_file(self):
+        output_file = recording.files.PickleFile("temp_v.pkl", 'w')
+        self.pop.print_v(output_file, gather=True, compatible_output=True)
+        vm = self.pop.get_v()
+        if sim.rank() == 0:
+            self.assertEqual(vm.shape, ((1+int(10.0/0.1))*len(self.cells_to_record), 3))
+            f = open(output_file.name)
+            vm_fromfile, metadata = pickle.load(f)
+            f.close()
+            #print vm_fromfile
+            self.assertEqual(vm_fromfile.shape, ((1+int(10.0/0.1))*len(self.cells_to_record), 2))
+        
+    def test_numpy_binary_file(self):
+        output_file = recording.files.NumpyBinaryFile("temp_v.npz", 'w')
+        self.pop.print_v(output_file, gather=True, compatible_output=True)
+        vm = self.pop.get_v()
+        if sim.rank() == 0:
+            self.assertEqual(vm.shape, ((1+int(10.0/0.1))*len(self.cells_to_record), 3))
+            vm_fromfile = numpy.load(output_file.name)['data']
+            #print vm_fromfile
+            self.assertEqual(vm_fromfile.shape, ((1+int(10.0/0.1))*len(self.cells_to_record), 2))
+                
+    def test_hdf5_array_file(self):
+        output_file = recording.files.HDF5ArrayFile("temp_v.h5", 'w')
+        self.pop.print_v(output_file, gather=True, compatible_output=True)
+        vm = self.pop.get_v()
+        if sim.rank() == 0:
+            self.assertEqual(vm.shape, ((1+int(10.0/0.1))*len(self.cells_to_record), 3))
+            #h5file = tables.openFile(output_file.name, 'r')
+            h5file = recording.files.HDF5ArrayFile("temp_v.h5", 'r')
+            vm_fromfile = h5file.read()
+            h5file.close()
+            self.assertEqual(vm_fromfile.shape, ((1+int(10.0/0.1))*len(self.cells_to_record), 2))
                 
 # ==============================================================================
 if __name__ == "__main__":

@@ -37,7 +37,7 @@ class Recorder(recording.Recorder):
         device_parameters = {"withgid": True, "withtime": True}
         if self.variable != 'spikes':
             device_parameters["interval"] = common.get_time_step()
-        if self.filename is False:
+        if self.file is False:
             device_parameters.update(to_file=False, to_memory=True)
         else: # (includes self.file is None)
             device_parameters.update(to_file=True, to_memory=False)

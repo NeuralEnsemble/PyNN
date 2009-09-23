@@ -1064,9 +1064,11 @@ class Population(object):
         """
         self._record('gsyn', record_from, rng, to_file)
 
-    def printSpikes(self, filename, gather=True, compatible_output=True):
+    def printSpikes(self, file, gather=True, compatible_output=True):
         """
         Write spike times to file.
+        
+        file should be either a filename or a PyNN File object.
         
         If compatible_output is True, the format is "spiketime cell_id",
         where cell_id is the index of the cell counting along rows and down
@@ -1085,7 +1087,7 @@ class Population(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """        
-        self.recorders['spikes'].write(filename, gather, compatible_output)
+        self.recorders['spikes'].write(file, gather, compatible_output)
     
     def getSpikes(self, gather=True, compatible_output=True):
         """
@@ -1096,9 +1098,11 @@ class Population(object):
         """
         return self.recorders['spikes'].get(gather, compatible_output)
 
-    def print_v(self, filename, gather=True, compatible_output=True):
+    def print_v(self, file, gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
+        
+        file should be either a filename or a PyNN File object.
         
         If compatible_output is True, the format is "v cell_id",
         where cell_id is the index of the cell counting along rows and down
@@ -1115,7 +1119,7 @@ class Population(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        self.recorders['v'].write(filename, gather, compatible_output)
+        self.recorders['v'].write(file, gather, compatible_output)
     
     def get_v(self, gather=True, compatible_output=True):
         """
@@ -1124,9 +1128,11 @@ class Population(object):
         """
         return self.recorders['v'].get(gather, compatible_output)
     
-    def print_gsyn(self, filename, gather=True, compatible_output=True):
+    def print_gsyn(self, file, gather=True, compatible_output=True):
         """
         Write synaptic conductance traces to file.
+        
+        file should be either a filename or a PyNN File object.
         
         If compatible_output is True, the format is "t g cell_id",
         where cell_id is the index of the cell counting along rows and down
@@ -1138,7 +1144,7 @@ class Population(object):
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        self.recorders['gsyn'].write(filename, gather, compatible_output)
+        self.recorders['gsyn'].write(file, gather, compatible_output)
     
     def get_gsyn(self, gather=True, compatible_output=True):
         """

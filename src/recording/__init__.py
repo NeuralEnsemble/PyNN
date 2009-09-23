@@ -13,12 +13,13 @@ import logging
 import os.path
 import numpy
 import os
+import files
 try:
     from mpi4py import MPI
 except ImportError:
     MPI = None
 
-DEFAULT_BUFFER_SIZE = 10000
+
 
 numpy1_1_formats = {'spikes': "%g\t%d",
                     'v': "%g\t%g\t%d",
@@ -35,16 +36,6 @@ def rename_existing(filename):
     if os.path.exists(filename):
         os.system('mv %s %s_old' % (filename, filename))
         logging.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
-
-def _savetxt(filename, data, format, delimiter):
-    """
-    Due to the lack of savetxt in older versions of numpy
-    we provide a cut-down version of that function.
-    """
-    f = open(filename, 'w')
-    for row in data:
-        f.write(delimiter.join([format%val for val in row]) + '\n')
-    f.close()
 
 def gather(data):
     # gather 1D or 2D numpy arrays
@@ -101,7 +92,7 @@ class Recorder(object):
         """
         assert variable in Recorder.formats
         self.variable = variable
-        self.filename = file
+        self.file = file
         self.population = population # needed for writing header information
         self.recorded = set([])
         
@@ -124,11 +115,14 @@ class Recorder(object):
     
     def write(self, file=None, gather=False, compatible_output=True):
         """Write recorded data to file."""
-        filename = file or self.filename
-        #rename_existing(filename)
-        if isinstance(filename, basestring):
+        file = file or self.file
+        if isinstance(file, basestring):
+            filename = file
+            #rename_existing(filename)
             if gather==False and simulator.state.num_processes > 1:
                 filename += '.%d' % simulator.state.mpi_rank
+        else:
+            filename = file.name
         logging.debug("Recorder is writing '%s' to file '%s' with gather=%s and compatible_output=%s" % (self.variable,
                                                                                                          filename,
                                                                                                          gather,
@@ -136,23 +130,25 @@ class Recorder(object):
         data = self.get(gather, compatible_output)
         if simulator.state.mpi_rank == 0 or gather==False:
             if compatible_output:
-                data, metadata = self._make_compatible(data, filename)
+                data, metadata = self._make_compatible(data)
             else:
                 metadata = {}
-            # Open the output file and write the data
-            user_file = StandardTextFile(filename)    
-            user_file.write(data, metadata)
+            # Open the output file, if necessary and write the data
+            if isinstance(file, basestring):
+                file = files.StandardTextFile(filename, mode='w')
+            file.write(data, metadata)
+            file.close()
     
-    def _make_compatible(self, data_source, user_filename):
+    def _make_compatible(self, data_source):
         """
         Rewrite simulation data in a standard format:
             spiketime (in ms) cell_id-min(cell_id)
         """
         if isinstance(data_source, numpy.ndarray):
-            logging.info("Writing %s in compatible format (from memory)" % user_filename)
+            logging.debug("Converting data from memory into compatible format")
             N = len(data_source)
         else: # assume data is a filename or open file object
-            logging.info("Writing %s in compatible format (was %s)" % (user_filename, data_source))
+            logging.debug("Converting data from file %s into compatible format" % data_source)
             try: 
                 N = os.path.getsize(data_source)
             except Exception:
@@ -197,7 +193,7 @@ class Recorder(object):
             metadata['n'] = data_array.shape[0]
         else:
             logging.warning("%s is empty or does not exist" % data_source)
-            data_array = []
+            data_array = numpy.array([])
             metadata = {}
         return data_array, metadata
     
@@ -214,22 +210,3 @@ class Recorder(object):
             N = recording.gather_dict(N)
         return N
     
-
-class StandardTextFile(object):
-    
-    
-    def __init__(self, filename, gather=False):
-        self.name = filename
-        self.gather = gather
-        self.fileobj = open(self.name, 'w', DEFAULT_BUFFER_SIZE)
-        
-    def write(self, data, metadata):
-        # can we write to the file more than once? In this case, should use seek,tell
-        # to always put the header information at the top?
-        # write header
-        header_lines = ["# %s = %s" % item for item in metadata.items()]
-        self.fileobj.write("\n".join(header_lines) + '\n')
-        # write data
-        savetxt = getattr(numpy, 'savetxt', _savetxt)
-        savetxt(self.fileobj, data, fmt='%s', delimiter='\t')
-        self.fileobj.close()
