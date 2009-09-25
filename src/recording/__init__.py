@@ -172,7 +172,7 @@ class Recorder(object):
             time_column = input_format.index('t')
             id_column = input_format.index('id')
             
-            if self.variable == 'conductance':
+            if self.variable == 'gsyn':
                 ge_column = input_format.index('ge')
                 gi_column = input_format.index('gi')
                 column_map = [ge_column, gi_column, id_column]
