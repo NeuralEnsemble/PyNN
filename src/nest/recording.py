@@ -163,8 +163,19 @@ class Recorder(recording.Recorder):
             else:
                 nest_files = [nest.GetStatus(self._device, "filename")[0]]
             # possibly we can just keep on saving to the end of self._merged_file, instead of concatenating everything in memory
-            data = numpy.concatenate([numpy.loadtxt(nest_file) for nest_file in nest_files])
-            if data.size == 0:
+            
+            datas = []
+            for nest_file in nest_files:
+                try:
+                    datas.append(numpy.loadtxt(nest_file))
+                except Exception:
+                    pass
+            try:
+                data = numpy.concatenate(datas)
+            except Exception:
+                data = []
+
+            if len(data) == 0:
                 ncol = len(Recorder.formats[self.variable].split())
                 data = numpy.empty([0, ncol])
             if compatible_output:
