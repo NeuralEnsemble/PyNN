@@ -565,7 +565,7 @@ class Projection(common.Projection, WDManager):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    method, source, target,
                                    synapse_dynamics, label, rng)
-        self.is_conductance = "cond" in self.post.celltype.__class__.__name__
+        self.is_conductance = self.post.celltype.__class__.conductance_based
         self.synapse_shape = ("alpha" in self.post.celltype.__class__.__name__) and "alpha" or "exp"
         
         ### Determine connection decider

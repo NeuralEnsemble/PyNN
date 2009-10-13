@@ -172,8 +172,8 @@ def is_conductance(target_cell):
     """
     if hasattr(target_cell, 'local') and target_cell.local and hasattr(target_cell, 'cellclass'):
         if isinstance(target_cell.cellclass, type):
-            is_conductance = "cond" in target_cell.cellclass.__name__
-        else:
+            is_conductance = target_cell.cellclass.conductance_based
+        else: # where cellclass is a string, i.e. for native cell types in NEST
             is_conductance = "cond" in target_cell.cellclass
     else:
         is_conductance = None
@@ -571,6 +571,7 @@ class StandardCellType(StandardModelType):
 
     recordable = ['spikes', 'v', 'gsyn']
     synapse_types = ('excitatory', 'inhibitory')
+    conductance_based = True # over-ride for cells with current-based synapses
 
 
 class ModelNotAvailable(object):

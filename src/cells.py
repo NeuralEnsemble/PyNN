@@ -48,6 +48,7 @@ class IF_curr_alpha(StandardCellType):
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
     recordable = ['spikes', 'v']
+    conductance_based = False
 
 class IF_curr_exp(StandardCellType):
     """
@@ -69,6 +70,7 @@ class IF_curr_exp(StandardCellType):
         'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
     recordable = ['spikes', 'v']
+    conductance_based = False
 
 class IF_cond_alpha(StandardCellType):
     """
