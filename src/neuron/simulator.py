@@ -40,6 +40,7 @@ nrn_dll_loaded = []
 recorder_list = []
 connection_managers = []
 
+logger = logging.getLogger("PyNN")
 
 # --- Internal NEURON functionality -------------------------------------------- 
 
@@ -130,7 +131,7 @@ class _Initializer(object):
     
     def _initialize(self):
         """Call `memb_init()` for all registered cell objects."""
-        logging.info("Initializing membrane potential of %d cells and %d Populations." % \
+        logger.info("Initializing membrane potential of %d cells and %d Populations." % \
                      (len(self.cell_list), len(self.population_list)))
         for cell in self.cell_list:
             cell._cell.memb_init()
@@ -185,12 +186,12 @@ def run(simtime):
         local_minimum_delay = state.parallel_context.set_maxstep(10)
         h.finitialize()
         state.tstop = 0
-        logging.debug("local_minimum_delay on host #%d = %g" % (state.mpi_rank, local_minimum_delay))
+        logger.debug("local_minimum_delay on host #%d = %g" % (state.mpi_rank, local_minimum_delay))
         if state.num_processes > 1:
             assert local_minimum_delay >= state.min_delay,\
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, state.min_delay)
     state.tstop += simtime
-    logging.info("Running the simulation for %d ms" % simtime)
+    logger.info("Running the simulation for %d ms" % simtime)
     state.parallel_context.psolve(state.tstop)
 
 def finalize(quit=True):
@@ -198,7 +199,7 @@ def finalize(quit=True):
     state.parallel_context.runworker()
     state.parallel_context.done()
     if quit:
-        logging.info("Finishing up with NEURON.")
+        logger.info("Finishing up with NEURON.")
         h.quit()
 
 

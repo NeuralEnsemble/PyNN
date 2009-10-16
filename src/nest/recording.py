@@ -1,5 +1,7 @@
 import tempfile
+import os
 import numpy
+import logging
 import nest
 from pyNN import recording, common
 from pyNN.nest import simulator
@@ -7,6 +9,8 @@ from pyNN.nest import simulator
 RECORDING_DEVICE_NAMES = {'spikes': 'spike_detector',
                           'v':      'voltmeter',
                           'gsyn':   'conductancemeter'}
+
+logger = logging.getLogger("PyNN")
 
 # --- For implementation of record_X()/get_X()/print_X() -----------------------
 
@@ -163,19 +167,12 @@ class Recorder(recording.Recorder):
             else:
                 nest_files = [nest.GetStatus(self._device, "filename")[0]]
             # possibly we can just keep on saving to the end of self._merged_file, instead of concatenating everything in memory
-            
-            datas = []
-            for nest_file in nest_files:
-                try:
-                    datas.append(numpy.loadtxt(nest_file))
-                except Exception:
-                    pass
-            try:
-                data = numpy.concatenate(datas)
-            except Exception:
-                data = []
-
-            if len(data) == 0:
+            logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
+            non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
+            if len(non_empty_nest_files) > 0:
+                data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files]
+                data = numpy.concatenate(data_list)
+            if len(non_empty_nest_files) == 0 or data.size == 0:
                 ncol = len(Recorder.formats[self.variable].split())
                 data = numpy.empty([0, ncol])
             if compatible_output:

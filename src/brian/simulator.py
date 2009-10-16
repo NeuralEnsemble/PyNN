@@ -43,6 +43,7 @@ Hz = brian.Hz
 recorder_list = []
 ZERO_WEIGHT = 1e-99
 
+logger = logging.getLogger("PyNN")
 
 # --- Internal Brian functionality -------------------------------------------- 
 
@@ -223,7 +224,7 @@ class ID(int, common.IDMixin):
         for name, value in parameters.items():
             if name in ['v_thresh', 'v_reset', 'tau_refrac', 'start', 'rate', 'duration']:
                 setattr(self.parent_group, name, value)
-                logging.warning("This parameter cannot be set for individual cells within a Population. Changing the value for all cells in the Population.")
+                logger.warning("This parameter cannot be set for individual cells within a Population. Changing the value for all cells in the Population.")
             elif name == 'spiketimes':
                 #setattr(self.parent_group, name, [value]*len(self.parent_group))
                 self.parent_group.spiketimes[int(self)] = value

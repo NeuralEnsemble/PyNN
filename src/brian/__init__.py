@@ -18,6 +18,8 @@ from pyNN.brian.synapses import *
 from pyNN.brian.electrodes import *
 from pyNN.brian.recording import *
 
+logger = logging.getLogger("PyNN")
+
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
     standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]

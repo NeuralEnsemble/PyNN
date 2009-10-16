@@ -24,6 +24,7 @@ import logging
 # Global variables
 quit_on_end = True
 
+logger = logging.getLogger("PyNN")
 
 # ==============================================================================
 #   Utility functions
@@ -151,9 +152,9 @@ class Population(common.Population):
         
         simulator.initializer.register(self)
         Population.nPop += 1
-        logging.info(self.describe('Creating Population "$label" of shape $dim, '+
+        logger.info(self.describe('Creating Population "$label" of shape $dim, '+
                                    'containing `$celltype`s with indices between $first_id and $last_id'))
-        logging.debug(self.describe())
+        logger.debug(self.describe())
 
     def rset(self, parametername, rand_distr):
         """
@@ -171,7 +172,7 @@ class Population(common.Population):
         else:
             rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
         rarr = numpy.array(rarr)
-        logging.info("%s.rset('%s', %s)", self.label, parametername, rand_distr)
+        logger.info("%s.rset('%s', %s)", self.label, parametername, rand_distr)
         for cell,val in zip(self, rarr):
             setattr(cell, parametername, val)
 
@@ -228,7 +229,7 @@ class Projection(common.Projection):
         ## Create connections
         method.connect(self)
             
-        logging.info("--- Projection[%s].__init__() ---" %self.label)
+        logger.info("--- Projection[%s].__init__() ---" %self.label)
                
         ## Deal with long-term synaptic plasticity
         if self.long_term_plasticity_mechanism:
@@ -268,7 +269,7 @@ class Projection(common.Projection):
                                             rand_distr.parameters)
         else:       
             rarr = rand_distr.next(len(self))  
-        logging.info("--- Projection[%s].__randomizeWeights__() ---" % self.label)
+        logger.info("--- Projection[%s].__randomizeWeights__() ---" % self.label)
         self.setWeights(rarr)
     
     def randomizeDelays(self, rand_distr):
@@ -284,7 +285,7 @@ class Projection(common.Projection):
                                             rand_distr.parameters)
         else:       
             rarr = rand_distr.next(len(self))  
-        logging.info("--- Projection[%s].__randomizeDelays__() ---" % self.label)
+        logger.info("--- Projection[%s].__randomizeDelays__() ---" % self.label)
         self.setDelays(rarr)
 
 # ==============================================================================

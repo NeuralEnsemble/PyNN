@@ -11,7 +11,11 @@ common.simulator = simulator
 recording.simulator = simulator
 
 from pyNN.random import *
-import numpy, os, shutil, logging, tempfile
+import numpy
+import os
+import shutil
+import logging
+import tempfile
 from pyNN.nest.cells import *
 from pyNN.nest.connectors import *
 from pyNN.nest.synapses import *
@@ -25,6 +29,8 @@ tempdirs       = []
 
 NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
                       "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse"]
+
+logger = logging.getLogger("PyNN")
 
 # ==============================================================================
 #   Utility functions
@@ -95,7 +101,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
         rng_seeds_seed = extra_params.get('rng_seeds_seed') or 42
         rng = NumpyRNG(rng_seeds_seed)
         rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100000).astype('int').tolist() 
-    logging.debug("rng_seeds = %s" % rng_seeds)
+    logger.debug("rng_seeds = %s" % rng_seeds)
     nest.SetKernelStatus({'local_num_threads': num_threads,
                           'rng_seeds'        : rng_seeds})
 
@@ -379,10 +385,10 @@ class Projection(common.Projection):
         self.synapse_type = target or 'excitatory'
 
         if isinstance(self.long_term_plasticity_mechanism, Set):
-            logging.warning("Several STDP models are available for these connections:")
-            logging.warning(", ".join(model for model in self.long_term_plasticity_mechanism))
+            logger.warning("Several STDP models are available for these connections:")
+            logger.warning(", ".join(model for model in self.long_term_plasticity_mechanism))
             self.long_term_plasticity_mechanism = list(self.long_term_plasticity_mechanism)[0]
-            logging.warning("By default, %s is used" % self.long_term_plasticity_mechanism)
+            logger.warning("By default, %s is used" % self.long_term_plasticity_mechanism)
 
         if synapse_dynamics and synapse_dynamics.fast and synapse_dynamics.slow:
                 raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")

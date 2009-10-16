@@ -34,6 +34,8 @@ import os
 CHECK_CONNECTIONS = False
 recorder_list = []
 
+logger = logging.getLogger("PyNN")
+
 # --- For implementation of get_time_step() and similar functions --------------
 
 class _State(object):

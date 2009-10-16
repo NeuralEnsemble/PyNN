@@ -34,6 +34,8 @@ from pyNN import common
 recorder_list = []
 connection_managers = []
 
+logger = logging.getLogger("PyNN")
+
 # --- Internal PCSIM functionality -------------------------------------------- 
 
 def is_local(id):

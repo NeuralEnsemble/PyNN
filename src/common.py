@@ -85,6 +85,8 @@ if not 'simulator' in locals():
 DEFAULT_WEIGHT = 0.0
 DEFAULT_BUFFER_SIZE = 10000
 
+logger = logging.getLogger("PyNN")
+
 class InvalidParameterValueError(Exception):
     """Inappropriate parameter value"""
     pass # should subclass ValueError?
@@ -200,7 +202,7 @@ def check_weight(weight, synapse_type, is_conductance):
         if not all_negative:
             raise InvalidWeightError("Weights must be negative for current-based, inhibitory synapses")
     else: # is_conductance is None. This happens if the cell does not exist on the current node.
-        logging.debug("Can't check weight, conductance status unknown.")
+        logger.debug("Can't check weight, conductance status unknown.")
     return weight
 
 def check_delay(delay):
@@ -610,7 +612,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,
             log_file = debug
     if simulator and not simulator.state.initialized:
         utility.init_logging(log_file, debug, num_processes(), rank())
-        logging.info("Initialization of %s (use setup(.., debug=True) to see a full logfile)" % backend)
+        logger.info("Initialization of %s (use setup(.., debug=True) to see a full logfile)" % backend)
         simulator.state.initialized = True
     
     
@@ -676,7 +678,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     """
     # This duplicates code from the Connector/FixedProbabilityConnector classes
     # should refactor to eliminate this repetition
-    logging.debug("connecting %s to %s on host %d" % (source, target, rank()))
+    logger.debug("connecting %s to %s on host %d" % (source, target, rank()))
     if not is_listlike(source):
         source = [source]
     if not is_listlike(target):
@@ -937,7 +939,7 @@ class Population(object):
             param_dict = param
         else:
             raise InvalidParameterValueError
-        logging.info("%s.set(%s)", self.label, param_dict)
+        logger.debug("%s.set(%s)", self.label, param_dict)
         for cell in self:
             cell.set_parameters(**param_dict)
 
@@ -957,11 +959,11 @@ class Population(object):
         assert local_values.shape[0] == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
         
         try:
-            logging.info("%s.tset('%s', array(shape=%s, min=%s, max=%s))",
+            logger.debug("%s.tset('%s', array(shape=%s, min=%s, max=%s))",
                          self.label, parametername, value_array.shape,
                          value_array.min(), value_array.max())
         except TypeError: # min() and max() won't work for non-numeric values
-            logging.info("%s.tset('%s', non_numeric_array(shape=%s))",
+            logger.debug("%s.tset('%s', non_numeric_array(shape=%s))",
                          self.label, parametername, value_array.shape)
         
         # Set the values for each cell
@@ -975,7 +977,7 @@ class Population(object):
         """
         rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
         rarr = numpy.array(rarr)
-        logging.info("%s.rset('%s', %s)", self.label, parametername, rand_distr)
+        logger.debug("%s.rset('%s', %s)", self.label, parametername, rand_distr)
         for cell,val in zip(self, rarr):
             setattr(cell, parametername, val)
     
@@ -1033,7 +1035,7 @@ class Population(object):
             raise Exception("record_from must be either a list of cells or the number of cells to record from")
         # record_from is now a list or numpy array. We do not have to worry about whether the cells are
         # local because the Recorder object takes care of this.
-        logging.info("%s.record('%s', %s)", self.label, variable, record_from[:5])
+        logger.debug("%s.record('%s', %s)", self.label, variable, record_from[:5])
         self.recorders[variable].record(record_from)
 
     def record(self, record_from=None, rng=None, to_file=True):
@@ -1168,7 +1170,7 @@ class Population(object):
         total_spikes = sum(spike_counts.values())
         return float(total_spikes)/len(spike_counts)
     
-    def describe(self, template='standard'):
+    def describe(self, template='standard', fill=lambda t,c: Template(t).safe_substitute(c)):
         """
         Returns a human-readable description of the population
         """
@@ -1201,7 +1203,10 @@ class Population(object):
         if len(self.local_cells) > 0:
             first_id = self.local_cells[0]
             context.update(local_first_id=first_id)
-            context.update(cell_parameters=first_id.get_parameters())
+            cell_parameters = first_id.get_parameters()
+            names = cell_parameters.keys()
+            names.sort()
+            context.update(cell_parameters=[(name,cell_parameters[name]) for name in names])
         context.update(celltype=self.celltype.__class__.__name__)
         context.update(n_cells=len(self))
         context.update(n_cells_local=len(self.local_cells))
@@ -1212,7 +1217,7 @@ class Population(object):
         if template == None:
             return context
         else:
-            return Template(template).substitute(context)
+            return fill(template, context)
     
     def inject(self, current_source):
         """
@@ -1399,7 +1404,7 @@ class Projection(object):
         one connection between two cells, the summed weight will be given.
         """
         if gather:
-            logging.error("getWeights() with gather=True not yet implemented")
+            logger.error("getWeights() with gather=True not yet implemented")
         return self.connection_manager.get('weight', format, offset=(self.pre.first_id, self.post.first_id))
             
     def getDelays(self, format='list', gather=True):
@@ -1411,7 +1416,7 @@ class Projection(object):
         connections).
         """
         if gather:
-            logging.error("getDelays() with gather=True not yet implemented")
+            logger.error("getDelays() with gather=True not yet implemented")
         return self.connection_manager.get('delay', format, offset=(self.pre.first_id, self.post.first_id))
 
     def getSynapseDynamics(self, parameter_name, format='list', gather=True):
@@ -1420,7 +1425,7 @@ class Projection(object):
         Projection.
         """
         if gather:
-            logging.error("getSynapseDynamics() with gather=True not yet implemented")
+            logger.error("getSynapseDynamics() with gather=True not yet implemented")
         return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
     
     def saveConnections(self, filename, gather=False):
@@ -1432,7 +1437,7 @@ class Projection(object):
             raise Exception("saveConnections(gather=True) not yet supported")
         elif num_processes() > 1:
             filename += '.%d' % rank()
-        logging.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
+        logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
         f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
         fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
                                         "%s", "%g", "%g")

@@ -19,7 +19,7 @@ try:
 except ImportError:
     MPI = None
 
-
+logger = logging.getLogger("PyNN")
 
 numpy1_1_formats = {'spikes': "%g\t%d",
                     'v': "%g\t%g\t%d",
@@ -35,7 +35,7 @@ MPI_ROOT = 0
 def rename_existing(filename):
     if os.path.exists(filename):
         os.system('mv %s %s_old' % (filename, filename))
-        logging.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
+        logger.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
 
 def gather(data):
     # gather 1D or 2D numpy arrays
@@ -98,7 +98,7 @@ class Recorder(object):
         
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
-        logging.debug('Recorder.record(%s)', str(ids))
+        #logger.debug('Recorder.record(%s)', str(ids))
         if self.population:
             ids = set([id for id in ids if id in self.population.local_cells])
         else:
@@ -106,7 +106,7 @@ class Recorder(object):
         new_ids = list( ids.difference(self.recorded) )
         
         self.recorded = self.recorded.union(ids)
-        logging.debug('Recorder.recorded = %s' % self.recorded)
+        logger.debug('Recorder.recorded = %s' % self.recorded)
         self._record(new_ids)
         
     def get(self, gather=False, compatible_output=True, offset=None):
@@ -123,11 +123,12 @@ class Recorder(object):
                 filename += '.%d' % simulator.state.mpi_rank
         else:
             filename = file.name
-        logging.debug("Recorder is writing '%s' to file '%s' with gather=%s and compatible_output=%s" % (self.variable,
+        logger.debug("Recorder is writing '%s' to file '%s' with gather=%s and compatible_output=%s" % (self.variable,
                                                                                                          filename,
                                                                                                          gather,
                                                                                                          compatible_output))
         data = self.get(gather, compatible_output)
+        logger.debug("data has size %s" % str(data.size))
         if simulator.state.mpi_rank == 0 or gather==False:
             if compatible_output:
                 data, metadata = self._make_compatible(data)
@@ -145,10 +146,10 @@ class Recorder(object):
             spiketime (in ms) cell_id-min(cell_id)
         """
         if isinstance(data_source, numpy.ndarray):
-            logging.debug("Converting data from memory into compatible format")
+            logger.debug("Converting data from memory into compatible format")
             N = len(data_source)
         else: # assume data is a filename or open file object
-            logging.debug("Converting data from file %s into compatible format" % data_source)
+            logger.debug("Converting data from file %s into compatible format" % data_source)
             try: 
                 N = os.path.getsize(data_source)
             except Exception:
@@ -192,7 +193,7 @@ class Recorder(object):
             data_array[:,-1] -= id_offset # replies on fact that id is always last column
             metadata['n'] = data_array.shape[0]
         else:
-            logging.warning("%s is empty or does not exist" % data_source)
+            logger.warning("%s is empty or does not exist" % data_source)
             data_array = numpy.array([])
             metadata = {}
         return data_array, metadata

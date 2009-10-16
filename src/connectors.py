@@ -21,6 +21,7 @@ from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                   sin, sinh, sqrt, tan, tanh
 from pyNN import random, common
 
+logger = logging.getLogger("PyNN")
 
 def _probabilistic_connect(connector, projection, p):
     """
@@ -55,7 +56,7 @@ def _probabilistic_connect(connector, projection, p):
         else:
             create = rarr < p[src][local]
         if create.shape != projection.post.local_cells.shape:
-            logging.warning("Too many random numbers. Discarding the excess. Did you specify MPI rank and number of processes when you created the random number generator?")
+            logger.warning("Too many random numbers. Discarding the excess. Did you specify MPI rank and number of processes when you created the random number generator?")
             create = create[:projection.post.local_cells.size]
         targets = projection.post.local_cells[create].tolist()
         
@@ -403,7 +404,7 @@ class FixedProbabilityConnector(common.Connector):
     
     def connect(self, projection):
         """Connect-up a Projection."""
-        logging.info("Connecting %s to %s with probability %s" % (projection.pre.label,
+        logger.info("Connecting %s to %s with probability %s" % (projection.pre.label,
                                                                   projection.post.label,
                                                                   self.p_connect))
         _probabilistic_connect(self, projection, self.p_connect)    
@@ -473,7 +474,7 @@ class DistanceDependentProbabilityConnector(common.Connector):
             dimensions = projection.post.dim
             periodic_boundaries = tuple(numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions)))))
         if periodic_boundaries:
-            logging.info("Periodic boundaries activated and set to size %s" % str(periodic_boundaries))
+            logger.info("Periodic boundaries activated and set to size %s" % str(periodic_boundaries))
         p = {}
         
         for src in projection.pre.all():

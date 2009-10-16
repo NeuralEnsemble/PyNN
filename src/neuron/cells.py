@@ -10,6 +10,7 @@ from neuron import h, nrn, hclass
 from math import pi
 import logging
 
+logger = logging.getLogger("PyNN")
 
 def _new_property(obj_hierarchy, attr_name):
     """

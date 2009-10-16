@@ -24,7 +24,8 @@ except (ImportError, Warning):
     import warnings
     warnings.warn("GSL random number generators not available")
 import time
- 
+
+logger = logging.getLogger("PyNN")
  
 class AbstractRNG:
     """Abstract class for wrapping random number generators. The idea is to be
@@ -60,7 +61,7 @@ class NumpyRNG(AbstractRNG):
             if not parallel_safe:
                 self.seed += rank # ensure different nodes get different sequences
                 if rank != 0:
-                    logging.warning("Changing the seed to %s on node %d" % (self.seed, rank))
+                    logger.warning("Changing the seed to %s on node %d" % (self.seed, rank))
             self.rng.seed(self.seed)
         else:
             self.rng.seed()

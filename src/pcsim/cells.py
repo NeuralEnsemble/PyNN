@@ -9,6 +9,8 @@ import pypcsim
 import numpy
 import logging
 
+logger = logging.getLogger("PyNN")
+
 class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
@@ -147,8 +149,8 @@ def sanitize_spike_times(spike_times):
     bins = (spike_times/time_step).astype('int')
     mask = numpy.concatenate((numpy.array([True]), bins[1:] != bins[:-1]))
     if mask.sum() < len(bins):
-        logging.warn("Spikes have been thrown away because they were too close together.")
-        logging.debug(spike_times[(1-mask).astype('bool')])
+        logger.warn("Spikes have been thrown away because they were too close together.")
+        logger.debug(spike_times[(1-mask).astype('bool')])
     if len(spike_times) > 0:
         return spike_times[mask]
     else:

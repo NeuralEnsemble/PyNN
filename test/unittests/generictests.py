@@ -9,7 +9,6 @@ import numpy
 import os
 import cPickle as pickle
 from pyNN import common, random, utility, recording
-import tables
 
 try:
     from mpi4py import MPI
