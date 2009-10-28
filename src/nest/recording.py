@@ -196,7 +196,7 @@ class Recorder(recording.Recorder):
     def write(self, file=None, gather=False, compatible_output=True):
         """Write recorded data to file."""
         if self._device is None:
-            raise common.NothingToWriteError("No cells recorded, so no data to write to file.")
+            raise common.NothingToWriteError("%s not recorded from any cells, so no data to write to file." % self.variable)
         recording.Recorder.write(self, file, gather, compatible_output)
 
     def _local_count(self, gather=False):

@@ -15,7 +15,7 @@ class build(_build):
             import subprocess
             p = subprocess.Popen(nrnivmodl, shell=True, stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                         close_fds=True, cwd=os.path.join(os.getcwd(),'build/lib/pyNN/hoc'))
+                         close_fds=True, cwd=os.path.join(os.getcwd(), self.build_platlib,'pyNN/hoc'))
             result = p.wait()
             # test if nrnivmodl was successful
             if result != 0:

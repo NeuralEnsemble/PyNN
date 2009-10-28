@@ -34,7 +34,8 @@ Name            Default value  Units  Description
 ``cm``            1.0          nF     Capacity of the membrane
 ``tau_m``        20.0          ms     Membrane time constant
 ``tau_refrac``    0.0          ms     Duration of refractory period
-``tau_syn``       5.0          ms     Rise time of the synaptic alpha function
+``tau_syn_E``     5.0          ms     Rise time of the excitatory synaptic alpha function
+``tau_syn_I``     5.0          ms     Rise time of the inhibitory synaptic alpha function
 ``i_offset``      0.0          nA     Offset current
 ``v_reset``     -65.0          mV     Reset potential after a spike
 ``v_thresh``    -50.0          mV     Spike threshold
