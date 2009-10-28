@@ -198,7 +198,7 @@ def check_weight(weight, synapse_type, is_conductance):
     if is_conductance or synapse_type == 'excitatory':
         if not all_positive:
             raise InvalidWeightError("Weights must be positive for conductance-based and/or excitatory synapses")
-    elif synapse_type == 'inhibitory':
+    elif is_conductance==False and synapse_type == 'inhibitory':
         if not all_negative:
             raise InvalidWeightError("Weights must be negative for current-based, inhibitory synapses")
     else: # is_conductance is None. This happens if the cell does not exist on the current node.
