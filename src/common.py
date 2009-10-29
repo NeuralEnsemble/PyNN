@@ -76,7 +76,8 @@ import types, copy, sys
 import numpy
 import logging
 from math import *
-from pyNN import random, utility
+import operator
+from pyNN import random, utility, recording
 from string import Template
 
 if not 'simulator' in locals():
@@ -1024,13 +1025,11 @@ class Population(object):
         elif record_from is None: # record from all cells:
             record_from = self.all_cells.flatten()
         elif isinstance(record_from, int): # record from a number of cells, selected at random  
-            # Each node will record N/nhost cells...
-            nrec = int(record_from/num_processes())
+            nrec = record_from
             if not rng:
                 rng = random.NumpyRNG()
             record_from = rng.permutation(self.all_cells.flatten())[0:nrec]
-            # need ID objects, permutation returns integers
-            # ???
+            logger.debug("The %d cells recorded have IDs %s" % (nrec, record_from))
         else:
             raise Exception("record_from must be either a list of cells or the number of cells to record from")
         # record_from is now a list or numpy array. We do not have to worry about whether the cells are
@@ -1428,27 +1427,33 @@ class Projection(object):
             logger.error("getSynapseDynamics() with gather=True not yet implemented")
         return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
     
-    def saveConnections(self, filename, gather=False):
+    def saveConnections(self, filename, gather=True):
         """
         Save connections to file in a format suitable for reading in with a
         FromFileConnector.
         """
-        if gather == True:
-            raise Exception("saveConnections(gather=True) not yet supported")
-        elif num_processes() > 1:
-            filename += '.%d' % rank()
-        logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
-        f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
         fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
                                         "%s", "%g", "%g")
+        lines = []
         for c in self.connections:     
             line = fmt  % (self.pre.locate(c.source),
                            self.post.locate(c.target),
                            c.weight,
                            c.delay)
             line = line.replace('(','[').replace(')',']')
-            f.write(line)
-        f.close()
+            lines.append(line)
+        if gather == True and num_processes() > 1:
+            all_lines = { rank(): lines }
+            all_lines = recording.gather_dict(all_lines)
+            if rank() == 0:
+                lines = reduce(operator.add, all_lines.values())
+        elif num_processes() > 1:
+            filename += '.%d' % rank()
+        logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
+        if gather == False or rank() == 0:
+            f = open(filename, 'w')
+            f.writelines(lines)
+            f.close()
     
     def printWeights(self, filename, format='list', gather=True):
         """Print synaptic weights to file. In the array format, zeros are printed

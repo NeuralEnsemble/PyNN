@@ -129,18 +129,20 @@ class Recorder(object):
                                                                                                          compatible_output))
         data = self.get(gather, compatible_output)
         logger.debug("data has size %s" % str(data.size))
+        dt = simulator.state.dt # we have to do this here because it has to run on all nodes
         if simulator.state.mpi_rank == 0 or gather==False:
             if compatible_output:
-                data, metadata = self._make_compatible(data)
+                data, metadata = self._make_compatible(data, dt)
             else:
                 metadata = {}
             # Open the output file, if necessary and write the data
+            logger.debug("Writing data to file %s" % file)
             if isinstance(file, basestring):
                 file = files.StandardTextFile(filename, mode='w')
             file.write(data, metadata)
             file.close()
     
-    def _make_compatible(self, data_source):
+    def _make_compatible(self, data_source, dt):
         """
         Rewrite simulation data in a standard format:
             spiketime (in ms) cell_id-min(cell_id)
@@ -155,6 +157,7 @@ class Recorder(object):
             except Exception:
                 N = 0
         
+        logger.debug("Number of data elements = %d" % N)
         if N > 0:
             # Write header info (e.g., dimensions of the population)
             metadata = {}
@@ -167,8 +170,8 @@ class Recorder(object):
                 id_offset = self.population.first_id
             else:
                 id_offset = 0
-            metadata['dt'] = simulator.state.dt
-            
+            metadata['dt'] = dt
+            logger.debug("File metadata: %s" % metadata)
             input_format = self.formats[self.variable].split()
             time_column = input_format.index('t')
             id_column = input_format.index('id')

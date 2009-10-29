@@ -127,6 +127,7 @@ class Recorder(recording.Recorder):
         # `compatible_output`? Need to cache these separately.
         if gather and simulator.state.num_processes > 1:
             if self._gathered:
+                logger.debug("Loading previously gathered data from cache")
                 self._gathered_file.seek(0)
                 data = numpy.load(self._gathered_file)
             else:
@@ -134,7 +135,8 @@ class Recorder(recording.Recorder):
                 if self.population and hasattr(self.population.celltype, 'always_local') and self.population.celltype.always_local:
                     data = local_data # for always_local cells, no need to gather
                 else:
-                    data = recording.gather(local_data) 
+                    data = recording.gather(local_data)
+                logger.debug("Caching gathered data")
                 self._gathered_file = tempfile.TemporaryFile()
                 numpy.save(self._gathered_file, data)
                 self._gathered = True

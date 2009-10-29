@@ -94,8 +94,10 @@ class NumpyRNG(AbstractRNG):
         else:
             raise ValueError, "The sample number must be positive"
         if self.parallel_safe and self.num_processes > 1:
+            if mask_local is False:
+                pass
             # strip out the random numbers that should be used on other processors.
-            if mask_local is not None:
+            elif mask_local is not None:
                 assert mask_local.size == n
                 rarr = rarr[mask_local]    
             else:
