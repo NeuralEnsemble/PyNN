@@ -11,22 +11,31 @@ import re
 import sys
 import time
 
-script = "../examples/simpleRandomNetwork.py"
-simulator = "nest"
-n = 2
+usage = "python test_mpi.py <script> <simulator> <num_processes>"
+
+if len(sys.argv) != 4:
+    print usage
+    sys.exit(1)
+
+script = sys.argv[1] #"../examples/simpleRandomNetwork.py"
+simulator = sys.argv[2] #"nest"
+n = int(sys.argv[3]) #2
 
 
 # === Run simulations ==========================================================
+
 tmpdirs = {'serial': tempfile.mkdtemp(),
            'distrib': tempfile.mkdtemp()}
 
-for tmpdir in tmpdirs.values():
-    os.mkdir("%s/Results" % tmpdir)
+os.mkdir("%s/Results" % tmpdirs['serial'])
+Popen("mpiexec -n %d mkdir -p %s/Results" % (n, tmpdirs['distrib']), shell=True).wait()
 
 job1 = Popen("python %s %s" % (os.path.abspath(script), simulator),
-            stdin=None, stdout=None, stderr=STDOUT, shell=True, cwd=tmpdirs['serial'])
-job2 = Popen("mpiexec -n %d python %s %s" % (n, os.path.abspath(script), simulator),
-            stdin=None, stdout=None, stderr=STDOUT, shell=True, cwd=tmpdirs['distrib'])
+             stdin=None, stdout=None, stderr=STDOUT, shell=True, cwd=tmpdirs['serial'])
+job2 = Popen("mpiexec -n %d -wdir %s python %s %s" % (n, tmpdirs['distrib'],
+                                                      os.path.abspath(script),
+                                                      simulator),
+             stdin=None, stdout=None, stderr=STDOUT, shell=True, cwd=tmpdirs['distrib'])
 job2.wait()
 job1.wait()
 
@@ -47,8 +56,8 @@ def find_files(path):
     return data_files
 
 def clean_up():
-    for tmpdir in tmpdirs.values():
-        shutil.rmtree(tmpdir)
+    shutil.rmtree(tmpdirs['serial'])
+    Popen("mpiexec -n %d rm -rf %s" % (n, tmpdirs['distrib']), shell=True).wait()
 
 def fail(msg):
     print "\nFAIL:", msg
