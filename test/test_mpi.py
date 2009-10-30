@@ -13,13 +13,14 @@ import time
 
 usage = "python test_mpi.py <script> <simulator> <num_processes>"
 
-if len(sys.argv) != 4:
+if len(sys.argv) < 4:
     print usage
     sys.exit(1)
 
 script = sys.argv[1] #"../examples/simpleRandomNetwork.py"
 simulator = sys.argv[2] #"nest"
 n = int(sys.argv[3]) #2
+script_args = " ".join(sys.argv[4:])
 
 
 # === Run simulations ==========================================================
@@ -30,11 +31,11 @@ tmpdirs = {'serial': tempfile.mkdtemp(),
 os.mkdir("%s/Results" % tmpdirs['serial'])
 Popen("mpiexec -n %d mkdir -p %s/Results" % (n, tmpdirs['distrib']), shell=True).wait()
 
-job1 = Popen("python %s %s" % (os.path.abspath(script), simulator),
+job1 = Popen("python %s %s %s" % (os.path.abspath(script), simulator, script_args),
              stdin=None, stdout=None, stderr=STDOUT, shell=True, cwd=tmpdirs['serial'])
-job2 = Popen("mpiexec -n %d -wdir %s python %s %s" % (n, tmpdirs['distrib'],
+job2 = Popen("mpiexec -n %d -wdir %s python %s %s %s" % (n, tmpdirs['distrib'],
                                                       os.path.abspath(script),
-                                                      simulator),
+                                                      simulator, script_args),
              stdin=None, stdout=None, stderr=STDOUT, shell=True, cwd=tmpdirs['distrib'])
 job2.wait()
 job1.wait()
@@ -77,9 +78,15 @@ for mode in 'serial', 'distrib':
         filename_maps[mode][np_pattern.sub("", filename)] = os.path.join(tmpdirs[mode], filename)
 
 # Check that the filenames match
-names_match = filename_maps['serial'].keys() == filename_maps['distrib'].keys()
+serial_names = filename_maps['serial'].keys()
+distrib_names = filename_maps['distrib'].keys()
+serial_names.sort()
+distrib_names.sort()
+names_match = serial_names == distrib_names
 if not names_match:
-    fail("File names do not match.")
+    fail("File names do not match:\n  Serial: %s\n  Distributed: %s" % ("\n    ".join(serial_names),
+                                                                        "\n    ".join(distrib_names))
+        )
 
 # Check that the file sizes match
 file_sizes = dict.fromkeys(filename_maps, {})
@@ -87,9 +94,9 @@ for name in filename_maps['serial']:
     for mode in 'serial', 'distrib':
         file_sizes[mode][name] = os.stat(filename_maps[mode][name]).st_size
 
-print "Output files" + " "*42 + "serial   distrib"
+print "Output files" + " "*44 + "serial     distrib"
 for name in filename_maps['serial']:
-    print "  %-50s %7s   %7s" % (name, file_sizes['serial'][name], file_sizes['distrib'][name])
+    print "  %-50s %9s   %9s" % (name, file_sizes['serial'][name], file_sizes['distrib'][name])
 
 sizes_match = file_sizes['serial'] == file_sizes['distrib']
 if not sizes_match:
