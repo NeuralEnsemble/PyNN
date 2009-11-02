@@ -201,7 +201,7 @@ class Recorder(recording.Recorder):
             raise common.NothingToWriteError("%s not recorded from any cells, so no data to write to file." % self.variable)
         recording.Recorder.write(self, file, gather, compatible_output)
 
-    def _local_count(self, gather=False):
+    def _local_count(self):
         N = {}
         if self.in_memory():
             events = nest.GetStatus(self._device, 'events')
@@ -209,14 +209,16 @@ class Recorder(recording.Recorder):
                 mask = events['senders'] == int(id)
                 N[id] = events['times'][mask].count()
         else:
-            spikes = self.get(gather, compatible_output=False)
-            print spikes[:20]
-            print spikes[:20,0]
+            spikes = self.get(gather=False, compatible_output=False)
             for id in spikes[:,0].astype(int):
+                assert id in self.recorded
                 if id in N:
                     N[id] += 1
                 else:
                     N[id] = 1
+            for id in self.recorded:
+                if id not in N:
+                    N[id] = 0
         return N
     
 simulator.Recorder = Recorder # very inelegant. Need to rethink the module structure

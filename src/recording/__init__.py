@@ -201,7 +201,7 @@ class Recorder(object):
             metadata = {}
         return data_array, metadata
     
-    def count(self, gather=False):
+    def count(self, gather=True):
         """
         Return the number of data points for each cell, as a dict. This is mainly
         useful for spike counts or for variable-time-step integration methods.
@@ -211,6 +211,6 @@ class Recorder(object):
         else:
             raise Exception("Only implemented for spikes.")
         if gather and simulator.state.num_processes > 1:
-            N = recording.gather_dict(N)
+            N = gather_dict(N)
         return N
     

@@ -188,7 +188,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     for recorder in simulator.recorder_list:
-        recorder.write(gather=False, compatible_output=compatible_output)
+        recorder.write(gather=True, compatible_output=compatible_output)
      
 
 def run(simtime):
