@@ -1336,8 +1336,20 @@ class Projection(object):
                         self.long_term_plasticity_mechanism = possible_models
                      
     def __len__(self):
-        """Return the total number of connections."""
+        """Return the total number of local connections."""
         return len(self.connection_manager)
+    
+    def size(self, gather=True):
+        """
+        Return the total number of connections.
+            - only local connections, if gather is False,
+            - all connections, if gather is True (default)
+        """
+        if gather:
+            n = len(self)
+            return recording.mpi_sum(n)
+        else:
+            return len(self)
     
     def __repr__(self):
         return 'Projection("%s")' % self.label
