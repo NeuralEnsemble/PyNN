@@ -83,6 +83,7 @@ def get_script_args(n_args, usage=''):
 def init_logging(logfile, debug=False, num_processes=1, rank=0):
     if num_processes > 1:
         logfile += '.%d' % rank
+    logfile = os.path.abspath(logfile)
     if debug:
         logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s',
@@ -195,17 +196,29 @@ class Timer(object):
     def start(self):
         """Start timing."""
         self._start_time = time.time()
+        self._last_check = self._start_time
     
     def elapsedTime(self, format=None):
         """Return the elapsed time in seconds but keep the clock running."""
-        elapsed_time = time.time() - self._start_time
+        current_time = time.time()
+        elapsed_time = current_time - self._start_time
         if format=='long':
             elapsed_time = Timer.time_in_words(elapsed_time)
+        self._last_check = current_time
         return elapsed_time
     
     def reset(self):
         """Reset the time to zero, and start the clock."""
         self.start()
+    
+    def diff(self, format=None):
+        """Return the time since the last time elapsedTime() or diff() was called."""
+        current_time = time.time()
+        time_since_last_check = current_time - self._last_check
+        self._last_check = current_time
+        if format=='long':
+            time_since_last_check = Timer.time_in_words(elapsed_time)
+        return time_since_last_check
     
     @staticmethod
     def time_in_words(s):

@@ -11,16 +11,15 @@ import re
 import sys
 import time
 
-usage = "python test_mpi.py <script> <simulator> <num_processes>"
+usage = "python test_mpi.py <num_processes> <script> [<arg1>, [<arg2>, ..]]"
 
-if len(sys.argv) < 4:
+if len(sys.argv) < 3:
     print usage
     sys.exit(1)
 
-script = sys.argv[1] #"../examples/simpleRandomNetwork.py"
-simulator = sys.argv[2] #"nest"
-n = int(sys.argv[3]) #2
-script_args = " ".join(sys.argv[4:])
+n = int(sys.argv[1]) #2
+script = sys.argv[2] #"../examples/simpleRandomNetwork.py"
+script_args = " ".join(sys.argv[3:]) #"nest"
 
 
 # === Run simulations ==========================================================
@@ -31,14 +30,17 @@ tmpdirs = {'serial': tempfile.mkdtemp(),
 os.mkdir("%s/Results" % tmpdirs['serial'])
 Popen("mpiexec -n %d mkdir -p %s/Results" % (n, tmpdirs['distrib']), shell=True).wait()
 
-job1 = Popen("python %s %s %s" % (os.path.abspath(script), simulator, script_args),
-             stdin=None, stdout=None, stderr=STDOUT, shell=True, cwd=tmpdirs['serial'])
-job2 = Popen("mpiexec -n %d -wdir %s python %s %s %s" % (n, tmpdirs['distrib'],
-                                                      os.path.abspath(script),
-                                                      simulator, script_args),
-             stdin=None, stdout=None, stderr=STDOUT, shell=True, cwd=tmpdirs['distrib'])
+cmd1 = "python %s %s" % (os.path.abspath(script), script_args),
+cmd2 = "mpiexec -n %d -wdir %s python %s %s" % (n, tmpdirs['distrib'],
+                                                os.path.abspath(script),
+                                                script_args)
+print cmd1
+print cmd2
+job1 = Popen(cmd1, stdin=None, stdout=None, stderr=STDOUT, shell=True, cwd=tmpdirs['serial'])
+job2 = Popen(cmd2, stdin=None, stdout=None, stderr=STDOUT, shell=True, cwd=tmpdirs['distrib'])
 job2.wait()
 job1.wait()
+
 
 
 # === Compare output files =====================================================
@@ -65,9 +67,13 @@ def fail(msg):
     print "\nCommand to remove temporary files: rm -rf %s %s" % tuple(tmpdirs.values())
     sys.exit(1)
 
+
 # Find output files
 output_files = {'serial': find_files(tmpdirs['serial']),
                 'distrib': find_files(tmpdirs['distrib'])}
+
+if len(output_files['serial']) == 0:
+    fail("Simulations did not produce any data files.")
 
 # The filenames may have information about the number of processes, which we
 # wish to ignore for the purposes of comparing filenames.
