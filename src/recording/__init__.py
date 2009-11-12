@@ -98,15 +98,11 @@ class Recorder(object):
         
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
-        #logger.debug('Recorder.record(%s)', str(ids))
-        if self.population:
-            ids = set([id for id in ids if id in self.population.local_cells])
-        else:
-            ids = set([id for id in ids if id.local])
+        logger.debug('Recorder.record(<%d cells>)' % len(ids))
+        ids = set([id for id in ids if id.local])
         new_ids = list( ids.difference(self.recorded) )
-        
         self.recorded = self.recorded.union(ids)
-        logger.debug('Recorder.recorded = %s' % self.recorded)
+        logger.debug('Recorder.recorded contains %d ids' % len(self.recorded))
         self._record(new_ids)
         
     def get(self, gather=False, compatible_output=True, offset=None):
