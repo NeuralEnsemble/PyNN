@@ -18,6 +18,7 @@ class Recorder(recording.Recorder):
     
     def _record(self, new_ids):
         """Called by record()"""
+        net = simulator.net
         if self.variable == 'spikes':        
             for id in new_ids:
                 #if self.population:
@@ -48,6 +49,7 @@ class Recorder(recording.Recorder):
         """Return the recorded data as a Numpy array."""
         # compatible_output is not used, but is needed for compatibility with the nest module.
         # Does nest really need it?
+        net = simulator.net
         if self.variable == 'spikes':
             data = numpy.empty((0,2))
             for id in self.recorded:
@@ -88,7 +90,7 @@ class Recorder(recording.Recorder):
         N = {}
         if self.variable == 'spikes':
             for id in self.recorded:
-                N[id] = net.object(self.recorders[id]).spikeCount()
+                N[id] = simulator.net.object(self.recorders[id]).spikeCount()
         else:
             raise Exception("Only implemented for spikes.")
         if gather and simulator.state.num_processes > 1:

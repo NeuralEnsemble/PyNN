@@ -177,7 +177,10 @@ inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, sim
 exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator_name, np))
 writeCPUTime = timer.elapsedTime()
 
-tmp_string = "%d e→e  %d e→i  %d i→e  %d i→i" % (len(connections['e2e']), len(connections['e2i']), len(connections['i2e']), len(connections['i2i']))
+tmp_string = "%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].size(),
+                                                 connections['e2i'].size(),
+                                                 connections['i2e'].size(),
+                                                 connections['i2i'].size())
 
 def nprint(s):
     """Small function to display information only on node 0."""

@@ -377,7 +377,7 @@ class ConnectionManager(object):
     accessing individual connections.
     """
 
-    def __init__(self, synapse_model=None, parent=None):
+    def __init__(self, synapse_type, synapse_model=None, parent=None):
         """
         Create a new ConnectionManager.
         
@@ -387,6 +387,7 @@ class ConnectionManager(object):
         global connection_managers
         self.connections = []
         self.parent = parent
+        self.synapse_type = synapse_type
         connection_managers.append(self)
         
     def __getitem__(self, i):
@@ -401,7 +402,7 @@ class ConnectionManager(object):
         """Return an iterator over all connections on the local MPI node."""
         return iter(self.connections)
     
-    def connect(self, source, targets, weights, delays, synapse_type):
+    def connect(self, source, targets, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
         
@@ -411,11 +412,6 @@ class ConnectionManager(object):
                      Must have the same length as `targets`.
         `delays`  -- a list/1D array of connection delays, or a single delay.
                      Must have the same length as `targets`.
-        `synapse_type` -- a string identifying the synapse to connect to. Should
-                          be "excitatory", "inhibitory", or the name of any
-                          other attribute of the post-synaptic cell that refers
-                          to a synaptic mechanism. May be `None`, which is
-                          treated the same as "excitatory".
         """
         if not isinstance(source, int) or source > state.gid_counter or source < 0:
             errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, state.gid_counter)
@@ -434,9 +430,9 @@ class ConnectionManager(object):
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
         for target, weight, delay in zip(targets, weights, delays):
             if target.local:
-                if synapse_type is None:
-                    synapse_type = weight>=0 and 'excitatory' or 'inhibitory' 
-                synapse_object = getattr(target._cell, synapse_type)
+                if self.synapse_type is None:
+                    self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory' 
+                synapse_object = getattr(target._cell, self.synapse_type)
                 nc = state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
                 nc.delay  = delay

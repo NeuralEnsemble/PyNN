@@ -15,12 +15,14 @@ try:
 except ImportError:
     MPI = None
 
-def assert_arrays_almost_equal(a, b, threshold):
+def assert_arrays_almost_equal(a, b, threshold, msg=''):
     if a.shape != b.shape:
         raise unittest.TestCase.failureException("Shape mismatch: a.shape=%s, b.shape=%s" % (a.shape, b.shape))
     if not (abs(a-b) < threshold).all():
         err_msg = "%s != %s" % (a, b)
         err_msg += "\nlargest difference = %g" % abs(a-b).max()
+        if msg:
+            err_msg += "\nOther information: %s" % msg
         raise unittest.TestCase.failureException(err_msg)
 
 def is_local(cell):
@@ -865,56 +867,80 @@ class ProjectionSetTest(unittest.TestCase):
     randomizeDelays() methods of the Projection class."""
 
     def setUp(self):
-        self.target   = sim.Population((3,3), sim.IF_curr_alpha)
+        self.target_curr = sim.Population((3,3), sim.IF_curr_alpha)
+        self.target_cond = sim.Population(5, sim.IF_cond_exp)
+        self.targets = (self.target_curr, self.target_cond)
         self.source   = sim.Population((3,3), sim.SpikeSourcePoisson,{'rate': 200})
         self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345), distribution='uniform', parameters=(0.2,1)) 
         self.distrib_Native= random.RandomDistribution(rng=random.NativeRNG(12345), distribution='uniform', parameters=(0.2,1)) 
         
-    def testSetWeights(self):
-        prj1 = sim.Projection(self.source, self.target, sim.AllToAllConnector())
-        prj1.setWeights(2.345)
+    def testSetPositiveWeights(self):
+        prj1 = sim.Projection(self.source, self.target_curr, sim.AllToAllConnector(), target='excitatory', label="exc, curr")
+        prj2 = sim.Projection(self.source, self.target_curr, sim.AllToAllConnector(), target='inhibitory', label="inh, curr")
+        prj3 = sim.Projection(self.source, self.target_cond, sim.AllToAllConnector(), target='excitatory', label="exc, cond")
+        prj4 = sim.Projection(self.source, self.target_cond, sim.AllToAllConnector(), target='inhibitory', label="inh, cond")
+        for prj in prj1, prj3, prj4:
+            prj.setWeights(2.345)
+            weights = []
+            for c in prj.connections:
+                weights.append(c.weight)
+            result = 2.345*numpy.ones(len(prj.connections))
+            assert_arrays_almost_equal(numpy.array(weights), result, 1e-7, msg=prj.label)
+        self.assertRaises(common.InvalidWeightError, prj2.setWeights, 2.345) # current-based inhibitory needs negative weights
+            
+    def testSetNegativeWeights(self):
+        prj1 = sim.Projection(self.source, self.target_curr, sim.AllToAllConnector(), target='excitatory')
+        prj2 = sim.Projection(self.source, self.target_curr, sim.AllToAllConnector(), target='inhibitory')
+        prj3 = sim.Projection(self.source, self.target_cond, sim.AllToAllConnector(), target='excitatory')
+        prj4 = sim.Projection(self.source, self.target_cond, sim.AllToAllConnector(), target='inhibitory')
+        prj2.setWeights(-2.345)
         weights = []
-        for c in prj1.connections:
+        for c in prj2.connections:
             weights.append(c.weight)
-        result = 2.345*numpy.ones(len(prj1.connections))
+        result = -2.345*numpy.ones(len(prj2.connections))
         assert_arrays_almost_equal(numpy.array(weights), result, 1e-7)
-        
+        for prj in prj1, prj3, prj4:
+            self.assertRaises(common.InvalidWeightError, prj.setWeights, -2.345) 
+            
     def testSetDelays(self):
-        prj1 = sim.Projection(self.source, self.target, sim.AllToAllConnector())
-        prj1.setDelays(2.345)
-        delays = []
-        for c in prj1.connections:
-            delays.append(c.delay)
-        if sim_name != 'nest':
-            result = 2.345*numpy.ones(len(prj1.connections))
-        else:
-            result = 2.4*numpy.ones(len(prj1.connections)) # nest rounds delays up
-        assert_arrays_almost_equal(numpy.array(delays), result, 1e-7)
-        
+        for target in self.targets:
+            prj1 = sim.Projection(self.source, target, sim.AllToAllConnector())
+            prj1.setDelays(2.345)
+            delays = []
+            for c in prj1.connections:
+                delays.append(c.delay)
+            if sim_name != 'nest':
+                result = 2.345*numpy.ones(len(prj1.connections))
+            else:
+                result = 2.4*numpy.ones(len(prj1.connections)) # nest rounds delays up
+            assert_arrays_almost_equal(numpy.array(delays), result, 1e-7)
+            
     def testRandomizeWeights(self):
         # The probability of having two consecutive weight vectors that are equal should be effectively 0
-        prj1 = sim.Projection(self.source, self.target, sim.AllToAllConnector())
-        prj1.randomizeWeights(self.distrib_Numpy)
-        w1 = []; w2 = [];
-        for c in prj1.connections:
-            w1.append(c.weight)
-        prj1.randomizeWeights(self.distrib_Numpy)        
-        for c in prj1.connections:
-            w2.append(c.weight)
-        self.assertNotEqual(w1,w2)
-        self.assertEqual(w2[0], prj1.connections[0].weight)
-        
+        for target in self.targets:
+            prj1 = sim.Projection(self.source, target, sim.AllToAllConnector())
+            prj1.randomizeWeights(self.distrib_Numpy)
+            w1 = []; w2 = [];
+            for c in prj1.connections:
+                w1.append(c.weight)
+            prj1.randomizeWeights(self.distrib_Numpy)        
+            for c in prj1.connections:
+                w2.append(c.weight)
+            self.assertNotEqual(w1,w2)
+            self.assertEqual(w2[0], prj1.connections[0].weight)
+            
     def testRandomizeDelays(self):
         # The probability of having two consecutive delay vectors that are equal should be effectively 0
-        prj1 = sim.Projection(self.source, self.target, sim.FixedProbabilityConnector(0.8))
-        prj1.randomizeDelays(self.distrib_Numpy)
-        d1 = []; d2 = [];
-        for c in prj1.connections:
-            d1.append(c.delay)
-        prj1.randomizeDelays(self.distrib_Numpy)        
-        for c in prj1.connections:
-            d2.append(c.delay)
-        self.assertNotEqual(d1,d2)
+        for target in self.targets:
+            prj1 = sim.Projection(self.source, target, sim.FixedProbabilityConnector(0.8))
+            prj1.randomizeDelays(self.distrib_Numpy)
+            d1 = []; d2 = [];
+            for c in prj1.connections:
+                d1.append(c.delay)
+            prj1.randomizeDelays(self.distrib_Numpy)        
+            for c in prj1.connections:
+                d2.append(c.delay)
+            self.assertNotEqual(d1,d2)
          
 #===============================================================================
 class ProjectionGetTest(unittest.TestCase):

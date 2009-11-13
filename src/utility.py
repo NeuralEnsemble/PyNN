@@ -211,7 +211,7 @@ class Timer(object):
         """Reset the time to zero, and start the clock."""
         self.start()
     
-    def diff(self, format=None):
+    def diff(self, format=None): # I think delta() would be a better name for this method.
         """Return the time since the last time elapsedTime() or diff() was called."""
         current_time = time.time()
         time_since_last_check = current_time - self._last_check

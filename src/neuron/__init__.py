@@ -212,10 +212,9 @@ class Projection(common.Projection):
         """
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    source, target, synapse_dynamics, label, rng)
-        self.connection_manager = simulator.ConnectionManager(parent=self)
-        self.connections = self.connection_manager
-        
         self.synapse_type = target or 'excitatory'
+        self.connection_manager = simulator.ConnectionManager(self.synapse_type, parent=self)
+        self.connections = self.connection_manager
         
         ## Deal with short-term synaptic plasticity
         if self.short_term_plasticity_mechanism:

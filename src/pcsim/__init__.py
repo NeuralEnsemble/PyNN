@@ -703,8 +703,9 @@ class Projection(common.Projection, WDManager):
         ##    assert len(delay) == len(self), "Weight array does not have the same number of elements as the Projection %d != %d" % (len(weight),len(self))
         ##    self.setDelays(delay)
 
-        self.synapse_type = self.syn_factory #target or 'excitatory'
-        self.connection_manager = simulator.ConnectionManager(parent=self)
+        ##self.synapse_type = self.syn_factory #target or 'excitatory'
+        self.synapse_type = target or 'excitatory'
+        self.connection_manager = simulator.ConnectionManager(self.syn_factory, parent=self)
         self.connections = self.connection_manager
         method.connect(self)
         Projection.nProj += 1        

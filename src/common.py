@@ -183,6 +183,7 @@ def is_conductance(target_cell):
     return is_conductance
 
 def check_weight(weight, synapse_type, is_conductance):
+    #print "check_weight: weight=%s, synapse_type=%s, is_conductance=%s" % (weight, synapse_type, is_conductance)
     if weight is None:
         weight = DEFAULT_WEIGHT
     if is_listlike(weight):
@@ -687,7 +688,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     delay = check_delay(delay)
     if p < 1:
         rng = rng or numpy.random
-    connection_manager = simulator.ConnectionManager()
+    connection_manager = simulator.ConnectionManager(synapse_type)
     for tgt in target:
         #if not isinstance(tgt, IDMixin):
         #    raise ConnectionError("target is not a cell, actually %s" % type(tgt))
@@ -697,7 +698,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
             sources = sources[rarr<p]
         weight = check_weight(weight, synapse_type, is_conductance(tgt))
         for src in sources:
-            connection_manager.connect(src, tgt, weight, delay, synapse_type)
+            connection_manager.connect(src, tgt, weight, delay)
     return connection_manager
 
 
@@ -1317,23 +1318,8 @@ class Projection(object):
                 elif len(possible_models) == 0 :
                     raise NoModelAvailableError("No available plasticity models")
                 elif len(possible_models) > 1 :
-                    if self.synapse_dynamics.slow.model:
-                        # addition of the `model` attribute (see r415) is a pragmatic solution
-                        # but not an elegant one, and I don't think it should go into a released API
-                        # Since the problem of multiple models only seems to appear for NEST
-                        # with homogeneous and non-homogeneous versions, it would be better either
-                        # for the code to decide itself which to use (would be complex, as
-                        # connection creation would have to be deferred to run()) or to have
-                        # a global OPTIMIZED variable (possibly set in setup()) - if this was
-                        # set True the homogeneous version would be used and later attempts to
-                        # change parameters of the synapse would raise Exceptions.
-                        if self.synapse_dynamics.slow.model in list(possible_models):
-                            self.long_term_plasticity_mechanism = self.synapse_dynamics.slow.model
-                        else:
-                            print "The particular model %s does not exist !" %self.synapse_dynamics.slow.model
-                    else:
-                        # we pass the set of models back to the simulator-specific module for it to deal with
-                        self.long_term_plasticity_mechanism = possible_models
+                    # we pass the set of models back to the simulator-specific module for it to deal with
+                    self.long_term_plasticity_mechanism = possible_models
                      
     def __len__(self):
         """Return the total number of local connections."""
@@ -1365,6 +1351,7 @@ class Projection(object):
         synapses.
         """
         # should perhaps add a "distribute" argument, for symmetry with "gather" in getWeights()
+        w = check_weight(w, self.synapse_type, is_conductance(self.post.index(0)))
         self.connection_manager.set('weight', w)
     
     def randomizeWeights(self, rand_distr):
@@ -1644,7 +1631,7 @@ class STDPMechanism(object):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
-                 voltage_dependence=None, dendritic_delay_fraction=1.0): #, model=None):
+                 voltage_dependence=None, dendritic_delay_fraction=1.0):
         """
         Create a new specification for an STDP mechanism, by combining a
         weight-dependence, a timing-dependence, and, optionally, a voltage-
@@ -1668,7 +1655,6 @@ class STDPMechanism(object):
         self.weight_dependence = weight_dependence
         self.voltage_dependence = voltage_dependence
         self.dendritic_delay_fraction = dendritic_delay_fraction
-        #self.model = model # see comment in Projection.__init__()
         
     def describe(self):
         """

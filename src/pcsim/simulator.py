@@ -219,14 +219,18 @@ class ConnectionManager(object):
 
     synapse_target_ids = { 'excitatory': 1, 'inhibitory': 2 }
 
-    def __init__(self, synapse_model=None, parent=None):
+    def __init__(self, synapse_type, synapse_model=None, parent=None):
         """
         Create a new ConnectionManager.
         
+        `synapse_type` -- the 'physiological type' of the synapse, e.g.
+                          'excitatory' or 'inhibitory', or a PCSIM synapse
+                          factory.
         `synapse_model` -- not used. Present for consistency with other simulators.
         `parent` -- the parent `Projection`, if any.
         """
         global connection_managers
+        self.synapse_type = synapse_type
         self.connections = []
         self.parent = parent
         connection_managers.append(self)
@@ -257,7 +261,7 @@ class ConnectionManager(object):
         for i in range(len(self)):
             yield self[i]
     
-    def connect(self, source, targets, weights, delays, synapse_type):
+    def connect(self, source, targets, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
         
@@ -267,10 +271,6 @@ class ConnectionManager(object):
                      Must have the same length as `targets`.
         `delays`  -- a list/1D array of connection delays, or a single delay.
                      Must have the same length as `targets`.
-        `synapse_type` -- a string identifying the synapse to connect to (should
-                          be "excitatory" or "inhibitory"), or a PCSIM synapse
-                          factory. May be `None`, which is treated the same as
-                          "excitatory".
         """
         if not isinstance(source, (int, long)) or source < 0:
             errmsg = "Invalid source ID: %s" % source
@@ -291,7 +291,7 @@ class ConnectionManager(object):
         else:
             weight_scale_factor = 1e-9 # Convert from nA to A
         
-        synapse_type = synapse_type or "excitatory"
+        synapse_type = self.synapse_type or "excitatory"
         if isinstance(synapse_type, basestring):
             syn_target_id = ConnectionManager.synapse_target_ids[synapse_type]
             syn_factory = pypcsim.SimpleScalingSpikingSynapse(

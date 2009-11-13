@@ -212,7 +212,10 @@ class Connection(object):
 
     def _get_weight(self):
         """Synaptic weight in nA or µS."""
-        return 0.001*nest.GetConnection(*self.id())['weight']
+        w_nA = nest.GetConnection(*self.id())['weight']
+        if self.parent.synapse_type == 'inhibitory' and common.is_conductance(self.target):
+            w_nA *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
+        return 0.001*w_nA
 
     def _set_delay(self, d):
         args = self.id() + [{'delay': d}]
@@ -232,10 +235,12 @@ class ConnectionManager:
     accessing individual connections.
     """
 
-    def __init__(self, synapse_model='static_synapse', parent=None):
+    def __init__(self, synapse_type, synapse_model='static_synapse', parent=None):
         """
         Create a new ConnectionManager.
         
+        `synapse_type` -- the 'physiological type' of the synapse, e.g.
+                          'excitatory' or 'inhibitory'
         `synapse_model` -- the NEST synapse model to be used for all connections
                            created with this manager.
         `parent` -- the parent `Projection`, if any.
@@ -243,6 +248,7 @@ class ConnectionManager:
         self.sources = []
         self.targets = []
         self.ports = []
+        self.synapse_type = synapse_type
         self.synapse_model = synapse_model
         self.parent = parent
         if parent is not None:
@@ -267,7 +273,7 @@ class ConnectionManager:
         for i in range(len(self)):
             yield self[i]
     
-    def connect(self, source, targets, weights, delays, synapse_type):
+    def connect(self, source, targets, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
         
@@ -277,9 +283,6 @@ class ConnectionManager:
                      Must have the same length as `targets`.
         `delays`  -- a list/1D array of connection delays, or a single delay.
                      Must have the same length as `targets`.
-        `synapse_type` -- a string identifying the synapse to connect to. Should
-                          be "excitatory", "inhibitory", or `None`, which is
-                          treated the same as "excitatory".
         """
         # are we sure the targets are all on the current node?
         if common.is_listlike(source):
@@ -288,12 +291,12 @@ class ConnectionManager:
         if not common.is_listlike(targets):
             targets = [targets]
         assert len(targets) > 0
-        if synapse_type not in ('excitatory', 'inhibitory', None):
+        if self.synapse_type not in ('excitatory', 'inhibitory', None):
             raise common.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
         weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
-        if synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
+        if self.synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
             weights = -1*weights # NEST wants negative values for inhibitory weights, even if these are conductances
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()
@@ -376,6 +379,8 @@ class ConnectionManager:
                 value = nest.GetConnection([src], self.synapse_model, port)[parameter_name]
                 if parameter_name == "weight":
                     value *= 0.001
+                    if self.synapse_type == 'inhibitory' and common.is_conductance(self.targets[0]):
+                        value *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
                 values.append(value)
         elif format == 'array':
             values = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
@@ -391,6 +396,8 @@ class ConnectionManager:
                     values[addr] += value
             if parameter_name == 'weight':
                 values *= 0.001
+                if self.synapse_type == 'inhibitory' and common.is_conductance(self.targets[0]):
+                    values *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
         else:
             raise Exception("format must be 'list' or 'array', actually '%s'" % format)
         return values
@@ -419,6 +426,8 @@ class ConnectionManager:
             value = numpy.array(value)
         if name == 'weight':
             value *= 1000.0
+            if self.synapse_type == 'inhibitory' and common.is_conductance(self.targets[0]):
+                value *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
         elif name == 'delay':
             pass
         else:

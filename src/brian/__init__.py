@@ -170,7 +170,7 @@ class Projection(common.Projection):
         self._plasticity_model = "static_synapse"
         self.synapse_type = target
         
-        self.connection_manager = simulator.ConnectionManager(parent=self)
+        self.connection_manager = simulator.ConnectionManager(self.synapse_type, parent=self)
         self.connections = self.connection_manager
         method.connect(self)
 

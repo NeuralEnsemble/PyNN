@@ -72,7 +72,7 @@ def _probabilistic_connect(connector, projection, p):
             targets.remove(src)
         
         if len(targets) > 0:
-            projection.connection_manager.connect(src, targets, weights, delays, projection.synapse_type)
+            projection.connection_manager.connect(src, targets, weights, delays)
 
 
 class AllToAllConnector(common.Connector):
@@ -131,7 +131,7 @@ class FromListConnector(common.Connector):
             src, tgt, weight, delay = self.conn_list[i][:]
             src = projection.pre[tuple(src)]           
             tgt = projection.post[tuple(tgt)]
-            projection.connection_manager.connect(src, [tgt], weight, delay, projection.synapse_type)
+            projection.connection_manager.connect(src, [tgt], weight, delay)
     
 
 class FromFileConnector(FromListConnector):
@@ -253,7 +253,7 @@ class FixedNumberPostConnector(common.Connector):
             targets = targets.tolist()
             #print common.rank(), source, targets
             if len(targets) > 0:
-                projection.connection_manager.connect(source, targets, weights, delays, projection.synapse_type)
+                projection.connection_manager.connect(source, targets, weights, delays)
                     
 
 class FixedNumberPreConnector(common.Connector):
@@ -327,7 +327,7 @@ class FixedNumberPreConnector(common.Connector):
             delays = self.get_delays(n)
             
             for source, w, d in zip(sources, weights, delays):
-                projection.connection_manager.connect(source, [target], w, d, projection.synapse_type)
+                projection.connection_manager.connect(source, [target], w, d)
                     
 
 class OneToOneConnector(common.Connector):
@@ -370,7 +370,7 @@ class OneToOneConnector(common.Connector):
                 src = projection.pre.index(projection.post.id_to_index(tgt))
                 
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
-                projection.connection_manager.connect(src, [tgt], float(w), float(d), projection.synapse_type)
+                projection.connection_manager.connect(src, [tgt], float(w), float(d))
         else:
             raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
 

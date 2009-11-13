@@ -355,6 +355,7 @@ class Connection(object):
 
     def _get_weight(self):
         """Synaptic weight in nA or µS."""
+        ###print "in Connection._get_weight(), weight_units = %s" % self.bc.weight_units
         return float(self.bc[self.addr]/self.bc.weight_units)
 
     def _set_delay(self, d):
@@ -374,13 +375,17 @@ class ConnectionManager(object):
     accessing individual connections.
     """
 
-    def __init__(self, synapse_model=None, parent=None):
+    def __init__(self, synapse_type, synapse_model=None, parent=None):
         """
         Create a new ConnectionManager.
         
+        `synapse_type` -- the 'physiological type' of the synapse, e.g.
+                          'excitatory' or 'inhibitory',or any other key in the
+                          `synapses` attibute of the celltype class.
         `synapse_model` -- not used. Present for consistency with other simulators.
         `parent` -- the parent `Projection`, if any.
         """
+        self.synapse_type = synapse_type
         self.parent = parent
         self.connections = {}
         self.n = 0
@@ -448,7 +453,7 @@ class ConnectionManager(object):
             self.connections[syn_id][src_id][tgt_id] = bc
         return bc
     
-    def connect(self, source, targets, weights, delays, synapse_type):
+    def connect(self, source, targets, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
         
@@ -458,10 +463,6 @@ class ConnectionManager(object):
                      Must have the same length as `targets`.
         `delays`  -- a list/1D array of connection delays, or a single delay.
                      Must have the same length as `targets`.
-        `synapse_type` -- a string identifying the synapse to connect to. Should
-                          be "excitatory", "inhibitory", or any other key in the
-                          `synapses` attibute of the celltype class. May be
-                          `None`, which is treated the same as "excitatory".
         """
         #print "connecting", source, "to", targets, "with weights", weights, "and delays", delays
         if not common.is_listlike(targets):
@@ -482,7 +483,7 @@ class ConnectionManager(object):
         else:
             units = nA
             
-        synapse_type = synapse_type or "excitatory"
+        synapse_type = self.synapse_type or "excitatory"
         synapse_obj  = targets[0].cellclass.synapses[synapse_type]
         try:
             source_group = source.parent_group
@@ -525,7 +526,8 @@ class ConnectionManager(object):
         if self.parent is None:
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
         synapse_obj = self.parent.post.celltype.synapses[self.parent.target or "excitatory"]
-        weight_units = uS and ("cond" in self.parent.post.celltype.__class__.__name__) or nA
+        weight_units = ("cond" in self.parent.post.celltype.__class__.__name__) and uS or nA
+        ###print "in ConnectionManager.get(), weight_units = %s" % weight_units
         bc = self._get_brian_connection(self.parent.pre.brian_cells,
                                         self.parent.post.brian_cells,
                                         synapse_obj,
@@ -563,7 +565,8 @@ class ConnectionManager(object):
         if self.parent is None:
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
         synapse_obj = self.parent.post.celltype.synapses[self.parent.target or "excitatory"]
-        weight_units = uS and ("cond" in self.parent.post.celltype.__class__.__name__) or nA
+        weight_units = ("cond" in self.parent.post.celltype.__class__.__name__) and uS or nA
+        ###print "in ConnectionManager.set(), weight_units = %s" % weight_units
         bc = self._get_brian_connection(self.parent.pre.brian_cells,
                                         self.parent.post.brian_cells,
                                         synapse_obj,

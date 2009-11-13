@@ -8,9 +8,7 @@ python explore_space.py --help
 
 """
 
-import sys
 import os
-from subprocess import Popen, PIPE
 import tempfile
 from optparse import OptionParser
 import socket

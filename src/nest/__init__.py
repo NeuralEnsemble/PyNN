@@ -428,7 +428,8 @@ class Projection(common.Projection):
             synapse_defaults.update(self._stdp_parameters)
 
         nest.CopyModel(self._plasticity_model, self.plasticity_name, synapse_defaults)
-        self.connection_manager = simulator.ConnectionManager(self.plasticity_name, parent=self)
+        self.connection_manager = simulator.ConnectionManager(self.synapse_type,
+                                                              self.plasticity_name, parent=self)
         
         # Create connections
         method.connect(self)
