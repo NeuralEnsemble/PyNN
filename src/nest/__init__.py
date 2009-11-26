@@ -253,14 +253,14 @@ class Population(common.Population):
                 if key == 'v_init':
                     for cell in self.local_cells:
                         cell._v_init = value
-                    nest.SetStatus(self.local_cells, "V_m", val) # not correct, since could set v_init in the middle of a simulation
+                    nest.SetStatus(self.local_cells.tolist(), "V_m", val) # not correct, since could set v_init in the middle of a simulation
                 elif key in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[key]
                     value = eval(translation['forward_transform'], globals(), {key:value})
-                    nest.SetStatus(self.local_cells,translation['translated_name'],value)
+                    nest.SetStatus(self.local_cells.tolist(), translation['translated_name'], value)
                 elif key in self.celltype.simple_parameters():
                     translation = self.celltype.translations[key]
-                    nest.SetStatus(self.local_cells, translation['translated_name'], value)
+                    nest.SetStatus(self.local_cells.tolist(), translation['translated_name'], value)
                 else:
                     for cell in self.local_cells:
                         cell.set_parameters(**{key:value})
@@ -419,9 +419,9 @@ class Projection(common.Projection):
             tau_minus = self._stdp_parameters.pop("tau_minus")
             # The following is a temporary workaround until the NEST guys stop renaming parameters!
             if 'tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
-                nest.SetStatus(self.post.local_cells, [{'tau_minus': tau_minus}])
+                nest.SetStatus(self.post.local_cells.tolist(), [{'tau_minus': tau_minus}])
             elif 'Tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
-                nest.SetStatus(self.post.local_cells, [{'Tau_minus': tau_minus}])
+                nest.SetStatus(self.post.local_cells.tolist(), [{'Tau_minus': tau_minus}])
             else:
                 raise Exception("Postsynaptic cell model does not support STDP.")
 

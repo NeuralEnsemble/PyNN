@@ -39,7 +39,7 @@ class IF_curr_exp(cells.IF_curr_exp):
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
         ('tau_m',      'tau_m'),
-        ('tau_refrac', 't_ref_abs',  "max(get_time_step(), tau_refrac)", "t_ref_abs"),
+        ('tau_refrac', 't_ref',  "max(get_time_step(), tau_refrac)", "t_ref"),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
@@ -47,11 +47,6 @@ class IF_curr_exp(cells.IF_curr_exp):
         ('v_init',     'v_init'),
     )
     nest_name = 'iaf_psc_exp'
-    
-    def __init__(self, parameters):
-        cells.IF_curr_exp.__init__(self, parameters)
-        self.parameters['t_ref_tot'] = self.parameters['t_ref_abs'] # if tau_refrac is changed later, tau_ref_abs will not be updated.
-                                                                    # need a more generic way to couple parameters together
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):

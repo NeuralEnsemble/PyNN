@@ -186,44 +186,40 @@ class Connection(object):
     def id(self):
         """Return a tuple of arguments for `nest.GetConnection()`.
         """
-        src = self.parent.sources[self.index]
-        port = self.parent.ports[self.index]
-        synapse_model = self.parent.synapse_model
-        return [[src], synapse_model, port]
+        return nest.FindConnections(self.parent.sources, synapse_type=self.parent.synapse_model)[self.index]
 
     @property
     def source(self):
         """The ID of the pre-synaptic neuron."""
-        return self.parent.sources[self.index]
+        src = ID(nest.GetStatus([self.id()], 'source')[0])
+        src.parent = self.parent.parent.pre
+        src.local = nest.GetStatus([src], 'local')[0]
+        return src
     
     @property
     def target(self):
         """The ID of the post-synaptic neuron."""
-        return self.parent.targets[self.index]
-
-    @property
-    def port(self):
-        """The port number of this connection."""
-        return self.parent.ports[self.index]
+        tgt = ID(nest.GetStatus([self.id()], 'target')[0])
+        tgt.parent = self.parent.parent.pre
+        tgt.local = nest.GetStatus([tgt], 'local')[0]
+        return tgt
 
     def _set_weight(self, w):
-        args = self.id() + [{'weight': w*1000.0}]
-        nest.SetConnection(*args)
+        nest.SetStatus([self.id()], 'weight', w*1000.0)
 
     def _get_weight(self):
         """Synaptic weight in nA or µS."""
-        w_nA = nest.GetConnection(*self.id())['weight']
+        w_nA = nest.GetStatus([self.id()], 'weight')[0]
         if self.parent.synapse_type == 'inhibitory' and common.is_conductance(self.target):
             w_nA *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
         return 0.001*w_nA
 
     def _set_delay(self, d):
-        args = self.id() + [{'delay': d}]
-        nest.SetConnection(*args)
+        nest.SetStatus([self.id()], 'delay', d)
 
     def _get_delay(self):
         """Synaptic delay in ms."""
-        return nest.GetConnection(*self.id())['delay']
+        return nest.GetStatus([self.id()], 'delay')[0]
 
     weight = property(_get_weight, _set_weight)
     delay  = property(_get_delay, _set_delay)
@@ -235,7 +231,7 @@ class ConnectionManager:
     accessing individual connections.
     """
 
-    def __init__(self, synapse_type, synapse_model='static_synapse', parent=None):
+    def __init__(self, synapse_type, synapse_model=None, parent=None):
         """
         Create a new ConnectionManager.
         
@@ -246,10 +242,12 @@ class ConnectionManager:
         `parent` -- the parent `Projection`, if any.
         """
         self.sources = []
-        self.targets = []
-        self.ports = []
+        if synapse_model is None:
+            self.synapse_model = 'static_synapse_%s' % id(self)
+            nest.CopyModel('static_synapse', self.synapse_model)
+        else:
+            self.synapse_model = synapse_model
         self.synapse_type = synapse_type
-        self.synapse_model = synapse_model
         self.parent = parent
         if parent is not None:
             assert parent.plasticity_name == self.synapse_model
@@ -263,10 +261,7 @@ class ConnectionManager:
     
     def __len__(self):
         """Return the number of connections on the local MPI node."""
-        if state.optimize:
-            return nest.GetDefaults(self.synapse_model)['num_connections']
-        else:
-            return len(self.sources)
+        return nest.GetDefaults(self.synapse_model)['num_connections']
     
     def __iter__(self):
         """Return an iterator over all connections on the local MPI node."""
@@ -275,7 +270,7 @@ class ConnectionManager:
     
     def connect(self, source, targets, weights, delays):
         """
-        Connect a neuron to one or more other neurons with a static connection.
+        Connect a neuron to one or more other neurons.
         
         `source`  -- the ID of the pre-synaptic cell.
         `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
@@ -307,49 +302,52 @@ class ConnectionManager:
         elif isinstance(delays, float):
             delays = [delays]
         
-        if not state.optimize:        
-            initial_ports = {}
-            for tgt in targets:
-                try:
-                    initial_ports[tgt] = nest.FindConnections([source], [tgt], self.synapse_model)['ports']
-                except nest.NESTError, e:
-                    raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                                             e, source, targets, weights, delays, self.synapse_model))
-            
-            try:
-                nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)            
-            except nest.NESTError, e:
-                raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
+        try:
+            nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)            
+        except nest.NESTError, e:
+            raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                          e, source, targets, weights, delays, self.synapse_model))
-        
-            final_ports = {}
-            for tgt in targets:
-                final_ports[tgt] = nest.FindConnections([source], [tgt], self.synapse_model)['ports']
-        
-            #print "\n", state.mpi_rank, source, "initial:", initial_ports, "final:", final_ports        
-            #all_new_ports = []
-            local_targets = final_ports.keys()
-            local_targets.sort()
-            for tgt in local_targets:
-                #new_ports = final_ports[tgt].difference(initial_ports[tgt])
-                new_ports = final_ports[tgt][len(initial_ports[tgt]):]
-                #if state.mpi_rank == 0:
-                #    print "-", state.mpi_rank, tgt, initial_ports[tgt], final_ports[tgt], new_ports
-                n = len(new_ports)
-                if n > 0:   
-                    self.sources.extend([source]*n)
-                    self.targets.extend([tgt]*n)     
-                    self.ports.extend(new_ports)
-                #all_new_ports.extend(new_ports)
-                
-            #print state.mpi_rank, source, targets, all_new_ports, nest.GetConnections([source], self.synapse_model)[0]['targets']
-        elif state.optimize:
-            try:
-                nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)            
-            except nest.NESTError, e:
-                raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                                         e, source, targets, weights, delays, self.synapse_model))
-        
+        self.sources.append(source)
+
+    def convergent_connect(self, sources, target, weights, delays):
+        """
+        Connect one or more neurons to a single post-synaptic neuron.
+        `sources` -- a list/1D array of pre-synaptic cell IDs, or a single ID.
+        `target`  -- the ID of the post-synaptic cell.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        # are we sure the targets are all on the current node?
+        if common.is_listlike(target):
+            assert len(target) == 1
+            target = target[0]
+        if not common.is_listlike(sources):
+            sources = [sources]
+        assert len(sources) > 0, sources
+        if self.synapse_type not in ('excitatory', 'inhibitory', None):
+            raise common.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
+        weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+                                 # Using convention in this way is not ideal. We should
+                                 # be able to look up the units used by each model somewhere.
+        if self.synapse_type == 'inhibitory' and common.is_conductance(target):
+            weights = -1*weights # NEST wants negative values for inhibitory weights, even if these are conductances
+        if isinstance(weights, numpy.ndarray):
+            weights = weights.tolist()
+        elif isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, numpy.ndarray):
+            delays = delays.tolist()
+        elif isinstance(delays, float):
+            delays = [delays]
+               
+        try:
+            nest.ConvergentConnect(sources, [target], weights, delays, self.synapse_model)            
+        except nest.NESTError, e:
+            raise common.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                                         e, sources, target, weights, delays, self.synapse_model))
+        self.sources.extend(sources)
     
     def get(self, parameter_name, format, offset=(0,0)):
         """
@@ -370,34 +368,29 @@ class ConnectionManager:
         value will be given, which makes some sense for weights, but is
         pretty meaningless for delays. 
         """
-        # this is a slow implementation, going through each connection one at a time
-        # better to use GetConnections, which means we should probably store
-        # connections in a dict, with source as keys and a list of ports as values
+        connections = nest.GetStatus(nest.FindConnections(self.sources, synapse_type=self.synapse_model))
         if format == 'list':
-            values = []
-            for src, port in zip(self.sources, self.ports):
-                value = nest.GetConnection([src], self.synapse_model, port)[parameter_name]
-                if parameter_name == "weight":
-                    value *= 0.001
-                    if self.synapse_type == 'inhibitory' and common.is_conductance(self.targets[0]):
-                        value *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
-                values.append(value)
+            values = [conn[parameter_name] for conn in connections]
+            if parameter_name == "weight":
+                values = [0.001*val for val in values]
         elif format == 'array':
-            values = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
-            for src, tgt, port in zip(self.sources, self.targets, self.ports):
-                # could instead get tgt from the 'target' entry with GetConnection
-                value = nest.GetConnection([src], self.synapse_model, port)[parameter_name]
+            value_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
+            for conn in connections: 
                 # don't need to pass offset as arg, now we store the parent projection
                 # (offset is always 0,0 for connections created with connect())
+                src = conn['source']
+                tgt = conn['target']
+                value = conn[parameter_name]
                 addr = (src-offset[0], tgt-offset[1])
-                if numpy.isnan(values[addr]):
-                    values[addr] = value
+                if numpy.isnan(value_arr[addr]):
+                    value_arr[addr] = value
                 else:
-                    values[addr] += value
+                    value_arr[addr] += value
             if parameter_name == 'weight':
-                values *= 0.001
-                if self.synapse_type == 'inhibitory' and common.is_conductance(self.targets[0]):
-                    values *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
+                value_arr *= 0.001
+                if self.synapse_type == 'inhibitory' and common.is_conductance(self[0].target):
+                    value_arr *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
+            values = value_arr
         else:
             raise Exception("format must be 'list' or 'array', actually '%s'" % format)
         return values
@@ -412,21 +405,19 @@ class ConnectionManager:
         """
         if not (common.is_number(value) or common.is_listlike(value)):
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-        
-        plural_name = name + 's'
-        
+             
         source_cells = list(set(self.sources))
         source_cells.sort()
-        source_array = numpy.array(self.sources)  # these values
-        target_array = numpy.array(self.targets)  # are all for connections
-        port_array   = numpy.array(self.ports)      # on the local node        
+        source_array = numpy.array(self.sources)    
         
         if common.is_listlike(value):
-            assert len(value) == len(port_array)
             value = numpy.array(value)
+        else:
+            value = float(value)        
         if name == 'weight':
             value *= 1000.0
-            if self.synapse_type == 'inhibitory' and common.is_conductance(self.targets[0]):
+            
+            if self.synapse_type == 'inhibitory' and common.is_conductance(self[0].target):
                 value *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
         elif name == 'delay':
             pass
@@ -435,30 +426,14 @@ class ConnectionManager:
             name, value = translation.items()[0]
         
         i = 0
-        for src in source_cells:
-            connection_dict = nest.GetConnections([src], self.synapse_model)[0]
-            #print connection_dict
-            # obtain arrays of all targets, and current values, for this source
-            all_targets = numpy.array(connection_dict['targets'])
-            all_values = numpy.array(connection_dict[plural_name])
-            # extract the ports that are relevant to this source
-            this_source = source_array==src
-            ports = port_array[this_source]
-            # determine current values just for the local MPI node
-            local_targets = target_array[this_source]
-            local_mask = numpy.array([tgt in local_targets for tgt in all_targets])
-            local_values = all_values[local_mask]
-            if common.is_number(value):
-                local_new_values = value
-            else:
-                local_new_values = value[i:i+len(ports)]
-                i += len(ports)
-            # now set the new values for the local connections 
-            local_values[ports] = local_new_values
-            nest.SetConnections([src], self.synapse_model, [{plural_name: local_values.tolist()}])
-            
-        
-
+        connections = nest.FindConnections(self.sources, synapse_type=self.synapse_model)
+        try:
+            nest.SetStatus(connections, name, value)
+        except nest.NESTError, e:
+            n = 1
+            if hasattr(value, '__len__'):
+                n = len(value)
+            raise Exception("%s. Trying to set %d values." % (e, n))        
 
 # --- Initialization, and module attributes ------------------------------------
 
