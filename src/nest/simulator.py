@@ -186,7 +186,7 @@ class Connection(object):
     def id(self):
         """Return a tuple of arguments for `nest.GetConnection()`.
         """
-        return nest.FindConnections(self.parent.sources, synapse_type=self.parent.synapse_model)[self.index]
+        return self.parent.connections[self.index]
 
     @property
     def source(self):
@@ -251,6 +251,7 @@ class ConnectionManager:
         self.parent = parent
         if parent is not None:
             assert parent.plasticity_name == self.synapse_model
+        self._connections = None
 
     def __getitem__(self, i):
         """Return the `i`th connection on the local MPI node."""
@@ -267,6 +268,12 @@ class ConnectionManager:
         """Return an iterator over all connections on the local MPI node."""
         for i in range(len(self)):
             yield self[i]
+
+    @property
+    def connections(self):
+        if self._connections is None:
+            self._connections = nest.FindConnections(self.sources, synapse_type=self.synapse_model)
+        return self._connections
     
     def connect(self, source, targets, weights, delays):
         """
@@ -307,6 +314,7 @@ class ConnectionManager:
         except nest.NESTError, e:
             raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                          e, source, targets, weights, delays, self.synapse_model))
+        self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self.sources.append(source)
 
     def convergent_connect(self, sources, target, weights, delays):
@@ -347,6 +355,7 @@ class ConnectionManager:
         except nest.NESTError, e:
             raise common.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                          e, sources, target, weights, delays, self.synapse_model))
+        self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self.sources.extend(sources)
     
     def get(self, parameter_name, format, offset=(0,0)):
@@ -368,14 +377,14 @@ class ConnectionManager:
         value will be given, which makes some sense for weights, but is
         pretty meaningless for delays. 
         """
-        connections = nest.GetStatus(nest.FindConnections(self.sources, synapse_type=self.synapse_model))
+        connection_parameters = nest.GetStatus(self.connections)
         if format == 'list':
-            values = [conn[parameter_name] for conn in connections]
+            values = [conn[parameter_name] for conn in connection_parameters]
             if parameter_name == "weight":
                 values = [0.001*val for val in values]
         elif format == 'array':
             value_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
-            for conn in connections: 
+            for conn in connection_parameters: 
                 # don't need to pass offset as arg, now we store the parent projection
                 # (offset is always 0,0 for connections created with connect())
                 src = conn['source']
@@ -426,9 +435,8 @@ class ConnectionManager:
             name, value = translation.items()[0]
         
         i = 0
-        connections = nest.FindConnections(self.sources, synapse_type=self.synapse_model)
         try:
-            nest.SetStatus(connections, name, value)
+            nest.SetStatus(self.connections, name, value)
         except nest.NESTError, e:
             n = 1
             if hasattr(value, '__len__'):

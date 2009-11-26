@@ -437,21 +437,4 @@ class Projection(common.Projection):
         self.connections = self.connection_manager
 
 
-    # --- Methods for writing/reading information to/from file. ----------------
-
-    def _dump_connections(self):
-        """For debugging."""
-        print "Connections for Projection %s, connected with %s" % (self.label or '(un-labelled)',
-                                                                    self._method)
-        print "\tsource\ttarget\tport"
-        for src,tgt in zip(self._sources, self._targets):
-            connections = nest.FindConnections([src],[tgt],self.plasticity_name)
-            for port in connections['ports']:
-                print "\t%d\t%d\t%d" % (src, tgt, port)
-        print "Connection data for the presynaptic population (%s)" % self.pre.label
-        for src in self.pre.cell.flat:
-            print src, nest.GetConnections([src], self.plasticity_name)  
-
-
-
 # ==============================================================================
