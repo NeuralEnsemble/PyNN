@@ -6,6 +6,7 @@ UNITS {
         (mA) = (milliamp)
         (mV) = (millivolt)
 	(uS) = (microsiemens)
+        (S) = (siemens)
 }
  
 NEURON {

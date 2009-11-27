@@ -227,6 +227,8 @@ class ID(int, common.IDMixin):
         gid = int(self)
         self._cell = cell_model(**cell_parameters)          # create the cell object
         register_gid(gid, self._cell.source, section=self._cell) # not adequate for multi-compartmental cells
+        if hasattr(self._cell, "get_threshold"):            # this is not adequate, since the threshold may be changed after cell creation
+            state.parallel_context.threshold(int(self), self._cell.get_threshold()) # the problem is that self._cell does not know its own gid
         
     def get_native_parameters(self):
         """Return a dictionary of parameters for the NEURON cell model."""
@@ -436,8 +438,7 @@ class ConnectionManager(object):
                 nc = state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
                 nc.delay  = delay
-                if hasattr(source._cell, 'get_threshold'):
-                    nc.threshold = source._cell.get_threshold()
+                # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
                 self.connections.append(Connection(source, target, nc))
 
     def get(self, parameter_name, format, offset=(0,0)):

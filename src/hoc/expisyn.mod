@@ -1,22 +1,16 @@
 NEURON {
 	POINT_PROCESS ExpISyn
-	RANGE tau, i, k
+	RANGE tau, i
 	NONSPECIFIC_CURRENT i
 }
 
 UNITS {
 	(nA) = (nanoamp)
 	(mV) = (millivolt)
-	(uS) = (microsiemens)
 }
 
 PARAMETER {
 	tau = 0.1 (ms) <1e-9,1e9>
-	k = 1
-}
-
-ASSIGNED {
-	v (mV)
 }
 
 STATE {
@@ -35,7 +29,8 @@ DERIVATIVE state {
 	i' = -i/tau
 }
 
-NET_RECEIVE(weight (uS)) {
-	state_discontinuity(i, i - k*weight)
+NET_RECEIVE(weight (nA)) {
+        :printf("t = %f, weight = %f\n", t, weight)
+	i = i - weight
 }
 

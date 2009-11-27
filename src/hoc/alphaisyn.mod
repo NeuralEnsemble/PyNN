@@ -76,6 +76,7 @@ FUNCTION alpha(x) {
 NET_RECEIVE(weight (nA)) {
 	onset_times[q] = t
 	weight_list[q] = weight
+        :printf("t = %f, weight = %f\n", t, weight)
 	if (q >= MAX_SPIKES-1) {
 		printf("Error in AlphaSynI. Spike queue is full\n")
 	} else {
