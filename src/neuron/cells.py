@@ -57,6 +57,9 @@ class SingleCompartmentNeuron(nrn.Section):
         synapse_model = StandardIF.synapse_models[syn_type][syn_shape]
         self.esyn = synapse_model(0.5, sec=self)
         self.isyn = synapse_model(0.5, sec=self)
+        if self.syn_type == 'conductance' and self.syn_shape == 'exp':
+            self.esyn_TM = h.tmgsyn(0.5, sec=self)
+            self.isyn_TM = h.tmgsyn(0.5, sec=self)
         
         # insert current source
         self.stim = h.IClamp(0.5, sec=self)
@@ -77,6 +80,20 @@ class SingleCompartmentNeuron(nrn.Section):
     @property
     def inhibitory(self):
         return self.isyn
+    
+    @property
+    def excitatory_TM(self):
+        if hasattr(self, 'esyn_TM'):
+            return self.esyn_TM
+        else:
+            return None
+
+    @property
+    def inhibitory_TM(self):
+        if hasattr(self, 'isyn_TM'):
+            return self.isyn_TM
+        else:
+            return None
 
     def area(self):
         """Membrane area in µm²"""
@@ -84,10 +101,38 @@ class SingleCompartmentNeuron(nrn.Section):
 
     c_m      = _new_property('seg', 'cm')
     i_offset = _new_property('stim', 'amp')
-    tau_e    = _new_property('esyn', 'tau')
-    tau_i    = _new_property('isyn', 'tau')
-    e_e      = _new_property('esyn', 'e')
-    e_i      = _new_property('isyn', 'e')
+    
+    def _get_tau_e(self):
+        return self.esyn.tau
+    def _set_tau_e(self, value):
+        self.esyn.tau = value
+        if hasattr(self, 'esyn_TM'):
+            self.esyn_TM.tau = value
+    tau_e = property(fget=_get_tau_e, fset=_set_tau_e)
+    
+    def _get_tau_i(self):
+        return self.isyn.tau
+    def _set_tau_i(self, value):
+        self.isyn.tau = value
+        if hasattr(self, 'isyn_TM'):
+            self.isyn_TM.tau = value
+    tau_i = property(fget=_get_tau_i, fset=_set_tau_i)
+    
+    def _get_e_e(self):
+        return self.esyn.e
+    def _set_e_e(self, value):
+        self.esyn.e = value
+        if hasattr(self, 'esyn_TM'):
+            self.esyn_TM.e = value
+    e_e = property(fget=_get_e_e, fset=_set_e_e)
+    
+    def _get_e_i(self):
+        return self.isyn.e
+    def _set_e_i(self, value):
+        self.isyn.e = value
+        if hasattr(self, 'isyn_TM'):
+            self.isyn_TM.e = value
+    e_i = property(fget=_get_e_i, fset=_set_e_i)
     
     def record(self, active):
         if active:
@@ -109,6 +154,8 @@ class SingleCompartmentNeuron(nrn.Section):
                 self.record_times = None
     
     def record_gsyn(self, syn_name, active):
+        # how to deal with static and T-M synapses?
+        # record both and sum?
         if active:
             self.gsyn_trace[syn_name] = h.Vector()
             self.gsyn_trace[syn_name].record(getattr(self, syn_name)._ref_g)
@@ -130,34 +177,21 @@ class SingleCompartmentNeuron(nrn.Section):
             seg.v = self.v_init
         #self.seg.v = self.v_init
 
-    def use_Tsodyks_Markram_synapses(self, ei, U, tau_rec, tau_facil, u0):
+    def set_Tsodyks_Markram_synapses(self, ei, U, tau_rec, tau_facil, u0):
         if self.syn_type == 'current':
             raise Exception("Tsodyks-Markram mechanism only available for conductance-based synapses.")
         elif self.syn_shape == 'alpha':
             raise Exception("Tsodyks-Markram mechanism not available for alpha-function-shaped synapses.")
         elif ei == 'excitatory':
-            tau_syn = self.tau_e
-            e_syn = self.e_e
-            self.esyn = h.tmgsyn(0.5, sec=self)
-            self.esyn.tau = tau_syn
-            self.esyn.e = e_syn
-            syn = self.esyn
+            syn = self.esyn_TM
         elif ei == 'inhibitory':
-            tau_syn = self.tau_i
-            e_syn = self.e_i
-            self.isyn = h.tmgsyn(0.5, sec=self)
-            self.isyn.tau = tau_syn
-            self.isyn.e = e_syn
-            syn = self.isyn
+            syn = self.isyn_TM
         else:
             raise Exception("Tsodyks-Markram mechanism not yet implemented for user-defined synapse types. ei = %s" % ei)
         syn.U = U
         syn.tau_rec = tau_rec
         syn.tau_facil = tau_facil
         syn.u0 = u0
-        # change the mechanism that is being recorded
-        if ei in self.gsyn_trace and self.gsyn_trace[ei] is not None:
-            self.gsyn_trace[ei].record(syn._ref_g)
 
     def set_parameters(self, param_dict):
         for name in self.parameter_names:

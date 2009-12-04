@@ -213,8 +213,7 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    source, target, synapse_dynamics, label, rng)
         self.synapse_type = target or 'excitatory'
-        self.connection_manager = simulator.ConnectionManager(self.synapse_type, parent=self)
-        self.connections = self.connection_manager
+        
         
         ## Deal with short-term synaptic plasticity
         if self.short_term_plasticity_mechanism:
@@ -223,8 +222,15 @@ class Projection(common.Projection):
             tau_facil = self._short_term_plasticity_parameters['tau_facil']
             u0 = self._short_term_plasticity_parameters['u0']
             for cell in self.post:
-                cell._cell.use_Tsodyks_Markram_synapses(self.synapse_type, U, tau_rec, tau_facil, u0)
+                cell._cell.set_Tsodyks_Markram_synapses(self.synapse_type, U, tau_rec, tau_facil, u0)
+            synapse_model = 'Tsodyks-Markram'
+        else:
+            synapse_model = None
                 
+        self.connection_manager = simulator.ConnectionManager(self.synapse_type,
+                                                              synapse_model=synapse_model,
+                                                              parent=self)
+        self.connections = self.connection_manager        
         ## Create connections
         method.connect(self)
             

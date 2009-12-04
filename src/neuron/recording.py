@@ -19,6 +19,9 @@ class Recorder(recording.Recorder):
             for id in new_ids:
                 id._cell.record_gsyn("excitatory", 1)
                 id._cell.record_gsyn("inhibitory", 1)
+                if id._cell.excitatory_TM is not None:
+                    id._cell.record_gsyn("excitatory_TM", 1)
+                    id._cell.record_gsyn("inhibitory_TM", 1)
         else:
             raise Exception("Recording of %s not implemented." % self.variable)
         
@@ -46,6 +49,21 @@ class Recorder(recording.Recorder):
             for id in self.recorded:
                 ge = numpy.array(id._cell.gsyn_trace['excitatory'])
                 gi = numpy.array(id._cell.gsyn_trace['inhibitory'])
+                if 'excitatory_TM' in id._cell.gsyn_trace:
+                    ge_TM = numpy.array(id._cell.gsyn_trace['excitatory_TM'])
+                    gi_TM = numpy.array(id._cell.gsyn_trace['inhibitory_TM'])
+                    if ge.size == 0:
+                        ge = ge_TM
+                    elif ge.size == ge_TM.size:
+                        ge = ge + ge_TM
+                    else:
+                        raise Exception()
+                    if gi.size == 0:
+                        gi = gi_TM
+                    elif gi.size == gi_TM.size:
+                        gi = gi + gi_TM
+                    else:
+                        raise Exception()
                 t = numpy.array(id._cell.record_times)             
                 new_data = numpy.array([numpy.ones(ge.shape)*id, t, ge, gi]).T
                 data = numpy.concatenate((data, new_data))

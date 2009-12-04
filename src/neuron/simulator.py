@@ -383,13 +383,14 @@ class ConnectionManager(object):
         """
         Create a new ConnectionManager.
         
-        `synapse_model` -- not used. Present for consistency with other simulators.
+        `synapse_model` -- either None or 'Tsodyks-Markram'.
         `parent` -- the parent `Projection`, if any.
         """
         global connection_managers
         self.connections = []
         self.parent = parent
         self.synapse_type = synapse_type
+        self.synapse_model = synapse_model
         connection_managers.append(self)
         
     def __getitem__(self, i):
@@ -433,7 +434,9 @@ class ConnectionManager(object):
         for target, weight, delay in zip(targets, weights, delays):
             if target.local:
                 if self.synapse_type is None:
-                    self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory' 
+                    self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
+                if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
+                    self.synapse_type += '_TM'
                 synapse_object = getattr(target._cell, self.synapse_type)
                 nc = state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
