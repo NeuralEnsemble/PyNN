@@ -47,6 +47,36 @@ class DCSource(CurrentSource):
                                       'start': float(start)}) # conversion from nA to pA
         if stop:
             nest.SetStatus(self._device, {'stop': float(stop)})
+
+
+class ACSource(CurrentSource):
+    """Source producing a single pulse of current of constant amplitude."""
+    
+    def __init__(self, amplitude=1.0, offset=0.0, frequency=10, phase=0., start=0.0, stop=None):
+        """Construct the current source.
+        
+        Arguments:
+            start     -- onset time of pulse in ms
+            stop      -- end of pulse in ms
+            amplitude -- pulse amplitude in nA
+            sine_amp  -- sine amplitude in nA
+            frequency -- frequency in Hz
+            phase     -- phase in degree
+
+        """
+        self.amplitude = amplitude
+        self.offset    = offset
+        self.frequency = frequency
+        self.phase     = phase
+        self._device = nest.Create('ac_generator')
+        nest.SetStatus(self._device, {'amplitude': 1000.0*self.amplitude,
+                                      'offset'   : 1000.0*self.offset,
+                                      'frequency': float(self.frequency),
+                                      'phase'    : float(self.phase),
+                                      'start'    : float(start)}) # conversion from nA to pA
+        if stop:
+            nest.SetStatus(self._device, {'stop': float(stop)})
+
         
         
 class StepCurrentSource(CurrentSource):

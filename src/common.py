@@ -1427,21 +1427,32 @@ class Projection(object):
             logger.error("getSynapseDynamics() with gather=True not yet implemented")
         return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
     
-    def saveConnections(self, filename, gather=True):
+    def saveConnections(self, filename, gather=True, compatible_output=True):
         """
         Save connections to file in a format suitable for reading in with a
         FromFileConnector.
         """
-        fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
-                                        "%s", "%g", "%g")
+        if compatible_output:
+            fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
+                                            "%s", "%g", "%g")
+        else:
+            fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%d", "%g", "%g")
         lines = []
-        for c in self.connections:     
-            line = fmt  % (self.pre.locate(c.source),
-                           self.post.locate(c.target),
-                           c.weight,
-                           c.delay)
-            line = line.replace('(','[').replace(')',']')
-            lines.append(line)
+        if not compatible_output:
+            for c in self.connections:   
+                line = fmt  % (c.source, 
+                               c.target,
+                               c.weight,
+                               c.delay)
+                lines.append(line)
+        else:
+            for c in self.connections:   
+                line = fmt  % (self.pre.locate(c.source),
+                              self.post.locate(c.target),
+                              c.weight,
+                              c.delay)
+                line = line.replace('(','[').replace(')',']')
+                lines.append(line)
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
             all_lines = recording.gather_dict(all_lines)
