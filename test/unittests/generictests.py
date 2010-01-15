@@ -641,6 +641,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
             vm_fromfile = numpy.loadtxt("temp.v")
             #print vm_fromfile
             self.assertEqual(vm_fromfile.shape, ((1+int(10.0/0.1))*len(cells_to_record), 2))
+        os.remove("temp.v")
         
     def testSynapticConductanceRecording(self):
         # current-based synapses
@@ -713,6 +714,8 @@ class ProjectionTest(unittest.TestCase):
         self.prj.printWeights("weights_list.tmp", format='list', gather=False)
         self.prj.printWeights("weights_array.tmp", format='array', gather=False)
         # test needs completing. Should read in the weights and check they have the correct values
+        os.remove("weights_list.tmp")
+        os.remove("weights_array.tmp")
          
     def test_iterator(self):
         assert hasattr(self.prj, "connections")
@@ -1067,6 +1070,12 @@ class FileTest(unittest.TestCase):
         sim.running = False
         sim.run(simtime)
         
+    def tearDown(self):
+        for ext in "txt", "pkl", "npz", "h5":
+            filename = "temp_v.%s" % ext
+            if os.path.exists(filename):
+                os.remove(filename)
+    
     def test_text_file(self):
         output_file = recording.files.StandardTextFile("temp_v.txt", 'w')
         self.pop.print_v(output_file, gather=True, compatible_output=True)

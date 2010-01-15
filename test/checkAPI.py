@@ -12,9 +12,9 @@ $Id$
 """
 
 import re, string, types, getopt, sys, shutil, os, inspect, math
-shutil.copy('dummy_hoc.py','hoc.py')
+#shutil.copy('dummy_hoc.py','hoc.py')
 from pyNN import common, nest, neuron, pcsim, brian
-os.remove('hoc.py') #; os.remove('hoc.pyc')
+#os.remove('hoc.py') #; os.remove('hoc.pyc')
 
 
 red     = 0010; green  = 0020; yellow = 0030; blue = 0040;
