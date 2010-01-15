@@ -1117,7 +1117,7 @@ if __name__ == "__main__":
     
     sys.argv.remove(sim_name) # because unittest.main() processes sys.argv
     if sim_name == 'neuron':
-        sys.argv = sys.argv[sys.argv.index(__file__):]
+        sys.argv = sys.argv[sys.argv.index('generictests.py'):]
     
     #print sys.argv
     sim = __import__("pyNN.%s" % sim_name, None, None, [sim_name])
