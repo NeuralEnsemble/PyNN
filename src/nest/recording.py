@@ -45,7 +45,10 @@ class Recorder(recording.Recorder):
             device_parameters.update(to_file=False, to_memory=True)
         else: # (includes self.file is None)
             device_parameters.update(to_file=True, to_memory=False)
-        nest.SetStatus(self._device, device_parameters)
+        try:
+            nest.SetStatus(self._device, device_parameters)
+        except nest.hl_api.NESTError, e:
+            raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, device_parameters))
 
     def _record(self, new_ids):
         """Called by record()."""            
@@ -184,7 +187,7 @@ class Recorder(recording.Recorder):
             self._local_files_merged = True
         return data
     
-    def get(self, gather=False, compatible_output=True):
+    def _get(self, gather=False, compatible_output=True):
         """Return the recorded data as a Numpy array."""
         if self._device is None:
             raise common.NothingToWriteError("No cells recorded, so no data to return")
@@ -209,7 +212,7 @@ class Recorder(recording.Recorder):
                 mask = events['senders'] == int(id)
                 N[id] = events['times'][mask].count()
         else:
-            spikes = self.get(gather=False, compatible_output=False)
+            spikes = self._get(gather=False, compatible_output=False)
             for id in spikes[:,0].astype(int):
                 assert id in self.recorded
                 if id in N:

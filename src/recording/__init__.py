@@ -105,9 +105,13 @@ class Recorder(object):
         logger.debug('Recorder.recorded contains %d ids' % len(self.recorded))
         self._record(new_ids)
         
-    def get(self, gather=False, compatible_output=True, offset=None):
+    def get(self, gather=False, compatible_output=True):
         """Return the recorded data as a Numpy array."""
-        raise NotImplementedError
+        data_array = self._get(gather, compatible_output)
+        id_offset = self.population and self.population.first_id or 0
+        data_array[:,0] -= id_offset # relies on fact that id is always first column
+        self._data_size = data_array.shape[0]
+        return data_array
     
     def write(self, file=None, gather=False, compatible_output=True):
         """Write recorded data to file."""
@@ -120,17 +124,15 @@ class Recorder(object):
         else:
             filename = file.name
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s and compatible_output=%s" % (self.variable,
-                                                                                                         filename,
-                                                                                                         gather,
-                                                                                                         compatible_output))
+                                                                                                        filename,
+                                                                                                        gather,
+                                                                                                        compatible_output))
         data = self.get(gather, compatible_output)
+        metadata = self.metadata
         logger.debug("data has size %s" % str(data.size))
-        dt = simulator.state.dt # we have to do this here because it has to run on all nodes
         if simulator.state.mpi_rank == 0 or gather==False:
             if compatible_output:
-                data, metadata = self._make_compatible(data, dt)
-            else:
-                metadata = {}
+                data = self._make_compatible(data)
             # Open the output file, if necessary and write the data
             logger.debug("Writing data to file %s" % file)
             if isinstance(file, basestring):
@@ -138,36 +140,33 @@ class Recorder(object):
             file.write(data, metadata)
             file.close()
     
-    def _make_compatible(self, data_source, dt):
+    @property
+    def metadata(self):
+        metadata = {}
+        if self.population is not None:
+            metadata.update({
+                'dimensions': str(list(self.population.dim)),
+                'first_id': 0,
+                'last_id': len(self.population)-1
+            })
+        metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        if not hasattr(self, '_data_size'):
+            self.get()
+        metadata['n'] = self._data_size
+        return metadata
+    
+    def _make_compatible(self, data_source):
         """
         Rewrite simulation data in a standard format:
             spiketime (in ms) cell_id-min(cell_id)
         """
-        if isinstance(data_source, numpy.ndarray):
-            logger.debug("Converting data from memory into compatible format")
-            N = len(data_source)
-        else: # assume data is a filename or open file object
-            logger.debug("Converting data from file %s into compatible format" % data_source)
-            try: 
-                N = os.path.getsize(data_source)
-            except Exception:
-                N = 0
+        assert isinstance(data_source, numpy.ndarray)
+        logger.debug("Converting data from memory into compatible format")
+        N = len(data_source)
         
         logger.debug("Number of data elements = %d" % N)
         if N > 0:
             # Write header info (e.g., dimensions of the population)
-            metadata = {}
-            if self.population is not None:
-                metadata.update({
-                    'dimensions': str(list(self.population.dim)),
-                    'first_id': 0,
-                    'last_id': len(self.population)-1
-                })
-                id_offset = self.population.first_id
-            else:
-                id_offset = 0
-            metadata['dt'] = dt
-            logger.debug("File metadata: %s" % metadata)
             input_format = self.formats[self.variable].split()
             time_column = input_format.index('t')
             id_column = input_format.index('id')
@@ -184,18 +183,12 @@ class Recorder(object):
             else:
                 raise Exception("Invalid variable")
             
-            # Read/select data
-            if isinstance(data_source, numpy.ndarray):
-                data_array = data_source[:, column_map]
-            else: # assume data is a filename or open file object
-                data_array = numpy.loadtxt(data_source, usecols=column_map)
-            data_array[:,-1] -= id_offset # replies on fact that id is always last column
-            metadata['n'] = data_array.shape[0]
+            # Select data
+            data_array = data_source[:, column_map]
         else:
             logger.warning("%s is empty or does not exist" % data_source)
             data_array = numpy.array([])
-            metadata = {}
-        return data_array, metadata
+        return data_array
     
     def count(self, gather=True):
         """

@@ -47,7 +47,7 @@ class Recorder(recording.Recorder):
                 device.recordindex = dict((i,j) for i,j in zip(device.record,
                                                                range(len(device.record))))
     
-    def get(self, gather=False, compatible_output=True):
+    def _get(self, gather=False, compatible_output=True):
         """Return the recorded data as a Numpy array."""
         if self.variable == 'spikes':
             data = numpy.array([(id, time/ms) for (id, time) in self._devices[0].spikes if id in self.recorded])
