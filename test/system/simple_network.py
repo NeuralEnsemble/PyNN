@@ -113,14 +113,14 @@ class SimpleNetwork(object):
         spikes = {}
         for pop in chain(self._neuronal_populations, self._source_populations):
             spike_arr = pop.getSpikes()
-            spikes[pop.label] = signals.SpikeList(spike_arr, id_list=[0]) #pop.cell.flat)
+            spikes[pop.label] = signals.SpikeList(spike_arr, id_list=range(pop.size))
         return spikes
         
     def get_v(self):
         vm = {}
         for pop in self._neuronal_populations:
             vm_arr = pop.get_v()
-            vm[pop.label] = signals.VmList(vm_arr[:,(0,2)], id_list=[0], #pop.cell.flat-pop.first_id,
+            vm[pop.label] = signals.VmList(vm_arr[:,(0,2)], id_list=range(pop.size),
                                            dt=self.parameters.system.timestep,
                                            t_start=min(vm_arr[:,1]),
                                            t_stop=max(vm_arr[:,1])+self.parameters.system.timestep)
@@ -154,6 +154,10 @@ def test(sim):
     SimpleNetwork.check_parameters(params)
     net = SimpleNetwork(sim, params)
     sim.run(100.0)
+    id = net.get_v()['post'].id_list()[0]
+    print id
+    print net.get_v()['post'][id]
+    
         
 # ==============================================================================
 if __name__ == "__main__":

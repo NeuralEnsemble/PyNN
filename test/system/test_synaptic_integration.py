@@ -6,7 +6,7 @@ of the post-synaptic cell between simulators
 
 Usage:
 
-    python test_synaptic_integration.py PARAMETERFILE
+    python test_synaptic_integration.py PARAMETERFILE SIM1 [SIM2] [SIM3, etc.]
     
 Example parameter file:
 {
@@ -34,7 +34,8 @@ from NeuroTools.parameters import ParameterSet
 from NeuroTools.stgen import StGen
 from NeuroTools.plotting import SimpleMultiplot
 from NeuroTools.signals import VmList
-from pyNN.utility import MultiSim, init_logging
+from pyNN.multisim import MultiSim
+from pyNN.utility import init_logging
 from simple_network import SimpleNetwork
 from datetime import datetime
 
@@ -69,6 +70,7 @@ def run(parameters, sim_list):
     networks.run(sim_time)
     spike_data = networks.get_spikes()
     vm_data = networks.get_v()
+    networks.end()
     return spike_data, vm_data, model_parameters
 
 def calc_distances(spike_data):
@@ -89,12 +91,15 @@ def calc_Vm_diff(vm_data):
         for sim2 in sim_list:
             v2 = vm_data[sim2.__name__]['post'][0]
             vmlist = VmList([],[], dt=v1.dt)
-            # NEST seems to be missing some values at the start and end of the trace,
-            # so we trim all signals to the minimum length. This should be fixed in PyNN
-            t_start = max(v1.t_start, v2.t_start)
-            t_stop = min(v1.t_stop, v2.t_stop)
-            v1 = v1.time_slice(t_start, t_stop)
-            v2 = v2.time_slice(t_start, t_stop)
+            ## NEST seems to be missing some values at the start and end of the trace,
+            ## so we trim all signals to the minimum length. This should be fixed in PyNN
+            print v1.t_start, v2.t_start
+            print v1.t_stop, v2.t_stop
+            assert len(v1) == len(v2)
+            #t_start = max(v1.t_start, v2.t_start)
+            #t_stop = min(v1.t_stop, v2.t_stop)
+            #v1 = v1.time_slice(t_start, t_stop)
+            #v2 = v2.time_slice(t_start, t_stop)
             
             vmlist.append(0, v1)
             vmlist.append(1, v2)

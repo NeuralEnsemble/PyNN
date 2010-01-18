@@ -7,7 +7,6 @@
         'e_rev_I'   : UniformDist(-90, -60.0),     # Reversal potential for inhibitory input in mV
         'i_offset'  : UniformDist(-1.0, 1.0),      # Offset current in nA
         'v_reset'   : UniformDist(-90.0, -60.0),   # Reset potential after a spike in mV.
-        'v_thresh'  : UniformDist(-55.0, -40.0),   # Spike threshold in mV.
         'v_init'    : UniformDist(-80.0, -55.0),   # Membrane potential in mV at t = 0
         'gbar_Na'   : UniformDist(1000.0, 20000.0),
         'gbar_K'    : UniformDist(1000.0, 20000.0),

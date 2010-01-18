@@ -26,7 +26,7 @@ def parse_hostlist(option, opt, value, parser):
     parser.values.host_list = value.split(',')
 
 # read command-line arguments
-usage = "Usage: %prog [options] test_script parameter_file"
+usage = "Usage: %prog [options] test_script parameter_file [script_args]"
 parser = OptionParser(usage)
 parser.add_option("-n", "--trials", type=int, dest="trials", default=1,
                   help="Number of values to draw from each parameter distribution")
@@ -35,10 +35,11 @@ parser.add_option("-H", "--hosts", action="callback", callback=parse_hostlist, t
 parser.add_option("-f", "--hostfile", action="callback", callback=read_hostfile,
                   type=str, help="Provide a hostfile")
 (options, args) = parser.parse_args()
-if len(args) != 2:
+if len(args) < 2:
     parser.error("incorrect number of arguments")
 
-test_script, url = args
+test_script, url = args[:2]
+script_args = args[2:]
 trials = options.trials
 if hasattr(options, "host_list"):
     host_list = options.host_list
@@ -57,7 +58,7 @@ for sub_parameter_space in parameter_space.iter_inner(copy=True):
         os.close(fd)
         tempfiles.append(tmp_url)
         parameter_set.save(tmp_url)
-        job_manager.run(test_script, parameter_set._url)
+        job_manager.run(test_script, parameter_set._url, *script_args)
 
 # wait until all jobs have finished    
 job_manager.wait()

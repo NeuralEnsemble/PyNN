@@ -34,6 +34,18 @@ in the future.
 System tests
 ------------
 
+These tests compare the output of different simulators for the same script. Each
+test can be run directly by providing a parameter file on the command line,
+e.g.:
+
+python test_synaptic_integration.py parameters/test_synaptic_integration.param neuron nest
+
+or it can be run with many different parameter sets using the explore_space.py
+script, e.g.:
+
+python explore_space.py -n 5 -f ~/mpd.hosts test_synaptic_integration.py parameters/test_synaptic_integration.space neuron nest
+
+
 
 
 Running the example scripts

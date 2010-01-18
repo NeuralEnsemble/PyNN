@@ -166,7 +166,7 @@ class Recorder(object):
         
         logger.debug("Number of data elements = %d" % N)
         if N > 0:
-            # Write header info (e.g., dimensions of the population)
+            # Shuffle columns if necessary
             input_format = self.formats[self.variable].split()
             time_column = input_format.index('t')
             id_column = input_format.index('id')
@@ -183,7 +183,6 @@ class Recorder(object):
             else:
                 raise Exception("Invalid variable")
             
-            # Select data
             data_array = data_source[:, column_map]
         else:
             logger.warning("%s is empty or does not exist" % data_source)

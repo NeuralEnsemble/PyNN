@@ -5,6 +5,7 @@ Also see:
   http://jerith.za.net/code/remoteexec.html
   http://pussh.sourceforge.net
   http://www.theether.org/pssh/
+  http://docs.fabfile.org/
 """
 
 from subprocess import Popen, PIPE, STDOUT
@@ -15,6 +16,9 @@ from itertools import cycle
 import tempfile
 from time import sleep
 
+import socket
+this_host = socket.gethostname()
+
 class Job(Popen):
     
     def __init__(self, script, *args):
@@ -23,12 +27,17 @@ class Job(Popen):
         
     def run(self, node):
         self.node = node
-        cmd = "ssh -x %s %s %s %s" % (node,
-                                      sys.executable,
-                                      os.path.abspath(self.script),
-                                      " ".join(self.args))
+        if node == this_host:
+            launch_cmd = ''
+        else:
+            launch_cmd = "ssh -x %s" % node
+        cmd = "%s %s %s %s" % (launch_cmd,
+                               sys.executable,
+                               os.path.abspath(self.script),
+                               " ".join(self.args))
         self._output = tempfile.TemporaryFile()
-        Popen.__init__(self, cmd, stdin=None, stdout=self._output, stderr=STDOUT,
+        #Popen.__init__(self, cmd, stdin=None, stdout=self._output, stderr=STDOUT,
+        Popen.__init__(self, cmd,
                        shell=True)
 
     def wait(self):
