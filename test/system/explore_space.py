@@ -49,7 +49,7 @@ else:
 # iterate over the parameter space, creating a job each time
 parameter_space = ParameterSpace(url)
 tempfiles = []
-job_manager = JobManager(host_list, delay=0)
+job_manager = JobManager(host_list, delay=0, quiet=False)
 
 for sub_parameter_space in parameter_space.iter_inner(copy=True):
     for parameter_set in sub_parameter_space.realize_dists(n=trials, copy=True):

@@ -25,7 +25,7 @@ class Job(Popen):
         self.script = script
         self.args = args
         
-    def run(self, node):
+    def run(self, node, quiet=True):
         self.node = node
         if node == this_host:
             launch_cmd = ''
@@ -35,9 +35,13 @@ class Job(Popen):
                                sys.executable,
                                os.path.abspath(self.script),
                                " ".join(self.args))
+        print cmd        
         self._output = tempfile.TemporaryFile()
-        #Popen.__init__(self, cmd, stdin=None, stdout=self._output, stderr=STDOUT,
-        Popen.__init__(self, cmd,
+        if quiet:
+            stdout = self._output
+        else:
+            stdout = None
+        Popen.__init__(self, cmd, stdin=None, stdout=stdout, stderr=STDOUT,
                        shell=True)
 
     def wait(self):
@@ -53,11 +57,12 @@ class Job(Popen):
 
 class JobManager(object):
     
-    def __init__(self, node_list, delay=0):
+    def __init__(self, node_list, delay=0, quiet=True):
         self.node_list = node_list
         self._node = cycle(self.node_list)
         self.job_list = []
         self.delay = delay
+        self.quiet = quiet
     
     def __iter__(self):
         return iter(self.job_list)
@@ -73,7 +78,7 @@ class JobManager(object):
         sleep(self.delay)
         job = Job(script, *args)
         node = self._node.next()
-        job.run(node)
+        job.run(node, quiet=self.quiet)
         self.job_list.append(job)
         
     def wait(self):
