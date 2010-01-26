@@ -39,7 +39,7 @@ from neuron import h
 nrn_dll_loaded = []
 recorder_list = []
 connection_managers = []
-
+gid_sources = []
 logger = logging.getLogger("PyNN")
 
 # --- Internal NEURON functionality -------------------------------------------- 
@@ -64,12 +64,20 @@ def is_point_process(obj):
 
 def register_gid(gid, source, section=None):
     """Register a global ID with the global `ParallelContext` instance."""
-    state.parallel_context.set_gid2node(gid, state.mpi_rank)  # assign the gid to this node
+    ###print "registering gid %s to %s (section=%s)" % (gid, source, section)
+    state.parallel_context.set_gid2node(gid, state.mpi_rank) # assign the gid to this node
     if is_point_process(source):
         nc = h.NetCon(source, None)                          # } associate the cell spike source
     else:
         nc = h.NetCon(source, None, sec=section)
     state.parallel_context.cell(gid, nc)              # } with the gid (using a temporary NetCon)
+    gid_sources.append(source) # gid_clear (in _State.reset()) will cause a
+                               # segmentation fault if any of the sources
+                               # registered using pc.cell() no longer exist, so
+                               # we keep a reference to all sources in the
+                               # global gid_sources list. It would be nicer to
+                               # be able to unregister a gid and have a __del__
+                               # method in ID, but this will do for now.
 
 def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
     """
@@ -106,15 +114,10 @@ class _Initializer(object):
         Create an `FinitializeHandler` object in Hoc, which will call the
         `_initialize()` method when NEURON is initialized.
         """
-        self.cell_list = []
-        self.population_list = []
         h('objref initializer')
         h.initializer = self
         self.fih = h.FInitializeHandler(0, "initializer._initialize()")
-    
-    #def __call__(self):
-    #    """This is to make the Initializer a Singleton."""
-    #    return self
+        self.clear()
     
     def register(self, *items):
         """
@@ -139,6 +142,10 @@ class _Initializer(object):
             for cell in population:
                 cell._cell.memb_init()
 
+    def clear(self):
+        self.cell_list = []
+        self.population_list = []
+        
 
 # --- For implementation of get_time_step() and similar functions --------------
 
@@ -147,9 +154,6 @@ class _State(object):
     
     def __init__(self):
         """Initialize the simulator."""
-        self.gid_counter = 0
-        self.running = False
-        self.initialized = False
         h('min_delay = 0')
         h('tstop = 0')
         h('steps_per_ms = 1/dt')
@@ -158,9 +162,8 @@ class _State(object):
         self.num_processes = int(self.parallel_context.nhost())
         self.mpi_rank = int(self.parallel_context.id())
         self.cvode = h.CVode()
-        self.max_delay = 1e12
         h('objref plastic_connections')
-        h.plastic_connections = []
+        self.clear()
     
     t = h_property('t')
     def __get_dt(self):
@@ -169,9 +172,17 @@ class _State(object):
         h.steps_per_ms = 1.0/dt
         h.dt = dt
     dt = property(fget=__get_dt, fset=__set_dt)
-    tstop = h_property('tstop')         # } do these really need to be stored in hoc?
-    min_delay = h_property('min_delay') # }
+    tstop = h_property('tstop')         # } these are stored in hoc so that we
+    min_delay = h_property('min_delay') # } can interact with the GUI
 
+    def clear(self):
+        global connection_managers, gid_sources
+        self.parallel_context.gid_clear()
+        gid_sources = []
+        self.gid_counter = 0
+        self.running = False
+        h.plastic_connections = []
+        connection_managers = []
 
 def reset():
     """Reset the state of the current network to time t = 0."""
@@ -194,7 +205,7 @@ def run(simtime):
     logger.info("Running the simulation for %d ms" % simtime)
     state.parallel_context.psolve(state.tstop)
 
-def finalize(quit=True):
+def finalize(quit=False):
     """Finish using NEURON."""
     state.parallel_context.runworker()
     state.parallel_context.done()

@@ -143,7 +143,7 @@ class WDManager(object):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -182,7 +182,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     #simulator.state.dt = timestep # seems to mess up the net object
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
-    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
+    common.setup(timestep, min_delay, max_delay, **extra_params)
     return simulator.net.mpi_rank()
 
 def end(compatible_output=True):
@@ -196,6 +196,8 @@ def run(simtime):
     simulator.state.t += simtime
     simulator.net.advance(int(simtime / simulator.state.dt ))
     return simulator.state.t
+
+reset = commom.reset
 
 get_current_time = common.get_current_time
 get_time_step = common.get_time_step
@@ -294,7 +296,6 @@ class Population(common.Population):
     id = p[address]
     address = p.locate(id)
     """
-    nPop = 0
     
     def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
@@ -366,12 +367,6 @@ class Population(common.Population):
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self),
                           'gsyn': Recorder('gsyn', population=self)}
-        
-        
-        if not self.label:
-            self.label = 'population%d' % Population.nPop         
-        Population.nPop += 1
-        
         
     ##def __getitem__(self, addr):
     ##    """Return a representation of the cell with coordinates given by addr,

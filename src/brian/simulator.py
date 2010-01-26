@@ -180,6 +180,9 @@ class _State(object):
 def reset():
     """Reset the state of the current network to time t = 0."""
     state.simclock.reinit()
+    for device in net.operations:
+        if hasattr(device, "reinit"):
+            device.reinit()
 
 def run(simtime):
     """Advance the simulation for a certain time."""

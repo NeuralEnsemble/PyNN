@@ -21,9 +21,6 @@ from pyNN.neuron.recording import *
 import numpy
 import logging
 
-# Global variables
-quit_on_end = True
-
 logger = logging.getLogger("PyNN")
 
 # ==============================================================================
@@ -38,7 +35,7 @@ def list_standard_models():
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -46,20 +43,18 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,**extra_param
 
     NEURON specific extra_params:
 
-    quit_on_end - defaults to True ... exit on PyNN.end()
-    use_cvode - use the NEURON cvode solver? Defaults to False?
+    use_cvode - use the NEURON cvode solver. Defaults to False.
 
-    returns: MPI rank?
+    returns: MPI rank
 
     """
-    global quit_on_end
-    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
+    common.setup(timestep, min_delay, max_delay, **extra_params)
+    simulator.initializer.clear()
+    simulator.state.clear()
+    simulator.reset()
+    simulator.state.dt = timestep
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
-    simulator.state.dt = timestep
-    simulator.reset()
-    if 'quit_on_end' in extra_params:
-        quit_on_end = extra_params['quit_on_end']
     if extra_params.has_key('use_cvode'):
         simulator.state.cvode.active(int(extra_params['use_cvode']))
     return rank()
@@ -68,12 +63,14 @@ def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     for recorder in simulator.recorder_list:
         recorder.write(gather=True, compatible_output=compatible_output)
-    simulator.finalize(quit_on_end)
+    #simulator.finalize()
         
 def run(simtime):
     """Run the simulation for simtime ms."""
     simulator.run(simtime)
     return get_current_time()
+    
+reset = common.reset
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -116,7 +113,6 @@ class Population(common.Population):
     id = p[address]
     address = p.locate(id)
     """
-    nPop = 0
     
     def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
@@ -134,11 +130,6 @@ class Population(common.Population):
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self),
                           'gsyn': Recorder('gsyn', population=self)}
-        self.label = self.label or 'population%d' % Population.nPop
-        if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
-            self.celltype = cellclass(cellparams)
-        else:
-            self.celltype = cellclass
 
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
@@ -151,7 +142,6 @@ class Population(common.Population):
         self.cell = self.all_cells # temporary, awaiting harmonisation
         
         simulator.initializer.register(self)
-        Population.nPop += 1
         logger.info(self.describe('Creating Population "$label" of shape $dim, '+
                                    'containing `$celltype`s with indices between $first_id and $last_id'))
         logger.debug(self.describe())
@@ -245,7 +235,7 @@ class Projection(common.Projection):
                 # The best (only?) solution would be to create connections on the
                 # node with the pre-synaptic neurons for ddf>0.5 and on the node
                 # with the post-synaptic neuron (as is done now) for ddf<0.5
-                raise Exception("STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
+                raise NotImplementedError("STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
             self._stdp_parameters['allow_update_on_post'] = int(False) # for compatibility with NEST
             for c in self.connections:
                 c.useSTDP(self.long_term_plasticity_mechanism, self._stdp_parameters, ddf)

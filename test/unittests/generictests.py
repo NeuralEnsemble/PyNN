@@ -9,6 +9,7 @@ import numpy
 import os
 import cPickle as pickle
 from pyNN import common, random, utility, recording
+import glob
 
 try:
     from mpi4py import MPI
@@ -31,6 +32,9 @@ def is_local(cell):
 # ==============================================================================
 class CreationTest(unittest.TestCase):
     """Tests of the create() function."""
+    
+    def setUp(self):
+        sim.setup()
     
     def testCreateStandardCell(self):
         for cellclass in sim.list_standard_models():
@@ -72,12 +76,9 @@ class ConnectionTest(unittest.TestCase):
     """Tests of the connect() function."""
     
     def setUp(self):
-        self.precells = sim.create(sim.SpikeSourcePoisson, n=5)
-        self.postcells = sim.create(sim.IF_curr_alpha, n=3)
-        
-        
-    def tearDown(self):
-        pass
+        sim.setup()
+        self.precells = sim.create(sim.SpikeSourcePoisson, n=7)
+        self.postcells = sim.create(sim.IF_curr_alpha, n=5)
         
     def testConnectTwoCells(self):
         conn_list = sim.connect(self.precells[0], self.postcells[0])
@@ -172,9 +173,6 @@ class IDSetGetTest(unittest.TestCase):
         for cell_class in IDSetGetTest.model_list:
             self.cells[cell_class.__name__] = sim.create(cell_class, n=2)
             self.populations[cell_class.__name__] = sim.Population(2, cell_class)
-    
-    def tearDown(self):
-        pass
     
     def testSetGet(self):
         """__setattr__(), __getattr__(): sanity check"""
@@ -286,6 +284,7 @@ class IDSetGetTest(unittest.TestCase):
 class SetValueTest(unittest.TestCase):
     
     def setUp(self):
+        sim.setup()
         self.cells = sim.create(sim.IF_curr_exp, n=10)
         self.single_cell = sim.create(sim.IF_cond_exp, n=1)
         
@@ -319,10 +318,7 @@ class PopulationInitTest(unittest.TestCase):
     """Tests of the __init__() method of the Population class."""
     
     def setUp(self):
-        pass
-    
-    def tearDown(self):
-        pass
+        sim.setup()
         
     def testSimpleInit(self):
         net = sim.Population((3,3), sim.IF_curr_alpha)
@@ -350,6 +346,7 @@ class PopulationIndexTest(unittest.TestCase):
     """Tests of the Population class indexing."""
     
     def setUp(self):
+        sim.setup()
         self.net1 = sim.Population((10,), sim.IF_curr_alpha)
         self.net2 = sim.Population((2,4,3), sim.IF_curr_exp)
         self.net3 = sim.Population((2,2,1), sim.SpikeSourceArray)
@@ -386,6 +383,7 @@ class PopulationIteratorTest(unittest.TestCase):
     """Tests of the Population class iterators."""
     
     def setUp(self):
+        sim.setup()
         self.net1 = sim.Population((10,), sim.IF_curr_alpha)
         self.net2 = sim.Population((2,4,3), sim.IF_curr_exp)
         self.net3 = sim.Population((2,2,1), sim.SpikeSourceArray)
@@ -519,27 +517,30 @@ class PopulationSetTest(unittest.TestCase):
         array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6]])
         self.assertRaises(common.InvalidDimensionsError, self.p1.tset, 'i_offset', array_in)
     
-    #def testTSetInvalidValues(self):
-    #    """Population.tset(): If some of the values in the valueArray are invalid, should raise an exception."""
-    #    array_in = numpy.array([['potatoes','carrots'],['oranges','bananas']])
-    #    self.assertRaises(common.InvalidParameterValueError, self.p2.tset, 'spike_times', array_in)
+    def testTSetInvalidValues(self):
+        """Population.tset(): If some of the values in the valueArray are invalid, should raise an exception."""
+        array_in = numpy.array([['potatoes','carrots'],['oranges','bananas']])
+        self.assertRaises(common.InvalidParameterValueError, self.p2.tset, 'spike_times', array_in)
         
     def testRSetNumpy(self):
         """Population.rset(): with numpy rng."""
-        rd1 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
+        rd1 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765, num_processes=sim.num_processes()),
                                          distribution='uniform',
                                          parameters=[0.9,1.1])
-        rd2 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765),
+        rd2 = random.RandomDistribution(rng=random.NumpyRNG(seed=98765, num_processes=sim.num_processes()),
                                          distribution='uniform',
                                          parameters=[0.9,1.1])
         self.p1.rset('cm', rd1)
         output_values = self.p1.get('cm', as_array=True)
         mask = (1-numpy.isnan(output_values)).astype(bool)
-        input_values = rd2.next(len(self.p1)).reshape(self.p1.dim)
+        input_values = rd2.next(len(self.p1), mask_local=False).reshape(self.p1.dim)
         assert_arrays_almost_equal(input_values[mask], output_values[mask], 1e-7)
                 
 #===============================================================================                
 class PopulationPositionsTest(unittest.TestCase):
+    
+    def setUp(self):
+        sim.setup()
     
     def test_nearest(self):
         p = sim.Population((4,5,6), sim.IF_cond_exp)
@@ -555,6 +556,9 @@ class PopulationPositionsTest(unittest.TestCase):
 #===============================================================================
 class PopulationCellAccessTest(unittest.TestCase):
     
+    def setUp(self):
+        sim.setup()
+        
     def test_index(self):
         p = sim.Population((4,5,6), sim.IF_cond_exp)
         self.assertEqual(p.index(0), p[0,0,0])
@@ -567,17 +571,15 @@ class PopulationRecordTest(unittest.TestCase): # to write later
        meanSpikeCount() methods of the Population class."""
     
     def setUp(self):
+        sim.setup()
         self.pop1 = sim.Population((3,3), sim.SpikeSourcePoisson,{'rate': 20})
         self.pop2 = sim.Population((3,3), sim.IF_curr_alpha)
         self.pop3 = sim.Population((3,3), sim.IF_cond_alpha)
         #self.pop4 = sim.Population((3,3), sim.EIF_cond_alpha_isfa_ista)
-        self.pops =[self.pop1, self.pop2, self.pop3] #, self.pop3]
-        if hasattr(sim, 'simulator') and hasattr(sim.simulator, 'reset'):
-            sim.simulator.reset()
+        self.pops = [self.pop1, self.pop2, self.pop3]
 
-    #def tearDown(self):
-    #    if hasattr(sim, 'simulator') and hasattr(sim.simulator, 'reset'):
-    #        sim.simulator.reset()
+    def tearDown(self):
+        sim.end()
 
     def testRecordAll(self):
         """Population.record(): not a full test, just checking there are no Exceptions raised."""
@@ -614,8 +616,9 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         #self.pop3.record()
         simtime = 1000.0
         sim.run(simtime)
-        rate = self.pop1.meanSpikeCount()*1000/simtime
+        msc = self.pop1.meanSpikeCount()
         if sim.rank() == 0: # only on master node
+            rate = msc*1000/simtime
             ##print self.pop1.recorders['spikes'].recorders
             assert (20*0.8 < rate) and (rate < 20*1.2), "rate is %s" % rate
         #rate = self.pop3.meanSpikeCount()*1000/simtime
@@ -632,7 +635,6 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         cells_to_record = [self.pop2[0,0], self.pop2[1,1]]
         self.pop2.record_v(cells_to_record)
         simtime = 10.0
-        sim.running = False
         sim.run(simtime)
         self.pop2.print_v("temp.v", gather=True, compatible_output=True)
         vm = self.pop2.get_v()
@@ -641,7 +643,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
             vm_fromfile = numpy.loadtxt("temp.v")
             #print vm_fromfile
             self.assertEqual(vm_fromfile.shape, ((1+int(10.0/0.1))*len(cells_to_record), 2))
-        os.remove("temp.v")
+            os.remove("temp.v")
         
     def testSynapticConductanceRecording(self):
         # current-based synapses
@@ -650,7 +652,6 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         cells_to_record = [self.pop3[1,0], self.pop3[2,2]]
         self.pop3.record_gsyn(cells_to_record)
         simtime = 10.0
-        sim.running = False
         sim.run(simtime)
         gsyn = self.pop3.get_gsyn()
         if sim.rank() == 0:
@@ -665,7 +666,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         spike_times = numpy.arange(10.0, 200.0, 10.0)
         spike_source = sim.Population(1, sim.SpikeSourceArray, {'spike_times': spike_times})
         spike_source.record()
-        sim.run(100.0)
+        sim.run(101.0)
         spikes = spike_source.getSpikes()
         spikes = spikes[:,1]
         if sim.rank() == 0:
@@ -714,8 +715,9 @@ class ProjectionTest(unittest.TestCase):
         self.prj.printWeights("weights_list.tmp", format='list', gather=False)
         self.prj.printWeights("weights_array.tmp", format='array', gather=False)
         # test needs completing. Should read in the weights and check they have the correct values
-        os.remove("weights_list.tmp")
-        os.remove("weights_array.tmp")
+        for filename in "weights_list.tmp", "weights_array.tmp":
+            if os.path.exists(filename):
+                os.remove(filename)
          
     def test_iterator(self):
         assert hasattr(self.prj, "connections")
@@ -853,6 +855,9 @@ class ProjectionInitTest(unittest.TestCase):
             d2.append(c2.delay)
         assert (w1 == w2), 'w1 = %s\nw2 = %s' % (w1, w2)
         assert (d1 == d2), 'd1 = %s\nd2 = %s' % (d1, d2)
+        if sim.rank() == 0:
+            for filename in glob.glob("connections.tmp*"):
+                os.remove(filename)
           
     def testSettingDelays(self):
         """Delays should be set correctly when using a Connector object."""
@@ -870,6 +875,7 @@ class ProjectionSetTest(unittest.TestCase):
     randomizeDelays() methods of the Projection class."""
 
     def setUp(self):
+        sim.setup()
         self.target_curr = sim.Population((3,3), sim.IF_curr_alpha)
         self.target_cond = sim.Population(5, sim.IF_cond_exp)
         self.targets = (self.target_curr, self.target_cond)
@@ -997,6 +1003,9 @@ class ConnectorsTest(unittest.TestCase):
 #===============================================================================
 class ElectrodesTest(unittest.TestCase):
     
+    def setUp(self):
+        sim.setup()
+        
     def test_DCSource(self):
         # just check no Exceptions are raised, for now.
         source = sim.DCSource(amplitude=0.5, start=50.0, stop=100.0)
@@ -1019,16 +1028,15 @@ class ElectrodesTest(unittest.TestCase):
 class StateTest(unittest.TestCase):
     
     def setUp(self):
+        sim.setup()
         self.cells = sim.create(sim.IF_curr_exp) # brian chokes if there are no NeuronGroups in the Network object when net.run() is called
     
     def test_get_time(self):
-        sim.setup()
         self.assertEqual(sim.get_current_time(), 0.0)
         sim.run(100.0)
         self.assertAlmostEqual(sim.get_current_time(), 100.0, 9)
         
     def test_get_time_step(self):
-        sim.setup()
         self.assertEqual(sim.get_time_step(), 0.1)
         sim.setup(timestep=0.05)
         self.assertEqual(sim.get_time_step(), 0.05)
@@ -1037,6 +1045,7 @@ class StateTest(unittest.TestCase):
 class SpikeSourceTest(unittest.TestCase):
     
     def test_end_of_poisson(self):
+        sim.setup()
         # see ticket:127
         start = 100.0
         rate = 50.0
@@ -1047,18 +1056,18 @@ class SpikeSourceTest(unittest.TestCase):
         PNs.record()
         sim.run(simtime)
         spikes = PNs.getSpikes()[:,1]
-        assert min(spikes) >= start, min(spikes)
-        assert max(spikes) <= start+duration, "%g > %g" % (max(spikes), start+duration)
-        expected_count = duration/1000.0*rate*n
-        diff = abs(len(spikes)-expected_count)/expected_count
-        assert diff < 0.1, str(diff)
+        if sim.rank() == 0:
+            assert min(spikes) >= start, min(spikes)
+            assert max(spikes) <= start+duration, "%g > %g" % (max(spikes), start+duration)
+            expected_count = duration/1000.0*rate*n
+            diff = abs(len(spikes)-expected_count)/expected_count
+            assert diff <= 0.1, "diff = %g. Expected count = %d, actual count = %d" % (diff, expected_count, len(spikes))
     
 class FileTest(unittest.TestCase):
     
     def setUp(self):
+        sim.setup()
         self.pop = sim.Population((3,3), sim.IF_curr_alpha)
-        if hasattr(sim, 'simulator') and hasattr(sim.simulator, 'reset'):
-            sim.simulator.reset()
         rng = random.NumpyRNG(123)
         v_reset  = -65.0
         v_thresh = -50.0
@@ -1067,14 +1076,14 @@ class FileTest(unittest.TestCase):
         self.cells_to_record = [self.pop[0,0], self.pop[1,1]]
         self.pop.record_v(self.cells_to_record)
         simtime = 10.0
-        sim.running = False
         sim.run(simtime)
         
     def tearDown(self):
-        for ext in "txt", "pkl", "npz", "h5":
-            filename = "temp_v.%s" % ext
-            if os.path.exists(filename):
-                os.remove(filename)
+        if sim.rank() == 0:
+            for ext in "txt", "pkl", "npz", "h5":
+                filename = "temp_v.%s" % ext
+                if os.path.exists(filename):
+                    os.remove(filename)
     
     def test_text_file(self):
         output_file = recording.files.StandardTextFile("temp_v.txt", 'w')

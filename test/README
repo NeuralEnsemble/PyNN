@@ -22,6 +22,8 @@ with coverage measurement using `alltests.sh`.
 Note that the `generictests.py` script takes the simulator backend as a
 command-line argument.
 
+`generictests.py` should be run both with "python" and with "mpirun python".
+
 
 Regression tests
 ----------------

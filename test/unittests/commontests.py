@@ -1,6 +1,6 @@
 """
 Unit tests for the common, cells, synapses, connectors modules
-$Id:$
+$Id$
 """
 
 import sys
@@ -39,31 +39,6 @@ class ExceptionsTest(unittest.TestCase):
     def test_NonExistentParameterError_withInvalidModel(self):
         # model must be a string or a class
         self.assertRaises(Exception, common.NonExistentParameterError, "foo", [])
-    
-    
-class NotImplementedTest(unittest.TestCase):
-    
-    def testPopulationStubs(self):
-        p = common.Population(10, cells.IF_cond_alpha)
-        for method_name in ('rset',):
-            self.assertRaises(NotImplementedError, getattr(p, method_name), 'tau_m', 'dummy_value')
-        for method_name in ('_call', '_tcall'):
-            self.assertRaises(NotImplementedError, getattr(p, method_name), 'do_foo', 'dummy_value')
-        for method_name in ('getSubPopulation',):
-            self.assertRaises(NotImplementedError, getattr(p, method_name), [])
-        
-    def testProjectionStubs(self):
-        p = common.Population(10, cells.IF_cond_alpha)
-        prj = common.Projection(p, p, connectors.AllToAllConnector)
-        for method_name in ('setWeights', 'randomizeWeights', 'setDelays', 'randomizeDelays'):
-            self.assertRaises(NotImplementedError, getattr(prj, method_name), 'dummy_value')
-        for method_name in ('setSynapseDynamics', 'randomizeSynapseDynamics'):
-            self.assertRaises(NotImplementedError, getattr(prj, method_name), 'foo', 'dummy_value')
-        for method_name in ('getWeights', 'getDelays'):
-            self.assertRaises(NotImplementedError, getattr(prj, method_name))                      
-        for method_name in ('saveConnections',):
-            self.assertRaises(NotImplementedError, getattr(prj, method_name), 'filename')
-        
         
 class DistanceTest(unittest.TestCase):
     
@@ -128,70 +103,38 @@ class LowLevelAPITest(unittest.TestCase):
     def test_run(self):
         self.assertRaises(NotImplementedError, common.run, 10.0)
                
-    def test_get_simulator_state(self):
-        self.assertRaises(NotImplementedError, common.get_current_time)
-        self.assertRaises(NotImplementedError, common.get_time_step)
-        self.assertRaises(NotImplementedError, common.get_min_delay)
-        self.assertRaises(NotImplementedError, common.get_max_delay)
-        self.assertRaises(NotImplementedError, common.num_processes)
-        self.assertRaises(NotImplementedError, common.rank)
-        
-class PopulationTest(unittest.TestCase):
-    
-    def test_positions(self):
-        p = common.Population((4,5,6), cells.IF_cond_exp)
-        self.assertEqual(p.positions.shape, (3,120))
-        self.assertEqual(tuple(p.positions[:,0]), (0.0,0.0,0.0))
-        self.assertEqual(tuple(p.positions[:,6]), (0.0,1.0,0.0))
-        self.assertEqual(tuple(p.positions[:,30]), (1.0,0.0,0.0))
-        pos = numpy.random.random((3,120))
-        p.positions = pos
-        assert arrays_almost_equal(pos, p.positions, 0.0)
-        pos[0,0] = 99.9
-        assert not arrays_almost_equal(pos, p.positions, 0.0)
-        
-    def test_canrecord(self):
-        p1 = common.Population((4,5,6), cells.IF_cond_exp)
-        assert p1.can_record('spikes')
-        assert p1.can_record('v')
-        assert not p1.can_record('foo')
-        p2 = common.Population((4,5,6), cells.SpikeSourceArray)
-        assert p2.can_record('spikes')
-        assert not p2.can_record('v')
         
 class ConnectorTest(unittest.TestCase):
 
-    def test_getWeights(self):
+    def test_get_weights(self):
         c1 = common.Connector(delays=0.5, weights=0.5)
-        self.assertEqual(c1.getWeights(3).tolist(), [0.5,0.5,0.5])
+        self.assertEqual(c1.get_weights(3).tolist(), [0.5,0.5,0.5])
         c2 = common.Connector(delays=0.5, weights="foo")
-        self.assertRaises(ValueError, c2.getWeights, 3)
+        self.assertRaises(ValueError, c2.get_weights, 3)
         class A(object): pass
         c3 = common.Connector(delays=0.5, weights=A())
-        self.assertRaises(Exception,c3.getWeights, 3)
+        self.assertRaises(Exception,c3.get_weights, 3)
         rd = random.RandomDistribution('gamma', [0.5,0.5])
         c4 = common.Connector(delays=0.5, weights=rd)
-        w = c4.getWeights(3)
+        w = c4.get_weights(3)
         self.assertEqual(len(w), 3)
         self.assertNotEqual(w[0], w[1])
         
-    def test_getDelays(self):
+    def test_get_delays(self):
         c1 = common.Connector(delays=0.5, weights=0.5)
-        self.assertEqual(c1.getDelays(3).tolist(), [0.5,0.5,0.5])
+        self.assertEqual(c1.get_delays(3).tolist(), [0.5,0.5,0.5])
         c2 = common.Connector(weights=0.5, delays="foo")
-        self.assertRaises(ValueError, c2.getDelays, 3)
+        self.assertRaises(ValueError, c2.get_delays, 3)
         class A(object): pass
         c3 = common.Connector(weights=0.5, delays=A())
-        self.assertRaises(Exception,c3.getDelays, 3)
+        self.assertRaises(Exception,c3.get_delays, 3)
         rd = random.RandomDistribution('gamma', [0.5,0.5])
         c4 = common.Connector(weights=0.5, delays=rd)
-        d = c4.getDelays(3)
+        d = c4.get_delays(3)
         self.assertEqual(len(d), 3)
         self.assertNotEqual(d[0], d[1])
         c5 = common.Connector(weights=0.5, delays=[1.0, 2.0, 3.0])
-        self.assertEqual(c5.getDelays(3).tolist(), [1.0, 2.0, 3.0]) 
-        #c6 = common.Connector(weights=0.5, delays=0.0, check_connections=True)
-        #self.assertRaises(AssertionError, c6.getDelays, 3)
+        self.assertEqual(c5.get_delays(3).tolist(), [1.0, 2.0, 3.0]) 
     
     def test_connect(self):
         c = common.Connector(delays=0.5)

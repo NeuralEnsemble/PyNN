@@ -76,7 +76,7 @@ class Recorder(recording.Recorder):
     def _local_count(self, gather=False):
         N = {}
         for id in self.recorded:
-            N[id] = id._cell.spike_times.size()
+            N[int(id)] = id._cell.spike_times.size()
         return N
 
 simulator.Recorder = Recorder

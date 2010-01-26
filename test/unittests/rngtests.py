@@ -49,24 +49,27 @@ class SimpleTests(unittest.TestCase):
 class ParallelTests(unittest.TestCase):
 
     def test_parallel_unsafe(self):
-        rng0 = random.NumpyRNG(seed=1000, rank=0, num_processes=2, parallel_safe=False)
-        rng1 = random.NumpyRNG(seed=1000, rank=1, num_processes=2, parallel_safe=False)
-        draw0 = rng0.next(5)
-        draw1 = rng1.next(5)
-        self.assertEqual(len(draw0), 5/2+1)
-        self.assertEqual(len(draw1), 5/2+1)
-        self.assertNotEqual(draw0.tolist(), draw1.tolist())
+        for rng_type in random.NumpyRNG, random.GSLRNG:
+            rng0 = rng_type(seed=1000, rank=0, num_processes=2, parallel_safe=False)
+            rng1 = rng_type(seed=1000, rank=1, num_processes=2, parallel_safe=False)
+            draw0 = rng0.next(5)
+            draw1 = rng1.next(5)
+            self.assertEqual(len(draw0), 5/2+1)
+            self.assertEqual(len(draw1), 5/2+1)
+            self.assertNotEqual(draw0.tolist(), draw1.tolist())
 
     def test_parallel_safe(self):
-        rng0 = random.NumpyRNG(seed=1000, rank=0, num_processes=2, parallel_safe=True)
-        rng1 = random.NumpyRNG(seed=1000, rank=1, num_processes=2, parallel_safe=True)
-        draw0 = rng0.next(5)
-        draw1 = rng1.next(5)
-        self.assertEqual(len(draw0), 3)
-        self.assertEqual(len(draw1), 2)
-        self.assertNotEqual(draw0.tolist(), draw1.tolist())
+        for rng_type in random.NumpyRNG, random.GSLRNG:
+            rng0 = rng_type(seed=1000, rank=0, num_processes=2, parallel_safe=True)
+            rng1 = rng_type(seed=1000, rank=1, num_processes=2, parallel_safe=True)
+            draw0 = rng0.next(5)
+            draw1 = rng1.next(5)
+            self.assertEqual(len(draw0), 3)
+            self.assertEqual(len(draw1), 2)
+            self.assertNotEqual(draw0.tolist(), draw1.tolist())
 
     def test_permutation(self):
+        # only works for NumpyRNG at the moment. pygsl has a permutation module, but I can't find documentation for it.
         rng0 = random.NumpyRNG(seed=1000, rank=0, num_processes=2, parallel_safe=True)
         rng1 = random.NumpyRNG(seed=1000, rank=1, num_processes=2, parallel_safe=True)
         A = range(10)

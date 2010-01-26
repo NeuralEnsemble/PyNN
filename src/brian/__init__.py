@@ -35,17 +35,18 @@ def list_standard_models():
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
+    common.setup(timestep, min_delay, max_delay, **extra_params)
+    simulator.net = brian.Network()
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
     simulator.state.dt = timestep
-    simulator.reset()
+    reset()
     return rank()
 
 def end(compatible_output=True):
@@ -58,6 +59,7 @@ def run(simtime):
     simulator.run(simtime)
     return get_current_time()
 
+reset = common.reset
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -91,7 +93,6 @@ class Population(common.Population):
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
-    nPop = 0
     
     def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
@@ -107,9 +108,6 @@ class Population(common.Population):
         """
         common.Population.__init__(self, dims, cellclass, cellparams, label)
         
-        if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
-            self.celltype = cellclass(cellparams)
-        
         self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
         self.local_cells = self.all_cells[self._mask_local]
         self.all_cells = self.all_cells.reshape(self.dim)
@@ -119,12 +117,9 @@ class Population(common.Population):
             id.parent = self
         self.cell = self.all_cells # temporary alias, awaiting harmonization
         
-        if not self.label:
-            self.label = 'population%d' % Population.nPop
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self),
                           'gsyn': Recorder('gsyn', population=self),}
-        Population.nPop += 1
         
     def meanSpikeCount(self, gather=True):
         """ 

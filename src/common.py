@@ -88,9 +88,9 @@ DEFAULT_BUFFER_SIZE = 10000
 
 logger = logging.getLogger("PyNN")
 
-class InvalidParameterValueError(Exception):
+class InvalidParameterValueError(ValueError):
     """Inappropriate parameter value"""
-    pass # should subclass ValueError?
+    pass
 
 class NonExistentParameterError(Exception):
     """
@@ -183,7 +183,7 @@ def is_conductance(target_cell):
     return is_conductance
 
 def check_weight(weight, synapse_type, is_conductance):
-    #print "check_weight: weight=%s, synapse_type=%s, is_conductance=%s" % (weight, synapse_type, is_conductance)
+    #print "check_weight: node=%s, weight=%s, synapse_type=%s, is_conductance=%s" % (rank(), weight, synapse_type, is_conductance)
     if weight is None:
         weight = DEFAULT_WEIGHT
     if is_listlike(weight):
@@ -319,7 +319,7 @@ class IDMixin(object):
         self.local = True
 
     def __getattr__(self, name):
-        if name in self.non_parameter_attributes or not self.is_standard_cell():
+        if name in self.non_parameter_attributes or (self.local and not self.is_standard_cell()):
             val = self.__getattribute__(name)
         else:
             try:
@@ -329,7 +329,7 @@ class IDMixin(object):
         return val
     
     def __setattr__(self, name, value):
-        if name in self.non_parameter_attributes or not self.is_standard_cell():
+        if name in self.non_parameter_attributes or (self.local and not self.is_standard_cell()):
             object.__setattr__(self, name, value)
         else:
             return self.set_parameters(**{name:value})
@@ -589,7 +589,7 @@ class ModelNotAvailable(object):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0,
           **extra_params):
     """
     Should be called at the very beginning of a script.
@@ -605,20 +605,6 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False,
     if min_delay < timestep:
         "min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep)
     
-    if simulator:
-        backend = simulator.__name__.replace('.simulator', '')
-        log_file = "%s.log" % backend
-    else:
-        log_file = "pyNN.log"
-    if debug:
-        if isinstance(debug, basestring):
-            log_file = debug
-    if simulator and not simulator.state.initialized:
-        utility.init_logging(log_file, debug, num_processes(), rank())
-        logger.info("Initialization of %s (use setup(.., debug=True) to see a full logfile)" % backend)
-        simulator.state.initialized = True
-    
-    
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     raise NotImplementedError
@@ -626,6 +612,13 @@ def end(compatible_output=True):
 def run(simtime):
     """Run the simulation for simtime ms."""
     raise NotImplementedError
+
+def reset():
+    """
+    Reset the time to zero, neuron membrane potentials and synaptic weights to
+    their initial values, and delete any recorded data. The network structure is
+    not changed, nor is the specification of which neurons to record from."""
+    simulator.reset()
 
 def get_current_time():
     """Return the current time in the simulation."""
@@ -752,6 +745,7 @@ class Population(object):
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
+    nPop = 0
     
     def __init__(self, dims, cellclass, cellparams=None, label=None, parent=None):
         """
@@ -773,14 +767,18 @@ class Population(object):
             self.dim = (self.dim,)
         else:
             assert isinstance(dims, tuple), "`dims` must be an integer or a tuple. You have supplied a %s" % type(dims)
-        self.label = label
-        self.celltype = cellclass
+        self.label = label or 'population%d' % Population.nPop         
+        if isinstance(cellclass, type) and issubclass(cellclass, StandardCellType):
+            self.celltype = cellclass(cellparams)
+        else:
+            self.celltype = cellclass
         self.ndim = len(self.dim)
         self.cellparams = cellparams
         self.size = self.dim[0]
         self.parent = parent
         for i in range(1, self.ndim):
             self.size *= self.dim[i]
+        Population.nPop += 1
     
     def __getitem__(self, addr):
         """
@@ -1169,7 +1167,8 @@ class Population(object):
         """
         spike_counts = self.recorders['spikes'].count(gather)
         total_spikes = sum(spike_counts.values())
-        return float(total_spikes)/len(spike_counts)
+        if rank() == 0 or not gather: # should maybe use allgather, and get the numbers on all nodes
+            return float(total_spikes)/len(spike_counts)
     
     def describe(self, template='standard', fill=lambda t,c: Template(t).safe_substitute(c)):
         """
@@ -1352,7 +1351,7 @@ class Projection(object):
         synapses.
         """
         # should perhaps add a "distribute" argument, for symmetry with "gather" in getWeights()
-        w = check_weight(w, self.synapse_type, is_conductance(self.post.index(0)))
+        w = check_weight(w, self.synapse_type, is_conductance(self.post.local_cells[0]))
         self.connection_manager.set('weight', w)
     
     def randomizeWeights(self, rand_distr):

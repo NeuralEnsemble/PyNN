@@ -66,7 +66,7 @@ def _discrepancy_due_to_rounding(parameters, output_values):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -74,7 +74,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
     """
     global tempdir
     
-    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
+    common.setup(timestep, min_delay, max_delay, **extra_params)
     
     if 'verbosity' in extra_params:
         nest_verbosity = extra_params['verbosity'].upper()
@@ -113,6 +113,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_para
         nest.SetDefaults(synapse_model, {'delay' : min_delay,
                                          'min_delay': min_delay,
                                          'max_delay': max_delay})
+    simulator.reset()
     
     return rank()
 
@@ -131,6 +132,8 @@ def run(simtime):
     """Run the simulation for simtime ms."""
     simulator.run(simtime)
     return get_current_time()
+
+reset = common.reset
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -169,7 +172,6 @@ class Population(common.Population):
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
-    nPop = 0
 
     def __init__(self, dims, cellclass, cellparams=None, label=None):
         """
@@ -186,10 +188,6 @@ class Population(common.Population):
         label is an optional name for the population.
         """
         common.Population.__init__(self, dims, cellclass, cellparams, label)
-
-        # Should perhaps use "LayoutNetwork"?
-        if isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
-            self.celltype = cellclass(cellparams)
         
         self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
         self.local_cells = self.all_cells[self._mask_local]
@@ -200,12 +198,9 @@ class Population(common.Population):
             id.parent = self
         self.cell = self.all_cells # temporary alias, awaiting harmonization
         
-        if not self.label:
-            self.label = 'population%d' % Population.nPop
         self.recorders = {}
         for variable in RECORDING_DEVICE_NAMES:
             self.recorders[variable] = Recorder(variable, population=self)
-        Population.nPop += 1
 
     def set(self, param, val=None):
         """

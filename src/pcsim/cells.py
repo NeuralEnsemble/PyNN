@@ -145,7 +145,11 @@ def sanitize_spike_times(spike_times):
     This workaround removes any spikes after the first within a given time step.
     """
     time_step = common.get_time_step()
-    spike_times = numpy.array(spike_times)
+    try:
+        spike_times = numpy.array(spike_times, float)
+    except ValueError, e:
+        raise common.InvalidParameterValueError("Spike times must be floats. %s")
+    
     bins = (spike_times/time_step).astype('int')
     mask = numpy.concatenate((numpy.array([True]), bins[1:] != bins[:-1]))
     if mask.sum() < len(bins):

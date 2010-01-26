@@ -30,6 +30,7 @@ from pyNN import common, random
 import logging
 import numpy
 import os
+import sys
 
 CHECK_CONNECTIONS = False
 recorder_list = []
@@ -45,10 +46,12 @@ class _State(object):
         self.initialized = False
         self.running     = False
         self.optimize    = False
+        self.nominal_time = 0.0
 
     @property
     def t(self):
-        return nest.GetKernelStatus()['time']
+        #return nest.GetKernelStatus()['time']
+        return self.nominal_time
     
     dt = property(fget=lambda self: nest.GetKernelStatus()['resolution'],
                   fset=lambda self, timestep: nest.SetKernelStatus({'resolution': timestep}))    
@@ -77,11 +80,16 @@ class _State(object):
 
 def run(simtime):
     """Advance the simulation for a certain time."""
+    state.nominal_time += simtime
     if not state.running:
         simtime += state.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
         state.running = True
     nest.Simulate(simtime)
     
+def reset():
+    nest.ResetNetwork()
+    state.running = False
+    state.nominal_time = 0.0
 
 # --- For implementation of access to individual neurons' parameters ----------- 
 
@@ -106,7 +114,14 @@ class ID(int, common.IDMixin):
         if 'v_init' in parameters:
             self._v_init = parameters.pop('v_init')
             parameters['V_m'] = self._v_init # not correct, since could set v_init in the middle of a simulation, but until we add a proper reset mechanism, this will do.
-        nest.SetStatus([self], [parameters])
+        try:
+            nest.SetStatus([self], [parameters])
+        except: # I can't seem to catch the NESTError that is raised, hence this roundabout way of doing it.
+            exc_type, exc_value, traceback = sys.exc_info()
+            if exc_type == 'NESTError' and "Unsupported Numpy array type" in exc_value:
+                raise common.InvalidParameterValueError()
+            else:
+                raise
 
 
 # --- For implementation of create() and Population.__init__() -----------------

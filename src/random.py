@@ -50,28 +50,17 @@ class AbstractRNG:
         # arguably, rng.next() should return a float, rng.next(1) an array of length 1
         raise NotImplementedError
 
-    
-class NumpyRNG(AbstractRNG):
-    """Wrapper for the numpy.random.RandomState class (Mersenne Twister PRNG)."""
+class WrappedRNG(AbstractRNG):
     
     def __init__(self, seed=None, rank=0, num_processes=1, parallel_safe=True):
         AbstractRNG.__init__(self, seed)
-        self.rng = numpy.random.RandomState()
-        if self.seed:
-            if not parallel_safe:
-                self.seed += rank # ensure different nodes get different sequences
-                if rank != 0:
-                    logger.warning("Changing the seed to %s on node %d" % (self.seed, rank))
-            self.rng.seed(self.seed)
-        else:
-            self.rng.seed()
         self.rank = rank # MPI rank
         self.num_processes = num_processes # total number of MPI processes
         self.parallel_safe = parallel_safe
-            
-    def __getattr__(self, name):
-        """This is to give NumpyRNG the same methods as numpy.random.RandomState."""
-        return getattr(self.rng, name)
+        if self.seed and not parallel_safe:
+            self.seed += rank # ensure different nodes get different sequences
+            if rank != 0:
+                logger.warning("Changing the seed to %s on node %d" % (self.seed, rank))
     
     def next(self, n=1, distribution='uniform', parameters=[], mask_local=None):
         """Return n random numbers from the distribution.
@@ -90,7 +79,7 @@ class NumpyRNG(AbstractRNG):
                     n = n/self.num_processes + 1
                 else:
                     n = mask_local.sum()
-            rarr = getattr(self.rng, distribution)(size=n, *parameters)
+            rarr = self._next(distribution, n, parameters)
         else:
             raise ValueError, "The sample number must be positive"
         if self.parallel_safe and self.num_processes > 1:
@@ -105,23 +94,45 @@ class NumpyRNG(AbstractRNG):
                 # the node with rank 0, and that neurons are distributed in a round-robin
                 # This assumption is not true for NEST
                 rarr = rarr[numpy.arange(self.rank, len(rarr), self.num_processes)]
-        if len(rarr) == 1:
+        if hasattr(rarr, '__len__') and len(rarr) == 1:
             return rarr[0]
         else:
             return rarr
+    
+    def __getattr__(self, name):
+        """
+        This is to give the PyNN RNGs the same methods as the wrapped RNGs (
+        numpy.random.RandomState or the GSL RNGs.
+        """
+        return getattr(self.rng, name)
+    
+    
+class NumpyRNG(WrappedRNG):
+    """Wrapper for the numpy.random.RandomState class (Mersenne Twister PRNG)."""
+    
+    def __init__(self, seed=None, rank=0, num_processes=1, parallel_safe=True):
+        WrappedRNG.__init__(self, seed, rank, num_processes, parallel_safe)
+        self.rng = numpy.random.RandomState()
+        if self.seed:
+            self.rng.seed(self.seed)
+        else:
+            self.rng.seed()  
+    
+    def _next(self, distribution, n, parameters):
+        return getattr(self.rng, distribution)(size=n, *parameters)
 
     def describe(self):
         return "NumpyRNG() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
             self.seed, self.rank, self.num_processes, self.parallel_safe and "Is" or "Not")
 
 
-class GSLRNG(AbstractRNG):
+class GSLRNG(WrappedRNG):
     """Wrapper for the GSL random number generators."""
        
     def __init__(self, seed=None, type='mt19937', rank=0, num_processes=1, parallel_safe=True):
-        AbstractRNG.__init__(self, seed)
+        WrappedRNG.__init__(self, seed, rank, num_processes, parallel_safe)
         self.rng = getattr(pygsl.rng, type)()
-        if self.seed  :
+        if self.seed:
             self.rng.set(self.seed)
         else:
             self.seed = int(time.time())
@@ -130,42 +141,14 @@ class GSLRNG(AbstractRNG):
     def __getattr__(self, name):
         """This is to give GSLRNG the same methods as the GSL RNGs."""
         return getattr(self.rng, name)
-    
-    def next(self, n=1, distribution='uniform', parameters=[], mask_local=None):
-        """Return n random numbers from the distribution.
-        
-        If n is 1, return a float, if n > 1, return a numpy array,
-        if n < 0, raise an Exception."""
-        if n == 0:
-            return numpy.random.rand(0) # We return an empty array
-        if n > 0:
-            if self.num_processes > 1 and not self.parallel_safe:
-                # n is the number for the whole model, so if we do not care about
-                # having exactly the same random numbers independent of the
-                # number of processors (m), we only need generate n/m+1 per node
-                # (assuming round-robin distribution of cells between processors)
-                if mask_local is None:
-                    n = n/self.num_processes + 1
-                else:
-                    n = mask_local.sum()
-            p = parameters + [n]
-            return getattr(self.rng, distribution)(*p)
-        else:
-            raise ValueError, "The sample number must be positive"
-        if self.parallel_safe and self.num_processes > 1:
-            # strip out the random numbers that should be used on other processors.
-            if mask_local is not None:
-                assert mask_local.size == n
-                rarr = rarr[mask_local]    
-            else:
-                # This assumes that the first neuron in a population is always created on
-                # the node with rank 0, and that neurons are distributed in a round-robin
-                # This assumption is not true for NEST
-                rarr = rarr[numpy.arange(self.rank, len(rarr), self.num_processes)]
-        if len(rarr) == 1:
-            return rarr[0]
-        else:
-            return rarr
+
+    def _next(self, distribution, n, parameters):
+        p = parameters + [n]
+        return getattr(self.rng, distribution)(*p)
+
+
+# should add a wrapper for the built-in Python random module.
+
 
 class NativeRNG(AbstractRNG):
     """

@@ -9,6 +9,7 @@ from pyNN import common, cells
 from brian.library.synapses import *
 import brian
 from brian import mV, ms, nF, nA, uS, second, Hz
+import numpy
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):
@@ -191,6 +192,14 @@ class SpikeSourceArray(cells.SpikeSourceArray):
         ('spike_times', 'spiketimes', ms),
     )
 
+    @classmethod
+    def translate(cls, parameters):
+        if 'spike_times' in parameters:
+            try:
+                parameters['spike_times'] = numpy.array(parameters['spike_times'], float)
+            except ValueError:
+                raise common.InvalidParameterValueError("spike times must be floats")
+        return super(SpikeSourceArray, cls).translate(parameters)
 
 class EIF_cond_alpha_isfa_ista(common.ModelNotAvailable):
     pass

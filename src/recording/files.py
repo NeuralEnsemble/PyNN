@@ -32,7 +32,8 @@ class BaseFile(object):
         self.close()
 
     def close(self):
-        self.fileobj.close()
+        if hasattr(self, 'fileobj'):
+            self.fileobj.close()
 
 
 class StandardTextFile(BaseFile):

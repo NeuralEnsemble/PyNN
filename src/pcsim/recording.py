@@ -80,6 +80,8 @@ class Recorder(recording.Recorder):
             raise NotImplementedError
         else:
             raise Exception("Recording of %s not implemented." % self.variable)
+        if gather and simulator.state.num_processes > 1:
+            data = recording.gather(data)
         return data
 
     def count(self, gather=False):
