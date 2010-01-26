@@ -197,7 +197,7 @@ def run(simtime):
     simulator.net.advance(int(simtime / simulator.state.dt ))
     return simulator.state.t
 
-reset = commom.reset
+reset = common.reset
 
 get_current_time = common.get_current_time
 get_time_step = common.get_time_step

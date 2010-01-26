@@ -515,6 +515,7 @@ Setting delays works similarly::
     >>> delay_distr = RandomDistribution(distribution='gamma', parameters=[2,0.2], boundaries=[get_min_delay(),1e12])
     >>> prj1_1.randomizeDelays(delay_distr)
 
+## NOTE: Need to add information about getting/setting individual weights and delays
 
 Accessing weights and delays
 ============================
