@@ -392,13 +392,19 @@ class ConnectionManager:
         value will be given, which makes some sense for weights, but is
         pretty meaningless for delays. 
         """
-        connection_parameters = nest.GetStatus(self.connections)
+        
+        if parameter_name not in ('weight', 'delay'):
+            if parameter_name in self.parent.synapse_dynamics.fast.translations:
+                parameter_name = self.parent.synapse_dynamics.fast.translations[parameter_name]["translated_name"] # this is a hack that works because there are no units conversions
+            else:
+                raise Exception("synapse type does not have an attribute '%s', or else this attribute is not accessible." % parameter_name)
         if format == 'list':
-            values = [conn[parameter_name] for conn in connection_parameters]
+            values = nest.GetStatus(self.connections, parameter_name)
             if parameter_name == "weight":
                 values = [0.001*val for val in values]
         elif format == 'array':
             value_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
+            connection_parameters = nest.GetStatus(self.connections)
             for conn in connection_parameters: 
                 # don't need to pass offset as arg, now we store the parent projection
                 # (offset is always 0,0 for connections created with connect())
@@ -446,8 +452,9 @@ class ConnectionManager:
         elif name == 'delay':
             pass
         else:
-            translation = self.parent.synapse_dynamics.reverse_translate({name: value})
-            name, value = translation.items()[0]
+            #translation = self.parent.synapse_dynamics.reverse_translate({name: value})
+            #name, value = translation.items()[0]
+            name = self.parent.synapse_dynamics.fast.translations[name]["translated_name"] # a hack
         
         i = 0
         try:

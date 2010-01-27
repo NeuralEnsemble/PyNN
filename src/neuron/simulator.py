@@ -383,6 +383,39 @@ class Connection(object):
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
 
+def generate_synapse_property(name):
+    def _get(self):
+        synapse = self.nc.syn()
+        if hasattr(synapse, name):
+            return getattr(synapse, name)
+        else:
+            raise Exception("synapse type does not have an attribute '%s'" % name)
+    def _set(self, val):
+        synapse = self.nc.syn()
+        if hasattr(synapse, name):
+            setattr(synapse, name, val)
+        else:
+            raise Exception("synapse type does not have an attribute 'U'")
+    return property(_get, _set)
+setattr(Connection, 'U', generate_synapse_property('U'))
+setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))
+setattr(Connection, 'tau_facil', generate_synapse_property('tau_facil'))
+setattr(Connection, 'u0', generate_synapse_property('u0'))
+
+def generate_stdp_property(name):
+    def _get(self):
+        return getattr(self.weight_adjuster, name)
+    def _set(self, val):
+        setattr(self.weight_adjuster, name, val)
+    return property(_get, _set)
+setattr(Connection, 'w_max', generate_stdp_property('wmax'))
+setattr(Connection, 'w_min', generate_stdp_property('wmin'))
+setattr(Connection, 'A_plus', generate_stdp_property('aLTP'))
+setattr(Connection, 'A_minus', generate_stdp_property('aLTD'))
+setattr(Connection, 'tau_plus', generate_stdp_property('tauLTP'))
+setattr(Connection, 'tau_minus', generate_stdp_property('tauLTD'))
+
+
 
 class ConnectionManager(object):
     """

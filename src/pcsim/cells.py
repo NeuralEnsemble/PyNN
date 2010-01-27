@@ -85,6 +85,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     pcsim_name = "LIFCondAlphaNeuron"    
     simObjFactory = None
     setterMethods = {}
+    recordable = ['spikes', 'v']
         
     def __init__(self, parameters):
         cells.IF_cond_alpha.__init__(self, parameters)
@@ -113,6 +114,7 @@ class IF_cond_exp(cells.IF_cond_exp):
     pcsim_name = "LIFCondExpNeuron"    
     simObjFactory = None
     setterMethods = {}
+    recordable = ['spikes', 'v']
         
     def __init__(self, parameters):
         cells.IF_cond_exp.__init__(self, parameters)

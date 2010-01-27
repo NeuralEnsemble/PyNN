@@ -15,6 +15,7 @@ e.g. python plot_results.py IF_curr_exp 0.1
 import sys
 import os
 import pylab
+import numpy
 import warnings
 pylab.rcParams['interactive'] = True
 
@@ -29,13 +30,13 @@ gsyn_data = {}
 for simulator in 'PCSIM', 'NEST', 'NEURON', 'Brian':
     datafile = "Results/%s_%s.v" % (example, simulator.lower())
     if os.path.exists(datafile):
-        data = pylab.load(datafile)
+        data = numpy.loadtxt(datafile)
         first_id = data[:,1].min()
         data0 = data[data[:,1]==first_id] # if there are multiple cells, we just plot the first
         vm_data[simulator] = data0
     datafile = "Results/%s_%s.gsyn" % (example, simulator.lower())
     if os.path.exists(datafile):
-        gsyn_data[simulator] = pylab.load(datafile)
+        gsyn_data[simulator] = numpy.loadtxt(datafile)
 
 
 
