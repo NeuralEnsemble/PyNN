@@ -392,19 +392,19 @@ The constructor requires a string ``d_expression``, which should be the right-ha
 The first example connects neurons with an exponentially-decaying probability.
 The second example connects each neuron to all its neighbours within a range of 3 units (distance is in µm if positions have been specified, in array coordinate distance otherwise). Note that boolean values ``True`` and ``False`` are automatically converted to numerical values ``1.0`` and ``0.0``.
 
-The calculation of distance may be controlled by a number of further arguments.
+The calculation of distance may be controlled by specifying a `Space` object.
 
 By default, the 3D distance between cell positions is used, but the ``axes`` argument may be used to change this, e.g.::
 
-    >>> connector = DistanceDependentProbabilityConnector("exp(-abs(d))", axes='xy')
+    >>> connector = DistanceDependentProbabilityConnector("exp(-abs(d))", space=Space(axes='xy'))
     
 will ignore the z-coordinate when calculating distance.
 
-Similarly, the origins of the coordinate systems of the two Populations and the relative scale of the two coordinate systems may be controlled using the ``offset`` and ``scale_factor`` arguments. This is useful when connecting brain regions that have very different sizes but that have a topographic mapping between them, e.g. retina to LGN to V1.
+Similarly, the origins of the coordinate systems of the two Populations and the relative scale of the two coordinate systems may be controlled using the ``offset`` and ``scale_factor`` arguments to the ``Space`` constructor. This is useful when connecting brain regions that have very different sizes but that have a topographic mapping between them, e.g. retina to LGN to V1.
 
 In more abstract models, it is often useful to be able to avoid edge effects by specifying periodic boundary conditions, e.g.::
 
-    >>> connector = DistanceDependentProbabilityConnector("exp(-abs(d))", periodic_boundaries=(500, 500, 0))
+    >>> connector = DistanceDependentProbabilityConnector("exp(-abs(d))", space=Space(periodic_boundaries=(500, 500, 0)))
     
 calculates distance on the surface of a torus of circumference 500 µm (wrap-around in the x- and y-dimensions but not z).
 

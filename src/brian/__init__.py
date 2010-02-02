@@ -169,4 +169,5 @@ class Projection(common.Projection):
         self.connections = self.connection_manager
         method.connect(self)
 
-        
+
+Space = common.Space

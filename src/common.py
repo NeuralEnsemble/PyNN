@@ -234,63 +234,58 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
         d = d[mask]
     return numpy.sqrt(numpy.dot(d, d))
 
-def distances(pre, post, mask=None, scale_factor=1.0, offset=0.0,
-              periodic_boundaries=None):
-    """
-    Calculate the entire distance matrix at once.
-    From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
-    """
-    # Note that `mask` is not used.
-    if isinstance(pre, Population):
-        x = pre.positions
-    else: 
-        x = pre.position
-        x = x.reshape(3, 1)
-    if isinstance(post, Population):
-        y = post.positions
-    else: 
-        y = post.position
-        y = y.reshape(3, 1)
-    y = scale_factor*(y + offset)
-    d = numpy.zeros((x.shape[1], y.shape[1]), dtype=x.dtype)
-    for i in xrange(x.shape[0]):
-        diff2 = abs(x[i,:,None] - y[i,:])
-        if periodic_boundaries is not None:
-            dims  = diff2.shape
-            diff2 = diff2.flatten()
-            diff2 = numpy.minimum(diff2, periodic_boundaries[i]-diff2)
-            diff2 = diff2.reshape(dims)
-        diff2 **= 2
-        d += diff2
-    numpy.sqrt(d, d)
-    return d
 
-class ConstIter(object):
-    """An iterator that always returns the same value."""
-    def __init__(self, x):
-        self.x = x
-    def next(self):
-        return self.x
+class Space(object):
+    
+    AXES = {'x' : [0],    'y': [1],    'z': [2],
+            'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': range(3), None: range(3)}
+    
+    def __init__(self, axes=None, scale_factor=1.0, offset=0.0,
+                 periodic_boundaries=None):
+        """
+        axes -- if not supplied, then the 3D distance is calculated. If supplied,
+            axes should be a string containing the axes to be used, e.g. 'x', or
+            'yz'. axes='xyz' is the same as axes=None.
+        scale_factor -- it may be that the pre and post populations use
+            different units for position, e.g. degrees and µm. In this case,
+            `scale_factor` can be specified, which is applied to the positions
+            in the post-synaptic population.
+        offset -- if the origins of the coordinate systems of the pre- and post-
+            synaptic populations are different, `offset` can be used to adjust
+            for this difference. The offset is applied before any scaling.
+        periodic_boundaries -- either `None`, or a tuple giving the boundaries
+            for each dimension, e.g. `((x_min, x_max), None, (z_min, z_max))`.
+        """
+        self.periodic_boundaries = periodic_boundaries
+        self.axes = numpy.array(Space.AXES[axes])
+        self.scale_factor = scale_factor
+        self.offset = offset
+        
+    def distances(self, A, B):
+        """
+        Calculate the distance matrix between two sets of coordinates, given
+        the topology of the current space.
+        From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
+        """
+        if len(A.shape) == 1:
+            A = A.reshape(3, 1)
+        if len(B.shape) == 1:
+            B = B.reshape(3, 1)
+        B = self.scale_factor*(B + self.offset)
+        d = numpy.zeros((A.shape[1], B.shape[1]), dtype=A.dtype)
+        for axis in self.axes:
+            diff2 = A[axis,:,None] - B[axis,:]
+            if self.periodic_boundaries is not None:
+                boundaries = self.periodic_boundaries[axis]
+                if boundaries is not None:
+                    range = boundaries[1]-boundaries[0]
+                    ad2 = abs(diff2)
+                    diff2 = numpy.minimum(ad2, range-ad2)
+            diff2 **= 2
+            d += diff2
+        numpy.sqrt(d, d)
+        return d
 
-def next_n(sequence, N, start_index, mask_local):
-    assert isinstance(N, int), "N is %s, should be an integer" % N
-    if isinstance(sequence, random.RandomDistribution):
-        values = numpy.array(sequence.next(N, mask_local=mask_local))
-    elif isinstance(sequence, (int, float)):
-        if mask_local is not None:
-            assert mask_local.size == N
-            N = mask_local.sum()
-            assert isinstance(N, int), "N is %s, should be an integer" % N
-        values = numpy.ones((N,))*float(sequence)
-    elif hasattr(sequence, "__len__"):
-        values = numpy.array(sequence[start_index:start_index+N], float)
-        if mask_local is not None:
-            assert mask_local.size == N
-            assert len(mask_local.shape) == 1, mask_local.shape
-            values = values[mask_local]
-    else:
-        raise Exception("sequence is of type %s" % type(sequence))
-    return values
 
 # ==============================================================================
 #   Accessing individual neurons
@@ -774,8 +769,8 @@ class Population(object):
             self.celltype = cellclass
         self.ndim = len(self.dim)
         self.cellparams = cellparams
-        self.size = self.dim[0]
         self.parent = parent
+        self.size = self.dim[0]
         for i in range(1, self.ndim):
             self.size *= self.dim[i]
         Population.nPop += 1
@@ -1528,72 +1523,6 @@ class Projection(object):
         else:
             return Template(template).substitute(context)
 
-
-# ==============================================================================
-#   Connection method classes
-# ==============================================================================
-
-class Connector(object):
-    """Base class for Connector classes."""
-    
-    def __init__(self, weights=0.0, delays=None, check_connections=False):
-        self.w_index = 0 # should probably use a generator
-        self.d_index = 0 # rather than storing these values
-        self.weights = weights
-        self.delays = delays
-        self.check_connections = check_connections
-        if delays is None:
-            self.delays = get_min_delay()
-    
-    def connect(self, projection):
-        """Connect all neurons in ``projection``"""
-        raise NotImplementedError()
-    
-    def get_weights(self, N, mask_local=None):
-        """
-        Returns the next N weight values
-        """
-        weights = next_n(self.weights, N, self.w_index, mask_local)
-        self.w_index += N
-        return weights
-    
-    def get_delays(self, N, mask_local=None):
-        """
-        Returns the next N delay values
-        """
-        delays = next_n(self.delays, N, self.d_index, mask_local)
-        self.d_index += N
-        if self.check_connections:
-            assert numpy.all(delays >= get_min_delay()), \
-            "Delay values must be greater than or equal to the minimum delay %g. The smallest delay is %g." % (get_min_delay(), delays.min())
-            assert numpy.all(delays <= get_max_delay()), \
-            "Delay values must be less than or equal to the maximum delay %s. The largest delay is %s" % (get_max_delay(), delays.max())                                                                                              
-        return delays
-    
-    def weights_iterator(self):
-        w = self.weights
-        if w is not None:
-            if hasattr(w, '__len__'): # w is an array
-                weights = w.__iter__()
-            else:
-                weights = ConstIter(w)
-        else: 
-            weights = ConstIter(1.0)
-        return weights
-    
-    def delays_iterator(self):
-        d = self.delays
-        min_delay = get_min_delay()
-        if d is not None:
-            if hasattr(d, '__len__'): # d is an array
-                if min(d) < min_delay:
-                    raise Exception("The array of delays contains one or more values that is smaller than the simulator minimum delay.")
-                delays = d.__iter__()
-            else:
-                delays = ConstIter(max((d, min_delay)))
-        else:
-            delays = ConstIter(min_delay)
-        return delays
         
 # ==============================================================================
 #   Synapse Dynamics classes

@@ -7,6 +7,7 @@ import sys
 import unittest
 import numpy
 import os
+from math import sqrt
 from pyNN import common, random, cells, synapses, connectors
 
 def arrays_almost_equal(a, b, threshold):
@@ -61,7 +62,66 @@ class DistanceTest(unittest.TestCase):
         self.assertEqual(common.distance(cell1, cell2, scale_factor=0.5), 13.0)
         cell2.position = (-1.7, 8.5, -5.3)
         self.assertEqual(common.distance(cell1, cell2, periodic_boundaries=numpy.array([7.0, 1e12, 1e12])), 13.0)
-        
+
+class SpaceTest(unittest.TestCase):
+    
+    def setUp(self):
+        N = numpy.array
+        self.A = N([0.0, 0.0, 0.0])
+        self.B = N([1.0, 1.0, 1.0])
+        self.C = N([-1.0, -1.0, -1.0])
+        self.D = N([2.0, 3.0, 4.0])
+        self.ABCD = N([[0.0, 0.0, 0.0],
+                       [1.0, 1.0, 1.0],
+                       [-1.0, -1.0, -1.0],
+                       [2.0, 3.0, 4.0]]).T
+
+    def assertArraysEqual(self, A, B):
+        self.assert_((A==B).all(), "%s != %s" % (A,B))
+    
+    def test_infinite_space_with_3D_distances(self):
+        s = common.Space()
+        self.assertEqual(s.distances(self.A, self.B), sqrt(3))
+        self.assertEqual(s.distances(self.C, self.B), sqrt(12))
+        self.assertArraysEqual(s.distances(self.A, self.ABCD),
+                               numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
+        self.assertArraysEqual(s.distances(self.A, self.ABCD),
+                               s.distances(self.ABCD, self.A).T)
+    
+    def test_infinite_space_with_collapsed_axes(self):
+        s_x = common.Space(axes='x')
+        s_xy = common.Space(axes='xy')
+        s_yz = common.Space(axes='yz')
+        self.assertEqual(s_x.distances(self.A, self.B), 1.0)
+        self.assertEqual(s_xy.distances(self.A, self.B), sqrt(2))
+        self.assertEqual(s_x.distances(self.A, self.D), 2.0)
+        self.assertEqual(s_xy.distances(self.A, self.D), sqrt(13))
+        self.assertEqual(s_yz.distances(self.A, self.D), sqrt(25))
+        self.assertArraysEqual(s_yz.distances(self.D, self.ABCD),
+                               numpy.array([sqrt(25), sqrt(13), sqrt(41), sqrt(0)]))
+    
+    def test_infinite_space_with_scale_and_offset(self):
+        s = common.Space(scale_factor=2.0, offset=1.0)
+        self.assertEqual(s.distances(self.A, self.B), sqrt(48))
+        self.assertEqual(s.distances(self.B, self.A), sqrt(3))
+        self.assertEqual(s.distances(self.C, self.B), sqrt(75))
+        self.assertEqual(s.distances(self.B, self.C), sqrt(3))
+        self.assertArraysEqual(s.distances(self.A, self.ABCD),
+                               numpy.array([sqrt(12), sqrt(48), sqrt(0), sqrt(200)]))
+    
+    def test_cylindrical_space(self):
+        s = common.Space(periodic_boundaries=((-1.0, 4.0), (-1.0, 4.0), (-1.0, 4.0)))
+        self.assertEqual(s.distances(self.A, self.B), sqrt(3))
+        self.assertEqual(s.distances(self.A, self.D), sqrt(4+4+1))
+        self.assertEqual(s.distances(self.C, self.D), sqrt(4+1+0))
+        self.assertArraysEqual(s.distances(self.A, self.ABCD),
+                               numpy.array([0.0, sqrt(3), sqrt(3), sqrt(4+4+1)]))
+        self.assertArraysEqual(s.distances(self.A, self.ABCD),
+                               s.distances(self.ABCD, self.A).T)
+        self.assertArraysEqual(s.distances(self.C, self.ABCD),
+                               numpy.array([sqrt(3), sqrt(4+4+4), 0.0, sqrt(4+1+0)]))
+    
+    
 class StandardModelTest(unittest.TestCase):
     
     def testCheckParameters(self):
@@ -107,37 +167,37 @@ class LowLevelAPITest(unittest.TestCase):
 class ConnectorTest(unittest.TestCase):
 
     def test_get_weights(self):
-        c1 = common.Connector(delays=0.5, weights=0.5)
+        c1 = connectors.Connector(delays=0.5, weights=0.5)
         self.assertEqual(c1.get_weights(3).tolist(), [0.5,0.5,0.5])
-        c2 = common.Connector(delays=0.5, weights="foo")
+        c2 = connectors.Connector(delays=0.5, weights="foo")
         self.assertRaises(ValueError, c2.get_weights, 3)
         class A(object): pass
-        c3 = common.Connector(delays=0.5, weights=A())
+        c3 = connectors.Connector(delays=0.5, weights=A())
         self.assertRaises(Exception,c3.get_weights, 3)
         rd = random.RandomDistribution('gamma', [0.5,0.5])
-        c4 = common.Connector(delays=0.5, weights=rd)
+        c4 = connectors.Connector(delays=0.5, weights=rd)
         w = c4.get_weights(3)
         self.assertEqual(len(w), 3)
         self.assertNotEqual(w[0], w[1])
         
     def test_get_delays(self):
-        c1 = common.Connector(delays=0.5, weights=0.5)
+        c1 = connectors.Connector(delays=0.5, weights=0.5)
         self.assertEqual(c1.get_delays(3).tolist(), [0.5,0.5,0.5])
-        c2 = common.Connector(weights=0.5, delays="foo")
+        c2 = connectors.Connector(weights=0.5, delays="foo")
         self.assertRaises(ValueError, c2.get_delays, 3)
         class A(object): pass
-        c3 = common.Connector(weights=0.5, delays=A())
+        c3 = connectors.Connector(weights=0.5, delays=A())
         self.assertRaises(Exception,c3.get_delays, 3)
         rd = random.RandomDistribution('gamma', [0.5,0.5])
-        c4 = common.Connector(weights=0.5, delays=rd)
+        c4 = connectors.Connector(weights=0.5, delays=rd)
         d = c4.get_delays(3)
         self.assertEqual(len(d), 3)
         self.assertNotEqual(d[0], d[1])
-        c5 = common.Connector(weights=0.5, delays=[1.0, 2.0, 3.0])
+        c5 = connectors.Connector(weights=0.5, delays=[1.0, 2.0, 3.0])
         self.assertEqual(c5.get_delays(3).tolist(), [1.0, 2.0, 3.0]) 
     
     def test_connect(self):
-        c = common.Connector(delays=0.5)
+        c = connectors.Connector(delays=0.5)
         self.assertRaises(NotImplementedError, c.connect, 'foo')
 
 class SynapticPlasticityTest(unittest.TestCase):
@@ -157,73 +217,8 @@ class SynapticPlasticityTest(unittest.TestCase):
         self.assertRaises(NotImplementedError, synapses.AdditivePotentiationMultiplicativeDepression)
         self.assertRaises(NotImplementedError, synapses.GutigWeightDependence)
         self.assertRaises(NotImplementedError, synapses.SpikePairRule)
-        
 
 
-
-class ConnectorsTest(unittest.TestCase):
-    
-    def setUp(self):
-        self.original_get_min_delay = common.get_min_delay
-        common.get_min_delay = lambda: 0.1
-    
-    def tearDown(self):
-        common.get_min_delay = self.original_get_min_delay
-    
-    def test_weights_iterator_with_None(self):
-        c = common.Connector()
-        c.weights = None
-        iterator = c.weights_iterator()
-        weights = [iterator.next() for i in range(3)]
-        self.assertEqual(weights, [1.0, 1.0, 1.0])
-        
-    def test_weights_iterator_with_float(self):
-        c = common.Connector()
-        c.weights = 0.5
-        iterator = c.weights_iterator()
-        weights = [iterator.next() for i in range(3)]
-        self.assertEqual(weights, [0.5, 0.5, 0.5])
-        
-    def test_weights_iterator_with_array(self):
-        c = common.Connector()
-        c.weights = numpy.arange(0, 1.0, 0.4)
-        iterator = c.weights_iterator()
-        weights = [iterator.next() for i in range(3)]
-        self.assertEqual(weights, [0.0, 0.4, 0.8])
-        
-    def test_delays_iterator_with_None(self):
-        c = common.Connector()
-        c.delays = None
-        iterator = c.delays_iterator()
-        delays = [iterator.next() for i in range(3)]
-        self.assertEqual(delays, [0.1, 0.1, 0.1])
-        
-    def test_delays_iterator_with_float(self):
-        c = common.Connector()
-        c.delays = 0.5
-        iterator = c.delays_iterator()
-        delays = [iterator.next() for i in range(3)]
-        self.assertEqual(delays, [0.5, 0.5, 0.5])
-        
-    def test_delays_iterator_with_too_small_float(self):
-        c = common.Connector()
-        c.delays = 1e-12
-        iterator = c.delays_iterator()
-        delays = [iterator.next() for i in range(3)]
-        self.assertEqual(delays, [0.1, 0.1, 0.1])
-        
-    def test_delays_iterator_with_array(self):
-        c = common.Connector()
-        c.delays = numpy.arange(0.1, 1.0, 0.4)
-        iterator = c.delays_iterator()
-        delays = [iterator.next() for i in range(3)]
-        self.assertEqual(delays, [0.1, 0.5, 0.9])
-        
-    def test_delays_iterator_with_array_containing_too_small_value(self):
-        c = common.Connector()
-        c.delays = numpy.arange(0.0, 1.0, 0.4)
-        self.assertRaises(Exception, c.delays_iterator)
-                
 # ==============================================================================
 if __name__ == "__main__":
     unittest.main()

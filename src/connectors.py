@@ -23,65 +23,130 @@ from pyNN import random, common
 
 logger = logging.getLogger("PyNN")
 
-def _probabilistic_connect(connector, projection, p):
-    """
-    Connect-up a Projection with connection probability p, where p may be either
-    a float 0<=p<=1, or a dict containing a float array for each pre-synaptic
-    cell, the array containing the connection probabilities for all the local
-    targets of that pre-synaptic cell.
-    """
-    if isinstance(projection.rng, random.NativeRNG):
-        raise Exception("Use of NativeRNG not implemented.")
+
+class ConstIter(object):
+    """An iterator that always returns the same value."""
+    def __init__(self, x):
+        self.x = x
+    def next(self):
+        return self.x
+
+
+def next_n(sequence, N, start_index, mask_local):
+    assert isinstance(N, int), "N is %s, should be an integer" % N
+    if isinstance(sequence, random.RandomDistribution):
+        values = numpy.array(sequence.next(N, mask_local=mask_local))
+    elif isinstance(sequence, (int, float)):
+        if mask_local is not None:
+            assert mask_local.size == N
+            N = mask_local.sum()
+            assert isinstance(N, int), "N is %s, should be an integer" % N
+        values = numpy.ones((N,))*float(sequence)
+    elif hasattr(sequence, "__len__"):
+        values = numpy.array(sequence[start_index:start_index+N], float)
+        if mask_local is not None:
+            assert mask_local.size == N
+            assert len(mask_local.shape) == 1, mask_local.shape
+            values = values[mask_local]
     else:
-        rng = projection.rng
+        raise Exception("sequence is of type %s" % type(sequence))
+    return values
+
+
+class Connector(object):
+    """Base class for Connector classes."""
     
-    local = projection.post._mask_local.flatten()
-    is_conductance = common.is_conductance(projection.post.index(0))
-    for src in projection.pre.all():
-        # ( the following two lines are a nice idea, but this needs some thought for
-        #   the parallel case, to ensure reproducibility when varying the number
-        #   of processors
-        #      N = rng.binomial(npost,self.p_connect,1)[0]
-        #      targets = sample(postsynaptic_neurons, N)   # )
-        N = projection.post.size
-        # if running in parallel, rng.next(N) will not return N values, but only
-        # as many as are needed on this node, as determined by mask_local.
-        # Over the simulation as a whole (all nodes), N values will indeed be
-        # returned.
-        rarr = rng.next(N, 'uniform', (0, 1), mask_local=local)
-        if not common.is_listlike(rarr) and common.is_number(rarr): # if N=1, rarr will be a single number
-            rarr = numpy.array([rarr])
-        if common.is_number(p):
-            create = rarr < p
+    def __init__(self, weights=0.0, delays=None):
+        self.w_index = 0 # should probably use a generator
+        self.d_index = 0 # rather than storing these values
+        self.weights = weights
+        self.delays = delays
+        
+        if delays is None:
+            self.delays = common.get_min_delay()
+        
+    def connect(self, projection):
+        """Connect all neurons in ``projection``"""
+        raise NotImplementedError()
+        
+    def get_weights(self, N, mask_local=None):
+        """
+        Returns the next N weight values
+        """
+        weights = next_n(self.weights, N, self.w_index, mask_local)
+        self.w_index += N
+        return weights
+    
+    def get_delays(self, N, mask_local=None):
+        """
+        Returns the next N delay values
+        """
+        delays = next_n(self.delays, N, self.d_index, mask_local)
+        self.d_index += N                                                                                            
+        return delays
+
+    
+class ProbabilisticConnector(Connector):
+    
+    def _probabilistic_connect(self, projection, p):
+        """
+        Connect-up a Projection with connection probability p, where p may be either
+        a float 0<=p<=1, or a dict containing a float array for each pre-synaptic
+        cell, the array containing the connection probabilities for all the local
+        targets of that pre-synaptic cell.
+        """
+        if isinstance(projection.rng, random.NativeRNG):
+            raise Exception("Use of NativeRNG not implemented.")
         else:
-            create = rarr < p[src][local]
-        if create.shape != projection.post.local_cells.shape:
-            logger.warning("Too many random numbers. Discarding the excess. Did you specify MPI rank and number of processes when you created the random number generator?")
-            create = create[:projection.post.local_cells.size]
-        targets = projection.post.local_cells[create].tolist()
+            rng = projection.rng
         
-        weights = connector.get_weights(N, local)[create]
-        weights = common.check_weight(weights, projection.synapse_type, is_conductance)
-        delays  = connector.get_delays(N, local)[create]
-        
-        if not connector.allow_self_connections and projection.pre == projection.post and src in targets:
-            assert len(targets) == len(weights) == len(delays)
-            i = targets.index(src)
-            weights = numpy.delete(weights, i)
-            delays = numpy.delete(delays, i)
-            targets.remove(src)
-        
-        if len(targets) > 0:
-            projection.connection_manager.connect(src, targets, weights, delays)
+        local = projection.post._mask_local.flatten()
+        is_conductance = common.is_conductance(projection.post.index(0))
+        for src in projection.pre.all():
+            # ( the following two lines are a nice idea, but this needs some thought for
+            #   the parallel case, to ensure reproducibility when varying the number
+            #   of processors
+            #      N = rng.binomial(npost,self.p_connect,1)[0]
+            #      targets = sample(postsynaptic_neurons, N)   # )
+            N = projection.post.size
+            # if running in parallel, rng.next(N) will not return N values, but only
+            # as many as are needed on this node, as determined by mask_local.
+            # Over the simulation as a whole (all nodes), N values will indeed be
+            # returned.
+            rarr = rng.next(N, 'uniform', (0, 1), mask_local=local)
+            if not common.is_listlike(rarr) and common.is_number(rarr): # if N=1, rarr will be a single number
+                rarr = numpy.array([rarr])
+            if common.is_number(p):
+                create = rarr < p
+            else:
+                create = rarr < p[src][local]
+            if create.shape != projection.post.local_cells.shape:
+                logger.warning("Too many random numbers. Discarding the excess. Did you specify MPI rank and number of processes when you created the random number generator?")
+                create = create[:projection.post.local_cells.size]
+            targets = projection.post.local_cells[create].tolist()
+            
+            weights = self.get_weights(N, local)[create]
+            weights = common.check_weight(weights, projection.synapse_type, is_conductance)
+            delays  = self.get_delays(N, local)[create]
+            
+            if not self.allow_self_connections and projection.pre == projection.post and src in targets:
+                assert len(targets) == len(weights) == len(delays)
+                i = targets.index(src)
+                weights = numpy.delete(weights, i)
+                delays = numpy.delete(delays, i)
+                targets.remove(src)
+            
+            if len(targets) > 0:
+                projection.connection_manager.connect(src, targets, weights, delays)
 
 
-class AllToAllConnector(common.Connector):
+class AllToAllConnector(ProbabilisticConnector):
     """
     Connects all cells in the presynaptic population to all cells in the
     postsynaptic population.
     """
     
-    def __init__(self, allow_self_connections=True, weights=0.0, delays=None):
+    def __init__(self, allow_self_connections=True, weights=0.0, delays=None, space=common.Space()):
         """
         Create a new connector.
         
@@ -95,16 +160,25 @@ class AllToAllConnector(common.Connector):
         `delays`  -- as `weights`. If `None`, all synaptic delays will be set
                      to the global minimum delay.
         """
-        common.Connector.__init__(self, weights, delays)
+        Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
 
     def connect(self, projection):
         """Connect-up a Projection."""
-        _probabilistic_connect(self, projection, 1.0)
+        if hasattr(self, 'w_expr') or hasattr(self, 'd_expr'):
+            for src in projection.pre.all():
+                d = self.space.distances(src.position, projection.post.positions)
+                if hasattr(self, 'w_expr'):
+                    self.weights = numpy.concatenate((self.weights, eval(self.w_expr)), axis=1)
+                if hasattr(self, 'd_expr'):
+                    self.delays = numpy.concatenate((self.delays, eval(self.d_expr)), axis=1)
+        if hasattr(self.weights, 'shape'): self.weights = self.weights.flatten()
+        if hasattr(self.delays, 'shape'): self.delays = self.delays.flatten()
+        self._probabilistic_connect(projection, 1.0)
 
 
-class FromListConnector(common.Connector):
+class FromListConnector(Connector):
     """
     Make connections according to a list.
     """
@@ -121,7 +195,7 @@ class FromListConnector(common.Connector):
                        neuron.
         """
         # needs extending for dynamic synapses.
-        common.Connector.__init__(self, 0., 0.)
+        Connector.__init__(self, 0., 0.)
         self.conn_list = conn_list        
         
     def connect(self, projection):
@@ -150,7 +224,7 @@ class FromFileConnector(FromListConnector):
                          rank. This speeds up loading connections for
                          distributed simulations.
         """
-        common.Connector.__init__(self, 0., 0.)
+        Connector.__init__(self, 0., 0.)
         self.filename = filename
         self.distributed = distributed
 
@@ -174,7 +248,7 @@ class FromFileConnector(FromListConnector):
         FromListConnector.connect(self, projection)
         
         
-class FixedNumberPostConnector(common.Connector):
+class FixedNumberPostConnector(Connector):
     """
     Each pre-synaptic neuron is connected to exactly n post-synaptic neurons
     chosen at random.
@@ -204,7 +278,7 @@ class FixedNumberPostConnector(common.Connector):
         `delays`  -- as `weights`. If `None`, all synaptic delays will be set
                      to the global minimum delay.
         """
-        common.Connector.__init__(self, weights, delays)
+        Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         if isinstance(n, int):
@@ -256,7 +330,7 @@ class FixedNumberPostConnector(common.Connector):
                 projection.connection_manager.connect(source, targets, weights, delays)
                     
 
-class FixedNumberPreConnector(common.Connector):
+class FixedNumberPreConnector(Connector):
     """
     Each post-synaptic neuron is connected to exactly n pre-synaptic neurons
     chosen at random.
@@ -286,7 +360,7 @@ class FixedNumberPreConnector(common.Connector):
         `delays`  -- as `weights`. If `None`, all synaptic delays will be set
                      to the global minimum delay.
         """
-        common.Connector.__init__(self, weights, delays)
+        Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         if isinstance(n, int):
@@ -330,7 +404,7 @@ class FixedNumberPreConnector(common.Connector):
                 projection.connection_manager.connect(source, [target], w, d)
                     
 
-class OneToOneConnector(common.Connector):
+class OneToOneConnector(Connector):
     """
     Where the pre- and postsynaptic populations have the same size, connect
     cell i in the presynaptic population to cell i in the postsynaptic
@@ -352,7 +426,7 @@ class OneToOneConnector(common.Connector):
         `delays`  -- as `weights`. If `None`, all synaptic delays will be set
                      to the global minimum delay.
         """
-        common.Connector.__init__(self, weights, delays)
+        Connector.__init__(self, weights, delays)
     
     def connect(self, projection):
         """Connect-up a Projection."""
@@ -375,12 +449,12 @@ class OneToOneConnector(common.Connector):
             raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
 
 
-class FixedProbabilityConnector(common.Connector):
+class FixedProbabilityConnector(ProbabilisticConnector):
     """
     For each pair of pre-post cells, the connection probability is constant.
     """
     
-    def __init__(self, p_connect, allow_self_connections=True, weights=0.0, delays=None):
+    def __init__(self, p_connect, allow_self_connections=True, weights=0.0, delays=None, space=common.Space()):
         """
         Create a new connector.
         
@@ -396,7 +470,7 @@ class FixedProbabilityConnector(common.Connector):
         `delays`  -- as `weights`. If `None`, all synaptic delays will be set
                      to the global minimum delay.
         """
-        common.Connector.__init__(self, weights, delays)
+        Connector.__init__(self, weights, delays)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
@@ -407,45 +481,38 @@ class FixedProbabilityConnector(common.Connector):
         logger.info("Connecting %s to %s with probability %s" % (projection.pre.label,
                                                                   projection.post.label,
                                                                   self.p_connect))
-        _probabilistic_connect(self, projection, self.p_connect)    
+        if hasattr(self, 'w_expr') or hasattr(self, 'd_expr'):
+            for src in projection.pre.all():
+                d = self.space.distances(src.position, projection.post.positions)
+                if hasattr(self, 'w_expr'):
+                    self.weights = numpy.concatenate((self.weights, eval(self.w_expr)), axis=1)
+                if hasattr(self, 'd_expr'):
+                    self.delays = numpy.concatenate((self.delays, eval(self.d_expr)), axis=1)
+        if hasattr(self.weights, 'shape'): self.weights = self.weights.flatten()
+        if hasattr(self.delays, 'shape'): self.delays = self.delays.flatten()
+        self._probabilistic_connect(projection, self.p_connect)    
 
         
-class DistanceDependentProbabilityConnector(common.Connector):
+class DistanceDependentProbabilityConnector(ProbabilisticConnector):
     """
     For each pair of pre-post cells, the connection probability depends on distance.
     """
     
-    AXES = {'x' : [0],    'y': [1],    'z': [2],
-            'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': None, None: None}
-    
-    def __init__(self, d_expression, axes=None, scale_factor=1.0, offset=0.0,
-                 periodic_boundaries=None, allow_self_connections=True,
-                 weights=0.0, delays=None):
+    def __init__(self, d_expression, allow_self_connections=True,
+                 weights=0.0, delays=None, space=common.Space()):
         """
         Create a new connector.
         
-        d_expression -- the right-hand side of a valid python expression for
+        `d_expression` -- the right-hand side of a valid python expression for
             probability, involving 'd', e.g. "exp(-abs(d))", or "d<3"
-        axes -- if not supplied, then the 3D distance is calculated. If supplied,
-            axes should be a string containing the axes to be used, e.g. 'x', or
-            'yz'. axes='xyz' is the same as axes=None.
-        scale_factor -- it may be that the pre and post populations use
-            different units for position, e.g. degrees and µm. In this case,
-            `scale_factor` can be specified, which is applied to the positions
-            in the post-synaptic population.
-        offset -- if the origins of the coordinate systems of the pre- and post-
-            synaptic populations are different, `offset` can be used to adjust
-            for this difference.
-        periodic_boundaries -- either `None`, or a tuple giving the distance at
-            which the boundaries wrap round for each dimension.
+        `space` -- a Space object.
         `weights` -- may either be a float, a RandomDistribution object, a list/
                      1D array with at least as many items as connections to be
-                     created. Units nA.
+                     created, or a DistanceDependence object. Units nA.
         `delays`  -- as `weights`. If `None`, all synaptic delays will be set
                      to the global minimum delay.
         """
-        common.Connector.__init__(self, weights, delays)
-        assert isinstance(allow_self_connections, bool)
+        Connector.__init__(self, weights, delays)
         assert isinstance(d_expression, str)
         try:
             d = 0; assert 0 <= eval(d_expression), eval(d_expression)
@@ -453,34 +520,18 @@ class DistanceDependentProbabilityConnector(common.Connector):
         except ZeroDivisionError, err:
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
+        self.space = space
+        assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
-        self.mask = DistanceDependentProbabilityConnector.AXES[axes]
-        self.periodic_boundaries = periodic_boundaries
-        if self.mask is not None:
-            self.mask = numpy.array(self.mask)
-        self.scale_factor = scale_factor
-        self.offset = offset
-        if isinstance(self.weights, basestring):
-            self.w_expr = self.weights
-            self.weights = numpy.empty((1,0))
-        if isinstance(self.delays, basestring):
-            self.d_expr = self.delays
-            self.delays = numpy.empty((1,0))
+        assert isinstance(space, common.Space)
+        self.space = space
+
         
     def connect(self, projection):
         """Connect-up a Projection."""
-        periodic_boundaries = self.periodic_boundaries
-        if periodic_boundaries is True:
-            dimensions = projection.post.dim
-            periodic_boundaries = tuple(numpy.concatenate((dimensions, numpy.zeros(3-len(dimensions)))))
-        if periodic_boundaries:
-            logger.info("Periodic boundaries activated and set to size %s" % str(periodic_boundaries))
         p = {}
-        
         for src in projection.pre.all():
-            d = common.distances(src, projection.post, self.mask,
-                                 self.scale_factor, self.offset,
-                                 periodic_boundaries)
+            d = self.space.distances(src.position, projection.post.positions)
             p[src] = eval(self.d_expression).flatten()
             if p[src].dtype == 'bool':
                 p[src] = p[src].astype(float)
@@ -488,7 +539,6 @@ class DistanceDependentProbabilityConnector(common.Connector):
                 self.weights = numpy.concatenate((self.weights, eval(self.w_expr)), axis=1)
             if hasattr(self, 'd_expr'):
                 self.delays = numpy.concatenate((self.delays, eval(self.d_expr)), axis=1)
-        
         if hasattr(self.weights, 'shape'): self.weights = self.weights.flatten()
         if hasattr(self.delays, 'shape'): self.delays = self.delays.flatten()
-        _probabilistic_connect(self, projection, p)
+        self._probabilistic_connect(projection, p)

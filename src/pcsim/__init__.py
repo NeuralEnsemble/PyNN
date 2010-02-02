@@ -821,6 +821,7 @@ class Projection(common.Projection, WDManager):
     ##    f.close()
     
 
+Space = common.Space
 
 # ==============================================================================
 

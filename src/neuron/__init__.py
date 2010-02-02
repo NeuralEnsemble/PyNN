@@ -283,4 +283,7 @@ class Projection(common.Projection):
         logger.info("--- Projection[%s].__randomizeDelays__() ---" % self.label)
         self.setDelays(rarr)
 
+
+Space = common.Space
+
 # ==============================================================================
