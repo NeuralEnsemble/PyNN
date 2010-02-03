@@ -43,9 +43,9 @@ If your model relies on other NMODL mechanisms, call the ``load_mechanisms()`` f
 Installing NEURON
 =================
 
-Download the sources for the latest release of NEURON, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/install/install.html>`_. Also download Interviews from the same location.
+Download the sources for the latest release of NEURON, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_. Also download Interviews from the same location.
 
-Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/install/compile_unix.html#fullinstall>`_, except that when you run ``configure``, add the options ``--with-nrnpython`` and, optionally, ``--with-mpi`` (the latter assumes you have the MPICH library installed on your machine), i.e.::
+Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_, except that when you run ``configure``, add the options ``--with-nrnpython`` and, optionally, ``--with-mpi`` (the latter assumes you have the MPICH library installed on your machine), i.e.::
 
     $ ./configure --prefix=`pwd` --with-nrnpython --with-mpi
     $ make

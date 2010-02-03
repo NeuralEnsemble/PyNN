@@ -362,15 +362,26 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
     
 class RandomSpikeSource(hclass(h.NetStimFD)):
     
-    parameter_names = ('start', 'interval', 'duration')
+    parameter_names = ('start', '_interval', 'duration')
     
-    def __init__(self, start=0, interval=1e12, duration=0):
+    def __init__(self, start=0, _interval=1e12, duration=0):
         self.start = start
-        self.interval = interval
+        self.interval = _interval
         self.duration = duration
         self.noise = 1
         self.spike_times = h.Vector(0)
         self.source = self
+        self.switch = h.NetCon(None, self)
+
+    def _set_interval(self, value):
+        self.switch.weight[0] = -1
+        self.switch.event(h.t+1e-12, 0)
+        self.interval = value
+        self.switch.weight[0] = 1
+        self.switch.event(h.t+2e-12, 1)
+    def _get_interval(self):
+        return self.interval
+    _interval = property(fget=_get_interval, fset=_set_interval)
 
     def record(self, active):
         if active:
@@ -571,7 +582,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
     translations = common.build_translations(
         ('start',    'start'),
-        ('rate',     'interval',  "1000.0/rate",  "1000.0/interval"),
+        ('rate',     '_interval',  "1000.0/rate",  "1000.0/_interval"),
         ('duration', 'duration'),
     )
     model = RandomSpikeSource

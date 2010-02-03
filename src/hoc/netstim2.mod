@@ -1,6 +1,7 @@
 : Based on:
 :     $Id$
-: but with fixed duration rather than fixed number of spikes
+: but with fixed duration rather than fixed number of spikes, and an interval
+: that can safely be varied during the simulation
 : Modified by Andrew Davison, UNIC, CNRS
 
 NEURON	{ 
@@ -22,6 +23,7 @@ ASSIGNED {
 	event (ms)
 	on
 	donotuse
+	valid
 }
 
 PROCEDURE seed(x) {
@@ -29,6 +31,7 @@ PROCEDURE seed(x) {
 }
 
 INITIAL {
+        valid = 4
 	on = 0 : off
 	if (noise < 0) {
 		noise = 0
@@ -123,15 +126,16 @@ PROCEDURE next_invl() {
 
 NET_RECEIVE (w) {
 	if (flag == 0) { : external event
-                :printf("external event\n")
-		if (w > 0 && on == 0) { : turn on spike sequence
+                :printf("external event. w = %g\n", w)
+		if (w > 0) { : turn on spike sequence
 			: but not if a netsend is on the queue
 			init_sequence(t)
 			: randomize the first spike so on average it occurs at
 			: noise*interval (most likely interval is always 0)
 			next_invl()
 			event = event - interval*(1.0 - noise)
-			net_send(event, 1)
+			valid = valid + 1 : events with previous values of valid will be ignored.
+			net_send(event, valid)
 		}else if (w < 0) { : turn off spiking definitively
 			on = 0
 		}
@@ -139,16 +143,16 @@ NET_RECEIVE (w) {
 	if (flag == 3) { : from INITIAL
 		if (on == 1) { : but ignore if turned off by external event
 			init_sequence(t)
-			net_send(0, 1)
+			net_send(0, valid)
                         :printf("init_sequence(%g)\n", t)
 		}
 	}
-	if (flag == 1 && on == 1) {
-                :printf("%g %g\n", t, on)
+	if (flag == valid && on == 1) {
 		net_event(t)
 		next_invl()
+		:printf("%g %g %g flag=%g valid=%g\n", t, interval, event, flag, valid)
 		if (on == 1) {
-			net_send(event, 1)
+			net_send(event, valid)
 		}
 	}
 }
