@@ -43,6 +43,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     common.setup(timestep, min_delay, max_delay, **extra_params)
     simulator.net = brian.Network()
+    simulator.net.add(update_currents) # from electrodes
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
     simulator.state.dt = timestep

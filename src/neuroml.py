@@ -1,7 +1,7 @@
 # encoding: utf-8
 """
 PyNN-->NeuroML
-$Id:$
+$Id$
 """
 
 from pyNN import common, connectors, cells
@@ -229,15 +229,17 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
     def __init__(self, parameters):
-        cells.SpikeSourcePoisson.__init__(self, parameters)
         raise Exception('Cell type %s not yet implemented' % self.__class__.__name__)
+        cells.SpikeSourcePoisson.__init__(self, parameters)
+        
 
 class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
     def __init__(self, parameters):
-        cells.SpikeSourceArray.__init__(self, parameters)
         raise Exception('Cell type %s not yet implemented' % self.__class__.__name__)
+        cells.SpikeSourceArray.__init__(self, parameters)
+        
 
 
 # ==============================================================================
@@ -269,6 +271,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params
     
     for node in cells_node, channels_node, populations_node, projections_node, inputs_node:
         neuromlNode.appendChild(node)
+    return 0
         
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
@@ -289,6 +292,9 @@ def run(simtime):
 def get_min_delay():
     return 0.0
 common.get_min_delay = get_min_delay
+
+def num_processes():
+    return 1
 
 
 # ==============================================================================

@@ -94,6 +94,8 @@ elif benchmark == "CUBA":
 # === Build the network ========================================================
 
 extra = {'threads' : threads}
+if simulator_name == "neuroml":
+    extra["file"] = "VAbenchmarks.xml"
 
 node_id = setup(timestep=dt, min_delay=delay, max_delay=delay, **extra)
 np = num_processes()

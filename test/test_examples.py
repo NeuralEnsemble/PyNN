@@ -1,4 +1,4 @@
-""" Master script for running tests.
+""" Master script for running examples.
 $Id$
 """
 
@@ -27,10 +27,10 @@ def run(cmd,engine):
     #print 'Running "', cmd, '" with', engine.upper()
     fail = False
     logfile = open("Results/%s_%s.log" % (cmd,engine), 'w')
-    if engine in ('nest1', 'pcsim', 'nest', 'neuron', 'oldneuron', 'brian'):
-        cmd = sys.executable + ' ' + cmd + '.py ' + engine
+    if engine in ('nest', 'pcsim', 'neuron', 'brian'):
+        cmd = sys.executable + ' ../examples/' + cmd + '.py ' + engine
     else:
-        logging.error('Invalid simulation engine "%s". Valid values are "nest1", "nest", "pcsim", "neuron", "oldneuron", "brian"' % engine)
+        logging.error('Invalid simulation engine "%s". Valid values are "nest", "pcsim", "neuron", "brian"' % engine)
         
     p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
     p.wait()
@@ -207,7 +207,7 @@ def compare_rasters(script,mse_threshold,engines):
         
 if __name__ == "__main__":
     
-    engine_list = ["nest1", "neuron", "pcsim", "nest", "oldneuron", "brian"]
+    engine_list = ["neuron", "pcsim", "nest", "brian"]
     for engine in engine_list:
         try:
             exec("import pyNN.%s" % engine)
@@ -245,7 +245,7 @@ if __name__ == "__main__":
         scripts_v   = thresholds_v.keys()
         scripts_ras = thresholds_ras.keys()
 
-    logging.debug("Running the following tests: %s,%s using engines %s" % (scripts_v, scripts_ras,engine_list))
+    logging.debug("Running the following examples: %s,%s using engines %s" % (scripts_v, scripts_ras,engine_list))
     
     for script in scripts_v:
         compare_traces(script, thresholds_v[script]*(len(engine_list)-1), engine_list)
@@ -254,4 +254,4 @@ if __name__ == "__main__":
         compare_rasters(script, thresholds_ras[script]*(len(engine_list)-1), engine_list)
     
     if len(scripts_v)+len(scripts_ras) == 0:
-        logging.error("Invalid test name(s).")
+        logging.error("Invalid example name(s).")

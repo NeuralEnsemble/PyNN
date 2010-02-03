@@ -18,15 +18,18 @@ class CurrentSource(object):
 
     def inject_into(self, cell_list):
         """Inject this current source into some cells."""
+        print "injecting current source into cells: %s" % str(cell_list)
         if simulator.state.num_processes == 1:
             delay = 0.0
         else:
             delay = simulator.state.min_delay # perhaps it would be better to replicate the current source on each node, to avoid this delay
         for cell in cell_list:
+            print cell, cell.local, cell.cellclass.recordable
             if cell.local and 'v' not in cell.cellclass.recordable:
                 raise TypeError("Can't inject current into a spike source.")
-                c = simulator.net.connect(self.input_node, cell, pypcsim.StaticAnalogSynapse(delay=0.001*delay))
-                self.connections.append(c)
+            c = simulator.net.connect(self.input_node, cell, pypcsim.StaticAnalogSynapse(delay=0.001*delay))
+            self.connections.append(c)
+            print "connected current source to cell %s" % cell
     
         
 class StepCurrentSource(CurrentSource):
@@ -64,6 +67,7 @@ class StepCurrentSource(CurrentSource):
         durations *= 1e-3 # s --> ms
         self.input_node = simulator.net.create(pypcsim.AnalogLevelBasedInputNeuron(levels, durations))
         self.connections = []
+        print "created stepcurrentsource"
         
 class DCSource(StepCurrentSource):
     """Source producing a single pulse of current of constant amplitude."""
