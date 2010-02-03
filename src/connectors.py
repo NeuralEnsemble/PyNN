@@ -474,7 +474,7 @@ class FixedProbabilityConnector(ProbabilisticConnector):
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
-        assert 0 <= self.p_connect
+        assert 0 <= self.p_connect <= 1
     
     def connect(self, projection):
         """Connect-up a Projection."""
