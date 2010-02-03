@@ -563,7 +563,9 @@ class ConnectionManager(object):
         
         `name`  -- attribute name
         `value` -- the attribute numeric value, or a list/1D array of such
-                   values of the same length as the number of local connections.
+                   values of the same length as the number of local connections,
+                   or a 2D array with the same dimensions as the connectivity
+                   matrix (as returned by `get(format='array')`).
         """
         if self.parent is None:
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
@@ -586,6 +588,10 @@ class ConnectionManager(object):
             for row in M.data:
                 for i in range(len(row)):
                     row[i] = value*units
+        elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
+            address_gen = ((i,j) for i,row in enumerate(bc.W.rows) for j in row)
+            for (i,j) in address_gen:
+                M[i,j] = value[i,j]*units
         elif common.is_listlike(value):
             assert len(value) == M.getnnz()
             address_gen = ((i,j) for i,row in enumerate(bc.W.rows) for j in row)

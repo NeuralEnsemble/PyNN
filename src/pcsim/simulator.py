@@ -347,11 +347,25 @@ class ConnectionManager(object):
         
         `name`  -- attribute name
         `value` -- the attribute numeric value, or a list/1D array of such
-                   values of the same length as the number of local connections.
+                   values of the same length as the number of local connections,
+                   or a 2D array with the same dimensions as the connectivity
+                   matrix (as returned by `get(format='array')`)
         """
         if common.is_number(value):
             for c in self:
                 setattr(c, name, value)
+        elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
+            offset = (self.parent.pre.first_id, self.parent.post.first_id)
+            for c in self.connections:
+                addr = (c.source-offset[0], c.target-offset[1])
+                try:
+                    val = value[addr]
+                except IndexError, e:
+                    raise IndexError("%s. addr=%s" % (e, addr))
+                if numpy.isnan(val):
+                    raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
+                else:
+                    setattr(c, name, val)
         elif common.is_listlike(value):
             for c,val in zip(self.connections, value):
                 setattr(c, name, val)

@@ -188,8 +188,10 @@ def check_weight(weight, synapse_type, is_conductance):
         weight = DEFAULT_WEIGHT
     if is_listlike(weight):
         weight = numpy.array(weight)
-        all_negative = (weight<=0).all()
-        all_positive = (weight>=0).all()
+        nan_filter = (1-numpy.isnan(weight)).astype(bool) # weight arrays may contain NaN, which should be ignored
+        filtered_weight = weight[nan_filter]
+        all_negative = (filtered_weight<=0).all()
+        all_positive = (filtered_weight>=0).all()
         if not (all_negative or all_positive):
             raise InvalidWeightError("Weights must be either all positive or all negative")
     elif is_number(weight):
@@ -1341,7 +1343,8 @@ class Projection(object):
         """
         w can be a single number, in which case all weights are set to this
         value, or a list/1D array of length equal to the number of connections
-        in the projection.
+        in the projection, or a 2D array with the same dimensions as the
+        connectivity matrix (as returned by `getWeights(format='array')`).
         Weights should be in nA for current-based and µS for conductance-based
         synapses.
         """
@@ -1362,7 +1365,8 @@ class Projection(object):
         """
         d can be a single number, in which case all delays are set to this
         value, or a list/1D array of length equal to the number of connections
-        in the projection.
+        in the projection, or a 2D array with the same dimensions as the
+        connectivity matrix (as returned by `getDelays(format='array')`).
         """
         self.connection_manager.set('delay', d)
     

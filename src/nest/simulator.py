@@ -431,22 +431,35 @@ class ConnectionManager:
         
         `name`  -- attribute name
         `value` -- the attribute numeric value, or a list/1D array of such
-                   values of the same length as the number of local connections.
+                   values of the same length as the number of local connections,
+                   or a 2D array with the same dimensions as the connectivity
+                   matrix (as returned by `get(format='array')`).
         """
         if not (common.is_number(value) or common.is_listlike(value)):
-            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-             
-        source_cells = list(set(self.sources))
-        source_cells.sort()
-        source_array = numpy.array(self.sources)    
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")   
         
+        if isinstance(value, numpy.ndarray) and len(value.shape) == 2:
+            offset = (self.parent.pre.first_id, self.parent.post.first_id)
+            value_list = []
+            connection_parameters = nest.GetStatus(self.connections)
+            for conn in connection_parameters: 
+                addr = (conn['source']-offset[0], conn['target']-offset[1])
+                try:
+                    val = value[addr]
+                except IndexError, e:
+                    raise IndexError("%s. addr=%s" % (e, addr))
+                if numpy.isnan(val):
+                    raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
+                else:
+                    value_list.append(val)
+            value = value_list
         if common.is_listlike(value):
             value = numpy.array(value)
         else:
-            value = float(value)        
+            value = float(value)
+
         if name == 'weight':
             value *= 1000.0
-            
             if self.synapse_type == 'inhibitory' and common.is_conductance(self[0].target):
                 value *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
         elif name == 'delay':

@@ -910,7 +910,18 @@ class ProjectionSetTest(unittest.TestCase):
         assert_arrays_almost_equal(numpy.array(weights), result, 1e-7)
         for prj in prj1, prj3, prj4:
             self.assertRaises(common.InvalidWeightError, prj.setWeights, -2.345) 
-            
+    
+    def test_set_weights_with_array(self):
+        prj = sim.Projection(self.source, self.target_curr,
+                             sim.FixedProbabilityConnector(0.5, weights=self.distrib_Numpy),
+                             target='excitatory')
+        weight_array = prj.getWeights(format='array')
+        prj.setWeights(weight_array + 0.5)
+        def filter_NaN(arr):
+            nan_filter = (1-numpy.isnan(arr)).astype(bool)
+            return arr[nan_filter]
+        assert_arrays_almost_equal(filter_NaN(weight_array + 0.5), filter_NaN(prj.getWeights(format='array')), 1e-7)
+    
     def testSetDelays(self):
         for target in self.targets:
             prj1 = sim.Projection(self.source, target, sim.AllToAllConnector())
