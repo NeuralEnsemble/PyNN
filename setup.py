@@ -59,7 +59,7 @@ Even if you don't wish to run simulations on multiple simulators, you may benefi
 
 PyNN is a work in progress, but is already being used for several large-scale simulation projects.""",
     license = "CeCILL http://www.cecill.info",
-    keywords = "computational neuroscience simulation neuron nest pcsim neuroml",
+    keywords = "computational neuroscience simulation neuron nest pcsim brian neuroml",
     url = "http://neuralensemble.org/PyNN/",
     classifiers = ['Development Status :: 4 - Beta',
                    'Environment :: Console',

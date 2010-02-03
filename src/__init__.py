@@ -13,6 +13,7 @@ independent of simulator.
 Functions for simulation set-up and control:
     setup()
     run()
+    reset()
     end()
     get_time_step()
     get_current_time()
@@ -35,6 +36,7 @@ Classes for creating, connecting, modifying and recording from neurons
 (high-level interface):
     Population
     Projection
+    Space
     Connectors: AllToAllConnector, OneToOneConnector, FixedProbabilityConnector,
                 DistanceDependentProbabilityConnector, FixedNumberPreConnector,
                 FixedNumberPostConnector, FromListConnector, FromFileConnector
@@ -48,7 +50,8 @@ Classes for creating, connecting, modifying and recording from neurons
                 AdditivePotentiationMultiplicativeDepression,
                 GutigWeightDependence, SpikePairRule
                 (not all combinations area available for all simulator backends).
-    Current injection: DCSource, StepCurrentSource, NoisyCurrentSource.
+    Current injection: DCSource, ACSource, StepCurrentSource, NoisyCurrentSource.
+    File types: StandardTextFile, PickleFile, NumpyBinaryFile, HDF5ArrayFile
 
 Available simulator modules:
     nest

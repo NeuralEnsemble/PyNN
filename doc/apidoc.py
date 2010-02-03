@@ -9,6 +9,8 @@ import pyNN.common
 import pyNN.nest
 import pyNN.random
 import pyNN.utility
+import pyNN.recording
+#import pyNN.multisim
 
 simulator = "pyNN.nest"
 
@@ -68,7 +70,7 @@ latex_format = dict(
 exclude = set(['__module__','__doc__','__builtins__','__file__','__class__',
                '__delattr__', '__dict__', '__getattribute__', '__hash__',
                '__new__','__reduce__','__reduce_ex__','__repr__','__setattr__',
-               '__str__','__weakref__',
+               '__str__','__weakref__', '__del__',
               ])
                
 leftquote = re.compile(r"'\b")
@@ -285,10 +287,10 @@ class AbbreviatedClass(Class):
         
         
 def build_document():
-    api_doc = Document("PyNN API version 0.5")
+    api_doc = Document("PyNN API version 0.6")
     
     setup = Section("Simulation setup and control", simulator)
-    setup.add_functions("setup", "end", "run", "get_time_step",
+    setup.add_functions("setup", "end", "run", "reset", "get_time_step",
                         "get_current_time", "get_min_delay", "get_max_delay",
                         "rank", "num_processes")
     
@@ -299,7 +301,7 @@ def build_document():
     
     highlevel = Section("Object-oriented interface for creating, connecting and recording networks",
                         simulator)
-    highlevel.add_classes("Population", "ID", "Projection")
+    highlevel.add_classes("Population", "Projection", "Space") # ID
     highlevel.add_abbreviated_classes(["AllToAllConnector", "OneToOneConnector",
         "FixedProbabilityConnector", "DistanceDependentProbabilityConnector",
         "FixedNumberPreConnector", "FixedNumberPostConnector",
@@ -321,7 +323,11 @@ def build_document():
         "SpikePairRule"], methods=["__init__"])
     
     currentsources = Section("Current injection", simulator)
-    currentsources.add_classes("DCSource", "StepCurrentSource")
+    currentsources.add_classes("DCSource", "StepCurrentSource", "ACSource", "NoisyCurrentSource")
+    
+    files = Section("File formats", "pyNN.recording.files")
+    files.add_classes("BaseFile")
+    files.add_abbreviated_classes(["StandardTextFile", "PickleFile", "NumpyBinaryFile", "HDF5ArrayFile"])
     
     exceptions = Section("Exceptions", "pyNN.common")
     exceptions.add_abbreviated_classes([
@@ -335,7 +341,10 @@ def build_document():
     
     utility = Section("The utility module", "pyNN.utility")
     utility.add_functions("colour", "notify", "get_script_args", "init_logging")
-    utility.add_classes("MultiSim", "Timer")
+    utility.add_classes("Timer")
+    
+    #multisim = Section("The multisim module", "pyNN.multisim")
+    #multisim.add_classes("MultiSim")
                           
     
     api_doc.add_section(setup)
@@ -344,6 +353,7 @@ def build_document():
     api_doc.add_section(standardcells)
     api_doc.add_section(synapses)
     api_doc.add_section(currentsources)
+    api_doc.add_section(files)
     api_doc.add_section(exceptions)
     api_doc.add_section(random)
     api_doc.add_section(utility)

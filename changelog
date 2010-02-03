@@ -1,6 +1,75 @@
-=============
+====================
+Release 0.6.0 (r???)
+====================
+
+There have been three major changes to the API in this version.
+
+1. Spikes, membrane potential and synaptic conductances can now be saved to file
+   in various binary formats. To do this, pass a PyNN `File` object to
+   `Population.print_X()`, instead of a filename. There are various types of
+   PyNN `File` objects, defined in the `recording.files` module, e.g.,
+   `StandardTextFile`, `PickleFile`, `NumpyBinaryFile`, `HDF5ArrayFile`.
+
+2. Added a `reset()` function and made the behaviour of `setup()` consistent
+   across simulators. `reset()` sets the simulation time to zero and sets
+   membrane potentials to their initial values, but does not change the network
+   structure. `setup()` destroys any previously defined network.
+   
+3. The possibility of expressing distance-dependent weights and delays was
+   extended to the `AllToAllConnector` and `FixedProbabilityConnector` classes.
+   To reduce the number of arguments to the constructors, the arguments affecting
+   the spatial topology (periodic boundary conditions, etc.) were moved to a new
+   `Space` class, so that only a single `Space` instance need be passed to the
+   `Connector` constructor.
+
+Details:
+
+* Switched to using the point process-based AdExp mechanism in NEURON.
+
+* Factored out most of the commonality between the `Recorder` classes of each backend into a parent class `recording.Recorder`, and tidied up the `recording` module.
+
+* Can now pass a PyNN File object to `Population.print_X()`, instead of a filename. There are various types of PyNN File objects, defined in the `recording.files` module, e.g., `StandardTextFile`, `PickleFile`, `NumpyBinaryFile`, `HDF5ArrayFile`.
+
+* Added an attribute `conductance_based` to `StandardCellType`, to make the determination of synapse type for a given cell more robust.
+
+* PyNN now uses a named logger, which makes it easier to control logging levels when using PyNN within a larger application. 
+
+* implemented gather for `Projection.saveConnections()`
+
+* Added a test script (test_mpi.py) to check whether serial and distributed simulations give the same results
+
+* Added a `size()` method to `Projection`, to give the total number of connections across all nodes (unlike `__len__()`, which gives only the connections on the local node
+
+* Speeded up record() by a huge factor (from 10 s for 12000 cells to less than 0.1 s) by removing an unecessary conditional path (since all IDs now have an attribute "local")
+
+* `synapse_type` is now passed to the `ConnectionManager` constructor, not to the `connect()` method, since (a) it is fixed for a given connection manager, (b) it is needed in other methods than just `connect()`; fixed weight unit conversion in `brian` module. 
+
+* Updated connection handling in `nest` module to work with NEST version 1.9.8498. Will not now work with previous NEST versions
+
+* The `neuron` back-end now supports having both static and Tsodyks-Markram synapses on the same neuron (previously, the T-M synapses replaced the static synapses) - in agreement with `nest`  and common sense. Thanks to Bartosz Telenczuk for reporting this. 
+
+* Added a `compatible_output` mode for the `saveConnections()` method. True by default, it allows connections to be reloaded from a file. If False, then the raw connections are stored, which makes for easier postprocessing.
+
+* Added an ACSource` current source to the `nest` module.
+
+* Fixed Hoc build directory problem in setup.py - see ticket:147
+
+* `Population.get_v()` and the other "`get`" methods now return cell indices (starting from 0) rather than cell IDs. This behaviour now matches that of `Population.print_v()`, etc. See ticket:119 if you think this is a bad idea.
+
+* Implemented `reset()` and made the behaviour of `setup()` consistent across simulators. Almost all unit tests now pass.
+
+* Moved the base `Connector` class from `common` to `connectors`. Put the `distances` function inside a `Space` class, to allow more convenient specification of topology parameters. Extended the possibility of expressing distance-dependent weights and delays to the `AllToAllConnector` and `FixedProbabilityConnector`.
+
+* `Projection.setWeights()` and `setDelays()` now accept a 2D array argument (ref ticket:136), to be symmetric with `getWeights()` and `getDelays()`. For distributed simulations, each node only takes the values it needs from the array.
+
+* `FixedProbabilityConnector` is now more strict, and checks that `p_connect` is less than 1 (see ticket:148). This makes no difference to the behaviour, but could act as a check for errors in user code.
+
+* Fixed problem with changing `SpikeSourcePoisson` rate during a simulation (see ticket:152)
+
+
+====================
 Release 0.5.0 (r652)
-=============
+====================
 
 There have been rather few changes to the API in this version, which has
 focused rather on improving the simulator interfaces and on an internal
@@ -158,9 +227,9 @@ Usage example:
 
 * Added `get_v()` method to the `Population` class, enabling membrane potential to be read directly into memory, rather than saved to file.
 
-=============
+====================
 Release 0.4.0 (r342)
-=============
+====================
 
 * Added a `quit_on_end` extra argument to `neuron.setup()`
 
@@ -322,9 +391,9 @@ the `setup()` function.
 * Added `__iter__()` (iterates over ids) and `addresses()` (iterates over
 addresses) to the `Population` class.
 
-===========
-Release 0.3
-===========
+=============
+Release 0.3.0
+=============
 
 * `pcsim` is now fully supported, although there are still one or two parts of
 the API that are not implemented.

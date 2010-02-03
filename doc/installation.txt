@@ -9,8 +9,8 @@ Installing PyNN
 
 The easiest way to get PyNN is to download the latest source distribution from the `PyNN download page`_, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.5.0.tar.gz
-    $ cd PyNN-0.5.0
+    $ tar xzf PyNN-0.6.0.tar.gz
+    $ cd PyNN-0.6.0
     $ python setup.py install
     
 This will install it to your python ``site-packages`` directory, and may require root privileges. If you wish to install it elsewhere use the ``--prefix`` or ``--home`` option, and set the ``PYTHONPATH`` environment variable accordingly (see above). We assume you have already installed the simulator(s) you wish to use it with. If this is not the case, see below for installation instructions.
@@ -33,9 +33,7 @@ The PyNN installation will then compile PyNN-specific membrane mechanisms, which
 
     loading membrane mechanisms from /home/andrew/dev/pyNN/hoc/i686/.libs/libnrnmech.so
     Additional mechanisms from files
-    IF_BG5.mod alphaisyn.mod alphasyn.mod expisyn.mod hh_traub.mod netstim2.mod
-    refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod
-    stdwa_symm.mod tmgsyn.mod vecstim.mod
+     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod hh_traub.mod netstim2.mod refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod tmgsyn.mod vecstim.mod
 
 If your model relies on other NMODL mechanisms, call the ``load_mechanisms()`` function with the path to the directory containing the ``.mod`` files.
 
