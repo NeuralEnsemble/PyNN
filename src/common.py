@@ -1223,15 +1223,7 @@ class Population(object):
         if 'v' not in self.celltype.recordable:
             raise TypeError("Can't inject current into a spike source.")
         current_source.inject_into(self)
-    
-    def getSubPopulation(self, cells):
-        """
-        Returns a sub population from a population object. The shape of cells will
-        determine the dimensions of the sub population. cells should contains cells
-        member of the parent population.
-        Ex z = pop.getSubPopulation([pop[1],pop[3],pop[5]])
-        """
-        raise NotImplementedError()
+
     
 # ==============================================================================
 

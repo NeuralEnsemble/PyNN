@@ -1,6 +1,7 @@
 include src/hoc/*.mod
-include test/parameters/*
-include test/*tests.py
+include test/system/*.py
+include test/system/parameters/*
+include test/regression/*.py
 include test/unittests/*.py
 include examples/*.py
 include doc/*.txt
