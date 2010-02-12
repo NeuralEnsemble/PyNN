@@ -5,7 +5,7 @@ Classes:
     DCSource           -- a single pulse of current of constant amplitude.
     StepCurrentSource  -- a step-wise time-varying current.
 
-$Id:$
+$Id$
 """
 
 from brian import ms, nA, network_operation
@@ -32,6 +32,9 @@ class CurrentSource(object):
 
     def inject_into(self, cell_list):
         """Inject this current source into some cells."""
+        for cell in cell_list:
+            if 'v' not in cell.cellclass.recordable:
+                raise TypeError("Can't inject current into a spike source.")
         self.cell_list.extend(cell_list)        
     
         

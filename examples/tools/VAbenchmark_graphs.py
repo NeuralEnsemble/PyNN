@@ -3,6 +3,7 @@ Plot graphs showing the results of running the VAbenchmarks.py script.
 """
 
 import pylab, sys
+import numpy
 from NeuroTools import signals, plotting
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
@@ -68,7 +69,7 @@ for simulator in simulators:
         exec(get_header("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, num_nodes)))
         
         # Plot membrane potential trace
-        allvdata = pylab.load("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, num_nodes), comments='#')
+        allvdata = numpy.loadtxt("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, num_nodes), comments='#')
         cell_ids = allvdata[:,1].astype(int)
         allvdata = allvdata[:,0]
         sortmap = pylab.argsort(cell_ids, kind='mergesort')

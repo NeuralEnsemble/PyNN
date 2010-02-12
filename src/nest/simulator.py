@@ -270,10 +270,17 @@ class ConnectionManager:
 
     def __getitem__(self, i):
         """Return the `i`th connection on the local MPI node."""
-        if i < len(self):
-            return Connection(self, i)
-        else:
-            raise IndexError("%d > %d" % (i, len(self)-1))
+        if isinstance(i, int):
+            if i < len(self):
+                return Connection(self, i)
+            else:
+                raise IndexError("%d > %d" % (i, len(self)-1))
+        elif isinstance(i, slice):
+            if i.stop < len(self):
+                return [Connection(self, j) for j in range(i.start, i.stop, i.step or 1)]
+            else:
+                raise IndexError("%d > %d" % (i.stop, len(self)-1))
+            
     
     def __len__(self):
         """Return the number of connections on the local MPI node."""
@@ -394,8 +401,17 @@ class ConnectionManager:
         """
         
         if parameter_name not in ('weight', 'delay'):
-            if parameter_name in self.parent.synapse_dynamics.fast.translations:
-                parameter_name = self.parent.synapse_dynamics.fast.translations[parameter_name]["translated_name"] # this is a hack that works because there are no units conversions
+            translated_name = None
+            if self.parent.synapse_dynamics.fast and parameter_name in self.parent.synapse_dynamics.fast.translations:
+                translated_name = self.parent.synapse_dynamics.fast.translations[parameter_name]["translated_name"] # this is a hack that works because there are no units conversions
+            elif self.parent.synapse_dynamics.slow:
+                for component_name in "timing_dependence", "weight_dependence", "voltage_dependence":
+                    component = getattr(self.parent.synapse_dynamics.slow, component_name)
+                    if component and parameter_name in component.translations:
+                        translated_name = component.translations[parameter_name]["translated_name"]
+                        break
+            if translated_name:
+                parameter_name = translated_name
             else:
                 raise Exception("synapse type does not have an attribute '%s', or else this attribute is not accessible." % parameter_name)
         if format == 'list':
@@ -467,7 +483,19 @@ class ConnectionManager:
         else:
             #translation = self.parent.synapse_dynamics.reverse_translate({name: value})
             #name, value = translation.items()[0]
-            name = self.parent.synapse_dynamics.fast.translations[name]["translated_name"] # a hack
+            translated_name = None
+            if self.parent.synapse_dynamics.fast:
+                if name in self.parent.synapse_dynamics.fast.translations:
+                    translated_name = self.parent.synapse_dynamics.fast.translations[name]["translated_name"] # a hack
+            if translated_name is None:
+                if self.parent.synapse_dynamics.slow:
+                    for component_name in "timing_dependence", "weight_dependence", "voltage_dependence":
+                        component = getattr(self.parent.synapse_dynamics.slow, component_name)
+                        if component and name in component.translations:
+                            translated_name = component.translations[name]["translated_name"]
+                            break
+            if translated_name:
+                name = translated_name
         
         i = 0
         try:

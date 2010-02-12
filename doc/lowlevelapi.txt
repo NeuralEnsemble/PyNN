@@ -60,7 +60,7 @@ To create many neurons at once, add the ``n`` argument, e.g.::
 The neurons we have created so far have all had default parameter values, 
 stored in the ``default_values`` of the standard cell class, e.g.::
 
-    >>> IF_curr_alpha.default_parameters #doctest" +NORMALIZE_WHITESPACE
+    >>> IF_curr_alpha.default_parameters #doctest: +NORMALIZE_WHITESPACE
     {'tau_refrac': 0.0, 'tau_m': 20.0, 'i_offset': 0.0, 'cm': 1.0, 'v_init': -65.0,
      'v_thresh': -50.0, 'tau_syn_E': 0.5, 'v_rest': -65.0, 'tau_syn_I': 0.5,
      'v_reset': -65.0}
@@ -74,15 +74,17 @@ If you try to set a non-existent parameter, or pass an invalid value, PyNN will 
     >>> create(IF_curr_alpha, cellparams={'foo': 15.0})
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
-      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 228, in create
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 655, in create
+        all_cells, mask_local, first_id, last_id = simulator.create_cells(cellclass, cellparams, n)
+      File "/home/andrew/dev/pyNN/neuron/simulator.py", line 287, in create_cells
         celltype = cellclass(cellparams)
-      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 68, in __init__
-        common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
-      File "/usr/lib/python/site-packages/pyNN/common.py", line 113, in __init__
-        self.parameters = self.checkParameters(parameters, with_defaults=True)
-      File "/usr/lib/python/site-packages/pyNN/common.py", line 99, in checkParameters
-        raise NonExistentParameterError(k)
-    NonExistentParameterError: foo
+      File "/usr/lib/python/site-packages/pyNN/neuron/cells.py", line 442, in __init__
+        cells.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 460, in __init__
+        self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 504, in checkParameters
+        raise NonExistentParameterError(k, cls)
+    NonExistentParameterError: foo (valid parameters for IF_curr_alpha are: cm, i_offset, tau_m, tau_refrac, tau_syn_E, tau_syn_I, v_init, v_reset, v_rest, v_thresh)
     >>> create(IF_curr_alpha, cellparams={'tau_m': 'bar'})
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?

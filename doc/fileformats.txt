@@ -22,7 +22,7 @@ PyNN ``File`` object`::
     >>> spike_file = NumpyBinaryFile("my_spike_data.npz", "w")
     >>> p.printSpikes(spike_file)
     >>> spike_file.close()
-    >>> vm_file = HDF5ArrayFile("my_Vm_data.h5")
+    >>> vm_file = HDF5ArrayFile("my_Vm_data.h5", "w")
     >>> p.print_v(vm_file)
     >>> vm_file.close()
     

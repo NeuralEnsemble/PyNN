@@ -74,9 +74,9 @@ Trying to address a non-existent neuron will raise an Exception::
     >>> p1[999,0]
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
-      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 457, in __getitem__
-        id = self.cell[addr]
-    IndexError: index (999) out of range (0<=index<=10) in dimension 0
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 794, in __getitem__
+        id = self.all_cells[addr]
+    IndexError: index (999) out of range (0<=index<10) in dimension 0
 
 as will giving the wrong number of dimensions in the address.
 It is equally possible to define the address as a tuple, and then pass the tuple within the square brackets, e.g.::
@@ -106,7 +106,7 @@ To access the 'i'th neuron in a Population, use the ``index()`` method, e.g.,::
     >>> p3.index(60)
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
-      File "/home/andrew/dev/pyNN/neuron/__init__.py", line 759, in index
+      File "/usr/lib/python/site-packages/pyNN/neuron/__init__.py", line 759, in index
         return self.fullgidlist[n]
     IndexError: index out of bounds
     
@@ -227,7 +227,7 @@ cells of a Population using either the ``inject_into()`` method of the
     Traceback (most recent call last):
         File "<stdin>", line 1, in <module>
           sine_wave.inject_into(p2)
-        File "/home/andrew/dev/pyNN/neuron/electrodes.py", line 67, in inject_into
+        File "/usr/lib/python/site-packages/pyNN/neuron/electrodes.py", line 67, in inject_into
           raise TypeError("Can't inject current into a spike source.")
     TypeError: Can't inject current into a spike source.
     
@@ -358,9 +358,9 @@ Trying to connect two ``Population``\s with different dimensions will raise an E
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
         invalid_prj = Projection(p2, p3, OneToOneConnector())
-      File "/home/andrew/dev/pyNN/neuron/__init__.py", line 220, in __init__
+      File "/usr/lib/python/site-packages/pyNN/neuron/__init__.py", line 220, in __init__
         method.connect(self)
-      File "/home/andrew/dev/pyNN/connectors.py", line 281, in connect
+      File "/usr/lib/python/site-packages/pyNN/connectors.py", line 281, in connect
         raise common.InvalidDimensionsError("OneToOneConnector does not support
                    presynaptic and postsynaptic Populations of different sizes.")
     InvalidDimensionsError: OneToOneConnector does not support presynaptic and

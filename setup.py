@@ -40,7 +40,7 @@ class build(_build):
       
 setup(
     name = "PyNN",
-    version = "0.6pre",
+    version = "0.6.0pre",
     package_dir={'pyNN': 'src'},
     packages = ['pyNN','pyNN.nest', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.brian', 'pyNN.recording'],
     package_data = {'pyNN': ['hoc/*.hoc', 'hoc/*.mod']},

@@ -72,9 +72,10 @@ dynamic synapses can be obtained and set with the ``getSynapseDynamics()``,
     >>> prj.setSynapseDynamics('tau_rec', 50.0)
     >>> prj.getSynapseDynamics('tau_rec')[:5]
     [50.0, 50.0, 50.0, 50.0, 50.0]
+    >>> from pyNN.random import RandomDistribution
     >>> distr = RandomDistribution('normal', [0.02, 0.05])
     >>> prj2.randomizeSynapseDynamics('w_max', distr)
     >>> prj2.getSynapseDynamics('w_max')[:5]
-    aofuha
+    [-0.056605932509016577, 0.063197908706714212, 0.034940801886916589, 0.010755581262934901, 0.011700727992415299]
 
 There are a number of examples of networks using synaptic plasticity in the ``examples`` directory of the source distribution.

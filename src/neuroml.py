@@ -6,7 +6,7 @@ $Id$
 
 from pyNN import common, connectors, cells
 import math
-#import numpy, types, sys, shutil
+import numpy
 import sys
 sys.path.append('/usr/lib/python%s/site-packages/oldxml' % sys.version[:3]) # needed for Ubuntu
 import xml.dom.ext
@@ -23,11 +23,13 @@ namespace = {'xsi': "http://www.w3.org/2001/XMLSchema-instance",
 neuroml_ver="1.7.3"
 neuroml_xsd="http://www.neuroml.org/NeuroMLValidator/NeuroMLFiles/Schemata/v"+neuroml_ver+"/Level3/NeuroML_Level3_v"+neuroml_ver+".xsd"
 
+strict = False
+
 # ==============================================================================
 #   Utility classes
 # ==============================================================================
 
-class ID(common.IDMixin):
+class ID(int, common.IDMixin):
     """
     Instead of storing ids as integers, we store them as ID objects,
     which allows a syntax like:
@@ -37,7 +39,7 @@ class ID(common.IDMixin):
     """
     
     def __init__(self, n):
-        common.IDMixin.__init__(self, n)
+        common.IDMixin.__init__(self)
 
 # ==============================================================================
 #   Module-specific functions and classes (not part of the common API)
@@ -178,24 +180,53 @@ class IF_base(object):
         
         return cell_node, channel_nodes, synapse_nodes
 
+
+class NotImplementedModel(object):
+    
+    def __init__(self):
+        if strict:
+            raise Exception('Cell type %s is not available in NeuroML' % self.__class__.__name__)
+    
+    def build_nodes(self):
+        cell_node = build_node(':not_implemented_cell', name=self.label)
+        doc_node = build_node('meta:notes', "PyNN %s cell type not implemented" % self.__class__.__name__)
+        return cell_node, [], []
+        
+
 # ==============================================================================
 #   Standard cells
 # ==============================================================================
 
-class IF_curr_exp(cells.IF_curr_exp):
+class IF_curr_exp(cells.IF_curr_exp, NotImplementedModel):
     """Leaky integrate and fire model with fixed threshold and
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses"""
     
+    n = 0
+    translations = common.build_translations(*[(name, name)
+                                               for name in cells.IF_curr_exp.default_parameters])
+    
     def __init__(self, parameters):
-        raise Exception('Cell type %s is not available in NeuroML' % self.__class__.__name__)
+        NotImplementedModel.__init__(self)
+        cells.IF_curr_exp.__init__(self, parameters)
+        self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
+        self.synapse_type = "doub_exp_syn"
+        self.__class__.n += 1
 
-class IF_curr_alpha(cells.IF_curr_alpha):
+class IF_curr_alpha(cells.IF_curr_alpha, NotImplementedModel):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
+    n = 0
+    translations = common.build_translations(*[(name, name)
+                                               for name in cells.IF_curr_alpha.default_parameters])
+    
     def __init__(self, parameters):
-        raise Exception('Cell type %s is not available in NeuroML' % self.__class__.__name__)
+        NotImplementedModel.__init__(self)
+        cells.IF_curr_exp.__init__(self, parameters)
+        self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
+        self.synapse_type = "doub_exp_syn"
+        self.__class__.n += 1
 
 class IF_cond_exp(cells.IF_cond_exp, IF_base):
     """Leaky integrate and fire model with fixed threshold and 
@@ -225,20 +256,32 @@ class IF_cond_alpha(cells.IF_cond_alpha, IF_base):
         self.synapse_type = "alpha_syn"
         self.__class__.n += 1
 
-class SpikeSourcePoisson(cells.SpikeSourcePoisson):
+class SpikeSourcePoisson(cells.SpikeSourcePoisson, NotImplementedModel):
     """Spike source, generating spikes according to a Poisson process."""
 
+    n = 0
+    translations = common.build_translations(*[(name, name)
+                                               for name in cells.SpikeSourcePoisson.default_parameters])
+    
     def __init__(self, parameters):
-        raise Exception('Cell type %s not yet implemented' % self.__class__.__name__)
+        NotImplementedModel.__init__(self)
         cells.SpikeSourcePoisson.__init__(self, parameters)
+        self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
+        self.__class__.n += 1
         
 
-class SpikeSourceArray(cells.SpikeSourceArray):
+class SpikeSourceArray(cells.SpikeSourceArray, NotImplementedModel):
     """Spike source generating spikes at the times given in the spike_times array."""
 
+    n = 0
+    translations = common.build_translations(*[(name, name)
+                                               for name in cells.SpikeSourcePoisson.default_parameters])
+
     def __init__(self, parameters):
-        raise Exception('Cell type %s not yet implemented' % self.__class__.__name__)
-        cells.SpikeSourceArray.__init__(self, parameters)
+        NotImplementedModel.__init__(self)
+        cells.SpikeSourceARRAY.__init__(self, parameters)
+        self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
+        self.__class__.n += 1
         
 
 
@@ -252,10 +295,12 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    global xmldoc, xmlfile, populations_node, projections_node, inputs_node, cells_node, channels_node, neuromlNode
+    global xmldoc, xmlfile, populations_node, projections_node, inputs_node, cells_node, channels_node, neuromlNode, strict
     xmlfile = extra_params['file']
     if isinstance(xmlfile, basestring):
         xmlfile = open(xmlfile, 'w')
+    if 'strict' in extra_params:
+        strict = extra_params['strict']
     dt = timestep
     xmldoc = xml.dom.minidom.Document()
     neuromlNode = xmldoc.createElementNS(neuroml_url+'/neuroml/schema','neuroml')
@@ -295,6 +340,11 @@ common.get_min_delay = get_min_delay
 
 def num_processes():
     return 1
+common.num_processes = num_processes
+
+def rank():
+    return 0
+common.rank = rank
 
 
 # ==============================================================================
@@ -387,6 +437,26 @@ class Population(common.Population):
         for synapse_node in synapse_list:
             channels_node.appendChild(synapse_node)
 
+        self.first_id = 0
+        self.last_id = self.size-1
+        self.all_cells = numpy.array([ID(id) for id in range(self.first_id, self.last_id+1)], dtype=ID).reshape(dims)
+        self._mask_local = numpy.ones_like(self.all_cells).astype(bool)
+        self.local_cells = self.all_cells[self._mask_local]
+
+    def _record(self, variable, record_from=None, rng=None, to_file=True):
+        """
+        Private method called by record() and record_v().
+        """
+        pass
+    
+    def meanSpikeCount(self):
+        return -1
+    
+    def printSpikes(self, file, gather=True, compatible_output=True):
+        pass
+    
+    def print_v(self, file, gather=True, compatible_output=True):
+        pass
 
 class AlltoAllConnector(connectors.AllToAllConnector):
     
@@ -530,5 +600,10 @@ class Projection(common.Projection):
         projections_node.appendChild(projection_node)
         Projection.n += 1
 
+    def saveConnections(self, filename, gather=True, compatible_output=True):
+        pass
+    
+    def __len__(self):
+        return 0 # needs implementing properly
 
 # ==============================================================================

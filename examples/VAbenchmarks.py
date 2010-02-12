@@ -143,9 +143,6 @@ if (benchmark == "COBA"):
     connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, target='excitatory')
     connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
 
-for prj in connections.keys():
-    connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator_name, np))
-
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id
 exc_cells.record()
@@ -153,23 +150,27 @@ inh_cells.record()
 vrecord_list = [exc_cells[0],exc_cells[1]]
 exc_cells.record_v(vrecord_list)
 
-buildCPUTime = timer.elapsedTime()
+buildCPUTime = timer.diff()
+
+# === Save connections to file =================================================
+
+for prj in connections.keys():
+    connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator_name, np))
+saveCPUTime = timer.diff()
 
 # === Run simulation ===========================================================
 print "%d Running simulation..." % node_id
-timer.reset()
 
 run(tstop)
 
-simCPUTime = timer.elapsedTime()
+simCPUTime = timer.diff()
 
-E_rate = exc_cells.meanSpikeCount()*1000./tstop
-I_rate = inh_cells.meanSpikeCount()*1000./tstop
+E_count = exc_cells.meanSpikeCount()
+I_count = inh_cells.meanSpikeCount()
 
 # === Print results to file ====================================================
 
 print "%d Writing data to file..." % node_id
-timer.reset()
 
 if not(os.path.isdir('Results')):
     os.mkdir('Results')
@@ -177,30 +178,27 @@ if not(os.path.isdir('Results')):
 exc_cells.printSpikes("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator_name, np))
 inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator_name, np))
 exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator_name, np))
-writeCPUTime = timer.elapsedTime()
+writeCPUTime = timer.diff()
 
-tmp_string = "%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].size(),
-                                                 connections['e2i'].size(),
-                                                 connections['i2e'].size(),
-                                                 connections['i2i'].size())
+connections = "%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].size(),
+                                                  connections['e2i'].size(),
+                                                  connections['i2e'].size(),
+                                                  connections['i2i'].size())
 
-def nprint(s):
-    """Small function to display information only on node 0."""
-    if (node_id == 0):
-        print s
-
-nprint("\n--- Vogels-Abbott Network Simulation ---")
-nprint("Nodes                  : %d" % np)
-nprint("Simulation type        : %s" % benchmark)
-nprint("Number of Neurons      : %d" % n)
-nprint("Number of Synapses     : %s" % tmp_string)
-nprint("Excitatory conductance : %g nS" % Gexc)
-nprint("Inhibitory conductance : %g nS" % Ginh)
-nprint("Excitatory rate        : %g Hz" % E_rate)
-nprint("Inhibitory rate        : %g Hz" % I_rate)
-nprint("Build time             : %g s" % buildCPUTime) 
-nprint("Simulation time        : %g s" % simCPUTime)
-nprint("Writing time           : %g s" % writeCPUTime)
+if node_id == 0:
+    print "\n--- Vogels-Abbott Network Simulation ---"
+    print "Nodes                  : %d" % np
+    print "Simulation type        : %s" % benchmark
+    print "Number of Neurons      : %d" % n
+    print "Number of Synapses     : %s" % connections
+    print "Excitatory conductance : %g nS" % Gexc
+    print "Inhibitory conductance : %g nS" % Ginh
+    print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
+    print "Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,)
+    print "Build time             : %g s" % buildCPUTime
+    print "Save connections time  : %g s" % saveCPUTime
+    print "Simulation time        : %g s" % simCPUTime
+    print "Writing time           : %g s" % writeCPUTime
 
 
 # === Finished with simulator ==================================================
