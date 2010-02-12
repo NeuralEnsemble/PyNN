@@ -257,7 +257,7 @@ When running a distributed simulation, each node records only those neurons that
 By default, at the end of the simulation all nodes send their recorded data to the master node so that all values are written to a single output file.
 Again, there is a performance penalty for this, so if you wish each node to write its own file, add ``gather=False`` to the argument list.
 
-It is possible to save data in various different formats. The default (if you pass a filename) is a text file, but you can also save in various binary formats. To save in HDF5 format, for example::
+It is possible to save data in various different formats. The default (if you pass a filename) is a text file, but you can also save in various binary formats. To save in HDF5 format (this requires the PyTables package to be installed), for example::
 
     >>> h5file = recording.files.HDF5ArrayFile("spikefile.h5", "w")
     >>> p1.printSpikes(h5file)
@@ -392,7 +392,7 @@ The constructor requires a string ``d_expression``, which should be the right-ha
 The first example connects neurons with an exponentially-decaying probability.
 The second example connects each neuron to all its neighbours within a range of 3 units (distance is in µm if positions have been specified, in array coordinate distance otherwise). Note that boolean values ``True`` and ``False`` are automatically converted to numerical values ``1.0`` and ``0.0``.
 
-The calculation of distance may be controlled by specifying a `Space` object.
+The calculation of distance may be controlled by specifying a ``Space`` object.
 
 By default, the 3D distance between cell positions is used, but the ``axes`` argument may be used to change this, e.g.::
 
@@ -515,7 +515,13 @@ Setting delays works similarly::
     >>> delay_distr = RandomDistribution(distribution='gamma', parameters=[2,0.2], boundaries=[get_min_delay(),1e12])
     >>> prj1_1.randomizeDelays(delay_distr)
 
-## NOTE: Need to add information about getting/setting individual weights and delays
+It is also possible to access the attributes of individual connections using the
+``connections`` attribute of a projection::
+
+    >>> for c in prj1_1.connections[:5]:
+    ...   c.weight *= 2
+    
+In general, though, this is less efficient than using list- or array-based access.
 
 Accessing weights and delays
 ============================

@@ -24,11 +24,16 @@ Before using any other functions or classes from PyNN, the user must call the ``
 
     >>> setup()
     
-``setup()`` takes various optional arguments: setting the simulation timestep (there is currently no support in the API for variable timestep methods although native simulator code can be used to select this option where the simulator supports it), setting the minimum and maximum synaptic delays, and turning debugging output on and off, e.g.::
+``setup()`` takes various optional arguments: setting the simulation timestep (there is currently no support in the API for variable timestep methods although native simulator code can be used to select this option where the simulator supports it) and setting the minimum and maximum synaptic delays, e.g.::
 
-    >>> setup(timestep=0.1, min_delay=0.1, max_delay=0.5, debug=False)
+    >>> setup(timestep=0.1, min_delay=0.1, max_delay=0.5)
     
-Debugging information is written to a log file in the working directory.
+In previous versions, ``setup()`` took a ``debug`` argument for configuring logging. To allow more flexibility, configuration of logging must now be done separately. There is a convenience function in the ``pyNN.utility`` module to simplify this::
+
+    >>> from pyNN.utility import init_logging
+    >>> init_logging("logfile", debug=True)
+    
+or you can configure the Python ``logging`` module directly.
 
 Creating neurons
 ================
@@ -80,16 +85,19 @@ If you try to set a non-existent parameter, or pass an invalid value, PyNN will 
     NonExistentParameterError: foo
     >>> create(IF_curr_alpha, cellparams={'tau_m': 'bar'})
     Traceback (most recent call last):
-      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 228, in create
+      File "<stdin>", line 1, in ?
+        create(IF_curr_alpha, cellparams={'tau_m': 'bar'})
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 655, in create
+        all_cells, mask_local, first_id, last_id = simulator.create_cells(cellclass, cellparams, n)
+      File "/usr/lib/python/site-packages/pyNN/neuron/simulator.py", line 287, in create_cells
         celltype = cellclass(cellparams)
-      File "/usr/lib/python/site-packages/pyNN/nest1.py", line 68, in __init__
-        common.IF_curr_alpha.__init__(self,parameters) # checks supplied parameters and adds default
-      File "/usr/lib/python/site-packages/pyNN/common.py", line 113, in __init__
-        self.parameters = self.checkParameters(parameters, with_defaults=True)
-      File "/usr/lib/python/site-packages/pyNN/common.py", line 90, in checkParameters
-        raise InvalidParameterValueError, (type(supplied_parameters[k]), type(default_parameters[k]))
-    InvalidParameterValueError: (<type 'str'>, <type 'float'>)
-
+      File "/usr/lib/python/site-packages/pyNN/neuron/cells.py", line 442, in __init__
+        cells.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 460, in __init__
+        self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
+      File "/usr/lib/python/site-packages/pyNN/common.py", line 494, in checkParameters
+        raise InvalidParameterValueError(err_msg)
+    InvalidParameterValueError: For tau_m in IF_curr_alpha, expected <type 'float'>, got <type 'str'> (bar)
     
 If you wish to do something with the cell after creating it: record from it, change a parameter, connect it to another cell, you should assign the return value of the function to a variable, e.g.::
 
@@ -179,7 +187,7 @@ can be set and retrieved using the `position` attribute of the neuron ID::
     array([ 75, 456, 56])
     
 Positions must always be in 3D, and may be given as integers or floating-point values, and as tuples or as numpy arrays.
-No specific scale of units is assumed, although many parts of PyNN do assume a Euclidean coordinate system.
+No specific coordinate system or scale of units is assumed, although many parts of PyNN do assume a Euclidean coordinate system.
 
 Injecting current
 =================
@@ -234,7 +242,7 @@ In both cases, whether the file is sorted by cell id or by time depends on the s
 In some cases it is more efficient to write files in the simulator's native format, rather than the standard PyNN format.
 In this case, use the ``compatible_output=False`` argument to the ``end()`` function.
 
-Considerable enhancements to file formats are planned for future releases of PyNN, including recording to binary (HDF5) rather than text files, support for variable time-step recording, and user-specified output formats.
+For recording to binary (e.g. HDF5) rather than text files, see the chapter on file formats.
 
 Running a simulation
 ====================
@@ -242,6 +250,16 @@ Running a simulation
 The ``run()`` function runs the simulation for a given number of milliseconds, e.g.::
 
     >>> run(1000.0)
+    
+
+Repeating a simulation
+======================
+
+If you wish to reset network time to zero to run a new simulation with the same
+network (with different parameter values, perhaps), use the ``reset()`` function.
+Note that this does not change the network structure, nor the choice of which
+neurons to record (from previous ``record()`` calls).
+
     
 Finishing up
 ============
