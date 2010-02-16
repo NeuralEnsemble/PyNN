@@ -8,7 +8,7 @@ $Id$
 import logging
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
-from pyNN import common, recording, __doc__
+from pyNN import common, recording, space, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 
@@ -171,4 +171,4 @@ class Projection(common.Projection):
         method.connect(self)
 
 
-Space = common.Space
+Space = space.Space

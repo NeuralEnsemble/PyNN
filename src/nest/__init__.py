@@ -6,7 +6,7 @@ $Id$
 """
 import nest
 from pyNN.nest import simulator
-from pyNN import common, recording, errors, __doc__
+from pyNN import common, recording, errors, space, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 
@@ -432,6 +432,6 @@ class Projection(common.Projection):
         self.connections = self.connection_manager
 
 
-Space = common.Space
+Space = space.Space
 
 # ==============================================================================

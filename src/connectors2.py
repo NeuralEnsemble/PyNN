@@ -1,5 +1,6 @@
 import numpy
 from pyNN import common
+from pyNN.space import Space
 from pyNN.random import RandomDistribution
 from numpy import exp
 
@@ -86,7 +87,7 @@ class AllToAllConnector(Connector):
     """
     
     def __init__(self, allow_self_connections=True,
-                 weights=0.0, delays=None, space=common.Space()):
+                 weights=0.0, delays=None, space=Space()):
         """
         Create a new connector.
         
@@ -132,7 +133,7 @@ class FixedProbabilityConnector(Connector):
     """
     
     def __init__(self, p_connect, allow_self_connections=True,
-                 weights=0.0, delays=None, space=common.Space()):
+                 weights=0.0, delays=None, space=Space()):
         """
         Create a new connector.
         

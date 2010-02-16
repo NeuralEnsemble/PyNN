@@ -14,7 +14,7 @@ __version__ = "$Revision$"
 import sys
 
 import pyNN.random
-from pyNN import common, recording, errors, __doc__
+from pyNN import common, recording, errors, space, __doc__
 from pyNN.pcsim import simulator
 common.simulator = simulator
 recording.simulator = simulator
@@ -821,7 +821,7 @@ class Projection(common.Projection, WDManager):
     ##    f.close()
     
 
-Space = common.Space
+Space = space.Space
 
 # ==============================================================================
 

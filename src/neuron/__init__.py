@@ -8,7 +8,7 @@ __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
 from pyNN.neuron import simulator
-from pyNN import common, recording, __doc__
+from pyNN import common, recording, space, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 
@@ -284,6 +284,6 @@ class Projection(common.Projection):
         self.setDelays(rarr)
 
 
-Space = common.Space
+Space = space.Space
 
 # ==============================================================================

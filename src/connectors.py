@@ -20,6 +20,7 @@ from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                   fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
                   sin, sinh, sqrt, tan, tanh
 from pyNN import random, common, errors
+from pyNN.space import Space
 
 logger = logging.getLogger("PyNN")
 
@@ -146,7 +147,7 @@ class AllToAllConnector(ProbabilisticConnector):
     postsynaptic population.
     """
     
-    def __init__(self, allow_self_connections=True, weights=0.0, delays=None, space=common.Space()):
+    def __init__(self, allow_self_connections=True, weights=0.0, delays=None, space=Space()):
         """
         Create a new connector.
         
@@ -454,7 +455,7 @@ class FixedProbabilityConnector(ProbabilisticConnector):
     For each pair of pre-post cells, the connection probability is constant.
     """
     
-    def __init__(self, p_connect, allow_self_connections=True, weights=0.0, delays=None, space=common.Space()):
+    def __init__(self, p_connect, allow_self_connections=True, weights=0.0, delays=None, space=Space()):
         """
         Create a new connector.
         
@@ -499,7 +500,7 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
     """
     
     def __init__(self, d_expression, allow_self_connections=True,
-                 weights=0.0, delays=None, space=common.Space()):
+                 weights=0.0, delays=None, space=Space()):
         """
         Create a new connector.
         
@@ -523,7 +524,7 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
         self.space = space
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
-        assert isinstance(space, common.Space)
+        assert isinstance(space, Space)
         self.space = space
 
         
