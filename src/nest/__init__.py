@@ -6,7 +6,7 @@ $Id$
 """
 import nest
 from pyNN.nest import simulator
-from pyNN import common, recording, __doc__
+from pyNN import common, recording, errors, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 
@@ -216,11 +216,11 @@ class Population(common.Population):
             if isinstance(val, (str, float, int)):
                 param_dict = {param: float(val)}
             else:
-                raise common.InvalidParameterValueError
+                raise errors.InvalidParameterValueError
         elif isinstance(param,dict):
             param_dict = param
         else:
-            raise common.InvalidParameterValueError
+            raise errors.InvalidParameterValueError
         
         # The default implementation in common is is not very efficient for
         # simple and scaled parameters.
@@ -236,12 +236,12 @@ class Population(common.Population):
                 try:
                     self.celltype.default_parameters[key]
                 except Exception:
-                    raise common.NonExistentParameterError(key, self.celltype.__class__)
+                    raise errors.NonExistentParameterError(key, self.celltype.__class__)
                 if type(value) != type(self.celltype.default_parameters[key]):
                     if isinstance(value, int) and isinstance(self.celltype.default_parameters[key], float):
                         value = float(value)
                     else:
-                        raise common.InvalidParameterValueError("The parameter %s should be a %s, you supplied a %s" % (key,
+                        raise errors.InvalidParameterValueError("The parameter %s should be a %s, you supplied a %s" % (key,
                                                                                                                         type(self.celltype.default_parameters[key]),
                                                                                                                         type(value)))
                 # Then we do the call to SetStatus
@@ -263,7 +263,7 @@ class Population(common.Population):
                 try:
                     nest.SetStatus(self.local_cells, key, value)
                 except Exception:
-                    raise common.InvalidParameterValueError
+                    raise errors.InvalidParameterValueError
 
     #def rset(self, parametername, rand_distr):
     #    """
@@ -281,7 +281,7 @@ class Population(common.Population):
     #            try:
     #                self.celltype.default_parameters[parametername]
     #            except Exception:
-    #                raise common.NonExistentParameterError(parametername, self.celltype.__class__)
+    #                raise errors.NonExistentParameterError(parametername, self.celltype.__class__)
     #            if parametername == 'v_init':
     #                for cell,val in zip(self.local_cells, rarr):
     #                    cell._v_init = val

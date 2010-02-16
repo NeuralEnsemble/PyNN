@@ -3,7 +3,7 @@ import os
 import numpy
 import logging
 import nest
-from pyNN import recording, common
+from pyNN import recording, common, errors
 from pyNN.nest import simulator
 
 RECORDING_DEVICE_NAMES = {'spikes': 'spike_detector',
@@ -162,7 +162,7 @@ class Recorder(recording.Recorder):
             data = numpy.load(self._merged_file)
         else:
             if "filename" not in nest.GetStatus(self._device)[0]: # indicates that run() has not been called.
-                raise common.NothingToWriteError("No data. Have you called run()?")
+                raise errors.NothingToWriteError("No data. Have you called run()?")
             if simulator.state.num_threads > 1:
                 nest_files = []
                 for nest_thread in range(1, simulator.state.num_threads):
@@ -190,7 +190,7 @@ class Recorder(recording.Recorder):
     def _get(self, gather=False, compatible_output=True):
         """Return the recorded data as a Numpy array."""
         if self._device is None:
-            raise common.NothingToWriteError("No cells recorded, so no data to return")
+            raise errors.NothingToWriteError("No cells recorded, so no data to return")
         
         if self.in_memory():
             data = self._read_data_from_memory(gather, compatible_output)
@@ -201,7 +201,7 @@ class Recorder(recording.Recorder):
     def write(self, file=None, gather=False, compatible_output=True):
         """Write recorded data to file."""
         if self._device is None:
-            raise common.NothingToWriteError("%s not recorded from any cells, so no data to write to file." % self.variable)
+            raise errors.NothingToWriteError("%s not recorded from any cells, so no data to write to file." % self.variable)
         recording.Recorder.write(self, file, gather, compatible_output)
 
     def _local_count(self):

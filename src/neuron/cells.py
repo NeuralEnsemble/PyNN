@@ -5,7 +5,7 @@ Standard cells for the neuron module.
 $Id$
 """
 
-from pyNN import common, cells
+from pyNN import common, cells, errors
 from neuron import h, nrn, hclass
 from math import pi
 import logging
@@ -401,7 +401,7 @@ class VectorSpikeSource(hclass(h.VecStim)):
         try:
             self._spike_times = h.Vector(spike_times)
         except RuntimeError:
-            raise common.InvalidParameterValueError("spike_times must be an array of floats")
+            raise errors.InvalidParameterValueError("spike_times must be an array of floats")
         self.play(self._spike_times)
             
     def _get_spike_times(self):

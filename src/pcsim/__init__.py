@@ -14,7 +14,7 @@ __version__ = "$Revision$"
 import sys
 
 import pyNN.random
-from pyNN import common, recording, __doc__
+from pyNN import common, recording, errors, __doc__
 from pyNN.pcsim import simulator
 common.simulator = simulator
 recording.simulator = simulator
@@ -222,7 +222,7 @@ create = common.create
 #    if weight is None:  weight = 0.0
 #    if delay  is None:  delay = simulator.state.min_delay
 #    if delay < get_min_delay():
-#        raise common.ConnectionError("Delay (%g ms) must be >= the minimum delay (%g ms)" % (delay, get_min_delay()))
+#        raise errors.ConnectionError("Delay (%g ms) must be >= the minimum delay (%g ms)" % (delay, get_min_delay()))
 #    # Convert units
 #    delay = delay / 1000 # Delays in pcsim are specified in seconds
 #    if isinstance(target, list):
@@ -235,7 +235,7 @@ create = common.create
 #        else:
 #            weight = 1e-9 * weight # Convert from nA to A
 #    except exceptions.Exception, e: # non-existent connection
-#        raise common.ConnectionError(e)
+#        raise errors.ConnectionError(e)
 #    # Create synapse factory
 #    syn_factory = 0
 #    if synapse_type is None:
@@ -273,9 +273,9 @@ create = common.create
 #            connections = pypcsim.ConnectionsProjection(src_popul, dest_popul, syn_factory, pypcsim.RandomConnections(p), pypcsim.SimpleAllToAllWiringMethod(simulator.net), True)
 #            return connections.idVector()
 #    except exceptions.TypeError, e:
-#        raise common.ConnectionError(e)
+#        raise errors.ConnectionError(e)
 #    except exceptions.Exception, e:
-#        raise common.ConnectionError(e)
+#        raise errors.ConnectionError(e)
 connect = common.connect
 set = common.set    
 record = common.build_record('spikes', simulator)
@@ -332,7 +332,7 @@ class Population(common.Population):
         
         if isinstance(cellclass, str):
             if not cellclass in dir(pypcsim):
-                raise common.InvalidModelError('Trying to create non-existent cellclass ' + cellclass )
+                raise errors.InvalidModelError('Trying to create non-existent cellclass ' + cellclass )
             cellclass = getattr(pypcsim, cellclass)
             self.celltype = cellclass
         if issubclass(cellclass, common.StandardCellType):
@@ -378,7 +378,7 @@ class Population(common.Population):
     ##    if isinstance(addr, int):
     ##        addr = (addr,)
     ##    if len(addr) != self.actual_ndim:
-    ##       raise common.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.actual_ndim, str(addr))
+    ##       raise errors.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.actual_ndim, str(addr))
     ##    orig_addr = addr;
     ##    while len(addr) < 3:
     ##        addr += (0,)                  
@@ -426,7 +426,7 @@ class Population(common.Population):
     ##    elif self.ndim == 1:
     ##        coords = (id,)
     ##    else:
-    ##        raise common.InvalidDimensionsError
+    ##        raise errors.InvalidDimensionsError
     ##    if self.actual_ndim == 1:
     ##        if coords[0] > self.dim[0]:
     ##            coords = None # should probably raise an Exception here rather than hope one will be raised down the line
@@ -469,7 +469,7 @@ class Population(common.Population):
     ##            val = value_array[addr]
     ##            setattr(cell, parametername, val)
     ##    else:
-    ##        raise common.InvalidDimensionsError
+    ##        raise errors.InvalidDimensionsError
         
     ##def rset(self, parametername, rand_distr):
     ##    """
@@ -654,7 +654,7 @@ class Projection(common.Projection, WDManager):
                 
                 
             if len(possible_models) == 0:
-                raise common.NoModelAvailableError("The synapse model requested is not available.")
+                raise errors.NoModelAvailableError("The synapse model requested is not available.")
             synapse_type = getattr(pypcsim, list(possible_models)[0])
             try:
                 self.syn_factory = synapse_type(delay=d, tau=tau_syn,

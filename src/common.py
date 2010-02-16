@@ -7,18 +7,6 @@ provide the correct interface, but it is suggested that they use as much as is
 consistent with good performance (optimisations may require overriding some of
 the default definitions given here).
 
-Exceptions:
-    InvalidParameterValueError
-    NonExistentParameterError
-    InvalidDimensionsError
-    ConnectionError
-    InvalidModelError
-    RoundingWarning
-    NothingToWriteError
-    InvalidWeightError
-    NotLocalError
-    RecordingError    
-
 Utility functions and classes:
     is_listlike()
     is_number()
@@ -26,9 +14,6 @@ Utility functions and classes:
     check_weight()
     check_delay()
     distance()
-    distances()
-    next_n()
-    ConstIter
     
 Accessing individual neurons:
     IDMixin
@@ -60,7 +45,6 @@ Common API implementation/base classes:
   3. Creating, connecting and recording from populations of neurons:
     Population
     Projection
-    Connector
     
   4. Specification of synaptic plasticity:
     SynapseDynamics
@@ -77,7 +61,7 @@ import numpy
 import logging
 from math import *
 import operator
-from pyNN import random, utility, recording
+from pyNN import random, utility, recording, errors
 from string import Template
 
 if not 'simulator' in locals():
@@ -88,74 +72,6 @@ DEFAULT_BUFFER_SIZE = 10000
 
 logger = logging.getLogger("PyNN")
 
-class InvalidParameterValueError(ValueError):
-    """Inappropriate parameter value"""
-    pass
-
-class NonExistentParameterError(Exception):
-    """
-    Model parameter does not exist.
-    """
-    
-    def __init__(self, parameter_name, model):
-        self.parameter_name = parameter_name
-        if isinstance(model, type):
-            if issubclass(model, StandardModelType):
-                self.model_name = model.__name__
-                self.valid_parameter_names = model.default_parameters.keys()
-                self.valid_parameter_names.sort()
-        elif isinstance(model, basestring):
-            self.model_name = model
-            self.valid_parameter_names = ['unknown']
-        else:
-            raise Exception("When raising a NonExistentParameterError, model must be a class or a string, not a %s" % type(model))
-
-    def __str__(self):
-        return "%s (valid parameters for %s are: %s)" % (self.parameter_name,
-                                                         self.model_name,
-                                                         ", ".join(self.valid_parameter_names))
-
-class InvalidDimensionsError(Exception):
-    """Argument has inappropriate shape/dimensions."""
-    pass
-
-class ConnectionError(Exception):
-    """Attempt to create an invalid connection or access a non-existent connection."""
-    pass
-
-class InvalidModelError(Exception):
-    """Attempt to use a non-existent model type."""
-    pass
-
-class NoModelAvailableError(Exception):
-    """The simulator does not implement the requested model."""
-    pass
-
-class RoundingWarning(Warning):
-    """The argument has been rounded to a lower level of precision by the simulator."""
-    pass
-
-class NothingToWriteError(Exception):
-    """There is no data available to write."""
-    pass # subclass IOError?
-
-class InvalidWeightError(Exception): # subclass ValueError? or InvalidParameterValueError?
-    """Invalid value for the synaptic weight."""
-    pass
-
-class NotLocalError(Exception):
-    """Attempt to access a cell or connection that does not exist on this node (but exists elsewhere)."""
-    pass
-
-class RecordingError(Exception): # subclass AttributeError?
-    """Attempt to record a variable that does not exist for this cell type."""
-    
-    def __init__(self, variable, cell_type):
-        self.variable = variable
-        self.cell_type = cell_type
-        
-    def __str__(self):
-        return "Cannot record %s from cell type %s" % (self.variable, self.cell_type.__class__.__name__)
 
 
 # ==============================================================================
@@ -193,7 +109,7 @@ def check_weight(weight, synapse_type, is_conductance):
         all_negative = (filtered_weight<=0).all()
         all_positive = (filtered_weight>=0).all()
         if not (all_negative or all_positive):
-            raise InvalidWeightError("Weights must be either all positive or all negative")
+            raise errors.InvalidWeightError("Weights must be either all positive or all negative")
     elif is_number(weight):
         all_positive = weight >= 0
         all_negative = weight < 0
@@ -201,10 +117,10 @@ def check_weight(weight, synapse_type, is_conductance):
         raise Exception("Weight must be a number or a list/array of numbers.")
     if is_conductance or synapse_type == 'excitatory':
         if not all_positive:
-            raise InvalidWeightError("Weights must be positive for conductance-based and/or excitatory synapses")
+            raise errors.InvalidWeightError("Weights must be positive for conductance-based and/or excitatory synapses")
     elif is_conductance==False and synapse_type == 'inhibitory':
         if not all_negative:
-            raise InvalidWeightError("Weights must be negative for current-based, inhibitory synapses")
+            raise errors.InvalidWeightError("Weights must be negative for current-based, inhibitory synapses")
     else: # is_conductance is None. This happens if the cell does not exist on the current node.
         logger.debug("Can't check weight, conductance status unknown.")
     return weight
@@ -214,7 +130,7 @@ def check_delay(delay):
         delay = get_min_delay()
     # If the delay is too small , we have to throw an error
     if delay < get_min_delay() or delay > get_max_delay():
-        raise ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, get_min_delay(), get_max_delay()))
+        raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, get_min_delay(), get_max_delay()))
     return delay
 
 def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
@@ -322,7 +238,8 @@ class IDMixin(object):
             try:
                 val = self.get_parameters()[name]
             except KeyError:
-                raise NonExistentParameterError(name, self.cellclass)
+                raise errors.NonExistentParameterError(name, self.cellclass.__name__,
+                                                self.cellclass.default_parameters.keys())
         return val
     
     def __setattr__(self, name, value):
@@ -491,17 +408,17 @@ class StandardModelType(object):
                         try:
                             parameters[k] = float(supplied_parameters[k]) 
                         except (ValueError, TypeError):
-                            raise InvalidParameterValueError(err_msg)
+                            raise errors.InvalidParameterValueError(err_msg)
                     # list and something that can be transformed to a list
                     elif type(default_parameters[k]) == types.ListType:
                         try:
                             parameters[k] = list(supplied_parameters[k])
                         except TypeError:
-                            raise InvalidParameterValueError(err_msg)
+                            raise errors.InvalidParameterValueError(err_msg)
                     else:
-                        raise InvalidParameterValueError(err_msg)
+                        raise errors.InvalidParameterValueError(err_msg)
                 else:
-                    raise NonExistentParameterError(k, cls)
+                    raise errors.NonExistentParameterError(k, cls)
         return parameters
     
     @classmethod
@@ -682,7 +599,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     connection_manager = simulator.ConnectionManager(synapse_type)
     for tgt in target:
         #if not isinstance(tgt, IDMixin):
-        #    raise ConnectionError("target is not a cell, actually %s" % type(tgt))
+        #    raise errors.ConnectionError("target is not a cell, actually %s" % type(tgt))
         sources = numpy.array(source, dtype=type(source))
         if p < 1:
             rarr = rng.uniform(0, 1, len(source))
@@ -793,7 +710,7 @@ class Population(object):
         if len(addr) == self.ndim:
             id = self.all_cells[addr]
         else:
-            raise InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
+            raise errors.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
         return id
     
     def __iter__(self):
@@ -843,7 +760,7 @@ class Population(object):
         elif self.ndim == 1:
             coords = (idx,)
         else:
-            raise common.InvalidDimensionsError
+            raise errors.InvalidDimensionsError
         return coords
     
     def id_to_index(self, id):
@@ -932,11 +849,11 @@ class Population(object):
             elif isinstance(val, (list, numpy.ndarray)):
                 param_dict = {param: val}
             else:
-                raise InvalidParameterValueError
+                raise errors.InvalidParameterValueError
         elif isinstance(param, dict):
             param_dict = param
         else:
-            raise InvalidParameterValueError
+            raise errors.InvalidParameterValueError
         logger.debug("%s.set(%s)", self.label, param_dict)
         for cell in self:
             cell.set_parameters(**param_dict)
@@ -952,7 +869,7 @@ class Population(object):
         elif len(value_array.shape) == len(self.dim)+1: # the values are themselves 1D arrays
             local_values = value_array[self._mask_local] # not sure this works
         else:
-            raise InvalidDimensionsError, "Population: %s, value_array: %s" % (str(self.dim),
+            raise errors.InvalidDimensionsError, "Population: %s, value_array: %s" % (str(self.dim),
                                                                                str(value_array.shape))
         assert local_values.shape[0] == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
         
@@ -1016,7 +933,7 @@ class Population(object):
         Private method called by record() and record_v().
         """
         if not self.can_record(variable):
-            raise RecordingError(variable, self.celltype)
+            raise errors.RecordingError(variable, self.celltype)
         if isinstance(record_from, list): #record from the fixed list specified by user
             pass
         elif record_from is None: # record from all cells:

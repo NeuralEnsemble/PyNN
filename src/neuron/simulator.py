@@ -28,7 +28,7 @@ $Id$
 """
 
 from pyNN import __path__ as pyNN_path
-from pyNN import common, random
+from pyNN import common, random, errors
 import platform
 import logging
 import numpy
@@ -281,7 +281,7 @@ def create_cells(cellclass, cellparams, n, parent=None):
         try:
             cell_model = getattr(h, cellclass)
         except AttributeError:
-            raise common.InvalidModelError("There is no hoc template called %s" % cellclass)
+            raise errors.InvalidModelError("There is no hoc template called %s" % cellclass)
         cell_parameters = cellparams or {}
     elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
         celltype = cellclass(cellparams)
@@ -462,7 +462,7 @@ class ConnectionManager(object):
         """
         if not isinstance(source, int) or source > state.gid_counter or source < 0:
             errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, state.gid_counter)
-            raise common.ConnectionError(errmsg)
+            raise errors.ConnectionError(errmsg)
         if not common.is_listlike(targets):
             targets = [targets]
         if isinstance(weights, float):
@@ -472,7 +472,7 @@ class ConnectionManager(object):
         assert len(targets) > 0
         for target in targets:
             if not isinstance(target, common.IDMixin):
-                raise common.ConnectionError("Invalid target ID: %s" % target)
+                raise errors.ConnectionError("Invalid target ID: %s" % target)
               
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
         for target, weight, delay in zip(targets, weights, delays):

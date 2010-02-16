@@ -4,7 +4,7 @@ Standard cells for pcsim
 $Id$
 """
 
-from pyNN import common, cells
+from pyNN import common, cells, errors
 import pypcsim
 import numpy
 import logging
@@ -150,7 +150,7 @@ def sanitize_spike_times(spike_times):
     try:
         spike_times = numpy.array(spike_times, float)
     except ValueError, e:
-        raise common.InvalidParameterValueError("Spike times must be floats. %s")
+        raise errors.InvalidParameterValueError("Spike times must be floats. %s")
     
     bins = (spike_times/time_step).astype('int')
     mask = numpy.concatenate((numpy.array([True]), bins[1:] != bins[:-1]))

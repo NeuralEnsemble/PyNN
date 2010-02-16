@@ -19,7 +19,7 @@ import numpy
 from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                   fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
                   sin, sinh, sqrt, tan, tanh
-from pyNN import random, common
+from pyNN import random, common, errors
 
 logger = logging.getLogger("PyNN")
 
@@ -446,7 +446,7 @@ class OneToOneConnector(Connector):
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
                 projection.connection_manager.connect(src, [tgt], float(w), float(d))
         else:
-            raise common.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
+            raise errors.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
 
 
 class FixedProbabilityConnector(ProbabilisticConnector):

@@ -31,7 +31,7 @@ import brian
 import numpy
 from itertools import izip
 import scipy.sparse
-from pyNN import common, cells
+from pyNN import common, cells, errors
 
 mV = brian.mV
 ms = brian.ms
@@ -266,7 +266,7 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
         try:
             eqs = brian.Equations(cellclass)
         except Exception, errmsg:
-            raise common.InvalidModelError(errmsg)
+            raise errors.InvalidModelError(errmsg)
         v_thresh   = cellparams['v_thresh']
         v_reset    = cellparams['v_reset']
         tau_refrac = cellparams['tau_refrac']
@@ -476,10 +476,10 @@ class ConnectionManager(object):
             delays = [delays]
         assert len(targets) > 0
         if not isinstance(source, common.IDMixin):
-            raise common.ConnectionError("source should be an ID object, actually %s" % type(source))
+            raise errors.ConnectionError("source should be an ID object, actually %s" % type(source))
         for target in targets:
             if not isinstance(target, common.IDMixin):
-                raise common.ConnectionError("Invalid target ID: %s" % target)
+                raise errors.ConnectionError("Invalid target ID: %s" % target)
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
         if common.is_conductance(targets[0]):
             units = uS
@@ -491,7 +491,7 @@ class ConnectionManager(object):
         try:
             source_group = source.parent_group
         except AttributeError, errmsg:
-            raise common.ConnectionError("%s. Maybe trying to connect from non-existing cell (ID=%s)." % (errmsg, source))
+            raise errors.ConnectionError("%s. Maybe trying to connect from non-existing cell (ID=%s)." % (errmsg, source))
         target_group = targets[0].parent_group # we assume here all the targets belong to the same NeuronGroup
         bc = self._get_brian_connection(source_group,
                                         target_group,

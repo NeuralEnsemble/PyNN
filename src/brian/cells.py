@@ -4,7 +4,7 @@ Standard cells for the brian module
 $Id$
 """
 
-from pyNN import common, cells
+from pyNN import common, cells, errors
 #import brian_no_units_no_warnings
 from brian.library.synapses import *
 import brian
@@ -198,7 +198,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
             try:
                 parameters['spike_times'] = numpy.array(parameters['spike_times'], float)
             except ValueError:
-                raise common.InvalidParameterValueError("spike times must be floats")
+                raise errors.InvalidParameterValueError("spike times must be floats")
         return super(SpikeSourceArray, cls).translate(parameters)
 
 class EIF_cond_alpha_isfa_ista(common.ModelNotAvailable):

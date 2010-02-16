@@ -29,7 +29,7 @@ import logging
 import pypcsim
 import types
 import numpy
-from pyNN import common
+from pyNN import common, errors
 
 recorder_list = []
 connection_managers = []
@@ -155,9 +155,9 @@ def create_cells(cellclass, cellparams, n, parent=None):
             #cellfactory = apply(cellclass, (), cellparams)
             cellfactory = cellclass(**cellparams)
         else:
-            raise common.InvalidModelError("Trying to create non-existent cellclass %s" % cellclass.__name__)
+            raise errors.InvalidModelError("Trying to create non-existent cellclass %s" % cellclass.__name__)
     else:
-        raise common.InvalidModelError("Trying to create non-existent cellclass %s" % cellclass)
+        raise errors.InvalidModelError("Trying to create non-existent cellclass %s" % cellclass)
 
     all_ids = numpy.array([i for i in net.add(cellfactory, n)], ID)
     first_id = all_ids[0]
@@ -274,7 +274,7 @@ class ConnectionManager(object):
         """
         if not isinstance(source, (int, long)) or source < 0:
             errmsg = "Invalid source ID: %s" % source
-            raise common.ConnectionError(errmsg)
+            raise errors.ConnectionError(errmsg)
         if not common.is_listlike(targets):
             targets = [targets]
         if isinstance(weights, float):
@@ -284,7 +284,7 @@ class ConnectionManager(object):
         assert len(targets) > 0
         for target in targets:
             if not isinstance(target, common.IDMixin):
-                raise common.ConnectionError("Invalid target ID: %s" % target)
+                raise errors.ConnectionError("Invalid target ID: %s" % target)
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
         if common.is_conductance(targets[0]):
             weight_scale_factor = 1e-6 # Convert from µS to S  
@@ -299,14 +299,14 @@ class ConnectionManager(object):
         elif isinstance(synapse_type, pypcsim.SimObject):
             syn_factory = synapse_type
         else:
-            raise common.ConnectionError("synapse_type must be a string or a PCSIM synapse factory. Actual type is %s" % type(synapse_type))
+            raise errors.ConnectionError("synapse_type must be a string or a PCSIM synapse factory. Actual type is %s" % type(synapse_type))
         for target, weight, delay in zip(targets, weights, delays):
             syn_factory.W = weight*weight_scale_factor
             syn_factory.delay = delay*0.001 # ms --> s
             try:
                 c = net.connect(source, target, syn_factory)
             except RuntimeError, e:
-                raise common.ConnectionError(e)
+                raise errors.ConnectionError(e)
             if target.local:
                 self.connections.append(Connection(source, target, net.object(c), 1.0/weight_scale_factor))
             

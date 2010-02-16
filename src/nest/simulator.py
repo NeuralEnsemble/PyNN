@@ -26,7 +26,7 @@ $Id$
 """
 
 import nest
-from pyNN import common, random
+from pyNN import common, random, errors
 import logging
 import numpy
 import os
@@ -119,7 +119,7 @@ class ID(int, common.IDMixin):
         except: # I can't seem to catch the NESTError that is raised, hence this roundabout way of doing it.
             exc_type, exc_value, traceback = sys.exc_info()
             if exc_type == 'NESTError' and "Unsupported Numpy array type" in exc_value:
-                raise common.InvalidParameterValueError()
+                raise errors.InvalidParameterValueError()
             else:
                 raise
 
@@ -158,7 +158,7 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
     try:
         cell_gids = nest.Create(nest_model, n)
     except nest.NESTError, errmsg:
-        raise common.InvalidModelError(errmsg)
+        raise errors.InvalidModelError(errmsg)
     if cell_parameters:
         try:
             v_init = cell_parameters.pop('v_init', None)
@@ -316,7 +316,7 @@ class ConnectionManager:
             targets = [targets]
         assert len(targets) > 0
         if self.synapse_type not in ('excitatory', 'inhibitory', None):
-            raise common.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
+            raise errors.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
         weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
@@ -334,7 +334,7 @@ class ConnectionManager:
         try:
             nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)            
         except nest.NESTError, e:
-            raise common.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
+            raise errors.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                          e, source, targets, weights, delays, self.synapse_model))
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self.sources.append(source)
@@ -357,7 +357,7 @@ class ConnectionManager:
             sources = [sources]
         assert len(sources) > 0, sources
         if self.synapse_type not in ('excitatory', 'inhibitory', None):
-            raise common.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
+            raise errors.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
         weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
@@ -375,7 +375,7 @@ class ConnectionManager:
         try:
             nest.ConvergentConnect(sources, [target], weights, delays, self.synapse_model)            
         except nest.NESTError, e:
-            raise common.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
+            raise errors.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                          e, sources, target, weights, delays, self.synapse_model))
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self.sources.extend(sources)

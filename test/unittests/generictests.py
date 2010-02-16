@@ -8,7 +8,7 @@ import unittest
 import numpy
 import os
 import cPickle as pickle
-from pyNN import common, random, utility, recording
+from pyNN import common, random, utility, recording, errors
 import glob
 
 try:
@@ -65,11 +65,11 @@ class CreationTest(unittest.TestCase):
     def testCreateInvalidCell(self):
         """create(): Trying to create a cell type which is not a standard cell or
         valid native cell should raise an Exception."""
-        self.assertRaises(common.InvalidModelError, sim.create, 'qwerty', n=10)
+        self.assertRaises(errors.InvalidModelError, sim.create, 'qwerty', n=10)
     
     def testCreateWithInvalidParameter(self):
         """create(): Creating a cell with an invalid parameter should raise an Exception."""
-        self.assertRaises(common.NonExistentParameterError, sim.create, sim.IF_curr_alpha, {'tau_foo':3.141592654})  
+        self.assertRaises(errors.NonExistentParameterError, sim.create, sim.IF_curr_alpha, {'tau_foo':3.141592654})  
 
 # ==============================================================================
 class ConnectionTest(unittest.TestCase):
@@ -135,24 +135,24 @@ class ConnectionTest(unittest.TestCase):
     def testConnectNonExistentPreCell(self):
         """connect(): Connecting from non-existent cell should raise a ConnectionError."""
         if self.postcells[0].local:
-            self.assertRaises(common.ConnectionError, sim.connect, 12345, self.postcells[0])
+            self.assertRaises(errors.ConnectionError, sim.connect, 12345, self.postcells[0])
         
     def testConnectNonExistentPostCell(self):
         """connect(): Connecting to a non-existent cell should raise a ConnectionError."""
-        self.assertRaises(common.ConnectionError, sim.connect, self.precells[0], 'cell45678')
+        self.assertRaises(errors.ConnectionError, sim.connect, self.precells[0], 'cell45678')
     
     def testInvalidSourceId(self):
         """connect(): sources must be integers."""
         self.precells.append('74367598')
-        self.assertRaises(common.ConnectionError, sim.connect, self.precells, self.postcells)
+        self.assertRaises(errors.ConnectionError, sim.connect, self.precells, self.postcells)
     
     def testInvalidTargetId(self):
         """connect(): targets must be integers."""
         self.postcells.append('99.9')
-        self.assertRaises(common.ConnectionError, sim.connect, self.precells, self.postcells)
+        self.assertRaises(errors.ConnectionError, sim.connect, self.precells, self.postcells)
     
     def testConnectTooSmallDelay(self):
-        self.assertRaises(common.ConnectionError, sim.connect, self.precells[0], self.postcells[0], delay=1e-12)
+        self.assertRaises(errors.ConnectionError, sim.connect, self.precells[0], self.postcells[0], delay=1e-12)
 
 # ==============================================================================
 class IDSetGetTest(unittest.TestCase):
@@ -294,7 +294,7 @@ class SetValueTest(unittest.TestCase):
         for cell in self.cells:
             try:
                 self.assertAlmostEqual(cell.tau_m, 35.7, 5)
-            except common.NotLocalError: # if cell is not on this node
+            except errors.NotLocalError: # if cell is not on this node
                 pass
         if self.single_cell.local:
             self.assertAlmostEqual(self.single_cell.v_init, -67.8, 6)
@@ -305,13 +305,13 @@ class SetValueTest(unittest.TestCase):
             try:
                 self.assertAlmostEqual(cell.tau_syn_E, 5.432, 6)
                 self.assertAlmostEqual(cell.tau_m, 35.7, 5)
-            except common.NotLocalError: # if cell is not on this node
+            except errors.NotLocalError: # if cell is not on this node
                 pass
             
     def testSetNonExistentParameter(self):
         # note that although syn_shape is added to the NEURON parameter dict when creating
         # an IF_curr_exp, it is not a valid parameter to be changed later.
-        self.assertRaises(common.NonExistentParameterError, sim.set, self.cells, 'syn_shape', 'alpha')
+        self.assertRaises(errors.NonExistentParameterError, sim.set, self.cells, 'syn_shape', 'alpha')
     
 # ==============================================================================
 class PopulationInitTest(unittest.TestCase):
@@ -339,7 +339,7 @@ class PopulationInitTest(unittest.TestCase):
         assert net.label == 'iurghiushrg'
     
     def testInvalidCellType(self):
-        self.assertRaises(common.InvalidModelError, sim.Population, (3,3), 'qwerty', {})
+        self.assertRaises(errors.InvalidModelError, sim.Population, (3,3), 'qwerty', {})
         
 # ==============================================================================
 class PopulationIndexTest(unittest.TestCase):
@@ -376,7 +376,7 @@ class PopulationIndexTest(unittest.TestCase):
         self.assertRaises(IndexError, self.net1.__getitem__, (11,))
         
     def testInvalidIndexDimension(self):
-        self.assertRaises(common.InvalidDimensionsError, self.net1.__getitem__, (10,2))
+        self.assertRaises(errors.InvalidDimensionsError, self.net1.__getitem__, (10,2))
         
 # ==============================================================================
 class PopulationIteratorTest(unittest.TestCase):
@@ -474,20 +474,20 @@ class PopulationSetTest(unittest.TestCase):
                     self.assert_(b[name] == a[name], "%s: %s != %s" % (name, b[name], a[name]))
                 
     def test_set_invalid_type(self):
-        self.assertRaises(common.InvalidParameterValueError, self.p1.set, 'foo', {})
-        self.assertRaises(common.InvalidParameterValueError, self.p1.set, [1,2,3])
+        self.assertRaises(errors.InvalidParameterValueError, self.p1.set, 'foo', {})
+        self.assertRaises(errors.InvalidParameterValueError, self.p1.set, [1,2,3])
                 
     def testSetInvalidFromDict(self):
-        self.assertRaises(common.InvalidParameterValueError, self.p1.set, {'v_thresh':'hello','tau_m':56.78})
+        self.assertRaises(errors.InvalidParameterValueError, self.p1.set, {'v_thresh':'hello','tau_m':56.78})
             
     def testSetNonexistentFromPair(self):
         """Population.set(): Trying to set a nonexistent parameter should raise an exception."""
-        self.assertRaises(common.NonExistentParameterError, self.p1.set, 'tau_foo', 10.0)
+        self.assertRaises(errors.NonExistentParameterError, self.p1.set, 'tau_foo', 10.0)
     
     def testSetNonexistentFromDict(self):
         """Population.set(): When some of the parameters in a dict are inexistent, an exception should be raised.
            There is no guarantee that the existing parameters will be set."""
-        self.assertRaises(common.NonExistentParameterError, self.p1.set, {'tau_foo': 10.0, 'tau_m': 21.0})
+        self.assertRaises(errors.NonExistentParameterError, self.p1.set, {'tau_foo': 10.0, 'tau_m': 21.0})
             
     def testRandomInit(self):
         rd = random.RandomDistribution('uniform', [-75,-55])
@@ -515,12 +515,12 @@ class PopulationSetTest(unittest.TestCase):
     def testTSetInvalidDimensions(self):
         """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
         array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6]])
-        self.assertRaises(common.InvalidDimensionsError, self.p1.tset, 'i_offset', array_in)
+        self.assertRaises(errors.InvalidDimensionsError, self.p1.tset, 'i_offset', array_in)
     
     def testTSetInvalidValues(self):
         """Population.tset(): If some of the values in the valueArray are invalid, should raise an exception."""
         array_in = numpy.array([['potatoes','carrots'],['oranges','bananas']])
-        self.assertRaises(common.InvalidParameterValueError, self.p2.tset, 'spike_times', array_in)
+        self.assertRaises(errors.InvalidParameterValueError, self.p2.tset, 'spike_times', array_in)
         
     def testRSetNumpy(self):
         """Population.rset(): with numpy rng."""
@@ -647,7 +647,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         
     def testSynapticConductanceRecording(self):
         # current-based synapses
-        self.assertRaises(common.RecordingError, self.pop2.record_gsyn)
+        self.assertRaises(errors.RecordingError, self.pop2.record_gsyn)
         # conductance-based synapses
         cells_to_record = [self.pop3[1,0], self.pop3[2,2]]
         self.pop3.record_gsyn(cells_to_record)
@@ -673,7 +673,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
             self.assertAlmostEqual(max(spikes), 100.0, 6)
 
     def testRecordVmFromSpikeSource(self):
-        self.assertRaises(common.RecordingError, self.pop1.record_v)
+        self.assertRaises(errors.RecordingError, self.pop1.record_v)
         
     
 #===============================================================================
@@ -895,7 +895,7 @@ class ProjectionSetTest(unittest.TestCase):
                 weights.append(c.weight)
             result = 2.345*numpy.ones(len(prj.connections))
             assert_arrays_almost_equal(numpy.array(weights), result, 1e-7, msg=prj.label)
-        self.assertRaises(common.InvalidWeightError, prj2.setWeights, 2.345) # current-based inhibitory needs negative weights
+        self.assertRaises(errors.InvalidWeightError, prj2.setWeights, 2.345) # current-based inhibitory needs negative weights
             
     def testSetNegativeWeights(self):
         prj1 = sim.Projection(self.source, self.target_curr, sim.AllToAllConnector(), target='excitatory')
@@ -909,7 +909,7 @@ class ProjectionSetTest(unittest.TestCase):
         result = -2.345*numpy.ones(len(prj2.connections))
         assert_arrays_almost_equal(numpy.array(weights), result, 1e-7)
         for prj in prj1, prj3, prj4:
-            self.assertRaises(common.InvalidWeightError, prj.setWeights, -2.345) 
+            self.assertRaises(errors.InvalidWeightError, prj.setWeights, -2.345) 
     
     def test_set_weights_with_array(self):
         prj = sim.Projection(self.source, self.target_curr,
