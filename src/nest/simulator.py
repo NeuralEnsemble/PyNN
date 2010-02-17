@@ -26,7 +26,7 @@ $Id$
 """
 
 import nest
-from pyNN import common, random, errors
+from pyNN import common, random, errors, standardmodels, core
 import logging
 import numpy
 import os
@@ -149,7 +149,7 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
     if isinstance(cellclass, basestring):  # celltype is not a standard cell
         nest_model = cellclass
         cell_parameters = cellparams or {}
-    elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
+    elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
         celltype = cellclass(cellparams)
         nest_model = celltype.nest_name
         cell_parameters = celltype.parameters
@@ -309,10 +309,10 @@ class ConnectionManager:
                      Must have the same length as `targets`.
         """
         # are we sure the targets are all on the current node?
-        if common.is_listlike(source):
+        if core.is_listlike(source):
             assert len(source) == 1
             source = source[0]
-        if not common.is_listlike(targets):
+        if not core.is_listlike(targets):
             targets = [targets]
         assert len(targets) > 0
         if self.synapse_type not in ('excitatory', 'inhibitory', None):
@@ -350,10 +350,10 @@ class ConnectionManager:
                      Must have the same length as `targets`.
         """
         # are we sure the targets are all on the current node?
-        if common.is_listlike(target):
+        if core.is_listlike(target):
             assert len(target) == 1
             target = target[0]
-        if not common.is_listlike(sources):
+        if not core.is_listlike(sources):
             sources = [sources]
         assert len(sources) > 0, sources
         if self.synapse_type not in ('excitatory', 'inhibitory', None):
@@ -451,7 +451,7 @@ class ConnectionManager:
                    or a 2D array with the same dimensions as the connectivity
                    matrix (as returned by `get(format='array')`).
         """
-        if not (common.is_number(value) or common.is_listlike(value)):
+        if not (numpy.isscalar(value) or core.is_listlike(value)):
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")   
         
         if isinstance(value, numpy.ndarray) and len(value.shape) == 2:
@@ -469,7 +469,7 @@ class ConnectionManager:
                 else:
                     value_list.append(val)
             value = value_list
-        if common.is_listlike(value):
+        if core.is_listlike(value):
             value = numpy.array(value)
         else:
             value = float(value)

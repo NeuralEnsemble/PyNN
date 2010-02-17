@@ -1,5 +1,5 @@
 import numpy
-from pyNN import common
+from pyNN import common, core
 from pyNN.space import Space
 from pyNN.random import RandomDistribution
 from numpy import exp
@@ -14,7 +14,7 @@ class ConnectionAttributeGenerator(object):
     
     def get(self, connectivity_matrix, distance_matrix):
         local_value_mask = self.local_mask[connectivity_matrix]
-        if common.is_number(self.source):
+        if numpy.isscalar(self.source):
             return numpy.ones((local_value_mask.sum(),))*self.source
         elif isinstance(self.source, RandomDistribution):
             all_values = self.source.next(connectivity_matrix.sum(),
@@ -68,7 +68,7 @@ class Connector(object):
         if delays is None:
             self.delays = min_delay
         else:
-            if common.is_listlike(delays):
+            if core.is_listlike(delays):
                 assert min(delays) >= min_delay
             else:
                 assert delays >= min_delay
@@ -168,7 +168,7 @@ class FixedProbabilityConnector(Connector):
             
             N = projection.post.size
             rarr = projection.rng.next(N, 'uniform', (0,1), mask_local=False)
-            if not common.is_listlike(rarr) and common.is_number(rarr): # if N=1, rarr will be a single number
+            if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
                 rarr = numpy.array([rarr])
             global_target_mask = rarr < p
             local_target_mask = global_target_mask[local]

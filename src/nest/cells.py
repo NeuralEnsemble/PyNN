@@ -4,7 +4,7 @@ Standard cells for nest
 $Id$
 """
 
-from pyNN import common, cells
+from pyNN import standardmodels, cells
  
 class IF_curr_alpha(cells.IF_curr_alpha):
     """
@@ -12,7 +12,7 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     shaped post-synaptic current.
     """
 
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
@@ -34,7 +34,7 @@ class IF_curr_exp(cells.IF_curr_exp):
     excitatory and inhibitory synapses.
     """
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
@@ -55,7 +55,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     shaped post-synaptic conductance.
     """
 
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_rest',     'E_L')    ,
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
@@ -78,7 +78,7 @@ class IF_cond_exp(cells.IF_cond_exp):
     exponentially-decaying post-synaptic conductance.
     """
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_rest',     'E_L')    ,
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
@@ -106,7 +106,7 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
 
     See also: EIF_cond_alpha_isfa_ista
     """
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
         ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
@@ -138,7 +138,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
     """
     # in 'iaf_cond_exp_sfa_rr', the dimension of C_m is pF, 
     # while in the pyNN context, cm is given in nF
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_reset',    'V_reset'),
         ('v_rest',     'E_L'),
         ('v_thresh',   'V_th'),
@@ -161,7 +161,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
 class HH_cond_exp(cells.HH_cond_exp):
     """Single-compartment Hodgkin-Huxley model."""
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('gbar_Na',    'g_Na'),   
         ('gbar_K',     'g_K'),    
         ('g_leak',     'g_L'),    
@@ -191,7 +191,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     See also: IF_cond_exp_gsfa_grr
     """
 
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_init'    , 'v_init'),
         ('w_init'    , 'w',         1000.0),  # nA -> pA
         ('cm'        , 'C_m',       1000.0),  # nF -> pF
@@ -217,7 +217,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('rate',     'rate'),
         ('start',    'start'),
         ('duration', 'stop',    "start+duration", "stop-start"),
@@ -239,7 +239,7 @@ class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
     mean-adaptation and renewal theories. Neural Computation 19: 2958-3010.
     """
 
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('a',        'a'),
         ('b',        'b'),
         ('tbins',    'tbins'),
@@ -258,7 +258,7 @@ class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
 class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('spike_times', 'spike_times'),
     )
     nest_name = 'spike_generator'

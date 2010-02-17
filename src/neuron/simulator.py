@@ -28,7 +28,7 @@ $Id$
 """
 
 from pyNN import __path__ as pyNN_path
-from pyNN import common, random, errors
+from pyNN import common, random, errors, standardmodels, core
 import platform
 import logging
 import numpy
@@ -283,7 +283,7 @@ def create_cells(cellclass, cellparams, n, parent=None):
         except AttributeError:
             raise errors.InvalidModelError("There is no hoc template called %s" % cellclass)
         cell_parameters = cellparams or {}
-    elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
+    elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
         celltype = cellclass(cellparams)
         cell_model = celltype.model
         cell_parameters = celltype.parameters
@@ -463,7 +463,7 @@ class ConnectionManager(object):
         if not isinstance(source, int) or source > state.gid_counter or source < 0:
             errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, state.gid_counter)
             raise errors.ConnectionError(errmsg)
-        if not common.is_listlike(targets):
+        if not core.is_listlike(targets):
             targets = [targets]
         if isinstance(weights, float):
             weights = [weights]
@@ -532,7 +532,7 @@ class ConnectionManager(object):
                    or a 2D array with the same dimensions as the connectivity
                    matrix (as returned by `get(format='array')`).
         """
-        if common.is_number(value):
+        if numpy.isscalar(value):
             for c in self:
                 setattr(c, name, value)
         elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
@@ -547,7 +547,7 @@ class ConnectionManager(object):
                     raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
                 else:
                     setattr(c, name, val)
-        elif common.is_listlike(value):
+        elif core.is_listlike(value):
             for c,val in zip(self.connections, value):
                 setattr(c, name, val)
         else:

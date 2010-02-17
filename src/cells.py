@@ -27,7 +27,7 @@ Spike sources (input neurons)
 """
 
 import numpy
-from common import StandardCellType
+from standardmodels import StandardCellType
 
 class IF_curr_alpha(StandardCellType):
     """

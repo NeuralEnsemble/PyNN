@@ -19,7 +19,7 @@ import numpy
 from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                   fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
                   sin, sinh, sqrt, tan, tanh
-from pyNN import random, common, errors
+from pyNN import random, common, errors, core
 from pyNN.space import Space
 
 logger = logging.getLogger("PyNN")
@@ -115,9 +115,9 @@ class ProbabilisticConnector(Connector):
             # Over the simulation as a whole (all nodes), N values will indeed be
             # returned.
             rarr = rng.next(N, 'uniform', (0, 1), mask_local=local)
-            if not common.is_listlike(rarr) and common.is_number(rarr): # if N=1, rarr will be a single number
+            if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
                 rarr = numpy.array([rarr])
-            if common.is_number(p):
+            if numpy.isscalar(p):
                 create = rarr < p
             else:
                 create = rarr < p[src][local]

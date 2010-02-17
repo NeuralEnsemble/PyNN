@@ -4,14 +4,14 @@ Synapse Dynamics classes for the brian module.
 $Id$
 """
 
-from pyNN import common
+from pyNN import standardmodels
 
 
-class SynapseDynamics(common.SynapseDynamics):
+class SynapseDynamics(standardmodels.SynapseDynamics):
     def __init__(self, fast=None, slow=None):
         synapses.SynapseDynamics.__init__(self, fast, slow)
 
-class STDPMechanism(common.STDPMechanism):
+class STDPMechanism(standardmodels.STDPMechanism):
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0):
         assert dendritic_delay_fraction == 1, """Brian does not currently support axonal delays:
@@ -20,7 +20,7 @@ class STDPMechanism(common.STDPMechanism):
         synapses.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
                                       voltage_dependence, dendritic_delay_fraction)
 
-class TsodkysMarkramMechanism(common.ModelNotAvailable):
+class TsodkysMarkramMechanism(standardmodels.ModelNotAvailable):
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
         synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
@@ -34,11 +34,11 @@ class TsodkysMarkramMechanism(common.ModelNotAvailable):
         population.R_[spikes]-=U_SE*population.R_[spikes]
         population.v_[spikes]= v_reset
 
-class AdditiveWeightDependence(common.ModelNotAvailable):
+class AdditiveWeightDependence(standardmodels.ModelNotAvailable):
     pass
 
-class MultiplicativeWeightDependence(common.ModelNotAvailable):
+class MultiplicativeWeightDependence(standardmodels.ModelNotAvailable):
     pass
 
-class SpikePairRule(common.ModelNotAvailable):
+class SpikePairRule(standardmodels.ModelNotAvailable):
     pass

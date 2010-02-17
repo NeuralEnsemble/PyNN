@@ -4,7 +4,7 @@ Synapse Dynamics classes for pcsim
 $Id$
 """
 
-from pyNN import common, synapses
+from pyNN import standardmodels, synapses
 import pypcsim
 
 synapse_models = [s for s in dir(pypcsim) if 'Synapse' in s]
@@ -32,21 +32,21 @@ dynamic_synapse_models = set(["DynamicSpikingSynapse", # DynamicCurrExpSynapse
                               # there don't seem to be any alpha-function STDP synapse models
                              ])
 
-SynapseDynamics = common.SynapseDynamics
+SynapseDynamics = standardmodels.SynapseDynamics
         
-class STDPMechanism(common.STDPMechanism):
+class STDPMechanism(standardmodels.STDPMechanism):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0):
         # not sure what the situation is with dendritic_delay_fraction in PCSIM
-        common.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
+        standardmodels.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
                                       voltage_dependence, dendritic_delay_fraction)
 
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('U', 'U'),
         ('tau_rec', 'D', 1e-3),
         ('tau_facil', 'F', 1e-3),
@@ -73,7 +73,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     be greater than `w_max` it is set to `w_max`.
     """
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion. This exposes a limitation of the current
                                      # translation machinery, because this value depends on the
                                      # type of the post-synaptic cell. We currently work around
@@ -105,7 +105,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     For depression, Dw propto w-w_min
     For potentiation, Dw propto w_max-w
     """
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion
         ('w_min',     'w_min_always_zero_in_PCSIM'),
         ('A_plus',    'Apos'),     # here Apos and Aneg
@@ -132,7 +132,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
     The amplitude of the weight change depends on the current weight for
     depression (Dw propto w-w_min) and is fixed for potentiation.
     """
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion
         ('w_min',     'w_min_always_zero_in_PCSIM'),
         ('A_plus',    'Apos', 1e-9), # Apos has the same units as the weight
@@ -159,7 +159,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
     For depression, Dw propto w-w_min
     For potentiation, Dw propto w_max-w
     """
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion
         ('w_min',     'w_min_always_zero_in_PCSIM'),
         ('A_plus',    'Apos'),
@@ -182,7 +182,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
 
 class SpikePairRule(synapses.SpikePairRule):
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('tau_plus',  'taupos', 1e-3),
         ('tau_minus', 'tauneg', 1e-3), 
     )

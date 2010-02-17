@@ -5,7 +5,7 @@ Standard cells for the neuron module.
 $Id$
 """
 
-from pyNN import common, cells, errors
+from pyNN import standardmodels, cells, errors
 from neuron import h, nrn, hclass
 from math import pi
 import logging
@@ -424,7 +424,7 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('tau_m',      'tau_m'),
         ('cm',         'c_m'),
         ('v_rest',     'v_rest'),
@@ -449,7 +449,7 @@ class IF_curr_exp(cells.IF_curr_exp):
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses."""
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('tau_m',      'tau_m'),
         ('cm',         'c_m'),
         ('v_rest',     'v_rest'),
@@ -473,7 +473,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('tau_m',      'tau_m'),
         ('cm',         'c_m'),
         ('v_rest',     'v_rest'),
@@ -500,7 +500,7 @@ class IF_cond_exp(cells.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and 
     exponentially-decaying post-synaptic conductance."""
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('tau_m',      'tau_m'),
         ('cm',         'c_m'),
         ('v_rest',     'v_rest'),
@@ -530,7 +530,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
     https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
     """
 
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_rest',     'v_rest'),
         ('v_thresh',   'v_thresh'),
         ('v_reset',    'v_reset'),
@@ -553,7 +553,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
        
 class HH_cond_exp(cells.HH_cond_exp):
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('gbar_Na',    'gbar_Na', 1e-6),   
         ('gbar_K',     'gbar_K', 1e-6),    
         ('g_leak',     'g_leak', 1e-6),    
@@ -580,7 +580,7 @@ class HH_cond_exp(cells.HH_cond_exp):
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('start',    'start'),
         ('rate',     '_interval',  "1000.0/rate",  "1000.0/_interval"),
         ('duration', 'duration'),
@@ -591,7 +591,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
 
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('spike_times', 'spike_times'),
     )
     model = VectorSpikeSource
@@ -608,7 +608,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     See also: IF_cond_exp_gsfa_grr
     """
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_init',     'v_init'),
         ('w_init',     'w_init'),
         ('cm',         'c_m'),

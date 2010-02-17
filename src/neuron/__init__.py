@@ -8,7 +8,7 @@ __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
 from pyNN.neuron import simulator
-from pyNN import common, recording, space, __doc__
+from pyNN import common, recording, space, standardmodels, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 
@@ -29,7 +29,7 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, standardmodels.StandardCellType)]
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -120,7 +120,7 @@ class Population(common.Population):
           integer, for a one-dimensional population.
           e.g., (10,10) will create a two-dimensional population of size 10x10.
         cellclass should either be a standardized cell class (a class inheriting
-        from common.StandardCellType) or a string giving the name of the
+        from standardmodels.StandardCellType) or a string giving the name of the
         simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
           constructor

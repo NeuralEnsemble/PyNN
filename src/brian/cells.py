@@ -4,7 +4,7 @@ Standard cells for the brian module
 $Id$
 """
 
-from pyNN import common, cells, errors
+from pyNN import standardmodels, cells, errors
 #import brian_no_units_no_warnings
 from brian.library.synapses import *
 import brian
@@ -15,7 +15,7 @@ import numpy
 class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
         ('cm',         'c_m',         nF), 
@@ -50,7 +50,7 @@ class IF_curr_exp(cells.IF_curr_exp):
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses."""
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
         ('cm',         'c_m',        nF), 
@@ -80,7 +80,7 @@ class IF_curr_exp(cells.IF_curr_exp):
     
 
 class IF_cond_alpha(cells.IF_cond_alpha):
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
         ('cm',         'c_m',        nF), 
@@ -116,7 +116,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
 class IF_cond_exp(cells.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and 
     exponentially-decaying post-synaptic conductance."""
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
         ('cm',         'cm',         nF), 
@@ -148,7 +148,7 @@ class IF_cond_exp(cells.IF_cond_exp):
     synapses = {'excitatory': 'ge', 'inhibitory': 'gi'}
 
 
-class IF_facets_hardware1(common.ModelNotAvailable):
+class IF_facets_hardware1(standardmodels.ModelNotAvailable):
     """Leaky integrate and fire model with conductance-based synapses and fixed
     threshold as it is resembled by the FACETS Hardware Stage 1. For further
     details regarding the hardware model see the FACETS-internal Wiki:
@@ -159,7 +159,7 @@ class IF_facets_hardware1(common.ModelNotAvailable):
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('rate',     'rate'),
         ('start',    'start'),
         ('duration', 'duration'),
@@ -188,7 +188,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     
 class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('spike_times', 'spiketimes', ms),
     )
 
@@ -201,16 +201,16 @@ class SpikeSourceArray(cells.SpikeSourceArray):
                 raise errors.InvalidParameterValueError("spike times must be floats")
         return super(SpikeSourceArray, cls).translate(parameters)
 
-class EIF_cond_alpha_isfa_ista(common.ModelNotAvailable):
+class EIF_cond_alpha_isfa_ista(standardmodels.ModelNotAvailable):
     pass
 
 
-class HH_cond_exp(common.ModelNotAvailable):
+class HH_cond_exp(standardmodels.ModelNotAvailable):
     pass
     
 #class HH_cond_exp(cells.HH_cond_exp):
 #    
-#    translations = common.build_translations(
+#    translations = standardmodels.build_translations(
 #        ('gbar_Na',    'gbar_Na'),   
 #        ('gbar_K',     'gbar_K'),    
 #        ('g_leak',     'g_leak'),    
@@ -258,9 +258,9 @@ class HH_cond_exp(common.ModelNotAvailable):
 #    ''')
 
 
-class SpikeSourceInhGamma(common.ModelNotAvailable):
+class SpikeSourceInhGamma(standardmodels.ModelNotAvailable):
     pass
 
 
-class IF_cond_exp_gsfa_grr(common.ModelNotAvailable):
+class IF_cond_exp_gsfa_grr(standardmodels.ModelNotAvailable):
     pass

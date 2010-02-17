@@ -29,7 +29,7 @@ import logging
 import pypcsim
 import types
 import numpy
-from pyNN import common, errors
+from pyNN import common, errors, standardmodels, core
 
 recorder_list = []
 connection_managers = []
@@ -149,7 +149,7 @@ def create_cells(cellclass, cellparams, n, parent=None):
     global net
     assert n > 0, 'n must be a positive integer'
     if isinstance(cellclass, type):
-        if issubclass(cellclass, common.StandardCellType):
+        if issubclass(cellclass, standardmodels.StandardCellType):
             cellfactory = cellclass(cellparams).simObjFactory
         elif issubclass(cellclass, pypcsim.SimObject):
             #cellfactory = apply(cellclass, (), cellparams)
@@ -275,7 +275,7 @@ class ConnectionManager(object):
         if not isinstance(source, (int, long)) or source < 0:
             errmsg = "Invalid source ID: %s" % source
             raise errors.ConnectionError(errmsg)
-        if not common.is_listlike(targets):
+        if not core.is_listlike(targets):
             targets = [targets]
         if isinstance(weights, float):
             weights = [weights]
@@ -351,7 +351,7 @@ class ConnectionManager(object):
                    or a 2D array with the same dimensions as the connectivity
                    matrix (as returned by `get(format='array')`)
         """
-        if common.is_number(value):
+        if numpy.isscalar(value):
             for c in self:
                 setattr(c, name, value)
         elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
@@ -366,7 +366,7 @@ class ConnectionManager(object):
                     raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
                 else:
                     setattr(c, name, val)
-        elif common.is_listlike(value):
+        elif core.is_listlike(value):
             for c,val in zip(self.connections, value):
                 setattr(c, name, val)
         else:

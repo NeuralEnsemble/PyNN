@@ -4,12 +4,12 @@ Synapse Dynamics classes for nest
 $Id$
 """
 
-from pyNN import common, synapses
+from pyNN import standardmodels, synapses
 
 
-SynapseDynamics = common.SynapseDynamics
+SynapseDynamics = standardmodels.SynapseDynamics
 
-class STDPMechanism(common.STDPMechanism):
+class STDPMechanism(standardmodels.STDPMechanism):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
@@ -17,13 +17,13 @@ class STDPMechanism(common.STDPMechanism):
         assert dendritic_delay_fraction == 1, """NEST does not currently support axonal delays:
                                                  for the purpose of STDP calculations all delays
                                                  are assumed to be dendritic."""
-        common.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
+        standardmodels.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
                                       voltage_dependence, dendritic_delay_fraction)
 
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('U', 'U'),
         ('tau_rec', 'tau_rec'),
         ('tau_facil', 'tau_fac'),
@@ -47,7 +47,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     be greater than `w_max` it is set to `w_max`.
     """
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('w_max',     'Wmax',  1000.0), # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
         ('A_plus',    'lambda'),
@@ -72,7 +72,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     For depression, Dw propto w-w_min
     For potentiation, Dw propto w_max-w
     """
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('w_max',     'Wmax',  1000.0), # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
         ('A_plus',    'lambda'),
@@ -95,7 +95,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
     The amplitude of the weight change depends on the current weight for
     depression (Dw propto w-w_min) and is fixed for potentiation.
     """
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('w_max',     'Wmax',  1000.0), # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
         ('A_plus',    'lambda'),
@@ -120,7 +120,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
     For depression, Dw propto w-w_min
     For potentiation, Dw propto w_max-w
     """
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('w_max',     'Wmax',  1000.0), # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
         ('A_plus',    'lambda'),
@@ -141,7 +141,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
 
 class SpikePairRule(synapses.SpikePairRule):
     
-    translations = common.build_translations(
+    translations = standardmodels.build_translations(
         ('tau_plus',  'tau_plus'),
         ('tau_minus', 'tau_minus'), # defined in post-synaptic neuron
     )

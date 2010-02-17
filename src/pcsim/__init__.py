@@ -14,7 +14,7 @@ __version__ = "$Revision$"
 import sys
 
 import pyNN.random
-from pyNN import common, recording, errors, space, __doc__
+from pyNN import common, recording, errors, space, core, __doc__
 from pyNN.pcsim import simulator
 common.simulator = simulator
 recording.simulator = simulator
@@ -73,7 +73,7 @@ class NativeRNG(pyNN.random.NativeRNG):
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
     setup()
-    standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+    standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, standardmodels.StandardCellType)]
     for cell_class in standard_cell_types:
         try:
             create(cell_class)
@@ -260,7 +260,7 @@ create = common.create
 #    try:
 #        if type(source) != types.ListType and type(target) != types.ListType:
 #            connections = simulator.net.connect(source, target, syn_factory)
-#            if not common.is_listlike(connections):
+#            if not core.is_listlike(connections):
 #                connections = [connections]
 #            return connections
 #        else:
@@ -303,7 +303,7 @@ class Population(common.Population):
           integer, for a one-dimensional population.
           e.g., (10,10) will create a two-dimensional population of size 10x10.
         cellclass should either be a standardized cell class (a class inheriting
-        from common.StandardCellType) or a string giving the name of the
+        from standardmodels.StandardCellType) or a string giving the name of the
         simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
           constructor
@@ -335,7 +335,7 @@ class Population(common.Population):
                 raise errors.InvalidModelError('Trying to create non-existent cellclass ' + cellclass )
             cellclass = getattr(pypcsim, cellclass)
             self.celltype = cellclass
-        if issubclass(cellclass, common.StandardCellType):
+        if issubclass(cellclass, standardmodels.StandardCellType):
             self.celltype = cellclass(cellparams)
             self.cellfactory = self.celltype.simObjFactory
         else:
@@ -581,13 +581,13 @@ class Projection(common.Projection, WDManager):
         ##    d = self.convertDelay(delay)
         ##
         # handle synapse dynamics
-        if common.is_listlike(method.weights):
+        if core.is_listlike(method.weights):
             w = method.weights[0]
         elif hasattr(method.weights, "next"): # random distribution
             w = 0.0 # actual value used here shouldn't matter. Actual values will be set in the Connector.
         else:
             w = method.weights
-        if common.is_listlike(method.delays):
+        if core.is_listlike(method.delays):
             d = min(method.delays)
         elif hasattr(method.delays, "next"): # random distribution
             d = get_min_delay() # actual value used here shouldn't matter. Actual values will be set in the Connector.

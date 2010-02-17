@@ -6,7 +6,7 @@ $Id$
 """
 import nest
 from pyNN.nest import simulator
-from pyNN import common, recording, errors, space, __doc__
+from pyNN import common, recording, errors, space, standardmodels, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 
@@ -38,7 +38,7 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, common.StandardCellType)]
+    standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, standardmodels.StandardCellType)]
     for cell_class in standard_cell_types:
         try:
             create(cell_class)
@@ -181,7 +181,7 @@ class Population(common.Population):
           integer, for a one-dimensional population.
           e.g., (10,10) will create a two-dimensional population of size 10x10.
         cellclass should either be a standardized cell class (a class inheriting
-        from common.StandardCellType) or a string giving the name of the
+        from standardmodels.StandardCellType) or a string giving the name of the
         simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
           constructor

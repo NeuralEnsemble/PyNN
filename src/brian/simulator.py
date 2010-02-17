@@ -31,7 +31,7 @@ import brian
 import numpy
 from itertools import izip
 import scipy.sparse
-from pyNN import common, cells, errors
+from pyNN import common, cells, errors, standardmodels, core
 
 mV = brian.mV
 ms = brian.ms
@@ -142,8 +142,8 @@ class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
     def _get_spiketimes(self):
         return self._threshold.spiketimes
     def _set_spiketimes(self, spiketimes):
-        assert common.is_listlike(spiketimes)
-        if len(spiketimes) == 0 or common.is_number(spiketimes[0]):
+        assert core.is_listlike(spiketimes)
+        if len(spiketimes) == 0 or numpy.isscalar(spiketimes[0]):
             spiketimes = [spiketimes for i in xrange(len(self))]
         assert len(spiketimes) == len(self), "spiketimes (length %d) must contain as many iterables as there are cells in the group (%d)." % (len(spiketimes), len(self))
         self._threshold.set_spike_times(spiketimes)
@@ -278,7 +278,7 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
                                         compile=True,
                                         max_delay=state.max_delay)
         cell_parameters = cellparams or {}
-    elif isinstance(cellclass, type) and issubclass(cellclass, common.StandardCellType):
+    elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
         celltype = cellclass(cellparams)
         cell_parameters = celltype.parameters
         
@@ -468,7 +468,7 @@ class ConnectionManager(object):
                      Must have the same length as `targets`.
         """
         #print "connecting", source, "to", targets, "with weights", weights, "and delays", delays
-        if not common.is_listlike(targets):
+        if not core.is_listlike(targets):
             targets = [targets]
         if isinstance(weights, float):
             weights = [weights]
@@ -584,7 +584,7 @@ class ConnectionManager(object):
             units = ms
         else:
             raise Exception("Setting parameters other than weight and delay not yet supported.")
-        if common.is_number(value):
+        if numpy.isscalar(value):
             for row in M.data:
                 for i in range(len(row)):
                     row[i] = value*units
@@ -592,7 +592,7 @@ class ConnectionManager(object):
             address_gen = ((i,j) for i,row in enumerate(bc.W.rows) for j in row)
             for (i,j) in address_gen:
                 M[i,j] = value[i,j]*units
-        elif common.is_listlike(value):
+        elif core.is_listlike(value):
             assert len(value) == M.getnnz()
             address_gen = ((i,j) for i,row in enumerate(bc.W.rows) for j in row)
             for ((i,j),val) in izip(address_gen, value):

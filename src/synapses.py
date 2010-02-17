@@ -15,7 +15,7 @@ Classes for defining STDP rules:
     
 """
 
-from common import ShortTermPlasticityMechanism, STDPWeightDependence, STDPTimingDependence
+from standardmodels import ShortTermPlasticityMechanism, STDPWeightDependence, STDPTimingDependence
 
 class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):
     """
