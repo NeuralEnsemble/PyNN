@@ -143,6 +143,7 @@ class Recorder(object):
     @property
     def metadata(self):
         metadata = {}
+        metadata['variable'] = self.variable
         if self.population is not None:
             metadata.update({
                 'dimensions': str(list(self.population.dim)),
