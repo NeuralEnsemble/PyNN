@@ -39,7 +39,7 @@ class IF_curr_alpha(StandardCellType):
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
         'cm'         :   1.0,   # Capacity of the membrane in nF
         'tau_m'      :  20.0,   # Membrane time constant in ms.
-        'tau_refrac' :   0.0,   # Duration of refractory period in ms. 
+        'tau_refrac' :   0.1,   # Duration of refractory period in ms. 
         'tau_syn_E'  :   0.5,   # Rise time of the excitatory synaptic alpha function in ms.
         'tau_syn_I'  :   0.5,   # Rise time of the inhibitory synaptic alpha function in ms.
         'i_offset'   :   0.0,   # Offset current in nA
@@ -61,7 +61,7 @@ class IF_curr_exp(StandardCellType):
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
         'cm'         : 1.0,     # Capacity of the membrane in nF
         'tau_m'      : 20.0,    # Membrane time constant in ms.
-        'tau_refrac' : 0.0,     # Duration of refractory period in ms. 
+        'tau_refrac' : 0.1,     # Duration of refractory period in ms. 
         'tau_syn_E'  : 5.0,     # Decay time of excitatory synaptic current in ms.
         'tau_syn_I'  : 5.0,     # Decay time of inhibitory synaptic current in ms.
         'i_offset'   : 0.0,     # Offset current in nA
@@ -82,7 +82,7 @@ class IF_cond_alpha(StandardCellType):
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
         'cm'         : 1.0,     # Capacity of the membrane in nF
         'tau_m'      : 20.0,    # Membrane time constant in ms.
-        'tau_refrac' : 0.0,     # Duration of refractory period in ms.
+        'tau_refrac' : 0.1,     # Duration of refractory period in ms.
         'tau_syn_E'  : 0.3,     # Rise time of the excitatory synaptic alpha function in ms.
         'tau_syn_I'  : 0.5,     # Rise time of the inhibitory synaptic alpha function in ms.
         'e_rev_E'    : 0.0,     # Reversal potential for excitatory input in mV
@@ -104,7 +104,7 @@ class IF_cond_exp(StandardCellType):
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
         'cm'         : 1.0,     # Capacity of the membrane in nF
         'tau_m'      : 20.0,    # Membrane time constant in ms.
-        'tau_refrac' : 0.0,     # Duration of refractory period in ms.
+        'tau_refrac' : 0.1,     # Duration of refractory period in ms.
         'tau_syn_E'  : 5.0,     # Decay time of the excitatory synaptic conductance in ms.
         'tau_syn_I'  : 5.0,     # Decay time of the inhibitory synaptic conductance in ms.
         'e_rev_E'    : 0.0,     # Reversal potential for excitatory input in mV
@@ -132,7 +132,7 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
         'v_rest'     : -65.0,   # Resting membrane potential in mV. 
         'cm'         : 1.0,     # Capacity of the membrane in nF
         'tau_m'      : 20.0,    # Membrane time constant in ms.
-        'tau_refrac' : 0.0,     # Duration of refractory period in ms.
+        'tau_refrac' : 0.1,     # Duration of refractory period in ms.
         'tau_syn_E'  : 5.0,     # Decay time of the excitatory synaptic conductance in ms.
         'tau_syn_I'  : 5.0,     # Decay time of the inhibitory synaptic conductance in ms.
         'e_rev_E'    : 0.0,     # Reversal potential for excitatory input in mV
@@ -210,7 +210,7 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
         'v_init'    : -70.6,  # Initial membrane potential in mV
         'w_init'    : 0.0,    # Initial spike-adaptation current in nA
         'cm'        : 0.281,  # Capacitance of the membrane in nF
-        'tau_refrac': 0.0,    # Duration of refractory period in ms.
+        'tau_refrac': 0.1,    # Duration of refractory period in ms.
         'v_spike'   : -40.0,    # Spike detection threshold in mV.
         'v_reset'   : -70.6,  # Reset value for V_m after a spike. In mV.
         'v_rest'    : -70.6,  # Resting membrane potential (Leak reversal potential) in mV.
@@ -243,7 +243,7 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
         'v_init'    : -70.6,  # Initial membrane potential in mV
         'w_init'    : 0.0,    # Initial spike-adaptation current in nA
         'cm'        : 0.281,  # Capacitance of the membrane in nF
-        'tau_refrac': 0.0,    # Duration of refractory period in ms.
+        'tau_refrac': 0.1,    # Duration of refractory period in ms.
         'v_spike'   : -40.0,    # Spike detection threshold in mV.
         'v_reset'   : -70.6,  # Reset value for V_m after a spike. In mV.
         'v_rest'    : -70.6,  # Resting membrane potential (Leak reversal potential) in mV.
