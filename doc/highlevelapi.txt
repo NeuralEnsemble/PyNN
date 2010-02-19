@@ -404,7 +404,7 @@ Similarly, the origins of the coordinate systems of the two Populations and the 
 
 In more abstract models, it is often useful to be able to avoid edge effects by specifying periodic boundary conditions, e.g.::
 
-    >>> connector = DistanceDependentProbabilityConnector("exp(-abs(d))", space=Space(periodic_boundaries=(500, 500, 0)))
+    >>> connector = DistanceDependentProbabilityConnector("exp(-abs(d))", space=Space(periodic_boundaries=((0,500), (0,500), None)))
     
 calculates distance on the surface of a torus of circumference 500 µm (wrap-around in the x- and y-dimensions but not z).
 

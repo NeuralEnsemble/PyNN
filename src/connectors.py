@@ -60,8 +60,16 @@ class Connector(object):
     def __init__(self, weights=0.0, delays=None):
         self.w_index = 0 # should probably use a generator
         self.d_index = 0 # rather than storing these values
-        self.weights = weights
-        self.delays = delays
+        if isinstance(weights, basestring):
+            self.w_expr = weights
+            self.weights = numpy.empty((1,0))
+        else:
+            self.weights = weights
+        if isinstance(delays, basestring):
+            self.d_expr = delays
+            self.delays = numpy.empty((1,0))
+        else:
+            self.delays = delays
         
         if delays is None:
             self.delays = common.get_min_delay()
@@ -539,6 +547,7 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
             if hasattr(self, 'w_expr'):
                 self.weights = numpy.concatenate((self.weights, eval(self.w_expr)), axis=1)
             if hasattr(self, 'd_expr'):
+                delays = eval(self.d_expr)
                 self.delays = numpy.concatenate((self.delays, eval(self.d_expr)), axis=1)
         if hasattr(self.weights, 'shape'): self.weights = self.weights.flatten()
         if hasattr(self.delays, 'shape'): self.delays = self.delays.flatten()
