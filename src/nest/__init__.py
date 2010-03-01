@@ -215,6 +215,8 @@ class Population(common.Population):
         if isinstance(param, str):
             if isinstance(val, (str, float, int)):
                 param_dict = {param: float(val)}
+            elif isinstance(val, (list, numpy.ndarray)):
+                param_dict = {param: [val]*len(self)}
             else:
                 raise errors.InvalidParameterValueError
         elif isinstance(param,dict):
@@ -240,6 +242,8 @@ class Population(common.Population):
                 if type(value) != type(self.celltype.default_parameters[key]):
                     if isinstance(value, int) and isinstance(self.celltype.default_parameters[key], float):
                         value = float(value)
+                    elif (isinstance(value, numpy.ndarray) and len(value.shape) == 1) and isinstance(self.celltype.default_parameters[key], list):
+                        pass
                     else:
                         raise errors.InvalidParameterValueError("The parameter %s should be a %s, you supplied a %s" % (key,
                                                                                                                         type(self.celltype.default_parameters[key]),

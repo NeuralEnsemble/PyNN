@@ -60,7 +60,7 @@ NEURON {
 }
 
 PARAMETER {
-    ping = 0 (ms) 
+    ping = 1 (ms) 
 }
 
 ASSIGNED {
@@ -76,7 +76,7 @@ INITIAL {
         net_send(etime - t, 1)
     }
     if (ping > 0) {
-        net_send(ping+1e-9, 2)
+        net_send(ping, 2)
     }
 }
 
