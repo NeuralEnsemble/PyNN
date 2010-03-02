@@ -33,7 +33,8 @@ The PyNN installation will then compile PyNN-specific membrane mechanisms, which
 
     loading membrane mechanisms from /home/andrew/dev/pyNN/hoc/i686/.libs/libnrnmech.so
     Additional mechanisms from files
-     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod hh_traub.mod netstim2.mod refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod tmgsyn.mod vecstim.mod
+     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod hh_traub.mod netstim2.mod refrac.mod reset.mod
+     stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod tmgsyn.mod vecstim.mod
 
 If your model relies on other NMODL mechanisms, call the ``load_mechanisms()`` function with the path to the directory containing the ``.mod`` files.
 
@@ -98,6 +99,8 @@ On Linux, most Unix variants and Mac OS X, installation is usually as simple as:
     
 This will install PyNEST to your Python ``site-packages`` directory, and may require root privileges.
 If you wish to install it elsewhere, see the full installation instructions.
+Make sure you have the GNU Scientific Library (GSL) installed,
+otherwise some PyNN standard models (e.g. ``IF_cond_exp``) will not be available.
 
 Now try it out::
 

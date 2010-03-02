@@ -109,7 +109,8 @@ class Recorder(object):
         """Return the recorded data as a Numpy array."""
         data_array = self._get(gather, compatible_output)
         id_offset = self.population and self.population.first_id or 0
-        data_array[:,0] -= id_offset # relies on fact that id is always first column
+        if data_array.size > 0:
+            data_array[:,0] -= id_offset # relies on fact that id is always first column
         self._data_size = data_array.shape[0]
         return data_array
     
