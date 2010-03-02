@@ -34,6 +34,7 @@ import sys
 
 CHECK_CONNECTIONS = False
 recorder_list = []
+connection_managers = []
 
 logger = logging.getLogger("PyNN")
 
@@ -157,8 +158,10 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
         raise Exception("Invalid cell type: %s" % type(cellclass))
     try:
         cell_gids = nest.Create(nest_model, n)
-    except nest.NESTError, errmsg:
-        raise errors.InvalidModelError(errmsg)
+    except nest.NESTError, err:
+        if "UnknownModelName" in err.message and "cond" in err.message:
+            raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
+        raise errors.InvalidModelError(err)
     if cell_parameters:
         try:
             v_init = cell_parameters.pop('v_init', None)
@@ -256,6 +259,7 @@ class ConnectionManager:
                            created with this manager.
         `parent` -- the parent `Projection`, if any.
         """
+        global connection_managers
         self.sources = []
         if synapse_model is None:
             self.synapse_model = 'static_synapse_%s' % id(self)
@@ -267,6 +271,7 @@ class ConnectionManager:
         if parent is not None:
             assert parent.plasticity_name == self.synapse_model
         self._connections = None
+        connection_managers.append(self)
 
     def __getitem__(self, i):
         """Return the `i`th connection on the local MPI node."""

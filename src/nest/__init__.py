@@ -23,13 +23,9 @@ from pyNN.nest.electrodes import *
 from pyNN.nest.recording import *
 
 Set = set
-
-
 tempdirs       = []
-
 NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
                       "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse"]
-
 logger = logging.getLogger("PyNN")
 
 # ==============================================================================
@@ -113,6 +109,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
         nest.SetDefaults(synapse_model, {'delay' : min_delay,
                                          'min_delay': min_delay,
                                          'max_delay': max_delay})
+    simulator.connection_managers = []
     simulator.reset()
     
     return rank()

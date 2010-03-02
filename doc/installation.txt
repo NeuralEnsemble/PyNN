@@ -104,22 +104,24 @@ Now try it out::
     $ cd ~ 
     $ python 
     >>> import nest
+
                -- N E S T 2 beta --
               Neural Simulation Tool
       Copyright 1995-2009 The NEST Initiative
-       Version 1.9-8128 Apr 23 2009 14:09:00
+       Version 1.9-8558 Mar  2 2010 09:50:16
     ...
     >>> nest.Models()
     ['ac_generator', 'aeif_cond_alpha', 'aeif_w_meter', 'conductancemeter',
-     'cont_delay_synapse', 'correlation_detector', 'dc_generator', 'hh_cond_exp_traub',
-     'hh_psc_alpha', 'iaf_cond_alpha', 'iaf_cond_exp', 'iaf_cond_exp_sfa_rr',
-     'iaf_neuron', 'iaf_psc_alpha', 'iaf_psc_alpha_canon', 'iaf_psc_alpha_presc',
-     'iaf_psc_delta', 'iaf_psc_delta_canon', 'iaf_psc_exp', 'layer', 'layer_3d',
-     'layer_unrestricted', 'mip_generator', 'noise_generator', 'parrot_neuron',
-     'poisson_generator', 'poisson_generator_ps', 'proxynode', 'pulsepacket_generator',
-     'spike_detector', 'spike_generator', 'static_synapse', 'static_synapse_hom_wd',
-     'stdp_pl_synapse_hom', 'stdp_synapse', 'stdp_synapse_hom',
-     'step_current_generator', 'subnet', 'tsodyks_synapse', 'voltmeter']
+     'cont_delay_synapse', 'correlation_detector', 'dc_generator', 'hh_cond_exp_traub', 
+     'hh_psc_alpha', 'ht_generator', 'ht_neuron', 'ht_synapse', 'iaf_cond_alpha',
+     'iaf_cond_alpha_mc', 'iaf_cond_exp', 'iaf_cond_exp_sfa_rr', 'iaf_neuron',
+     'iaf_psc_alpha', 'iaf_psc_alpha_canon', 'iaf_psc_alpha_presc', 'iaf_psc_delta', 
+     'iaf_psc_delta_canon', 'iaf_psc_exp', 'iaf_tum_2000', 'layer', 'layer_3d', 
+     'layer_unrestricted', 'mat2_psc_exp', 'mip_generator', 'multimeter',
+     'noise_generator', 'parrot_neuron', 'parrot_neuron_ps', 'poisson_generator', 
+     'poisson_generator_ps', 'pulsepacket_generator', 'spike_detector', 'spike_generator',
+     'static_synapse', 'static_synapse_hom_wd', 'stdp_pl_synapse_hom', 'stdp_synapse', 
+     'stdp_synapse_hom', 'step_current_generator', 'subnet', 'tsodyks_synapse', 'voltmeter']
     
 Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may need to install a newer version of the `GNU Scientific Library`_ and then recompile NEST.
 
