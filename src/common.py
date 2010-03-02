@@ -364,7 +364,7 @@ def set(cells, param, val=None):
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
     """
-    if val:
+    if val is not None:
         param = {param:val}
     if not hasattr(cells, '__len__'):
         cells = [cells]

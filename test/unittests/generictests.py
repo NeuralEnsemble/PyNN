@@ -312,6 +312,9 @@ class SetValueTest(unittest.TestCase):
         # note that although syn_shape is added to the NEURON parameter dict when creating
         # an IF_curr_exp, it is not a valid parameter to be changed later.
         self.assertRaises(errors.NonExistentParameterError, sim.set, self.cells, 'syn_shape', 'alpha')
+
+    def testSetZero(self):
+        sim.set(self.cells, 'v_thresh', 0.0)
     
 # ==============================================================================
 class PopulationInitTest(unittest.TestCase):
