@@ -133,7 +133,6 @@ class ProbabilisticConnector(Connector):
                 logger.warning("Too many random numbers. Discarding the excess. Did you specify MPI rank and number of processes when you created the random number generator?")
                 create = create[:projection.post.local_cells.size]
             targets = projection.post.local_cells[create].tolist()
-            
             weights = self.get_weights(N, local)[create]
             weights = common.check_weight(weights, projection.synapse_type, is_conductance)
             delays  = self.get_delays(N, local)[create]
@@ -540,7 +539,8 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
         """Connect-up a Projection."""
         p = {}
         for src in projection.pre.all():
-            d = self.space.distances(src.position, projection.post.positions)
+            local = projection.post._mask_local.flatten()
+            d   = self.space.distances(src.position, projection.post.positions, post_mask=local)
             p[src] = eval(self.d_expression).flatten()
             if p[src].dtype == 'bool':
                 p[src] = p[src].astype(float)
