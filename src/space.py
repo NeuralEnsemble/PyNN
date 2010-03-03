@@ -62,7 +62,9 @@ class Space(object):
             A = A.reshape(3, 1)
         if len(B.shape) == 1:
             B = B.reshape(3, 1)
-        B = self.scale_factor*(B + self.offset)
+        # I'm not sure the following line should be here. Operations may be redundant and not very 
+        # transparent from the user point of view. I moved it into the DistanceDependentProbability Connector
+        #B = self.scale_factor*(B + self.offset)
         d = numpy.zeros((A.shape[1], B.shape[1]), dtype=A.dtype)
         for axis in self.axes:
             diff2 = A[axis,:,None] - B[axis, post_mask]

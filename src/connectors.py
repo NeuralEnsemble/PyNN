@@ -533,14 +533,16 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
         self.allow_self_connections = allow_self_connections
         assert isinstance(space, Space)
         self.space = space
-
+        
         
     def connect(self, projection):
         """Connect-up a Projection."""
-        p = {}
-        for src in projection.pre.all():
-            local = projection.post._mask_local.flatten()
-            d   = self.space.distances(src.position, projection.post.positions, post_mask=local)
+        p         = {}
+        local     = projection.post._mask_local.flatten()
+        positions = self.space.scale_factor*(projection.post.positions + self.space.offset)
+        
+        for src in projection.pre.all():            
+            d      = self.space.distances(src.position, positions, post_mask=local)
             p[src] = eval(self.d_expression).flatten()
             if p[src].dtype == 'bool':
                 p[src] = p[src].astype(float)
