@@ -432,6 +432,42 @@ class Projection(common.Projection):
 
         self.connections = self.connection_manager
 
+    def saveConnections(self, filename, gather=True, compatible_output=True):
+        """
+        Save connections to file in a format suitable for reading in with a
+        FromFileConnector.
+        """
+        import operator
+        if compatible_output:
+            fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
+                                            "%s", "%g", "%g")
+        else:
+            fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%d", "%g", "%g")
+        lines = []
+        connections = nest.FindConnections(self.connection_manager.sources, synapse_type=self.connection_manager.synapse_model)
+        res         = nest.GetStatus(connections, ('source', 'target', 'weight', 'delay'))
+
+        if not compatible_output:
+            for c in res:   
+                line = fmt  % (c[0], c[1], 0.001*c[2], c[3])
+                lines.append(line)
+        else:
+            for c in res:   
+                line = fmt  % (self.pre.locate(c[0]), self.post.locate(c[1]), 0.001*c[2], c[3])
+                line = line.replace('(','[').replace(')',']')
+                lines.append(line)
+        if gather == True and num_processes() > 1:
+            all_lines = { rank(): lines }
+            all_lines = recording.gather_dict(all_lines)
+            if rank() == 0:
+                lines = reduce(operator.add, all_lines.values())
+        elif num_processes() > 1:
+            filename += '.%d' % rank()
+        logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
+        if gather == False or rank() == 0:
+            f = open(filename, 'w')
+            f.writelines(lines)
+            f.close()
 
 Space = space.Space
 
