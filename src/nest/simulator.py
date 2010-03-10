@@ -218,7 +218,7 @@ class Connection(object):
     def target(self):
         """The ID of the post-synaptic neuron."""
         tgt = ID(nest.GetStatus([self.id()], 'target')[0])
-        tgt.parent = self.parent.parent.pre
+        tgt.parent = self.parent.parent.post
         tgt.local = nest.GetStatus([tgt], 'local')[0]
         return tgt
 

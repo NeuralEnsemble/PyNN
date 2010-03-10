@@ -18,7 +18,7 @@ import logging
 import numpy
 from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                   fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
-                  sin, sinh, sqrt, tan, tanh
+                  sin, sinh, sqrt, tan, tanh, maximum, minimum
 from pyNN import random, common, errors, core
 from pyNN.space import Space
 
@@ -57,7 +57,7 @@ def next_n(sequence, N, start_index, mask_local):
 class Connector(object):
     """Base class for Connector classes."""
     
-    def __init__(self, weights=0.0, delays=None):
+    def __init__(self, weights=0.0, delays=None, space=None):
         self.w_index = 0 # should probably use a generator
         self.d_index = 0 # rather than storing these values
         if isinstance(weights, basestring):
@@ -70,9 +70,11 @@ class Connector(object):
             self.delays = numpy.empty((1,0))
         else:
             self.delays = delays
-        
         if delays is None:
             self.delays = common.get_min_delay()
+        if space is not None:
+            assert isinstance(space, Space)
+            self.space = space
         
     def connect(self, projection):
         """Connect all neurons in ``projection``"""
@@ -94,6 +96,18 @@ class Connector(object):
         self.d_index += N                                                                                            
         return delays
 
+    def reset(self):
+        """
+        After running connect(), this should be called to reset attributes that
+        have been modified to their initial values.
+        """
+        if hasattr(self, "w_expr"):
+            self.weights = numpy.empty((1,0))
+        if hasattr(self, "d_expr"):
+            self.delays = numpy.empty((1,0))
+        self.w_index = 0 # should probably use a generator
+        self.d_index = 0 # rather than storing these values
+    
     
 class ProbabilisticConnector(Connector):
     
@@ -146,7 +160,7 @@ class ProbabilisticConnector(Connector):
             
             if len(targets) > 0:
                 projection.connection_manager.connect(src, targets, weights, delays)
-
+        self.reset()        
 
 class AllToAllConnector(ProbabilisticConnector):
     """
@@ -168,7 +182,7 @@ class AllToAllConnector(ProbabilisticConnector):
         `delays`  -- as `weights`. If `None`, all synaptic delays will be set
                      to the global minimum delay.
         """
-        Connector.__init__(self, weights, delays)
+        Connector.__init__(self, weights, delays, space)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
 
@@ -478,7 +492,7 @@ class FixedProbabilityConnector(ProbabilisticConnector):
         `delays`  -- as `weights`. If `None`, all synaptic delays will be set
                      to the global minimum delay.
         """
-        Connector.__init__(self, weights, delays)
+        Connector.__init__(self, weights, delays, space)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
@@ -520,7 +534,7 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
         `delays`  -- as `weights`. If `None`, all synaptic delays will be set
                      to the global minimum delay.
         """
-        Connector.__init__(self, weights, delays)
+        Connector.__init__(self, weights, delays, space)
         assert isinstance(d_expression, str)
         try:
             d = 0; assert 0 <= eval(d_expression), eval(d_expression)
@@ -528,11 +542,8 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
         except ZeroDivisionError, err:
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
-        self.space = space
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
-        assert isinstance(space, Space)
-        self.space = space
         
         
     def connect(self, projection):

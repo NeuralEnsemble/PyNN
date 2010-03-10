@@ -8,7 +8,7 @@ import unittest
 import numpy
 import os
 import cPickle as pickle
-from pyNN import common, random, utility, recording, errors
+from pyNN import common, random, utility, recording, errors, space
 import glob
 
 try:
@@ -872,6 +872,26 @@ class ProjectionInitTest(unittest.TestCase):
                 else:
                     self.assertAlmostEqual(prj1.connections[0].delay, 0.4, 6) # nest rounds delays to the timestep
          
+    def testDistanceDependentWeights(self):
+        connectors = (
+            sim.AllToAllConnector(weights="exp(-d/10.0)", space=space.Space(scale_factor=0.9)),
+            sim.FixedProbabilityConnector(0.8, weights="maximum(3-d, 0)", space=space.Space(offset=0.1)),
+            sim.DistanceDependentProbabilityConnector("abs(d<3)", weights="sin(d)", space=space.Space(offset=0.1,
+                                                                                                      scale_factor=0.9)),
+        )
+        exp = numpy.exp
+        maximum = numpy.maximum
+        sin = numpy.sin
+        for srcP in [self.source5, self.source22]:
+            for tgtP in [self.target6, self.target33]:
+                for conn in connectors:
+                    print conn.w_expr
+                    prj = sim.Projection(srcP, tgtP, conn)
+                    first_connection = prj.connections[0]
+                    last_connection = prj.connections[-1]
+                    for c in first_connection, last_connection:
+                       d = space.distance(c.source, c.target)
+                       self.assertAlmostEqual(c.weight, eval(conn.w_expr), 10)
 
 class ProjectionSetTest(unittest.TestCase):
     """Tests of the setWeights(), setDelays(), randomizeWeights() and
