@@ -58,7 +58,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     if extra_params.has_key('use_cvode'):
         simulator.state.cvode.active(int(extra_params['use_cvode']))
         if extra_params.has_key('rtol'):
-	    simulator.state.cvode.rtol(float(extra_params['rtol']))
+            simulator.state.cvode.rtol(float(extra_params['rtol']))
         if extra_params.has_key('atol'):
             simulator.state.cvode.atol(float(extra_params['atol']))
     return rank()

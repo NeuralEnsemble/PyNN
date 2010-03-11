@@ -1,7 +1,7 @@
 # encoding: utf8
 """
 Implementation of the "low-level" functionality used by the common
-implementation of the API.
+implementation of the API, for the NEURON simulator.
 
 Functions and classes useable by the common implementation:
 

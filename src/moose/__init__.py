@@ -1,60 +1,74 @@
-"""Interfacing MOOSE to PyNN"""
-import moose
-import Neuron
-from cells import *
-from pyNN import common
+# encoding: utf-8
+"""
+MOOSE implementation of the PyNN API
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_params):
+Authors: Subhasis Ray and Andrew Davison
+
+$Id:$
+"""
+
+import moose
+from pyNN.moose import simulator
+from pyNN import common, recording
+common.simulator = simulator
+recording.simulator = simulator
+
+from pyNN.moose.cells import *
+from pyNN.moose.recording import *
+
+import logging
+logger = logging.getLogger("PyNN")
+
+# ==============================================================================
+#   Functions for simulation set-up and control
+# ==============================================================================
+
+def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    common.setup(timestep, min_delay, max_delay, debug, **extra_params)
-    ctx = moose.PyMooseBase.getContext()
-    ctx.setClock(0, timestep, 0)
+    common.setup(timestep, min_delay, max_delay, **extra_params)
+    simulator.state.dt = timestep
     return 0
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
+    for recorder in simulator.recorder_list:
+        recorder.write(gather=True, compatible_output=compatible_output)
     moose.PyMooseBase.endSimulation()
- 
-def create(cellclass, cellparams=None, n=1):
-    """
-    Create n cells all of the same type.
-    If n > 1, return a list of cell ids/references.
-    If n==1, return just the single id.
-    """
-    assert n > 0, 'n must be a positive integer'
-    cell_gids = []
-    if isinstance(cellclass, type):
-	for i in range(n):
-		print cellclass, cellparams
-		cell_type = cellclass(cellparams)
-                cell = eval("Neuron."+cell_type.moose_name)(**cell_type.parameters)
-		cell_gids.append(cell.id)
-        cell_gids = [ID(gid) for gid in cell_gids]
-    elif isinstance(cellclass, str):  # celltype is not a standard cell
-	cellclass = eval(cellclass)
-	for i in range(n):
-		cell = cellclass(**cellparams)
-		cell_gids.append(cell.id)
-        cell_gids = [ID(gid) for gid in cell_gids]
-    else:
-        raise Exception("Invalid cell type")
-    for id in cell_gids:
-        id.cellclass = cellclass
-    if n == 1:
-        return cell_gids[0]
-    else:
-        return cell_gids
 
-def record(source, filename):
-	dataDir = Neutral("/data")
-	probe = Table(source.name, dataDir)
-	probe.step_mode = 3
-	probe.connect("inputRequest", source, "Vm")
-	
 def run(simtime):
 	"""Run the simulation for simtime"""
-	moose.step(simtime)
+	simulator.run(simtime)
+
+
+# ==============================================================================
+#   Functions returning information about the simulation state
+# ==============================================================================
+
+get_current_time = common.get_current_time
+get_time_step = common.get_time_step
+get_min_delay = common.get_min_delay
+get_max_delay = common.get_max_delay
+num_processes = common.num_processes
+rank = common.rank   
+
+# ==============================================================================
+#   Low-level API for creating, connecting and recording from individual neurons
+# ==============================================================================
+
+create = common.create
+
+#connect = common.connect
+
+#set = common.set
+
+record = common.build_record('spikes', simulator)
+
+record_v = common.build_record('v', simulator)
+
+record_gsyn = common.build_record('gsyn', simulator)
+	
+
