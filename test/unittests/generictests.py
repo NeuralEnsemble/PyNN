@@ -885,13 +885,13 @@ class ProjectionInitTest(unittest.TestCase):
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 for conn in connectors:
-                    print conn.w_expr
+                    #print conn.w_expr
                     prj = sim.Projection(srcP, tgtP, conn)
                     first_connection = prj.connections[0]
                     last_connection = prj.connections[-1]
                     for c in first_connection, last_connection:
                        d = space.distance(c.source, c.target)
-                       self.assertAlmostEqual(c.weight, eval(conn.w_expr), 10)
+                       self.assertAlmostEqual(c.weight, eval(conn.weights), 10)
 
 class ProjectionSetTest(unittest.TestCase):
     """Tests of the setWeights(), setDelays(), randomizeWeights() and

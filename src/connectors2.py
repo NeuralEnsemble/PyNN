@@ -2,7 +2,9 @@ import numpy
 from pyNN import errors, common, core, random
 from pyNN.space import Space
 from pyNN.random import RandomDistribution
-from numpy import exp
+from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
+                    fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
+                    sin, sinh, sqrt, tan, tanh, maximum, minimum
 
 class ConnectionAttributeGenerator(object):
     
@@ -26,9 +28,10 @@ class ConnectionAttributeGenerator(object):
                 values = numpy.ones((len(sub_mask),))*self.source
             return values
         elif isinstance(self.source, RandomDistribution):
-            values = self.source.next(N, mask_local=self.local_mask)
-            if sub_mask is not None:
-                values = values[sub_mask]
+            if sub_mask is None:
+                values = self.source.next(N, mask_local=self.local_mask)
+            else:
+                values = self.source.next(len(sub_mask), mask_local=self.local_mask)
             return values
         elif isinstance(self.source, numpy.ndarray):
             source_row = self.source_iterator.next()
@@ -43,8 +46,8 @@ class WeightGenerator(ConnectionAttributeGenerator):
     def __init__(self, source, local_mask, projection, safe=True):
       ConnectionAttributeGenerator.__init__(self, source, local_mask, safe)
       self.projection     = projection
-      self.is_conductance = common.is_conductance(projection.post.local_cells[0])
-
+      self.is_conductance = common.is_conductance(projection.post.all_cells[0])
+      
     def check(self, weight):
         if weight is None:
             weight = DEFAULT_WEIGHT
@@ -166,7 +169,7 @@ class ProbabilisticConnector(Connector):
         self.distance_matrix   = DistanceMatrix(projection.post.positions, self.space, self.local)
         self.projection        = projection
         self.allow_self_connections = allow_self_connections
-
+        
     def _probabilistic_connect(self, src, p):
         """
         Connect-up a Projection with connection probability p, where p may be either
@@ -177,12 +180,11 @@ class ProbabilisticConnector(Connector):
         if numpy.isscalar(p) and p == 1:
             create = numpy.arange(self.local.sum())
         else:
-            rarr   = self.probas_generator.get(self.N, self.distance_matrix)
-            create = numpy.where(rarr < p)[0]
-        
-        if isinstance(self.weights, basestring) or isinstance(self.delays, basestring):      
-            self.distance_matrix.set_source(src.position)
-        
+            rarr   = self.probas_generator.get(self.N)
+            if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
+                rarr = numpy.array([rarr])
+            create = numpy.where(rarr < p)[0]  
+        self.distance_matrix.set_source(src.position)        
         targets = self.projection.post.local_cells[create]
         weights = self.weights_generator.get(self.N, self.distance_matrix, create)
         delays  = self.delays_generator.get(self.N, self.distance_matrix, create)
@@ -225,9 +227,10 @@ class AllToAllConnector(Connector):
         self.allow_self_connections = allow_self_connections
         
     def connect(self, projection):
-        connector = ProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
-        for src in projection.pre.all():
+        connector = ProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)        
+        for count, src in enumerate(projection.pre.all()):
             connector._probabilistic_connect(src, 1)
+
 
     
 
@@ -429,7 +432,7 @@ class FixedNumberPostConnector(Connector):
         local             = projection.post._mask_local.flatten()
         weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
         delays_generator  = DelayGenerator(self.delays, local, self.safe)
-        distance_matrix   = DistanceMatrix(projection.post.positions, self.space, local)
+        distance_matrix   = DistanceMatrix(projection.post.positions, self.space, numpy.arange(len(projection.post)))
         candidates        = projection.post.all_cells.flatten()            
         
         if isinstance(projection.rng, random.NativeRNG):
@@ -442,10 +445,7 @@ class FixedNumberPostConnector(Connector):
             else:
                 n = self.n
             
-            targets     = numpy.zeros(0, int)
-            loc_targets = []
-            create      = []
-            
+            targets     = numpy.zeros(0, int)            
             while len(targets) < n: # if the number of requested cells is larger than the size of the
                                     # postsynaptic population, we allow multiple connections for a given cell                
                 ids     = projection.rng.permutation(candidates)[0:n] - projection.post.first_id
@@ -454,26 +454,14 @@ class FixedNumberPostConnector(Connector):
                     idx     = numpy.where(targets == src)[0]
                     targets = numpy.delete(targets, idx)
             
-            targets = targets[:n]            
-            if isinstance(self.weights, basestring) or isinstance(self.delays, basestring):      
-                distance_matrix.set_source(src.position)
-            
-            # We need to keep only the local cells, because then distances will be computed only
-            # by the nodes that will established the connections. create is just a mask with all 
-            # the id of the cells that are local and that need to be used. Same id could be repeted
-            # but this is not a problem.
-            for id in targets:
-                pos = numpy.where(id == projection.post.local_cells)[0]
-                N   = len(pos)
-                if N > 0:
-                    loc_targets += N*[id]
-                    create      += [pos[0]]
-            
+            distance_matrix.set_source(src.position)
+            targets = targets[:n].astype(int)                        
+            create  = targets - projection.post.first_id            
             weights = weights_generator.get(n, distance_matrix, create)
             delays  = delays_generator.get(n, distance_matrix, create)            
                         
-            if len(loc_targets) > 0:
-                projection.connection_manager.connect(src, loc_targets, weights, delays)
+            if len(targets) > 0:
+                projection.connection_manager.connect(src, targets.tolist(), weights, delays)
                     
 
 class FixedNumberPreConnector(Connector):
@@ -537,7 +525,7 @@ class FixedNumberPreConnector(Connector):
             else:
                 n = self.n
             
-            sources = []
+            sources = numpy.zeros(0, int)
             while len(sources) < n: # if the number of requested cells is larger than the size of the
                                     # presynaptic population, we allow multiple connections for a given cell
                 ids     = projection.rng.permutation(candidates)[0:n] - projection.pre.first_id
@@ -546,11 +534,8 @@ class FixedNumberPreConnector(Connector):
                     i       = numpy.where(sources == tgt)[0]
                     sources = numpy.delete(sources, i)
             
+            distance_matrix.set_source(tgt.position)        
             sources = sources[:n].astype(int)
-            
-            if isinstance(self.weights, basestring) or isinstance(self.delays, basestring):      
-                distance_matrix.set_source(tgt.position)
-            
             create  = sources - projection.pre.first_id
             weights = weights_generator.get(n, distance_matrix, create)
             delays  = delays_generator.get(n, distance_matrix, create)            
