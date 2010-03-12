@@ -23,6 +23,8 @@ class ConnectionAttributeGenerator(object):
         return data
         
     def extract(self, N, distance_matrix=None, sub_mask=None):
+        #local_mask is supposed to be a mask of booleans, while 
+        #sub_mask is a list of cells ids.
         if isinstance(self.source, basestring):
             assert distance_matrix is not None
             d      = distance_matrix.as_array(sub_mask)
@@ -197,15 +199,14 @@ class ProbabilisticConnector(Connector):
             create = numpy.where(rarr < p)[0]  
         self.distance_matrix.set_source(src.position)        
         targets = self.projection.post.local_cells[create]
+        if not self.allow_self_connections and self.projection.pre == self.projection.post and src in targets:
+            i       = numpy.where(targets == src)[0]
+            targets = numpy.delete(targets, i)
+            create  = numpy.delete(create, i)
+        
         weights = self.weights_generator.get(self.N, self.distance_matrix, create)
         delays  = self.delays_generator.get(self.N, self.distance_matrix, create)
             
-        if not self.allow_self_connections and self.projection.pre == self.projection.post and src in targets:
-            i       = numpy.where(targets == src)[0]
-            weights = numpy.delete(weights, i)
-            delays  = numpy.delete(delays, i)
-            targets = numpy.delete(targets, i)
-        
         if len(targets) > 0:
             self.projection.connection_manager.connect(src, targets.tolist(), weights, delays)
 

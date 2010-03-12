@@ -897,6 +897,21 @@ class Population(object):
         """
         raise NotImplementedError()
     
+    def savePositions(self, filename, gather=True, compatible_output=True):
+        """
+        Save positions to file. The output format is id x y z
+        """
+        fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%g", "%g", "%g")
+        lines = []
+        for cell in self.all():  
+            x,y,z = cell.position
+            line = fmt  % (cell, x, y, z)
+            lines.append(line)
+        if rank() == 0:
+            f = open(filename, 'w')
+            f.writelines(lines)
+            f.close()
+    
 # ==============================================================================
 
 class Projection(object):
