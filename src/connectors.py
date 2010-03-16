@@ -50,7 +50,7 @@ class ConnectionAttributeGenerator(object):
         elif isinstance(self.source, numpy.ndarray):
             source_row = self.source_iterator.next()
             values     = source_row[self.local_mask]
-            if sub_mask:
+            if sub_mask is not None:
                 values = values[sub_mask]
             return values    
 
