@@ -170,7 +170,7 @@ class IDMixin(object):
                 parameters = self.cellclass.translate(parameters)
             self.set_native_parameters(parameters)
         else:
-            raise NotLocalError("Cannot set parameters for a cell that does not exist on this node.")
+            raise errors.NotLocalError("Cannot set parameters for a cell that does not exist on this node.")
     
     def get_parameters(self):
         """Return a dict of all cell parameters."""
@@ -180,7 +180,7 @@ class IDMixin(object):
                 parameters = self.cellclass.reverse_translate(parameters)
             return parameters
         else:
-            raise NotLocalError("Cannot obtain parameters for a cell that does not exist on this node.")
+            raise errors.NotLocalError("Cannot obtain parameters for a cell that does not exist on this node.")
 
     def _set_cellclass(self, cellclass):
         if self.parent is None and self._cellclass is None:
@@ -512,11 +512,12 @@ class Population(object):
     
     def id_to_index(self, id):
         """
-        Given the ID of a cell in the Population, return its index (order in the
+        Given the ID(s) of cell(s) in the Population, return its (their) index (order in the
         Population).
         >>> assert id_to_index(p.index(5)) == 5
+        >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        assert self.first_id <= id <= self.last_id 
+        #assert self.first_id <= id <= self.last_id 
         return id - self.first_id # this assumes ids are consecutive
     
     def index(self, n):

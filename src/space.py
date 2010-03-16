@@ -52,7 +52,7 @@ class Space(object):
         self.scale_factor = scale_factor
         self.offset = offset
         
-    def distances(self, A, B, post_mask=None):
+    def distances(self, A, B):
         """
         Calculate the distance matrix between two sets of coordinates, given
         the topology of the current space.
@@ -67,7 +67,7 @@ class Space(object):
         #B = self.scale_factor*(B + self.offset)
         d = numpy.zeros((A.shape[1], B.shape[1]), dtype=A.dtype)
         for axis in self.axes:
-            diff2 = A[axis,:,None] - B[axis, post_mask]
+            diff2 = A[axis,:,None] - B[axis, :]
             if self.periodic_boundaries is not None:
                 boundaries = self.periodic_boundaries[axis]
                 if boundaries is not None:
@@ -75,6 +75,6 @@ class Space(object):
                     ad2   = abs(diff2)
                     diff2 = numpy.minimum(ad2, range-ad2)
             diff2 **= 2
-            d[:,post_mask] += diff2
-        numpy.sqrt(d[:,post_mask], d[:,post_mask])
+            d += diff2
+        numpy.sqrt(d, d)
         return d

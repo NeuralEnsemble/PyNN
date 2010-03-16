@@ -11,6 +11,7 @@ from pyNN.brian import simulator
 from pyNN import common, recording, space, standardmodels, __doc__
 common.simulator = simulator
 recording.simulator = simulator
+from pyNN.random import *
 
 from pyNN.brian.cells import *
 from pyNN.brian.connectors import *

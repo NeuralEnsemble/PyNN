@@ -14,6 +14,7 @@ __version__ = "$Revision$"
 import sys
 
 import pyNN.random
+from pyNN.random import *
 from pyNN import common, recording, errors, space, core, __doc__
 from pyNN.pcsim import simulator
 common.simulator = simulator
@@ -445,7 +446,14 @@ class Population(common.Population):
     ##    return coords
     
     def id_to_index(self, id):
-        return self.all_cells.flatten().tolist().index(id) # because ids may not be consecutive when running a distributed sim
+        cells = self.all_cells.flatten()
+        if hasattr(id, '__len__'):
+            res = []
+            for item in id:
+                res.append(numpy.where(cells == item)[0][0])
+            return numpy.array(res)
+        else:
+          return cells.tolist().index(id) # because ids may not be consecutive when running a distributed sim
     
     ##def getObjectID(self, index):
     ##    return self.pcsim_population[index]
@@ -585,12 +593,20 @@ class Projection(common.Projection, WDManager):
             w = method.weights[0]
         elif hasattr(method.weights, "next"): # random distribution
             w = 0.0 # actual value used here shouldn't matter. Actual values will be set in the Connector.
+        elif isinstance(method.weights, basestring):
+            w = 0.0 # actual value used here shouldn't matter. Actual values will be set in the Connector.
+        elif hasattr(method.weights, 'func_name'):
+            w = 0.0 # actual value used here shouldn't matter. Actual values will be set in the Connector.
         else:
-            w = method.weights
+            w = method.weights            
         if core.is_listlike(method.delays):
             d = min(method.delays)
         elif hasattr(method.delays, "next"): # random distribution
             d = get_min_delay() # actual value used here shouldn't matter. Actual values will be set in the Connector.
+        elif isinstance(method.delays, basestring):
+            d = get_min_delay() # actual value used here shouldn't matter. Actual values will be set in the Connector.
+        elif hasattr(method.delays, 'func_name'):
+            d = 0.0 # actual value used here shouldn't matter. Actual values will be set in the Connector.
         else:
             d = method.delays
             

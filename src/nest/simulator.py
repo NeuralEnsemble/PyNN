@@ -177,6 +177,7 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
     cell_gids = numpy.array([ID(gid) for gid in cell_gids], ID)
     for gid, local in zip(cell_gids, mask_local):
         gid.local = local
+        gid.parent = parent
     if cell_parameters and v_init is not None:
         for cell in cell_gids:
             cell._v_init = v_init
@@ -415,10 +416,10 @@ class ConnectionManager:
                     if component and parameter_name in component.translations:
                         translated_name = component.translations[parameter_name]["translated_name"]
                         break
-            if translated_name:
-                parameter_name = translated_name
-            else:
-                raise Exception("synapse type does not have an attribute '%s', or else this attribute is not accessible." % parameter_name)
+            #if translated_name:
+                #parameter_name = translated_name
+            #else:
+                #raise Exception("synapse type does not have an attribute '%s', or else this attribute is not accessible." % parameter_name)
         if format == 'list':
             values = nest.GetStatus(self.connections, parameter_name)
             if parameter_name == "weight":
