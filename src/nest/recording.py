@@ -207,10 +207,10 @@ class Recorder(recording.Recorder):
     def _local_count(self):
         N = {}
         if self.in_memory():
-            events = nest.GetStatus(self._device, 'events')
+            events = nest.GetStatus(self._device, 'events')[0]
             for id in self.recorded:
                 mask = events['senders'] == int(id)
-                N[id] = events['times'][mask].count()
+                N[id] = len(events['times'][mask])
         else:
             spikes = self._get(gather=False, compatible_output=False)
             for id in spikes[:,0].astype(int):
