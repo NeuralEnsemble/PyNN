@@ -913,6 +913,56 @@ class Population(object):
             f.writelines(lines)
             f.close()
     
+    def random_positions(self, dimensions, seed=0):
+        """
+        Draw all the positions of the cells in a uniform volume of size dimensions
+        dimensions -- should be a tuple or list of tuple with the size of the population, 
+                      and (min, max) values of the volume in each dimensions.
+        seed -- is the seed used for the random number generator.
+        
+        >> x = Population((10,10), IF_curr_exp)
+        >> x.random_positions(dimensions=((0,1), (0,1))
+        >> y = Population((10, 10, 20), IF_curr_exp)
+        >> y.random_positions(dimensions=((0,0.5), (0,0.5), (0,1))        
+        """        
+        assert len(dimensions) == len(self.dim)
+        N    = len(self)        
+        numpy.random.seed(seed)
+        for count, item in enumerate(dimensions):            
+            assert len(item) == 2, "dimensions should be a list of tuples (min, max), not %s" %item           
+            bmin, bmax = item
+            self.positions[count, :] = bmin + bmax * numpy.random.rand(N)
+        
+    def grid_positions(self, dimensions):
+        """
+        Draw all the positions of the cells on a grid lattice with size dimensions
+        dimensions -- should be a tuple or list of tuple with the size of the population, 
+                      and (min, max) values of the volume in each dimensions.
+        
+        >> x = Population((10,10), IF_curr_exp)
+        >> x.grid_positions(dimensions=((0,1), (0,1))        
+        """
+        N   = len(self.dim)        
+        assert len(dimensions) == N
+        pos = []
+        for count, item in enumerate(dimensions):
+            assert len(item) == 2, "dimensions should be a list of tuples (min, max), not %s" %item           
+            bmin, bmax = item
+            padding    = 1/float(self.dim[count])
+            pos.append(numpy.linspace(bmin+padding, bmax-padding, self.dim[count]))
+        if N == 1:
+            for i, dx in enumerate(pos[0]):
+                self[i].position = dx, 0, 0
+        elif N == 2:        
+            for i, dx in enumerate(pos[0]):
+                for j, dy in enumerate(pos[1]):
+                    self[i,j].position = dx, dy, 0
+        elif N == 3:        
+            for i, dx in enumerate(pos[0]):
+                for j, dy in enumerate(pos[1]):
+                    for k, dz in enumerate(pos[2]):
+                        self[i,j,k].position = dx, dy, dz
+        
 # ==============================================================================
 
 class Projection(object):
