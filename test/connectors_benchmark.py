@@ -6,35 +6,34 @@ import os
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
-N       = 100
+N       = 50
 node_id = setup(timestep=0.1, min_delay=0.1, max_delay=10.)
 print "Creating cells population..."
-x       = Population((N,N), IF_curr_exp)
+x       = Population((N, N), IF_curr_exp)
 timer   = Timer()
 np      = num_processes()
 timer.start()
 render  = True
 
-numpy.random.seed(125478)
+x.random_positions(((0, 1), (0, 1)), seed=34295)
+#x.grid_positions(((0, 1), (0, 1)))
 
-for i,dx in enumerate(numpy.linspace(0, 1, N)):
-    for j,dy in enumerate(numpy.linspace(0, 1, N)):
-        x[i,j].position = numpy.random.rand(), numpy.random.rand(), 0
 
 #w = RandomDistribution('uniform', (0,1))
-#w = "0.2 + d/0.2"
-w = 0.1
+w = "0.2 + d/0.2"
+#w = 0.1
 #w = lambda distances : 0.1 + numpy.random.rand(len(distances))*distances 
 
 #d = RandomDistribution('uniform', (0.1,5.))
-d = "0.1 + d"
-#d = 0.1
+#d = "0.1 + d/0.2"
+d = 0.1
 #d = lambda distances : 0.1 + numpy.random.rand(len(distances))*distances 
 
 sp            = Space(periodic_boundaries=((0,1), (0,1), None))
-safe          = True
+#sp            = Space(periodic_boundaries=((0,1), None, None))
+safe          = False
 verbose       = True
-autapse       = True
+autapse       = False
 parallel_safe = True
 
 ##### Parameter to test the appropriate connector ####
@@ -42,7 +41,7 @@ case     = 1
 ######################################################
 
 if case is 1:
-    conn  = DistanceDependentProbabilityConnector("d < 0.1", delays=d, weights=w, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
+    conn  = DistanceDependentProbabilityConnector("d <= 0.1", delays=d, weights=w, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
     fig_name = "DistanceDependent_%s_np_%d.png" %(simulator_name, np)
 elif case is 2:
     conn  = FixedProbabilityConnector(0.05, weights=w, delays=d, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
