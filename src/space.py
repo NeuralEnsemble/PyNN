@@ -78,3 +78,63 @@ class Space(object):
             d += diff2
         numpy.sqrt(d, d)
         return d
+
+
+
+class PositionsGenerator(object):
+
+        def __init__(self, dimensions, axes=None):
+            """
+            dimensions -- either `None`, or a tuple/list giving the dimensions
+                          for each dimension, e.g. `((x_min, x_max), None, (z_min, z_max))`.            
+            axes -- if not supplied, then the 3D distance is calculated. If supplied,
+                    axes should be a string containing the axes to be used, e.g. 'x', or
+                    'yz'. axes='xyz' is the same as axes=None.
+            """
+            self.dimensions = list(dimensions)
+            self.axes = numpy.array(Space.AXES[axes]) 
+            assert len(self.dimensions) == 3, "Dimensions should be of size 3, and axes should specify orientation!"
+            for item in self.dimensions:
+                if item is not None:
+                    assert len(item) == 2, "dimensions should be a list of tuples (min, max), not %s" %item            
+                    assert item[0] <= item[0], "items elements should be (min, max), with min <= max"
+            
+        def get(self, dims):
+            self.M         = numpy.prod(numpy.array(dims))
+            self.positions = numpy.zeros((3, self.M))            
+            pass
+
+
+class RandomPositions(PositionsGenerator):
+
+        def __init__(self, dimensions, seed=None):
+            PositionsGenerator.__init__(self, dimensions)
+            self.seed = seed
+                        
+        def get(self, dims):
+            PositionsGenerator.get(self, dims)
+            numpy.random.seed(self.seed)
+            for axis in self.axes:
+                item = self.dimensions[axis]            
+                if item is not None:
+                    bmin, bmax              = item
+                    self.positions[axis, :] = bmin + bmax * numpy.random.rand(self.M)
+            return self.positions
+
+
+class GridPositions(PositionsGenerator):
+
+        def get(self, dims):
+            PositionsGenerator.get(self, dims)            
+            res = ""
+            for d in dims:
+                res += "0:%d," %d
+            grid = eval("numpy.mgrid[%s]" %res[0:-1])
+            for axis in self.axes:
+                item = self.dimensions[axis]                
+                if item is not None:
+                    bmin, bmax = item
+                    padding    = (bmax-bmin)/float(dims[axis])
+                    data       = numpy.linspace(bmin+padding, bmax-padding, dims[axis])
+                    self.positions[axis, :] = data[grid[axis].flatten()]
+            return self.positions            

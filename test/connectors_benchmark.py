@@ -1,6 +1,7 @@
 from pylab import *
 from pyNN.utility import get_script_args, Timer
 from pyNN.common import rank
+from pyNN.space import *
 import os
 
 simulator_name = get_script_args(1)[0]
@@ -15,8 +16,8 @@ np      = num_processes()
 timer.start()
 render  = True
 
-x.random_positions(((0, 1), (0, 1)), seed=34295)
-#x.grid_positions(((0, 1), (0, 1)))
+#x.set_positions(RandomPositions([(0, 1), (0, 1), None], seed=34295))
+x.set_positions(GridPositions([(0, 1), (0, 1), None]))
 
 
 #w = RandomDistribution('uniform', (0,1))
