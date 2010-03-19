@@ -16,8 +16,8 @@ np      = num_processes()
 timer.start()
 render  = True
 
-#x.set_positions(RandomPositions([(0, 1), (0, 1), None], seed=34295))
-x.set_positions(GridPositions([(0, 1), (0, 1), None]))
+x.set_positions(RandomPositions([(0, 1), (0, 1), None], seed=34295))
+#x.set_positions(GridPositions([(0, 1), (0, 1), None]))
 
 
 #w = RandomDistribution('uniform', (0,1))
@@ -26,8 +26,8 @@ w = "0.2 + d/0.2"
 #w = lambda distances : 0.1 + numpy.random.rand(len(distances))*distances 
 
 #d = RandomDistribution('uniform', (0.1,5.))
-#d = "0.1 + d/0.2"
-d = 0.1
+d = "0.1 + d/0.2"
+#d = 0.1
 #d = lambda distances : 0.1 + numpy.random.rand(len(distances))*distances 
 
 sp            = Space(periodic_boundaries=((0,1), (0,1), None))
@@ -38,7 +38,7 @@ autapse       = False
 parallel_safe = True
 
 ##### Parameter to test the appropriate connector ####
-case     = 1
+case     = 8
 ######################################################
 
 if case is 1:
@@ -62,6 +62,10 @@ elif case is 6:
 elif case is 7:
     conn  = FromFileConnector('connections.dat', safe=safe, verbose=verbose)
     fig_name = "FromFile_%s_np_%d.png" %(simulator_name, np)
+elif case is 8:
+    conn  = SmallWorldConnector(degree=0.1, rewiring=0.1, weights=w, delays=d, safe=safe, verbose=verbose)
+    fig_name = "SmallWorld_%s_np_%d.png" %(simulator_name, np)
+
 
 print "Generating data for %s" %fig_name
 rng   = NumpyRNG(23434, num_processes=np, parallel_safe=parallel_safe)

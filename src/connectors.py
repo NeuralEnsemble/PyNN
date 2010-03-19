@@ -202,6 +202,7 @@ class ProbabilisticConnector(Connector):
             if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
                 rarr = numpy.array([rarr])
             create = numpy.where(rarr < p)[0]  
+        
         self.distance_matrix.set_source(src.position)        
         targets = self.projection.post.local_cells[create]
         if not self.allow_self_connections and self.projection.pre == self.projection.post and src in targets:
@@ -210,8 +211,8 @@ class ProbabilisticConnector(Connector):
             create  = numpy.delete(create, i)
         
         weights = self.weights_generator.get(self.N, self.distance_matrix, create)
-        delays  = self.delays_generator.get(self.N, self.distance_matrix, create)
-            
+        delays  = self.delays_generator.get(self.N, self.distance_matrix, create)        
+        
         if len(targets) > 0:
             self.projection.connection_manager.connect(src, targets.tolist(), weights, delays)
 
@@ -300,7 +301,7 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
                  weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
         """
         Create a new connector.
-        , projection
+        
         `d_expression` -- the right-hand side of a valid python expression for
             probability, involving 'd', e.g. "exp(-abs(d))", or "d<3"
         `space` -- a Space object.
@@ -622,3 +623,87 @@ class OneToOneConnector(Connector):
                 count += 1
         else:
             raise errors.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
+
+
+class SmallWorldConnector(Connector):
+    """
+    For each pair of pre-post cells, the connection probability depends on distance.
+    """
+    
+    def __init__(self, degree, rewiring, allow_self_connections=True,
+                 weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
+        """
+        Create a new connector.
+        
+        `degree` -- the region lenght where nodes will be connected locally
+        `rewiring` -- the probability of rewiring each eadges 
+        `space` -- a Space object.
+        `allow_self_connections` -- if the connector is used to connect a
+            Population to itself, this flag determines whether a neuron is
+            allowed to connect to itself, or only to other neurons in the
+            Population.        
+        `weights` -- may either be a float, a RandomDistribution object, a list/
+                     1D array with at least as many items as connections to be
+                     created, or a DistanceDependence object. Units nA.
+        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
+                     to the global minimum delay.
+        """
+        Connector.__init__(self, weights, delays, space, safe, verbose)
+        assert 0 <= rewiring <= 1
+        assert isinstance(allow_self_connections, bool)        
+        self.rewiring               = rewiring    
+        self.d_expression           = "d < %g" %degree        
+        self.allow_self_connections = allow_self_connections
+        
+    def _smallworld_connect(self, src, p):
+        """
+        Connect-up a Projection with connection probability p, where p may be either
+        a float 0<=p<=1, or a dict containing a float array for each pre-synaptic
+        cell, the array containing the connection probabilities for all the local
+        targets of that pre-synaptic cell.
+        """
+        rarr   = self.probas_generator.get(self.N)
+        if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
+            rarr = numpy.array([rarr])
+        create = numpy.where(rarr < p)[0]  
+        self.distance_matrix.set_source(src.position)        
+        
+        targets    = self.candidates[create]        
+        candidates = self.projection.post.all_cells.flatten()          
+        if not self.allow_self_connections and projection.pre == projection.post:
+            i          = numpy.where(candidates == src)[0]
+            candidates = numpy.delete(candidates, i)
+        
+        rarr            = self.probas_generator.get(len(create))
+        rewired         = rarr < self.rewiring
+        if sum(rewired) > 0:
+            idx              = numpy.random.random_integers(0, len(candidates)-1, sum(rewired))
+            targets[rewired] = candidates[idx]
+        create          = self.projection.post.id_to_index(targets).astype(int)
+        weights         = self.weights_generator.get(self.N, self.distance_matrix, create)
+        delays          = self.delays_generator.get(self.N, self.distance_matrix, create)      
+                    
+        if len(targets) > 0:
+            self.projection.connection_manager.connect(src, targets.tolist(), weights, delays)
+    
+    def connect(self, projection):
+        """Connect-up a Projection."""
+        local                  = numpy.ones(len(projection.post), bool)
+        self.N                 = projection.post.size        
+        if isinstance(projection.rng, random.NativeRNG):
+            raise Exception("Use of NativeRNG not implemented.")
+        else:
+            self.rng = projection.rng
+        self.weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
+        self.delays_generator  = DelayGenerator(self.delays, local, self.safe)
+        self.probas_generator  = ProbaGenerator(RandomDistribution('uniform',(0,1), rng=self.rng), local)
+        self.distance_matrix   = DistanceMatrix(projection.post.positions, self.space, local)
+        self.projection        = projection
+        self.candidates        = self.projection.post.all_cells.flatten()
+        self.progressbar(len(projection.pre))        
+        proba_generator = ProbaGenerator(self.d_expression, local)
+        for count, src in enumerate(projection.pre.all()):     
+            self.distance_matrix.set_source(src.position)
+            proba = proba_generator.get(self.N, self.distance_matrix).astype(float)
+            self._smallworld_connect(src, proba)
+            self.progression(count)   
