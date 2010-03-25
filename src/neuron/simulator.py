@@ -480,8 +480,48 @@ class ConnectionManager(object):
                 if self.synapse_type is None:
                     self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
                 if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
-                    self.synapse_type += '_TM'
+                    self.synapse_type += '_TM'        
                 synapse_object = getattr(target._cell, self.synapse_type)
+                nc = state.parallel_context.gid_connect(int(source), synapse_object)
+                nc.weight[0] = weight
+                nc.delay  = delay
+                # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
+                self.connections.append(Connection(source, target, nc))
+
+    def convergent_connect(self, sources, target, weights, delays):
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `sources`  -- a list/1D array of pre-synaptic cell IDs, or a single ID.
+        `target` -- the ID of the post-synaptic cell.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        if not isinstance(target, int) or target > state.gid_counter or target < 0:
+            errmsg = "Invalid target ID: %s (gid_counter=%d)" % (target, state.gid_counter)
+            raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(sources):
+            sources = [sources]
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(sources) > 0
+        for source in sources:
+            if not isinstance(source, common.IDMixin):
+                raise errors.ConnectionError("Invalid source ID: %s" % source)
+              
+        assert len(sources) == len(weights) == len(delays), "%s %s %s" % (len(sources),len(weights),len(delays))
+                  
+        for source, weight, delay in zip(sources, weights, delays):
+            if source.local:
+                if self.synapse_type is None:
+                    self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
+                if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
+                    self.synapse_type += '_TM'
+                synapse_object = getattr(target._cell, self.synapse_type)  
                 nc = state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
                 nc.delay  = delay
