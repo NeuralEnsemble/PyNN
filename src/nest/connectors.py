@@ -5,6 +5,7 @@ $Id$
 """
 from pyNN import random, common, core
 from pyNN.connectors import *
+from pyNN.common import rank, num_processes
 import numpy
 from pyNN.space import Space
 
@@ -19,11 +20,15 @@ class FastProbabilisticConnector(Connector):
         else:
             self.rng = projection.rng
         
-        self.local             = numpy.ones(len(projection.pre), bool)
-        self.N                 = projection.pre.size
-        self.weights_generator = WeightGenerator(weights, self.local, projection, safe)
-        self.delays_generator  = DelayGenerator(delays, self.local, safe)
-        self.probas_generator  = ProbaGenerator(RandomDistribution('uniform',(0,1), rng=self.rng), self.local)
+        self.N                 = projection.pre.size   
+        idx                    = arange(self.N*rank(), self.N*(rank()+1))        
+        self.M                 = num_processes()*self.N
+        self.local             = numpy.ones(self.N, bool)        
+        self.local_long        = numpy.zeros(self.M, bool)
+        self.local_long[idx]   = True
+        self.weights_generator = WeightGenerator(weights, self.local_long, projection, safe)
+        self.delays_generator  = DelayGenerator(delays, self.local_long, safe)
+        self.probas_generator  = ProbaGenerator(RandomDistribution('uniform',(0,1), rng=self.rng), self.local_long)
         self.distance_matrix   = DistanceMatrix(projection.pre.positions, self.space, self.local)
         self.projection        = projection
         self.candidates        = projection.pre.all_cells.flatten()
@@ -40,7 +45,7 @@ class FastProbabilisticConnector(Connector):
         if numpy.isscalar(p) and p == 1:
             create = numpy.arange(self.local.sum())
         else:
-            rarr   = self.probas_generator.get(self.N)
+            rarr   = self.probas_generator.get(self.M)
             if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
                 rarr = numpy.array([rarr])
             create = numpy.where(rarr < p)[0]  
