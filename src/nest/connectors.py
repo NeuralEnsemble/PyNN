@@ -21,7 +21,7 @@ class FastProbabilisticConnector(Connector):
             self.rng = projection.rng
         
         self.N                 = projection.pre.size   
-        idx                    = arange(self.N*rank(), self.N*(rank()+1))        
+        idx                    = numpy.arange(self.N*rank(), self.N*(rank()+1))        
         self.M                 = num_processes()*self.N
         self.local             = numpy.ones(self.N, bool)        
         self.local_long        = numpy.zeros(self.M, bool)
