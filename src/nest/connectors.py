@@ -26,6 +26,7 @@ class FastProbabilisticConnector(Connector):
         self.probas_generator  = ProbaGenerator(RandomDistribution('uniform',(0,1), rng=self.rng), self.local)
         self.distance_matrix   = DistanceMatrix(projection.pre.positions, self.space, self.local)
         self.projection        = projection
+        self.candidates        = projection.pre.all_cells.flatten()
         self.allow_self_connections = allow_self_connections
         
         
@@ -44,13 +45,12 @@ class FastProbabilisticConnector(Connector):
                 rarr = numpy.array([rarr])
             create = numpy.where(rarr < p)[0]  
         self.distance_matrix.set_source(tgt.position)
-        #create  = self.projection.pre.id_to_index(create).astype(int)
-        sources = self.projection.pre.all_cells.flatten()[create]
-        if not self.allow_self_connections and self.projection.pre == self.projection.post and tgt in sources:
-            i       = numpy.where(sources == tgt)[0]
-            sources = numpy.delete(sources, i)
+        
+        if not self.allow_self_connections and self.projection.pre == self.projection.post:
+            i       = numpy.where(self.candidates == tgt)[0]
             create  = numpy.delete(create, i)
-
+        
+        sources = self.candidates[create]        
         weights = self.weights_generator.get(self.N, self.distance_matrix, create)
         delays  = self.delays_generator.get(self.N, self.distance_matrix, create)        
         
@@ -111,6 +111,8 @@ class FixedNumberPreConnector(FixedNumberPreConnector):
         weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
         delays_generator  = DelayGenerator(self.delays, local, self.safe)
         distance_matrix   = DistanceMatrix(projection.pre.positions, self.space)              
+        candidates        = projection.pre.all_cells.flatten()          
+        size              = len(projection.pre)
         self.progressbar(len(projection.post.local_cells))
         
         if isinstance(projection.rng, random.NativeRNG):
@@ -123,18 +125,19 @@ class FixedNumberPreConnector(FixedNumberPreConnector):
             else:
                 n = self.n
             
-            candidates = projection.pre.all_cells.flatten()          
+            idx = numpy.arange(0, size)
             if not self.allow_self_connections and projection.pre == projection.post:
-                    i          = numpy.where(candidates == tgt)[0]
-                    candidates = numpy.delete(candidates, i)
-            sources = numpy.array([]) 
-            while len(sources) < n: # if the number of requested cells is larger than the size of the
+                i   = numpy.where(candidates == tgt)[0]
+                idx = numpy.delete(idx, i)
+            
+            create = numpy.array([]) 
+            while len(create) < n: # if the number of requested cells is larger than the size of the
                                     # presynaptic population, we allow multiple connections for a given cell
-                sources = numpy.concatenate((sources, projection.rng.permutation(candidates)[:n])) 
+                create = numpy.concatenate((create, projection.rng.permutation(idx)[:n])) 
                             
             distance_matrix.set_source(tgt.position)
-            sources = sources[:n]
-            create  = projection.pre.id_to_index(sources).astype(int)
+            create  = create[:n].astype(int)
+            sources = candidates[create]
             weights = weights_generator.get(n, distance_matrix, create)
             delays  = delays_generator.get(n, distance_matrix, create)            
                  
