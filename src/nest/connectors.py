@@ -33,9 +33,8 @@ class FastProbabilisticConnector(Connector):
         self.projection        = projection
         self.candidates        = projection.pre.all_cells.flatten()
         self.allow_self_connections = allow_self_connections
-        
-        
-    def _probabilistic_connect(self, tgt, p):
+                
+    def _probabilistic_connect(self, tgt, p, n_connections=None):
         """
         Connect-up a Projection with connection probability p, where p may be either
         a float 0<=p<=1, or a dict containing a float array for each pre-synaptic
@@ -54,6 +53,9 @@ class FastProbabilisticConnector(Connector):
         if not self.allow_self_connections and self.projection.pre == self.projection.post:
             i       = numpy.where(self.candidates == tgt)[0]
             create  = numpy.delete(create, i)
+        
+        if n_connections is not None:
+            create = numpy.random.permutation(create)[:n_connections]
         
         sources = self.candidates[create]        
         weights = self.weights_generator.get(self.N, self.distance_matrix, create)
@@ -101,7 +103,7 @@ class FastDistanceDependentProbabilityConnector(DistanceDependentProbabilityConn
             proba  = proba_generator.get(connector.N, connector.distance_matrix)
             if proba.dtype == 'bool':
                 proba = proba.astype(float)
-            connector._probabilistic_connect(tgt, proba)
+            connector._probabilistic_connect(tgt, proba, self.n_connections)
             self.progression(count)
 
 

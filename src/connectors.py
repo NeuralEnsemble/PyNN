@@ -45,7 +45,7 @@ class ConnectionAttributeGenerator(object):
             if sub_mask is None:
                 values = self.source.next(N, mask_local=self.local_mask)
             else:
-                values = self.source.next(len(sub_mask), mask_local=self.local_mask)
+                values = self.source.next(N, mask_local=self.local_mask)[sub_mask]
             return values
         elif isinstance(self.source, numpy.ndarray):
             source_row = self.source_iterator.next()
@@ -189,7 +189,7 @@ class ProbabilisticConnector(Connector):
         self.candidates        = projection.post.local_cells
         self.allow_self_connections = allow_self_connections
         
-    def _probabilistic_connect(self, src, p):
+    def _probabilistic_connect(self, src, p, n_connections=None):
         """
         Connect-up a Projection with connection probability p, where p may be either
         a float 0<=p<=1, or a dict containing a float array for each pre-synaptic
@@ -208,6 +208,9 @@ class ProbabilisticConnector(Connector):
         if not self.allow_self_connections and self.projection.pre == self.projection.post:
             i       = numpy.where(self.candidates == src)[0]
             create  = numpy.delete(create, i)
+        
+        if n_connections is not None:
+            create = numpy.random.permutation(create)[:n_connections]
         
         targets = self.candidates[create]        
         weights = self.weights_generator.get(self.N, self.distance_matrix, create)
@@ -298,12 +301,13 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
     """
     
     def __init__(self, d_expression, allow_self_connections=True,
-                 weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
+                 weights=0.0, delays=None, space=Space(), safe=True, verbose=False, n_connections=None):
         """
         Create a new connector.
         
         `d_expression` -- the right-hand side of a valid python expression for
             probability, involving 'd', e.g. "exp(-abs(d))", or "d<3"
+        `n_connections`  -- The number of efferent synaptic connections per neuron.                 
         `space` -- a Space object.
         `weights` -- may either be a float, a RandomDistribution object, a list/
                      1D array with at least as many items as connections to be
@@ -321,6 +325,7 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
         self.d_expression = d_expression
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
+        self.n_connections          = n_connections
         
     def connect(self, projection):
         """Connect-up a Projection."""
@@ -332,7 +337,7 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
             proba  = proba_generator.get(connector.N, connector.distance_matrix)
             if proba.dtype == 'bool':
                 proba = proba.astype(float)
-            connector._probabilistic_connect(src, proba)
+            connector._probabilistic_connect(src, proba, self.n_connections)
             self.progression(count)
     
 
