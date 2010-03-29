@@ -32,6 +32,7 @@ class FastProbabilisticConnector(Connector):
         self.distance_matrix   = DistanceMatrix(projection.pre.positions, self.space, self.local)
         self.projection        = projection
         self.candidates        = projection.pre.all_cells.flatten()
+        self.size              = self.local.sum()
         self.allow_self_connections = allow_self_connections
                 
     def _probabilistic_connect(self, tgt, p, n_connections=None):
@@ -42,7 +43,7 @@ class FastProbabilisticConnector(Connector):
         targets of that pre-synaptic cell.
         """
         if numpy.isscalar(p) and p == 1:
-            create = numpy.arange(self.local.sum())
+            create = numpy.arange(self.size)
         else:
             rarr   = self.probas_generator.get(self.M)
             if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number

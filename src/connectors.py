@@ -187,7 +187,9 @@ class ProbabilisticConnector(Connector):
         self.distance_matrix   = DistanceMatrix(projection.post.positions, self.space, self.local)
         self.projection        = projection
         self.candidates        = projection.post.local_cells
+        self.size              = self.local.sum()
         self.allow_self_connections = allow_self_connections
+        
         
     def _probabilistic_connect(self, src, p, n_connections=None):
         """
@@ -197,7 +199,7 @@ class ProbabilisticConnector(Connector):
         targets of that pre-synaptic cell.
         """
         if numpy.isscalar(p) and p == 1:
-            create = numpy.arange(self.local.sum())
+            create = numpy.arange(self.size)
         else:
             rarr   = self.probas_generator.get(self.N)
             if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
@@ -578,7 +580,7 @@ class FixedNumberPreConnector(Connector):
             delays  = delays_generator.get(n, distance_matrix, create)            
                                             
             for src, w, d in zip(sources, weights, delays):
-                projection.connection_manager.connect(src, [tgt], w, d)
+                projection.connection_manager.connect(src, tgt, w, d)
             
             self.progression(count)
             
@@ -621,11 +623,11 @@ class OneToOneConnector(Connector):
             weights           = weights_generator.get(N)
             delays            = delays_generator.get(N)
             self.progressbar(len(projection.post.local_cells))                        
-            count             = 0
-            
-            for tgt, w, d in zip(projection.post.local_cells, weights, delays):
-                src = projection.pre.index(projection.post.id_to_index(tgt))
-                
+            count             = 0            
+            create            = numpy.arange(0, N)[local]
+            sources           = projection.pre.all_cells.flatten()[create] 
+                        
+            for tgt, src, w, d in zip(projection.post.local_cells, sources, weights, delays):
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
                 projection.connection_manager.connect(src, [tgt], float(w), float(d))
                 self.progression(count)

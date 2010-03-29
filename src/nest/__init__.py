@@ -229,6 +229,7 @@ class Population(common.Population):
         # case, it may be quicker to test whether the parameters participating
         # in the computation vary between cells, since if this is not the case
         # we can do the computation here and use nest.SetStatus.
+        to_be_set = {}
         for key, value in param_dict.items():
             if not isinstance(self.celltype, str):
                 # Here we check the consistency of the given parameters
@@ -249,22 +250,23 @@ class Population(common.Population):
                 if key == 'v_init':
                     for cell in self.local_cells:
                         cell._v_init = value
-                    nest.SetStatus(self.local_cells.tolist(), "V_m", val) # not correct, since could set v_init in the middle of a simulation
+                    to_be_set['V_m'] = val # not correct, since could set v_init in the middle of a simulation
                 elif key in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[key]
                     value = eval(translation['forward_transform'], globals(), {key:value})
-                    nest.SetStatus(self.local_cells.tolist(), translation['translated_name'], value)
+                    to_be_set[translation['translated_name']] = value
                 elif key in self.celltype.simple_parameters():
                     translation = self.celltype.translations[key]
-                    nest.SetStatus(self.local_cells.tolist(), translation['translated_name'], value)
+                    to_be_set[translation['translated_name']] = value                    
                 else:
-                    for cell in self.local_cells:
-                        cell.set_parameters(**{key:value})
+                    to_be_set[key] = value
             else:
                 try:
                     nest.SetStatus(self.local_cells, key, value)
                 except Exception:
                     raise errors.InvalidParameterValueError
+            nest.SetStatus(self.local_cells.tolist(), to_be_set)
+            
 
     #def rset(self, parametername, rand_distr):
     #    """
