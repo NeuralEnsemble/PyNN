@@ -10,9 +10,11 @@ $Id$
 
 from neuron import h
 
+
 class CurrentSource(object):
     """Base class for a source of current to be injected into a neuron."""
     pass
+
 
 class DCSource(CurrentSource):
     """Source producing a single pulse of current of constant amplitude."""
@@ -34,12 +36,13 @@ class DCSource(CurrentSource):
         """Inject this current source into some cells."""
         for id in cell_list:
             if id.local:
-                iclamp = h.IClamp(0.5, sec=id._cell)
+                iclamp = h.IClamp(0.5, sec=id._cell.source_section)
                 iclamp.delay = self.start
                 iclamp.dur = self.stop-self.start
                 iclamp.amp = self.amplitude
                 self._devices.append(iclamp)
-    
+
+
 class StepCurrentSource(CurrentSource):
     """A step-wise time-varying current source."""
     
@@ -65,7 +68,7 @@ class StepCurrentSource(CurrentSource):
             if id.local:
                 if 'v' not in id.cellclass.recordable:
                     raise TypeError("Can't inject current into a spike source.")
-                iclamp = h.IClamp(0.5, sec=id._cell)
+                iclamp = h.IClamp(0.5, sec=id._cell.source_section)
                 iclamp.delay = 0.0
                 iclamp.dur = 1e12
                 iclamp.amp = 0.0

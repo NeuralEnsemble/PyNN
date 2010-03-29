@@ -193,8 +193,10 @@ class IDMixin(object):
             celltype = self.parent.celltype
             if isinstance(celltype, str):
                 return celltype
-            else:
+            elif isinstance(celltype, standardmodels.StandardCellType):
                 return celltype.__class__
+            else:
+                return celltype
         else:
             return self._cellclass
         

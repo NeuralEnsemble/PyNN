@@ -237,7 +237,7 @@ class ID(int, common.IDMixin):
         """
         gid = int(self)
         self._cell = cell_model(**cell_parameters)          # create the cell object
-        register_gid(gid, self._cell.source, section=self._cell) # not adequate for multi-compartmental cells
+        register_gid(gid, self._cell.source, section=self._cell.source_section)
         if hasattr(self._cell, "get_threshold"):            # this is not adequate, since the threshold may be changed after cell creation
             state.parallel_context.threshold(int(self), self._cell.get_threshold()) # the problem is that self._cell does not know its own gid
         

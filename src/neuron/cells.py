@@ -46,7 +46,8 @@ class SingleCompartmentNeuron(nrn.Section):
         self.seg = self(0.5)
         self.L = 100
         self.seg.diam = 1000/pi # gives area = 1e-3 cm2
-                
+        
+        self.source_section = self
         self.syn_type = syn_type
         self.syn_shape = syn_shape
         self.v_init = v_init
@@ -359,6 +360,12 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
     def get_threshold(self):
         return 10.0
     
+    def record(self, active):
+        if active:
+            rec = h.NetCon(self.source, None, sec=self)
+            rec.record(self.spike_times)
+            
+
     
 class RandomSpikeSource(hclass(h.NetStimFD)):
     
@@ -372,6 +379,7 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
         self.spike_times = h.Vector(0)
         self.source = self
         self.switch = h.NetCon(None, self)
+        self.source_section = None
 
     def _set_interval(self, value):
         self.switch.weight[0] = -1
@@ -396,6 +404,7 @@ class VectorSpikeSource(hclass(h.VecStim)):
     def __init__(self, spike_times=[]):
         self.spike_times = spike_times
         self.source = self
+        self.source_section = None
             
     def _set_spike_times(self, spike_times):
         try:
