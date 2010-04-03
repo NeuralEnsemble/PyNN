@@ -217,7 +217,7 @@ class ID(int, common.IDMixin):
             else:
                 # parameter may vary from cell to cell
                 try:
-                    params[name] = float(getattr(self.parent_group[int(self)], name)[0])
+                    params[name] = float(getattr(self.parent_group, name)[int(self)])
                 except TypeError, errmsg:
                     raise TypeError("%s. celltype=%s, parameter name=%s" % (errmsg, self.cellclass, name))
         return params
