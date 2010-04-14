@@ -35,7 +35,7 @@ class FastProbabilisticConnector(Connector):
         self.size              = self.local.sum()
         self.allow_self_connections = allow_self_connections
                 
-    def _probabilistic_connect(self, tgt, p, n_connections=None):
+    def _probabilistic_connect(self, tgt, p, n_connections=None, rewiring=None):
         """
         Connect-up a Projection with connection probability p, where p may be either
         a float 0<=p<=1, or a dict containing a float array for each pre-synaptic
@@ -55,12 +55,24 @@ class FastProbabilisticConnector(Connector):
             i       = numpy.where(self.candidates == tgt)[0]
             create  = numpy.delete(create, i)
         
+        if rewiring is not None and rewiring > 0:
+            idx = numpy.arange(self.size)
+            if not self.allow_self_connections and self.projection.pre == self.projection.post:
+                i   = numpy.where(self.candidates == tgt)[0]
+                idx = numpy.delete(idx, i)
+            
+            rarr    = self.probas_generator.get(self.M)[create]
+            rewired = rarr < rewiring
+            if sum(rewired) > 0:
+                new_idx         = numpy.random.random_integers(0, len(idx)-1, sum(rewired))
+                create[rewired] = idx[new_idx]    
+        
         if n_connections is not None:
             create = numpy.random.permutation(create)[:n_connections]
         
         sources = self.candidates[create]        
-        weights = self.weights_generator.get(self.N, self.distance_matrix, create)
-        delays  = self.delays_generator.get(self.N, self.distance_matrix, create)        
+        weights = self.weights_generator.get(self.M, self.distance_matrix, create)
+        delays  = self.delays_generator.get(self.M, self.distance_matrix, create)        
         
         if len(sources) > 0:
             self.projection.connection_manager.convergent_connect(sources.tolist(), tgt, weights, delays)
@@ -103,7 +115,7 @@ class FastDistanceDependentProbabilityConnector(DistanceDependentProbabilityConn
             connector.distance_matrix.set_source(tgt.position)
             proba  = proba_generator.get(connector.N, connector.distance_matrix)
             if proba.dtype == 'bool':
-                proba = proba.astype(float)
+                proba = proba.astype(float)           
             connector._probabilistic_connect(tgt, proba, self.n_connections)
             self.progression(count)
 
@@ -152,4 +164,21 @@ class FixedNumberPreConnector(FixedNumberPreConnector):
             if len(sources) > 0:
                 projection.connection_manager.convergent_connect(sources.tolist(), [tgt], weights, delays)
             
+            self.progression(count)
+
+
+
+class FastSmallWorldConnector(SmallWorldConnector):
+    
+    __doc__ = SmallWorldConnector.__doc__
+    
+    def connect(self, projection):
+        """Connect-up a Projection."""
+        connector       = FastProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
+        proba_generator = ProbaGenerator(self.d_expression, connector.local)
+        self.progressbar(len(projection.post.local_cells))
+        for count, tgt in enumerate(projection.post.local_cells.flat):
+            connector.distance_matrix.set_source(tgt.position)
+            proba  = proba_generator.get(connector.N, connector.distance_matrix).astype(float)
+            connector._probabilistic_connect(tgt, proba, None, self.rewiring)
             self.progression(count)

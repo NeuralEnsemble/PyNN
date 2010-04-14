@@ -446,8 +446,7 @@ class Projection(common.Projection):
         else:
             fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%d", "%g", "%g")
         lines = []
-        connections = nest.FindConnections(self.connection_manager.sources, synapse_type=self.connection_manager.synapse_model)
-        res         = nest.GetStatus(connections, ('source', 'target', 'weight', 'delay'))
+        res   = nest.GetStatus(self.connection_manager.connections, ('source', 'target', 'weight', 'delay'))
 
         if not compatible_output:
             for c in res:   
