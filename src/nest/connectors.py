@@ -43,32 +43,38 @@ class FastProbabilisticConnector(Connector):
         targets of that pre-synaptic cell.
         """
         if numpy.isscalar(p) and p == 1:
-            create = numpy.arange(self.size)
+            precreate = numpy.arange(self.size)
         else:
             rarr   = self.probas_generator.get(self.M)
             if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
                 rarr = numpy.array([rarr])
-            create = numpy.where(rarr < p)[0]  
+            precreate = numpy.where(rarr < p)[0]  
         self.distance_matrix.set_source(tgt.position)
         
         if not self.allow_self_connections and self.projection.pre == self.projection.post:
-            i       = numpy.where(self.candidates == tgt)[0]
-            create  = numpy.delete(create, i)
-        
+            i         = numpy.where(self.candidates == tgt)[0]
+            precreate = numpy.delete(precreate, i)
+                
         if rewiring is not None and rewiring > 0:
             idx = numpy.arange(self.size)
             if not self.allow_self_connections and self.projection.pre == self.projection.post:
                 i   = numpy.where(self.candidates == tgt)[0]
                 idx = numpy.delete(idx, i)
             
-            rarr    = self.probas_generator.get(self.M)[create]
+            rarr    = self.probas_generator.get(self.M)[precreate]
             rewired = rarr < rewiring
             if sum(rewired) > 0:
-                new_idx         = numpy.random.random_integers(0, len(idx)-1, sum(rewired))
-                create[rewired] = idx[new_idx]    
+                new_idx            = numpy.random.random_integers(0, len(idx)-1, sum(rewired))
+                precreate[rewired] = idx[new_idx]    
         
-        if n_connections is not None:
-            create = numpy.random.permutation(create)[:n_connections]
+        if (n_connections is not None) and (len(precreate) > 0):
+            create = numpy.array([], int)
+            while len(create) < n_connections: # if the number of requested cells is larger than the size of the
+                                               # presynaptic population, we allow multiple connections for a given cell
+                create = numpy.concatenate((create, self.projection.rng.permutation(precreate)))
+            create = create[:n_connections]
+        else:
+            create = precreate   
         
         sources = self.candidates[create]        
         weights = self.weights_generator.get(self.M, self.distance_matrix, create)
@@ -126,46 +132,15 @@ class FixedNumberPreConnector(FixedNumberPreConnector):
     __doc__ = FixedNumberPreConnector.__doc__
 
     def connect(self, projection):
-        """Connect-up a Projection."""
-        local             = numpy.ones(len(projection.pre), bool)
-        weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
-        delays_generator  = DelayGenerator(self.delays, local, self.safe)
-        distance_matrix   = DistanceMatrix(projection.pre.positions, self.space)              
-        candidates        = projection.pre.all_cells.flatten()          
-        size              = len(projection.pre)
+        connector = FastProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
         self.progressbar(len(projection.post.local_cells))
-        
-        if isinstance(projection.rng, random.NativeRNG):
-            raise Exception("Warning: use of NativeRNG not implemented.")
-            
         for count, tgt in enumerate(projection.post.local_cells.flat):
-            # pick n neurons at random
             if hasattr(self, 'rand_distr'):
                 n = self.rand_distr.next()
             else:
                 n = self.n
-            
-            idx = numpy.arange(0, size)
-            if not self.allow_self_connections and projection.pre == projection.post:
-                i   = numpy.where(candidates == tgt)[0]
-                idx = numpy.delete(idx, i)
-            
-            create = numpy.array([]) 
-            while len(create) < n: # if the number of requested cells is larger than the size of the
-                                    # presynaptic population, we allow multiple connections for a given cell
-                create = numpy.concatenate((create, projection.rng.permutation(idx)[:n])) 
-                            
-            distance_matrix.set_source(tgt.position)
-            create  = create[:n].astype(int)
-            sources = candidates[create]
-            weights = weights_generator.get(n, distance_matrix, create)
-            delays  = delays_generator.get(n, distance_matrix, create)            
-                 
-            if len(sources) > 0:
-                projection.connection_manager.convergent_connect(sources.tolist(), [tgt], weights, delays)
-            
+            connector._probabilistic_connect(tgt, 1, n)
             self.progression(count)
-
 
 
 class FastSmallWorldConnector(SmallWorldConnector):
