@@ -32,7 +32,6 @@ class FastProbabilisticConnector(Connector):
         self.distance_matrix   = DistanceMatrix(projection.pre.positions, self.space, self.local)
         self.projection        = projection
         self.candidates        = projection.pre.all_cells.flatten()
-        self.size              = self.local.sum()
         self.allow_self_connections = allow_self_connections
                 
     def _probabilistic_connect(self, tgt, p, n_connections=None, rewiring=None):
@@ -43,7 +42,7 @@ class FastProbabilisticConnector(Connector):
         targets of that pre-synaptic cell.
         """
         if numpy.isscalar(p) and p == 1:
-            precreate = numpy.arange(self.size)
+            precreate = numpy.arange(self.N)
         else:
             rarr   = self.probas_generator.get(self.M)
             if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
@@ -55,17 +54,18 @@ class FastProbabilisticConnector(Connector):
             i         = numpy.where(self.candidates == tgt)[0]
             precreate = numpy.delete(precreate, i)
                 
-        if rewiring is not None and rewiring > 0:
-            idx = numpy.arange(self.size)
+        if (rewiring is not None) and (rewiring > 0):
+            idx = numpy.arange(self.N)
             if not self.allow_self_connections and self.projection.pre == self.projection.post:
                 i   = numpy.where(self.candidates == tgt)[0]
                 idx = numpy.delete(idx, i)
             
             rarr    = self.probas_generator.get(self.M)[precreate]
-            rewired = rarr < rewiring
-            if sum(rewired) > 0:
-                new_idx            = numpy.random.random_integers(0, len(idx)-1, sum(rewired))
-                precreate[rewired] = idx[new_idx]    
+            rewired = numpy.where(rarr < rewiring)[0]
+            N       = len(rewired)
+            if N > 0:
+                new_idx            = (len(idx)-1) * self.probas_generator.get(self.M)[precreate]
+                precreate[rewired] = idx[new_idx.astype(int)]    
         
         if (n_connections is not None) and (len(precreate) > 0):
             create = numpy.array([], int)
@@ -75,7 +75,7 @@ class FastProbabilisticConnector(Connector):
             create = create[:n_connections]
         else:
             create = precreate   
-        
+
         sources = self.candidates[create]        
         weights = self.weights_generator.get(self.M, self.distance_matrix, create)
         delays  = self.delays_generator.get(self.M, self.distance_matrix, create)        
