@@ -135,6 +135,6 @@ class GridPositions(PositionsGenerator):
                 if item is not None:
                     bmin, bmax = item
                     padding    = (bmax-bmin)/float(dims[axis])
-                    data       = numpy.linspace(bmin+padding, bmax-padding, dims[axis])
+                    data       = numpy.linspace(bmin+padding, bmax, dims[axis])
                     self.positions[axis, :] = data[grid[axis].flatten()]
             return self.positions            
