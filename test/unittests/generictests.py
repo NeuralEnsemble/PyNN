@@ -778,12 +778,24 @@ class ProjectionInitTest(unittest.TestCase):
         """For all connections created with "distanceDependentProbability"..."""
         # Test should be improved..."
         for rngclass in (random.NumpyRNG,): # random.NativeRNG):
-            for expr in ('exp(-d)', 'd < 0.5'):
+            for expr in ('exp(-d)', 'd < 0.5', '(d[0] < 0.1) & (d[1] < 0.1)'):
                 prj = sim.Projection(self.source33, self.target33,
                                         sim.DistanceDependentProbabilityConnector(d_expression=expr),
                                         rng=rngclass(12345, rank=sim.rank(), num_processes=sim.num_processes()))
                 assert (0 < len(prj) < len(self.source33)*len(self.target33))
         self.assertRaises(ZeroDivisionError, sim.DistanceDependentProbabilityConnector, d_expression="d/0.0")
+    
+    def testSmallWorldProbability(self):
+        """For all connections created with "distanceDependentProbability"..."""
+        # Test should be improved..."
+        for rngclass in (random.NumpyRNG,): # random.NativeRNG):
+            for rewiring in [0, 1]:
+                for degree in [0.1, 0.5]:
+                    prj = sim.Projection(self.source33, self.target33,
+                                        sim.SmallWorldConnector(degree, rewiring),
+                                        rng=rngclass(12345, rank=sim.rank(), num_processes=sim.num_processes()))
+                assert (0 < len(prj) < len(self.source33)*len(self.target33))        
+    
     
     def testFixedNumberPre(self):
         c1 = sim.FixedNumberPreConnector(10)
@@ -892,6 +904,7 @@ class ProjectionInitTest(unittest.TestCase):
                     for c in first_connection, last_connection:
                        d = space.distance(c.source, c.target)
                        self.assertAlmostEqual(c.weight, eval(conn.weights), 10)
+
 
 class ProjectionSetTest(unittest.TestCase):
     """Tests of the setWeights(), setDelays(), randomizeWeights() and

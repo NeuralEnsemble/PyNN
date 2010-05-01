@@ -52,7 +52,7 @@ class Space(object):
         self.scale_factor = scale_factor
         self.offset = offset
         
-    def distances(self, A, B):
+    def distances(self, A, B, expand=False):
         """
         Calculate the distance matrix between two sets of coordinates, given
         the topology of the current space.
@@ -65,7 +65,7 @@ class Space(object):
         # I'm not sure the following line should be here. Operations may be redundant and not very 
         # transparent from the user point of view. I moved it into the DistanceDependentProbability Connector
         #B = self.scale_factor*(B + self.offset)
-        d = numpy.zeros((A.shape[1], B.shape[1]), dtype=A.dtype)
+        d = numpy.zeros((len(self.axes), A.shape[1], B.shape[1]), dtype=A.dtype)
         for axis in self.axes:
             diff2 = A[axis,:,None] - B[axis, :]
             if self.periodic_boundaries is not None:
@@ -75,7 +75,9 @@ class Space(object):
                     ad2   = abs(diff2)
                     diff2 = numpy.minimum(ad2, range-ad2)
             diff2 **= 2
-            d += diff2
+            d[axis] = diff2
+        if not expand:
+            d = numpy.sum(d, 0)
         numpy.sqrt(d, d)
         return d
 

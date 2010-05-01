@@ -8,7 +8,17 @@ from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
 
 logger = logging.getLogger("PyNN")
 
-regexpr = re.compile(r'd\[\d*\]')
+
+def expand_distances(d_expression):
+    regexpr = re.compile(r'.*d\[\d*\].*')
+    # Function that may be enhanced, to check if a distance expression
+    # contains at least one term d[x]. If yes, then the distances are expanded
+    # and we assume the user have specified an expression such as d[0] + d[2]. 
+    # Others check may be performed...
+    if regexpr.match(d_expression):
+        return True
+    return False
+            
 
 class ConnectionAttributeGenerator(object):
     
@@ -29,12 +39,15 @@ class ConnectionAttributeGenerator(object):
         #sub_mask is a list of cells ids.
         if isinstance(self.source, basestring):
             assert distance_matrix is not None            
-            d      = distance_matrix.as_array(sub_mask)
+            if expand_distances(self.source):            
+                d = distance_matrix.as_array(sub_mask, expand=True)
+            else:
+                d = distance_matrix.as_array(sub_mask)
             values = eval(self.source)
             return values
-        elif hasattr(self.source, 'func_name'):
+        elif callable(self.source):
             assert distance_matrix is not None
-            d      = distance_matrix.as_array(sub_mask)
+            d      = distance_matrix.as_array(sub_mask, expand=True)
             values = self.source(d)
             return values
         elif numpy.isscalar(self.source):
@@ -126,12 +139,17 @@ class DistanceMatrix(object):
         else:
             self.B = B
         
-    def as_array(self, sub_mask=None):
+    def as_array(self, sub_mask=None, expand=False):
         if self._distance_matrix is None and self.A is not None:
             if sub_mask is None:
-                self._distance_matrix = self.space.distances(self.A, self.B)[0]
+                self._distance_matrix = self.space.distances(self.A, self.B, expand)
             else:
-                self._distance_matrix = self.space.distances(self.A, self.B[:,sub_mask])[0]
+                self._distance_matrix = self.space.distances(self.A, self.B[:,sub_mask], expand)
+            if expand:
+                N = self._distance_matrix.shape[2]
+                self._distance_matrix = self._distance_matrix.reshape((3, N))
+            else:
+                self._distance_matrix = self._distance_matrix[0]
         return self._distance_matrix
         
     def set_source(self, A):
@@ -327,8 +345,9 @@ class DistanceDependentProbabilityConnector(ProbabilisticConnector):
         Connector.__init__(self, weights, delays, space, safe, verbose)
         assert isinstance(d_expression, str)
         try:
-            d = 0; assert 0 <= eval(d_expression), eval(d_expression)
-            d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
+            if not expand_distances(d_expression):                       
+                d = 0; assert 0 <= eval(d_expression), eval(d_expression)
+                d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
         except ZeroDivisionError, err:
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
@@ -702,7 +721,7 @@ class SmallWorldConnector(Connector):
         rewired = numpy.where(rarr < self.rewiring)[0]
         N       = len(rewired)
         if N > 0:
-            new_idx            = (len(idx)-1) * self.probas_generator.get(self.N)[create]
+            new_idx         = (len(idx)-1) * self.probas_generator.get(self.N)[create]
             create[rewired] = idx[new_idx.astype(int)]
 
         targets = self.candidates[create]
