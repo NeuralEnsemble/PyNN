@@ -161,7 +161,7 @@ class NativeRNG(AbstractRNG):
         return "AbstractRNG(seed=%s)" % self.seed
 
 
-class RandomDistribution:
+class RandomDistribution(object):
     """
     Class which defines a next(n) method which returns an array of n random
     numbers from a given distribution.

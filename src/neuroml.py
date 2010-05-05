@@ -4,7 +4,7 @@ PyNN-->NeuroML
 $Id$
 """
 
-from pyNN import common, connectors, cells
+from pyNN import common, connectors, cells, standardmodels
 import math
 import numpy
 import sys
@@ -203,7 +203,7 @@ class IF_curr_exp(cells.IF_curr_exp, NotImplementedModel):
     excitatory and inhibitory synapses"""
     
     n = 0
-    translations = common.build_translations(*[(name, name)
+    translations = standardmodels.build_translations(*[(name, name)
                                                for name in cells.IF_curr_exp.default_parameters])
     
     def __init__(self, parameters):
@@ -218,7 +218,7 @@ class IF_curr_alpha(cells.IF_curr_alpha, NotImplementedModel):
     shaped post-synaptic current."""
     
     n = 0
-    translations = common.build_translations(*[(name, name)
+    translations = standardmodels.build_translations(*[(name, name)
                                                for name in cells.IF_curr_alpha.default_parameters])
     
     def __init__(self, parameters):
@@ -233,7 +233,7 @@ class IF_cond_exp(cells.IF_cond_exp, IF_base):
     decaying-exponential post-synaptic conductance."""
     
     n = 0
-    translations = common.build_translations(*[(name, name)
+    translations = standardmodels.build_translations(*[(name, name)
                                                for name in cells.IF_cond_exp.default_parameters])
     
     def __init__(self, parameters):
@@ -247,7 +247,7 @@ class IF_cond_alpha(cells.IF_cond_alpha, IF_base):
     shaped post-synaptic conductance."""
     
     n = 0
-    translations = common.build_translations(*[(name, name)
+    translations = standardmodels.build_translations(*[(name, name)
                                                for name in cells.IF_cond_alpha.default_parameters])
     
     def __init__(self, parameters):
@@ -260,7 +260,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson, NotImplementedModel):
     """Spike source, generating spikes according to a Poisson process."""
 
     n = 0
-    translations = common.build_translations(*[(name, name)
+    translations = standardmodels.build_translations(*[(name, name)
                                                for name in cells.SpikeSourcePoisson.default_parameters])
     
     def __init__(self, parameters):
@@ -274,7 +274,7 @@ class SpikeSourceArray(cells.SpikeSourceArray, NotImplementedModel):
     """Spike source generating spikes at the times given in the spike_times array."""
 
     n = 0
-    translations = common.build_translations(*[(name, name)
+    translations = standardmodels.build_translations(*[(name, name)
                                                for name in cells.SpikeSourcePoisson.default_parameters])
 
     def __init__(self, parameters):
