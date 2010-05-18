@@ -24,7 +24,7 @@ class ExceptionsTest(unittest.TestCase):
             self.assertEqual(err.parameter_name, 'foo')
             self.assertEqual(err.valid_parameter_names,
                              ['cm', 'e_rev_E', 'e_rev_I', 'i_offset', 'tau_m',
-                              'tau_refrac', 'tau_syn_E', 'tau_syn_I', 'v_init',
+                              'tau_refrac', 'tau_syn_E', 'tau_syn_I',
                               'v_reset', 'v_rest', 'v_thresh'])
             assert len(str(err)) > 0
     

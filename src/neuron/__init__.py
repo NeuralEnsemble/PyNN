@@ -76,6 +76,18 @@ def run(simtime):
     
 reset = common.reset
 
+def initialize(cells, variable, value):
+    if not hasattr(cells, "__len__"):
+        cells = [cells]
+    if isinstance(value, RandomDistribution):
+        rarr = value.next(n=len(cells))
+        for cell, val in zip(cells, rarr):
+            cell.set_initial_value(variable, val)
+    else:
+        for cell in cells:
+            cell.set_initial_value(variable, value)
+
+
 # ==============================================================================
 #   Functions returning information about the simulation state
 # ==============================================================================
@@ -170,7 +182,22 @@ class Population(common.Population):
         for cell,val in zip(self, rarr):
             setattr(cell, parametername, val)
 
-
+    def initialize(self, variable, value):
+        """
+        Set the initial value of one of the state variables of the neurons in
+        this population.
+        
+        `value` may either be a numeric value (all neurons set to the same
+                value) or a `RandomDistribution` object (each neuron gets a
+                different value)
+        """
+        if isinstance(value, RandomDistribution):
+            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
+            for cell, val in zip(self, rarr):
+                cell.set_initial_value(variable, val)
+        else:
+            for cell in self: # only on local node
+                cell.set_initial_value(variable, value)
 
         
 class Projection(common.Projection):

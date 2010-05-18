@@ -24,7 +24,6 @@ cell_params = {
     'tau_syn_I'  : 4.0,  # (ms)
     'tau_refrac' : 2.0,  # (ms)
     'v_rest'     : 0.0,  # (mV)
-    'v_init'     : 0.0,  # (mV)
     'v_reset'    : 0.0,  # (mV)
     'v_thresh'   : 20.0, # (mV)
     'cm'         : 0.5}  # (nF)
@@ -55,6 +54,7 @@ input_conns.setDelays(syn_delay)
 
 # === Run simulation ===========================================================
 
+cells.initialize('v', 0.0)  # (mV)
 run(simtime)
 
 cells.printSpikes("Results/small_network_%s.ras" % simulator_name)

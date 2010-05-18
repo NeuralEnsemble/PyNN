@@ -61,7 +61,7 @@ The neurons we have created so far have all had default parameter values,
 stored in the ``default_values`` of the standard cell class, e.g.::
 
     >>> IF_curr_alpha.default_parameters #doctest: +NORMALIZE_WHITESPACE
-    {'tau_refrac': 0.0, 'tau_m': 20.0, 'i_offset': 0.0, 'cm': 1.0, 'v_init': -65.0,
+    {'tau_refrac': 0.0, 'tau_m': 20.0, 'i_offset': 0.0, 'cm': 1.0,
      'v_thresh': -50.0, 'tau_syn_E': 0.5, 'v_rest': -65.0, 'tau_syn_I': 0.5,
      'v_reset': -65.0}
 
@@ -84,7 +84,7 @@ If you try to set a non-existent parameter, or pass an invalid value, PyNN will 
         self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
       File "/usr/lib/python/site-packages/pyNN/common.py", line 504, in checkParameters
         raise NonExistentParameterError(k, cls)
-    NonExistentParameterError: foo (valid parameters for IF_curr_alpha are: cm, i_offset, tau_m, tau_refrac, tau_syn_E, tau_syn_I, v_init, v_reset, v_rest, v_thresh)
+    NonExistentParameterError: foo (valid parameters for IF_curr_alpha are: cm, i_offset, tau_m, tau_refrac, tau_syn_E, tau_syn_I, v_reset, v_rest, v_thresh)
     >>> create(IF_curr_alpha, cellparams={'tau_m': 'bar'})
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
@@ -151,7 +151,7 @@ Setting neuron parameters
 There are many ways to change the parameters for individual neurons and post-synaptic mechanisms after creation of the neuron.
 To change a single parameter of a single neuron, just set the relevant attribute of the neuron ID object, e.g.::
 
-    >>> cells = create(IF_curr_exp, cellparams={'v_init': -70.0}, n=10)
+    >>> cells = create(IF_curr_exp, cellparams={'v_thresh': -50.0}, n=10)
     >>> cells[0].tau_m
     20.0
     >>> cells[0].tau_m = 15
@@ -168,11 +168,11 @@ To change several parameters at once for a single neuron, use the ``set_paramete
 
 To change parameters for several cells at once, use the ``set()`` function, e.g.::
 
-    >>> set(cells[0:5], param='v_init', val=-65.0)
-    >>> print cells[0].v_init
-    -65.0
-    >>> print cells[5].v_init
-    -70.0
+    >>> set(cells[0:5], param='v_thresh', val=-55.0)
+    >>> print cells[0].v_thresh
+    -55.0
+    >>> print cells[5].v_thresh
+    -50.0
     
 Individual parameters can be set using the ``param`` and ``val`` arguments, as above, or multiple parameters can be set at once by passing a dictionary of name:value pairs as the ``param`` argument, with ``val`` empty, e.g.::
 

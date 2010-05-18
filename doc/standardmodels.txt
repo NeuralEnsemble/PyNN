@@ -39,7 +39,6 @@ Name            Default value  Units  Description
 ``i_offset``      0.0          nA     Offset current
 ``v_reset``     -65.0          mV     Reset potential after a spike
 ``v_thresh``    -50.0          mV     Spike threshold
-``v_init``      -65.0          mV     Membrane potential at ``t`` = 0
 ==============  =============  =====  ========================================
 
 
@@ -63,7 +62,6 @@ Name            Default value  Units  Description
 ``i_offset``      0.0          nA     Offset current
 ``v_reset``     -65.0          mV     Reset potential after a spike
 ``v_thresh``    -50.0          mV     Spike threshold
-``v_init``      -65.0          mV     Membrane potential ``t`` = 0
 ==============  =============  =====  =========================================
 
 
@@ -88,7 +86,6 @@ Name            Default value  Units  Description
 ``v_thresh``    -50.0          mV     Spike threshold
 ``v_reset``     -65.0          mV     Reset potential after a spike
 ``i_offset``      0.0          nA     Offset current
-``v_init``      -65.0          mV     Membrane potential at ``t`` = 0
 ==============  =============  =====  ===================================================
 
 
@@ -113,7 +110,6 @@ Name            Default value  Units  Description
 ``v_thresh``    -50.0          mV     Spike threshold
 ``v_reset``     -65.0          mV     Reset potential after a spike
 ``i_offset``      0.0          nA     Offset current
-``v_init``      -65.0          mV     Membrane potential at ``t`` = 0
 ==============  =============  =====  =================================================== 
 
 
@@ -140,7 +136,6 @@ Name            Default value  Units  Description
 ``tau_syn_E``       0.2        ms
 ``tau_syn_I``       2.0        ms
 ``i_offset``        0.0        nA
-``v_init``        -65.0        mV
 ==============  =============  =====  =================================================== 
 
 
@@ -156,8 +151,6 @@ Availability: NEST, NEURON
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
 ==============  =============  =====  =================================================== 
-``v_init``      -70.6          mV     Initial membrane potential
-``w_init``        0.0          nA     Spike-adaptation current
 ``cm``            0.281        nF     Capacity of the membrane
 ``tau_refrac``    0.0          ms     Duration of refractory period
 ``v_spike``       0.0          mV     Spike detection threshold

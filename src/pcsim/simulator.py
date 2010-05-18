@@ -33,6 +33,7 @@ from pyNN import common, errors, standardmodels, core
 
 recorder_list = []
 connection_managers = []
+STATE_VARIABLE_MAP = {"v": ("Vinit", 1e-3)}
 
 logger = logging.getLogger("PyNN")
 
@@ -124,6 +125,33 @@ class ID(long, common.IDMixin):
                 getattr(simobj, setterMethod)(value)
             else:               
                 setattr(simobj, name, value)
+
+    def get_initial_value(self, variable):
+        pcsim_name, unit_conversion = STATE_VARIABLE_MAP[variable]
+        pcsim_cell = self._pcsim_cell()
+        if hasattr(self.cellclass, 'getterMethods') and variable in self.cellclass.getterMethods:
+            getterMethod = self.cellclass.getterMethods[pcsim_name]
+            value = getattr(pcsim_cell, getterMethod)()    
+        else:
+            try:
+                value = getattr(pcsim_cell, pcsim_name)
+            except AttributeError, e:
+                raise AttributeError("%s. Possible attributes are: %s" % (e, dir(pcsim_cell)))
+        return value/unit_conversion
+
+    def set_initial_value(self, variable, value):
+        pcsim_name, unit_conversion = STATE_VARIABLE_MAP[variable]
+        pcsim_cell = self._pcsim_cell()
+        value = unit_conversion*value
+        if hasattr(self.cellclass, 'setterMethods') and variable in self.cellclass.setterMethods:
+            setterMethod = self.cellclass.setterMethods[pcsim_name]
+            getattr(pcsim_cell, setterMethod)(value)    
+        else:
+            try:
+                value = setattr(pcsim_cell, pcsim_name, value)
+            except AttributeError, e:
+                raise AttributeError("%s. Possible attributes are: %s" % (e, dir(pcsim_cell)))
+
 
 # --- For implementation of create() and Population.__init__() -----------------
 

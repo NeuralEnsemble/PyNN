@@ -42,6 +42,7 @@ $Id$
 
 import numpy
 import logging
+from warnings import warn
 from math import *
 import operator
 from pyNN import random, utility, recording, errors, standardmodels, core, space
@@ -131,12 +132,13 @@ class IDMixin(object):
     
     non_parameter_attributes = ('parent', '_cellclass', 'cellclass',
                                 '_position', 'position', 'hocname', '_cell',
-                                'inject', '_v_init', 'local')
+                                'inject', 'local', '_initial_values')
     
     def __init__(self):
         self.parent = None
         self._cellclass = None
         self.local = True
+        self._initial_values = {}
 
     def __getattr__(self, name):
         if name in self.non_parameter_attributes or (self.local and not self.is_standard_cell()):
@@ -247,6 +249,22 @@ class IDMixin(object):
         """Inject current from a current source object into the cell."""
         current_source.inject_into([self])
 
+    def get_initial_value(self, variable):
+        """Get the initial value of a state variable of the cell."""
+        if self.parent:
+            index = self.parent.id_to_index(self)
+            return self.parent.initial_values[variable][index]
+        else:
+            return self._initial_values[variable]
+        
+    def set_initial_value(self, variable, value):
+        """Set the initial value of a state variable of the cell."""
+        if self.parent:
+            index = self.parent.id_to_index(self)
+            self.parent.initial_values[variable][index] = value
+        else:
+            self._initial_values[variable] = value
+        
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -282,6 +300,9 @@ def reset():
     their initial values, and delete any recorded data. The network structure is
     not changed, nor is the specification of which neurons to record from."""
     simulator.reset()
+
+def initialize(cells, variable, value):
+    raise NotImplementedError
 
 def get_current_time():
     """Return the current time in the simulation."""
@@ -398,6 +419,7 @@ def build_record(variable, simulator):
             or a list of cells."""
     return record
 
+
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
@@ -438,6 +460,7 @@ class Population(object):
         self.ndim = len(self.dim)
         self.cellparams = cellparams
         self.parent = parent
+        self.initial_values = {}
         self.size = self.dim[0]
         for i in range(1, self.ndim):
             self.size *= self.dim[i]
@@ -669,7 +692,14 @@ class Population(object):
         Set initial membrane potentials for all the cells in the population to
         random values.
         """
-        self.rset('v_init', rand_distr)
+        warn("The randomInit() method is deprecated, and will be removed in a future release. Use initialize('v', rand_distr) instead.")
+        self.initialize('v', rand_distr)
+
+    def initialize(self, variable, value):
+        """
+        Set initial values of state variables, e.g. the membrane potential.
+        """
+        raise NotImplementedError()
 
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""

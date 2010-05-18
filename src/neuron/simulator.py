@@ -253,6 +253,14 @@ class ID(int, common.IDMixin):
         for name, val in parameters.items():
             setattr(self._cell, name, val)
         
+    def get_initial_value(self, variable):
+        """Get the initial value of a state variable of the cell."""
+        return getattr(self._cell, "%s_init" % variable)
+        
+    def set_initial_value(self, variable, value):
+        """Set the initial value of a state variable of the cell."""
+        setattr(self._cell, "%s_init" % variable, value)
+
 
 # --- For implementation of create() and Population.__init__() -----------------
 

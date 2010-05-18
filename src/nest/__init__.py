@@ -26,6 +26,7 @@ Set = set
 tempdirs       = []
 NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
                       "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse"]
+STATE_VARIABLE_MAP = {"v": "V_m", "w": "w"}
 logger = logging.getLogger("PyNN")
 
 # ==============================================================================
@@ -131,6 +132,16 @@ def run(simtime):
     return get_current_time()
 
 reset = common.reset
+
+def initialize(cells, variable, value):
+    if not hasattr(cells, "__len__"):
+        cells = [cells]
+    if isinstance(value, RandomDistribution):
+        rarr = value.next(n=len(cells))
+        value = numpy.array(rarr)
+    nest.SetStatus(cells, STATE_VARIABLE_MAP[variable], value)
+    for cell in cells:
+        cell.set_initial_value(variable, value)
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -247,11 +258,7 @@ class Population(common.Population):
                                                                                                                         type(self.celltype.default_parameters[key]),
                                                                                                                         type(value)))
                 # Then we do the call to SetStatus
-                if key == 'v_init':
-                    for cell in self.local_cells:
-                        cell._v_init = value
-                    to_be_set['V_m'] = val # not correct, since could set v_init in the middle of a simulation
-                elif key in self.celltype.scaled_parameters():
+                if key in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[key]
                     value = eval(translation['forward_transform'], globals(), {key:value})
                     to_be_set[translation['translated_name']] = value
@@ -285,11 +292,7 @@ class Population(common.Population):
     #                self.celltype.default_parameters[parametername]
     #            except Exception:
     #                raise errors.NonExistentParameterError(parametername, self.celltype.__class__)
-    #            if parametername == 'v_init':
-    #                for cell,val in zip(self.local_cells, rarr):
-    #                    cell._v_init = val
-    #                nest.SetStatus(self.local_cells, "V_m", rarr) # not correct, since could set v_init in the middle of a simulation
-    #            elif parametername in self.celltype.scaled_parameters():
+    #            if parametername in self.celltype.scaled_parameters():
     #                translation = self.celltype.translations[parametername]
     #                rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
     #                nest.SetStatus(self.local_cells,translation['translated_name'],rarr)
@@ -301,6 +304,22 @@ class Population(common.Population):
     #                    setattr(cell, parametername, val)
     #        else:
     #           nest.SetStatus(self.local_cells, parametername, rarr)
+
+    def initialize(self, variable, value):
+        """
+        Set the initial value of one of the state variables of the neurons in
+        this population.
+        
+        `value` may either be a numeric value (all neurons set to the same
+                value) or a `RandomDistribution` object (each neuron gets a
+                different value)
+        """
+        if isinstance(value, RandomDistribution):
+            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
+            value = rarr #numpy.array(rarr)
+            assert len(rarr) == len(self.local_cells), "%d != %d" % (len(rarr), len(self.local_cells))
+        nest.SetStatus(self.local_cells.tolist(), STATE_VARIABLE_MAP[variable], value)
+        self.initial_values[variable] = value
 
     def _record(self, variable, record_from=None, rng=None, to_file=True):
         common.Population._record(self, variable, record_from, rng, to_file)

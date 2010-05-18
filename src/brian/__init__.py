@@ -6,6 +6,7 @@ $Id$
 """
 
 import logging
+Set = set
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
 from pyNN import common, recording, space, standardmodels, __doc__
@@ -62,6 +63,23 @@ def run(simtime):
     return get_current_time()
 
 reset = common.reset
+
+def initialize(cells, variable, value):
+    if not hasattr(cells, "__len__"):
+        cells = [cells]
+    parents = Set([])
+    for cell in cells:
+        parents.add(cell.parent_group)
+    if len(parents) != 1:
+        raise Exception("Initialising cells created through different create() calls at the same time not yet supported.")
+    if isinstance(value, RandomDistribution):
+        rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
+        value = numpy.array(rarr)
+    else:
+        value = value*numpy.ones((len(cells),))
+    group = list(parents)[0]
+    group.initial_values[variable] = value*mV
+    group.initialize()
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -122,6 +140,23 @@ class Population(common.Population):
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self),
                           'gsyn': Recorder('gsyn', population=self),}
+        
+    def initialize(self, variable, value):
+        """
+        Set the initial value of one of the state variables of the neurons in
+        this population.
+        
+        `value` may either be a numeric value (all neurons set to the same
+                value) or a `RandomDistribution` object (each neuron gets a
+                different value)
+        """
+        if isinstance(value, RandomDistribution):
+            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
+            value = numpy.array(rarr)
+        else:
+            value = value*numpy.ones((len(self),))
+        self.brian_cells.initial_values[variable] = value*mV
+        self.brian_cells.initialize()
         
     def meanSpikeCount(self, gather=True):
         """ 

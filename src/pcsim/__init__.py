@@ -200,6 +200,17 @@ def run(simtime):
 
 reset = common.reset
 
+def initialize(cells, variable, value):
+    if not hasattr(cells, "__len__"):
+        cells = [cells]
+    if isinstance(value, RandomDistribution):
+        rarr = value.next(n=len(cells))
+        for cell, val in zip(cells, rarr):
+            cell.set_initial_value(variable, val)
+    else:
+        for cell in cells:
+            cell.set_initial_value(variable, value)
+
 get_current_time = common.get_current_time
 get_time_step = common.get_time_step
 get_min_delay = common.get_min_delay
@@ -491,6 +502,25 @@ class Population(common.Population):
     ##    rarr = numpy.array(rand_distr.next(n=self.size))
     ##    rarr = rarr.reshape(self.dim[0:self.actual_ndim])         
     ##    self.tset(parametername, rarr)
+    
+    def initialize(self, variable, value):
+        """
+        Set the initial value of one of the state variables of the neurons in
+        this population.
+        
+        `value` may either be a numeric value (all neurons set to the same
+                value) or a `RandomDistribution` object (each neuron gets a
+                different value)
+        """
+        if isinstance(value, RandomDistribution):
+            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
+            value = numpy.array(rarr)
+            for cell, val in zip(self, rarr):
+                cell.set_initial_value(variable, val)
+        else:
+            for cell in self: # only on local node
+                cell.set_initial_value(variable, value)
+
     
     def _call(self, methodname, arguments):
         """

@@ -39,7 +39,7 @@ class SingleCompartmentNeuron(nrn.Section):
     }
 
     def __init__(self, syn_type, syn_shape, c_m, i_offset,
-                 v_init, tau_e, tau_i, e_e, e_i):
+                 tau_e, tau_i, e_e, e_i):
         
         # initialise Section object with 'pas' mechanism
         nrn.Section.__init__(self)
@@ -50,7 +50,6 @@ class SingleCompartmentNeuron(nrn.Section):
         self.source_section = self
         self.syn_type = syn_type
         self.syn_shape = syn_shape
-        self.v_init = v_init
         
         # insert synapses
         assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
@@ -72,6 +71,8 @@ class SingleCompartmentNeuron(nrn.Section):
         self.spike_times = h.Vector(0)
         self.gsyn_trace = {}
         self.recording_time = 0
+        
+        self.v_init = None
         
 
     @property
@@ -170,9 +171,7 @@ class SingleCompartmentNeuron(nrn.Section):
             if self.recording_time == 0:
                 self.record_times = None
     
-    def memb_init(self, v_init=None):
-        if v_init:
-            self.v_init = v_init
+    def memb_init(self):
         assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
         for seg in self:
             seg.v = self.v_init
@@ -202,10 +201,11 @@ class SingleCompartmentNeuron(nrn.Section):
 class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
     
     def __init__(self, syn_type, syn_shape, tau_m, c_m, v_rest, i_offset,
-                 v_init, tau_e, tau_i, e_e, e_i):
+                 tau_e, tau_i, e_e, e_i):
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
-                                         v_init, tau_e, tau_i, e_e, e_i)
+                                         tau_e, tau_i, e_e, e_i)
         self.insert('pas')
+        self.v_init = v_rest # default value
         
     def __set_tau_m(self, value):
         #print "setting tau_m to", value, "cm =", self.seg.cm
@@ -236,13 +236,11 @@ class StandardIF(LeakySingleCompartmentNeuron):
     
     def __init__(self, syn_type, syn_shape, tau_m=20, c_m=1.0, v_rest=-65,
                  v_thresh=-55, t_refrac=2, i_offset=0, v_reset=None,
-                 v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70):
-        if v_init is None:
-            v_init = v_rest
+                 tau_e=5, tau_i=5, e_e=0, e_i=-70):
         if v_reset is None:
             v_reset = v_rest
         LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
-                                              i_offset, v_init, tau_e, tau_i, e_e, e_i)       
+                                              i_offset, tau_e, tau_i, e_e, e_i)       
         # insert spike reset mechanism
         self.spike_reset = h.ResetRefrac(0.5, sec=self)
         self.spike_reset.vspike = 40 # (mV) spike height
@@ -250,7 +248,7 @@ class StandardIF(LeakySingleCompartmentNeuron):
         
         # process arguments
         self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',   # 'c_m' must come before 'tau_m'
-                                'i_offset', 'v_reset', 'v_init', 'tau_e', 'tau_i']
+                                'i_offset', 'v_reset', 'tau_e', 'tau_i']
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
@@ -266,13 +264,11 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     
     def __init__(self, syn_type, syn_shape, tau_m=20, c_m=1.0, v_rest=-65,
                  v_thresh=-55, t_refrac=2, i_offset=0,
-                 v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70,
+                 tau_e=5, tau_i=5, e_e=0, e_i=-70,
                  v_spike=0.0, v_reset=-70.6, A=4.0, B=0.0805, tau_w=144.0,
-                 w_init=0.0, delta=2.0):
-        if v_init is None:
-            v_init = v_rest
+                 delta=2.0):
         LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m,
-                                              c_m, v_rest, i_offset, v_init,
+                                              c_m, v_rest, i_offset,
                                               tau_e, tau_i, e_e, e_i)
     
         # insert Brette-Gerstner spike mechanism
@@ -280,11 +276,12 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
         self.source = self.seg._ref_v
         
         self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',
-                                'i_offset', 'v_reset', 'v_init', 'tau_e', 'tau_i',
-                                'A', 'B', 'tau_w', 'delta', 'w_init', 'v_spike']
+                                'i_offset', 'v_reset', 'tau_e', 'tau_i',
+                                'A', 'B', 'tau_w', 'delta', 'v_spike']
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
+        self.w_init = None
     
     v_thresh = _new_property('adexp', 'vthresh')
     v_reset  = _new_property('adexp', 'vreset')
@@ -294,8 +291,6 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     ## using 'A' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"   
     tau_w    = _new_property('adexp',  'tauw')
     delta    = _new_property('adexp',  'delta')
-    w_init   = _new_property('adexp',  'winit') # w_init not defined in .mod file - needs to be
-    #v_init   = _new_property('seg',  'v') #?? something involving FInitialize
     
     def __set_v_spike(self, value):
         self.adexp.vspike = value
@@ -328,26 +323,33 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     def get_threshold(self):
         return self.adexp.vspike
 
+    def memb_init(self):
+        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
+        assert self.w_init is not None
+        for seg in self:
+            seg.v = self.v_init
+            seg.w = self.w_init
+
+
 class SingleCompartmentTraub(SingleCompartmentNeuron):
     
     def __init__(self, syn_type, syn_shape, c_m=1.0, e_leak=-65,
-                 i_offset=0, v_init=None, tau_e=5, tau_i=5, e_e=0, e_i=-70,
+                 i_offset=0, tau_e=5, tau_i=5, e_e=0, e_i=-70,
                  gbar_Na=20000, gbar_K=6000, g_leak=10, ena=50,
                  ek=-90, v_offset=-63):
-        if v_init is None:
-            v_init = v_rest
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
-                                         v_init, tau_e, tau_i, e_e, e_i)
+                                         tau_e, tau_i, e_e, e_i)
         self.source = self.seg._ref_v
         self.insert('k_ion')
         self.insert('na_ion')
         self.insert('hh_traub')
-        self.parameter_names = ['c_m', 'e_leak', 'i_offset', 'v_init', 'tau_e',
+        self.parameter_names = ['c_m', 'e_leak', 'i_offset', 'tau_e',
                                 'tau_i', 'gbar_Na', 'gbar_K', 'g_leak', 'ena',
                                 'ek', 'v_offset']
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
+        self.v_init = e_leak # default value
 
     # not sure ena and ek are handled correctly
     
@@ -443,7 +445,6 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         ('i_offset',   'i_offset'),
         ('tau_syn_E',  'tau_e'),
         ('tau_syn_I',  'tau_i'),
-        ('v_init',     'v_init'),
     )
     model = StandardIF
     
@@ -468,7 +469,6 @@ class IF_curr_exp(cells.IF_curr_exp):
         ('i_offset',   'i_offset'),
         ('tau_syn_E',  'tau_e'),
         ('tau_syn_I',  'tau_i'),
-        ('v_init',     'v_init'),
     )
     model = StandardIF
     
@@ -492,7 +492,6 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         ('i_offset',   'i_offset'),
         ('tau_syn_E',  'tau_e'),
         ('tau_syn_I',  'tau_i'),
-        ('v_init',     'v_init'),
         ('e_rev_E',    'e_e'),
         ('e_rev_I',    'e_i')
     )
@@ -519,7 +518,6 @@ class IF_cond_exp(cells.IF_cond_exp):
         ('i_offset',   'i_offset'),
         ('tau_syn_E',  'tau_e'),
         ('tau_syn_I',  'tau_i'),
-        ('v_init',     'v_init'),
         ('e_rev_E',    'e_e'),
         ('e_rev_I',    'e_i')
     )
@@ -576,7 +574,6 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('tau_syn_E',  'tau_e'),
         ('tau_syn_I',  'tau_i'),
         ('i_offset',   'i_offset'),
-        ('v_init',     'v_init'),
     )
     model = SingleCompartmentTraub
 
@@ -618,8 +615,6 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     """
     
     translations = standardmodels.build_translations(
-        ('v_init',     'v_init'),
-        ('w_init',     'w_init'),
         ('cm',         'c_m'),
         ('tau_refrac', 't_refrac'), 
         ('v_spike',    'v_spike'),

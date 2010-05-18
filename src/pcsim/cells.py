@@ -25,7 +25,6 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         ('i_offset',   'Iinject',   1e-9),         
         ('tau_syn_E',  'TauSynExc', 1e-3),
         ('tau_syn_I',  'TauSynInh', 1e-3),
-        ('v_init',     'Vinit',     1e-3) 
     )
     pcsim_name = "LIFCurrAlphaNeuron"    
     simObjFactory = None
@@ -51,8 +50,7 @@ class IF_curr_exp(cells.IF_curr_exp):
         ('tau_refrac', 'Trefract',  1e-3), 
         ('i_offset',   'Iinject',   1e-9),         
         ('tau_syn_E',  'TauSynExc', 1e-3),
-        ('tau_syn_I',  'TauSynInh', 1e-3),
-        ('v_init',     'Vinit',     1e-3) 
+        ('tau_syn_I',  'TauSynInh', 1e-3), 
     )
     pcsim_name = "LIFCurrExpNeuron"    
     simObjFactory = None
@@ -80,7 +78,6 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         ('tau_syn_I',  'TauSynInh', 1e-3),
         ('e_rev_E',    'ErevExc',   1e-3),
         ('e_rev_I',    'ErevInh',   1e-3),
-        ('v_init',     'Vinit',     1e-3), 
     )
     pcsim_name = "LIFCondAlphaNeuron"    
     simObjFactory = None
@@ -109,7 +106,6 @@ class IF_cond_exp(cells.IF_cond_exp):
         ('tau_syn_I',  'TauSynInh', 1e-3),
         ('e_rev_E',    'ErevExc',   1e-3),
         ('e_rev_I',    'ErevInh',   1e-3),
-        ('v_init',     'Vinit',     1e-3), 
     )
     pcsim_name = "LIFCondExpNeuron"    
     simObjFactory = None
@@ -214,8 +210,6 @@ class EIF_cond_alpha_isfa_ista(standardmodels.ModelNotAvailable):
 #    """
 #
 #    translations = standardmodels.build_translations(
-#        ('v_init'    , 'Vinit',     1e-3),  # mV -> V
-#        ('w_init'    , 'w',         1e-9),  # nA -> A
 #        ('cm'        , 'Cm',        1e-9),  # nF -> F
 #        ('tau_refrac', 'Trefract',  1e-3),  # ms -> s 
 #        ('v_spike'   , 'Vpeak',     1e-3),
@@ -270,7 +264,6 @@ class HH_cond_exp(standardmodels.ModelNotAvailable):
 #        ('tau_syn_E',  'TauSynExc'),
 #        ('tau_syn_I',  'TauSynInh'),
 #        ('i_offset',   'Iinject', 1000.0),
-#        ('v_init',     'v_init'),
 #    )
 #    pcsim_name = "HHNeuronTraubMiles91"    
 #    simObjFactory = None

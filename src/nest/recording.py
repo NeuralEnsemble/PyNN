@@ -69,7 +69,7 @@ class Recorder(recording.Recorder):
         """
         if self.variable == 'v':
             try:
-                initial = [[id, 0.0, id.v_init] for id in self.recorded]
+                initial = [[id, 0.0, id.get_initial_value('v')] for id in self.recorded]
             except common.NonExistentParameterError:
                 initial = [[id, 0.0, id.v_rest] for id in self.recorded]
         elif self.variable == 'gsyn':

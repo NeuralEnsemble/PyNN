@@ -25,7 +25,6 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         ('tau_syn_I',  'tau_syn_I',  ms),
         ('v_thresh',   'v_thresh'),
         ('i_offset',   'i_offset',   nA), 
-        ('v_init',     'v_init',     ms),
     )
     eqs= brian.Equations('''
         dv/dt  = (ge + gi + i_offset + i_inj)/c_m + (v_rest-v)/tau_m : mV
@@ -60,7 +59,6 @@ class IF_curr_exp(cells.IF_curr_exp):
         ('tau_syn_I',  'tau_syn_I',  ms),
         ('v_thresh',   'v_thresh'),
         ('i_offset',   'i_offset',   nA), 
-        ('v_init',     'v_init',     mV),
     )
     eqs= brian.Equations('''
         dv/dt  = (ie + ii + i_offset + i_inj)/c_m + (v_rest-v)/tau_m : mV
@@ -92,7 +90,6 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         ('i_offset',   'i_offset',   nA), 
         ('e_rev_E',    'e_rev_E',    mV),
         ('e_rev_I',    'e_rev_I',    mV),
-        ('v_init',     'v_init',     mV),
     )
     eqs= brian.Equations('''
         dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v) + i_offset + i_inj)/c_m : mV
@@ -128,7 +125,6 @@ class IF_cond_exp(cells.IF_cond_exp):
         ('i_offset',   'i_offset',   nA), 
         ('e_rev_E',    'e_rev_E',    mV),
         ('e_rev_I',    'e_rev_I',    mV),
-        ('v_init',     'v_init',     mV),
     )
     eqs= brian.Equations('''
         dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v) + i_offset + i_inj)/cm : mV
@@ -224,7 +220,6 @@ class HH_cond_exp(standardmodels.ModelNotAvailable):
 #        ('tau_syn_E',  'tau_syn_E'),
 #        ('tau_syn_I',  'tau_syn_I'),
 #        ('i_offset',   'i_offset'),
-#        ('v_init',     'v_init'),
 #    )
 #    
 #    eqs= brian.Equations('''

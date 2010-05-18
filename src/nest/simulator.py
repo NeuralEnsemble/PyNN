@@ -101,20 +101,13 @@ class ID(int, common.IDMixin):
         """Create an ID object with numerical value `n`."""
         int.__init__(n)
         common.IDMixin.__init__(self)
-        self._v_init = None
 
     def get_native_parameters(self):
         """Return a dictionary of parameters for the NEST cell model."""
-        parameters = nest.GetStatus([int(self)])[0]
-        if self._v_init is not None:
-            parameters['v_init'] = self._v_init
-        return parameters
+        return nest.GetStatus([int(self)])[0]
 
     def set_native_parameters(self, parameters):
         """Set parameters of the NEST cell model from a dictionary."""
-        if 'v_init' in parameters:
-            self._v_init = parameters.pop('v_init')
-            parameters['V_m'] = self._v_init # not correct, since could set v_init in the middle of a simulation, but until we add a proper reset mechanism, this will do.
         try:
             nest.SetStatus([self], [parameters])
         except: # I can't seem to catch the NESTError that is raised, hence this roundabout way of doing it.
@@ -164,9 +157,6 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
         raise errors.InvalidModelError(err)
     if cell_parameters:
         try:
-            v_init = cell_parameters.pop('v_init', None)
-            if v_init is not None:
-                cell_parameters['V_m'] = v_init
             nest.SetStatus(cell_gids, [cell_parameters])
         except nest.NESTError:
             print "NEST error when trying to set the following dictionary: %s" % cell_parameters
@@ -178,9 +168,6 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
     for gid, local in zip(cell_gids, mask_local):
         gid.local = local
         gid.parent = parent
-    if cell_parameters and v_init is not None:
-        for cell in cell_gids:
-            cell._v_init = v_init
     return cell_gids, mask_local, first_id, last_id
 
 

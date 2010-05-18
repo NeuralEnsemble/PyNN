@@ -196,12 +196,10 @@ class IDSetGetTest(unittest.TestCase):
                     else:
                         if name == 'v_thresh':
                             if 'v_spike' in parameter_names:
-                                i = (cell.__getattr__('v_spike') + max(cell.__getattr__('v_reset'), cell.__getattr__('v_init')))/2
-                            elif 'v_init' in parameter_names:
-                                i = max(cell.__getattr__('v_reset'), cell.__getattr__('v_init')) + numpy.random.uniform(0.1, 100)
+                                i = (cell.__getattr__('v_spike') + cell.__getattr__('v_reset'))/2
                             else:
                                 i = cell.__getattr__('v_reset') + numpy.random.uniform(0.1, 100)
-                        elif name == 'v_reset' or name == 'v_init': # v_reset must be less than v_thresh
+                        elif name == 'v_reset': # v_reset must be less than v_thresh
                             if hasattr(cell, 'v_thresh'):
                                 i = cell.__getattr__('v_thresh') - numpy.random.uniform(0.1, 100)
                             else:
@@ -239,7 +237,7 @@ class IDSetGetTest(unittest.TestCase):
                         new_parameters[name] = [1.0, 2.0]
                     elif name == 'v_thresh':
                         new_parameters[name] = numpy.random.uniform(-100, 100)
-                    elif name == 'v_reset' or name == 'v_init':
+                    elif name == 'v_reset':
                         if 'v_thresh' in parameter_names:
                             new_parameters[name] = new_parameters['v_thresh'] - numpy.random.uniform(0.1, 100)
                         else:
@@ -290,14 +288,14 @@ class SetValueTest(unittest.TestCase):
         
     def testSetFloat(self):
         sim.set(self.cells, 'tau_m',35.7)
-        sim.set(self.single_cell, 'v_init', -67.8)
+        sim.set(self.single_cell, 'v_reset', -67.8)
         for cell in self.cells:
             try:
                 self.assertAlmostEqual(cell.tau_m, 35.7, 5)
             except errors.NotLocalError: # if cell is not on this node
                 pass
         if self.single_cell.local:
-            self.assertAlmostEqual(self.single_cell.v_init, -67.8, 6)
+            self.assertAlmostEqual(self.single_cell.v_reset, -67.8, 6)
 
     def testSetDict(self):
         sim.set(self.cells, {'tau_m': 35.7, 'tau_syn_E': 5.432})
@@ -466,10 +464,10 @@ class PopulationSetTest(unittest.TestCase):
         
     def testSetOnlyChangesTheDesiredParameters(self):
         before = [cell.get_parameters() for cell in self.p1]
-        self.p1.set('v_init', -78.9)
+        self.p1.set('v_reset', -78.9)
         after = [cell.get_parameters() for cell in self.p1]
         for name in self.p1.celltype.__class__.default_parameters:
-            if name == 'v_init':
+            if name == 'v_reset':
                 for a in after:
                     self.assertAlmostEqual(a[name], -78.9, places=5)
             else:
@@ -492,11 +490,13 @@ class PopulationSetTest(unittest.TestCase):
            There is no guarantee that the existing parameters will be set."""
         self.assertRaises(errors.NonExistentParameterError, self.p1.set, {'tau_foo': 10.0, 'tau_m': 21.0})
             
-    def testRandomInit(self):
-        rd = random.RandomDistribution('uniform', [-75,-55])
+    def testRandomInit(self):        
+        rd = random.RandomDistribution(rng=random.NumpyRNG(seed=98765, num_processes=sim.num_processes()),
+                                       distribution='uniform',
+                                       parameters=[-75,-55])
         self.p1.randomInit(rd)
         #self.assertNotEqual(self.p1[0,0,0].v_init, self.p1[0,0,1].v_init)
-        self.assertNotEqual(self.p1.local_cells[0].v_init, self.p1.local_cells[1].v_init)
+        self.assertNotEqual(self.p1.local_cells[0].get_initial_value('v'), self.p1.local_cells[1].get_initial_value('v'))
                 
     def test_tset(self):
         tau_m = numpy.arange(10.0, 16.0, 0.1).reshape((5,4,3))

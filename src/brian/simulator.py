@@ -86,25 +86,21 @@ class ThresholdNeuronGroup(brian.NeuronGroup):
                                    clock=state.simclock,
                                    max_delay=state.max_delay*ms,
                                    )
-        self.v_init = -60.0*mV
-        self.parameter_names = equations._namespace.keys() + ['v_thresh', 'v_reset', 'tau_refrac', 'v_init']
+        self.parameter_names = equations._namespace.keys() + ['v_thresh', 'v_reset', 'tau_refrac']
         for var in ('v', 'ge', 'gi', 'ie', 'ii'): # can probably get this list from brian
             if var in self.parameter_names:
                 self.parameter_names.remove(var)
+        self.initial_values = {}
         
     tau_refrac = _new_property('_resetfun', 'period', ms)
     v_reset = _new_property('_resetfun', 'resetvalue', mV)
     v_thresh = _new_property('_threshold', 'threshold', mV)
-    
-    def _set_v_init(self, v_init):
-        self._S0[self.var_index['v']] = v_init
-        self.v = v_init
-    def _get_v_init(self):
-        return self._S0[self.var_index['v']]
-        
-    v_init = property(fget=_get_v_init, fset=_set_v_init)
 
-        
+    def initialize(self):
+        for variable, values in self.initial_values.items():
+            setattr(self, variable, values)
+
+
 class PoissonGroupWithDelays(brian.PoissonGroup):
 
     def __init__(self, N, rates=0):
@@ -127,6 +123,9 @@ class PoissonGroupWithDelays(brian.PoissonGroup):
     rate = _new_property('rates', 'rate', Hz)
     duration = _new_property('rates', 'duration', ms)
     
+    def initialize(self):
+        pass
+    
             
 class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
    
@@ -148,6 +147,9 @@ class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
         assert len(spiketimes) == len(self), "spiketimes (length %d) must contain as many iterables as there are cells in the group (%d)." % (len(spiketimes), len(self))
         self._threshold.set_spike_times(spiketimes)
     spiketimes = property(fget=_get_spiketimes, fset=_set_spiketimes)
+
+    def initialize(self):
+        pass
 
 
 # --- For implementation of get_time_step() and similar functions --------------
@@ -183,6 +185,9 @@ def reset():
     for device in net.operations:
         if hasattr(device, "reinit"):
             device.reinit()
+    for group in net.groups:
+        group.reinit()
+        group.initialize()
 
 def run(simtime):
     """Advance the simulation for a certain time."""
@@ -212,8 +217,6 @@ class ID(int, common.IDMixin):
                 params[name] = float(getattr(self.parent_group, name))
             elif name == 'spiketimes':
                 params[name] = getattr(self.parent_group, name)[int(self)]
-            elif name == 'v_init':
-                params[name] = getattr(self.parent_group[int(self)], name)
             else:
                 # parameter may vary from cell to cell
                 try:
@@ -236,7 +239,13 @@ class ID(int, common.IDMixin):
             else:
                 setattr(self.parent_group[int(self)], name, value)
         
+    def set_initial_value(self, variable, value):
+        self.parent_group.initial_values[variable][int(self)] = value
     
+    def get_initial_value(self, variable):
+        return self.parent_group.initial_values[variable][int(self)]
+    
+
 # --- For implementation of create() and Population.__init__() ----------------- 
     
 def create_cells(cellclass, cellparams=None, n=1, parent=None):

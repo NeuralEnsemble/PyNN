@@ -45,7 +45,6 @@ class IF_curr_alpha(StandardCellType):
         'i_offset'   :   0.0,   # Offset current in nA
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
         'v_thresh'   : -50.0,   # Spike threshold in mV.
-        'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
     recordable = ['spikes', 'v']
     conductance_based = False
@@ -67,7 +66,6 @@ class IF_curr_exp(StandardCellType):
         'i_offset'   : 0.0,     # Offset current in nA
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
         'v_thresh'   : -50.0,   # Spike threshold in mV.
-        'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
     recordable = ['spikes', 'v']
     conductance_based = False
@@ -90,7 +88,6 @@ class IF_cond_alpha(StandardCellType):
         'v_thresh'   : -50.0,   # Spike threshold in mV.
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
         'i_offset'   : 0.0,     # Offset current in nA
-        'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
     recordable = ['spikes', 'v', 'gsyn']
     
@@ -112,7 +109,6 @@ class IF_cond_exp(StandardCellType):
         'v_thresh'   : -50.0,   # Spike threshold in mV.
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
         'i_offset'   : 0.0,     # Offset current in nA
-        'v_init'     : -65.0,   # Membrane potential in mV at t = 0
     }
     recordable = ['spikes', 'v', 'gsyn']
 
@@ -140,7 +136,6 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
         'v_thresh'   : -50.0,   # Spike threshold in mV.
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
         'i_offset'   : 0.0,     # Offset current in nA
-        'v_init'     : -65.0,   # Membrane potential in mV at t = 0
         'tau_sfa'    : 100.0,   # Time constant of spike-frequency adaptation in ms
         'e_rev_sfa'  : -75.0,   # spike-frequency adaptation conductance reversal potential in mV
         'q_sfa'      : 15.0,    # Quantal spike-frequency adaptation conductance increase in nS
@@ -191,7 +186,6 @@ class HH_cond_exp(StandardCellType):
         'tau_syn_E' : 0.2,
         'tau_syn_I' : 2.0,
         'i_offset'  : 0.0,
-        'v_init'    : -65.0,
     }
     recordable = ['spikes', 'v', 'gsyn']
 
@@ -207,8 +201,6 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
     """
     
     default_parameters = {
-        'v_init'    : -70.6,  # Initial membrane potential in mV
-        'w_init'    : 0.0,    # Initial spike-adaptation current in nA
         'cm'        : 0.281,  # Capacitance of the membrane in nF
         'tau_refrac': 0.1,    # Duration of refractory period in ms.
         'v_spike'   : -40.0,    # Spike detection threshold in mV.
@@ -240,8 +232,6 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
     """
     
     default_parameters = {
-        'v_init'    : -70.6,  # Initial membrane potential in mV
-        'w_init'    : 0.0,    # Initial spike-adaptation current in nA
         'cm'        : 0.281,  # Capacitance of the membrane in nF
         'tau_refrac': 0.1,    # Duration of refractory period in ms.
         'v_spike'   : -40.0,    # Spike detection threshold in mV.

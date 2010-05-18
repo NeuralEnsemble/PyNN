@@ -147,19 +147,15 @@ Setting random values
 ---------------------
 
 To set a parameter to values drawn from a random distribution, use the ``rset()`` method with a ``RandomDistribution`` object from the ``pyNN.random`` module (see the chapter on random numbers for more details).
-The following example sets the initial membrane potential of each neuron to a value drawn from a uniform distribution between -70 mV and -55 mV::
+The following example sets the threshold potential of each neuron to a value drawn from a uniform distribution between -55 mV and -50 mV::
 
     >>> from pyNN.random import RandomDistribution
-    >>> vinit_distr = RandomDistribution(distribution='uniform', parameters=[-70,-55])
-    >>> p1.rset('v_init', vinit_distr)
+    >>> vthresh_distr = RandomDistribution(distribution='uniform', parameters=[-55,-50])
+    >>> p1.rset('v_thresh', vthresh_distr)
 
 Note that positional arguments can also be used. The following produces the same result as the above::
 
-    >>> vinit_distr = RandomDistribution('uniform', [-70,-55])
-
-For the specific case of setting the initial membrane potential, there is a convenience method ``randomInit()``, e.g.::
-
-    >>> p1.randomInit(vinit_distr)
+    >>> vthresh_distr = RandomDistribution('uniform', [-55,-50])
 
 Setting values according to an array
 ------------------------------------
@@ -182,6 +178,22 @@ To set the parameters of an individual neuron, you can use the low-level ``set()
 or you can just set the relevant attribute of the ``ID`` object::
 
     >>> p1[0,4].tau_m = 12.0
+
+
+Setting initial values
+======================
+
+To set the initial values of state variable such as the membrane potential use
+the ``initialize()`` method::
+
+    >>> p1.initialize('v', -65.0)
+    
+To initialize different neurons to different random values, pass a
+``RandomDistribution`` object instead of a float::
+
+    >>> vinit_distr = RandomDistribution(distribution='uniform', parameters=[-70,-60])
+    >>> p1.initialize('v', vinit_distr)
+
 
 Iterating over all the neurons in a population
 ==============================================
