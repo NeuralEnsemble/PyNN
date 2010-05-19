@@ -68,11 +68,8 @@ class Recorder(recording.Recorder):
         data to give appropriate units.
         """
         if self.variable == 'v':
-            try:
-                initial = [[id, 0.0, id.get_initial_value('v')] for id in self.recorded]
-            except common.NonExistentParameterError:
-                initial = [[id, 0.0, id.v_rest] for id in self.recorded]
-        elif self.variable == 'gsyn':
+            initial = [[id, 0.0, id.get_initial_value('v')] for id in self.recorded]
+        elif self.variable == 'gsyn': # we should support non-zero initial synaptic conductances
             initial = [[id, 0.0, 0.0, 0.0] for id in self.recorded]
         else:
             initial = None
