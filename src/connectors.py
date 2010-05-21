@@ -1,3 +1,10 @@
+"""
+Defines a common implementation of the built-in PyNN Connector classes.
+
+Simulator modules may use these directly, or may implement their own versions
+for improved performance.
+"""
+
 import numpy, logging, sys, re
 from pyNN import errors, common, core, random, utility, recording
 from pyNN.space import Space
@@ -10,19 +17,40 @@ logger = logging.getLogger("PyNN")
 
 
 def expand_distances(d_expression):
+    """
+    Check if a distance expression contains at least one term d[x]. If yes, then
+    the distances are expanded and we assume the user has specified an
+    expression such as d[0] + d[2].
+    """
     regexpr = re.compile(r'.*d\[\d*\].*')
-    # Function that may be enhanced, to check if a distance expression
-    # contains at least one term d[x]. If yes, then the distances are expanded
-    # and we assume the user have specified an expression such as d[0] + d[2]. 
-    # Others check may be performed...
     if regexpr.match(d_expression):
         return True
     return False
             
 
 class ConnectionAttributeGenerator(object):
+    """
+    Connection attributes, such as weights and delays, may be specified as:
+        - a single numerical value, in which case all connections have this value
+        - a numpy array of the same size as the number of connections
+        - a RandomDistribution object
+        - a function of the distance between the source and target cells
+        
+    This class encapsulates all these different possibilities in order to
+    present a uniform interface.
+    """
     
     def __init__(self, source, local_mask, safe=True):
+        """
+        Create a new %s.
+        
+        source - something that may be used to obtain connection attribute values
+        local_mask - a boolean array indicating which of the post-synaptic cells
+                     are on the local machine
+        safe - whether to check that values are within the appropriate range. These
+               checks can be slow, so safe=False allows you to turn them off once
+               you're certain your code is working correctly.
+        """ % self.__class__.__name__
         self.source     = source
         self.local_mask = local_mask
         self.safe       = safe
@@ -32,11 +60,22 @@ class ConnectionAttributeGenerator(object):
             self.source_iterator = iter(self.source)
     
     def check(self, data):
+        """
+        This method should be over-ridden by sub-classes.
+        """
         return data
         
     def extract(self, N, distance_matrix=None, sub_mask=None):
-        #local_mask is supposed to be a mask of booleans, while 
-        #sub_mask is a list of cells ids.
+        """
+        Return an array of values for a connection attribute.
+        
+        N - number of values to be returned over the entire simulation. If
+            running a distributed simulation, the number returned on any given
+            node will be smaller.
+        distance_matrix - a DistanceMatrix object, used for calculating
+                          distance-dependent attributes.
+        sub-mask - a list of cell ids. I don't know what this is for. Pierre?
+        """
         if isinstance(self.source, basestring):
             assert distance_matrix is not None            
             if expand_distances(self.source):            
@@ -55,7 +94,7 @@ class ConnectionAttributeGenerator(object):
                 values = numpy.ones((self.local_mask.sum(),))*self.source
             else:
                 values = numpy.ones((len(sub_mask),))*self.source
-            return values
+            return values # seems a bit wasteful to return an array of identical values
         elif isinstance(self.source, RandomDistribution):
             if sub_mask is None:
                 values = self.source.next(N, mask_local=self.local_mask)
@@ -77,6 +116,7 @@ class ConnectionAttributeGenerator(object):
 
 
 class WeightGenerator(ConnectionAttributeGenerator):
+    """Generator for synaptic weights. %s""" % ConnectionAttributeGenerator.__doc__
     
     def __init__(self, source, local_mask, projection, safe=True):
       ConnectionAttributeGenerator.__init__(self, source, local_mask, safe)
@@ -108,10 +148,10 @@ class WeightGenerator(ConnectionAttributeGenerator):
         else: # is_conductance is None. This happens if the cell does not exist on the current node.
             logger.debug("Can't check weight, conductance status unknown.")
         return weight
-        
     
 
 class DelayGenerator(ConnectionAttributeGenerator):
+    """Generator for synaptic delays. %s""" % ConnectionAttributeGenerator.__doc__
 
     def __init__(self, source, local_mask, safe=True):
         ConnectionAttributeGenerator.__init__(self, source, local_mask, safe)
@@ -124,6 +164,7 @@ class DelayGenerator(ConnectionAttributeGenerator):
         if not (all_negative and all_positive):
             raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, common.get_min_delay(), common.get_max_delay()))
         return delay    
+
 
 class ProbaGenerator(ConnectionAttributeGenerator):
     pass
@@ -204,12 +245,21 @@ class ProbabilisticConnector(Connector):
         self.weights_generator = WeightGenerator(weights, self.local, projection, safe)
         self.delays_generator  = DelayGenerator(delays, self.local, safe)
         self.probas_generator  = ProbaGenerator(RandomDistribution('uniform',(0,1), rng=self.rng), self.local)
-        self.distance_matrix   = DistanceMatrix(projection.post.positions, self.space, self.local)
+        self._distance_matrix  = None
         self.projection        = projection
         self.candidates        = projection.post.local_cells
         self.size              = self.local.sum()
         self.allow_self_connections = allow_self_connections
-        
+       
+    @property 
+    def distance_matrix(self):
+        """
+        We want to avoid calculating positions if it is not necessary, so we
+        delay it until the distance matrix is actually used.
+        """
+        if self._distance_matrix is None:
+            self._distance_matrix = DistanceMatrix(self.projection.post.positions, self.space, self.local)
+        return self._distance_matrix
         
     def _probabilistic_connect(self, src, p, n_connections=None):
         """
