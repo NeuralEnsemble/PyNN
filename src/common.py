@@ -466,7 +466,7 @@ class Population(object):
             self.celltype = cellclass(cellparams)
         else:
             self.celltype = cellclass
-        self.structure = structure or space.Line()
+        self._structure = structure or space.Line()
         self.cellparams = cellparams
         self.parent = parent
         self.initial_values = {}
