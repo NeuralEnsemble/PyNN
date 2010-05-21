@@ -196,7 +196,10 @@ class Population(common.Population):
             for cell in self: # only on local node
                 cell.set_initial_value(variable, value)
 
-        
+
+PopulationView = common.PopulationView
+Assembly = common.Assembly
+
 class Projection(common.Projection):
     """
     A container for all the connections of a given type (same synapse type and

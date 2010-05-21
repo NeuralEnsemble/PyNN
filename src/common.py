@@ -422,62 +422,8 @@ def build_record(variable, simulator):
 #   neurons.
 # ==============================================================================
 
-class Population(object):
-    """
-    An array of neurons all of the same type. `Population' is used as a generic
-    term intended to include layers, columns, nuclei, etc., of cells.
-    """
-    nPop = 0
-    
-    def __init__(self, size, cellclass, cellparams=None, structure=None,
-                 label=None, parent=None):
-        """
-        Create a population of neurons all of the same type.
-        
-        size - number of cells in the Population. For backwards-compatibility, n
-               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
-               is equivalent to n=100 with structure=Grid2D()
-        cellclass should either be a standardized cell class (a class inheriting
-        from common.standardmodels.StandardCellType) or a string giving the name of the
-        simulator-specific model that makes up the population.
-        cellparams should be a dict which is passed to the neuron model
-          constructor
-        structure should be a Structure instance.
-        label is an optional name for the population.
-        """
-        
-        if not isinstance(size, int): # also allow a single integer, for a 1D population
-            assert isinstance(size, tuple), "`size` must be an integer or a tuple. You have supplied a %s" % type(n)
-            assert structure is None, "If you specify `size` as a tuple you may not specify structure."
-            if len(size) == 1:
-                structure = space.Line()
-            elif len(size) == 2:
-                nx,ny = size 
-                structure = space.Grid2D(nx/float(ny))
-            elif len(size) == 3:
-                nx,ny,nz = size
-                structure = space.Grid3D(nx/float(ny), nx/float(nz))
-            else:
-                raise Exception("A maximum of 3 dimensions is allowed. What do you think this is, string theory?")
-            size = reduce(operator.mul, size)
-        self.size = size
-        self.label = label or 'population%d' % Population.nPop         
-        if isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
-            self.celltype = cellclass(cellparams)
-        else:
-            self.celltype = cellclass
-        self._structure = structure or space.Line()
-        self.cellparams = cellparams
-        self.parent = parent
-        self.initial_values = {}
-        self._positions = None
-        Population.nPop += 1
-    
-    @property
-    def cell(self):
-        warn("The `Population.cell` attribute is not an official part of the API, and its use is deprecated. \
-              It will be removed in a future release. All uses of `cell` may be replaced by `all_cells`")
-        return self.all_cells
+class BasePopulation(object):
+    record_filter = None
     
     def __getitem__(self, index):
         """
@@ -490,111 +436,27 @@ class Population(object):
             p[3:6]
         which returns an array of cells.
         """
-        return self.all_cells[index]
-    
-    def __iter__(self):
-        """Iterator over cell ids on the local node."""
-        return iter(self.local_cells)
-        
-    
-#    def __address_gen(self):
-#        """
-#        Generator to produce an iterator over all cells on this node,
-#        returning addresses.
-#        """
-#        for i in self.__iter__():
-#            yield self.locate(i)
-
-#    def addresses(self):
-#        """Iterator over cell addresses on the local node."""
-#        return self.__address_gen()
-    
-#    def ids(self):
-#        """Iterator over cell ids on the local node."""
-#        return self.__iter__()
-    
-    def all(self):
-        """Iterator over cell ids on all nodes."""
-        return iter(self.all_cells)
-    
-#    def locate(self, id):
-#        """
-#        Given an element id in a Population, return the coordinates.
-#            e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
-#                      7 9
-#        """
-#        # this implementation assumes that ids are consecutive
-#        # a slower (for large populations) implementation that does not make
-#        # this assumption is:
-#        #   return tuple([a.tolist()[0] for a in numpy.where(self.all_cells == id)])
-#        idx = self.id_to_index(id)
-#        if self.ndim == 3:
-#            rows = self.dim[1]; cols = self.dim[2]
-#            i = idx/(rows*cols); remainder = idx%(rows*cols)
-#            j = remainder/cols; k = remainder%cols
-#            coords = (i,j,k)
-#        elif self.ndim == 2:
-#            cols = self.dim[1]
-#            i = idx/cols; j = idx%cols
-#            coords = (i,j)
-#        elif self.ndim == 1:
-#            coords = (idx,)
-#        else:
-#            raise errors.InvalidDimensionsError
-#        return coords
-    
-    def id_to_index(self, id):
-        """
-        Given the ID(s) of cell(s) in the Population, return its (their) index (order in the
-        Population).
-        >>> assert id_to_index(p.index(5)) == 5
-        >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
-        """
-        assert self.first_id <= id <= self.last_id 
-        return id - self.first_id # this assumes ids are consecutive
-    
-#    def index(self, n):
-#        """
-#        Return the nth cell in the population (Indexing starts at 0).
-#        n may be a list or array, e.g., [i,j,k], in which case, returns the
-#        ith, jth and kth cells in the population."""
-#        if hasattr(n, '__len__'):
-#            n = numpy.array(n)
-#        return self.all_cells.flatten()[n]
+        if isinstance(index, int):
+            return self.all_cells[index]
+        elif isinstance(index, (slice, list, numpy.ndarray)):
+            return PopulationView(self, index)
+        elif isinstance(index, tuple):
+            return PopulationView(self, list(index))
+        else:
+            raise Exception()
     
     def __len__(self):
         """Return the total number of cells in the population."""
         return self.size
     
-    def _get_structure(self):
-        return self._structure
+    def __iter__(self):
+        """Iterator over cell ids on the local node."""
+        return iter(self.local_cells)
     
-    def _set_structure(self, structure):
-        if structure != self.structure:
-            self._positions = None # setting a new structure invalidates previously calculated positions
-            self.structure = structure
-    structure = property(fget=_get_structure, fset=_set_structure)
-    # arguably structure should be read-only, i.e. it is not possible to change it after Population creation
-    
-    def _get_positions(self):
-        """
-        Try to return self._positions. If it does not exist, create it and then return it
-        """
-        if self._positions is None:
-            self._positions = self.structure.generate_positions(self.size)
-        return self._positions
+    def all(self):
+        """Iterator over cell ids on all nodes."""
+        return iter(self.all_cells)
 
-    def _set_positions(self, pos_array):
-        assert isinstance(pos_array, numpy.ndarray)
-        assert pos_array.shape == (3, self.size), "%s != %s" % (pos_array.shape, (3, self.size))
-        self._positions = pos_array.copy() # take a copy in case pos_array is changed later
-        self.structure = None # explicitly setting positions destroys any previous structure
-
-    positions = property(_get_positions, _set_positions,
-                         """A 3xN array (where N is the number of neurons in the Population)
-                         giving the x,y,z coordinates of all the neurons (soma, in the
-                         case of non-point models).""")
-    
     def nearest(self, position):
         """Return the neuron closest to the specified position."""
         # doesn't always work correctly if a position is equidistant between two
@@ -613,7 +475,7 @@ class Population(object):
         # if all the cells have the same value for this parameter, should
         # we return just the number, rather than an array?
         return [getattr(cell, parameter_name) for cell in self]
-            
+
     def set(self, param, val=None):
         """
         Set one or more parameters for every cell in the population. param
@@ -682,7 +544,7 @@ class Population(object):
         # Set the values for each cell
         for cell, val in zip(self, local_values):
             setattr(cell, parametername, val)
-    
+
     def rset(self, parametername, rand_distr):
         """
         'Random' set. Set the value of parametername to a value taken from
@@ -693,7 +555,7 @@ class Population(object):
         logger.debug("%s.rset('%s', %s)", self.label, parametername, rand_distr)
         for cell,val in zip(self, rarr):
             setattr(cell, parametername, val)
-    
+
     def _call(self, methodname, arguments):
         """
         Call the method methodname(arguments) for every cell in the population.
@@ -808,7 +670,7 @@ class Population(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """        
-        self.recorders['spikes'].write(file, gather, compatible_output)
+        self.recorders['spikes'].write(file, gather, compatible_output, self.record_filter)
     
     def getSpikes(self, gather=True, compatible_output=True):
         """
@@ -817,7 +679,7 @@ class Population(object):
 
         Useful for small populations, for example for single neuron Monte-Carlo.
         """
-        return self.recorders['spikes'].get(gather, compatible_output)
+        return self.recorders['spikes'].get(gather, compatible_output, self.record_filter)
 
     def print_v(self, file, gather=True, compatible_output=True):
         """
@@ -840,14 +702,14 @@ class Population(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        self.recorders['v'].write(file, gather, compatible_output)
+        self.recorders['v'].write(file, gather, compatible_output, self.record_filter)
     
     def get_v(self, gather=True, compatible_output=True):
         """
         Return a 2-column numpy array containing cell ids and Vm for
         recorded cells.
         """
-        return self.recorders['v'].get(gather, compatible_output)
+        return self.recorders['v'].get(gather, compatible_output, self.record_filter)
     
     def print_gsyn(self, file, gather=True, compatible_output=True):
         """
@@ -865,15 +727,15 @@ class Population(object):
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        self.recorders['gsyn'].write(file, gather, compatible_output)
+        self.recorders['gsyn'].write(file, gather, compatible_output, self.record_filter)
     
     def get_gsyn(self, gather=True, compatible_output=True):
         """
         Return a 3-column numpy array containing cell ids and synaptic
         conductances for recorded cells.
         """
-        return self.recorders['gsyn'].get(gather, compatible_output)
-        
+        return self.recorders['gsyn'].get(gather, compatible_output, self.record_filter)
+
     def get_spike_counts(self, gather=True):
         """
         Returns the number of spikes for each neuron.
@@ -888,6 +750,124 @@ class Population(object):
         total_spikes = sum(spike_counts.values())
         if rank() == 0 or not gather: # should maybe use allgather, and get the numbers on all nodes
             return float(total_spikes)/len(spike_counts)
+
+    def inject(self, current_source):
+        """
+        Connect a current source to all cells in the Population.
+        """
+        if 'v' not in self.celltype.recordable:
+            raise TypeError("Can't inject current into a spike source.")
+        current_source.inject_into(self)
+    
+    def save_positions(self, filename, gather=True, compatible_output=True):
+        """
+        Save positions to file. The output format is id x y z
+        """
+        fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%g", "%g", "%g")
+        lines = []
+        for cell in self.all():  
+            x,y,z = cell.position
+            line = fmt  % (cell, x, y, z)
+            lines.append(line)
+        if rank() == 0:
+            f = open(filename, 'w')
+            f.writelines(lines)
+            f.close()
+
+
+class Population(BasePopulation):
+    """
+    A group of neurons all of the same type.
+    """
+    nPop = 0
+    
+    def __init__(self, size, cellclass, cellparams=None, structure=None,
+                 label=None):
+        """
+        Create a population of neurons all of the same type.
+        
+        size - number of cells in the Population. For backwards-compatibility, n
+               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
+               is equivalent to n=100 with structure=Grid2D()
+        cellclass should either be a standardized cell class (a class inheriting
+        from common.standardmodels.StandardCellType) or a string giving the name of the
+        simulator-specific model that makes up the population.
+        cellparams should be a dict which is passed to the neuron model
+          constructor
+        structure should be a Structure instance.
+        label is an optional name for the population.
+        """
+        
+        if not isinstance(size, int): # also allow a single integer, for a 1D population
+            assert isinstance(size, tuple), "`size` must be an integer or a tuple. You have supplied a %s" % type(n)
+            assert structure is None, "If you specify `size` as a tuple you may not specify structure."
+            if len(size) == 1:
+                structure = space.Line()
+            elif len(size) == 2:
+                nx,ny = size 
+                structure = space.Grid2D(nx/float(ny))
+            elif len(size) == 3:
+                nx,ny,nz = size
+                structure = space.Grid3D(nx/float(ny), nx/float(nz))
+            else:
+                raise Exception("A maximum of 3 dimensions is allowed. What do you think this is, string theory?")
+            size = reduce(operator.mul, size)
+        self.size = size
+        self.label = label or 'population%d' % Population.nPop         
+        if isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
+            self.celltype = cellclass(cellparams)
+        else:
+            self.celltype = cellclass
+        self._structure = structure or space.Line()
+        self.cellparams = cellparams
+        self.initial_values = {}
+        self._positions = None
+        Population.nPop += 1
+    
+    @property
+    def cell(self):
+        warn("The `Population.cell` attribute is not an official part of the API, and its use is deprecated. \
+              It will be removed in a future release. All uses of `cell` may be replaced by `all_cells`")
+        return self.all_cells
+    
+    def id_to_index(self, id):
+        """
+        Given the ID(s) of cell(s) in the Population, return its (their) index (order in the
+        Population).
+        >>> assert p.id_to_index(p[5]) == 5
+        >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
+        """
+        assert self.first_id <= id <= self.last_id 
+        return id - self.first_id # this assumes ids are consecutive
+    
+    def _get_structure(self):
+        return self._structure
+    
+    def _set_structure(self, structure):
+        if structure != self.structure:
+            self._positions = None # setting a new structure invalidates previously calculated positions
+            self.structure = structure
+    structure = property(fget=_get_structure, fset=_set_structure)
+    # arguably structure should be read-only, i.e. it is not possible to change it after Population creation
+    
+    def _get_positions(self):
+        """
+        Try to return self._positions. If it does not exist, create it and then return it
+        """
+        if self._positions is None:
+            self._positions = self.structure.generate_positions(self.size)
+        return self._positions
+
+    def _set_positions(self, pos_array):
+        assert isinstance(pos_array, numpy.ndarray)
+        assert pos_array.shape == (3, self.size), "%s != %s" % (pos_array.shape, (3, self.size))
+        self._positions = pos_array.copy() # take a copy in case pos_array is changed later
+        self.structure = None # explicitly setting positions destroys any previous structure
+
+    positions = property(_get_positions, _set_positions,
+                         """A 3xN array (where N is the number of neurons in the Population)
+                         giving the x,y,z coordinates of all the neurons (soma, in the
+                         case of non-point models).""")
     
     def describe(self, template='standard', fill=lambda t,c: Template(t).safe_substitute(c)):
         """
@@ -904,8 +884,6 @@ class Population(object):
             #         '    Parameters: $cell_parameters']
             lines = ['------- Population description -------',
                      'Population called $label is made of $n_cells cells [$n_cells_local being local]']
-            if self.parent:
-                lines += ['This population is a subpopulation of population $parent_label']
             lines += ["-> Celltype is $celltype",
                       "-> ID range is $first_id-$last_id",]
             if len(self.local_cells) > 0:
@@ -937,50 +915,72 @@ class Population(object):
         else:
             return fill(template, context)
     
-    def inject(self, current_source):
-        """
-        Connect a current source to all cells in the Population.
-        """
-        if 'v' not in self.celltype.recordable:
-            raise TypeError("Can't inject current into a spike source.")
-        current_source.inject_into(self)
+
+
+class PopulationView(BasePopulation):
     
-    def getSubPopulation(self, cells):
-        """
-        Returns a sub population from a population object. The shape of cells will
-        determine the dimensions of the sub population. cells should contains cells
-        member of the parent population.
-        Ex z = pop.getSubPopulation([pop[1],pop[3],pop[5]])
-        """
-        raise NotImplementedError()
+    def __init__(self, parent, selector, label=None):
+        self.parent = parent
+        self.mask = selector # later we can have fancier selectors, for now we just have numpy masks
+        self.label = label or "view of %s" % parent.label
+        # maybe just redefine __getattr__ instead of the following...
+        self.celltype = self.parent.celltype
+        self.cellparams = self.parent.cellparams
+        print "mask = ", self.mask
+        self.all_cells = self.parent.all_cells[self.mask] # do we need to ensure this is ordered?
+        self.size = len(self.all_cells)
+        self._mask_local = self.parent._mask_local[self.mask]
+        self.local_cells = self.all_cells[self._mask_local]
+        self.first_id = self.all_cells[0] # only works if we assume all_cells is sorted, otherwise could use min()
+        self.last_id = self.all_cells[-1]
+        self.recorders = self.parent.recorders
+        self.record_filter = self.all_cells
     
-    def save_positions(self, filename, gather=True, compatible_output=True):
+    @property
+    def initial_values(self):
+        # this is going to be complex - if we keep initial_values as a dict,
+        # need to return a dict-like object that takes account of self.mask
+        raise NotImplementedError
+
+    @property
+    def structure(self):
+        return self.parent.structure
+    # should be allow setting structure for a PopulationView? Maybe if the
+    # parent has some kind of CompositeStructure?
+
+    @property
+    def positions(self):
+        return self.parent.positions[self.mask]
+
+    # implementation of getSpikes(), printSpikes(), etc. needs some thought.
+
+    def id_to_index(self, id):
         """
-        Save positions to file. The output format is id x y z
+        Given the ID(s) of cell(s) in the Population, return its (their) index (order in the
+        Population).
+        >>> assert id_to_index(p.index(5)) == 5
+        >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%g", "%g", "%g")
-        lines = []
-        for cell in self.all():  
-            x,y,z = cell.position
-            line = fmt  % (cell, x, y, z)
-            lines.append(line)
-        if rank() == 0:
-            f = open(filename, 'w')
-            f.writelines(lines)
-            f.close()
-    
-    #def set_positions(self, generator):
-    #    """
-    #    Draw all the positions of the cells according to the PositionsGenerator object
-    #    
-    #    >> x = Population((10,10), IF_curr_exp)
-    #    >> x.set_positions(RandomPositions([(0,1), (0,1), None]))
-    #    >> y = Population((10, 10, 20), IF_curr_exp)
-    #    >> y.set_positions(GridPositions([(0,0.5), (0,0.5), (0,1)]))        
-    #    """
-    #    assert(isinstance(generator, space.PositionsGenerator)), "object should be a PositionsGenerator object !"
-    #    self.positions = generator.get(self.dim)
+        return numpy.where(self.all_cells==id)[0].item()
+
+# ==============================================================================
+
+class Assembly(object):
+    """
+    A group of neurons, may be heterogeneous, in contrast to a Population where
+    all the neurons are of the same type.
+    """
+    count = 0
+
+    def __init__(self, label=None, *populations):
+        self.populations = populations
+        self.label = label or 'assembly%d' % Assembly.count
+        Assembly.count += 1
         
+    def initialize(self, variable, value):
+        for p in self.populations:
+            p.initialize(variable, value)
+
 # ==============================================================================
 
 class Projection(object):

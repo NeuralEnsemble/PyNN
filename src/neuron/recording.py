@@ -25,13 +25,13 @@ class Recorder(recording.Recorder):
         else:
             raise Exception("Recording of %s not implemented." % self.variable)
         
-    def _get(self, gather=False, compatible_output=True):
+    def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         # compatible_output is not used, but is needed for compatibility with the nest module.
-        # Does nest really need it?                
+        # Does nest really need it?
         if self.variable == 'spikes':
             data = numpy.empty((0,2))
-            for id in self.recorded:
+            for id in self.filter_recorded(filter):
                 spikes = numpy.array(id._cell.spike_times)
                 spikes = spikes[spikes<=simulator.state.t+1e-9]
                 if len(spikes) > 0:    
@@ -39,14 +39,14 @@ class Recorder(recording.Recorder):
                     data = numpy.concatenate((data, new_data))
         elif self.variable == 'v':
             data = numpy.empty((0,3))
-            for id in self.recorded:
+            for id in self.filter_recorded(filter):
                 v = numpy.array(id._cell.vtrace)  
                 t = numpy.array(id._cell.record_times)               
                 new_data = numpy.array([numpy.ones(v.shape)*id, t, v]).T
                 data = numpy.concatenate((data, new_data))
         elif self.variable == 'gsyn':
             data = numpy.empty((0,4))
-            for id in self.recorded:
+            for id in self.filter_recorded(filter):
                 ge = numpy.array(id._cell.gsyn_trace['excitatory'])
                 gi = numpy.array(id._cell.gsyn_trace['inhibitory'])
                 if 'excitatory_TM' in id._cell.gsyn_trace:
@@ -73,9 +73,9 @@ class Recorder(recording.Recorder):
             data = recording.gather(data)
         return data
         
-    def _local_count(self, gather=False):
+    def _local_count(self, filter=None):
         N = {}
-        for id in self.recorded:
+        for id in self.filter_recorded(filter):
             N[int(id)] = id._cell.spike_times.size()
         return N
 

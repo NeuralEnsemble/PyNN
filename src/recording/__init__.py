@@ -104,17 +104,23 @@ class Recorder(object):
         self.recorded = self.recorded.union(ids)
         logger.debug('Recorder.recorded contains %d ids' % len(self.recorded))
         self._record(new_ids)
-        
-    def get(self, gather=False, compatible_output=True):
+    
+    def filter_recorded(self, filter):
+        if filter is not None:
+            return set(filter).intersection(self.recorded)
+        else:
+            return self.recorded
+    
+    def get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
-        data_array = self._get(gather, compatible_output)
+        data_array = self._get(gather, compatible_output, filter)
         id_offset = self.population and self.population.first_id or 0
         if data_array.size > 0:
             data_array[:,0] -= id_offset # relies on fact that id is always first column
         self._data_size = data_array.shape[0]
         return data_array
     
-    def write(self, file=None, gather=False, compatible_output=True):
+    def write(self, file=None, gather=False, compatible_output=True, filter=None):
         """Write recorded data to file."""
         file = file or self.file
         if isinstance(file, basestring):
@@ -128,7 +134,7 @@ class Recorder(object):
                                                                                                         filename,
                                                                                                         gather,
                                                                                                         compatible_output))
-        data = self.get(gather, compatible_output)
+        data = self.get(gather, compatible_output, filter)
         metadata = self.metadata
         logger.debug("data has size %s" % str(data.size))
         if simulator.state.mpi_rank == 0 or gather==False:
@@ -191,13 +197,13 @@ class Recorder(object):
             data_array = numpy.array([])
         return data_array
     
-    def count(self, gather=True):
+    def count(self, gather=True, filter=None):
         """
         Return the number of data points for each cell, as a dict. This is mainly
         useful for spike counts or for variable-time-step integration methods.
         """
         if self.variable == 'spikes':
-            N = self._local_count()
+            N = self._local_count(filter)
         else:
             raise Exception("Only implemented for spikes.")
         if gather and simulator.state.num_processes > 1:
