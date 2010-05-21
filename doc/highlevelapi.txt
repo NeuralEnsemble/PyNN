@@ -17,34 +17,27 @@ Creating ``Population``\s
 
 Some examples of creating a population of neurons (don't forget to call ``setup()`` first).
 
-This creates a 10 x 10 array of ``IF_curr_exp`` neurons with default parameters::
+This creates 100 ``IF_curr_exp`` neurons with default parameters, distributed on a square grid::
 
-    >>> p1 = Population((10,10), IF_curr_exp)
+    >>> p1 = Population(100, IF_curr_exp, structure=Grid2D())
 
-This creates a 1D array of 100 spike sources, and gives it a label::
+This creates an array of 100 spike sources, and gives it a label::
 
     >>> p2 = Population(100, SpikeSourceArray, label="Input Population")
 
 This illustrates all the possible arguments of the ``Population`` constructor, with argument names.
-It creates a 3D array of ``IF_cond_alpha`` neurons, all with a spike threshold set to -55 mV and membrane time constant set to 10 ms::
+It creates a 3x4x5 array of ``IF_cond_alpha`` neurons, all with a spike threshold set to -55 mV and membrane time constant set to 10 ms::
 
-    >>> p3 = Population(dims=(3,4,5), cellclass=IF_cond_alpha,
+    >>> p3 = Population(size=60, cellclass=IF_cond_alpha,
     ...                 cellparams={'v_thresh': -55.0, 'tau_m': 10.0, 'tau_refrac': 1.5},
-    ...                 label="Column 1")
+    ...                 structure=Grid3D(3./4, 3./5), label="Column 1")
                         
-The population dimensions can be retrieved using the ``dim`` attribute, e.g.::
+Since creating neurons on a grid is very common, the grid dimensions can be specified in place of the size,
+without having to create a structure object, e.g.::
 
-    >>> p1.dim
-    (10, 10)
-    >>> p2.dim
-    (100,)
-    >>> p3.dim
-    (3, 4, 5)
-    
-while the total number of neurons in a population can be obtained with the Python ``len()`` function::
-
-    >>> print len(p1), len(p2), len(p3)
-    100 100 60
+    >>> p3a = Population((3,4,5), IF_cond_alpha)
+    >>> assert p3.size == p3a.size == 60
+    >>> assert p3.structure == p3a.structure
     
 The above examples all use PyNN standard cell models. It is also possible to use simulator-specific models, but in this case the ``cellclass`` should be given as a string, e.g.::
 
@@ -57,74 +50,47 @@ Addressing individual neurons
 
 To address individual neurons in a population, use ``[]`` notation, e.g.,::
 
-    >>> p1[0,0]
+    >>> p1[0]
     1
-    >>> p1[9,9]
+    >>> p1[99]
     100
     >>> p2[67]
     168
-    >>> p3[2,1,0]
+    >>> p3[44]
     246
     
 The return values are ``ID`` objects, which behave in most cases as integers, but also
 allow accessing the values of the cell parameters (see below).
-The n-tuple of values within the square brackets is referred to as a neurons's *address*, while the return value is its *id*.
+The value within the square brackets is referred to as a neurons's *index*, which always runs from 0 to ``size``-1
+for a given population, while the return value is its *id*.
 Trying to address a non-existent neuron will raise an Exception::
 
-    >>> p1[999,0]
+    >>> p1[999]
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
       File "/usr/lib/python/site-packages/pyNN/common.py", line 794, in __getitem__
-        id = self.all_cells[addr]
+        id = self.all_cells[index]
     IndexError: index (999) out of range (0<=index<10) in dimension 0
 
-as will giving the wrong number of dimensions in the address.
-It is equally possible to define the address as a tuple, and then pass the tuple within the square brackets, e.g.::
-
-    >>> p1[5,5]
-    56
-    >>> address = (5,5)
-    >>> p1[address]
-    56
     
-Neuron addresses are used in setting parameter values, and in specifying which neurons to record from.
+Neuron indices are used in setting parameter values, and in specifying which neurons to record from.
 They may also be used together with the low-level ``connect()``, ``set()``, and ``record()`` functions.
 
-To obtain an address given the id, use ``locate()``, e.g.::
+To obtain an index given the id, use ``id_to_index()``, e.g.::
 
     >>> p3[2,2,0]
     251
-    >>> p3.locate(251)
+    >>> p3.id_to_index(251)
     (2, 2, 0)
-
-To access the 'i'th neuron in a Population, use the ``index()`` method, e.g.,::
-
-    >>> p3.index(0)
-    201
-    >>> p3.index(59)
-    260
-    >>> p3.index(60)
-    Traceback (most recent call last):
-      File "<stdin>", line 1, in <module>
-      File "/usr/lib/python/site-packages/pyNN/neuron/__init__.py", line 759, in index
-        return self.fullgidlist[n]
-    IndexError: index out of bounds
-    
-Conversely, if you have an ID, and you wish to obtain its index, use the ``id_to_index()`` method::
-
-    >>> p3.id_to_index(201)
-    0
-    >>> p3.id_to_index(260)
-    59
 
 
 Accessing groups of neurons
 ===========================
 
-To access several neurons at once, use slice notation, e.g., to access all the neurons in the first row of a 2D Population, use::
+To access several neurons at once, use slice notation, e.g., to access the first five neurons in a population, use::
 
-    >>> p1[0,:]
-    array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], dtype=object)
+    >>> p1[:5]
+    array([1, 2, 3, 4, 5], dtype=object)
     
 
 Setting parameter values
@@ -159,11 +125,11 @@ Setting values according to an array
 ------------------------------------
 
 The most efficient way to set different (but non-random) values for different neurons is to use the ``tset()`` (for *topographic* set) method.
-The following example injects a current of 0.1 nA into the first column of neurons in the population::
+The following example injects a current of 0.1 nA into the first 20 neurons in the population::
 
     >>> import numpy
-    >>> current_input = numpy.zeros(p1.dim)
-    >>> current_input[:,0] = 0.1
+    >>> current_input = numpy.zeros(p1.size)
+    >>> current_input[:20] = 0.1
     >>> p1.tset('i_offset', current_input)
 
 Setting parameter values for individual neurons
@@ -171,11 +137,11 @@ Setting parameter values for individual neurons
 
 To set the parameters of an individual neuron, you can use the low-level ``set()`` function,::
 
-    >>> set(p1[0,3], 'tau_m', 12.0)
+    >>> set(p1[3], 'tau_m', 12.0)
     
 or you can just set the relevant attribute of the ``ID`` object::
 
-    >>> p1[0,4].tau_m = 12.0
+    >>> p1[4].tau_m = 12.0
 
 
 Setting initial values
@@ -209,20 +175,7 @@ To iterate over all the cells in a population, returning the neuron ids, use::
     6 20.0
     ...
 
-The ``Population.ids()`` method produces the same result. To iterate over cells but return neuron addresses, use the ``addresses()`` method::
-
-    >>> for addr in p1.addresses(): #doctest: +ELLIPSIS
-    ...   print addr
-    ...
-    (0, 0)
-    (0, 1)
-    (0, 2)
-    ...
-    (0, 9)
-    (1, 0)
-    (1, 1)
-    (1, 2)
-    ...
+The ``Population.ids()`` method produces the same result.
     
 Injecting current
 =================
@@ -255,7 +208,7 @@ Some examples::
 
     >>> p1.record()                            # record from all neurons in the population
     >>> p1.record(10)                          # record from 10 neurons chosen at random
-    >>> p1.record([p1[0,0], p1[0,1], p1[0,2]]) # record from specific neurons
+    >>> p1.record([p1[0], p1[1], p1[2]])       # record from specific neurons
 
 Writing the recorded values to file is done with a second triple of methods, ``printSpikes()``, ``print_v()`` and ``print_gsyn()``, e.g.::
 
@@ -281,11 +234,13 @@ If you wish to obtain the recorded data within the simulation script, for plotti
 Position in space
 =================
 
+# describe Structure objects here
+
 The positions of individual neurons in a population can be accessed using their ``position`` attribute, e.g.::
 
-    >>> p1[1,0].position = (0.0, 0.1, 0.2)
-    >>> p1[1,0].position
-    array([ 0. ,  0.1,  0.2])
+    >>> p1[99].position = (0.0, 9.0, 9.0)
+    >>> p1[99].position
+    array([ 0. ,  9.0,  9.0])
     
 To obtain the positions of all neurons at once (as a numpy array), use the ``positions`` attribute of the ``Population`` object, e.g.::
     
@@ -296,7 +251,7 @@ To find the neuron that is closest to a particular point in space, use the ``nea
 
     >>> p1.nearest((4.5, 7.8, 3.3))
     49
-    >>> p1[p1.locate(49)].position
+    >>> p1[p1.id_to_index(49)].position
     array([ 4.,  8.,  0.])
 
 Statistics
@@ -309,6 +264,7 @@ PyNN currently only provides one such measure, the mean number of spikes per neu
     0.0
     
 More such statistical measures are planned for future releases.
+# mention p1.get_spike_counts()
 
 Getting information about a ``Population``
 ==========================================
