@@ -104,9 +104,9 @@ class ID(int, common.IDMixin):
 
 class Population(common.Population):
     
-    def __init__(self, dims, cellclass, cellparams=None, label=None):
+    def __init__(self, size, cellclass, cellparams=None, structure=None, label=None):
         global net
-        common.Population.__init__(self, dims, cellclass, cellparams, label)
+        common.Population.__init__(self, dims, cellclass, cellparams, structure, label)
         
         net.populations.append(self)
         

@@ -94,37 +94,37 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0):
 
 def save_population(population,filename,variables=[]):
     """
-    Saves the spike_times of a  population and the dim, size, labels such that one can load it back into a SpikeSourceArray population using the load_population function.
+    Saves the spike_times of a  population and the size, structure, labels such that one can load it back into a SpikeSourceArray population using the load_population function.
     """
     import shelve
     s = shelve.open(filename)
     s['spike_times'] = population.getSpikes()
     s['label'] = population.label
-    s['dim'] = population.dim
     s['size'] = population.size
+    s['structure'] = population.structure # should perhaps just save the positions?
     variables_dict = {}
     for variable in variables:
-        variables_dict[variable] = eval('population.%s'%variable)
+        variables_dict[variable] = getattr(population, variable)
     s['variables'] = variables_dict
     s.close()
 
-def load_population(filename):
+def load_population(filename, sim):
     """
     Loads a population that was saved with the save_population function into SpikeSourceArray.
     """
     import shelve
     s = shelve.open(filename)
-    population = Population(s['dim'],SpikeSourceArray,label=s['label'])
+    population = getattr(sim, "Population")(s['size'], SpikeSourceArray, structure=s['structure'], label=s['label'])
     # set the spiketimes
     spikes = s['spike_times']
     for neuron in numpy.arange(s['size']):
         spike_times = spikes[spikes[:,0]==neuron][:,1]
         neuron_in_new_population = neuron+population.first_id
-        index = population.locate(neuron_in_new_population)
+        index = population.id_to_index(neuron_in_new_population)
         population[index].set_parameters(**{'spike_times':spike_times})
     # set the variables
     for variable, value in s['variables'].items():
-        exec('population.%s = value'%variable)
+        setattr(population, variable, value)
     s.close()
     return population
 

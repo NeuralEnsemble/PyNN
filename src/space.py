@@ -5,6 +5,7 @@ Tools for performing spatial/topographical calculations.
 """
 
 import numpy
+import math
 
 def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
              periodic_boundaries=None): # may need to add an offset parameter
@@ -139,4 +140,76 @@ class GridPositions(PositionsGenerator):
                     padding    = (bmax-bmin)/float(dims[axis])
                     data       = numpy.linspace(bmin+padding, bmax, dims[axis])
                     self.positions[axis, :] = data[grid[axis].flatten()]
-            return self.positions            
+            return self.positions
+
+
+class BaseStructure(object):
+    pass
+
+
+class Line(BaseStructure):
+    
+    def __init__(self, x0=0.0, y0=0.0, z0=0.0):
+        self.x0 = x0
+        self.y0 = y0
+        self.z0 = z0
+    
+    def generate_positions(self, n):
+        x = numpy.arange(n) + self.x0
+        y = numpy.zeros(n) + self.y0
+        z = numpy.zeros(n) + self.z0
+        return numpy.array((x,y,z))
+
+
+class Grid2D(BaseStructure):
+    
+    def __init__(self, aspect_ratio, dx=1.0, dy=1.0, x0=0.0, y0=0.0, z=0, fill_order="sequential"):
+        self.aspect_ratio = aspect_ratio
+        assert fill_order in ('sequential', 'random')
+        self.fill_order = fill_order
+        self.dx = dx; self.dy = dy; self.x0 = x0; self.y0 = y0; self.z = z
+        
+    def generate_positions(self, n):
+        nx = math.sqrt(n*self.aspect_ratio)
+        ny = n/nx
+        x,y,z = numpy.indices((nx,ny,1), dtype=float)
+        x = self.x0 + self.dx*x.flatten()
+        y = self.y0 + self.dy*y.flatten()
+        z = self.z + z.flatten()
+        if self.fill_order == 'sequential':
+            return numpy.array((x,y,z))
+        else:
+            raise NotImplementedError
+        
+
+class Grid3D(BaseStructure):
+    
+    def __init__(self, aspect_ratioXY, aspect_ratioXZ, dx=1.0, dy=1.0, dz=1.0, x0=0.0, y0=0.0, z0=0,
+                 fill_order="sequential"):
+        """
+        If fill_order is 'sequential', the z-index will be filled first, then y then x, i.e.
+        the first cell will be at (0,0,0) (given default values for the other arguments),
+        the second at (0,0,1), etc.
+        """
+        self.aspect_ratios = (aspect_ratioXY, aspect_ratioXZ)
+        assert fill_order in ('sequential', 'random')
+        self.fill_order = fill_order
+        self.dx = dx; self.dy = dy; self.dz = dz
+        self.x0 = x0; self.y0 = y0; self.z0 = z0
+        
+    def generate_positions(self, n):
+        a,b = self.aspect_ratios
+        nx = int(round(math.pow(n*a*b, 1/3.0)))
+        ny = int(round(nx/a))
+        nz = int(round(nx/b))
+        assert nx*ny*nz == n, str((nx, ny, nz, nx*ny*nz, n, a, b))
+        print nx, ny, nz
+        x,y,z = numpy.indices((nx,ny,nz), dtype=float)
+        x = self.x0 + self.dx*x.flatten()
+        y = self.y0 + self.dy*y.flatten()
+        z = self.z0 + self.dz*z.flatten()
+        if self.fill_order == 'sequential':
+            return numpy.array((x,y,z))
+        else:
+            raise NotImplementedError
+        

@@ -396,20 +396,24 @@ class Population(common.Population):
     
     n = 0
     
-    def __init__(self, dims, cellclass, cellparams=None, label=None):
+    def __init__(self, size, cellclass, cellparams=None, structure=None,
+                 label=None):
         """
-        dims should be a tuple containing the population dimensions, or a single
-          integer, for a one-dimensional population.
-          e.g., (10,10) will create a two-dimensional population of size 10x10.
+        Create a population of neurons all of the same type.
+        
+        size - number of cells in the Population. For backwards-compatibility, n
+               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
+               is equivalent to n=100 with structure=Grid2D()
         cellclass should either be a standardized cell class (a class inheriting
-        from common.StandardCellType) or a string giving the name of the
+        from common.standardmodels.StandardCellType) or a string giving the name of the
         simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
           constructor
+        structure should be a Structure instance.
         label is an optional name for the population.
         """
         global populations_node, cells_node, channels_node
-        common.Population.__init__(self, dims, cellclass, cellparams, label)
+        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
         self.label = self.label or 'Population%d' % Population.n
         self.celltype = cellclass(cellparams)
         Population.n += 1
@@ -439,7 +443,7 @@ class Population(common.Population):
 
         self.first_id = 0
         self.last_id = self.size-1
-        self.all_cells = numpy.array([ID(id) for id in range(self.first_id, self.last_id+1)], dtype=ID).reshape(dims)
+        self.all_cells = numpy.array([ID(id) for id in range(self.first_id, self.last_id+1)], dtype=ID)
         self._mask_local = numpy.ones_like(self.all_cells).astype(bool)
         self.local_cells = self.all_cells[self._mask_local]
 

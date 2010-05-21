@@ -303,24 +303,24 @@ class Population(common.Population):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
-    All cells have both an address (a tuple) and an id (an integer). If p is a
-    Population object, the address and id can be inter-converted using :
-    id = p[address]
-    address = p.locate(id)
     """
     
-    def __init__(self, dims, cellclass, cellparams=None, label=None):
+    def __init__(self, size, cellclass, cellparams=None, structure=None,
+                 label=None, parent=None):
         """
-        dims should be a tuple containing the population dimensions, or a single
-          integer, for a one-dimensional population.
-          e.g., (10,10) will create a two-dimensional population of size 10x10.
+        Create a population of neurons all of the same type.
+        
+        size - number of cells in the Population. For backwards-compatibility, n
+               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
+               is equivalent to n=100 with structure=Grid2D()
         cellclass should either be a standardized cell class (a class inheriting
-        from standardmodels.StandardCellType) or a string giving the name of the
+        from common.standardmodels.StandardCellType) or a string giving the name of the
         simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
           constructor
+        structure should be a Structure instance.
         label is an optional name for the population.
-        """        
+        """
         ##if isinstance(dims, int): # also allow a single integer, for a 1D population
         ##    #print "Converting integer dims to tuple"
         ##    dims = (dims,)
@@ -334,7 +334,7 @@ class Population(common.Population):
         ### population, while in PCSIM the population is always really 3D, even if some of the
         ### dimensions have size 1. We should add a variable self._dims to hold the PCSIM dimensions,
         ### and make self.dims be the nominal dimensions.
-        common.Population.__init__(self, dims, cellclass, cellparams, label)
+        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
                          
         ### set the steps list, used by the __getitem__() method.
         ##self.steps = [1]*self.ndim
@@ -372,9 +372,6 @@ class Population(common.Population):
         ##
         self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
         self.local_cells = self.all_cells[self._mask_local]
-        self.all_cells = self.all_cells.reshape(self.dim)
-        self._mask_local = self._mask_local.reshape(self.dim)
-        self.cell = self.all_cells # temporary, awaiting harmonisation
         
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self),
@@ -457,7 +454,7 @@ class Population(common.Population):
     ##    return coords
     
     def id_to_index(self, id):
-        cells = self.all_cells.flatten()
+        cells = self.all_cells
         if hasattr(id, '__len__'):
             res = []
             for item in id:
@@ -481,7 +478,7 @@ class Population(common.Population):
     ##    """PCSIM: iteration and set """
     ##    if self.dim[0:self.actual_ndim] == value_array.shape:
     ##        values = numpy.copy(value_array) # we do not wish to change the original value_array in case it needs to be reused in user code
-    ##        for cell, val in zip(self, values.flat):
+    ##        for cell, val in zip(self, values):
     ##            cell.set_parameters(**{parametername: val})
     ##    elif len(value_array.shape) == len(self.dim[0:self.actual_ndim])+1: # the values are themselves 1D arrays
     ##        for cell,addr in zip(self.ids(), self.addresses()):
@@ -513,7 +510,7 @@ class Population(common.Population):
                 different value)
         """
         if isinstance(value, RandomDistribution):
-            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
+            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
             value = numpy.array(rarr)
             for cell, val in zip(self, rarr):
                 cell.set_initial_value(variable, val)

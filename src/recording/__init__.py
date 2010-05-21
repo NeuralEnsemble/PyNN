@@ -147,7 +147,7 @@ class Recorder(object):
         metadata['variable'] = self.variable
         if self.population is not None:
             metadata.update({
-                'dimensions': str(list(self.population.dim)),
+                'size': self.population.size,
                 'first_id': 0,
                 'last_id': len(self.population)-1
             })

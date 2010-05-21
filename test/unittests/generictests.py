@@ -356,28 +356,14 @@ class PopulationIndexTest(unittest.TestCase):
     
     def testValidIndices(self):
         for i in range(10):
-            self.assertEqual((i,), self.net1.locate(self.net1[i]))
-
-    def testValidAddresses(self):
-        for addr in ( (0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1), (0,1,2), (0,2,0), (0,2,1), (0,2,2), (0,3,0), (0,3,1), (0,3,2),
-                      (1,0,0), (1,0,1), (1,0,2), (1,1,0), (1,1,1), (1,1,2), (1,2,0), (1,2,1), (1,2,2), (1,3,0), (1,3,1), (1,3,2) ):
-            id = self.net2[addr]
-            self.assertEqual(addr, self.net2.locate(id))
-        for addr in ( (0,0,0), (0,1,0), (1,0,0), (1,1,0) ):
-            id = self.net3[addr]
-            self.assertEqual(addr, self.net3.locate(id))
-        for addr in ( (0,0,0), (0,1,0) ):
-            id = self.net4[addr]
-            self.assertEqual(addr, self.net4.locate(id))
-        for addr in ( (0,0), (0,1), (0,2), (1,0), (1,1), (1,2), (2,0), (2,1), (2,2) ):
-            id = self.net5[addr]
-            self.assertEqual(addr, self.net5.locate(id))
+            self.assertEqual(i, self.net1.id_to_index(self.net1[i]))
+        for i in range(24):
+            self.assertEqual(i, self.net2.id_to_index(self.net2[i]))
+        self.assertEqual(self.net1[-1], self.net1[9])
 
     def testInvalidIndices(self):
-        self.assertRaises(IndexError, self.net1.__getitem__, (11,))
-        
-    def testInvalidIndexDimension(self):
-        self.assertRaises(errors.InvalidDimensionsError, self.net1.__getitem__, (10,2))
+        self.assertRaises(IndexError, self.net1.__getitem__, 10)
+        self.assertRaises(IndexError, self.net2.__getitem__, 24)
         
 # ==============================================================================
 class PopulationIteratorTest(unittest.TestCase):
@@ -397,13 +383,8 @@ class PopulationIteratorTest(unittest.TestCase):
             ids = [i for i in net]
             self.assertEqual(ids, net.local_cells.tolist())
             self.assert_(isinstance(ids[0], common.IDMixin))
-            
-    def testAddressIter(self):
-        for net in self.net1, self.net2:
-            for id, addr in zip(net.ids(), net.addresses()):
-                self.assertEqual(id, net[addr])
-                self.assertEqual(addr, net.locate(id))
-        
+
+    
 # ==============================================================================
 class PopulationSpikesTest(unittest.TestCase):
     
@@ -499,21 +480,21 @@ class PopulationSetTest(unittest.TestCase):
         self.assertNotEqual(self.p1.local_cells[0].get_initial_value('v'), self.p1.local_cells[1].get_initial_value('v'))
                 
     def test_tset(self):
-        tau_m = numpy.arange(10.0, 16.0, 0.1).reshape((5,4,3))
+        tau_m = numpy.arange(10.0, 16.0, 0.1)
         self.p1.tset("tau_m", tau_m)
         
-        for addr, val in ( ((0,0,0), 10.0),
-                           ((0,0,1), 10.1),
-                           ((0,3,1), 11.0)):
-            if self.p1[addr].local:
-                self.assertAlmostEqual(self.p1[addr].tau_m, val, 6)
+        for index, val in ((0, 10.0),
+                           (1, 10.1),
+                           (10, 11.0)):
+            if self.p1[index].local:
+                self.assertAlmostEqual(self.p1[index].tau_m, val, 6)
         
-        spike_times = numpy.arange(40.0).reshape(2,2,10)
-        self.p2.tset("spike_times", spike_times)
-        if self.p2[0,0].local:
-            assert_arrays_almost_equal(self.p2[0,0].spike_times, numpy.arange(10.0), 1e-9)
-        if self.p2[1,1].local:
-            assert_arrays_almost_equal(self.p2[1,1].spike_times, numpy.arange(30.0,40.0), 1e-9)
+        spike_times = numpy.arange(40.0)
+        self.p2.tset("spike_times", spike_times.reshape((4,10)))
+        if self.p2[0].local:
+            assert_arrays_almost_equal(self.p2[0].spike_times, numpy.arange(10.0), 1e-9)
+        if self.p2[3].local:
+            assert_arrays_almost_equal(self.p2[3].spike_times, numpy.arange(30.0,40.0), 1e-9)
                 
     def testTSetInvalidDimensions(self):
         """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
@@ -522,7 +503,7 @@ class PopulationSetTest(unittest.TestCase):
     
     def testTSetInvalidValues(self):
         """Population.tset(): If some of the values in the valueArray are invalid, should raise an exception."""
-        array_in = numpy.array([['potatoes','carrots'],['oranges','bananas']])
+        array_in = numpy.array(['potatoes','carrots','oranges','bananas'])
         self.assertRaises(errors.InvalidParameterValueError, self.p2.tset, 'spike_times', array_in)
         
     def testRSetNumpy(self):
@@ -534,9 +515,9 @@ class PopulationSetTest(unittest.TestCase):
                                          distribution='uniform',
                                          parameters=[0.9,1.1])
         self.p1.rset('cm', rd1)
-        output_values = self.p1.get('cm', as_array=True)
+        output_values = numpy.array(self.p1.get('cm'))
         mask = (1-numpy.isnan(output_values)).astype(bool)
-        input_values = rd2.next(len(self.p1), mask_local=False).reshape(self.p1.dim)
+        input_values = rd2.next(len(self.p1), mask_local=False)
         assert_arrays_almost_equal(input_values[mask], output_values[mask], 1e-7)
                 
 #===============================================================================                
@@ -546,28 +527,19 @@ class PopulationPositionsTest(unittest.TestCase):
         sim.setup()
     
     def test_nearest(self):
-        p = sim.Population((4,5,6), sim.IF_cond_exp)
-        self.assertEqual(p.nearest((0.0,0.0,0.0)), p[0,0,0])
-        self.assertEqual(p.nearest((0.0,1.0,0.0)), p[0,1,0])
-        self.assertEqual(p.nearest((1.0,0.0,0.0)), p[1,0,0])
-        self.assertEqual(p.nearest((3.0,2.0,1.0)), p[3,2,1])
-        self.assertEqual(p.nearest((3.49,2.49,1.49)), p[3,2,1])
-        self.assertEqual(p.nearest((3.49,2.49,1.51)), p[3,2,2])
-        self.assertEqual(p.nearest((3.49,2.49,1.5)), p[3,2,2])
-        self.assertEqual(p.nearest((2.5,2.5,1.5)), p[3,3,2])
-                
-#===============================================================================
-class PopulationCellAccessTest(unittest.TestCase):
-    
-    def setUp(self):
-        sim.setup()
-        
-    def test_index(self):
-        p = sim.Population((4,5,6), sim.IF_cond_exp)
-        self.assertEqual(p.index(0), p[0,0,0])
-        self.assertEqual(p.index(119), p[3,4,5])
-        self.assertEqual(p.index([0,1,2]).tolist(), [p[0,0,0], p[0,0,1], p[0,0,2]])
-     
+        x,y,z = 4,5,6
+        p = sim.Population((x,y,z), sim.IF_cond_exp)
+        self.assertEqual(p.nearest((0.0,0.0,0.0)), p[0])
+        self.assertEqual(p.nearest((0.0,0.0,1.0)), p[1])
+        self.assertEqual(p.nearest((0.0,1.0,0.0)), p[z])
+        self.assertEqual(p.nearest((1.0,0.0,0.0)), p[y*z])
+        self.assertEqual(p.nearest((3.0,2.0,1.0)), p[3*y*z+2*z+1])
+        self.assertEqual(p.nearest((3.49,2.49,1.49)), p[3*y*z+2*z+1])
+        self.assertEqual(p.nearest((3.49,2.49,1.51)), p[3*y*z+2*z+2])
+        self.assertEqual(p.nearest((3.49,2.49,1.5)), p[3*y*z+2*z+2])
+        self.assertEqual(p.nearest((2.5,2.5,1.5)), p[3*y*z+3*y+2])
+
+ 
 # ==============================================================================
 class PopulationRecordTest(unittest.TestCase): # to write later
     """Tests of the record(), record_v(), printSpikes(), print_v() and
@@ -606,7 +578,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         record_list = []
         for pop in self.pops:
             for i in range(0,2):
-                record_list.append(pop[i,1])
+                record_list.append(pop[i])
             pop.record(record_list)
     
     def testInvalidCellList(self):
@@ -635,7 +607,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         v_thresh = -50.0
         uniformDistr = random.RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])
         self.pop2.randomInit(uniformDistr)
-        cells_to_record = [self.pop2[0,0], self.pop2[1,1]]
+        cells_to_record = [self.pop2[0], self.pop2[4]]
         self.pop2.record_v(cells_to_record)
         simtime = 10.0
         sim.run(simtime)
@@ -652,7 +624,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
         # current-based synapses
         self.assertRaises(errors.RecordingError, self.pop2.record_gsyn)
         # conductance-based synapses
-        cells_to_record = [self.pop3[1,0], self.pop3[2,2]]
+        cells_to_record = [self.pop3[3], self.pop3[8]]
         self.pop3.record_gsyn(cells_to_record)
         simtime = 10.0
         sim.run(simtime)
@@ -1120,7 +1092,7 @@ class FileTest(unittest.TestCase):
         v_thresh = -50.0
         uniformDistr = random.RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])
         self.pop.randomInit(uniformDistr)
-        self.cells_to_record = [self.pop[0,0], self.pop[1,1]]
+        self.cells_to_record = [self.pop[0], self.pop[4]]
         self.pop.record_v(self.cells_to_record)
         simtime = 10.0
         sim.run(simtime)

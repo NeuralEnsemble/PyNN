@@ -124,25 +124,25 @@ class Population(common.Population):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
-    All cells have both an address (a tuple) and an id (an integer). If p is a
-    Population object, the address and id can be inter-converted using :
-    id = p[address]
-    address = p.locate(id)
     """
     
-    def __init__(self, dims, cellclass, cellparams=None, label=None):
+    def __init__(self, size, cellclass, cellparams=None, structure=None,
+                 label=None):
         """
-        dims should be a tuple containing the population dimensions, or a single
-          integer, for a one-dimensional population.
-          e.g., (10,10) will create a two-dimensional population of size 10x10.
+        Create a population of neurons all of the same type.
+        
+        size - number of cells in the Population. For backwards-compatibility, n
+               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
+               is equivalent to n=100 with structure=Grid2D()
         cellclass should either be a standardized cell class (a class inheriting
-        from standardmodels.StandardCellType) or a string giving the name of the
+        from common.standardmodels.StandardCellType) or a string giving the name of the
         simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
           constructor
+        structure should be a Structure instance.
         label is an optional name for the population.
         """
-        common.Population.__init__(self, dims, cellclass, cellparams, label)
+        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self),
                           'gsyn': Recorder('gsyn', population=self)}
@@ -153,12 +153,9 @@ class Population(common.Population):
         # The local cells are also stored in a list, for easy iteration
         self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
         self.local_cells = self.all_cells[self._mask_local]
-        self.all_cells = self.all_cells.reshape(self.dim)
-        self._mask_local = self._mask_local.reshape(self.dim)
-        self.cell = self.all_cells # temporary, awaiting harmonisation
         
         simulator.initializer.register(self)
-        logger.info(self.describe('Creating Population "$label" of shape $dim, '+
+        logger.info(self.describe('Creating Population "$label" of size $size, '+
                                    'containing `$celltype`s with indices between $first_id and $last_id'))
         logger.debug(self.describe())
 
@@ -176,7 +173,7 @@ class Population(common.Population):
             native_rand_distr = getattr(rng, rand_distr.name)
             rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick() for i in range(self.all_cells.size-1)]
         else:
-            rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
+            rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local)
         rarr = numpy.array(rarr)
         logger.info("%s.rset('%s', %s)", self.label, parametername, rand_distr)
         for cell,val in zip(self, rarr):
@@ -192,7 +189,7 @@ class Population(common.Population):
                 different value)
         """
         if isinstance(value, RandomDistribution):
-            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
+            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
             for cell, val in zip(self, rarr):
                 cell.set_initial_value(variable, val)
         else:

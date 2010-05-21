@@ -181,30 +181,29 @@ class Population(common.Population):
     term intended to include layers, columns, nuclei, etc., of cells.
     """
 
-    def __init__(self, dims, cellclass, cellparams=None, label=None):
+    def __init__(self, size, cellclass, cellparams=None, structure=None,
+                 label=None):
         """
         Create a population of neurons all of the same type.
         
-        dims should be a tuple containing the population dimensions, or a single
-          integer, for a one-dimensional population.
-          e.g., (10,10) will create a two-dimensional population of size 10x10.
+        size - number of cells in the Population. For backwards-compatibility, n
+               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
+               is equivalent to n=100 with structure=Grid2D()
         cellclass should either be a standardized cell class (a class inheriting
-        from standardmodels.StandardCellType) or a string giving the name of the
+        from common.standardmodels.StandardCellType) or a string giving the name of the
         simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
           constructor
+        structure should be a Structure instance.
         label is an optional name for the population.
         """
-        common.Population.__init__(self, dims, cellclass, cellparams, label)
+        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
         
         self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
         self.local_cells = self.all_cells[self._mask_local]
-        self.all_cells = self.all_cells.reshape(self.dim)
-        self._mask_local = self._mask_local.reshape(self.dim)
         
         for id in self.local_cells:
             id.parent = self
-        self.cell = self.all_cells # temporary alias, awaiting harmonization
         
         self.recorders = {}
         for variable in RECORDING_DEVICE_NAMES:
@@ -315,7 +314,7 @@ class Population(common.Population):
                 different value)
         """
         if isinstance(value, RandomDistribution):
-            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
+            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
             value = rarr #numpy.array(rarr)
             assert len(rarr) == len(self.local_cells), "%d != %d" % (len(rarr), len(self.local_cells))
         nest.SetStatus(self.local_cells.tolist(), STATE_VARIABLE_MAP[variable], value)
@@ -348,20 +347,20 @@ class Population(common.Population):
     #        n_rec = recording.mpi_sum(n_rec)
     #    return float(n_spikes)/n_rec
 
-    def getSubPopulation(self, cell_list, label=None):
-        
-        # We get the dimensions of the new population
-        dims = numpy.array(cell_list).shape
-        # We create an empty population
-        pop = Population(dims, cellclass=self.celltype, label=label, parent=self)
-        # And then copy parameters from its parent
-        pop.cellparams  = pop.parent.cellparams
-        pop.first_id    = pop.parent.first_id
-        idx             = numpy.array(cell_list,int).flatten() - pop.first_id
-        pop.cell        = pop.parent.cell.flatten()[idx].reshape(dims)
-        pop.local_cells  = pop.parent.local_cells[idx]
-        pop.positions   = pop.parent.positions[:,idx]
-        return pop
+    #def getSubPopulation(self, cell_list, label=None):
+    #    
+    #    # We get the dimensions of the new population
+    #    dims = numpy.array(cell_list).shape
+    #    # We create an empty population
+    #    pop = Population(dims, cellclass=self.celltype, label=label, parent=self)
+    #    # And then copy parameters from its parent
+    #    pop.cellparams  = pop.parent.cellparams
+    #    pop.first_id    = pop.parent.first_id
+    #    idx             = numpy.array(cell_list,int).flatten() - pop.first_id
+    #    pop.cell        = pop.parent.cell.flatten()[idx].reshape(dims)
+    #    pop.local_cells  = pop.parent.local_cells[idx]
+    #    pop.positions   = pop.parent.positions[:,idx]
+    #    return pop
 
 
 class Projection(common.Projection):
@@ -460,7 +459,7 @@ class Projection(common.Projection):
         """
         import operator
         if compatible_output:
-            fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
+            fmt = "%s[%s]\t%s[%s]\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
                                             "%s", "%g", "%g")
         else:
             fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%d", "%g", "%g")
@@ -473,7 +472,7 @@ class Projection(common.Projection):
                 lines.append(line)
         else:
             for c in res:   
-                line = fmt  % (self.pre.locate(c[0]), self.post.locate(c[1]), 0.001*c[2], c[3])
+                line = fmt  % (self.pre.id_to_index(c[0]), self.post.id_to_index(c[1]), 0.001*c[2], c[3])
                 line = line.replace('(','[').replace(')',']')
                 lines.append(line)
         if gather == True and num_processes() > 1:

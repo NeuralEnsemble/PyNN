@@ -199,7 +199,7 @@ class ProbabilisticConnector(Connector):
         else:
             self.rng = projection.rng
         
-        self.local             = projection.post._mask_local.flatten()
+        self.local             = projection.post._mask_local
         self.N                 = projection.post.size
         self.weights_generator = WeightGenerator(weights, self.local, projection, safe)
         self.delays_generator  = DelayGenerator(delays, self.local, safe)
@@ -494,7 +494,7 @@ class FixedNumberPostConnector(Connector):
         weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
         delays_generator  = DelayGenerator(self.delays, local, self.safe)
         distance_matrix   = DistanceMatrix(projection.post.positions, self.space)
-        candidates        = projection.post.all_cells.flatten()
+        candidates        = projection.post.all_cells
         size              = len(projection.post)    
         self.progressbar(len(projection.pre))
         
@@ -579,14 +579,14 @@ class FixedNumberPreConnector(Connector):
         weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
         delays_generator  = DelayGenerator(self.delays, local, self.safe)
         distance_matrix   = DistanceMatrix(projection.pre.positions, self.space)              
-        candidates        = projection.pre.all_cells.flatten() 
+        candidates        = projection.pre.all_cells 
         size              = len(projection.pre)
         self.progressbar(len(projection.post.local_cells))
         
         if isinstance(projection.rng, random.NativeRNG):
             raise Exception("Warning: use of NativeRNG not implemented.")
             
-        for count, tgt in enumerate(projection.post.local_cells.flat):
+        for count, tgt in enumerate(projection.post.local_cells):
             # pick n neurons at random
             if hasattr(self, 'rand_distr'):
                 n = self.rand_distr.next()
@@ -620,11 +620,6 @@ class OneToOneConnector(Connector):
     cell i in the presynaptic population to cell i in the postsynaptic
     population for all i.
     """
-    #In fact, despite the name, this should probably be generalised to the
-    #case where the pre and post populations have different dimensions, e.g.,
-    #cell i in a 1D pre population of size n should connect to all cells
-    #in row i of a 2D post population of size (n,m).
-    
     
     def __init__(self, weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
         """
@@ -642,9 +637,9 @@ class OneToOneConnector(Connector):
     
     def connect(self, projection):
         """Connect-up a Projection."""        
-        if projection.pre.dim == projection.post.dim:
+        if projection.pre.size == projection.post.size:
             N                 = projection.post.size
-            local             = projection.post._mask_local.flatten()
+            local             = projection.post._mask_local
             if isinstance(self.weights, basestring) or isinstance(self.delays, basestring):
                 raise Exception('Expression for weights or delays is not supported for OneToOneConnector !')
             weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
@@ -654,7 +649,7 @@ class OneToOneConnector(Connector):
             self.progressbar(len(projection.post.local_cells))                        
             count             = 0            
             create            = numpy.arange(0, N)[local]
-            sources           = projection.pre.all_cells.flatten()[create] 
+            sources           = projection.pre.all_cells[create] 
                         
             for tgt, src, w, d in zip(projection.post.local_cells, sources, weights, delays):
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
@@ -744,7 +739,7 @@ class SmallWorldConnector(Connector):
         self.probas_generator  = ProbaGenerator(RandomDistribution('uniform',(0,1), rng=self.rng), local)
         self.distance_matrix   = DistanceMatrix(projection.post.positions, self.space, local)
         self.projection        = projection
-        self.candidates        = projection.post.all_cells.flatten()          
+        self.candidates        = projection.post.all_cells          
         self.size              = len(projection.post)
         self.progressbar(len(projection.pre))        
         proba_generator = ProbaGenerator(self.d_expression, local)

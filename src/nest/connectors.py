@@ -31,7 +31,7 @@ class FastProbabilisticConnector(Connector):
         self.probas_generator  = ProbaGenerator(RandomDistribution('uniform',(0,1), rng=self.rng), self.local_long)
         self.distance_matrix   = DistanceMatrix(projection.pre.positions, self.space, self.local)
         self.projection        = projection
-        self.candidates        = projection.pre.all_cells.flatten()
+        self.candidates        = projection.pre.all_cells
         self.allow_self_connections = allow_self_connections
                 
     def _probabilistic_connect(self, tgt, p, n_connections=None, rewiring=None):
@@ -91,7 +91,7 @@ class FastAllToAllConnector(AllToAllConnector):
     def connect(self, projection):
         connector = FastProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)        
         self.progressbar(len(projection.post.local_cells))
-        for count, tgt in enumerate(projection.post.local_cells.flat):
+        for count, tgt in enumerate(projection.post.local_cells):
             connector._probabilistic_connect(tgt, 1)
             self.progression(count)        
     
@@ -103,7 +103,7 @@ class FastFixedProbabilityConnector(FixedProbabilityConnector):
     def connect(self, projection):
         connector = FastProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
         self.progressbar(len(projection.post.local_cells))
-        for count, tgt in enumerate(projection.post.local_cells.flat):
+        for count, tgt in enumerate(projection.post.local_cells):
             connector._probabilistic_connect(tgt, self.p_connect)
             self.progression(count)
             
@@ -117,7 +117,7 @@ class FastDistanceDependentProbabilityConnector(DistanceDependentProbabilityConn
         connector       = FastProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
         proba_generator = ProbaGenerator(self.d_expression, connector.local)
         self.progressbar(len(projection.post.local_cells))
-        for count, tgt in enumerate(projection.post.local_cells.flat):
+        for count, tgt in enumerate(projection.post.local_cells):
             connector.distance_matrix.set_source(tgt.position)
             proba  = proba_generator.get(connector.N, connector.distance_matrix)
             if proba.dtype == 'bool':
@@ -134,7 +134,7 @@ class FixedNumberPreConnector(FixedNumberPreConnector):
     def connect(self, projection):
         connector = FastProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
         self.progressbar(len(projection.post.local_cells))
-        for count, tgt in enumerate(projection.post.local_cells.flat):
+        for count, tgt in enumerate(projection.post.local_cells):
             if hasattr(self, 'rand_distr'):
                 n = self.rand_distr.next()
             else:
@@ -152,7 +152,7 @@ class FastSmallWorldConnector(SmallWorldConnector):
         connector       = FastProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
         proba_generator = ProbaGenerator(self.d_expression, connector.local)
         self.progressbar(len(projection.post.local_cells))
-        for count, tgt in enumerate(projection.post.local_cells.flat):
+        for count, tgt in enumerate(projection.post.local_cells):
             connector.distance_matrix.set_source(tgt.position)
             proba  = proba_generator.get(connector.N, connector.distance_matrix).astype(float)
             connector._probabilistic_connect(tgt, proba, None, self.rewiring)

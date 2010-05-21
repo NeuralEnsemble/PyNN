@@ -217,10 +217,7 @@ class IDMixin(object):
         assert isinstance(pos, (tuple, numpy.ndarray))
         assert len(pos) == 3
         if self.parent:
-            # the following line makes too many assumptions about the
-            # implementation of Population. Should use a public method of
-            # Population.
-            index = numpy.where(self.parent.cell.flatten() == int(self))[0][0]
+            index = self.parent.id_to_index(self)
             self.parent.positions[:, index] = pos
         else:
             self._position = numpy.array(pos)
@@ -432,108 +429,119 @@ class Population(object):
     """
     nPop = 0
     
-    def __init__(self, dims, cellclass, cellparams=None, label=None, parent=None):
+    def __init__(self, size, cellclass, cellparams=None, structure=None,
+                 label=None, parent=None):
         """
         Create a population of neurons all of the same type.
         
-        dims should be a tuple containing the population dimensions, or a single
-          integer, for a one-dimensional population.
-          e.g., (10,10) will create a two-dimensional population of size 10x10.
+        size - number of cells in the Population. For backwards-compatibility, n
+               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
+               is equivalent to n=100 with structure=Grid2D()
         cellclass should either be a standardized cell class (a class inheriting
         from common.standardmodels.StandardCellType) or a string giving the name of the
         simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
           constructor
+        structure should be a Structure instance.
         label is an optional name for the population.
         """
         
-        self.dim = dims
-        if isinstance(dims, int): # also allow a single integer, for a 1D population
-            self.dim = (self.dim,)
-        else:
-            assert isinstance(dims, tuple), "`dims` must be an integer or a tuple. You have supplied a %s" % type(dims)
+        if not isinstance(size, int): # also allow a single integer, for a 1D population
+            assert isinstance(size, tuple), "`size` must be an integer or a tuple. You have supplied a %s" % type(n)
+            assert structure is None, "If you specify `size` as a tuple you may not specify structure."
+            if len(size) == 1:
+                structure = space.Line()
+            elif len(size) == 2:
+                nx,ny = size 
+                structure = space.Grid2D(nx/float(ny))
+            elif len(size) == 3:
+                nx,ny,nz = size
+                structure = space.Grid3D(nx/float(ny), nx/float(nz))
+            else:
+                raise Exception("A maximum of 3 dimensions is allowed. What do you think this is, string theory?")
+            size = reduce(operator.mul, size)
+        self.size = size
         self.label = label or 'population%d' % Population.nPop         
         if isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
             self.celltype = cellclass(cellparams)
         else:
             self.celltype = cellclass
-        self.ndim = len(self.dim)
+        self.structure = structure or space.Line()
         self.cellparams = cellparams
         self.parent = parent
         self.initial_values = {}
-        self.size = self.dim[0]
-        for i in range(1, self.ndim):
-            self.size *= self.dim[i]
+        self._positions = None
         Population.nPop += 1
     
-    def __getitem__(self, addr):
+    @property
+    def cell(self):
+        warn("The `Population.cell` attribute is not an official part of the API, and its use is deprecated. \
+              It will be removed in a future release. All uses of `cell` may be replaced by `all_cells`")
+        return self.all_cells
+    
+    def __getitem__(self, index):
         """
-        Return a representation of the cell with coordinates given by addr,
+        Return a representation of the cell with the given index,
         suitable for being passed to other methods that require a cell id.
         Note that __getitem__ is called when using [] access, e.g.
             p = Population(...)
-            p[2,3] is equivalent to p.__getitem__((2,3)).
+            p[2] is equivalent to p.__getitem__(2).
         Also accepts slices, e.g.
-            p[0,3:6]
+            p[3:6]
         which returns an array of cells.
         """
-        if isinstance(addr, (int, slice)):
-            addr = (addr,)
-        if len(addr) == self.ndim:
-            id = self.all_cells[addr]
-        else:
-            raise errors.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
-        return id
+        return self.all_cells[index]
     
     def __iter__(self):
         """Iterator over cell ids on the local node."""
-        return iter(self.local_cells.flat)
+        return iter(self.local_cells)
         
-    def __address_gen(self):
-        """
-        Generator to produce an iterator over all cells on this node,
-        returning addresses.
-        """
-        for i in self.__iter__():
-            yield self.locate(i)
-
-    def addresses(self):
-        """Iterator over cell addresses on the local node."""
-        return self.__address_gen()
     
-    def ids(self):
-        """Iterator over cell ids on the local node."""
-        return self.__iter__()
+#    def __address_gen(self):
+#        """
+#        Generator to produce an iterator over all cells on this node,
+#        returning addresses.
+#        """
+#        for i in self.__iter__():
+#            yield self.locate(i)
+
+#    def addresses(self):
+#        """Iterator over cell addresses on the local node."""
+#        return self.__address_gen()
+    
+#    def ids(self):
+#        """Iterator over cell ids on the local node."""
+#        return self.__iter__()
     
     def all(self):
         """Iterator over cell ids on all nodes."""
-        return self.all_cells.flat
+        return iter(self.all_cells)
     
-    def locate(self, id):
-        """
-        Given an element id in a Population, return the coordinates.
-            e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
-                      7 9
-        """
-        # this implementation assumes that ids are consecutive
-        # a slower (for large populations) implementation that does not make
-        # this assumption is:
-        #   return tuple([a.tolist()[0] for a in numpy.where(self.all_cells == id)])
-        idx = self.id_to_index(id)
-        if self.ndim == 3:
-            rows = self.dim[1]; cols = self.dim[2]
-            i = idx/(rows*cols); remainder = idx%(rows*cols)
-            j = remainder/cols; k = remainder%cols
-            coords = (i,j,k)
-        elif self.ndim == 2:
-            cols = self.dim[1]
-            i = idx/cols; j = idx%cols
-            coords = (i,j)
-        elif self.ndim == 1:
-            coords = (idx,)
-        else:
-            raise errors.InvalidDimensionsError
-        return coords
+#    def locate(self, id):
+#        """
+#        Given an element id in a Population, return the coordinates.
+#            e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
+#                      7 9
+#        """
+#        # this implementation assumes that ids are consecutive
+#        # a slower (for large populations) implementation that does not make
+#        # this assumption is:
+#        #   return tuple([a.tolist()[0] for a in numpy.where(self.all_cells == id)])
+#        idx = self.id_to_index(id)
+#        if self.ndim == 3:
+#            rows = self.dim[1]; cols = self.dim[2]
+#            i = idx/(rows*cols); remainder = idx%(rows*cols)
+#            j = remainder/cols; k = remainder%cols
+#            coords = (i,j,k)
+#        elif self.ndim == 2:
+#            cols = self.dim[1]
+#            i = idx/cols; j = idx%cols
+#            coords = (i,j)
+#        elif self.ndim == 1:
+#            coords = (idx,)
+#        else:
+#            raise errors.InvalidDimensionsError
+#        return coords
     
     def id_to_index(self, id):
         """
@@ -542,38 +550,45 @@ class Population(object):
         >>> assert id_to_index(p.index(5)) == 5
         >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        #assert self.first_id <= id <= self.last_id 
+        assert self.first_id <= id <= self.last_id 
         return id - self.first_id # this assumes ids are consecutive
     
-    def index(self, n):
-        """
-        Return the nth cell in the population (Indexing starts at 0).
-        n may be a list or array, e.g., [i,j,k], in which case, returns the
-        ith, jth and kth cells in the population."""
-        if hasattr(n, '__len__'):
-            n = numpy.array(n)
-        return self.all_cells.flatten()[n]
+#    def index(self, n):
+#        """
+#        Return the nth cell in the population (Indexing starts at 0).
+#        n may be a list or array, e.g., [i,j,k], in which case, returns the
+#        ith, jth and kth cells in the population."""
+#        if hasattr(n, '__len__'):
+#            n = numpy.array(n)
+#        return self.all_cells.flatten()[n]
     
     def __len__(self):
         """Return the total number of cells in the population."""
         return self.size
     
+    def _get_structure(self):
+        return self._structure
+    
+    def _set_structure(self, structure):
+        if structure != self.structure:
+            self._positions = None # setting a new structure invalidates previously calculated positions
+            self.structure = structure
+    structure = property(fget=_get_structure, fset=_set_structure)
+    # arguably structure should be read-only, i.e. it is not possible to change it after Population creation
+    
     def _get_positions(self):
         """
         Try to return self._positions. If it does not exist, create it and then return it
         """
-        try:
-            return self._positions
-        except AttributeError:
-            x,y,z = numpy.indices(list(self.dim) + [1]*(3-len(self.dim))).astype(float)
-            x = x.flatten(); y = y.flatten(); z = z.flatten()
-            self._positions = numpy.array((x,y,z))
-            return self._positions
+        if self._positions is None:
+            self._positions = self.structure.generate_positions(self.size)
+        return self._positions
 
     def _set_positions(self, pos_array):
         assert isinstance(pos_array, numpy.ndarray)
         assert pos_array.shape == (3, self.size), "%s != %s" % (pos_array.shape, (3, self.size))
         self._positions = pos_array.copy() # take a copy in case pos_array is changed later
+        self.structure = None # explicitly setting positions destroys any previous structure
 
     positions = property(_get_positions, _set_positions,
                          """A 3xN array (where N is the number of neurons in the Population)
@@ -589,23 +604,15 @@ class Population(object):
         dist_arr = (self.positions - pos)**2
         distances = dist_arr.sum(axis=0)
         nearest = distances.argmin()
-        return self.index(nearest)
+        return self[nearest]
     
-    def get(self, parameter_name, as_array=False): # would be nice to add a 'gather' argument
+    def get(self, parameter_name): # would be nice to add a 'gather' argument
         """
         Get the values of a parameter for every cell in the population.
         """
         # if all the cells have the same value for this parameter, should
         # we return just the number, rather than an array?
-        if as_array:
-            values = numpy.NaN*numpy.ones(self.dim)
-            for cell in self.all():
-                addr = self.locate(cell)
-                if cell.local:
-                    values[addr] = getattr(cell, parameter_name)
-        else:
-            values = [getattr(cell, parameter_name) for cell in self]
-        return values
+        return [getattr(cell, parameter_name) for cell in self]
             
     def set(self, param, val=None):
         """
@@ -616,6 +623,17 @@ class Population(object):
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
+        #"""
+        #Set one or more parameters for every cell in the population.
+        # 
+        #Each value may be a single number or a list/array of numbers of the same
+        #size as the population. If the parameter itself takes lists/arrays as
+        #values (e.g. spike times), then the value provided may be either a
+        #single lists/1D array, a list of lists/1D arrays, or a 2D array.
+        # 
+        #e.g. p.set(tau_m=20.0).
+        #     p.set(tau_m=20, v_rest=[-65.0, -65.3, ... , -67.2])
+        #"""
         if isinstance(param, str):
             if isinstance(val, (str, float, int)):
                 param_dict = {param: float(val)}
@@ -636,14 +654,21 @@ class Population(object):
         'Topographic' set. Set the value of parametername to the values in
         value_array, which must have the same dimensions as the Population.
         """
-        if self.dim == value_array.shape: # the values are numbers or non-array objects
+        #"""
+        #'Topographic' set. Each value in parameters should be a function that
+        #accepts arguments x,y,z and returns a single value.
+        #"""
+        if (self.size,) == value_array.shape: # the values are numbers or non-array objects
             local_values = value_array[self._mask_local]
             assert local_values.size == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
-        elif len(value_array.shape) == len(self.dim)+1: # the values are themselves 1D arrays
+        elif len(value_array.shape) == 2: # the values are themselves 1D arrays
+            if value_array.shape[0] != self.size:
+                raise errors.InvalidDimensionsError, "Population: %d, value_array first dimension: %s" % (self.size,
+                                                                                                          value_array.shape[0])
             local_values = value_array[self._mask_local] # not sure this works
         else:
-            raise errors.InvalidDimensionsError, "Population: %s, value_array: %s" % (str(self.dim),
-                                                                               str(value_array.shape))
+            raise errors.InvalidDimensionsError, "Population: %d, value_array: %s" % (self.size,
+                                                                                      str(value_array.shape))
         assert local_values.shape[0] == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
         
         try:
@@ -663,7 +688,7 @@ class Population(object):
         'Random' set. Set the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-        rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local.flatten())
+        rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local)
         rarr = numpy.array(rarr)
         logger.debug("%s.rset('%s', %s)", self.label, parametername, rand_distr)
         for cell,val in zip(self, rarr):
@@ -717,12 +742,12 @@ class Population(object):
         if isinstance(record_from, list): #record from the fixed list specified by user
             pass
         elif record_from is None: # record from all cells:
-            record_from = self.all_cells.flatten()
+            record_from = self.all_cells
         elif isinstance(record_from, int): # record from a number of cells, selected at random  
             nrec = record_from
             if not rng:
                 rng = random.NumpyRNG()
-            record_from = rng.permutation(self.all_cells.flatten())[0:nrec]
+            record_from = rng.permutation(self.all_cells)[0:nrec]
             logger.debug("The %d cells recorded have IDs %s" % (nrec, record_from))
         else:
             raise Exception("record_from must be either a list of cells or the number of cells to record from")
@@ -881,8 +906,7 @@ class Population(object):
                      'Population called $label is made of $n_cells cells [$n_cells_local being local]']
             if self.parent:
                 lines += ['This population is a subpopulation of population $parent_label']
-            lines += ["-> Cells are arranged on a ${ndim}D grid of size $dim",
-                      "-> Celltype is $celltype",
+            lines += ["-> Celltype is $celltype",
                       "-> ID range is $first_id-$last_id",]
             if len(self.local_cells) > 0:
                 lines += ["-> Cell Parameters used for first cell on this node are: "]
@@ -930,7 +954,7 @@ class Population(object):
         """
         raise NotImplementedError()
     
-    def savePositions(self, filename, gather=True, compatible_output=True):
+    def save_positions(self, filename, gather=True, compatible_output=True):
         """
         Save positions to file. The output format is id x y z
         """
@@ -945,17 +969,17 @@ class Population(object):
             f.writelines(lines)
             f.close()
     
-    def set_positions(self, generator):
-        """
-        Draw all the positions of the cells according to the PositionsGenerator object
-        
-        >> x = Population((10,10), IF_curr_exp)
-        >> x.set_positions(RandomPositions([(0,1), (0,1), None]))
-        >> y = Population((10, 10, 20), IF_curr_exp)
-        >> y.set_positions(GridPositions([(0,0.5), (0,0.5), (0,1)]))        
-        """
-        assert(isinstance(generator, space.PositionsGenerator)), "object should be a PositionsGenerator object !"
-        self.positions = generator.get(self.dim)
+    #def set_positions(self, generator):
+    #    """
+    #    Draw all the positions of the cells according to the PositionsGenerator object
+    #    
+    #    >> x = Population((10,10), IF_curr_exp)
+    #    >> x.set_positions(RandomPositions([(0,1), (0,1), None]))
+    #    >> y = Population((10, 10, 20), IF_curr_exp)
+    #    >> y.set_positions(GridPositions([(0,0.5), (0,0.5), (0,1)]))        
+    #    """
+    #    assert(isinstance(generator, space.PositionsGenerator)), "object should be a PositionsGenerator object !"
+    #    self.positions = generator.get(self.dim)
         
 # ==============================================================================
 
@@ -1155,7 +1179,7 @@ class Projection(object):
         FromFileConnector.
         """
         if compatible_output:
-            fmt = "%s%s\t%s%s\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
+            fmt = "%s[%s]\t%s[%s]\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
                                             "%s", "%g", "%g")
         else:
             fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%d", "%g", "%g")
@@ -1169,8 +1193,8 @@ class Projection(object):
                 lines.append(line)
         else:
             for c in self.connections:   
-                line = fmt  % (self.pre.locate(c.source),
-                              self.post.locate(c.target),
+                line = fmt  % (self.pre.id_to_index(c.source),
+                              self.post.id_to_index(c.target),
                               c.weight,
                               c.delay)
                 line = line.replace('(','[').replace(')',']')
