@@ -131,7 +131,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
     details regarding the hardware model see the FACETS-internal Wiki:
     https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
     """
-    # in 'iaf_cond_exp_sfa_rr', the dimension of C_m is pF, 
+    # in 'iaf_cond_exp', the dimension of C_m is pF, 
     # while in the pyNN context, cm is given in nF
     translations = standardmodels.build_translations(
         ('v_reset',    'V_reset'),
@@ -142,16 +142,14 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
         ('tau_syn_I',  'tau_syn_in'),
         ('g_leak',     'g_L')
     )
-    nest_name = "iaf_cond_exp_sfa_rr"
+    nest_name = "iaf_cond_exp"
 
     def __init__(self, parameters):
         cells.IF_facets_hardware1.__init__(self, parameters)
         self.parameters['C_m']   = 200.0
         self.parameters['t_ref'] =   1.0
         self.parameters['E_ex']  =   0.0
-        self.parameters['q_rr']  =   0.0
-        self.parameters['q_sfa'] =   0.0
-        
+
 
 class HH_cond_exp(cells.HH_cond_exp):
     """Single-compartment Hodgkin-Huxley model."""
