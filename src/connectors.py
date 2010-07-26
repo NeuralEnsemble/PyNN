@@ -797,4 +797,8 @@ class SmallWorldConnector(Connector):
             self.distance_matrix.set_source(src.position)
             proba = proba_generator.get(self.N, self.distance_matrix).astype(float)
             self._smallworld_connect(src, proba)
-            self.progression(count)   
+            self.progression(count)
+
+
+class CSAConnector(Connector):
+    pass
