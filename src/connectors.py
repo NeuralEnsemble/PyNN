@@ -12,6 +12,11 @@ from pyNN.random import RandomDistribution
 from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                     fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
                     sin, sinh, sqrt, tan, tanh, maximum, minimum
+try:
+    import csa
+    haveCSA=True
+except ImportError:
+    haveCSA=False
 
 logger = logging.getLogger("PyNN")
 
@@ -801,4 +806,21 @@ class SmallWorldConnector(Connector):
 
 
 class CSAConnector(Connector):
-    pass
+    if haveCSA:
+        def __init__ (self, cset, safe=True, verbose=False):
+            """
+            """
+            Connector.__init__(self, 0., common.get_min_delay(), safe=safe, verbose=verbose)
+            self.cset = cset
+    else:
+        def __init__ (self, cset, safe=True, verbose=False):
+            raise RuntimeError, "CSAConnector not available---couldn't find csa library"
+
+    def connect(self, projection):
+        """Connect-up a Projection."""
+        c = csa.cross ([i for i in projection.pre], [j for j in projection.post]) * self.cset
+        if csa.arity (self.cset) == 2:
+            for (i, j, weight, delay) in c:
+                projection.connection_manager.connect (i, [j], weight, delay)
+        elif csa.arity (self.cset) == 0:
+            raise NotImplemented, 'Not implemented for masks'
