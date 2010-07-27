@@ -807,20 +807,60 @@ class SmallWorldConnector(Connector):
 
 class CSAConnector(Connector):
     if haveCSA:
-        def __init__ (self, cset, safe=True, verbose=False):
+        def __init__ (self, cset, weights=None, delays=None, safe=True, verbose=False):
             """
             """
-            Connector.__init__(self, 0., common.get_min_delay(), safe=safe, verbose=verbose)
+            min_delay = common.get_min_delay()
+            Connector.__init__(self, None, None, safe=safe, verbose=verbose)
             self.cset = cset
+            if csa.arity (cset) == 0:
+                assert weights is not None and delays is not None, \
+                       'must specify weights and delays in addition to a CSA mask'
+                self.weights = weights
+                self.delays = delays
+            else:
+                assert csa.arity (cset) == 2, 'must specify mask or connection-set with arity 2'
+                assert weights is None and delays is None, \
+                       "weights or delays specified both in connection-set and as CSAConnector argument"
     else:
         def __init__ (self, cset, safe=True, verbose=False):
-            raise RuntimeError, "CSAConnector not available---couldn't find csa library"
+            raise RuntimeError, "CSAConnector not available---couldn't import csa module"
+
+    @staticmethod
+    def isConstant (x):
+        return isinstance (x, (int, float))
+    
+    @staticmethod
+    def constantIterator (x):
+        while True:
+            yield x
 
     def connect(self, projection):
         """Connect-up a Projection."""
-        c = csa.cross ([i for i in projection.pre], [j for j in projection.post]) * self.cset
+        i0 = projection.pre.first_id
+        size1 = projection.pre.last_id - i0
+        j0 = projection.post.first_id
+        targets = [j - j0 for j in projection.post]
+
+        # Cut out finite part and shift to global ids
+        c = csa.shift (i0, j0) * csa.cross ((0, size1), targets) * self.cset
+        
         if csa.arity (self.cset) == 2:
+            # Connection-set with arity 2
             for (i, j, weight, delay) in c:
                 projection.connection_manager.connect (i, [j], weight, delay)
-        elif csa.arity (self.cset) == 0:
-            raise NotImplemented, 'Not implemented for masks'
+        elif CSAConnector.isConstant (self.weights) \
+             and CSAConnector.isConstant (self.delays):
+            # Mask with constant weights and delays
+            for (i, j) in c:
+                projection.connection_manager.connect (i, [j], self.weights, self.delays)
+        else:
+            # Mask with weights and/or delays iterable
+            weights = self.weights
+            if CSAConnector.isConstant (weights):
+                weights = CSAConnector.constantIterator (weights)
+            delays = self.delays
+            if CSAConnector.isConstant (delays):
+                delays = CSAConnector.constantIterator (delays)
+            for (i, j), weight, delay in zip (c, weights, delays):
+                projection.connection_manager.connect (i, [j], weight, delay)
