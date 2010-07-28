@@ -11,5 +11,7 @@ from pyNN.connectors import AllToAllConnector, \
                             FromListConnector, \
                             FromFileConnector, \
                             FixedNumberPreConnector, \
-                            FixedNumberPostConnector
+                            FixedNumberPostConnector, \
+                            SmallWorldConnector, \
+                            CSAConnector
 

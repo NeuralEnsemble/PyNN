@@ -458,11 +458,7 @@ class Projection(common.Projection):
         FromFileConnector.
         """
         import operator
-        if compatible_output:
-            fmt = "%s[%s]\t%s[%s]\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
-                                            "%s", "%g", "%g")
-        else:
-            fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%d", "%g", "%g")
+        fmt = "%d\t%d\t%g\t%g\n"
         lines = []
         res   = nest.GetStatus(self.connection_manager.connections, ('source', 'target', 'weight', 'delay'))
 
@@ -473,7 +469,6 @@ class Projection(common.Projection):
         else:
             for c in res:   
                 line = fmt  % (self.pre.id_to_index(c[0]), self.post.id_to_index(c[1]), 0.001*c[2], c[3])
-                line = line.replace('(','[').replace(')',']')
                 lines.append(line)
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
@@ -485,6 +480,7 @@ class Projection(common.Projection):
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
         if gather == False or rank() == 0:
             f = open(filename, 'w')
+            f.write(self.pre.label + "\n" + self.post.label + "\n")
             f.writelines(lines)
             f.close()
 

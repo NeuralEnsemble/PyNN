@@ -977,6 +977,8 @@ class Assembly(object):
         self.label = label or 'assembly%d' % Assembly.count
         Assembly.count += 1
         
+        # need to define positions, all_cells, local_cells as composites
+        
     def initialize(self, variable, value):
         for p in self.populations:
             p.initialize(variable, value)
@@ -1177,12 +1179,8 @@ class Projection(object):
         """
         Save connections to file in a format suitable for reading in with a
         FromFileConnector.
-        """
-        if compatible_output:
-            fmt = "%s[%s]\t%s[%s]\t%s\t%s\n" % (self.pre.label, "%s", self.post.label,
-                                            "%s", "%g", "%g")
-        else:
-            fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%d", "%g", "%g")
+        """    
+        fmt = "%d\t%d\t%g\t%g\n"
         lines = []
         if not compatible_output:
             for c in self.connections:   
@@ -1194,10 +1192,9 @@ class Projection(object):
         else:
             for c in self.connections:   
                 line = fmt  % (self.pre.id_to_index(c.source),
-                              self.post.id_to_index(c.target),
-                              c.weight,
-                              c.delay)
-                line = line.replace('(','[').replace(')',']')
+                               self.post.id_to_index(c.target),
+                               c.weight,
+                               c.delay)
                 lines.append(line)
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
@@ -1209,6 +1206,7 @@ class Projection(object):
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
         if gather == False or rank() == 0:
             f = open(filename, 'w')
+            f.write(self.pre.label + "\n" + self.post.label + "\n")
             f.writelines(lines)
             f.close()
     

@@ -93,7 +93,9 @@ elif benchmark == "CUBA":
 
 # === Build the network ========================================================
 
-extra = {'threads' : threads}
+extra = {'threads' : threads,
+         'filename': "va.xml",
+         'label': 'VA'}
 if simulator_name == "neuroml":
     extra["file"] = "VAbenchmarks.xml"
 
@@ -117,10 +119,10 @@ if (benchmark == "COBA"):
 timer.start()
 
 print "%s Creating cell populations..." % node_id
-exc_cells = Population((n_exc,), celltype, cell_params, "Excitatory_Cells")
-inh_cells = Population((n_inh,), celltype, cell_params, "Inhibitory_Cells")
+exc_cells = Population(n_exc, celltype, cell_params, "Excitatory_Cells")
+inh_cells = Population(n_inh, celltype, cell_params, "Inhibitory_Cells")
 if benchmark == "COBA":
-    ext_stim = Population((20,), SpikeSourcePoisson,{'rate' : rate, 'duration' : stim_dur},"expoisson")
+    ext_stim = Population(20, SpikeSourcePoisson,{'rate' : rate, 'duration' : stim_dur},"expoisson")
     rconn = 0.01
     ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
 

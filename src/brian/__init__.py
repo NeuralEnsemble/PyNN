@@ -137,7 +137,6 @@ class Population(common.Population):
         
         for id in self.local_cells:
             id.parent = self
-        self.cell = self.all_cells # temporary alias, awaiting harmonization
         
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self),

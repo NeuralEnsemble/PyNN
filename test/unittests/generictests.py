@@ -807,17 +807,17 @@ class ProjectionInitTest(unittest.TestCase):
     
     def testFromList(self):
         connection_list = [
-            ([0,], [0,], 0.1, 0.1),
-            ([3,], [0,], 0.2, 0.11),
-            ([2,], [3,], 0.3, 0.12),
-            ([4,], [2,], 0.4, 0.13),
-            ([0,], [1,], 0.5, 0.14),
+            (0, 0, 0.1, 0.1),
+            (3, 0, 0.2, 0.11),
+            (2, 3, 0.3, 0.12),
+            (4, 2, 0.4, 0.13),
+            (0, 1, 0.5, 0.14),
             ]
         c1 = sim.FromListConnector(connection_list)
         prj = sim.Projection(self.source5, self.target6, c1)
         n_local = 0
         for src, tgt, w, d in connection_list:
-            if prj.post[tuple(tgt)].local:
+            if prj.post[tgt].local:
                 n_local += 1
         self.assertEqual(len(prj.connections), n_local)
             

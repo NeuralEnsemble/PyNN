@@ -184,7 +184,7 @@ class Recorder(recording.Recorder):
             self._local_files_merged = True
         return data
     
-    def _get(self, gather=False, compatible_output=True):
+    def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         if self._device is None:
             raise errors.NothingToWriteError("No cells recorded, so no data to return")
@@ -193,30 +193,36 @@ class Recorder(recording.Recorder):
             data = self._read_data_from_memory(gather, compatible_output)
         else: # in file
             data = self._read_data(gather, compatible_output)
+        
+        if filter:
+            mask = reduce(numpy.add, (data[:,0]==id for id in filter))
+            data = data[mask]
         return data
     
-    def write(self, file=None, gather=False, compatible_output=True):
+    def write(self, file=None, gather=False, compatible_output=True,filter=None):
         """Write recorded data to file."""
         if self._device is None:
             raise errors.NothingToWriteError("%s not recorded from any cells, so no data to write to file." % self.variable)
-        recording.Recorder.write(self, file, gather, compatible_output)
+        recording.Recorder.write(self, file, gather, compatible_output, filter)
 
-    def _local_count(self):
+    def _local_count(self, filter):
+        filtered_ids = self.filter_recorded(filter)
         N = {}
         if self.in_memory():
             events = nest.GetStatus(self._device, 'events')[0]
-            for id in self.recorded:
+            for id in filtered_ids:
                 mask = events['senders'] == int(id)
                 N[id] = len(events['times'][mask])
         else:
-            spikes = self._get(gather=False, compatible_output=False)
+            spikes = self._get(gather=False, compatible_output=False,
+                               filter=filter)
             for id in spikes[:,0].astype(int):
-                assert id in self.recorded
+                assert id in filtered_ids
                 if id in N:
                     N[id] += 1
                 else:
                     N[id] = 1
-            for id in self.recorded:
+            for id in filtered_ids:
                 if id not in N:
                     N[id] = 0
         return N

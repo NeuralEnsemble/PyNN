@@ -47,26 +47,29 @@ class Recorder(recording.Recorder):
                 device.recordindex = dict((i,j) for i,j in zip(device.record,
                                                                range(len(device.record))))
     
-    def _get(self, gather=False, compatible_output=True):
+    def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
+        filtered_ids = self.filter_recorded(filter)
         if self.variable == 'spikes':
-            data = numpy.array([(id, time/ms) for (id, time) in self._devices[0].spikes if id in self.recorded])
+            data = numpy.array([(id, time/ms) for (id, time) in self._devices[0].spikes if id in filtered_ids])
         elif self.variable == 'v':
             values = self._devices[0].values/mV
             times = self._devices[0].times/ms
             data = numpy.empty((0,3))
-            for id, row in enumerate(values):
-                new_data = numpy.array([numpy.ones(row.shape)*id, times, row]).T
-                data = numpy.concatenate((data, new_data))
+            for id, row in zip(self.recorded, values):
+                if id in filtered_ids:
+                    new_data = numpy.array([numpy.ones(row.shape)*id, times, row]).T
+                    data = numpy.concatenate((data, new_data))
         elif self.variable == 'gsyn':
             values1 = self._devices[0].values/uS
             values2 = self._devices[1].values/uS
             times = self._devices[0].times/ms
             data = numpy.empty((0,4))
-            for id, (row1, row2) in enumerate(zip(values1, values2)):
+            for id, row1, row2 in zip(self.recorded, values1, values2):
                 assert row1.shape == row2.shape
-                new_data = numpy.array([numpy.ones(row1.shape)*id, times, row1, row2]).T
-                data = numpy.concatenate((data, new_data))
+                if id in filtered_ids:
+                    new_data = numpy.array([numpy.ones(row1.shape)*id, times, row1, row2]).T
+                    data = numpy.concatenate((data, new_data))
         return data
 
 simulator.Recorder = Recorder

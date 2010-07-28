@@ -377,7 +377,7 @@ class FixedProbabilityConnector(Connector):
             self.progression(count)
             
 
-class DistanceDependentProbabilityConnector(ProbabilisticConnector):
+class DistanceDependentProbabilityConnector(Connector):
     """
     For each pair of pre-post cells, the connection probability depends on distance.
     """
@@ -438,10 +438,10 @@ class FromListConnector(Connector):
         
         `conn_list` -- a list of tuples, one tuple for each connection. Each
                        tuple should contain:
-                          (pre_addr, post_addr, weight, delay)
-                       where pre_addr is the address (a tuple) of the presynaptic
-                       neuron, and post_addr is the address of the postsynaptic
-                       neuron.
+                          (pre_idx, post_idx, weight, delay)
+                       where pre_idx is the index (i.e. order in the Population,
+                       not the ID) of the presynaptic neuron, and post_idx is
+                       the index of the postsynaptic neuron.
         """
         # needs extending for dynamic synapses.
         Connector.__init__(self, 0., common.get_min_delay(), safe=safe, verbose=verbose)
@@ -453,9 +453,9 @@ class FromListConnector(Connector):
         self.progressbar(len(self.conn_list))
         for count, i in enumerate(xrange(len(self.conn_list))):
             src, tgt, weight, delay = self.conn_list[i][:]
-            src = projection.pre[tuple(src)]           
-            tgt = projection.post[tuple(tgt)]
-            projection.connection_manager.connect(src, [tgt], weight, delay)
+            src_id = projection.pre[src]           
+            tgt_id = projection.post[tgt]
+            projection.connection_manager.connect(src_id, [tgt_id], weight, delay)
             self.progression(count)
             
 
@@ -485,6 +485,8 @@ class FromFileConnector(FromListConnector):
             self.filename += ".%d" % common.rank()
         # open the file...
         f = open(self.filename, 'r', 10000)
+        source_label = f.readline() # we don't actually use these, so
+        target_label = f.readline() # they don't really need to be in the file
         lines = f.readlines()
         f.close()
         # gather all the data in a list of tuples (one per line)
@@ -492,9 +494,7 @@ class FromFileConnector(FromListConnector):
         for line in lines:
             single_line = line.rstrip()
             src, tgt, w, d = single_line.split("\t", 4)
-            src = "[%s" % src.split("[",1)[1]
-            tgt = "[%s" % tgt.split("[",1)[1]
-            input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
+            input_tuples.append((int(src), int(tgt), float(w), float(d)))
         self.conn_list = input_tuples
         FromListConnector.connect(self, projection)
 
