@@ -1,10 +1,9 @@
 # encoding: utf-8
 import nineml.user_layer as nineml
-from pyNN import common, standardmodels, cells, connectors, random
+from pyNN import common, standardmodels, random
 from cells import *
+from connectors import *
 from utility import build_parameter_set, infer_units, catalog_url
-
-
 
 
 
@@ -83,7 +82,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     output_filename = extra_params["filename"]
     label = extra_params["label"]
     net = Network(label)
-    
+    return 0
     
 def end(compatible_output=True):
     """Write the XML file. Do any necessary cleaning up before exiting."""
@@ -91,7 +90,10 @@ def end(compatible_output=True):
     net.to_nineml().write(output_filename)
     
 get_min_delay = common.get_min_delay
+num_processes = common.num_processes
 
+def run(tstop):
+    pass
 
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
@@ -106,7 +108,7 @@ class Population(common.Population):
     
     def __init__(self, size, cellclass, cellparams=None, structure=None, label=None):
         global net
-        common.Population.__init__(self, dims, cellclass, cellparams, structure, label)
+        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
         
         net.populations.append(self)
         
@@ -134,11 +136,31 @@ class Population(common.Population):
         translated_name = self.celltype.translations[parametername]['translated_name']
         self.celltype.parameters[translated_name] = rand_distr
 
+    def initialize(self, variable, value):
+        pass
+
+    def _record(self, variable, record_from, rng, to_file):
+        pass
+
+    def meanSpikeCount(self, gather=True):
+        return 0
+
+    def printSpikes(self, file, gather=True, compatible_output=True):
+        pass
+
+    def print_v(self, file, gather=True, compatible_output=True):
+        pass
+
     def to_nineml(self):
-        structure = nineml.Structure(
-                                name="grid for %s" % self.label,
-                                definition=nineml.Definition("%s/networkstructures/%dDgrid.xml" % (catalog_url, self.ndim)),
-                                parameters=build_parameter_set(get_grid_parameters(self)))
+        if self.structure:
+            structure = nineml.Structure(
+                                    name="structure for %s" % self.label,
+                                    definition=nineml.Definition("%s/networkstructures/%s.xml" % (catalog_url, self.structure.__class__.__name__)),
+                                    #parameters=build_parameter_set(get_grid_parameters(self))
+                                    parameters={} ####
+                                    )
+        else:
+            structure = None
         population = nineml.Population(
                                 name=self.label,
                                 number=len(self),
@@ -162,6 +184,12 @@ class Projection(common.Projection):
                 self.label = "%s-%s" % (self.pre.label, self.post.label)
         net.projections.append(self)
     
+    def __len__(self):
+        return 0
+    
+    def size(self):
+        return len(self)
+    
     def to_nineml(self):
         connection_rule = self._method.to_nineml(self.label)
         connection_type = nineml.ConnectionType(
@@ -180,28 +208,7 @@ class Projection(common.Projection):
                                 connection_type=connection_type)
         return projection
 
-   
-class ConnectorMixin(object):
-    
-    def to_nineml(self, label):
-        connector_parameters = {}
-        for name in self.__class__.parameter_names:
-            connector_parameters[name] = getattr(self, name)
-        connection_rule = nineml.ConnectionRule(
-                                    name="connection rule for projection %s" % label,
-                                    definition=nineml.Definition(self.definition_url),
-                                    parameters=build_parameter_set(connector_parameters))
-        return connection_rule
 
-
-class FixedProbabilityConnector(connectors.FixedProbabilityConnector, ConnectorMixin):
-    definition_url = "%s/connectionrules/fixed_probability.xml" % catalog_url 
-    parameter_names = ('p_connect', 'allow_self_connections')
-   
-   
-class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector, ConnectorMixin):
-    definition_url = "%s/connectionrules/distance_dependent_probability.xml" % catalog_url
-    parameter_names = ('d_expression', 'allow_self_connections') # space
    
     
 class CurrentSource(object):

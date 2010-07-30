@@ -56,6 +56,7 @@ class StandardModelType(object):
     
     translations = {}
     default_parameters = {}
+    default_initial_values = {}
     
     def __init__(self, parameters):
         self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)

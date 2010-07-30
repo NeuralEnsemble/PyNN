@@ -299,6 +299,8 @@ def create_cells(cellclass, cellparams=None, n=1, parent=None):
             brian_cells = MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(n)])
         else:
             brian_cells = ThresholdNeuronGroup(n, cellclass.eqs)
+    elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.ModelNotAvailable):
+        raise NotImplementedError("The %s model is not available for this simulator." % cellclass.__name__)
     else:
         raise Exception("Invalid cell type: %s" % type(cellclass))    
 

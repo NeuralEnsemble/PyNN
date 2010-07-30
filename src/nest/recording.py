@@ -194,7 +194,7 @@ class Recorder(recording.Recorder):
         else: # in file
             data = self._read_data(gather, compatible_output)
         
-        if filter:
+        if filter is not None:
             mask = reduce(numpy.add, (data[:,0]==id for id in filter))
             data = data[mask]
         return data

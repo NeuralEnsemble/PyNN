@@ -67,7 +67,10 @@ def gather_dict(D):
     return D
 
 def mpi_sum(x):
-    return mpi_comm.allreduce(x, op=MPI.SUM)
+    if MPI and mpi_comm.size > 1:
+        return mpi_comm.allreduce(x, op=MPI.SUM)
+    else:
+        return x
 
 
 class Recorder(object):

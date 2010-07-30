@@ -249,8 +249,11 @@ class IDMixin(object):
     def get_initial_value(self, variable):
         """Get the initial value of a state variable of the cell."""
         if self.parent:
-            index = self.parent.id_to_index(self)
-            return self.parent.initial_values[variable][index]
+            if core.is_listlike(self.parent.initial_values[variable]):
+                index = self.parent.id_to_index(self)
+                return self.parent.initial_values[variable][index]
+            else:
+                return self.parent.initial_values[variable]
         else:
             return self._initial_values[variable]
         
@@ -340,6 +343,8 @@ def create(cellclass, cellparams=None, n=1):
     for id in all_cells[mask_local]:
         id.cellclass = cellclass
     all_cells = all_cells.tolist() # not sure this is desirable, but it is consistent with the other modules
+    for variable, value in cellclass.default_initial_values.items():
+        initialize(all_cells, variable, value)
     if n == 1:
         all_cells = all_cells[0]
     return all_cells
@@ -586,6 +591,7 @@ class BasePopulation(object):
         """
         Set initial values of state variables, e.g. the membrane potential.
         """
+        # this should update self.initial_values
         raise NotImplementedError()
 
     def can_record(self, variable):
@@ -797,7 +803,6 @@ class Population(BasePopulation):
         structure should be a Structure instance.
         label is an optional name for the population.
         """
-        
         if not isinstance(size, int): # also allow a single integer, for a 1D population
             assert isinstance(size, tuple), "`size` must be an integer or a tuple. You have supplied a %s" % type(n)
             assert structure is None, "If you specify `size` as a tuple you may not specify structure."

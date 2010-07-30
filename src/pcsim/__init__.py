@@ -373,6 +373,9 @@ class Population(common.Population):
         self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
         self.local_cells = self.all_cells[self._mask_local]
         
+        for variable, value in self.celltype.default_initial_values.items():
+                self.initialize(variable, value)
+                
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self),
                           'gsyn': Recorder('gsyn', population=self)}

@@ -56,7 +56,6 @@ class IF_curr_exp(cells.IF_curr_exp):
         ('i_offset',   'offsetCurrent'),
         ('tau_syn_E',  'excitatory_decayTimeConstant'),
         ('tau_syn_I',  'inhibitory_decayTimeConstant'),
-        ('v_init',     'initialMembranePotential'),
     )
     spiking_mechanism_definition_url = "%s/neurons/IaF_tau.xml" % catalog_url
     synaptic_mechanism_definition_urls = {
@@ -84,7 +83,6 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
         ('i_offset',   'offsetCurrent'),
         ('tau_syn_E',  'excitatory_decayTimeConstant'),
         ('tau_syn_I',  'inhibitory_decayTimeConstant'),
-        ('v_init',     'initialMembranePotential'),
         ('e_rev_E',    'excitatory_reversalPotential'),
         ('e_rev_I',    'inhibitory_reversalPotential')
     )
@@ -101,6 +99,35 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
         'inhibitory': ['inhibitory_decayTimeConstant',  'inhibitory_reversalPotential']
     }
 
+
+class IF_cond_alpha(cells.IF_cond_exp, CellTypeMixin):
+   
+    translations = standardmodels.build_translations(
+        ('tau_m',      'membraneTimeConstant'),
+        ('cm',         'membraneCapacitance'),
+        ('v_rest',     'restingPotential'),
+        ('v_thresh',   'threshold'),
+        ('v_reset',    'resetPotential'),
+        ('tau_refrac', 'refractoryTime'),
+        ('i_offset',   'offsetCurrent'),
+        ('tau_syn_E',  'excitatory_timeConstant'),
+        ('tau_syn_I',  'inhibitory_timeConstant'),
+        ('e_rev_E',    'excitatory_reversalPotential'),
+        ('e_rev_I',    'inhibitory_reversalPotential')
+    )
+    spiking_mechanism_definition_url = "%s/neurons/IaF_tau.xml" % catalog_url
+    synaptic_mechanism_definition_urls = {
+        'excitatory': "%s/postsynapticresponses/alpha_g.xml" % catalog_url,
+        'inhibitory': "%s/postsynapticresponses/alpha_g.xml" % catalog_url
+    }
+    spiking_mechanism_parameter_names = ('membraneTimeConstant','membraneCapacitance',
+                                         'restingPotential', 'threshold',
+                                         'resetPotential', 'refractoryTime')
+    synaptic_mechanism_parameter_names = {
+        'excitatory': ['excitatory_timeConstant', 'excitatory_reversalPotential'],
+        'inhibitory': ['inhibitory_timeConstant',  'inhibitory_reversalPotential']
+    }
+    
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson, CellTypeMixin):
     

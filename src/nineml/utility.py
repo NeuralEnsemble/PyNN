@@ -4,11 +4,11 @@ import nineml.user_layer as nineml
 
 catalog_url = "http://svn.incf.org/svn/nineml/catalog"
 
-units_map = {
+units_map = { # arguably we should do the units mapping with the PyNN names, i.e. before translation.
     "time": "ms",
     "potential": "mV",
     "threshold": "mV",
-    "capacitance": "nS",
+    "capacitance": "nF",
     "frequency": "Hz",
     "duration": "ms",
     "onset": "ms",
@@ -28,6 +28,16 @@ def infer_units(parameter_name):
             break
     return unit
 
+random_distribution_url_map = {
+    'uniform': "%s/randomdistributions/uniform_distribution.xml" % catalog_url,
+    'normal': "%s/randomdistributions/normal_distribution.xml" % catalog_url,
+}
+
+random_distribution_parameter_map = {
+    'normal': ('mean', 'standardDeviation'),
+    'uniform': ('lowerBound', 'upperBound'),
+}
+
 def build_parameter_set(parameters, dimensionless=False):
     parameter_list = []
     for name, value in parameters.items():
@@ -35,7 +45,7 @@ def build_parameter_set(parameters, dimensionless=False):
             rand_distr = value
             value = nineml.RandomDistribution(
                 name="%s(%s)" % (rand_distr.name, ",".join(str(p) for p in rand_distr.parameters)),
-                definition=nineml.Definition("%s/randomdistributions/%s_distribution.xml" % (catalog_url, rand_distr.name)),
+                definition=nineml.Definition(random_distribution_map[rand_distr.name]),
                 parameters=build_parameter_set(map_random_distribution_parameters(rand_distr.name, rand_distr.parameters),
                                                dimensionless=True))
         if dimensionless:
@@ -48,10 +58,7 @@ def build_parameter_set(parameters, dimensionless=False):
     return nineml.ParameterSet(*parameter_list)
 
 def map_random_distribution_parameters(name, parameters):
-    parameter_map = {
-        'normal': ('mean', 'standardDeviation'),
-        'uniform': ('lowerBound', 'upperBound'),
-    }
+    parameter_map = random_distribution_parameter_map
     P = {}
     for name,val in zip(parameter_map[name], parameters):
         P[name] = val

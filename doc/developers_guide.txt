@@ -1,0 +1,70 @@
+
+
+
+Import phase
+------------
+
+[What happens on import]
+
+
+Setup phase
+-----------
+
+[What happens when calling setup()]
+
+
+Creating neurons
+----------------
+
+On creating a Population...
+
+- create default structure, if none specified
+- create StandardCellType instance (if using standard cells)
+    - check and translate parameters, translated parameters stored in parameters attribute
+- create recorders
+- create neurons, determine local_mask
+
+
+Finally, we set initial values for all neurons' state variables, e.g. membrane
+potential. The user may set these values later with a call to the initialize()
+method, but in case they don't we set them here to default values. Defaults are
+set on a model-by-model basis: each StandardCellType subclass has a dictionary
+attribute called default_initial_values. [For now, these must be numeric values.
+It would be nice to allow them to be the names of parameters, allowing the
+initial membrane potential to be set to the resting membrane potential, for
+example]. This of course causes a problem - not yet resolved - for non
+standard cells. These initial values are immediately passed through to the
+simulator. We set initial values using the initialize() method, which in turn
+updates the initial_values attribute - we do not modify initial_values directly:
+probably it should be read-only.
+
+
+Creating connectors
+-------------------
+
+
+Composing synaptic plasticity models
+------------------------------------
+
+
+
+Connecting neurons
+------------------
+
+
+Instrumenting the network
+-------------------------
+
+
+Running a simulation
+--------------------
+
+
+Retrieving/saving recorded data
+-------------------------------
+
+
+Finishing up, or resetting for a new run
+----------------------------------------
+
+

@@ -80,6 +80,7 @@ def initialize(cells, variable, value):
     group = list(parents)[0]
     group.initial_values[variable] = value*mV
     group.initialize()
+common.initialize = initialize
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -137,6 +138,9 @@ class Population(common.Population):
         
         for id in self.local_cells:
             id.parent = self
+            
+        for variable, value in self.celltype.default_initial_values.items():
+                self.initialize(variable, value)
         
         self.recorders = {'spikes': Recorder('spikes', population=self),
                           'v': Recorder('v', population=self),

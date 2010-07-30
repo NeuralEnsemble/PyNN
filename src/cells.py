@@ -48,6 +48,9 @@ class IF_curr_alpha(StandardCellType):
     }
     recordable = ['spikes', 'v']
     conductance_based = False
+    default_initial_values = {
+        'v': -65.0, #'v_rest',
+    }
 
 class IF_curr_exp(StandardCellType):
     """
@@ -69,6 +72,9 @@ class IF_curr_exp(StandardCellType):
     }
     recordable = ['spikes', 'v']
     conductance_based = False
+    default_initial_values = {
+        'v': -65.0, #'v_rest',
+    }
 
 class IF_cond_alpha(StandardCellType):
     """
@@ -90,6 +96,9 @@ class IF_cond_alpha(StandardCellType):
         'i_offset'   : 0.0,     # Offset current in nA
     }
     recordable = ['spikes', 'v', 'gsyn']
+    default_initial_values = {
+        'v': -65.0, #'v_rest',
+    }
     
 class IF_cond_exp(StandardCellType):
     """
@@ -111,6 +120,9 @@ class IF_cond_exp(StandardCellType):
         'i_offset'   : 0.0,     # Offset current in nA
     }
     recordable = ['spikes', 'v', 'gsyn']
+    default_initial_values = {
+        'v': -65.0, #'v_rest',
+    }
 
 class IF_cond_exp_gsfa_grr(StandardCellType):
     """
@@ -144,7 +156,9 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
         'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS   
     }
     recordable = ['spikes', 'v', 'gsyn']
-
+    default_initial_values = {
+        'v': -65.0, #'v_rest',
+    }
     
 class IF_facets_hardware1(StandardCellType):
     """
@@ -167,7 +181,9 @@ class IF_facets_hardware1(StandardCellType):
         'v_thresh'  :  -55.0      # mV
     }
     recordable = ['spikes', 'v', 'gsyn']
-
+    default_initial_values = {
+        'v': -65.0, #'v_rest',
+    }
 
 class HH_cond_exp(StandardCellType):
     """Single-compartment Hodgkin-Huxley model."""
@@ -188,6 +204,9 @@ class HH_cond_exp(StandardCellType):
         'i_offset'  : 0.0,
     }
     recordable = ['spikes', 'v', 'gsyn']
+    default_initial_values = {
+        'v': -65.0, #'v_rest',
+    }
 
 class EIF_cond_alpha_isfa_ista(StandardCellType):
     """
@@ -218,7 +237,11 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
         'e_rev_I'   : -80.0,  # Inhibitory reversal potential in mV.
         'tau_syn_I' : 5.0,    # Rise time of the inhibitory synaptic conductance in ms (alpha function).
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'w', 'gsyn']
+    default_initial_values = {
+        'v': -65.0, #'v_rest',
+        'w': 0.0,
+    }
 
 class EIF_cond_exp_isfa_ista(StandardCellType):
     """
@@ -249,7 +272,11 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
         'e_rev_I'   : -80.0,  # Inhibitory reversal potential in mV.
         'tau_syn_I' : 5.0,    # Decay time constant of the inhibitory synaptic conductance in ms.
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'w', 'gsyn']
+    default_initial_values = {
+        'v': -65.0, #'v_rest',
+        'w': 0.0,
+    }
 
 class SpikeSourcePoisson(StandardCellType):
     """Spike source, generating spikes according to a Poisson process."""

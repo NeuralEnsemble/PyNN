@@ -86,7 +86,7 @@ def initialize(cells, variable, value):
     else:
         for cell in cells:
             cell.set_initial_value(variable, value)
-
+common.initialize = initialize
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -154,6 +154,8 @@ class Population(common.Population):
         self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
         self.local_cells = self.all_cells[self._mask_local]
         
+        for variable, value in self.celltype.default_initial_values.items():
+            self.initialize(variable, value)
         simulator.initializer.register(self)
         logger.info(self.describe('Creating Population "$label" of size $size, '+
                                    'containing `$celltype`s with indices between $first_id and $last_id'))
@@ -190,9 +192,11 @@ class Population(common.Population):
         """
         if isinstance(value, RandomDistribution):
             rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
+            self.initial_values[variable] = rarr
             for cell, val in zip(self, rarr):
                 cell.set_initial_value(variable, val)
         else:
+            self.initial_values[variable] = value
             for cell in self: # only on local node
                 cell.set_initial_value(variable, value)
 

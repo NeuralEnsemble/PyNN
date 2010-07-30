@@ -142,6 +142,7 @@ def initialize(cells, variable, value):
     nest.SetStatus(cells, STATE_VARIABLE_MAP[variable], value)
     for cell in cells:
         cell.set_initial_value(variable, value)
+common.initialize = initialize
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -204,7 +205,10 @@ class Population(common.Population):
         
         for id in self.local_cells:
             id.parent = self
-        
+            
+        for variable, value in self.celltype.default_initial_values.items():
+                self.initialize(variable, value)
+                
         self.recorders = {}
         for variable in RECORDING_DEVICE_NAMES:
             self.recorders[variable] = Recorder(variable, population=self)
