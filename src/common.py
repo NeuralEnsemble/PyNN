@@ -350,6 +350,7 @@ def build_record(variable, simulator):
         # whether to write to a file.
         assert isinstance(source, (BasePopulation, Assembly))
         source._record(variable, to_file=filename)
+        simulator.recorder_list.append(source.recorders[variable]) # this is a bit hackish - better to add to Population.__del__?
     if variable == 'v':
         record.__doc__ = """
             Record membrane potential to a file. source can be an individual cell or
@@ -594,6 +595,9 @@ class BasePopulation(object):
         # local because the Recorder object takes care of this.
         logger.debug("%s.record('%s', %s)", self.label, variable, record_from[:5])
         self.recorders[variable].record(record_from)
+        if isinstance(to_file, basestring):
+            self.recorders[variable].file = to_file
+            
 
     def record(self, record_from=None, rng=None, to_file=True):
         """
