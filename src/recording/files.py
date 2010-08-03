@@ -96,6 +96,9 @@ class StandardTextFile(BaseFile):
         savetxt(self.fileobj, data, fmt='%s', delimiter='\t')
         self.fileobj.close()
 
+    def read(self):
+        return numpy.loadtxt(self.fileobj)
+        
 
 class PickleFile(BaseFile):
     """

@@ -78,7 +78,7 @@ class Recorder(recording.Recorder):
         # scale data
         scale_factor = Recorder.scale_factors[self.variable]
         if scale_factor != 1:
-            data *= scale_factor
+            data[:,2:] *= scale_factor # first two columns are id and t, which should not be scaled.
         return data
     
     def _events_to_array(self, events):
