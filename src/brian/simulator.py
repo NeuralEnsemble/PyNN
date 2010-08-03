@@ -232,10 +232,9 @@ class ID(int, common.IDMixin):
                 setattr(self.parent_group, name, value)
                 logger.warning("This parameter cannot be set for individual cells within a Population. Changing the value for all cells in the Population.")
             elif name == 'spiketimes':
-                #setattr(self.parent_group, name, [value]*len(self.parent_group))
-                self.parent_group.spiketimes[int(self)] = value
-                #except IndexError, errmsg:
-                #    raise IndexError("%s. index=%d, self.parent_group.spiketimes=%s" % (errmsg, int(self), self.parent_group.spiketimes))
+                all_spiketimes = [st[st>state.t] for st in self.parent_group.spiketimes]
+                all_spiketimes[int(self)] = value
+                self.parent_group.spiketimes = all_spiketimes
             else:
                 setattr(self.parent_group[int(self)], name, value)
         
