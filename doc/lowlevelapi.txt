@@ -1,39 +1,9 @@
-=======================
-Neurons and Connections
-=======================
+==================
+The procedural API
+==================
 
-Importing PyNN
-==============
+The procedural API (also previously known as the "low-level" API) gives a view of a model that is centred more on individual neurons and connections, rather than on populations of neurons and projections between them. This viewpoint may be more suited for small networks, or when porting a model from a simulator that has a neuron-centred viewpoint. It should be noted, however, that this API is just a wrapper around the main, object-oriented API. For example, the ``create()`` function returns a ``Population`` object, it is just that it is then treated as a list of neurons rather than a single object in its own right.
 
-The simulator used by a PyNN script is determined by which module is imported from the PyNN package, e.g.::
-
-    >>> from pyNN.neuron import * #doctest: +SKIP
-    >>> from pyNN.nest import *  #doctest: +SKIP
-    >>> from pyNN.pcsim import *  #doctest: +SKIP
-    >>> from pyNN.brian import *  #doctest: +SKIP
-    
-After this line, all PyNN code is independent of the simulator used, although it is possible to include
-simulator-specific code in the script as well (if simulator-independence is not important to you, or
-if you are in the process of porting simulator-specific code to pure PyNN code).
-
-
-Initialising the simulator
-==========================
-
-Before using any other functions or classes from PyNN, the user must call the ``setup()`` function::
-
-    >>> setup()
-    
-``setup()`` takes various optional arguments: setting the simulation timestep (there is currently no support in the API for variable timestep methods although native simulator code can be used to select this option where the simulator supports it) and setting the minimum and maximum synaptic delays, e.g.::
-
-    >>> setup(timestep=0.1, min_delay=0.1, max_delay=0.5)
-    
-In previous versions, ``setup()`` took a ``debug`` argument for configuring logging. To allow more flexibility, configuration of logging must now be done separately. There is a convenience function in the ``pyNN.utility`` module to simplify this::
-
-    >>> from pyNN.utility import init_logging
-    >>> init_logging("logfile", debug=True)
-    
-or you can configure the Python ``logging`` module directly.
 
 Creating neurons
 ================
@@ -41,89 +11,44 @@ Creating neurons
 Neurons are created with the ``create()`` function. To create a single integrate-and-fire neuron, type::
 
     >>> create(IF_curr_alpha)
-    
-Here, ``IF_curr_alpha`` is a particular class of IF neuron with alpha-function shaped synaptic currents, that will work with any PyNN simulation engine, whether NEURON, NEST, PCSIM or Brian.
-``IF_curr_alpha`` is a so-called 'standard cell', implemented as a Python class.
-For more information, see the section StandardCells.
-
-You don't have to use standard cells.
-You can also use any neuron model that is available in an individual simulator, although of course your simulation will then only run with that simulator, for example::
-
-    >>> create('iaf_neuron') #doctest: +SKIP
-    
-``iaf_neuron`` is a neuron model available in the NEST simulator.
 
 To create many neurons at once, add the ``n`` argument, e.g.::
 
-    >>> create(IF_curr_alpha, n=10)
+    >>> cells = create(IF_curr_alpha, n=10)
     
-The neurons we have created so far have all had default parameter values, 
-stored in the ``default_values`` of the standard cell class, e.g.::
+Although the return value is actually a ``Population`` object, it can be treated in most ways like a list, accessing individual items::
 
-    >>> IF_curr_alpha.default_parameters #doctest: +NORMALIZE_WHITESPACE
-    {'tau_refrac': 0.0, 'tau_m': 20.0, 'i_offset': 0.0, 'cm': 1.0,
-     'v_thresh': -50.0, 'tau_syn_E': 0.5, 'v_rest': -65.0, 'tau_syn_I': 0.5,
-     'v_reset': -65.0}
-
-To use different parameter values, use the ``cellparams`` argument, e.g.::
-
-    >>> create(IF_curr_alpha, cellparams={'tau_m': 15.0, 'cm': 0.9}, n=10)
-
-If you try to set a non-existent parameter, or pass an invalid value, PyNN will raise an Exception, e.g.::
-
-    >>> create(IF_curr_alpha, cellparams={'foo': 15.0})
-    Traceback (most recent call last):
-      File "<stdin>", line 1, in ?
-      File "/usr/lib/python/site-packages/pyNN/common.py", line 655, in create
-        all_cells, mask_local, first_id, last_id = simulator.create_cells(cellclass, cellparams, n)
-      File "/home/andrew/dev/pyNN/neuron/simulator.py", line 287, in create_cells
-        celltype = cellclass(cellparams)
-      File "/usr/lib/python/site-packages/pyNN/neuron/cells.py", line 442, in __init__
-        cells.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
-      File "/usr/lib/python/site-packages/pyNN/common.py", line 460, in __init__
-        self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
-      File "/usr/lib/python/site-packages/pyNN/common.py", line 504, in checkParameters
-        raise NonExistentParameterError(k, cls)
-    NonExistentParameterError: foo (valid parameters for IF_curr_alpha are: cm, i_offset, tau_m, tau_refrac, tau_syn_E, tau_syn_I, v_reset, v_rest, v_thresh)
-    >>> create(IF_curr_alpha, cellparams={'tau_m': 'bar'})
-    Traceback (most recent call last):
-      File "<stdin>", line 1, in ?
-        create(IF_curr_alpha, cellparams={'tau_m': 'bar'})
-      File "/usr/lib/python/site-packages/pyNN/common.py", line 655, in create
-        all_cells, mask_local, first_id, last_id = simulator.create_cells(cellclass, cellparams, n)
-      File "/usr/lib/python/site-packages/pyNN/neuron/simulator.py", line 287, in create_cells
-        celltype = cellclass(cellparams)
-      File "/usr/lib/python/site-packages/pyNN/neuron/cells.py", line 442, in __init__
-        cells.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
-      File "/usr/lib/python/site-packages/pyNN/common.py", line 460, in __init__
-        self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
-      File "/usr/lib/python/site-packages/pyNN/common.py", line 494, in checkParameters
-        raise InvalidParameterValueError(err_msg)
-    InvalidParameterValueError: For tau_m in IF_curr_alpha, expected <type 'float'>, got <type 'str'> (bar)
+    >>> print cells[0].tau_m
+    20.0
     
-If you wish to do something with the cell after creating it: record from it, change a parameter, connect it to another cell, you should assign the return value of the function to a variable, e.g.::
+or a range of items::
 
-    >>> cell = create(IF_curr_alpha)
-    >>> cell_list = create(IF_curr_alpha, n=10)
+    >>> for cell in cells[5:8]:
+    ...     cell.cm = 0.5
+    
+or adding two lists together::
 
-The ``create()`` function returns either a cell id object or a list of id objects.
+    >>> more_cells = create(IF_cond_exp, n=5)
+    >>> all_cells = cells + more_cells
+    >>> some_cells = cells[5:] + more_cells[2:4]
+    
+(note that ``all_cells`` and ``some_cells`` here are ``Assembly objects``).
 
 Connecting neurons
 ==================
 
-Any neuron that emits spikes can be connected to any neuron with at least one synapse using the ``connect()`` function, e.g.::
+Lists of neurons (``Population``s or ``Assembly``s) can be connected using the ``connect()`` function, e.g.::
 
     >>> spike_source = create(SpikeSourceArray, cellparams={'spike_times': [10.0, 20.0, 30.0]})
     >>> cell_list2 = create(IF_curr_exp, n=10)
     >>> connect(spike_source, cell_list2)
     
 In this case we connect a spike-generating mechanism (``SpikeSourceArray`` is a 'standard cell' model that emits spikes at times specified by the ``spike_times`` parameter) to each cell in the list ``cells``, i.e. we create 10 connections at once.
-For clarity, we could also have specified the argument names::
-
-    >>> connect(source=spike_source, target=cell_list2)
     
-Either ``source`` or ``target`` or both may be individual cell ids or lists of ids.
-In the latter case, each source (presynaptic) cell is connected to every target (postsynaptic) cell with probability given by the optional argument `p`, which defaults to 1, e.g.::
+The ``connect()`` function behaves similarly to creating a ``Projection``, but without the
+flexibility to choose the connection algorithm, or to have plastic synapses.
+
+If the source or target is a list of cells (a ``Population``, etc.), each source (presynaptic) cell is connected to every target (postsynaptic) cell with probability given by the optional argument `p`, which defaults to 1, e.g.::
 
     >>> source_list = cell_list
     >>> target_list = cell_list2
@@ -178,24 +103,10 @@ Individual parameters can be set using the ``param`` and ``val`` arguments, as a
 
     >>> set(cells, param={'tau_refrac': 2.0, 'tau_syn_E': 5.0})
 
-Setting position in space
-=========================
-
-In some cases it is important to know the position of a neuron in space. This information
-can be set and retrieved using the `position` attribute of the neuron ID::
-
-    >>> cells[0].position = (75, 456, 56)
-    >>> cells[0].position
-    array([ 75, 456, 56])
-    
-Positions must always be in 3D, and may be given as integers or floating-point values, and as tuples or as numpy arrays.
-No specific coordinate system or scale of units is assumed, although many parts of PyNN do assume a Euclidean coordinate system.
-
 Injecting current
 =================
 
-Most standard cells have an `i_offset` parameter, which allows a constant current to be
-injected into a neuron. If you want to have a time varying current, you may create a
+If you want to inject a current (which may be time varying), create a
 ``CurrentSource`` object and connect it to the neuron either using the ``inject()`` method of the
 neuron ID or using the ``inject_into()`` method of the ``CurrentSource``::
 
@@ -208,39 +119,11 @@ Recording spikes and membrane potential
 =======================================
 
 To record action potentials use the ``record()`` function, to record membrane potential use the ``record_v()`` function and to record synaptic conductances use the ``record_gsyn()`` function.
-The arguments for all three functions are a cell id or list of ids, and a filename, e.g.::
+The arguments for all three functions are a cell id (or a ``Population``, ``Assembly`` or ``PopulationView``), and a filename, e.g.::
 
     >>> record(cell, "spikes.dat")
     >>> record_v(cell_list, "Vm.dat")
     
-By default, all simulators write data files in the same format.
-
-The beginning of a typical spike file looks like::
-
-    # dt = 0.1
-    # n = 1000
-    0.0     2
-    0.3     5
-    0.4     3
-    0.9     2
-    1.0     1
-    . . .
-    
-The beginning of a typical membrane potential file looks like::
-
-    # dt = 0.1
-    # n = 1000
-    -65.0   0
-    -64.9   0
-    -64.7   0
-    -64.5   0
-    . . .
-
-Both file types begin with header lines giving the timestep (there is currently no support for variable-time step recording) and the number of data points in the file.
-Each line of the spike file then gives the occurence time of a spike (in ms) and the id of the neuron in which it was recorded.
-Each line of the membrane potential file gives the membrane potential (in mV) followed by the id of the neuron in which it was recorded.
-In both cases, whether the file is sorted by cell id or by time depends on the simulator: it is not standardised.
-
 In some cases it is more efficient to write files in the simulator's native format, rather than the standard PyNN format.
 In this case, use the ``compatible_output=False`` argument to the ``end()`` function.
 
@@ -253,16 +136,6 @@ The ``run()`` function runs the simulation for a given number of milliseconds, e
 
     >>> run(1000.0)
     
-
-Repeating a simulation
-======================
-
-If you wish to reset network time to zero to run a new simulation with the same
-network (with different parameter values, perhaps), use the ``reset()`` function.
-Note that this does not change the network structure, nor the choice of which
-neurons to record (from previous ``record()`` calls).
-
-    
 Finishing up
 ============
 
@@ -273,3 +146,15 @@ Examples
 
 There are several example scripts in the ``examples`` directory of the source distribution.
     
+==========================================================================
+Reasons for preferring Population and Projection to create() and connect()
+==========================================================================
+
+While it is entirely possible to create very large networks using only the ``create()``, ``connect()``, ``set()`` and ``record()`` functions, this involves writing a lot of repetitive code, which is the same or similar for every model: iterating over lists of cells and connections, creating common projection patterns, recording from all or a subset of neurons...
+This sort of 'book-keeping' code takes time to write, obscures the essential principles of the simulation script with details, and, of course, the more code that has to be written, the more bugs and errors will be introduced, and, if the code is only used for a single project, not all the bugs may be found.
+
+For these reasons, PyNN provides the ``Population`` object, representing a group of neurons all of the same type (although possibly with cell-to-cell variations in the values of parameters), and the ``Projection`` object, repesenting the set of connections between two ``Population``\s.
+All the book-keeping code is contained within the object classes, which also provide functions ('methods') to perform commonly-used tasks, such as recording from a fixed number of cells within the population, chosen at random.
+
+By using the ``Population`` and ``Projection`` classes, less code needs to be written to create a given simulation, which means fewer-bugs and easier-to-understand scripts, plus, because the code for the classes is used in many different projects, bugs will be found more reliably, and the internal implementation of the classes optimized for performance.
+Of particular importance is that iterations over large numbers of cells or connections can be done in fast compiled code (within the simulator engines) rather than in comparatively slow Python code.

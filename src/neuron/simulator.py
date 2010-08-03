@@ -259,61 +259,9 @@ class ID(int, common.IDMixin):
         
     def set_initial_value(self, variable, value):
         """Set the initial value of a state variable of the cell."""
+        index = self.parent.id_to_index(self)
+        self.parent.initial_values[variable][index] = value
         setattr(self._cell, "%s_init" % variable, value)
-
-
-# --- For implementation of create() and Population.__init__() -----------------
-
-def create_cells(cellclass, cellparams, n, parent=None):
-    """
-    Create cells in NEURON.
-    
-    `cellclass`  -- a PyNN standard cell or a native NEURON cell class that
-                   implements an as-yet-undescribed interface.
-    `cellparams` -- a dictionary of cell parameters.
-    `n`          -- the number of cells to create
-    `parent`     -- the parent Population, or None if the cells don't belong to
-                    a Population.
-    
-    This function is used by both `create()` and `Population.__init__()`
-    
-    Return:
-        - a 1D array of all cell IDs
-        - a 1D boolean array indicating which IDs are present on the local MPI
-          node
-        - the ID of the first cell created
-        - the ID of the last cell created
-    """
-    assert n > 0, 'n must be a positive integer'
-    if isinstance(cellclass, basestring): # cell defined in hoc template
-        try:
-            cell_model = getattr(h, cellclass)
-        except AttributeError:
-            raise errors.InvalidModelError("There is no hoc template called %s" % cellclass)
-        cell_parameters = cellparams or {}
-    elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
-        celltype = cellclass(cellparams)
-        cell_model = celltype.model
-        cell_parameters = celltype.parameters
-    else:
-        cell_model = cellclass
-        cell_parameters = cellparams
-    first_id = state.gid_counter
-    last_id = state.gid_counter + n - 1
-    all_ids = numpy.array([id for id in range(first_id, last_id+1)], ID)
-    # mask_local is used to extract those elements from arrays that apply to the cells on the current node
-    mask_local = all_ids%state.num_processes==state.mpi_rank # round-robin distribution of cells between nodes
-    for i,(id,is_local) in enumerate(zip(all_ids, mask_local)):
-        all_ids[i] = ID(id)
-        all_ids[i].parent = parent
-        if is_local:
-            all_ids[i].local = True
-            all_ids[i]._build_cell(cell_model, cell_parameters)
-        else:
-            all_ids[i].local = False
-    initializer.register(*all_ids[mask_local])
-    state.gid_counter += n
-    return all_ids, mask_local, first_id, last_id
 
 
 # --- For implementation of connect() and Connector classes --------------------
@@ -436,9 +384,10 @@ class ConnectionManager(object):
         Create a new ConnectionManager.
         
         `synapse_model` -- either None or 'Tsodyks-Markram'.
-        `parent` -- the parent `Projection`, if any.
+        `parent` -- the parent `Projection`
         """
         global connection_managers
+        assert parent is not None
         self.connections = []
         self.parent = parent
         self.synapse_type = synapse_type

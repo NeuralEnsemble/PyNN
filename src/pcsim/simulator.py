@@ -151,54 +151,8 @@ class ID(long, common.IDMixin):
                 value = setattr(pcsim_cell, pcsim_name, value)
             except AttributeError, e:
                 raise AttributeError("%s. Possible attributes are: %s" % (e, dir(pcsim_cell)))
-
-
-# --- For implementation of create() and Population.__init__() -----------------
-
-def create_cells(cellclass, cellparams, n, parent=None):
-    """
-    Create cells in PCSIM.
-    
-    `cellclass`  -- a PyNN standard cell or a native PCSIM cell class.
-    `cellparams` -- a dictionary of cell parameters.
-    `n`          -- the number of cells to create
-    `parent`     -- the parent Population, or None if the cells don't belong to
-                    a Population.
-    
-    This function is used by both `create()` and `Population.__init__()`
-    
-    Return:
-        - a 1D array of all cell IDs
-        - a 1D boolean array indicating which IDs are present on the local MPI
-          node
-        - the ID of the first cell created
-        - the ID of the last cell created
-    """
-    global net
-    assert n > 0, 'n must be a positive integer'
-    if isinstance(cellclass, type):
-        if issubclass(cellclass, standardmodels.StandardCellType):
-            cellfactory = cellclass(cellparams).simObjFactory
-        elif issubclass(cellclass, pypcsim.SimObject):
-            #cellfactory = apply(cellclass, (), cellparams)
-            cellfactory = cellclass(**cellparams)
-        else:
-            raise errors.InvalidModelError("Trying to create non-existent cellclass %s" % cellclass.__name__)
-    else:
-        raise errors.InvalidModelError("Trying to create non-existent cellclass %s" % cellclass)
-
-    all_ids = numpy.array([i for i in net.add(cellfactory, n)], ID)
-    first_id = all_ids[0]
-    last_id = all_ids[-1]
-    # mask_local is used to extract those elements from arrays that apply to the cells on the current node
-    mask_local = numpy.array([is_local(id) for id in all_ids])
-    for i,(id,local) in enumerate(zip(all_ids, mask_local)):
-        #if local:
-        all_ids[i] = ID(id)
-        all_ids[i].parent = parent
-        all_ids[i].local = local
-    return all_ids, mask_local, first_id, last_id
-
+        index = self.parent.id_to_index(self)
+        self.parent.initial_values[variable][index] = value
 
 # --- For implementation of connect() and Connector classes --------------------
 

@@ -126,33 +126,23 @@ class IDMixin(object):
     """
     # Simulator ID classes should inherit both from the base type of the ID
     # (e.g., int or long) and from IDMixin.
-    # Ideally, the base type need not be numeric, but the position property
-    # will have to be modified for that (probably break off into another Mixin
-    # class
     
-    non_parameter_attributes = ('parent', '_cellclass', 'cellclass',
-                                '_position', 'position', 'hocname', '_cell',
-                                'inject', 'local', '_initial_values')
-    
-    def __init__(self):
-        self.parent = None
-        self._cellclass = None
-        self.local = True
-        self._initial_values = {}
+    non_parameter_attributes = ('parent', 'cellclass', 'position', 'hocname',
+                                '_cell', 'inject', 'local')
 
     def __getattr__(self, name):
-        if name in self.non_parameter_attributes or (self.local and not self.is_standard_cell()):
+        if name in self.non_parameter_attributes or (self.local and not self.is_standard_cell):
             val = self.__getattribute__(name)
         else:
             try:
                 val = self.get_parameters()[name]
             except KeyError:
                 raise errors.NonExistentParameterError(name, self.cellclass.__name__,
-                                                self.cellclass.default_parameters.keys())
+                                                       self.cellclass.default_parameters.keys())
         return val
     
     def __setattr__(self, name, value):
-        if name in self.non_parameter_attributes or (self.local and not self.is_standard_cell()):
+        if name in self.non_parameter_attributes or (self.local and not self.is_standard_cell):
             object.__setattr__(self, name, value)
         else:
             return self.set_parameters(**{name:value})
@@ -162,7 +152,7 @@ class IDMixin(object):
         # if some of the parameters are computed from the values of other
         # parameters, need to get and translate all parameters
         if self.local:
-            if self.is_standard_cell():
+            if self.is_standard_cell:
                 computed_parameters = self.cellclass.computed_parameters()
                 have_computed_parameters = numpy.any([p_name in computed_parameters for p_name in parameters])
                 if have_computed_parameters:     
@@ -178,32 +168,23 @@ class IDMixin(object):
         """Return a dict of all cell parameters."""
         if self.local:
             parameters = self.get_native_parameters()
-            if self.is_standard_cell():
+            if self.is_standard_cell:
                 parameters = self.cellclass.reverse_translate(parameters)
             return parameters
         else:
             raise errors.NotLocalError("Cannot obtain parameters for a cell that does not exist on this node.")
 
-    def _set_cellclass(self, cellclass):
-        if self.parent is None and self._cellclass is None:
-            self._cellclass = cellclass
+    @property
+    def cellclass(self):
+        celltype = self.parent.celltype
+        if isinstance(celltype, str):
+            return celltype
+        elif isinstance(celltype, standardmodels.StandardCellType):
+            return celltype.__class__
         else:
-            raise Exception("Cell class cannot be changed after the neuron has been created.")
-
-    def _get_cellclass(self):
-        if self.parent is not None:
-            celltype = self.parent.celltype
-            if isinstance(celltype, str):
-                return celltype
-            elif isinstance(celltype, standardmodels.StandardCellType):
-                return celltype.__class__
-            else:
-                return celltype
-        else:
-            return self._cellclass
-        
-    cellclass = property(fget=_get_cellclass, fset=_set_cellclass)
-    
+            return celltype
+     
+    @property
     def is_standard_cell(self):
         return (type(self.cellclass) == type and issubclass(self.cellclass, standardmodels.StandardCellType))
         
@@ -211,16 +192,12 @@ class IDMixin(object):
         """
         Set the cell position in 3D space.
         
-        Cell positions are stored in an array in the parent Population, if any,
-        or within the ID object otherwise.
+        Cell positions are stored in an array in the parent Population.
         """
         assert isinstance(pos, (tuple, numpy.ndarray))
         assert len(pos) == 3
-        if self.parent:
-            index = self.parent.id_to_index(self)
-            self.parent.positions[:, index] = pos
-        else:
-            self._position = numpy.array(pos)
+        index = self.parent.id_to_index(self)
+        self.parent.positions[:, index] = pos
         
     def _get_position(self):
         """
@@ -230,41 +207,32 @@ class IDMixin(object):
         or within the ID object otherwise. Positions are generated the first
         time they are requested and then cached.
         """
-        if self.parent:
-            index = self.parent.id_to_index(self)
-            return self.parent.positions[:, index]  
-        else:
-            try:
-                return self._position
-            except (AttributeError, KeyError):
-                self._position = numpy.array((self, 0.0, 0.0), float)
-                return self._position
+        index = self.parent.id_to_index(self)
+        return self.parent.positions[:, index]  
 
     position = property(_get_position, _set_position)
-      
+    
+    @property
+    def local(self):
+        index = self.parent.id_to_index(self)
+        return self.parent._mask_local[index]
+    
     def inject(self, current_source):
         """Inject current from a current source object into the cell."""
         current_source.inject_into([self])
 
     def get_initial_value(self, variable):
         """Get the initial value of a state variable of the cell."""
-        if self.parent:
-            if core.is_listlike(self.parent.initial_values[variable]):
-                index = self.parent.id_to_index(self)
-                return self.parent.initial_values[variable][index]
-            else:
-                return self.parent.initial_values[variable]
-        else:
-            return self._initial_values[variable]
+        assert isinstance(self.parent.initial_values[variable], core.LazyArray)
+        index = self.parent.id_to_index(self)
+        return self.parent.initial_values[variable][index]
         
     def set_initial_value(self, variable, value):
         """Set the initial value of a state variable of the cell."""
-        if self.parent:
-            index = self.parent.id_to_index(self)
-            self.parent.initial_values[variable][index] = value
-        else:
-            self._initial_values[variable] = value
-        
+        assert isinstance(self.parent.initial_values[variable], core.LazyArray)
+        index = self.parent.id_to_index(self)
+        self.parent.initial_values[variable][index] = value
+
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -302,7 +270,8 @@ def reset():
     simulator.reset()
 
 def initialize(cells, variable, value):
-    raise NotImplementedError
+    assert isinstance(cells, (BasePopulation, Assembly))
+    cells.initialize(variable, value)
 
 def get_current_time():
     """Return the current time in the simulation."""
@@ -332,55 +301,34 @@ def rank():
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-def create(cellclass, cellparams=None, n=1):
-    """
-    Create n cells all of the same type.
-    
-    If n > 1, return a list of cell ids/references.
-    If n==1, return just the single id.
-    """
-    all_cells, mask_local, first_id, last_id = simulator.create_cells(cellclass, cellparams, n)
-    for id in all_cells[mask_local]:
-        id.cellclass = cellclass
-    all_cells = all_cells.tolist() # not sure this is desirable, but it is consistent with the other modules
-    for variable, value in cellclass.default_initial_values.items():
-        initialize(all_cells, variable, value)
-    if n == 1:
-        all_cells = all_cells[0]
-    return all_cells
+def build_create(population_class):
+    def create(cellclass, cellparams=None, n=1):
+        """
+        Create n cells all of the same type.
+        
+        If n > 1, return a list of cell ids/references.
+        If n==1, return just the single id.
+        """
+        return population_class(n, cellclass, cellparams) # return the Population or Population.all_cells?
+    return create
 
-def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
-    """
-    Connect a source of spikes to a synaptic target.
-    
-    source and target can both be individual cells or lists of cells, in which
-    case all possible connections are made with probability p, using either the
-    random number generator supplied, or the default rng otherwise.
-    Weights should be in nA or µS.
-    """
-    # This duplicates code from the Connector/FixedProbabilityConnector classes
-    # should refactor to eliminate this repetition
-    logger.debug("connecting %s to %s on host %d" % (source, target, rank()))
-    if not core.is_listlike(source):
-        source = [source]
-    if not core.is_listlike(target):
-        target = [target]
-    delay = check_delay(delay)
-    if p < 1:
-        rng = rng or numpy.random
-    connection_manager = simulator.ConnectionManager(synapse_type)
-    for tgt in target:
-        #if not isinstance(tgt, IDMixin):
-        #    raise errors.ConnectionError("target is not a cell, actually %s" % type(tgt))
-        sources = numpy.array(source, dtype=type(source))
-        if p < 1:
-            rarr = rng.uniform(0, 1, len(source))
-            sources = sources[rarr<p]
-        weight = check_weight(weight, synapse_type, is_conductance(tgt))
-        for src in sources:
-            connection_manager.connect(src, tgt, weight, delay)
-    return connection_manager
-
+def build_connect(projection_class, connector_class):
+    def connect(source, target, weight=0.0, delay=None, synapse_type=None, p=1, rng=None):
+        """
+        Connect a source of spikes to a synaptic target.
+        
+        source and target can both be individual cells or lists of cells, in which
+        case all possible connections are made with probability p, using either the
+        random number generator supplied, or the default rng otherwise.
+        Weights should be in nA or µS.
+        """
+        if isinstance(source, IDMixin):
+            source = source.parent
+        if isinstance(target, IDMixin):
+            target = target.parent
+        connector = connector_class(p_connect=p, weights=weight, delays=delay)
+        return projection_class(source, target, connector, target=synapse_type, rng=rng)
+    return connect
 
 def set(cells, param, val=None):
     """
@@ -389,14 +337,8 @@ def set(cells, param, val=None):
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
     """
-    if val is not None:
-        param = {param:val}
-    if not hasattr(cells, '__len__'):
-        cells = [cells]
-    # see comment in Population.set() below about the efficiency of the
-    # following
-    for cell in (cell for cell in cells if cell.local):
-        cell.set_parameters(**param)
+    assert isinstance(cells, (BasePopulation, Assembly))
+    cells.set(param, val)
 
 def build_record(variable, simulator):
     def record(source, filename):
@@ -406,11 +348,8 @@ def build_record(variable, simulator):
         """
         # would actually like to be able to record to an array and choose later
         # whether to write to a file.
-        if not hasattr(source, '__len__'):
-            source = [source]
-        recorder = simulator.Recorder(variable, file=filename)
-        recorder.record(source)
-        simulator.recorder_list.append(recorder)
+        assert isinstance(source, (BasePopulation, Assembly))
+        source._record(variable, to_file=filename)
     if variable == 'v':
         record.__doc__ = """
             Record membrane potential to a file. source can be an individual cell or
@@ -451,7 +390,7 @@ class BasePopulation(object):
             raise Exception()
     
     def __len__(self):
-        """Return the total number of cells in the population."""
+        """Return the total number of cells in the population (all nodes)."""
         return self.size
     
     def __iter__(self):
@@ -461,6 +400,10 @@ class BasePopulation(object):
     def all(self):
         """Iterator over cell ids on all nodes."""
         return iter(self.all_cells)
+
+    def __add__(self, other):
+        assert isinstance(other, BasePopulation)
+        return Assembly(self, other)
 
     def nearest(self, position):
         """Return the neuron closest to the specified position."""
@@ -479,7 +422,10 @@ class BasePopulation(object):
         """
         # if all the cells have the same value for this parameter, should
         # we return just the number, rather than an array?
-        return [getattr(cell, parameter_name) for cell in self]
+        if hasattr(self, "_get_array"):
+            return self._get_array(parameter_name)
+        else:
+            return [getattr(cell, parameter_name) for cell in self] # list or array?
 
     def set(self, param, val=None):
         """
@@ -502,7 +448,7 @@ class BasePopulation(object):
         #     p.set(tau_m=20, v_rest=[-65.0, -65.3, ... , -67.2])
         #"""
         if isinstance(param, str):
-            if isinstance(val, (str, float, int)):
+            if isinstance(val, (float, int)):
                 param_dict = {param: float(val)}
             elif isinstance(val, (list, numpy.ndarray)):
                 param_dict = {param: val}
@@ -513,8 +459,11 @@ class BasePopulation(object):
         else:
             raise errors.InvalidParameterValueError
         logger.debug("%s.set(%s)", self.label, param_dict)
-        for cell in self:
-            cell.set_parameters(**param_dict)
+        if hasattr(self, "_set_array"):
+            self._set_array(**param_dict)
+        else:
+            for cell in self:
+                cell.set_parameters(**param_dict)
 
     def tset(self, parametername, value_array):
         """
@@ -547,19 +496,28 @@ class BasePopulation(object):
                          self.label, parametername, value_array.shape)
         
         # Set the values for each cell
-        for cell, val in zip(self, local_values):
-            setattr(cell, parametername, val)
+        if hasattr(self, "_set_array"):
+            self._set_array(**{parametername: local_values})
+        else:
+            for cell, val in zip(self, local_values):
+                setattr(cell, parametername, val)
 
     def rset(self, parametername, rand_distr):
         """
         'Random' set. Set the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-        rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local)
-        rarr = numpy.array(rarr)
+        # Note that we generate enough random numbers for all cells on all nodes
+        # but use only those relevant to this node. This ensures that the
+        # sequence of random numbers does not depend on the number of nodes,
+        # provided that the same rng with the same seed is used on each node.
         logger.debug("%s.rset('%s', %s)", self.label, parametername, rand_distr)
-        for cell,val in zip(self, rarr):
-            setattr(cell, parametername, val)
+        if isinstance(rand_distr.rng, random.NativeRNG):
+            self._native_rset(parameter_name, rand_distr)
+        else:
+            rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local)
+            rarr = numpy.array(rarr) # isn't rarr already an array?
+            self.tset(parametername, rarr)
 
     def _call(self, methodname, arguments):
         """
@@ -590,9 +548,21 @@ class BasePopulation(object):
     def initialize(self, variable, value):
         """
         Set initial values of state variables, e.g. the membrane potential.
+        
+        `value` may either be a numeric value (all neurons set to the same
+                value) or a `RandomDistribution` object (each neuron gets a
+                different value)
         """
-        # this should update self.initial_values
-        raise NotImplementedError()
+        if isinstance(value, random.RandomDistribution):
+            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
+            self.initial_values[variable] = rarr
+            for cell, val in zip(self, rarr):
+                cell.set_initial_value(variable, val)
+        else:
+            self.initial_values[variable] = core.LazyArray(self.size, value)
+            for cell in self: # only on local node
+                cell.set_initial_value(variable, value)
+        # would be nice to have an optional _set_variable_array() to avoid the iteration where possible
 
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
@@ -824,10 +794,27 @@ class Population(BasePopulation):
         else:
             self.celltype = cellclass
         self._structure = structure or space.Line()
-        self.cellparams = cellparams
-        self.initial_values = {}
         self._positions = None
+        self.cellparams = cellparams
+        # Build the arrays of cell ids
+        # Cells on the local node are represented as ID objects, other cells by integers
+        # All are stored in a single numpy array for easy lookup by address
+        # The local cells are also stored in a list, for easy iteration
+        self._create_cells(cellclass, cellparams, size)
+        self.initial_values = {}
+        for variable, value in self.celltype.default_initial_values.items():
+            self.initialize(variable, value)
+        self.recorders = {'spikes': self.recorder_class('spikes', population=self),
+                          'v': self.recorder_class('v', population=self),
+                          'gsyn': self.recorder_class('gsyn', population=self)}
         Population.nPop += 1
+        logger.info(self.describe('Creating Population "$label" of size $size, '+
+                                   'containing `$celltype`s with indices between $first_id and $last_id'))
+        logger.debug(self.describe())
+    
+    @property
+    def local_cells(self):
+        return self.all_cells[self._mask_local]
     
     @property
     def cell(self):
@@ -931,7 +918,6 @@ class PopulationView(BasePopulation):
         # maybe just redefine __getattr__ instead of the following...
         self.celltype = self.parent.celltype
         self.cellparams = self.parent.cellparams
-        print "mask = ", self.mask
         self.all_cells = self.parent.all_cells[self.mask] # do we need to ensure this is ordered?
         self.size = len(self.all_cells)
         self._mask_local = self.parent._mask_local[self.mask]
@@ -950,12 +936,12 @@ class PopulationView(BasePopulation):
     @property
     def structure(self):
         return self.parent.structure
-    # should be allow setting structure for a PopulationView? Maybe if the
+    # should we allow setting structure for a PopulationView? Maybe if the
     # parent has some kind of CompositeStructure?
 
     @property
     def positions(self):
-        return self.parent.positions[self.mask]
+        return self.parent.positions.T[self.mask].T  # make positions N,3 instead of 3,N to avoid all this transposing?
 
     # implementation of getSpikes(), printSpikes(), etc. needs some thought.
 
@@ -983,10 +969,19 @@ class Assembly(object):
         Assembly.count += 1
         
         # need to define positions, all_cells, local_cells as composites
+
+    @property
+    def size(self):
+        return sum(p.size for p in self.populations)
         
     def initialize(self, variable, value):
         for p in self.populations:
             p.initialize(variable, value)
+
+    def _record(self, variable, record_from=None, rng=None, to_file=True):
+        for p in self.populations:
+            p._record(variable, record_from, rng, to_file)
+
 
 # ==============================================================================
 
@@ -997,12 +992,12 @@ class Projection(object):
     parameters of those connections, including of plasticity mechanisms.
     """
     
-    def __init__(self, presynaptic_population, postsynaptic_population,
-                 method,
+    def __init__(self, presynaptic_neurons, postsynaptic_neurons, method,
                  source=None, target=None, synapse_dynamics=None,
                  label=None, rng=None):
         """
-        presynaptic_population and postsynaptic_population - Population objects.
+        presynaptic_neurons and postsynaptic_neurons - Population, PopulationView
+                                                       or Assembly objects.
         
         source - string specifying which attribute of the presynaptic cell
                  signals action potentials. This is only needed for
@@ -1023,11 +1018,13 @@ class Projection(object):
         
         rng - specify an RNG object to be used by the Connector.
         """
-        
-        self.pre    = presynaptic_population  # } these really        
-        self.source = source                  # } should be
-        self.post   = postsynaptic_population # } read-only
-        self.target = target                  # }
+        for prefix, pop in zip(("pre", "post"), (presynaptic_neurons, postsynaptic_neurons)):
+            if not isinstance(pop, (BasePopulation, Assembly)):
+                raise errors.ConnectionError("%ssynaptic_neurons must be a Population, PopulationView or Assembly, not a %s" % (prefix, type(pop)))
+        self.pre    = presynaptic_neurons  # } these really        
+        self.source = source               # } should be
+        self.post   = postsynaptic_neurons # } read-only
+        self.target = target               # }
         self.label  = label
         if isinstance(rng, random.AbstractRNG):
             self.rng = rng
@@ -1072,7 +1069,7 @@ class Projection(object):
                 elif len(possible_models) > 1 :
                     # we pass the set of models back to the simulator-specific module for it to deal with
                     self.long_term_plasticity_mechanism = possible_models
-                     
+
     def __len__(self):
         """Return the total number of local connections."""
         return len(self.connection_manager)
@@ -1091,6 +1088,10 @@ class Projection(object):
     
     def __repr__(self):
         return 'Projection("%s")' % self.label
+    
+    
+    def __getitem__(self, i):
+        return self.connection_manager[i]
     
     # --- Methods for setting connection parameters ----------------------------
     

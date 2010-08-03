@@ -130,7 +130,7 @@ class WeightGenerator(ConnectionAttributeGenerator):
       
     def check(self, weight):
         if weight is None:
-            weight = DEFAULT_WEIGHT
+            weight = common.DEFAULT_WEIGHT
         if core.is_listlike(weight):
             weight     = numpy.array(weight)
             nan_filter = (1-numpy.isnan(weight)).astype(bool) # weight arrays may contain NaN, which should be ignored
@@ -178,7 +178,7 @@ class ProbaGenerator(ConnectionAttributeGenerator):
 class DistanceMatrix(object):
     
     def __init__(self, B, space, mask=None):
-        assert B.shape[0] == 3
+        assert B.shape[0] == 3, B.shape
         self.space = space
         if mask is not None:
             self.B = B[:,mask]
@@ -216,9 +216,11 @@ class Connector(object):
             self.delays = min_delay
         else:
             if core.is_listlike(delays):
-                assert min(delays) >= min_delay
+                if min(delays) < min_delay:
+                    raise errors.ConnectionError("smallest delay (%g) is smaller than minimum delay (%g)" % (min(delays), min_delay))
             elif not (isinstance(delays, basestring) or isinstance(delays, RandomDistribution)):
-                assert delays >= min_delay
+                if delays < min_delay:
+                    raise errors.ConnectionError("delay (%g) is smaller than minimum delay (%g)" % (delays, min_delay))
             self.delays = delays        
         
     def connect(self, projection):

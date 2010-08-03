@@ -21,6 +21,8 @@ from pyNN.neuron.recording import *
 import numpy
 import logging
 
+from neuron import h
+
 logger = logging.getLogger("PyNN")
 
 # ==============================================================================
@@ -76,17 +78,7 @@ def run(simtime):
     
 reset = common.reset
 
-def initialize(cells, variable, value):
-    if not hasattr(cells, "__len__"):
-        cells = [cells]
-    if isinstance(value, RandomDistribution):
-        rarr = value.next(n=len(cells))
-        for cell, val in zip(cells, rarr):
-            cell.set_initial_value(variable, val)
-    else:
-        for cell in cells:
-            cell.set_initial_value(variable, value)
-common.initialize = initialize
+initialize = common.initialize
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -97,23 +89,8 @@ get_time_step = common.get_time_step
 get_min_delay = common.get_min_delay
 get_max_delay = common.get_max_delay
 num_processes = common.num_processes
-rank = common.rank           
+rank = common.rank
 
-# ==============================================================================
-#   Low-level API for creating, connecting and recording from individual neurons
-# ==============================================================================
-
-create = common.create
-
-connect = common.connect
-
-set = common.set
-
-record = common.build_record('spikes', simulator)
-
-record_v = common.build_record('v', simulator)
-
-record_gsyn = common.build_record('gsyn', simulator)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -125,80 +102,62 @@ class Population(common.Population):
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
+    recorder_class = Recorder
     
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  label=None):
-        """
-        Create a population of neurons all of the same type.
-        
-        size - number of cells in the Population. For backwards-compatibility, n
-               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
-               is equivalent to n=100 with structure=Grid2D()
-        cellclass should either be a standardized cell class (a class inheriting
-        from common.standardmodels.StandardCellType) or a string giving the name of the
-        simulator-specific model that makes up the population.
-        cellparams should be a dict which is passed to the neuron model
-          constructor
-        structure should be a Structure instance.
-        label is an optional name for the population.
-        """
+        __doc__ = common.Population.__doc__
         common.Population.__init__(self, size, cellclass, cellparams, structure, label)
-        self.recorders = {'spikes': Recorder('spikes', population=self),
-                          'v': Recorder('v', population=self),
-                          'gsyn': Recorder('gsyn', population=self)}
-
-        # Build the arrays of cell ids
-        # Cells on the local node are represented as ID objects, other cells by integers
-        # All are stored in a single numpy array for easy lookup by address
-        # The local cells are also stored in a list, for easy iteration
-        self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
-        self.local_cells = self.all_cells[self._mask_local]
-        
-        for variable, value in self.celltype.default_initial_values.items():
-            self.initialize(variable, value)
         simulator.initializer.register(self)
-        logger.info(self.describe('Creating Population "$label" of size $size, '+
-                                   'containing `$celltype`s with indices between $first_id and $last_id'))
-        logger.debug(self.describe())
 
-    def rset(self, parametername, rand_distr):
+    def _create_cells(self, cellclass, cellparams, n):
+        """
+        Create cells in NEURON.
+        
+        `cellclass`  -- a PyNN standard cell or a native NEURON cell class that
+                       implements an as-yet-undescribed interface.
+        `cellparams` -- a dictionary of cell parameters.
+        `n`          -- the number of cells to create
+        """
+        # this method should never be called more than once
+        # perhaps should check for that
+        assert n > 0, 'n must be a positive integer'
+        if isinstance(cellclass, basestring): # cell defined in hoc template
+            try:
+                cell_model = getattr(h, cellclass)
+            except AttributeError:
+                raise errors.InvalidModelError("There is no hoc template called %s" % cellclass)
+            cell_parameters = cellparams or {}
+        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
+            celltype = cellclass(cellparams)
+            cell_model = celltype.model
+            cell_parameters = celltype.parameters
+        else:
+            cell_model = cellclass
+            cell_parameters = cellparams
+        self.first_id = simulator.state.gid_counter
+        self.last_id = simulator.state.gid_counter + n - 1
+        self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id+1)], simulator.ID)
+        # mask_local is used to extract those elements from arrays that apply to the cells on the current node
+        self._mask_local = self.all_cells%simulator.state.num_processes==simulator.state.mpi_rank # round-robin distribution of cells between nodes
+        for i,(id,is_local) in enumerate(zip(self.all_cells, self._mask_local)):
+            self.all_cells[i] = simulator.ID(id)
+            self.all_cells[i].parent = self
+            if is_local:
+                self.all_cells[i]._build_cell(cell_model, cell_parameters)
+        simulator.initializer.register(*self.all_cells[self._mask_local])
+        simulator.state.gid_counter += n
+
+    def _native_rset(self, parametername, rand_distr):
         """
         'Random' set. Set the value of parametername to a value taken from
         rand_distr, which should be a RandomDistribution object.
         """
-        # Note that we generate enough random numbers for all cells on all nodes
-        # but use only those relevant to this node. This ensures that the
-        # sequence of random numbers does not depend on the number of nodes,
-        # provided that the same rng with the same seed is used on each node.
-        if isinstance(rand_distr.rng, NativeRNG):
-            rng = simulator.h.Random(rand_distr.rng.seed or 0)
-            native_rand_distr = getattr(rng, rand_distr.name)
-            rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick() for i in range(self.all_cells.size-1)]
-        else:
-            rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local)
-        rarr = numpy.array(rarr)
-        logger.info("%s.rset('%s', %s)", self.label, parametername, rand_distr)
-        for cell,val in zip(self, rarr):
-            setattr(cell, parametername, val)
-
-    def initialize(self, variable, value):
-        """
-        Set the initial value of one of the state variables of the neurons in
-        this population.
-        
-        `value` may either be a numeric value (all neurons set to the same
-                value) or a `RandomDistribution` object (each neuron gets a
-                different value)
-        """
-        if isinstance(value, RandomDistribution):
-            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
-            self.initial_values[variable] = rarr
-            for cell, val in zip(self, rarr):
-                cell.set_initial_value(variable, val)
-        else:
-            self.initial_values[variable] = value
-            for cell in self: # only on local node
-                cell.set_initial_value(variable, value)
+        assert isinstance(rand_distr.rng, NativeRNG)
+        rng = simulator.h.Random(rand_distr.rng.seed or 0)
+        native_rand_distr = getattr(rng, rand_distr.name)
+        rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick() for i in range(self.all_cells.size-1)]
+        self.tset(parametername, rarr)
 
 
 PopulationView = common.PopulationView
@@ -320,5 +279,21 @@ class Projection(common.Projection):
 
 
 Space = space.Space
+
+# ==============================================================================
+#   Low-level API for creating, connecting and recording from individual neurons
+# ==============================================================================
+
+create = common.build_create(Population)
+
+connect = common.build_connect(Projection, FixedProbabilityConnector)
+
+set = common.set
+
+record = common.build_record('spikes', simulator)
+
+record_v = common.build_record('v', simulator)
+
+record_gsyn = common.build_record('gsyn', simulator)
 
 # ==============================================================================

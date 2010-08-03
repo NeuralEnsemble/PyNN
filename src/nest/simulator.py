@@ -116,60 +116,7 @@ class ID(int, common.IDMixin):
                 raise errors.InvalidParameterValueError()
             else:
                 raise
-
-
-# --- For implementation of create() and Population.__init__() -----------------
-
-def create_cells(cellclass, cellparams=None, n=1, parent=None):
-    """
-    Create cells in NEST.
-    
-    `cellclass`  -- a PyNN standard cell or the name of a native NEST cell model.
-    `cellparams` -- a dictionary of cell parameters.
-    `n`          -- the number of cells to create
-    `parent`     -- the parent Population, or None if the cells don't belong to
-                    a Population.
-    
-    This function is used by both `create()` and `Population.__init__()`
-    
-    Return:
-        - a 1D array of all cell IDs
-        - a 1D boolean array indicating which IDs are present on the local MPI
-          node
-        - the ID of the first cell created
-        - the ID of the last cell created
-    """
-    assert n > 0, 'n must be a positive integer'
-    if isinstance(cellclass, basestring):  # celltype is not a standard cell
-        nest_model = cellclass
-        cell_parameters = cellparams or {}
-    elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
-        celltype = cellclass(cellparams)
-        nest_model = celltype.nest_name
-        cell_parameters = celltype.parameters
-    else:
-        raise Exception("Invalid cell type: %s" % type(cellclass))
-    try:
-        cell_gids = nest.Create(nest_model, n)
-    except nest.NESTError, err:
-        if "UnknownModelName" in err.message and "cond" in err.message:
-            raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
-        raise errors.InvalidModelError(err)
-    if cell_parameters:
-        try:
-            nest.SetStatus(cell_gids, [cell_parameters])
-        except nest.NESTError:
-            print "NEST error when trying to set the following dictionary: %s" % cell_parameters
-            raise
-    first_id = cell_gids[0]
-    last_id = cell_gids[-1]
-    mask_local = numpy.array(nest.GetStatus(cell_gids, 'local'))
-    cell_gids = numpy.array([ID(gid) for gid in cell_gids], ID)
-    for gid, local in zip(cell_gids, mask_local):
-        gid.local = local
-        gid.parent = parent
-    return cell_gids, mask_local, first_id, last_id
-
+            
 
 # --- For implementation of connect() and Connector classes --------------------
 
@@ -199,7 +146,6 @@ class Connection(object):
         """The ID of the pre-synaptic neuron."""
         src = ID(nest.GetStatus([self.id()], 'source')[0])
         src.parent = self.parent.parent.pre
-        src.local = nest.GetStatus([src], 'local')[0]
         return src
     
     @property
@@ -207,7 +153,6 @@ class Connection(object):
         """The ID of the post-synaptic neuron."""
         tgt = ID(nest.GetStatus([self.id()], 'target')[0])
         tgt.parent = self.parent.parent.post
-        tgt.local = nest.GetStatus([tgt], 'local')[0]
         return tgt
 
     def _set_weight(self, w):
@@ -273,7 +218,6 @@ class ConnectionManager:
                 return [Connection(self, j) for j in range(i.start, i.stop, i.step or 1)]
             else:
                 raise IndexError("%d > %d" % (i.stop, len(self)-1))
-            
     
     def __len__(self):
         """Return the number of connections on the local MPI node."""

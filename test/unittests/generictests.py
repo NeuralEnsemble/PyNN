@@ -39,7 +39,7 @@ class CreationTest(unittest.TestCase):
     def testCreateStandardCell(self):
         for cellclass in sim.list_standard_models():
             ifcell = sim.create(cellclass)
-            assert isinstance(ifcell, common.IDMixin), type(ifcell)
+            assert isinstance(ifcell, common.Population), type(ifcell)
         
     def testCreateStandardCells(self):
         for cellclass in sim.list_standard_models():
@@ -57,8 +57,8 @@ class CreationTest(unittest.TestCase):
         self.assertRaises(AssertionError, sim.create, sim.IF_curr_alpha, n=-1)
 
     def testCreateStandardCellWithParams(self):
-        """create(): Parameters set on creation should be the same as retrieved with the top-level HocObject"""
-        ifcell = sim.create(sim.IF_curr_alpha,{'tau_syn_E':3.141592654})
+        """create(): Parameters set on creation should be the same as retrieved through the ID object"""
+        ifcell = sim.create(sim.IF_curr_alpha,{'tau_syn_E':3.141592654})[0]
         if ifcell.local:
             self.assertAlmostEqual(ifcell.tau_syn_E, 3.141592654, places=6)
         
@@ -81,7 +81,7 @@ class ConnectionTest(unittest.TestCase):
         self.postcells = sim.create(sim.IF_curr_alpha, n=5)
         
     def testConnectTwoCells(self):
-        conn_list = sim.connect(self.precells[0], self.postcells[0])
+        conn_list = sim.connect(self.precells[0:1], self.postcells[0:1])
         if self.postcells[0].local:
             self.assertEqual(len(conn_list), 1)
         else:
@@ -89,13 +89,13 @@ class ConnectionTest(unittest.TestCase):
         
     def testConnectTwoCellsWithWeight(self):
         """connect(): Weight set should match weight retrieved."""
-        conn_list = sim.connect(self.precells[0], self.postcells[0], weight=0.1234)
+        conn_list = sim.connect(self.precells[0:1], self.postcells[0:1], weight=0.1234)
         if conn_list:
             weight = conn_list[0].weight
             self.assertAlmostEqual(weight, 0.1234, 6)
             
     def testConnectTwoCellsWithDelay(self):
-        conn_list = sim.connect(self.precells[0], self.postcells[0], delay=4.321)
+        conn_list = sim.connect(self.precells[0:1], self.postcells[0:1], delay=4.321)
         if conn_list:
             delay = conn_list[0].delay
             if sim_name == 'nest':
@@ -106,7 +106,7 @@ class ConnectionTest(unittest.TestCase):
     def testConnectManyToOne(self):
         """connect(): Connecting n sources to one target should return a list of size n,
         each element being the id number of a netcon."""
-        conn_list = sim.connect(self.precells, self.postcells[0])
+        conn_list = sim.connect(self.precells, self.postcells[0:1])
         # connections are only created on the node containing the post-syn
         if self.postcells[0].local:
             self.assertEqual(len(conn_list), len(self.precells))
@@ -115,7 +115,7 @@ class ConnectionTest(unittest.TestCase):
         
     def testConnectOneToMany(self):
         """connect(): Connecting one source to n targets should return a list of target ports."""
-        conn_list = sim.connect(self.precells[0], self.postcells)
+        conn_list = sim.connect(self.precells[0:1], self.postcells)
         cells_on_this_node = len([i for i in self.postcells if i.local])
         self.assertEqual(len(conn_list),  cells_on_this_node)
         
@@ -135,24 +135,14 @@ class ConnectionTest(unittest.TestCase):
     def testConnectNonExistentPreCell(self):
         """connect(): Connecting from non-existent cell should raise a ConnectionError."""
         if self.postcells[0].local:
-            self.assertRaises(errors.ConnectionError, sim.connect, 12345, self.postcells[0])
+            self.assertRaises(errors.ConnectionError, sim.connect, 12345, self.postcells[0:1])
         
     def testConnectNonExistentPostCell(self):
         """connect(): Connecting to a non-existent cell should raise a ConnectionError."""
-        self.assertRaises(errors.ConnectionError, sim.connect, self.precells[0], 'cell45678')
-    
-    def testInvalidSourceId(self):
-        """connect(): sources must be integers."""
-        self.precells.append('74367598')
-        self.assertRaises(errors.ConnectionError, sim.connect, self.precells, self.postcells)
-    
-    def testInvalidTargetId(self):
-        """connect(): targets must be integers."""
-        self.postcells.append('99.9')
-        self.assertRaises(errors.ConnectionError, sim.connect, self.precells, self.postcells)
+        self.assertRaises(errors.ConnectionError, sim.connect, self.precells[0:1], 'cell45678')
     
     def testConnectTooSmallDelay(self):
-        self.assertRaises(errors.ConnectionError, sim.connect, self.precells[0], self.postcells[0], delay=1e-12)
+        self.assertRaises(errors.ConnectionError, sim.connect, self.precells[0:1], self.postcells[0:1], delay=1e-12)
 
 # ==============================================================================
 class IDSetGetTest(unittest.TestCase):
@@ -294,8 +284,8 @@ class SetValueTest(unittest.TestCase):
                 self.assertAlmostEqual(cell.tau_m, 35.7, 5)
             except errors.NotLocalError: # if cell is not on this node
                 pass
-        if self.single_cell.local:
-            self.assertAlmostEqual(self.single_cell.v_reset, -67.8, 6)
+        if self.single_cell[0].local:
+            self.assertAlmostEqual(self.single_cell[0].v_reset, -67.8, 6)
 
     def testSetDict(self):
         sim.set(self.cells, {'tau_m': 35.7, 'tau_syn_E': 5.432})
@@ -307,9 +297,7 @@ class SetValueTest(unittest.TestCase):
                 pass
             
     def testSetNonExistentParameter(self):
-        # note that although syn_shape is added to the NEURON parameter dict when creating
-        # an IF_curr_exp, it is not a valid parameter to be changed later.
-        self.assertRaises(errors.NonExistentParameterError, sim.set, self.cells, 'syn_shape', 'alpha')
+        self.assertRaises(errors.NonExistentParameterError, sim.set, self.cells, 'foo', 9.87)
 
     def testSetZero(self):
         sim.set(self.cells, 'v_thresh', 0.0)

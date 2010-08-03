@@ -200,16 +200,7 @@ def run(simtime):
 
 reset = common.reset
 
-def initialize(cells, variable, value):
-    if not hasattr(cells, "__len__"):
-        cells = [cells]
-    if isinstance(value, RandomDistribution):
-        rarr = value.next(n=len(cells))
-        for cell, val in zip(cells, rarr):
-            cell.set_initial_value(variable, val)
-    else:
-        for cell in cells:
-            cell.set_initial_value(variable, value)
+initialize = common.initialize
 
 get_current_time = common.get_current_time
 get_time_step = common.get_time_step
@@ -218,81 +209,6 @@ get_max_delay = common.get_max_delay
 num_processes = common.num_processes
 rank = common.rank
 
-# ==============================================================================
-#   Low-level API for creating, connecting and recording from individual neurons
-# ==============================================================================
-
-create = common.create
-
-#def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
-#    """Connect a source of spikes to a synaptic target. source and target can
-#    both be individual cells or lists of cells, in which case all possible
-#    connections are made with probability p, using either the random number
-#    generator supplied, or the default rng otherwise.
-#    Weights should be in nA or µS."""
-#    
-#    if weight is None:  weight = 0.0
-#    if delay  is None:  delay = simulator.state.min_delay
-#    if delay < get_min_delay():
-#        raise errors.ConnectionError("Delay (%g ms) must be >= the minimum delay (%g ms)" % (delay, get_min_delay()))
-#    # Convert units
-#    delay = delay / 1000 # Delays in pcsim are specified in seconds
-#    if isinstance(target, list):
-#        firsttarget = target[0]
-#    else:
-#        firsttarget = target
-#    try:
-#        if hasattr(simulator.net.object(firsttarget),'ErevExc'):
-#            weight = 1e-6 * weight # Convert from µS to S    
-#        else:
-#            weight = 1e-9 * weight # Convert from nA to A
-#    except exceptions.Exception, e: # non-existent connection
-#        raise errors.ConnectionError(e)
-#    # Create synapse factory
-#    syn_factory = 0
-#    if synapse_type is None:
-#        if weight >= 0:  # decide whether to connect to the excitatory or inhibitory response 
-#            syn_target_id = 1
-#        else:
-#            syn_target_id = 2
-#        syn_factory = pypcsim.SimpleScalingSpikingSynapse(syn_target_id, weight, delay)
-#    else:
-#        if isinstance(synapse_type, type):
-#            syn_factory = synapse_type
-#        elif isinstance(synapse_type, str):
-#            if synapse_type == 'excitatory':
-#                syn_factory = pypcsim.SimpleScalingSpikingSynapse(1, weight, delay)
-#            elif synapse_type == 'inhibitory':
-#                syn_factory = pypcsim.SimpleScalingSpikingSynapse(2, weight, delay)
-#            else:
-#                eval('syn_factory = ' + synapse_type + '()')
-#            syn_factory.W = weight;
-#            syn_factory.delay = delay;
-#    # Create connections
-#    try:
-#        if type(source) != types.ListType and type(target) != types.ListType:
-#            connections = simulator.net.connect(source, target, syn_factory)
-#            if not core.is_listlike(connections):
-#                connections = [connections]
-#            return connections
-#        else:
-#            if type(source) != types.ListType:
-#                source = [source]
-#            if type(target) != types.ListType:
-#                target = [target]
-#            src_popul = pypcsim.SimObjectPopulation(simulator.net, source)
-#            dest_popul = pypcsim.SimObjectPopulation(simulator.net, target)
-#            connections = pypcsim.ConnectionsProjection(src_popul, dest_popul, syn_factory, pypcsim.RandomConnections(p), pypcsim.SimpleAllToAllWiringMethod(simulator.net), True)
-#            return connections.idVector()
-#    except exceptions.TypeError, e:
-#        raise errors.ConnectionError(e)
-#    except exceptions.Exception, e:
-#        raise errors.ConnectionError(e)
-connect = common.connect
-set = common.set    
-record = common.build_record('spikes', simulator)
-record_v = common.build_record('v', simulator)
-record_gsyn = common.build_record('gsyn', simulator)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -304,43 +220,34 @@ class Population(common.Population):
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
+    recorder_class = Recorder
     
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  label=None, parent=None):
-        """
-        Create a population of neurons all of the same type.
-        
-        size - number of cells in the Population. For backwards-compatibility, n
-               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
-               is equivalent to n=100 with structure=Grid2D()
-        cellclass should either be a standardized cell class (a class inheriting
-        from common.standardmodels.StandardCellType) or a string giving the name of the
-        simulator-specific model that makes up the population.
-        cellparams should be a dict which is passed to the neuron model
-          constructor
-        structure should be a Structure instance.
-        label is an optional name for the population.
-        """
-        ##if isinstance(dims, int): # also allow a single integer, for a 1D population
-        ##    #print "Converting integer dims to tuple"
-        ##    dims = (dims,)
-        ##elif len(dims) > 3:
-        ##    raise exceptions.AttributeError('PCSIM does not support populations with more than 3 dimensions')
-        ##
-        ##self.actual_ndim = len(dims)       
-        ##while len(dims) < 3:
-        ##    dims += (1,)
-        ### There is a problem here, since self.dim should hold the nominal dimensions of the
-        ### population, while in PCSIM the population is always really 3D, even if some of the
-        ### dimensions have size 1. We should add a variable self._dims to hold the PCSIM dimensions,
-        ### and make self.dims be the nominal dimensions.
+        __doc__ = common.Population.__doc_
         common.Population.__init__(self, size, cellclass, cellparams, structure, label)
-                         
-        ### set the steps list, used by the __getitem__() method.
-        ##self.steps = [1]*self.ndim
-        ##for i in range(self.ndim-1):
-        ##    for j in range(i+1, self.ndim):
-        ##        self.steps[i] *= self.dim[j]
+    
+    def _create_cells(self, cellclass, cellparams, n):
+        """
+        Create cells in PCSIM.
+        
+        `cellclass`  -- a PyNN standard cell or a native PCSIM cell class.
+        `cellparams` -- a dictionary of cell parameters.
+        `n`          -- the number of cells to create
+        `parent`     -- the parent Population, or None if the cells don't belong to
+                        a Population.
+        
+        This function is used by both `create()` and `Population.__init__()`
+        
+        Return:
+            - a 1D array of all cell IDs
+            - a 1D boolean array indicating which IDs are present on the local MPI
+              node
+            - the ID of the first cell created
+            - the ID of the last cell created
+        """
+        global net
+        assert n > 0, 'n must be a positive integer'
         
         if isinstance(cellclass, str):
             if not cellclass in dir(pypcsim):
@@ -353,10 +260,18 @@ class Population(common.Population):
         else:
             self.celltype = cellclass
             if issubclass(cellclass, pypcsim.SimObject):
-                self.cellfactory = apply(cellclass, (), cellparams)
+                self.cellfactory = cellclass(**cellparams)
             else:
                 raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
-        
+            
+        self.all_cells = numpy.array([id for id in net.add(cellfactory, n)], simulator.ID)
+        self.first_id = self.all_cells[0]
+        self.last_id = self.all_cells[-1]
+        # mask_local is used to extract those elements from arrays that apply to the cells on the current node
+        self._mask_local = numpy.array([simulator.is_local(id) for id in self.all_cells])
+        for i,id in enumerate(self.all_cells):
+            self.all_cells[i] = simulator.ID(self.all_cells[i])
+            self.all_cells[i].parent = self
             
         # CuboidGridPopulation(SimNetwork &net, GridPoint3D origin, Volume3DSize dims, SimObjectFactory &objFactory)
         ##self.pcsim_population = pypcsim.CuboidGridObjectPopulation(
@@ -369,16 +284,7 @@ class Population(common.Population):
         ##self.cell -= self.cell[0]
         ##self.all_cells = self.cell
         ##self.local_cells = numpy.array(self.pcsim_population.localIndexes())
-        ##
-        self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
-        self.local_cells = self.all_cells[self._mask_local]
-        
-        for variable, value in self.celltype.default_initial_values.items():
-                self.initialize(variable, value)
-                
-        self.recorders = {'spikes': Recorder('spikes', population=self),
-                          'v': Recorder('v', population=self),
-                          'gsyn': Recorder('gsyn', population=self)}
+
         
     ##def __getitem__(self, addr):
     ##    """Return a representation of the cell with coordinates given by addr,
@@ -419,42 +325,6 @@ class Population(common.Population):
             id = ID(i-ids[0])
             id.parent = self
             yield id
-        
-    ##def locate(self, id):
-    ##    """Given an element id in a Population, return the coordinates.
-    ##           e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
-    ##                     7 9
-    ##    """
-    ##    assert isinstance(id, ID)
-    ##    if self.ndim == 3:
-    ##        rows = self.dim[1]; cols = self.dim[2]
-    ##        i = id/(rows*cols); remainder = id%(rows*cols)
-    ##        j = remainder/cols; k = remainder%cols
-    ##        coords = (i, j, k)
-    ##    elif self.ndim == 2:
-    ##        cols = self.dim[1]
-    ##        i = id/cols; j = id%cols
-    ##        coords = (i, j)
-    ##    elif self.ndim == 1:
-    ##        coords = (id,)
-    ##    else:
-    ##        raise errors.InvalidDimensionsError
-    ##    if self.actual_ndim == 1:
-    ##        if coords[0] > self.dim[0]:
-    ##            coords = None # should probably raise an Exception here rather than hope one will be raised down the line
-    ##        else:
-    ##            coords = (coords[0],)
-    ##    elif self.actual_ndim == 2:
-    ##        coords = (coords[0], coords[1],)
-    ##    pcsim_coords = self.pcsim_population.getLocation(id)
-    ##    pcsim_coords = (pcsim_coords.x(), pcsim_coords.y(), pcsim_coords.z())
-    ##    if self.actual_ndim == 1:
-    ##        pcsim_coords = (pcsim_coords[0],)
-    ##    elif self.actual_ndim == 2:
-    ##        pcsim_coords = (pcsim_coords[0], pcsim_coords[1],)
-    ##    if coords:
-    ##        assert coords == pcsim_coords, " coords = %s, pcsim_coords = %s " % (coords, pcsim_coords)
-    ##    return coords
     
     def id_to_index(self, id):
         cells = self.all_cells
@@ -464,7 +334,7 @@ class Population(common.Population):
                 res.append(numpy.where(cells == item)[0][0])
             return numpy.array(res)
         else:
-          return cells.tolist().index(id) # because ids may not be consecutive when running a distributed sim
+            return cells.tolist().index(id) # because ids may not be consecutive when running a distributed sim
     
     ##def getObjectID(self, index):
     ##    return self.pcsim_population[index]
@@ -521,7 +391,6 @@ class Population(common.Population):
             for cell in self: # only on local node
                 cell.set_initial_value(variable, value)
 
-    
     def _call(self, methodname, arguments):
         """
         Calls the method methodname(arguments) for every cell in the population.
@@ -868,6 +737,22 @@ class Projection(common.Projection, WDManager):
     
 
 Space = space.Space
+
+# ==============================================================================
+#   Low-level API for creating, connecting and recording from individual neurons
+# ==============================================================================
+
+create = common.build_create(Population)
+
+connect = common.build_connect(Projection, FixedProbabilityConnector)
+
+set = common.set
+
+record = common.build_record('spikes', simulator)
+
+record_v = common.build_record('v', simulator)
+
+record_gsyn = common.build_record('gsyn', simulator)
 
 # ==============================================================================
 

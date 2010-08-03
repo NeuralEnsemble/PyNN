@@ -9,7 +9,7 @@ import logging
 Set = set
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
-from pyNN import common, recording, space, standardmodels, __doc__
+from pyNN import common, recording, space, standardmodels, core, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 from pyNN.random import *
@@ -64,23 +64,7 @@ def run(simtime):
 
 reset = common.reset
 
-def initialize(cells, variable, value):
-    if not hasattr(cells, "__len__"):
-        cells = [cells]
-    parents = Set([])
-    for cell in cells:
-        parents.add(cell.parent_group)
-    if len(parents) != 1:
-        raise Exception("Initialising cells created through different create() calls at the same time not yet supported.")
-    if isinstance(value, RandomDistribution):
-        rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
-        value = numpy.array(rarr)
-    else:
-        value = value*numpy.ones((len(cells),))
-    group = list(parents)[0]
-    group.initial_values[variable] = value*mV
-    group.initialize()
-common.initialize = initialize
+initialize = common.initialize
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -94,58 +78,87 @@ num_processes = common.num_processes
 rank = common.rank
 
 # ==============================================================================
-#   Low-level API for creating, connecting and recording from individual neurons
-# ==============================================================================
-
-create = common.create
-connect = common.connect
-set = common.set
-record = common.build_record('spikes', simulator)
-record_v = common.build_record('v', simulator)
-record_gsyn = common.build_record('gsyn', simulator)
-
-# ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
 # ==============================================================================
 
-class Population(common.Population):
+class BasePopulation(common.BasePopulation):
+    
+    def meanSpikeCount(self, gather=True):
+        """ 
+        Returns the mean number of spikes per neuron. 
+        """
+        rec = self.recorders['spikes']
+        return float(rec._devices[0].nspikes)/len(rec.recorded) 
+
+
+class Population(common.Population, BasePopulation):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
-    
-    def __init__(self, size, cellclass, cellparams=None, structure=None,
-                 label=None):
+    recorder_class = Recorder
+
+    def _create_cells(self, cellclass, cellparams=None, n=1):
         """
-        Create a population of neurons all of the same type.
+        Create cells in Brian.
         
-        size - number of cells in the Population. For backwards-compatibility, n
-               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
-               is equivalent to n=100 with structure=Grid2D()
-        cellclass should either be a standardized cell class (a class inheriting
-        from common.standardmodels.StandardCellType) or a string giving the name of the
-        simulator-specific model that makes up the population.
-        cellparams should be a dict which is passed to the neuron model
-          constructor
-        structure should be a Structure instance.
-        label is an optional name for the population.
+        `cellclass`  -- a PyNN standard cell or a native Brian cell class.
+        `cellparams` -- a dictionary of cell parameters.
+        `n`          -- the number of cells to create
         """
-        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
-        
-        self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
-        self.local_cells = self.all_cells[self._mask_local]
-        
-        for id in self.local_cells:
-            id.parent = self
+        # currently, we create a single NeuronGroup for create(), but
+        # arguably we should use n NeuronGroups each containing a single cell
+        # either that or use the subgroup() method in connect(), etc
+        assert n > 0, 'n must be a positive integer'
+        if isinstance(cellclass, basestring):  # celltype is not a standard cell
+            try:
+                eqs = brian.Equations(cellclass)
+            except Exception, errmsg:
+                raise errors.InvalidModelError(errmsg)
+            v_thresh   = cellparams['v_thresh']
+            v_reset    = cellparams['v_reset']
+            tau_refrac = cellparams['tau_refrac']
+            brian_cells = brian.NeuronGroup(n,
+                                            model=eqs,
+                                            threshold=v_thresh,
+                                            reset=v_reset,
+                                            clock=state.simclock,
+                                            compile=True,
+                                            max_delay=state.max_delay)
+            cell_parameters = cellparams or {}
+        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
+            celltype = cellclass(cellparams)
+            cell_parameters = celltype.parameters
             
-        for variable, value in self.celltype.default_initial_values.items():
-                self.initialize(variable, value)
-        
-        self.recorders = {'spikes': Recorder('spikes', population=self),
-                          'v': Recorder('v', population=self),
-                          'gsyn': Recorder('gsyn', population=self),}
-        
+            if isinstance(celltype, cells.SpikeSourcePoisson):    
+                fct = celltype.fct
+                brian_cells = simulator.PoissonGroupWithDelays(n, rates=fct)
+            elif isinstance(celltype, cells.SpikeSourceArray):
+                spike_times = cell_parameters['spiketimes']
+                brian_cells = simulator.MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(n)])
+            else:
+                brian_cells = simulator.ThresholdNeuronGroup(n, cellclass.eqs)
+        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.ModelNotAvailable):
+            raise NotImplementedError("The %s model is not available for this simulator." % cellclass.__name__)
+        else:
+            raise Exception("Invalid cell type: %s" % type(cellclass))    
+    
+        if cell_parameters:
+            for key, value in cell_parameters.items():
+                setattr(brian_cells, key, value)
+        # should we globally track the IDs used, so as to ensure each cell gets a unique integer? (need only track the max ID)
+        self.all_cells = numpy.array([simulator.ID(cell) for cell in xrange(len(brian_cells))], simulator.ID)
+        for cell in self.all_cells:
+            cell.parent_group = brian_cells
+            cell.parent = self
+       
+        self._mask_local = numpy.ones((n,), bool) # all cells are local. This doesn't seem very efficient.
+        self.first_id = self.all_cells[0]
+        self.last_id = self.all_cells[-1]
+        self.brian_cells = brian_cells
+        simulator.net.add(brian_cells)
+
     def initialize(self, variable, value):
         """
         Set the initial value of one of the state variables of the neurons in
@@ -162,13 +175,7 @@ class Population(common.Population):
             value = value*numpy.ones((len(self),))
         self.brian_cells.initial_values[variable] = value*mV
         self.brian_cells.initialize()
-        
-    def meanSpikeCount(self, gather=True):
-        """ 
-        Returns the mean number of spikes per neuron. 
-        """
-        rec = self.recorders['spikes']
-        return float(rec._devices[0].nspikes)/len(rec.recorded) 
+        self.initial_values[variable] = core.LazyArray(self.size, value)
 
 
 class Projection(common.Projection):
@@ -213,3 +220,21 @@ class Projection(common.Projection):
 
 
 Space = space.Space
+
+# ==============================================================================
+#   Low-level API for creating, connecting and recording from individual neurons
+# ==============================================================================
+
+create = common.build_create(Population)
+
+connect = common.build_connect(Projection, FixedProbabilityConnector)
+
+set = common.set
+
+record = common.build_record('spikes', simulator)
+
+record_v = common.build_record('v', simulator)
+
+record_gsyn = common.build_record('gsyn', simulator)
+
+# ==============================================================================

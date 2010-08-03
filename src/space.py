@@ -4,8 +4,11 @@ Tools for performing spatial/topographical calculations.
 
 """
 
+# There must be some Python package out there that provides most of this stuff.
+
 import numpy
 import math
+from pyNN.random import NumpyRNG
 
 def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
              periodic_boundaries=None): # may need to add an offset parameter
@@ -212,4 +215,49 @@ class Grid3D(BaseStructure):
             return numpy.array((x,y,z))
         else:
             raise NotImplementedError
+
+
+class Shape(object):
+    pass
+
+class Cuboid(Shape):
+    
+    def __init__(self, height, width, depth):
+        """Not sure how h,w,d should be related to x,y,z."""
+        self.height = height
+        self.width = width
+        self.depth = depth
         
+    def sample(self, n, rng):
+        return rng.uniform(size=(n,3)) * (self.height, self.width, self.depth)
+
+
+class Sphere(Shape):
+    
+    def ___init__(self, radius):
+        self.radius = radius
+        
+    def sample(self, n, rng):
+        raise NotImplementedError
+        #theta_phi = rng.uniform(size=(n,2))
+        #r = rng.???
+        # now transform from r,theta,phi to x,y,z
+
+
+class RandomStructure(BaseStructure):
+    
+    def __init__(self, boundary, origin=(0.0,0.0,0.0), rotation=(0,0), rng=None):
+        """
+        `boundary` - a subclass of Shape
+        `origin` - a coordinate tuple (x,y,z)
+        `rotation` - (theta, phi) tuple giving the rotation to be applied (in degrees)
+        
+        Note that the rotation is applied before the origin shift
+        """
+        self.boundary = boundary
+        self.origin = origin
+        self.rng = rng or NumpyRNG()
+        
+    def generate_positions(self, n):
+        return numpy.array(self.origin) + rotate(self.boundary.sample(n, rng), *self.origin)
+    

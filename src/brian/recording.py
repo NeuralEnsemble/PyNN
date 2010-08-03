@@ -72,4 +72,7 @@ class Recorder(recording.Recorder):
                     data = numpy.concatenate((data, new_data))
         return data
 
+    def _local_count(self, filter=None):
+        raise NotImplementedError
+
 simulator.Recorder = Recorder

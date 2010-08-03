@@ -33,7 +33,7 @@ spike_source = create(SpikeSourceArray, {'spike_times': spike_times })
 conn1 = connect(spike_source, ifcell1, weight=1.0)
 conn2 = connect(spike_source, ifcell2, weight=1.0)
     
-record_v([ifcell1, ifcell2], "Results/simpleNetworkL_%s.v" % simulator_name)
+record_v(ifcell1+ifcell2, "Results/simpleNetworkL_%s.v" % simulator_name)
 run(tstop)
     
 end()

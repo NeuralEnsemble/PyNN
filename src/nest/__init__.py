@@ -133,16 +133,7 @@ def run(simtime):
 
 reset = common.reset
 
-def initialize(cells, variable, value):
-    if not hasattr(cells, "__len__"):
-        cells = [cells]
-    if isinstance(value, RandomDistribution):
-        rarr = value.next(n=len(cells))
-        value = numpy.array(rarr)
-    nest.SetStatus(cells, STATE_VARIABLE_MAP[variable], value)
-    for cell in cells:
-        cell.set_initial_value(variable, value)
-common.initialize = initialize
+initialize = common.initialize
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -156,22 +147,6 @@ num_processes = common.num_processes
 rank = common.rank
 
 # ==============================================================================
-#   Low-level API for creating, connecting and recording from individual neurons
-# ==============================================================================
-
-create = common.create
-
-connect = common.connect
-
-set = common.set
-
-record = common.build_record('spikes', simulator)
-
-record_v = common.build_record('v', simulator)
-
-record_gsyn = common.build_record('gsyn', simulator)
-
-# ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
 # ==============================================================================
@@ -181,37 +156,46 @@ class Population(common.Population):
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
+    recorder_class = Recorder
 
-    def __init__(self, size, cellclass, cellparams=None, structure=None,
-                 label=None):
+    def _create_cells(self, cellclass, cellparams, n):
         """
-        Create a population of neurons all of the same type.
+        Create cells in NEST.
         
-        size - number of cells in the Population. For backwards-compatibility, n
-               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
-               is equivalent to n=100 with structure=Grid2D()
-        cellclass should either be a standardized cell class (a class inheriting
-        from common.standardmodels.StandardCellType) or a string giving the name of the
-        simulator-specific model that makes up the population.
-        cellparams should be a dict which is passed to the neuron model
-          constructor
-        structure should be a Structure instance.
-        label is an optional name for the population.
+        `cellclass`  -- a PyNN standard cell or the name of a native NEST model.
+        `cellparams` -- a dictionary of cell parameters.
+        `n`          -- the number of cells to create
         """
-        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
-        
-        self.all_cells, self._mask_local, self.first_id, self.last_id = simulator.create_cells(cellclass, cellparams, self.size, parent=self)
-        self.local_cells = self.all_cells[self._mask_local]
-        
-        for id in self.local_cells:
-            id.parent = self
-            
-        for variable, value in self.celltype.default_initial_values.items():
-                self.initialize(variable, value)
-                
-        self.recorders = {}
-        for variable in RECORDING_DEVICE_NAMES:
-            self.recorders[variable] = Recorder(variable, population=self)
+        # this method should never be called more than once
+        # perhaps should check for that
+        assert n > 0, 'n must be a positive integer'
+        if isinstance(cellclass, basestring):  # celltype is not a standard cell
+            nest_model = cellclass
+            cell_parameters = cellparams or {}
+        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
+            celltype = cellclass(cellparams)
+            nest_model = celltype.nest_name
+            cell_parameters = celltype.parameters
+        else:
+            raise Exception("Invalid cell type: %s" % type(cellclass))
+        try:
+            self.all_cells = nest.Create(nest_model, n)
+        except nest.NESTError, err:
+            if "UnknownModelName" in err.message and "cond" in err.message:
+                raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
+            raise errors.InvalidModelError(err)
+        if cell_parameters:
+            try:
+                nest.SetStatus(self.all_cells, [cell_parameters])
+            except nest.NESTError:
+                print "NEST error when trying to set the following dictionary: %s" % cell_parameters
+                raise
+        self.first_id = self.all_cells[0]
+        self.last_id = self.all_cells[-1]
+        self._mask_local = numpy.array(nest.GetStatus(self.all_cells, 'local'))
+        self.all_cells = numpy.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
+        for gid in self.all_cells:
+            gid.parent = self
 
     def set(self, param, val=None):
         """
@@ -276,37 +260,6 @@ class Population(common.Population):
                 except Exception:
                     raise errors.InvalidParameterValueError
             nest.SetStatus(self.local_cells.tolist(), to_be_set)
-            
-
-    #def rset(self, parametername, rand_distr):
-    #    """
-    #    'Random' set. Set the value of parametername to a value taken from
-    #    rand_distr, which should be a RandomDistribution object.
-    #    """
-    #    if isinstance(rand_distr.rng, NativeRNG):
-    #        raise Exception('rset() not yet implemented for NativeRNG')
-    #    else:
-    #        #rarr = rand_distr.next(n=len(self.local_cells))
-    #        rarr = rand_distr.next(n=self.size)
-    #        assert len(rarr) >= len(self.local_cells), "The length of rarr (%d) must be greater than that of local_cells (%d)" % (len(rarr), len(self.local_cells))
-    #        rarr = rarr[:len(self.local_cells)]
-    #        if not isinstance(self.celltype, str):
-    #            try:
-    #                self.celltype.default_parameters[parametername]
-    #            except Exception:
-    #                raise errors.NonExistentParameterError(parametername, self.celltype.__class__)
-    #            if parametername in self.celltype.scaled_parameters():
-    #                translation = self.celltype.translations[parametername]
-    #                rarr = eval(translation['forward_transform'], globals(), {parametername : rarr})
-    #                nest.SetStatus(self.local_cells,translation['translated_name'],rarr)
-    #            elif parametername in self.celltype.simple_parameters():
-    #                translation = self.celltype.translations[parametername]
-    #                nest.SetStatus(self.local_cells, translation['translated_name'], rarr)
-    #            else:
-    #                for cell,val in zip(self.local_cells, rarr):
-    #                    setattr(cell, parametername, val)
-    #        else:
-    #           nest.SetStatus(self.local_cells, parametername, rarr)
 
     def initialize(self, variable, value):
         """
@@ -322,49 +275,12 @@ class Population(common.Population):
             value = rarr #numpy.array(rarr)
             assert len(rarr) == len(self.local_cells), "%d != %d" % (len(rarr), len(self.local_cells))
         nest.SetStatus(self.local_cells.tolist(), STATE_VARIABLE_MAP[variable], value)
-        self.initial_values[variable] = value
+        self.initial_values[variable] = core.LazyArray(self.size, value)
 
     def _record(self, variable, record_from=None, rng=None, to_file=True):
         common.Population._record(self, variable, record_from, rng, to_file)
-        nest.SetStatus(self.recorders[variable]._device, {'to_file': to_file, 'to_memory' : not to_file})
-    
-    #def meanSpikeCount(self, gather=True):
-    #    """
-    #    Returns the mean number of spikes per neuron.
-    #    """
-    #    # Routine to give an average firing rate over all the threads/nodes
-    #    # This is a rough approximation, because in fact each nodes is only multiplying 
-    #    # the frequency of the recorders by the number of processes. To do better, we need a MPI
-    #    # package to send informations to node 0. Nevertheless, it works for threaded mode
-    #    if gather:
-    #        node_list = range(nest.GetKernelStatus()["total_num_virtual_procs"])
-    #    else:
-    #        node_list = [rank()]
-    #    n_spikes  = 0
-    #    for node in node_list:
-    #        nest.sps(self.recorders['spikes']._device[0])
-    #        nest.sr("%d GetAddress %d append" %(self.recorders['spikes']._device[0], node))
-    #        nest.sr("GetStatus /n_events get")
-    #        n_spikes += nest.spp()
-    #    n_rec = len(self.recorders['spikes'].recorded)
-    #    if gather and num_processes()>1:
-    #        n_rec = recording.mpi_sum(n_rec)
-    #    return float(n_spikes)/n_rec
-
-    #def getSubPopulation(self, cell_list, label=None):
-    #    
-    #    # We get the dimensions of the new population
-    #    dims = numpy.array(cell_list).shape
-    #    # We create an empty population
-    #    pop = Population(dims, cellclass=self.celltype, label=label, parent=self)
-    #    # And then copy parameters from its parent
-    #    pop.cellparams  = pop.parent.cellparams
-    #    pop.first_id    = pop.parent.first_id
-    #    idx             = numpy.array(cell_list,int).flatten() - pop.first_id
-    #    pop.cell        = pop.parent.cell.flatten()[idx].reshape(dims)
-    #    pop.local_cells  = pop.parent.local_cells[idx]
-    #    pop.positions   = pop.parent.positions[:,idx]
-    #    return pop
+        # need to set output filename if supplied
+        nest.SetStatus(self.recorders[variable]._device, {'to_file': bool(to_file), 'to_memory' : not to_file})
 
 
 class Projection(common.Projection):
@@ -489,5 +405,21 @@ class Projection(common.Projection):
             f.close()
 
 Space = space.Space
+
+# ==============================================================================
+#   Low-level API for creating, connecting and recording from individual neurons
+# ==============================================================================
+
+create = common.build_create(Population)
+
+connect = common.build_connect(Projection, FixedProbabilityConnector)
+
+set = common.set
+
+record = common.build_record('spikes', simulator)
+
+record_v = common.build_record('v', simulator)
+
+record_gsyn = common.build_record('gsyn', simulator)
 
 # ==============================================================================
