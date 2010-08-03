@@ -189,6 +189,7 @@ def reset():
     state.running = False
     state.t = 0
     state.tstop = 0
+    h.finitialize()
 
 def run(simtime):
     """Advance the simulation for a certain time."""
