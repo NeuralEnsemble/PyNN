@@ -418,7 +418,7 @@ class BasePopulation(object):
     
     def get(self, parameter_name): # would be nice to add a 'gather' argument
         """
-        Get the values of a parameter for every cell in the population.
+        Get the values of a parameter for every local cell in the population.
         """
         # if all the cells have the same value for this parameter, should
         # we return just the number, rather than an array?
@@ -515,8 +515,9 @@ class BasePopulation(object):
         if isinstance(rand_distr.rng, random.NativeRNG):
             self._native_rset(parameter_name, rand_distr)
         else:
-            rarr = rand_distr.next(n=self.all_cells.size, mask_local=self._mask_local)
+            rarr = rand_distr.next(n=self.all_cells.size, mask_local=False) #self._mask_local)
             rarr = numpy.array(rarr) # isn't rarr already an array?
+            assert rarr.size == self.size, "%s != %s" % (rarr.size, self.size)
             self.tset(parametername, rarr)
 
     def _call(self, methodname, arguments):
@@ -831,6 +832,12 @@ class Population(BasePopulation):
         """
         assert self.first_id <= id <= self.last_id 
         return id - self.first_id # this assumes ids are consecutive
+    
+    def id_to_local_index(self, id):
+        if num_processes() > 1:
+            return self.local_cells.tolist().index(id) # probably very slow
+        else:
+            return self.id_to_index(id)
     
     def _get_structure(self):
         return self._structure

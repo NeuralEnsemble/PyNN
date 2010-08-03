@@ -504,9 +504,8 @@ class PopulationSetTest(unittest.TestCase):
                                          parameters=[0.9,1.1])
         self.p1.rset('cm', rd1)
         output_values = numpy.array(self.p1.get('cm'))
-        mask = (1-numpy.isnan(output_values)).astype(bool)
         input_values = rd2.next(len(self.p1), mask_local=False)
-        assert_arrays_almost_equal(input_values[mask], output_values[mask], 1e-7)
+        assert_arrays_almost_equal(input_values[self.p1._mask_local], output_values, 1e-7)
                 
 #===============================================================================                
 class PopulationPositionsTest(unittest.TestCase):
@@ -558,7 +557,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
     def testRecordWithRNG(self):
         """Population.record(n, rng): not a full test, just checking there are no Exceptions raised."""
         for pop in self.pops:
-            pop.record(5, random.NumpyRNG())
+            pop.record(5, random.NumpyRNG(num_processes=sim.num_processes()))
     
     def testRecordList(self):
         """Population.record(list): not a full test, just checking there are no Exceptions raised."""
@@ -590,7 +589,7 @@ class PopulationRecordTest(unittest.TestCase): # to write later
     def testPotentialRecording(self):
         """Population.record_v() and Population.print_v(): not a full test, just checking 
         # there are no Exceptions raised."""
-        rng = random.NumpyRNG(123)
+        rng = random.NumpyRNG(seed=123, num_processes=sim.num_processes())
         v_reset  = -65.0
         v_thresh = -50.0
         uniformDistr = random.RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])
@@ -876,7 +875,7 @@ class ProjectionSetTest(unittest.TestCase):
         self.target_cond = sim.Population(5, sim.IF_cond_exp)
         self.targets = (self.target_curr, self.target_cond)
         self.source   = sim.Population((3,3), sim.SpikeSourcePoisson,{'rate': 200})
-        self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345), distribution='uniform', parameters=(0.2,1)) 
+        self.distrib_Numpy = random.RandomDistribution(rng=random.NumpyRNG(12345, num_processes=sim.num_processes()), distribution='uniform', parameters=(0.2,1)) 
         self.distrib_Native= random.RandomDistribution(rng=random.NativeRNG(12345), distribution='uniform', parameters=(0.2,1)) 
         
     def testSetPositiveWeights(self):
@@ -1075,7 +1074,7 @@ class FileTest(unittest.TestCase):
     def setUp(self):
         sim.setup()
         self.pop = sim.Population((3,3), sim.IF_curr_alpha)
-        rng = random.NumpyRNG(123)
+        rng = random.NumpyRNG(123, num_processes=sim.num_processes())
         v_reset  = -65.0
         v_thresh = -50.0
         uniformDistr = random.RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])

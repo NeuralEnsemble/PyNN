@@ -404,6 +404,24 @@ class Projection(common.Projection):
             f.writelines(lines)
             f.close()
 
+    def randomizeWeights(self, rand_distr):
+        """
+        Set weights to random values taken from rand_distr.
+        """
+        # Arguably, we could merge this with set_weights just by detecting the
+        # argument type. It could make for easier-to-read simulation code to
+        # give it a separate name, though. Comments?
+        self.setWeights(rand_distr.next(len(self), mask_local=False))
+
+    def randomizeDelays(self, rand_distr):
+        """
+        Set weights to random values taken from rand_distr.
+        """
+        # Arguably, we could merge this with set_weights just by detecting the
+        # argument type. It could make for easier-to-read simulation code to
+        # give it a separate name, though. Comments?
+        self.setDelays(rand_distr.next(len(self), mask_local=False))
+
 Space = space.Space
 
 # ==============================================================================

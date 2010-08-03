@@ -259,7 +259,7 @@ class ID(int, common.IDMixin):
         
     def set_initial_value(self, variable, value):
         """Set the initial value of a state variable of the cell."""
-        index = self.parent.id_to_index(self)
+        index = self.parent.id_to_local_index(self)
         self.parent.initial_values[variable][index] = value
         setattr(self._cell, "%s_init" % variable, value)
 
