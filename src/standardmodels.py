@@ -103,7 +103,7 @@ class StandardModelType(object):
                     else:
                         raise errors.InvalidParameterValueError(err_msg)
                 else:
-                    raise errors.NonExistentParameterError(k, cls)
+                    raise errors.NonExistentParameterError(k, cls, cls.default_parameters.keys())
         return parameters
     
     @classmethod

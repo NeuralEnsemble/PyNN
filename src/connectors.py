@@ -199,7 +199,7 @@ class DistanceMatrix(object):
         return self._distance_matrix
         
     def set_source(self, A):
-        assert A.shape == (3,)
+        assert A.shape == (3,), A.shape
         self.A = A
         self._distance_matrix = None        
 

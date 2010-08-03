@@ -10,7 +10,6 @@ from pyNN import common, recording, errors, space, standardmodels, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 
-from pyNN.random import *
 import numpy
 import os
 import shutil
@@ -21,6 +20,7 @@ from pyNN.nest.connectors import *
 from pyNN.nest.synapses import *
 from pyNN.nest.electrodes import *
 from pyNN.nest.recording import *
+from pyNN.random import RandomDistribution
 
 Set = set
 tempdirs       = []

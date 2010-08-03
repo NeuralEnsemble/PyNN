@@ -8,6 +8,7 @@ Tools for performing spatial/topographical calculations.
 
 import numpy
 import math
+from operator import and_
 from pyNN.random import NumpyRNG
 
 def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
@@ -152,37 +153,61 @@ class BaseStructure(object):
 
 class Line(BaseStructure):
     
-    def __init__(self, x0=0.0, y0=0.0, z0=0.0):
+    def __init__(self, dx=1.0, x0=0.0, y0=0.0, z0=0.0):
+        self.dx = dx
         self.x0 = x0
         self.y0 = y0
         self.z0 = z0
     
+    def __eq__(self, other):
+        return reduce(and_, (getattr(self, attr) == getattr(other, attr)
+                             for attr in ("dx", "x0", "y0", "z0")))
+    
     def generate_positions(self, n):
-        x = numpy.arange(n) + self.x0
+        x = self.dx*numpy.arange(n, dtype=float) + self.x0
         y = numpy.zeros(n) + self.y0
         z = numpy.zeros(n) + self.z0
         return numpy.array((x,y,z))
+    
+    def describe(self, n):
+        return "line with %d positions" % n
 
 
 class Grid2D(BaseStructure):
     
-    def __init__(self, aspect_ratio, dx=1.0, dy=1.0, x0=0.0, y0=0.0, z=0, fill_order="sequential"):
+    def __init__(self, aspect_ratio=1.0, dx=1.0, dy=1.0, x0=0.0, y0=0.0, z=0, fill_order="sequential"):
+        """
+        aspect_ratio - ratio of the number of grid points per side (not the ratio
+                       of the side lengths, unless dx == dy)
+        """
         self.aspect_ratio = aspect_ratio
         assert fill_order in ('sequential', 'random')
         self.fill_order = fill_order
         self.dx = dx; self.dy = dy; self.x0 = x0; self.y0 = y0; self.z = z
-        
-    def generate_positions(self, n):
+    
+    def __eq__(self, other):
+        return reduce(and_, (getattr(self, attr) == getattr(other, attr)
+                             for attr in ("aspect_ratio", "dx", "dy",
+                                          "x0", "y0", "fill_order")))
+    
+    def calculate_size(self, n):
         nx = math.sqrt(n*self.aspect_ratio)
         ny = n/nx
+        return nx, ny
+    
+    def generate_positions(self, n):
+        nx, ny = self.calculate_size(n)
         x,y,z = numpy.indices((nx,ny,1), dtype=float)
         x = self.x0 + self.dx*x.flatten()
         y = self.y0 + self.dy*y.flatten()
         z = self.z + z.flatten()
         if self.fill_order == 'sequential':
-            return numpy.array((x,y,z))
+            return numpy.array((x,y,z)) # use column_stack, if we decide to switch from (3,n) to (n,3)
         else:
             raise NotImplementedError
+    
+    def describe(self, n):
+        return "2D grid of size (%d, %d)" % self.calculate_size(n)
         
 
 class Grid3D(BaseStructure):
@@ -199,14 +224,22 @@ class Grid3D(BaseStructure):
         self.fill_order = fill_order
         self.dx = dx; self.dy = dy; self.dz = dz
         self.x0 = x0; self.y0 = y0; self.z0 = z0
-        
-    def generate_positions(self, n):
+    
+    def __eq__(self, other):
+        return reduce(and_, (getattr(self, attr) == getattr(other, attr)
+                             for attr in ("aspect_ratios", "dx", "dy", "dz",
+                                          "x0", "y0", "z0", "fill_order")))
+    
+    def calculate_size(self, n):
         a,b = self.aspect_ratios
         nx = int(round(math.pow(n*a*b, 1/3.0)))
         ny = int(round(nx/a))
         nz = int(round(nx/b))
         assert nx*ny*nz == n, str((nx, ny, nz, nx*ny*nz, n, a, b))
-        print nx, ny, nz
+        return nx, ny, nz
+    
+    def generate_positions(self, n):
+        nx, ny, nz = self.calculate_size(n)
         x,y,z = numpy.indices((nx,ny,nz), dtype=float)
         x = self.x0 + self.dx*x.flatten()
         y = self.y0 + self.dy*y.flatten()
@@ -216,6 +249,8 @@ class Grid3D(BaseStructure):
         else:
             raise NotImplementedError
 
+    def describe(self, n):
+        return "3D grid of size (%d, %d, %d)" % self.calculate_size(n)
 
 class Shape(object):
     pass
@@ -234,7 +269,8 @@ class Cuboid(Shape):
 
 class Sphere(Shape):
     
-    def ___init__(self, radius):
+    def __init__(self, radius):
+        Shape.__init__(self)
         self.radius = radius
         
     def sample(self, n, rng):

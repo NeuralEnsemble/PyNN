@@ -4,7 +4,11 @@ Connection method classes for nest
 $Id$
 """
 from pyNN import random, common, core
-from pyNN.connectors import *
+from pyNN.connectors import Connector, AllToAllConnector, FixedProbabilityConnector, \
+                            DistanceDependentProbabilityConnector, FixedNumberPreConnector, \
+                            FixedNumberPostConnector, OneToOneConnector, SmallWorldConnector, \
+                            FromListConnector, FromFileConnector, WeightGenerator, \
+                            DelayGenerator, ProbaGenerator, DistanceMatrix
 from pyNN.common import rank, num_processes
 import numpy
 from pyNN.space import Space
@@ -28,7 +32,7 @@ class FastProbabilisticConnector(Connector):
         self.local_long[idx]   = True
         self.weights_generator = WeightGenerator(weights, self.local_long, projection, safe)
         self.delays_generator  = DelayGenerator(delays, self.local_long, safe)
-        self.probas_generator  = ProbaGenerator(RandomDistribution('uniform',(0,1), rng=self.rng), self.local_long)
+        self.probas_generator  = ProbaGenerator(random.RandomDistribution('uniform',(0,1), rng=self.rng), self.local_long)
         self.distance_matrix   = DistanceMatrix(projection.pre.positions, self.space, self.local)
         self.projection        = projection
         self.candidates        = projection.pre.all_cells

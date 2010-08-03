@@ -43,7 +43,7 @@ $Id$
 import numpy
 import logging
 from warnings import warn
-from math import *
+#from math import *
 import operator
 from pyNN import random, utility, recording, errors, standardmodels, core, space
 from string import Template
@@ -834,7 +834,8 @@ class Population(BasePopulation):
         >>> assert p.id_to_index(p[5]) == 5
         >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        assert self.first_id <= id <= self.last_id 
+        if not self.first_id <= id <= self.last_id:
+            raise IndexError("id should be in the range [%d,%d], actually %d" % (self.first_id, self.last_id, id))
         return id - self.first_id # this assumes ids are consecutive
     
     def id_to_local_index(self, id):
@@ -887,6 +888,8 @@ class Population(BasePopulation):
             #         '    Parameters: $cell_parameters']
             lines = ['------- Population description -------',
                      'Population called $label is made of $n_cells cells [$n_cells_local being local]']
+            if self.structure:
+                lines += ["-> Cells are arranged in a %s" % self.structure.describe(self.size)]
             lines += ["-> Celltype is $celltype",
                       "-> ID range is $first_id-$last_id",]
             if len(self.local_cells) > 0:
