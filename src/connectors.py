@@ -176,6 +176,7 @@ class ProbaGenerator(ConnectionAttributeGenerator):
 
 
 class DistanceMatrix(object):
+    # should probably move to space module
     
     def __init__(self, B, space, mask=None):
         assert B.shape[0] == 3, B.shape
