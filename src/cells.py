@@ -186,7 +186,10 @@ class IF_facets_hardware1(StandardCellType):
     }
 
 class HH_cond_exp(StandardCellType):
-    """Single-compartment Hodgkin-Huxley model."""
+    """Single-compartment Hodgkin-Huxley model.
+    Reference: 
+    Traub & Miles, Neuronal Networks of the Hippocampus, Cambridge, 1991.
+    """
     
     default_parameters = {
         'gbar_Na'   : 20000.0,
