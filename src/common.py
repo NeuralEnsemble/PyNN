@@ -779,7 +779,7 @@ class Population(BasePopulation):
         label is an optional name for the population.
         """
         if not isinstance(size, int): # also allow a single integer, for a 1D population
-            assert isinstance(size, tuple), "`size` must be an integer or a tuple. You have supplied a %s" % type(n)
+            assert isinstance(size, tuple), "`size` must be an integer or a tuple. You have supplied a %s" % type(size)
             assert structure is None, "If you specify `size` as a tuple you may not specify structure."
             if len(size) == 1:
                 structure = space.Line()
@@ -928,7 +928,7 @@ class PopulationView(BasePopulation):
     def __init__(self, parent, selector, label=None):
         self.parent = parent
         self.mask = selector # later we can have fancier selectors, for now we just have numpy masks
-        self.label = label or "view of %s" % parent.label
+        self.label = label or "view of %s with mask %s" % (parent.label, self.mask)
         # maybe just redefine __getattr__ instead of the following...
         self.celltype = self.parent.celltype
         self.cellparams = self.parent.cellparams
@@ -968,6 +968,7 @@ class PopulationView(BasePopulation):
         """
         return numpy.where(self.all_cells==id)[0].item()
 
+
 # ==============================================================================
 
 class Assembly(object):
@@ -993,8 +994,12 @@ class Assembly(object):
             p.initialize(variable, value)
 
     def _record(self, variable, record_from=None, rng=None, to_file=True):
+        # need to think about record_from
         for p in self.populations:
             p._record(variable, record_from, rng, to_file)
+
+    def record(self, record_from=None, rng=None, to_file=True):
+        self._record('spikes', record_from, rng, to_file)
 
 
 # ==============================================================================

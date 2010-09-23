@@ -45,7 +45,7 @@ def build_parameter_set(parameters, dimensionless=False):
             rand_distr = value
             value = nineml.RandomDistribution(
                 name="%s(%s)" % (rand_distr.name, ",".join(str(p) for p in rand_distr.parameters)),
-                definition=nineml.Definition(random_distribution_map[rand_distr.name]),
+                definition=nineml.Definition(random_distribution_url_map[rand_distr.name]),
                 parameters=build_parameter_set(map_random_distribution_parameters(rand_distr.name, rand_distr.parameters),
                                                dimensionless=True))
         if dimensionless:

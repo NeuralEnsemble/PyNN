@@ -96,7 +96,9 @@ elif benchmark == "CUBA":
 
 # === Build the network ========================================================
 
-extra = {'threads' : threads}
+extra = {'threads' : threads,
+         'filename': "va2.xml",
+         'label': 'VA2'}
 if simulator_name == "neuroml":
     extra["file"] = "VAbenchmarks.xml"
 
@@ -120,9 +122,9 @@ if (benchmark == "COBA"):
 timer.start()
 
 print "%s Creating cell populations..." % node_id
-all_cells = Population(n_exc+n_inh, celltype, cell_params, label="All_Cells")
-exc_cells = all_cells[:n_exc]
-inh_cells = all_cells[n_exc:]
+all_cells = Population(n_exc+n_inh, celltype, cell_params, label="All Cells")
+exc_cells = all_cells[:n_exc]; exc_cells.label = "Excitatory cells"
+inh_cells = all_cells[n_exc:]; inh_cells.label = "Inhibitory cells"
 if benchmark == "COBA":
     ext_stim = Population(20, SpikeSourcePoisson, {'rate' : rate, 'duration' : stim_dur}, label="expoisson")
     rconn = 0.01

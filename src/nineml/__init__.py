@@ -1,10 +1,10 @@
 # encoding: utf-8
 import nineml.user_layer as nineml
-from pyNN import common, standardmodels, random
+from pyNN import common, standardmodels, random, recording
 from cells import *
 from connectors import *
 from utility import build_parameter_set, infer_units, catalog_url
-
+import numpy
 
 
 def list_standard_models():
@@ -34,6 +34,7 @@ class Network(object):
         self.populations = []
         self.projections = []
         self.current_sources = []
+        self.assemblies = []
 
     def to_xml(self):
         return self.to_nineml().to_xml()
@@ -45,9 +46,22 @@ class Network(object):
             # needToDefineWhichCellsTheCurrentIsInjectedInto
             # doWeJustReuseThePopulationProjectionIdiom="?"
         main_group = nineml.Group(name="Network")
-        for p in self.populations:
+        _populations = self.populations[:]
+        _projections = self.projections[:]
+        for a in self.assemblies:
+            group = a.to_nineml()
+            for p in a.populations:
+                _populations.remove(p)
+                group.add(p.to_nineml())
+            for prj in self.projections:
+                if (prj.pre is a or prj.pre in a.populations) and \
+                   (prj.post is a or prj.post in a.populations):
+                    _projections.remove(prj)
+                    group.add(prj.to_nineml())
+            main_group.add(group)
+        for p in _populations:
             main_group.add(p.to_nineml())
-        for prj in self.projections:
+        for prj in _projections:
             main_group.add(prj.to_nineml())
         model.add_group(main_group)
         return model
@@ -61,6 +75,7 @@ class DummySimulator(object):
     state = State()
 simulator = DummySimulator()
 common.simulator = simulator
+recording.simulator = simulator
 
 
 def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
@@ -102,42 +117,46 @@ class ID(int, common.IDMixin):
         """Create an ID object with numerical value `n`."""
         int.__init__(n)
         common.IDMixin.__init__(self)
-
-
-class Population(common.Population):
     
-    def __init__(self, size, cellclass, cellparams=None, structure=None, label=None):
-        global net
-        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
-        
-        net.populations.append(self)
-        
-    def __getitem__(self, addr):
+    def get_native_parameters(self):
+        """Return a dictionary of parameters for the NEURON cell model."""
+        return self._cell
+    
+    def set_native_parameters(self, parameters):
+        """Set parameters of the NEURON cell model from a dictionary."""
+        self._cell.update(parameters)
+
+
+class Recorder(recording.Recorder):
+    
+    def _record(self, *args, **kwargs):
+        pass
+    
+    def _local_count(self, filter):
+        return 0
+
+
+class BasePopulation(common.BasePopulation):
+
+    def __getitem__(self, index):
         """
-        Return a representation of the cell with coordinates given by addr,
+        Return a representation of the cell with the given index,
         suitable for being passed to other methods that require a cell id.
         Note that __getitem__ is called when using [] access, e.g.
             p = Population(...)
-            p[2,3] is equivalent to p.__getitem__((2,3)).
+            p[2] is equivalent to p.__getitem__(2).
         Also accepts slices, e.g.
-            p[0,3:6]
+            p[3:6]
         which returns an array of cells.
         """
-        #if isinstance(addr, (int, slice)):
-        #    addr = (addr,)
-        #if len(addr) == self.ndim:
-        id = addr # just for testing. Assume 1D population
-        #else:
-        #    raise errors.InvalidDimensionsError, "Population has %d dimensions. Address was %s" % (self.ndim, str(addr))
-        return ID(id)
-    
-    def rset(self, parametername, rand_distr):
-        assert isinstance(rand_distr, random.RandomDistribution)
-        translated_name = self.celltype.translations[parametername]['translated_name']
-        self.celltype.parameters[translated_name] = rand_distr
-
-    def initialize(self, variable, value):
-        pass
+        if isinstance(index, int):
+            return self.all_cells[index]
+        elif isinstance(index, (slice, list, numpy.ndarray)):
+            return PopulationView(self, index)
+        elif isinstance(index, tuple):
+            return PopulationView(self, list(index))
+        else:
+            raise Exception()
 
     def _record(self, variable, record_from, rng, to_file):
         pass
@@ -150,6 +169,36 @@ class Population(common.Population):
 
     def print_v(self, file, gather=True, compatible_output=True):
         pass
+
+    def rset(self, parametername, rand_distr):
+        assert isinstance(rand_distr, random.RandomDistribution)
+        translated_name = self.celltype.translations[parametername]['translated_name']
+        self.celltype.parameters[translated_name] = rand_distr
+
+    def initialize(self, variable, value):
+        pass
+    
+    def get_synaptic_response_components(self, synaptic_mechanism_name):
+        return [self.celltype.synapse_type_to_nineml(synaptic_mechanism_name, self.label)]
+        
+
+class Population(BasePopulation, common.Population):
+    recorder_class = Recorder
+    
+    def __init__(self, size, cellclass, cellparams=None, structure=None, label=None):
+        global net
+        common.Population.__init__(self, size, cellclass, cellparams, structure, label) 
+        net.populations.append(self)
+    
+    def _create_cells(self, cellclass, cellparams, size):
+        celltype = cellclass(cellparams)
+        self.all_cells = numpy.array([ID(i) for i in range(size)], dtype=ID)
+        self._mask_local = numpy.ones(size, dtype=bool)
+        self.first_id = self.all_cells[0]
+        self.last_id = self.all_cells[-1]
+        for id in self.all_cells:
+            id.parent = self
+            id._cell = celltype.parameters.copy()
 
     def to_nineml(self):
         if self.structure:
@@ -169,6 +218,43 @@ class Population(common.Population):
         return population
 
 
+class PopulationView(BasePopulation, common.PopulationView):
+    
+    def __init__(self, parent, selector, label=None):
+        global net
+        common.PopulationView.__init__(self, parent, selector, label)
+        net.populations.append(self)
+    
+    def to_nineml(self):
+        selection = nineml.Selection(self.label,
+                        nineml.All(
+                            nineml.Eq("population[@name]", self.parent.label),
+                            nineml.In("population[@id]", "%s:%s:%s" % (self.mask.start or "", self.mask.stop or "", self.mask.step or ""))
+                        )
+                    )
+        return selection
+
+
+class Assembly(common.Assembly):
+    
+    def __init__(self, label=None, *populations):
+        global net
+        common.Assembly.__init__(self, label, *populations)
+        net.assemblies.append(self)
+    
+    def get_synaptic_response_components(self, synaptic_mechanism_name):
+        components = set([])
+        for p in self.populations:
+            components.add(p.celltype.synapse_type_to_nineml(synaptic_mechanism_name, self.label))
+        return components
+
+    def to_nineml(self):
+        group = nineml.Group(self.label)
+        for p in self.populations:
+            group.add(p.to_nineml())
+        return group
+
+
 class Projection(common.Projection):
     
     def __init__(self, presynaptic_population, postsynaptic_population,
@@ -181,7 +267,7 @@ class Projection(common.Projection):
                                    target, synapse_dynamics, label, rng)
         if label is None:
             if self.pre.label and self.post.label:
-                self.label = "%s-%s" % (self.pre.label, self.post.label)
+                self.label = "%s---%s" % (self.pre.label, self.post.label)
         net.projections.append(self)
     
     def __len__(self):
@@ -189,6 +275,11 @@ class Projection(common.Projection):
     
     def size(self):
         return len(self)
+    
+    def saveConnections(self, filename, gather=True, compatible_output=True):
+        f = open(filename, 'w')
+        f.write("At present, the 9ML backend is not able to save connections.")
+        f.close()
     
     def to_nineml(self):
         connection_rule = self._method.to_nineml(self.label)
@@ -198,11 +289,12 @@ class Projection(common.Projection):
                                     parameters=build_parameter_set(
                                                  {"weight": self._method.weights,
                                                   "delay": self._method.delays}))
-        synaptic_response = [c for c in self.post.celltype.to_nineml(self.post.label) if self.target in c.name][0] # this is a fragile hack
+        synaptic_responses = self.post.get_synaptic_response_components(self.target)
+        synaptic_response, = synaptic_responses
         projection = nineml.Projection(
                                 name=self.label,
-                                source=self.pre.label,
-                                target=self.post.label,
+                                source=self.pre.to_nineml(), # or just pass ref, and then resolve later?
+                                target=self.post.to_nineml(),
                                 rule=connection_rule,
                                 synaptic_response=synaptic_response,
                                 connection_type=connection_type)

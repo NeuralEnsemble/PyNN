@@ -26,19 +26,21 @@ class CellTypeMixin(object):
         return smp
     
     def to_nineml(self, label):
-        components = []
-        component = nineml.SpikingNodeType(
-                                    name="%s neuron type" % label,
-                                    definition=nineml.Definition(self.spiking_mechanism_definition_url),
-                                    parameters=build_parameter_set(self.spiking_mechanism_parameters))
-        components.append(component)             
-        for synapse_type in self.synapse_types:
-            component = nineml.SynapseType(
-                                    name="%s %s post-synaptic response" % (label, synapse_type),
-                                    definition=nineml.Definition(self.synaptic_mechanism_definition_urls[synapse_type]),
-                                    parameters=build_parameter_set(self.synaptic_mechanism_parameters[synapse_type]))
-            components.append(component)
+        components = [self.spiking_node_to_nineml(label)] + \
+                     [self.synapse_type_to_nineml(st, label) for st in self.synapse_types]
         return components
+    
+    def spiking_node_to_nineml(self, label):
+        return nineml.SpikingNodeType(
+                    name="neuron type for population %s" % label,
+                    definition=nineml.Definition(self.spiking_mechanism_definition_url),
+                    parameters=build_parameter_set(self.spiking_mechanism_parameters))
+    
+    def synapse_type_to_nineml(self, synapse_type, label):
+        return nineml.SynapseType(
+                    name="%s post-synaptic response for %s" % (synapse_type, label),
+                    definition=nineml.Definition(self.synaptic_mechanism_definition_urls[synapse_type]),
+                    parameters=build_parameter_set(self.synaptic_mechanism_parameters[synapse_type]))
 
 
 class IF_curr_exp(cells.IF_curr_exp):

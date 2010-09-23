@@ -9,10 +9,13 @@ The IF network is based on the CUBA and COBA models of Vogels & Abbott
 inhibitory neurons, connected via current-based "exponential"
 synapses (instantaneous rise, exponential decay).
 
-Andrew Davison, UNIC, CNRS
-August 2006
+This version demonstrates another alternative way to set-up the network, using
+Assemblies.
 
-$Id:VAbenchmarks.py 5 2007-04-16 15:01:24Z davison $
+Andrew Davison, UNIC, CNRS
+March 2010
+
+$Id: $
 """
 
 import os
@@ -94,8 +97,8 @@ elif benchmark == "CUBA":
 # === Build the network ========================================================
 
 extra = {'threads' : threads,
-         'filename': "va.xml",
-         'label': 'VA'}
+         'filename': "va3.xml",
+         'label': 'VA3'}
 if simulator_name == "neuroml":
     extra["file"] = "VAbenchmarks.xml"
 
@@ -119,36 +122,33 @@ if (benchmark == "COBA"):
 timer.start()
 
 print "%s Creating cell populations..." % node_id
-exc_cells = Population(n_exc, celltype, cell_params, label="Excitatory_Cells")
-inh_cells = Population(n_inh, celltype, cell_params, label="Inhibitory_Cells")
+exc_cells = Population(n_exc, celltype, cell_params, label="Excitatory cells")
+inh_cells = Population(n_inh, celltype, cell_params, label="Inhibitory cells")
+all_cells = Assembly("All cells", *(exc_cells, inh_cells))
+
 if benchmark == "COBA":
-    ext_stim = Population(20, SpikeSourcePoisson, {'rate' : rate, 'duration' : stim_dur}, label="expoisson")
+    ext_stim = Population((20,), SpikeSourcePoisson,{'rate' : rate, 'duration' : stim_dur}, label="expoisson")
     rconn = 0.01
     ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
 
 print "%s Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe, rank=node_id, num_processes=np)
 uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
-exc_cells.randomInit(uniformDistr)
-inh_cells.randomInit(uniformDistr)
+all_cells.initialize('v', uniformDistr)
 
 print "%s Connecting populations..." % node_id
 exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay)
 inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay)
 
 connections={}
-connections['e2e'] = Projection(exc_cells, exc_cells, exc_conn, target='excitatory', rng=rng)
-connections['e2i'] = Projection(exc_cells, inh_cells, exc_conn, target='excitatory', rng=rng)
-connections['i2e'] = Projection(inh_cells, exc_cells, inh_conn, target='inhibitory', rng=rng)
-connections['i2i'] = Projection(inh_cells, inh_cells, inh_conn, target='inhibitory', rng=rng)
+connections['exc'] = Projection(exc_cells, all_cells, exc_conn, target='excitatory', rng=rng)
+connections['inh'] = Projection(inh_cells, all_cells, inh_conn, target='inhibitory', rng=rng)
 if (benchmark == "COBA"):
-    connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, target='excitatory')
-    connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
+    connections['ext'] = Projection(ext_stim, all_cells, ext_conn, target='excitatory')
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id
-exc_cells.record()
-inh_cells.record()
+all_cells.record()
 vrecord_list = [exc_cells[0],exc_cells[1]]
 exc_cells.record_v(vrecord_list)
 
@@ -156,9 +156,10 @@ buildCPUTime = timer.diff()
 
 # === Save connections to file =================================================
 
-for prj in connections.keys():
-    connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator_name, np))
-saveCPUTime = timer.diff()
+#print "%s Saving connections to file..." % node_id
+#for prj in connections.keys():
+#    connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator_name, np))
+#saveCPUTime = timer.diff()
 
 # === Run simulation ===========================================================
 print "%d Running simulation..." % node_id
@@ -182,10 +183,8 @@ inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, sim
 exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator_name, np))
 writeCPUTime = timer.diff()
 
-connections = "%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].size(),
-                                                  connections['e2i'].size(),
-                                                  connections['i2e'].size(),
-                                                  connections['i2i'].size())
+connections = "%d e→e,i  %d i→e,i" % (connections['exc'].size(),
+                                      connections['inh'].size(),)
 
 if node_id == 0:
     print "\n--- Vogels-Abbott Network Simulation ---"
@@ -198,7 +197,7 @@ if node_id == 0:
     print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
     print "Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,)
     print "Build time             : %g s" % buildCPUTime
-    print "Save connections time  : %g s" % saveCPUTime
+    #print "Save connections time  : %g s" % saveCPUTime
     print "Simulation time        : %g s" % simCPUTime
     print "Writing time           : %g s" % writeCPUTime
 
