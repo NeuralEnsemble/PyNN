@@ -98,7 +98,7 @@ class ConnectionTest(unittest.TestCase):
         conn_list = sim.connect(self.precells[0:1], self.postcells[0:1], delay=4.321)
         if conn_list:
             delay = conn_list[0].delay
-            if sim_name == 'nest':
+            if sim.__name__ == 'pyNN.nest':
                 self.assertEqual(round(delay, 1), 4.4) # NEST rounds delays to the timestep, 0.1 here
             else:
                 self.assertAlmostEqual(delay, 4.321, 6) 
@@ -838,7 +838,7 @@ class ProjectionInitTest(unittest.TestCase):
         for srcP in [self.source5, self.source22]:
             for tgtP in [self.target6, self.target33]:
                 prj1 = sim.Projection(srcP, tgtP, sim.AllToAllConnector(delays=0.321))
-                if sim_name != 'nest':
+                if sim.__name__ != 'pyNN.nest':
                     self.assertAlmostEqual(prj1.connections[0].delay, 0.321, 6)
                 else:
                     self.assertAlmostEqual(prj1.connections[0].delay, 0.4, 6) # nest rounds delays to the timestep
@@ -924,7 +924,7 @@ class ProjectionSetTest(unittest.TestCase):
             delays = []
             for c in prj1.connections:
                 delays.append(c.delay)
-            if sim_name != 'nest':
+            if sim.__name__ != 'pyNN.nest':
                 result = 2.345*numpy.ones(len(prj1.connections))
             else:
                 result = 2.4*numpy.ones(len(prj1.connections)) # nest rounds delays up
