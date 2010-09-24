@@ -42,6 +42,7 @@ INITIAL {
 	if (start >= 0 && duration > 0) {
 		: randomize the first spike so on average it occurs at
 		: start + noise*interval
+                invl(interval) : for some reason, the first invl() call seems to give implausibly large values, so we discard it
 		event = start + invl(interval) - interval*(1. - noise)
 		: but not earlier than 0
 		if (event < 0) {

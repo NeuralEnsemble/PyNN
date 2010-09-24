@@ -224,7 +224,7 @@ class Population(common.Population):
     
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  label=None, parent=None):
-        __doc__ = common.Population.__doc_
+        __doc__ = common.Population.__doc__
         common.Population.__init__(self, size, cellclass, cellparams, structure, label)
     
     def _create_cells(self, cellclass, cellparams, n):
@@ -264,7 +264,7 @@ class Population(common.Population):
             else:
                 raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
             
-        self.all_cells = numpy.array([id for id in net.add(cellfactory, n)], simulator.ID)
+        self.all_cells = numpy.array([id for id in simulator.net.add(self.cellfactory, n)], simulator.ID)
         self.first_id = self.all_cells[0]
         self.last_id = self.all_cells[-1]
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
@@ -328,13 +328,15 @@ class Population(common.Population):
     
     def id_to_index(self, id):
         cells = self.all_cells
-        if hasattr(id, '__len__'):
-            res = []
-            for item in id:
-                res.append(numpy.where(cells == item)[0][0])
-            return numpy.array(res)
-        else:
-            return cells.tolist().index(id) # because ids may not be consecutive when running a distributed sim
+        ## supposed to support id being a list/array of IDs.
+        ## For now, restrict to single ID
+        ##if hasattr(id, '__len__'):
+        ##    res = []
+        ##    for item in id:
+        ##        res.append(numpy.where(cells == item)[0][0])
+        ##    return numpy.array(res)
+        ##else:
+        return cells.tolist().index(id) # because ids may not be consecutive when running a distributed sim
     
     ##def getObjectID(self, index):
     ##    return self.pcsim_population[index]
@@ -372,24 +374,6 @@ class Population(common.Population):
     ##    rarr = numpy.array(rand_distr.next(n=self.size))
     ##    rarr = rarr.reshape(self.dim[0:self.actual_ndim])         
     ##    self.tset(parametername, rarr)
-    
-    def initialize(self, variable, value):
-        """
-        Set the initial value of one of the state variables of the neurons in
-        this population.
-        
-        `value` may either be a numeric value (all neurons set to the same
-                value) or a `RandomDistribution` object (each neuron gets a
-                different value)
-        """
-        if isinstance(value, RandomDistribution):
-            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
-            value = numpy.array(rarr)
-            for cell, val in zip(self, rarr):
-                cell.set_initial_value(variable, val)
-        else:
-            for cell in self: # only on local node
-                cell.set_initial_value(variable, value)
 
     def _call(self, methodname, arguments):
         """

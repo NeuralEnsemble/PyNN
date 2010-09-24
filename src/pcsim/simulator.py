@@ -97,7 +97,7 @@ class ID(long, common.IDMixin):
         """Return a dictionary of parameters for the PCSIM cell model."""
         pcsim_cell = self._pcsim_cell()
         pcsim_parameters = {}
-        if self.is_standard_cell():
+        if self.is_standard_cell:
             parameter_names = [D['translated_name'] for D in self.cellclass.translations.values()]
         else:
             parameter_names = [] # for native cells, is there a way to get their list of parameters?

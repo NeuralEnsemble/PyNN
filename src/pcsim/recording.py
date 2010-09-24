@@ -45,14 +45,14 @@ class Recorder(recording.Recorder):
         else:
             raise NotImplementedError("Recording of %s not implemented." % self.variable)
 
-    def _get(self, gather=False, compatible_output=True):
+    def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         # compatible_output is not used, but is needed for compatibility with the nest module.
         # Does nest really need it?
         net = simulator.net
         if self.variable == 'spikes':
             data = numpy.empty((0,2))
-            for id in self.recorded:
+            for id in self.filter_recorded(filter):
                 rec = self.recorders[id]
                 if isinstance(net.object(id), pypcsim.SpikingInputNeuron):
                     spikes = 1000.0*numpy.array(net.object(id).getSpikeTimes()) # is this special case really necessary?
@@ -66,7 +66,7 @@ class Recorder(recording.Recorder):
                     data = numpy.concatenate((data, new_data))           
         elif self.variable == 'v':
             data = numpy.empty((0,3))
-            for id in self.recorded:
+            for id in self.filter_recorded(filter):
                 rec = self.recorders[id]
                 v = 1000.0*numpy.array(net.object(rec).getRecordedValues())
                 v = v.flatten()

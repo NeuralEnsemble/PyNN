@@ -1,13 +1,16 @@
 import moose
+import numpy
 from pyNN import standardmodels, cells
 
 mV = 1e-3
 ms = 1e-3
 nA = 1e-9
+uS = 1e-6
+nF = 1e-9
 
 class SingleCompHH(moose.Neutral):
     
-    def __init__(self, path, GbarNa=0.0, GbarK=0.0, GLeak=0.0, Cm=1.0,
+    def __init__(self, path, GbarNa=20*uS, GbarK=6*uS, GLeak=0.01*uS, Cm=0.2*nF,
                  ENa=40*mV, EK=-90*mV, VLeak=-65*mV, Voff=-63*mV, ESynE=0*mV,
                  ESynI=-70*mV, tauE=2*ms, tauI=5*ms, inject=0*nA, initVm=-65*mV):
         moose.Neutral.__init__(self, path)
@@ -36,24 +39,29 @@ class SingleCompHH(moose.Neutral):
         self.k.setupAlpha("X", 3.2e4 * (15*mV+Voff), -3.2e4, -1, -(15*mV+Voff), -5*mV,
                                500,                  0,       0, -(10*mV+Voff),  40*mV)
 
-        #self.synE = moose.SynChan("excitatory", self.comp)
-        #self.synE.Ek = ESynE
-        #self.synE.tau1 = 1e-6
-        #self.synE.tau2 = tauE
-        #self.synE.Gbar = 1e-9
-        #self.synI = moose.SynChan("inhibitory", self.comp)
-        #self.synI.Ek = ESynI
-        #self.synI.tau1 = 1e-6
-        #self.synI.tau2 = tauI
-        #self.synI.Gbar = 1e-9
+        self.synE = moose.SynChan("excitatory", self.comp)
+        self.synE.Ek = ESynE
+        self.synE.tau1 = 0.001*ms
+        self.synE.tau2 = tauE
+        self.synE.Gbar = 1e-9
+        self.synI = moose.SynChan("inhibitory", self.comp)
+        self.synI.Ek = ESynI
+        self.synI.tau1 = 0.001*ms
+        self.synI.tau2 = tauI
+        self.synI.Gbar = 1e-9
     
-        #self.comp.connect("channel", self.synE, "channel")
-        #self.comp.connect("channel", self.synI, "channel")
+        self.comp.connect("channel", self.synE, "channel")
+        self.comp.connect("channel", self.synI, "channel")
         self.comp.connect("channel", self.na, "channel")
         self.comp.connect("channel", self.k , "channel")
         
         self.comp.useClock(0)
         self.comp.useClock(1, "init")
+        
+        self.source = moose.SpikeGen("source", self.comp)
+        self.source.thresh = 0.0
+        self.source.abs_refract = 2.0
+        self.comp.connect("VmSrc", self.source, "Vm")
 
     def record_v(self):
         self.vmTable = moose.Table("Vm", self)
@@ -61,12 +69,39 @@ class SingleCompHH(moose.Neutral):
         self.vmTable.connect("inputRequest", self.comp, "Vm")
         self.vmTable.useClock(2)
         print "vmTable is at %s" % self.vmTable.path
-        #moose.PyMooseBase.getContext().useClock(0, self.comp.path+"/##")
 
-#a = SingleCompHH("/comp", 1e-9, 1e-9, 1e-9, 1e-12, -0.06, 0.08, -0.06, 0.001, 0.05, -0.05, 1e-2, 2e-2, 1e-9, -0.06)
-#print "Successfully setup SingleCompHH"
+    def record_gsyn(self, syn_name):
+        syn_map = {
+            'excitatory': self.synE,
+            'inhibitory': self.synI
+        }
+        if not hasattr(self, "gsyn_tables"):
+            self.gsyn_tables = {}
+        self.gsyn_tables[syn_name] = moose.Table(syn_name, self)
+        self.gsyn_tables[syn_name].stepMode = 3
+        self.gsyn_tables[syn_name].connect("inputRequest", syn_map[syn_name], "Gk")
+        self.gsyn_tables[syn_name].useClock(2)
 
 
+class RandomSpikeSource(moose.RandomSpike):
+    
+    def __init__(self, path, rate, start=0.0, duration=numpy.inf):
+        moose.RandomSpike.__init__(self, path)
+        self.minAmp = 1.0
+        self.maxAmp = 1.0
+        self.rate = rate
+        self.reset = 1 #True
+        self.resetValue = 0.0
+        # how to handle start and duration?
+        self.useClock(0)
+
+    def record_state(self):
+        # for testing, can be deleted when everything is working
+        self.stateTable = moose.Table("state", self)
+        self.stateTable.stepMode = 3
+        self.stateTable.connect("inputRequest", self, "state")
+        self.stateTable.useClock(2)
+        
 
 class HH_cond_exp(cells.HH_cond_exp):
     """Single compartment cell with an Na channel and a K channel"""
@@ -90,7 +125,15 @@ class HH_cond_exp(cells.HH_cond_exp):
 
 
 
+class SpikeSourcePoisson(cells.SpikeSourcePoisson):
+    """Spike source, generating spikes according to a Poisson process."""
 
+    translations = standardmodels.build_translations(
+        ('start',    'start'),
+        ('rate',     'rate'),
+        ('duration', 'duration'),
+    )
+    model = RandomSpikeSource
 
 
 

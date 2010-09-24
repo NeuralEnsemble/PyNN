@@ -1,0 +1,11 @@
+Population "{{label}}"
+    Dimensions : {{dim}}
+    Local cells: {{n_cells_local}}
+    Cell type  : {{celltype}}
+    ID range   : {{first_id}}-{{last_id}}
+    {% if n_cells_local %}
+    First cell on this node:
+      ID: {{local_first_id}}
+      {% for name,value in cell_parameters.items %}{{name}}: {{value}}
+      {% endfor %}
+    {% endif %}
