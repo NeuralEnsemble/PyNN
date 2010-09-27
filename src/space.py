@@ -148,20 +148,26 @@ class GridPositions(PositionsGenerator):
 
 
 class BaseStructure(object):
-    pass
+    
+    def __eq__(self, other):
+        return reduce(and_, (getattr(self, attr) == getattr(other, attr)
+                             for attr in self.parameter_names))
+
+    def get_parameters(self):
+        P = {}
+        for name in self.parameter_names:
+            P[name] = getattr(self, name)
+        return P
 
 
 class Line(BaseStructure):
+    parameter_names = ("dx", "x0", "y0", "z0")
     
     def __init__(self, dx=1.0, x0=0.0, y0=0.0, z0=0.0):
         self.dx = dx
         self.x0 = x0
         self.y0 = y0
         self.z0 = z0
-    
-    def __eq__(self, other):
-        return reduce(and_, (getattr(self, attr) == getattr(other, attr)
-                             for attr in ("dx", "x0", "y0", "z0")))
     
     def generate_positions(self, n):
         x = self.dx*numpy.arange(n, dtype=float) + self.x0
@@ -174,6 +180,7 @@ class Line(BaseStructure):
 
 
 class Grid2D(BaseStructure):
+    parameter_names = ("aspect_ratio", "dx", "dy", "x0", "y0", "fill_order")
     
     def __init__(self, aspect_ratio=1.0, dx=1.0, dy=1.0, x0=0.0, y0=0.0, z=0, fill_order="sequential"):
         """
@@ -184,11 +191,6 @@ class Grid2D(BaseStructure):
         assert fill_order in ('sequential', 'random')
         self.fill_order = fill_order
         self.dx = dx; self.dy = dy; self.x0 = x0; self.y0 = y0; self.z = z
-    
-    def __eq__(self, other):
-        return reduce(and_, (getattr(self, attr) == getattr(other, attr)
-                             for attr in ("aspect_ratio", "dx", "dy",
-                                          "x0", "y0", "fill_order")))
     
     def calculate_size(self, n):
         nx = math.sqrt(n*self.aspect_ratio)
@@ -211,6 +213,7 @@ class Grid2D(BaseStructure):
         
 
 class Grid3D(BaseStructure):
+    parameter_names = ("aspect_ratios", "dx", "dy", "dz", "x0", "y0", "z0", "fill_order")
     
     def __init__(self, aspect_ratioXY, aspect_ratioXZ, dx=1.0, dy=1.0, dz=1.0, x0=0.0, y0=0.0, z0=0,
                  fill_order="sequential"):
@@ -224,11 +227,6 @@ class Grid3D(BaseStructure):
         self.fill_order = fill_order
         self.dx = dx; self.dy = dy; self.dz = dz
         self.x0 = x0; self.y0 = y0; self.z0 = z0
-    
-    def __eq__(self, other):
-        return reduce(and_, (getattr(self, attr) == getattr(other, attr)
-                             for attr in ("aspect_ratios", "dx", "dy", "dz",
-                                          "x0", "y0", "z0", "fill_order")))
     
     def calculate_size(self, n):
         a,b = self.aspect_ratios
@@ -281,6 +279,7 @@ class Sphere(Shape):
 
 
 class RandomStructure(BaseStructure):
+    parameter_names = ('boundary', 'origin', 'rotation', 'rng')
     
     def __init__(self, boundary, origin=(0.0,0.0,0.0), rotation=(0,0), rng=None):
         """

@@ -2,7 +2,7 @@
 import nineml.user_layer as nineml
 from pyNN import common, standardmodels, random, recording
 from cells import *
-from connectors import *
+from connectors import FixedProbabilityConnector, DistanceDependentProbabilityConnector
 from utility import build_parameter_set, infer_units, catalog_url
 import numpy
 
@@ -205,8 +205,7 @@ class Population(BasePopulation, common.Population):
             structure = nineml.Structure(
                                     name="structure for %s" % self.label,
                                     definition=nineml.Definition("%s/networkstructures/%s.xml" % (catalog_url, self.structure.__class__.__name__)),
-                                    #parameters=build_parameter_set(get_grid_parameters(self))
-                                    parameters={} ####
+                                    parameters=build_parameter_set(self.structure.get_parameters())
                                     )
         else:
             structure = None

@@ -834,7 +834,7 @@ class Population(BasePopulation):
         >>> assert p.id_to_index(p[5]) == 5
         >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        if not self.first_id <= id <= self.last_id:
+        if not self.first_id <= id <= self.last_id: # this test assumes id is a single ID, supposed to support id being a list/array of IDs
             raise IndexError("id should be in the range [%d,%d], actually %d" % (self.first_id, self.last_id, id))
         return id - self.first_id # this assumes ids are consecutive
     
