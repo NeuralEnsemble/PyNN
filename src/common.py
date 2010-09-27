@@ -979,7 +979,7 @@ class Assembly(object):
     count = 0
 
     def __init__(self, label=None, *populations):
-        self.populations = populations
+        self.populations = list(populations)
         self.label = label or 'assembly%d' % Assembly.count
         Assembly.count += 1
         
@@ -1000,6 +1000,11 @@ class Assembly(object):
 
     def record(self, record_from=None, rng=None, to_file=True):
         self._record('spikes', record_from, rng, to_file)
+
+    def describe(self):
+        description = "Neuronal assembly '%s', consisting of:\n  " % self.label
+        description += "\n  ".join(p.describe() for p in self.populations)
+        return description
 
 
 # ==============================================================================
