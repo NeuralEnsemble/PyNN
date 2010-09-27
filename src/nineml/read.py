@@ -17,8 +17,6 @@ import pyNN.nineml
 import pyNN.random
 import pyNN.space
 import math
-from pprint import pprint
-
 
 def generate_spiking_node_description_map():
     """
@@ -115,8 +113,7 @@ def resolve_parameters(P, random_distributions):
             else:
                 rd_name = reverse_map(pyNN.nineml.utility.random_distribution_url_map)[rd.definition.url]
                 rd_param_names = pyNN.nineml.utility.random_distribution_parameter_map[rd_name]
-                rd_params = [rd.parameters.parameters[rdp_name].value for rdp_name in rd_param_names]
-                print "----->", rd_name, rd_params
+                rd_params = [rd.parameters[rdp_name].value for rdp_name in rd_param_names]
                 rand_distr = pyNN.random.RandomDistribution(rd_name, rd_params)
                 random_parameters[name] = rand_distr
                 random_distributions[rd.name] = rand_distr
@@ -140,7 +137,7 @@ def _build_structure(nineml_structure):
     if nineml_structure:
         # ideally should parse abstraction layer file
         # for now we'll just match file names
-        P = nineml_structure.parameters.parameters
+        P = nineml_structure.parameters
         if "Grid2D" in nineml_structure.definition.url:
             pyNN_structure = pyNN.space.Grid2D(
                                 aspect_ratio=P["aspect_ratio"].value,
@@ -218,7 +215,6 @@ class Network(object):
                 self.psr_map[projection.target.name].add(projection.synaptic_response)
             else:
                 self.psr_map[projection.target.name] = set([projection.synaptic_response])
-        print "psr map:", self.psr_map
         
         # create populations
         for population in group.populations.values():
@@ -242,7 +238,7 @@ class Network(object):
             assert len(possible_cell_classes) == 1
             cell_class = list(possible_cell_classes)[0]
         else:
-            print "Population is not the target of any Projections, so we can choose any synapse model."
+            print "Population '%s' is not the target of any Projections, so we can choose any synapse model." % nineml_population.name
             cell_class = list(possible_cell_classes_from_spiking_node)[0]
         return cell_class
     
@@ -253,13 +249,12 @@ class Network(object):
         """
         cell_class = self._determine_cell_type(nineml_population)
         
-        nineml_params = nineml_population.prototype.parameters.parameters
+        nineml_params = nineml_population.prototype.parameters
         if "i_offset" in cell_class.default_parameters:
             nineml_params["offsetCurrent"] = nineml.Parameter("offsetCurrent", 0.0, "nA")
         
         if nineml_population.name in self.psr_map:
-            synapse_params = list(self.psr_map[nineml_population.name])[0].parameters.parameters
-            #print "synapse_params", synapse_params
+            synapse_params = list(self.psr_map[nineml_population.name])[0].parameters
             for target in "excitatory", "inhibitory":
                 for name, value in synapse_params.items():
                     nineml_params["%s_%s" % (target, name)] = value
@@ -271,18 +266,14 @@ class Network(object):
             nineml_params.update(synapse_params)
         
         cell_params = cell_class.reverse_translate(nineml_params)
-        pprint(cell_params)
         cell_params, random_params = resolve_parameters(cell_params, self.random_distributions)
-        pprint(cell_params)
         return cell_class, cell_params, random_params
     
     def _build_population(self, nineml_population, assembly):
-            print "\n***", nineml_population.name
             if isinstance(nineml_population.prototype, nineml.SpikingNodeType):
                 n = nineml_population.number
                 pyNN_structure = _build_structure(nineml_population.positions.structure)
                 cell_class, cell_params, random_parameters = self._determine_cell_type_and_parameters(nineml_population)
-                pprint(cell_params)
                 
                 p_obj = self.sim.Population(n, getattr(self.sim, cell_class.__name__),
                                             cell_params,
@@ -300,11 +291,9 @@ class Network(object):
 
     def _build_connector(self, nineml_projection):
         connector_cls = generate_connector_map()[nineml_projection.rule.definition.url]
-        print "Connector params:",
-        pprint(nineml_projection.rule.parameters.parameters)
-        connector_params, random_connector_params = resolve_parameters(nineml_projection.rule.parameters.parameters,
+        connector_params, random_connector_params = resolve_parameters(nineml_projection.rule.parameters,
                                                                        self.random_distributions)
-        synapse_parameters = nineml_projection.connection_type.parameters.parameters
+        synapse_parameters = nineml_projection.connection_type.parameters
         connector_params['weights'] = synapse_parameters['weight'].value
         connector_params['delays'] = synapse_parameters['delay'].value*scale('delay', synapse_parameters['delay'].unit)
         return connector_cls(**connector_params)
