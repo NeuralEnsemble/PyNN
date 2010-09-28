@@ -97,7 +97,7 @@ elif benchmark == "CUBA":
 # === Build the network ========================================================
 
 extra = {'threads' : threads,
-         'filename': "va2.xml",
+         'filename': "va2_%s.xml" % benchmark,
          'label': 'VA2'}
 if simulator_name == "neuroml":
     extra["file"] = "VAbenchmarks.xml"

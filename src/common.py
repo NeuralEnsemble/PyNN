@@ -968,6 +968,10 @@ class PopulationView(BasePopulation):
         """
         return numpy.where(self.all_cells==id)[0].item()
 
+    def describe(self):
+        return "PopulationView called %s has parent %s and mask %s" % (self.label,
+                                                                       self.parent.label,
+                                                                       self.mask)
 
 # ==============================================================================
 
@@ -1005,6 +1009,12 @@ class Assembly(object):
         description = "Neuronal assembly '%s', consisting of:\n  " % self.label
         description += "\n  ".join(p.describe() for p in self.populations)
         return description
+
+    def get_population(self, label):
+        for p in self.populations:
+            if label == p.label:
+                return p
+        raise Exception("Assembly does not contain a population with the label %s" % label)
 
 
 # ==============================================================================

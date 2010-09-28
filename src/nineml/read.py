@@ -16,7 +16,7 @@ import nineml.user_layer as nineml
 import pyNN.nineml
 import pyNN.random
 import pyNN.space
-import math
+import re
 
 def generate_spiking_node_description_map():
     """
@@ -61,8 +61,8 @@ def reverse_map(D):
     """
     E = {}
     for k,v in D.items():
-        if v in D:
-            raise Exception()
+        if v in E:
+            raise KeyError("Cannot reverse this mapping, as it is not one-to-one ('%s' would map to both '%s' and '%s')" % (v, E[v], k))
         E[v] = k
     return E
 
@@ -219,7 +219,9 @@ class Network(object):
         # create populations
         for population in group.populations.values():
             self._build_population(population, self.assemblies[group.name])
-            
+        for selection in group.selections.values():
+            self._evaluate_selection(selection, self.assemblies[group.name])
+        
         # create projections
         for projection in group.projections.values():
             self._build_projection(projection, self.assemblies[group.name])
@@ -289,6 +291,21 @@ class Network(object):
             
             assembly.populations.append(p_obj)
 
+    def _evaluate_selection(self, nineml_selection, assembly):
+        selection = str(nineml_selection.condition)
+        # look away now, this isn't pretty
+        pattern = re.compile(r'\(\("population\[@name\]"\) == \("(?P<name>[\w ]+)"\)\) and \("population\[@id\]" in "(?P<slice>\d*:\d*:\d*)"\)')
+        match = pattern.match(selection)
+        if match:
+            name = match.groupdict()["name"]
+            slice = match.groupdict()["slice"]
+            parent = assembly.get_population(name)
+            view = eval("parent[%s]" % slice)
+            view.label = nineml_selection.name
+            assembly.populations.append(view)
+        else:
+            raise Exception("Can't evaluate selection")
+
     def _build_connector(self, nineml_projection):
         connector_cls = generate_connector_map()[nineml_projection.rule.definition.url]
         connector_params, random_connector_params = resolve_parameters(nineml_projection.rule.parameters,
@@ -299,10 +316,21 @@ class Network(object):
         return connector_cls(**connector_params)
 
     def _determine_postsynaptic_target_name(self, nineml_projection, populations):
+        target = None
         post_celltype = getattr(pyNN.nineml.cells,
                                 populations[nineml_projection.target.name].celltype.__class__.__name__)
-        target_map = reverse_map(post_celltype.synaptic_mechanism_definition_urls)
-        target = target_map[nineml_projection.synaptic_response.definition.url]
+        try:
+            target_map = reverse_map(post_celltype.synaptic_mechanism_definition_urls)
+            target = target_map[nineml_projection.synaptic_response.definition.url]
+        except KeyError: # post_celltype.synaptic_mechanism_definition_urls is not a one-to-one mapping
+            for name in post_celltype.synaptic_mechanism_definition_urls.keys():
+                if nineml_projection.synaptic_response.name.find(name) == 0: # very fragile
+                    target = name
+                    break
+            if target is None:    
+                raise Exception("Unable to determine post-synaptic target corresponding to %s.\nPost-synaptic cell supports %s" % (nineml_projection.synaptic_response, post_celltype.synaptic_mechanism_definition_urls))
+                # we could at this point use weights and is_conductance to infer it
+        return target
 
     def _build_synapse_dynamics(self, nineml_projection):
         if nineml_projection.connection_type.definition.url != pyNN.nineml.utility.catalog_url + "/connectiontypes/static_synapse.xml":
@@ -332,3 +360,17 @@ class Network(object):
         description += "\n  ".join(a.describe() for a in self.assemblies.values()) + "\n"
         description += "\n  ".join(prj.describe() for prj in self.projections.values())
         return description
+
+
+if __name__ == "__main__":
+    # For testing purposes: read in the network and print its description
+    # if using the nineml or neuroml backend, re-export the network as XML (this doesn't work, but it should).
+    import sys, os
+    from pyNN.utility import get_script_args
+    nineml_file, simulator_name = get_script_args(2, "Please specify the 9ML file and the simulator backend.")  
+    exec("import pyNN.%s as sim" % simulator_name)
+    
+    sim.setup(filename="%s_export.xml" % os.path.splitext(nineml_file)[0])
+    network = Network(sim, nineml_file)
+    print network.describe()
+    sim.end()

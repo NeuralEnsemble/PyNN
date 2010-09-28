@@ -44,7 +44,7 @@ class CellTypeMixin(object):
                     parameters=build_parameter_set(self.synaptic_mechanism_parameters[synapse_type]))
 
 
-class IF_curr_exp(pyNN.cells.IF_curr_exp):
+class IF_curr_exp(pyNN.cells.IF_curr_exp, CellTypeMixin):
     """Leaky integrate and fire model with fixed threshold and
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses."""

@@ -58,7 +58,7 @@ class Network(object):
                    (prj.post is a or prj.post in a.populations):
                     _projections.remove(prj)
                     group.add(prj.to_nineml())
-            main_group.add(group)
+            model.add_group(group)
         for p in _populations:
             main_group.add(p.to_nineml())
         for prj in _projections:
