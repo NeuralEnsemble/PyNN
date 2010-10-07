@@ -53,10 +53,11 @@ if not 'simulator' in locals():
 
 DEFAULT_WEIGHT = 0.0
 DEFAULT_BUFFER_SIZE = 10000
+DEFAULT_MAX_DELAY = 10.0
+DEFAULT_TIMESTEP = 0.1
+DEFAULT_MIN_DELAY = DEFAULT_TIMESTEP
 
 logger = logging.getLogger("PyNN")
-
-
 
 # ==============================================================================
 #   Utility functions and classes
@@ -89,11 +90,11 @@ def check_weight(weight, synapse_type, is_conductance):
         all_positive = (filtered_weight>=0).all()
         if not (all_negative or all_positive):
             raise errors.InvalidWeightError("Weights must be either all positive or all negative")
-    elif numpy.isscalar(weight):
+    elif numpy.isreal(weight):
         all_positive = weight >= 0
         all_negative = weight < 0
     else:
-        raise Exception("Weight must be a number or a list/array of numbers.")
+        raise errors.InvalidWeightError("Weight must be a number or a list/array of numbers.")
     if is_conductance or synapse_type == 'excitatory':
         if not all_positive:
             raise errors.InvalidWeightError("Weights must be positive for conductance-based and/or excitatory synapses")
@@ -126,26 +127,27 @@ class IDMixin(object):
     """
     # Simulator ID classes should inherit both from the base type of the ID
     # (e.g., int or long) and from IDMixin.
-    
-    non_parameter_attributes = ('parent', 'cellclass', 'position', 'hocname',
-                                '_cell', 'inject', 'local')
 
     def __getattr__(self, name):
-        if name in self.non_parameter_attributes or (self.local and not self.is_standard_cell):
+        try:
             val = self.__getattribute__(name)
-        else:
+        except AttributeError:
+            if name == "parent":
+                raise Exception("parent is not set")
             try:
                 val = self.get_parameters()[name]
             except KeyError:
                 raise errors.NonExistentParameterError(name, self.cellclass.__name__,
-                                                       self.cellclass.default_parameters.keys())
+                                                       self.cellclass.get_parameter_names())
         return val
     
     def __setattr__(self, name, value):
-        if name in self.non_parameter_attributes or (self.local and not self.is_standard_cell):
+        if name == "parent":
             object.__setattr__(self, name, value)
+        elif self.cellclass.has_parameter(name):
+            self.set_parameters(**{name:value})
         else:
-            return self.set_parameters(**{name:value})
+            object.__setattr__(self, name, value)
 
     def set_parameters(self, **parameters):
         """Set cell parameters, given as a sequence of parameter=value arguments."""
@@ -196,8 +198,7 @@ class IDMixin(object):
         """
         assert isinstance(pos, (tuple, numpy.ndarray))
         assert len(pos) == 3
-        index = self.parent.id_to_index(self)
-        self.parent.positions[:, index] = pos
+        self.parent._set_cell_position(self, pos)
         
     def _get_position(self):
         """
@@ -207,15 +208,13 @@ class IDMixin(object):
         or within the ID object otherwise. Positions are generated the first
         time they are requested and then cached.
         """
-        index = self.parent.id_to_index(self)
-        return self.parent.positions[:, index]  
+        return self.parent._get_cell_position(self)
 
     position = property(_get_position, _set_position)
     
     @property
     def local(self):
-        index = self.parent.id_to_index(self)
-        return self.parent._mask_local[index]
+        return self.parent.is_local(self)
     
     def inject(self, current_source):
         """Inject current from a current source object into the cell."""
@@ -223,23 +222,18 @@ class IDMixin(object):
 
     def get_initial_value(self, variable):
         """Get the initial value of a state variable of the cell."""
-        assert isinstance(self.parent.initial_values[variable], core.LazyArray)
-        index = self.parent.id_to_index(self)
-        return self.parent.initial_values[variable][index]
+        return self.parent._get_cell_initial_value(self, variable)
         
     def set_initial_value(self, variable, value):
         """Set the initial value of a state variable of the cell."""
-        assert isinstance(self.parent.initial_values[variable], core.LazyArray)
-        index = self.parent.id_to_index(self)
-        self.parent.initial_values[variable][index] = value
-
+        self.parent._set_cell_initial_value(self, variable, value)
 
 # ==============================================================================
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0,
-          **extra_params):
+def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
+          max_delay=DEFAULT_MAX_DELAY, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -398,13 +392,36 @@ class BasePopulation(object):
         """Iterator over cell ids on the local node."""
         return iter(self.local_cells)
     
+    def is_local(self, id):
+        assert id.parent is self
+        index = self.id_to_index(id)
+        return self._mask_local[index]
+    
     def all(self):
         """Iterator over cell ids on all nodes."""
         return iter(self.all_cells)
 
     def __add__(self, other):
         assert isinstance(other, BasePopulation)
-        return Assembly(self, other)
+        return Assembly(None, self, other)
+
+    def _get_cell_position(self, id):
+        index = self.id_to_index(id)
+        return self.positions[:, index]
+    
+    def _set_cell_position(self, id, pos):
+        index = self.id_to_index(id)
+        self.positions[:, index] = pos
+
+    def _get_cell_initial_value(self, id, variable):
+        assert isinstance(self.initial_values[variable], core.LazyArray)
+        index = self.id_to_index(id)
+        return self.initial_values[variable][index]
+
+    def _set_cell_initial_value(self, id, variable, value):
+        assert isinstance(self.initial_values[variable], core.LazyArray)
+        index = self.id_to_index(id)
+        self.initial_values[variable][index] = value
 
     def nearest(self, position):
         """Return the neuron closest to the specified position."""
@@ -438,6 +455,7 @@ class BasePopulation(object):
              p.set({'tau_m':20,'v_rest':-65})
         """
         #"""
+        # -- Proposed change to arguments --
         #Set one or more parameters for every cell in the population.
         # 
         #Each value may be a single number or a list/array of numbers of the same
@@ -449,16 +467,18 @@ class BasePopulation(object):
         #     p.set(tau_m=20, v_rest=[-65.0, -65.3, ... , -67.2])
         #"""
         if isinstance(param, str):
-            if isinstance(val, (float, int)):
-                param_dict = {param: float(val)}
-            elif isinstance(val, (list, numpy.ndarray)):
-                param_dict = {param: val}
-            else:
-                raise errors.InvalidParameterValueError
+            param_dict = {param: val}
         elif isinstance(param, dict):
             param_dict = param
         else:
             raise errors.InvalidParameterValueError
+        for name, val in param_dict.items():
+            if isinstance(val, (float, int)):
+                param_dict[name] = float(val)
+            elif isinstance(val, (list, numpy.ndarray)):
+                pass # ought to check list/array only contains numeric types
+            else:
+                raise errors.InvalidParameterValueError
         logger.debug("%s.set(%s)", self.label, param_dict)
         if hasattr(self, "_set_array"):
             self._set_array(**param_dict)
@@ -472,6 +492,7 @@ class BasePopulation(object):
         value_array, which must have the same dimensions as the Population.
         """
         #"""
+        # -- Proposed change to arguments --
         #'Topographic' set. Each value in parameters should be a function that
         #accepts arguments x,y,z and returns a single value.
         #"""
@@ -514,7 +535,7 @@ class BasePopulation(object):
         # provided that the same rng with the same seed is used on each node.
         logger.debug("%s.rset('%s', %s)", self.label, parametername, rand_distr)
         if isinstance(rand_distr.rng, random.NativeRNG):
-            self._native_rset(parameter_name, rand_distr)
+            self._native_rset(parametername, rand_distr)
         else:
             rarr = rand_distr.next(n=self.all_cells.size, mask_local=False) #self._mask_local)
             rarr = numpy.array(rarr) # isn't rarr already an array?
@@ -562,10 +583,12 @@ class BasePopulation(object):
                 cell.set_initial_value(variable, val)
         else:
             self.initial_values[variable] = core.LazyArray(self.size, value)
-            for cell in self: # only on local node
-                cell.set_initial_value(variable, value)
-        # would be nice to have an optional _set_variable_array() to avoid the iteration where possible
-
+            if hasattr(self, "_set_initial_value_array"):
+                self._set_initial_value_array(variable, value)
+            else:
+                for cell in self: # only on local node
+                    cell.set_initial_value(variable, value)
+        
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
         if isinstance(self.celltype, standardmodels.StandardCellType):
@@ -985,6 +1008,7 @@ class Assembly(object):
     def __init__(self, label=None, *populations):
         self.populations = list(populations)
         self.label = label or 'assembly%d' % Assembly.count
+        assert isinstance(self.label, basestring), "label must be a string or unicode"
         Assembly.count += 1
         
         # need to define positions, all_cells, local_cells as composites

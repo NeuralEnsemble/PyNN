@@ -8,18 +8,24 @@ import unittest
 import numpy
 import os
 from math import sqrt
-from pyNN import common, random, cells, synapses, connectors
+from pyNN import common, random, cells, synapses, connectors, standardmodels, errors, space
 
 def arrays_almost_equal(a, b, threshold):
     return (abs(a-b) <= threshold).all()
+
+class MockSimulator(object):
+    class MockState(object):
+        min_delay = 0.1
+    state = MockState()
+common.simulator = MockSimulator
 
 # ==============================================================================
 class ExceptionsTest(unittest.TestCase):
     
     def test_NonExistentParameterError_withStandardModel(self):
         try:
-            raise common.NonExistentParameterError("foo", cells.IF_cond_alpha)
-        except common.NonExistentParameterError, err:
+            raise errors.NonExistentParameterError("foo", cells.IF_cond_alpha)
+        except errors.NonExistentParameterError, err:
             self.assertEqual(err.model_name, 'IF_cond_alpha')
             self.assertEqual(err.parameter_name, 'foo')
             self.assertEqual(err.valid_parameter_names,
@@ -30,8 +36,8 @@ class ExceptionsTest(unittest.TestCase):
     
     def test_NonExistentParameterError_withStringModel(self):
         try:
-            raise common.NonExistentParameterError("foo", 'iaf_neuron')
-        except common.NonExistentParameterError, err:
+            raise errors.NonExistentParameterError("foo", 'iaf_neuron')
+        except errors.NonExistentParameterError, err:
             self.assertEqual(err.model_name, 'iaf_neuron')
             self.assertEqual(err.parameter_name, 'foo')
             self.assertEqual(err.valid_parameter_names, ['unknown'])
@@ -39,8 +45,9 @@ class ExceptionsTest(unittest.TestCase):
     
     def test_NonExistentParameterError_withInvalidModel(self):
         # model must be a string or a class
-        self.assertRaises(Exception, common.NonExistentParameterError, "foo", [])
-        
+        self.assertRaises(Exception, errors.NonExistentParameterError, "foo", [])
+    
+
 class DistanceTest(unittest.TestCase):
     
     def testDistance(self):
@@ -80,7 +87,7 @@ class SpaceTest(unittest.TestCase):
         self.assert_((A==B).all(), "%s != %s" % (A,B))
     
     def test_infinite_space_with_3D_distances(self):
-        s = common.Space()
+        s = space.Space()
         self.assertEqual(s.distances(self.A, self.B), sqrt(3))
         self.assertEqual(s.distances(self.C, self.B), sqrt(12))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
@@ -89,9 +96,9 @@ class SpaceTest(unittest.TestCase):
                                s.distances(self.ABCD, self.A).T)
     
     def test_infinite_space_with_collapsed_axes(self):
-        s_x = common.Space(axes='x')
-        s_xy = common.Space(axes='xy')
-        s_yz = common.Space(axes='yz')
+        s_x = space.Space(axes='x')
+        s_xy = space.Space(axes='xy')
+        s_yz = space.Space(axes='yz')
         self.assertEqual(s_x.distances(self.A, self.B), 1.0)
         self.assertEqual(s_xy.distances(self.A, self.B), sqrt(2))
         self.assertEqual(s_x.distances(self.A, self.D), 2.0)
@@ -101,7 +108,7 @@ class SpaceTest(unittest.TestCase):
                                numpy.array([sqrt(25), sqrt(13), sqrt(41), sqrt(0)]))
     
     def test_infinite_space_with_scale_and_offset(self):
-        s = common.Space(scale_factor=2.0, offset=1.0)
+        s = space.Space(scale_factor=2.0, offset=1.0)
         self.assertEqual(s.distances(self.A, self.B), sqrt(48))
         self.assertEqual(s.distances(self.B, self.A), sqrt(3))
         self.assertEqual(s.distances(self.C, self.B), sqrt(75))
@@ -110,7 +117,7 @@ class SpaceTest(unittest.TestCase):
                                numpy.array([sqrt(12), sqrt(48), sqrt(0), sqrt(200)]))
     
     def test_cylindrical_space(self):
-        s = common.Space(periodic_boundaries=((-1.0, 4.0), (-1.0, 4.0), (-1.0, 4.0)))
+        s = space.Space(periodic_boundaries=((-1.0, 4.0), (-1.0, 4.0), (-1.0, 4.0)))
         self.assertEqual(s.distances(self.A, self.B), sqrt(3))
         self.assertEqual(s.distances(self.A, self.D), sqrt(4+4+1))
         self.assertEqual(s.distances(self.C, self.D), sqrt(4+1+0))
@@ -125,18 +132,18 @@ class SpaceTest(unittest.TestCase):
 class StandardModelTest(unittest.TestCase):
     
     def testCheckParameters(self):
-        self.assertRaises(common.InvalidParameterValueError, cells.SpikeSourceArray, {'spike_times': 0.0})
-        self.assertRaises(common.InvalidParameterValueError, cells.SpikeSourceInhGamma, {'a': 'foo'})
+        self.assertRaises(errors.InvalidParameterValueError, cells.SpikeSourceArray, {'spike_times': 0.0})
+        self.assertRaises(errors.InvalidParameterValueError, cells.SpikeSourceInhGamma, {'a': 'foo'})
         self.assertRaises(ValueError, cells.SpikeSourceArray, {'spike_times': 'foo'})
-        self.assertRaises(common.NonExistentParameterError, cells.IF_cond_exp, {'foo': 'bar'})
+        self.assertRaises(errors.NonExistentParameterError, cells.IF_cond_exp, {'foo': 'bar'})
         
     def testTranslate(self):
-        class FakeCellType(common.StandardCellType):
+        class FakeCellType(standardmodels.StandardCellType):
             default_parameters = {'foo': 3, 'other_parameter': 5}
         class SimFakeCellType1(FakeCellType):
-            translations = common.build_translations(('foo', 'bar', 'foo*non_existent_parameter', 'bar/non_existent_parameter'))
+            translations = standardmodels.build_translations(('foo', 'bar', 'foo*non_existent_parameter', 'bar/non_existent_parameter'))
         class SimFakeCellType2(FakeCellType):
-            translations = common.build_translations(
+            translations = standardmodels.build_translations(
                 ('foo', 'bar', 'foo*other_parameter', 'bar/non_existent_parameter'),
                 ('other_parameter', 'translated_other_parameter'),    
             )
@@ -146,7 +153,7 @@ class StandardModelTest(unittest.TestCase):
         assert isinstance(cell_type.describe(), basestring) # this belongs in a separate test
         
     def testCreatingNonAvailableModel(self):
-        self.assertRaises(NotImplementedError, common.ModelNotAvailable)
+        self.assertRaises(NotImplementedError, standardmodels.ModelNotAvailable)
                               
 
 class LowLevelAPITest(unittest.TestCase):
@@ -203,15 +210,15 @@ class ConnectorTest(unittest.TestCase):
 class SynapticPlasticityTest(unittest.TestCase):
     
     def test_describe(self):
-        s = common.SynapseDynamics()
+        s = standardmodels.SynapseDynamics()
         assert isinstance(s.describe(), basestring)
         assert isinstance(s.describe(template=None), dict)
        
     def test_stubs(self):
-        self.assertRaises(NotImplementedError, common.ShortTermPlasticityMechanism)
+        self.assertRaises(NotImplementedError, standardmodels.ShortTermPlasticityMechanism)
         self.assertRaises(NotImplementedError, synapses.TsodyksMarkramMechanism)
-        self.assertRaises(NotImplementedError, common.STDPWeightDependence)
-        self.assertRaises(NotImplementedError, common.STDPTimingDependence)
+        self.assertRaises(NotImplementedError, standardmodels.STDPWeightDependence)
+        self.assertRaises(NotImplementedError, standardmodels.STDPTimingDependence)
         self.assertRaises(NotImplementedError, synapses.AdditiveWeightDependence)
         self.assertRaises(NotImplementedError, synapses.MultiplicativeWeightDependence)
         self.assertRaises(NotImplementedError, synapses.AdditivePotentiationMultiplicativeDepression)

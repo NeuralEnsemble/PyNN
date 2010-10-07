@@ -252,10 +252,8 @@ class IDSetGetTest(unittest.TestCase):
                                                "%s in %s: %s != %s" % (name, cell_class.__name__, i,o))
     
     def testGetCellClass(self):
-        assert 'cellclass' in common.IDMixin.non_parameter_attributes
         for name, pop in self.populations.items():
             assert isinstance(pop[0], common.IDMixin)
-            assert 'cellclass' in pop[0].non_parameter_attributes
             if len(pop.local_cells)>0:
                 self.assertEqual(pop.local_cells[0].cellclass.__name__, name)
         if len(pop.local_cells)>0:
@@ -528,7 +526,7 @@ class PopulationPositionsTest(unittest.TestCase):
 
  
 # ==============================================================================
-class PopulationRecordTest(unittest.TestCase): # to write later
+class PopulationRecordTest(unittest.TestCase):
     """Tests of the record(), record_v(), printSpikes(), print_v() and
        meanSpikeCount() methods of the Population class."""
     

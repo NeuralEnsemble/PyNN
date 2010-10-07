@@ -22,6 +22,7 @@ import copy
 import numpy
 from core import is_listlike
 import errors
+from string import Template
 
 # ==============================================================================
 #   Standard cells
@@ -51,6 +52,7 @@ def build_translations(*translation_list):
                                    'reverse_transform': g}
     return translations
 
+
 class StandardModelType(object):
     """Base class for standardized cell model and synapse model classes."""
     
@@ -61,6 +63,14 @@ class StandardModelType(object):
     def __init__(self, parameters):
         self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
         self.parameters = self.__class__.translate(self.parameters)
+    
+    @classmethod
+    def has_parameter(cls, name):
+        return name in cls.default_parameters
+    
+    @classmethod
+    def get_parameter_names(cls):
+        return cls.default_parameters.keys()
     
     @classmethod
     def checkParameters(cls, supplied_parameters, with_defaults=False):

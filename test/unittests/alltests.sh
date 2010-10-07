@@ -1,14 +1,14 @@
 #/bin/bash
-python-coverage -e
+coverage erase
 
-python-coverage -x commontests.py
-python-coverage -x generictests.py nest
-python-coverage -x generictests.py neuron
-python-coverage -x generictests.py brian
-python-coverage -x generictests.py pcsim
-python-coverage -x rngtests.py
-python-coverage -x utilitytests.py
-python-coverage -x multisimtests.py
+coverage run commontests.py
+coverage run -a generictests.py nest
+coverage run -a generictests.py neuron
+coverage run -a generictests.py brian
+coverage run -a generictests.py pcsim
+coverage run -a rngtests.py
+coverage run -a utilitytests.py
+coverage run -a multisimtests.py
 
-python-coverage -r ~/dev/pyNN/*.py ~/dev/pyNN/recording/*.py ~/dev/pyNN/nest/*.py ~/dev/pyNN/neuron/*.py ~/dev/pyNN/brian/*.py ~/dev/pyNN/pcsim/*.py
-python-coverage -a ~/dev/pyNN/*.py ~/dev/pyNN/recording/*.py ~/dev/pyNN/nest/*.py ~/dev/pyNN/neuron/*.py ~/dev/pyNN/brian/*.py ~/dev/pyNN/pcsim/*.py
+coverage report ~/dev/pyNN_trunk/src/*.py ~/dev/pyNN_trunk/src/*/*.py
+coverage html ~/dev/pyNN_trunk/src/*.py ~/dev/pyNN_trunk/src/*/*.py
