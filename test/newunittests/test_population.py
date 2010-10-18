@@ -45,3 +45,22 @@ def test_create_population_standard_cell_with_params():
     p = MockPopulation(11, MockStandardCell, {'a': 17.0, 'b': 0.987})
     assert isinstance(p.celltype, MockStandardCell)
     assert_equal(p.cellparams, {'a': 17.0, 'b': 0.987})
+
+# test create native cell
+
+# test create native cell with params
+
+# test create with structure
+
+# test local_cells property
+
+# test id_to_index
+
+# test id_to_local_index
+
+# test structure property
+
+# test positions property
+
+# test describe method
+

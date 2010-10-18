@@ -132,7 +132,8 @@ class StandardModelType(object):
                 raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
                                 % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
             except ZeroDivisionError:
-                pval = 1e30 # this is about the highest value hoc can deal with
+                raise
+                #pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
         return native_parameters
     
@@ -261,6 +262,12 @@ class STDPMechanism(object):
         components of the synaptic delay to be specified separately in
         milliseconds.
         """
+        if timing_dependence:
+            assert isinstance(timing_dependence, STDPTimingDependence)
+        if weight_dependence:
+            assert isinstance(weight_dependence, STDPWeightDependence)
+        assert isinstance(dendritic_delay_fraction, (int, long, float))
+        assert 0 <= dendritic_delay_fraction <= 1
         self.timing_dependence = timing_dependence
         self.weight_dependence = weight_dependence
         self.voltage_dependence = voltage_dependence

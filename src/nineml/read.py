@@ -149,7 +149,7 @@ def _build_structure(nineml_structure):
         elif "Grid3D" in nineml_structure.definition.url:
             pyNN_structure = pyNN.space.Grid3D(
                                 aspect_ratioXY=P["aspect_ratioXY"].value,
-                                aspect_ratioXY=P["aspect_ratioXZ"].value,
+                                aspect_ratioXZ=P["aspect_ratioXZ"].value,
                                 dx=P["dx"].value,
                                 dy=P["dy"].value,
                                 dz=P["dz"].value,
