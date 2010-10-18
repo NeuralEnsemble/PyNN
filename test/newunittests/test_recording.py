@@ -2,6 +2,7 @@ from pyNN import recording
 from nose.tools import assert_equal, assert_raises
 from mock import Mock
 import numpy
+import os
 
 MPI = recording.MPI
 if MPI:

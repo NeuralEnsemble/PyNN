@@ -78,7 +78,11 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     else:
         nest_verbosity = "WARNING"
     nest.sli_run("M_%s setverbosity" % nest_verbosity)
-        
+    
+    if "spike_precision" in extra_params:
+        simulator.state.spike_precision = extra_params["spike_precision"]
+    nest.SetKernelStatus({'off_grid_spiking': simulator.state.spike_precision=='off_grid'})
+    
     # clear the sli stack, if this is not done --> memory leak cause the stack increases
     nest.sr('clear')
     
@@ -174,7 +178,7 @@ class Population(common.Population):
             cell_parameters = cellparams or {}
         elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
             celltype = cellclass(cellparams)
-            nest_model = celltype.nest_name
+            nest_model = celltype.nest_name[simulator.state.spike_precision]
             cell_parameters = celltype.parameters
         else:
             raise Exception("Invalid cell type: %s" % type(cellclass))

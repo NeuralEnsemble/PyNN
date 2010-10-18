@@ -23,7 +23,8 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         ('v_thresh',   'V_th'),
         ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
     )
-    nest_name = "iaf_psc_alpha"
+    nest_name = {"on_grid": "iaf_psc_alpha",
+                 "off_grid": "iaf_psc_alpha"}
 
 
 class IF_curr_exp(cells.IF_curr_exp):
@@ -44,7 +45,8 @@ class IF_curr_exp(cells.IF_curr_exp):
         ('v_thresh',   'V_th'),
         ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
     )
-    nest_name = 'iaf_psc_exp'
+    nest_name = {"on_grid": 'iaf_psc_exp',
+                 "off_grid": 'iaf_psc_exp_ps'}
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):
@@ -66,7 +68,8 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
     )
-    nest_name = "iaf_cond_alpha"
+    nest_name = {"on_grid": "iaf_cond_alpha",
+                 "off_grid": "iaf_cond_alpha"}
         
 
 class IF_cond_exp(cells.IF_cond_exp):
@@ -88,7 +91,8 @@ class IF_cond_exp(cells.IF_cond_exp):
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
     )
-    nest_name = "iaf_cond_exp"
+    nest_name = {"on_grid": "iaf_cond_exp",
+                 "off_grid": "iaf_cond_exp"}
 
 
 class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
@@ -121,7 +125,8 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
         ('e_rev_rr',   'E_rr'),
         ('q_rr',       'q_rr')
     )
-    nest_name = "iaf_cond_exp_sfa_rr"
+    nest_name = {"on_grid": "iaf_cond_exp_sfa_rr",
+                 "off_grid": "iaf_cond_exp_sfa_rr"}
 
 
 class IF_facets_hardware1(cells.IF_facets_hardware1):
@@ -142,7 +147,8 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
         ('tau_syn_I',  'tau_syn_in'),
         ('g_leak',     'g_L')
     )
-    nest_name = "iaf_cond_exp"
+    nest_name = {"on_grid": "iaf_cond_exp",
+                 "off_grid": "iaf_cond_exp"}
 
     def __init__(self, parameters):
         cells.IF_facets_hardware1.__init__(self, parameters)
@@ -169,9 +175,10 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('tau_syn_I',  'tau_syn_in'),
         ('i_offset',   'I_e', 1000.0),
     )
-    nest_name = "hh_cond_exp_traub"
-        
-        
+    nest_name = {"on_grid": "hh_cond_exp_traub",
+                 "off_grid": "hh_cond_exp_traub"}
+    
+   
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     """
     Exponential integrate and fire neuron with spike triggered and sub-threshold
@@ -201,7 +208,8 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         ('e_rev_I'   , 'E_in'), 
         ('tau_syn_I' , 'tau_syn_in'),
     )
-    nest_name = "aeif_cond_alpha"
+    nest_name = {"on_grid": "aeif_cond_alpha",
+                 "off_grid": "aeif_cond_alpha"}
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
@@ -212,7 +220,8 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         ('start',    'start'),
         ('duration', 'stop',    "start+duration", "stop-start"),
     )
-    nest_name = 'poisson_generator'
+    nest_name = {"on_grid": 'poisson_generator',
+                 "off_grid": 'poisson_generator_ps'}
     always_local = True
     
     def __init__(self, parameters):
@@ -237,7 +246,8 @@ class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
         ('start',    'start'),
         ('duration', 'stop',   "duration+start", "stop-start"),
     )
-    nest_name = 'inh_gamma_generator'
+    nest_name = {"on_grid": 'inh_gamma_generator',
+                 "off_grid":  'inh_gamma_generator'}
     always_local = True
     
     def __init__(self, parameters):
@@ -251,5 +261,6 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     translations = standardmodels.build_translations(
         ('spike_times', 'spike_times'),
     )
-    nest_name = 'spike_generator'
+    nest_name = {"on_grid": 'spike_generator',
+                 "off_grid": 'spike_generator'}
     always_local = True

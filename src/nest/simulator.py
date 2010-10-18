@@ -48,6 +48,7 @@ class _State(object):
         self.running     = False
         self.optimize    = False
         self.nominal_time = 0.0
+        self.spike_precision = "on_grid"
 
     @property
     def t(self):
