@@ -41,6 +41,8 @@ class Recorder(recording.Recorder):
         device_parameters = {"withgid": True, "withtime": True}
         if self.variable != 'spikes':
             device_parameters["interval"] = common.get_time_step()
+        else:
+            device_parameters["precise_times"] = True
         if self.file is False:
             device_parameters.update(to_file=False, to_memory=True)
         else: # (includes self.file is None)
@@ -160,14 +162,7 @@ class Recorder(recording.Recorder):
         else:
             if "filename" not in nest.GetStatus(self._device)[0]: # indicates that run() has not been called.
                 raise errors.NothingToWriteError("No data. Have you called run()?")
-            if simulator.state.num_threads > 1:
-                nest_files = []
-                for nest_thread in range(1, simulator.state.num_threads):
-                    addr = nest.GetStatus(self._device, "address")[0]
-                    addr.append(nest_thread)
-                    nest_files.append(nest.GetStatus([addr], "filename")[0])
-            else:
-                nest_files = [nest.GetStatus(self._device, "filename")[0]]
+            nest_files = nest.GetStatus(self._device, "filename")[0]
             # possibly we can just keep on saving to the end of self._merged_file, instead of concatenating everything in memory
             logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
             non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
