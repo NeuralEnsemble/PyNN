@@ -55,8 +55,8 @@ def test_instantiate():
     M.translate = Mock()
     m = M(P1)
     assert isinstance(m.parameters, Mock)
-    M.checkParameters.assert_called_with_args(P1, with_defaults=True)
-    M.translate.assert_called_with_args(P2)
+    M.checkParameters.assert_called_with(P1, with_defaults=True)
+    M.translate.assert_called_with(P2)
     
     M.checkParameters = orig_checkParameters
     M.translate = orig_translate
@@ -189,7 +189,7 @@ def test_update_parameters():
     m = M({})
     m.parameters = Mock()
     m.update_parameters({})
-    m.parameters.update.assert_called_with_args(P)
+    m.parameters.update.assert_called_with(P)
     M.checkParameters = orig_checkParameters
     M.translate = orig_translate
 

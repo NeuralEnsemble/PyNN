@@ -53,7 +53,8 @@ class Recorder(recording.Recorder):
             raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, device_parameters))
 
     def _record(self, new_ids):
-        """Called by record()."""            
+        """Called by record()."""
+        new_ids = list(new_ids)
         if self._device is None:
             self._create_device()       
         device_name = nest.GetStatus(self._device, "model")[0]

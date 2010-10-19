@@ -9,22 +9,22 @@ from tools import assert_arrays_equal
 builtin_open = open
 
 def test__savetxt():
-    files.open = Mock()
+    mock_file = Mock()
+    files.open = Mock(return_value=mock_file)
     files._savetxt(filename="dummy_file",
                    data=[(0, 2.3),(1, 3.4),(2, 4.3)],
                    format="%f", 
                    delimiter=" ")
-    target_output = dedent("""
-                        0 2.3
-                        1 3.4
-                        2 4.3
-                    """)
-    files.open.write.assert_called_with_args(target_output)
+    target = [(('0.000000 2.300000\n',), {}),
+              (('1.000000 3.400000\n',), {}),
+              (('2.000000 4.300000\n',), {})]
+    assert_equal(mock_file.write.call_args_list, target)
+    files.open = builtin_open  
     
 def test_create_BaseFile():
     files.open = Mock()
     bf = files.BaseFile("filename", 'r')
-    files.open.assert_called_with_args("filename", "r", files.DEFAULT_BUFFER_SIZE)
+    files.open.assert_called_with("filename", "r", files.DEFAULT_BUFFER_SIZE)
     files.open = builtin_open    
 
 def test_del():
@@ -33,14 +33,14 @@ def test_del():
     close_mock = Mock()
     bf.close = close_mock
     del bf
-    close_mock.assert_called_with_args()
+    close_mock.assert_called_with()
     files.open = builtin_open
     
 def test_close():
     files.open = Mock()
     bf = files.BaseFile("filename", 'r')
     bf.close()
-    bf.fileobj.close.assert_called_with_args()
+    bf.fileobj.close.assert_called_with()
     files.open = builtin_open
     
 def test_StandardTextFile_write():
@@ -63,7 +63,7 @@ def test_StandardTextFile_read():
     orig_loadtxt = numpy.loadtxt
     numpy.loadtxt = Mock()
     stf.read()
-    numpy.loadtxt.assert_called_with_args(stf.fileobj)
+    numpy.loadtxt.assert_called_with(stf.fileobj)
     numpy.loadtxt = orig_loadtxt
     files.open = builtin_open
     

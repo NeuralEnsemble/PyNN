@@ -208,7 +208,7 @@ def test__record_with_RNG():
     id_arr, = args
     assert_equal(meth, 'record')
     assert_equal(id_arr.size, 5)
-    rng.permutation.assert_called_with_args(p.all_cells)
+    rng.permutation.assert_called_with(p.all_cells)
 
 def test__record_list():
     record_list = ['curly', 'larry', 'moe'] # should really check that record_list contains IDs
@@ -228,19 +228,19 @@ def test_spike_recording():
     p = MockPopulation()
     p._record = Mock()
     p.record("arg1", "arg2", "arg3")
-    p._record.assert_called_with_args('spikes', "arg1", "arg2", "arg3")
+    p._record.assert_called_with('spikes', "arg1", "arg2", "arg3")
     
 def test_record_v():
     p = MockPopulation()
     p._record = Mock()
-    p.record("arg1", "arg2", "arg3")
-    p._record.assert_called_with_args('v', "arg1", "arg2", "arg3")
+    p.record_v("arg1", "arg2", "arg3")
+    p._record.assert_called_with('v', "arg1", "arg2", "arg3")
 
 def test_record_gsyn():
     p = MockPopulation()
     p._record = Mock()
-    p.record("arg1", "arg2", "arg3")
-    p._record.assert_called_with_args('gsyn', "arg1", "arg2", "arg3")
+    p.record_gsyn("arg1", "arg2", "arg3")
+    p._record.assert_called_with('gsyn', "arg1", "arg2", "arg3")
 
 def test_printSpikes():
     p = MockPopulation()

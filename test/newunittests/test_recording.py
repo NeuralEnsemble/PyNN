@@ -54,15 +54,17 @@ def test_record():
     assert_equal(r.recorded, set([]))
     
     all_ids = (MockID(0, True), MockID(1, False), MockID(2, True), MockID(3, True), MockID(4, False))
-    first_ids = all_ids[0:2]
+    first_ids = all_ids[0:3]
     r.record(first_ids)
     assert_equal(r.recorded, set(id for id in first_ids if id.local))
-    r._record.assert_called_with_args(r.recorded)
+    assert_equal(len(r.recorded), 2)
+    r._record.assert_called_with(r.recorded)
     
     more_ids = all_ids[2:5]
     r.record(more_ids)
-    assert_equal(r.recorded,set(id for id in all_ids if id.local))
-    r._record.assert_called_with_args(all_ids[3:5])
+    assert_equal(r.recorded, set(id for id in all_ids if id.local))
+    assert_equal(len(r.recorded), 3)
+    r._record.assert_called_with(set(all_ids[3:4]))
 
 def test_filter_recorded():
     r = recording.Recorder('spikes')

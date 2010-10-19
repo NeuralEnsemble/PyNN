@@ -102,8 +102,8 @@ def test_initialize():
     p2 = MockPopulation()
     a = Assembly(p1, p2)
     a.initialize("v", -54.3)
-    p1.initialize.assert_called_with_args("v", -54.3)
-    p2.initialize.assert_called_with_args("v", -54.3)
+    p1.initialize.assert_called_with("v", -54.3)
+    p2.initialize.assert_called_with("v", -54.3)
 
 #test record
 
