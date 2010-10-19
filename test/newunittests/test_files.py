@@ -4,13 +4,9 @@ from mock import Mock
 from nose.tools import assert_equal
 import numpy
 import os
+from tools import assert_arrays_equal
 
 builtin_open = open
-
-def assert_arrays_equal(a, b):
-    assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
-    assert isinstance(b, numpy.ndarray), "b is a %s" % type(b)
-    assert all(a==b), "%s != %s" % (a,b)
 
 def test__savetxt():
     files.open = Mock()
@@ -100,16 +96,17 @@ def test_NumpyBinaryFile():
     os.remove("tmp.npz")
     
 def test_HDF5ArrayFile():
-    h5f = files.HDF5ArrayFile("tmp.h5", "w")
-    data=[(0, 2.3),(1, 3.4),(2, 4.3)]
-    metadata = {'a': 1, 'b': 9.99}
-    h5f.write(data, metadata)
-    h5f.close()
+    if files.have_hdf5:
+        h5f = files.HDF5ArrayFile("tmp.h5", "w")
+        data=[(0, 2.3),(1, 3.4),(2, 4.3)]
+        metadata = {'a': 1, 'b': 9.99}
+        h5f.write(data, metadata)
+        h5f.close()
+        
+        h5f = files.HDF5ArrayFile("tmp.h5", "r")
+        assert_equal(h5f.get_metadata(), metadata)
+        assert_arrays_equal(numpy.array(h5f.read()).flatten(),
+                            numpy.array(data).flatten())
+        h5f.close()
     
-    h5f = files.HDF5ArrayFile("tmp.h5", "r")
-    assert_equal(h5f.get_metadata(), metadata)
-    assert_arrays_equal(numpy.array(h5f.read()).flatten(),
-                        numpy.array(data).flatten())
-    h5f.close()
-
-    os.remove("tmp.h5")
+        os.remove("tmp.h5")

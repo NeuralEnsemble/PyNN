@@ -20,9 +20,11 @@ import logging
 import numpy.random
 try:
     import pygsl.rng
+    have_gsl = True
 except (ImportError, Warning):
     import warnings
     warnings.warn("GSL random number generators not available")
+    have_gsl = False
 import time
 
 logger = logging.getLogger("PyNN")

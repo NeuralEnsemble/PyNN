@@ -1,12 +1,8 @@
 from pyNN.core import is_listlike, LazyArray
 import numpy
 from nose.tools import assert_raises
+from tools import assert_arrays_equal
 
-def assert_arrays_equal(a, b):
-    assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
-    assert isinstance(b, numpy.ndarray), "b is a %s" % type(b)
-    assert all(a==b), "%s != %s" % (a,b)
-    
 
 def test_is_list_like_with_tuple():
     assert is_listlike((1,2,3))    
