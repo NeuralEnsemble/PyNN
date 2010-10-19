@@ -67,11 +67,9 @@ class Space(object):
             A = A.reshape(3, 1)
         if len(B.shape) == 1:
             B = B.reshape(3, 1)
-        # I'm not sure the following line should be here. Operations may be redundant and not very 
-        # transparent from the user point of view. I moved it into the DistanceDependentProbability Connector
-        #B = self.scale_factor*(B + self.offset)
+        B = self.scale_factor*(B + self.offset)
         d = numpy.zeros((len(self.axes), A.shape[1], B.shape[1]), dtype=A.dtype)
-        for axis in self.axes:
+        for i,axis in enumerate(self.axes):
             diff2 = A[axis,:,None] - B[axis, :]
             if self.periodic_boundaries is not None:
                 boundaries = self.periodic_boundaries[axis]
@@ -80,71 +78,11 @@ class Space(object):
                     ad2   = abs(diff2)
                     diff2 = numpy.minimum(ad2, range-ad2)
             diff2 **= 2
-            d[axis] = diff2
+            d[i] = diff2
         if not expand:
             d = numpy.sum(d, 0)
         numpy.sqrt(d, d)
         return d
-
-
-
-class PositionsGenerator(object):
-
-        def __init__(self, dimensions, axes=None):
-            """
-            dimensions -- either `None`, or a tuple/list giving the dimensions
-                          for each dimension, e.g. `((x_min, x_max), None, (z_min, z_max))`.            
-            axes -- if not supplied, then the 3D distance is calculated. If supplied,
-                    axes should be a string containing the axes to be used, e.g. 'x', or
-                    'yz'. axes='xyz' is the same as axes=None.
-            """
-            self.dimensions = list(dimensions)
-            self.axes = numpy.array(Space.AXES[axes]) 
-            assert len(self.dimensions) == 3, "Dimensions should be of size 3, and axes should specify orientation!"
-            for item in self.dimensions:
-                if item is not None:
-                    assert len(item) == 2, "dimensions should be a list of tuples (min, max), not %s" %item            
-                    assert item[0] <= item[0], "items elements should be (min, max), with min <= max"
-            
-        def get(self, dims):
-            self.M         = numpy.prod(numpy.array(dims))
-            self.positions = numpy.zeros((3, self.M))            
-            pass
-
-
-class RandomPositions(PositionsGenerator):
-
-        def __init__(self, dimensions, seed=None):
-            PositionsGenerator.__init__(self, dimensions)
-            self.seed = seed
-                        
-        def get(self, dims):
-            PositionsGenerator.get(self, dims)
-            numpy.random.seed(self.seed)
-            for axis in self.axes:
-                item = self.dimensions[axis]            
-                if item is not None:
-                    bmin, bmax              = item
-                    self.positions[axis, :] = bmin + bmax * numpy.random.rand(self.M)
-            return self.positions
-
-
-class GridPositions(PositionsGenerator):
-
-        def get(self, dims):
-            PositionsGenerator.get(self, dims)            
-            res = ""
-            for d in dims:
-                res += "0:%d," %d
-            grid = eval("numpy.mgrid[%s]" %res[0:-1])
-            for axis in self.axes:
-                item = self.dimensions[axis]                
-                if item is not None:
-                    bmin, bmax = item
-                    padding    = (bmax-bmin)/float(dims[axis])
-                    data       = numpy.linspace(bmin+padding, bmax, dims[axis])
-                    self.positions[axis, :] = data[grid[axis].flatten()]
-            return self.positions
 
 
 class BaseStructure(object):
@@ -194,6 +132,8 @@ class Grid2D(BaseStructure):
     
     def calculate_size(self, n):
         nx = math.sqrt(n*self.aspect_ratio)
+        if n%nx != 0:
+            raise Exception("Invalid size")
         ny = n/nx
         return nx, ny
     
@@ -215,7 +155,7 @@ class Grid2D(BaseStructure):
 class Grid3D(BaseStructure):
     parameter_names = ("aspect_ratios", "dx", "dy", "dz", "x0", "y0", "z0", "fill_order")
     
-    def __init__(self, aspect_ratioXY, aspect_ratioXZ, dx=1.0, dy=1.0, dz=1.0, x0=0.0, y0=0.0, z0=0,
+    def __init__(self, aspect_ratioXY=1.0, aspect_ratioXZ=1.0, dx=1.0, dy=1.0, dz=1.0, x0=0.0, y0=0.0, z0=0,
                  fill_order="sequential"):
         """
         If fill_order is 'sequential', the z-index will be filled first, then y then x, i.e.
@@ -255,14 +195,18 @@ class Shape(object):
 
 class Cuboid(Shape):
     
-    def __init__(self, height, width, depth):
-        """Not sure how h,w,d should be related to x,y,z."""
+    def __init__(self, width, height, depth):
+        """
+        height: extent in y direction
+        width: extent in x direction
+        depth: extent in z direction
+        """
         self.height = height
         self.width = width
         self.depth = depth
         
     def sample(self, n, rng):
-        return rng.uniform(size=(n,3)) * (self.height, self.width, self.depth)
+        return 0.5*rng.uniform(-1, 1, size=(n,3)) * (self.width, self.height, self.depth)
 
 
 class Sphere(Shape):
@@ -272,27 +216,32 @@ class Sphere(Shape):
         self.radius = radius
         
     def sample(self, n, rng):
-        raise NotImplementedError
-        #theta_phi = rng.uniform(size=(n,2))
-        #r = rng.???
-        # now transform from r,theta,phi to x,y,z
+        # this implementation is wasteful, as it throws away a lot of numbers,
+        # but simple. More efficient implementations welcome.
+        positions = numpy.empty((n,3))
+        i = 0
+        while i < n:
+            candidate = rng.uniform(-1, 1, size=(1,3))
+            if (candidate**2).sum() < 1:
+                positions[i] = candidate
+                i += 1
+        return self.radius*positions
 
 
 class RandomStructure(BaseStructure):
-    parameter_names = ('boundary', 'origin', 'rotation', 'rng')
+    parameter_names = ('boundary', 'origin', 'rng')
     
-    def __init__(self, boundary, origin=(0.0,0.0,0.0), rotation=(0,0), rng=None):
+    def __init__(self, boundary, origin=(0.0,0.0,0.0), rng=None):
         """
         `boundary` - a subclass of Shape
         `origin` - a coordinate tuple (x,y,z)
-        `rotation` - (theta, phi) tuple giving the rotation to be applied (in degrees)
-        
-        Note that the rotation is applied before the origin shift
         """
+        assert isinstance(boundary, Shape)
+        assert len(origin) == 3
         self.boundary = boundary
         self.origin = origin
         self.rng = rng or NumpyRNG()
         
     def generate_positions(self, n):
-        return numpy.array(self.origin) + rotate(self.boundary.sample(n, rng), *self.origin)
+        return numpy.array(self.origin) + self.boundary.sample(n, self.rng)
     
