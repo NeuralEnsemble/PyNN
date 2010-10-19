@@ -43,10 +43,10 @@ $Id$
 import numpy
 import logging
 from warnings import warn
-#from math import *
 import operator
 from pyNN import random, utility, recording, errors, standardmodels, core, space
 from string import Template
+from itertools import chain
 
 if not 'simulator' in locals():
     simulator = None # should be set by simulator-specific modules
@@ -403,7 +403,7 @@ class BasePopulation(object):
 
     def __add__(self, other):
         assert isinstance(other, BasePopulation)
-        return Assembly(None, self, other)
+        return Assembly(self, other)
 
     def _get_cell_position(self, id):
         index = self.id_to_index(id)
@@ -1005,18 +1005,53 @@ class Assembly(object):
     """
     count = 0
 
-    def __init__(self, label=None, *populations):
-        self.populations = list(populations)
-        self.label = label or 'assembly%d' % Assembly.count
+    def __init__(self, *populations, **kwargs):
+        if kwargs:
+            assert kwargs.keys() == ['label']
+        for p in populations:
+            if not isinstance(p, BasePopulation):
+                raise TypeError("argument is a %s, not a Population." % type(p).__name__)
+        self.populations = list(populations) # should this be a set?
+        self.label = kwargs.get('label', 'assembly%d' % Assembly.count)
         assert isinstance(self.label, basestring), "label must be a string or unicode"
         Assembly.count += 1
-        
-        # need to define positions, all_cells, local_cells as composites
+
+    @property
+    def local_cells(self):
+        return numpy.append(self.populations[0].local_cells, [p.local_cells for p in self.populations[1:]])
+
+    @property
+    def all_cells(self):
+        return numpy.append(self.populations[0].all_cells, [p.all_cells for p in self.populations[1:]])
 
     @property
     def size(self):
         return sum(p.size for p in self.populations)
-        
+    
+    def __iter__(self):
+        return chain(iter(p) for p in self.populations)
+    
+    def __len__(self):
+        """Return the total number of cells in the population (all nodes)."""
+        return self.size
+    
+    def __add__(self, other):
+        if isinstance(other, BasePopulation):
+            return Assembly(*(self.populations + [other]))
+        elif isinstance(other, Assembly):
+            return Assembly(*(self.populations + other.populations))
+        else:
+            raise TypeError("can only add a Population or another Assembly to an Assembly")
+    
+    def __iadd__(self, other):
+        if isinstance(other, BasePopulation):
+            self.populations.append(other)
+        elif isinstance(other, Assembly):
+            self.populations += other.populations
+        else:
+            raise TypeError("can only add a Population or another Assembly to an Assembly")
+        return self
+    
     def initialize(self, variable, value):
         for p in self.populations:
             p.initialize(variable, value)
@@ -1038,7 +1073,7 @@ class Assembly(object):
         for p in self.populations:
             if label == p.label:
                 return p
-        raise Exception("Assembly does not contain a population with the label %s" % label)
+        raise KeyError("Assembly does not contain a population with the label %s" % label)
 
 
 # ==============================================================================

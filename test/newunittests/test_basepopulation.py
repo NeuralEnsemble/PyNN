@@ -2,11 +2,7 @@ from pyNN import common, errors, random, standardmodels
 from nose.tools import assert_equal, assert_raises
 import numpy
 from mock import Mock, patch
-
-def assert_arrays_equal(a, b):
-    assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
-    assert isinstance(b, numpy.ndarray), "b is a %s" % type(b)
-    assert all(a==b), "%s != %s" % (a,b)
+from tools import assert_arrays_equal
     
 
 id_map = {'larry': 0, 'curly': 1, 'moe': 2}

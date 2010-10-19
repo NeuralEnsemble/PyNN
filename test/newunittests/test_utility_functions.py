@@ -1,12 +1,11 @@
 from pyNN import common, errors
 import numpy
 from nose.tools import assert_equal, assert_raises
+from tools import assert_arrays_equal
 
 MIN_DELAY = 1.23
 MAX_DELAY = 999
 
-def assert_arrays_equal(a, b):
-    assert all(a==b), "%s != %s" % (a,b)
 
 class MockCell(object):
     def __init__(self, cellclass, local=True):
@@ -51,12 +50,12 @@ def test_check_weight_with_scalar():
     
 def test_check_weight_with_list():
     w = range(10)
-    assert_arrays_equal(w, common.check_weight(w, 'excitatory', is_conductance=True))
-    assert_arrays_equal(w, common.check_weight(w, 'excitatory', is_conductance=False))
-    assert_arrays_equal(w, common.check_weight(w, 'inhibitory', is_conductance=True))
+    assert_equal(w, common.check_weight(w, 'excitatory', is_conductance=True).tolist())
+    assert_equal(w, common.check_weight(w, 'excitatory', is_conductance=False).tolist())
+    assert_equal(w, common.check_weight(w, 'inhibitory', is_conductance=True).tolist())
     assert_raises(errors.InvalidWeightError, common.check_weight, w, 'inhibitory', is_conductance=False)
     w = range(-10,0)
-    assert_arrays_equal(w, common.check_weight(w, 'inhibitory', is_conductance=False))   
+    assert_equal(w, common.check_weight(w, 'inhibitory', is_conductance=False).tolist())   
     assert_raises(errors.InvalidWeightError, common.check_weight, w, 'inhibitory', is_conductance=True)
     assert_raises(errors.InvalidWeightError, common.check_weight, w, 'excitatory', is_conductance=True)
     assert_raises(errors.InvalidWeightError, common.check_weight, w, 'excitatory', is_conductance=False)
