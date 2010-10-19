@@ -873,7 +873,7 @@ class Population(BasePopulation):
     def _set_structure(self, structure):
         if structure != self.structure:
             self._positions = None # setting a new structure invalidates previously calculated positions
-            self.structure = structure
+            self._structure = structure
     structure = property(fget=_get_structure, fset=_set_structure)
     # arguably structure should be read-only, i.e. it is not possible to change it after Population creation
     
@@ -889,7 +889,7 @@ class Population(BasePopulation):
         assert isinstance(pos_array, numpy.ndarray)
         assert pos_array.shape == (3, self.size), "%s != %s" % (pos_array.shape, (3, self.size))
         self._positions = pos_array.copy() # take a copy in case pos_array is changed later
-        self.structure = None # explicitly setting positions destroys any previous structure
+        self._structure = None # explicitly setting positions destroys any previous structure
 
     positions = property(_get_positions, _set_positions,
                          """A 3xN array (where N is the number of neurons in the Population)
