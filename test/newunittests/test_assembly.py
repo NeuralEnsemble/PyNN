@@ -107,7 +107,12 @@ def test_initialize():
 
 #test record
 
-#test describe
+def test_describe():
+    p1 = MockPopulation()
+    p2 = MockPopulation()
+    a = Assembly(p1, p2)
+    assert isinstance(a.describe(), basestring)
+    #assert isinstance(a.describe(template=None), dict)
 
 def test_get_population():
     p1 = MockPopulation()

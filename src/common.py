@@ -382,7 +382,7 @@ class BasePopulation(object):
         elif isinstance(index, tuple):
             return PopulationView(self, list(index))
         else:
-            raise Exception()
+            raise TypeError("indices must be integers, slices, lists, arrays or tuples, not %s" % type(index).__name__)
     
     def __len__(self):
         """Return the total number of cells in the population (all nodes)."""
@@ -767,6 +767,7 @@ class BasePopulation(object):
         """
         Save positions to file. The output format is id x y z
         """
+        # this should be rewritten to use self.positions and recording.files
         fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%g", "%g", "%g")
         lines = []
         for cell in self.all():  
@@ -871,7 +872,8 @@ class Population(BasePopulation):
         return self._structure
     
     def _set_structure(self, structure):
-        if structure != self.structure:
+        assert isinstance(structure, space.BaseStructure)
+        if structure != self._structure:
             self._positions = None # setting a new structure invalidates previously calculated positions
             self._structure = structure
     structure = property(fget=_get_structure, fset=_set_structure)
@@ -984,17 +986,26 @@ class PopulationView(BasePopulation):
 
     def id_to_index(self, id):
         """
-        Given the ID(s) of cell(s) in the Population, return its (their) index (order in the
-        Population).
+        Given the ID(s) of cell(s) in the PopulationView, return its/their
+        index/indices (order in the PopulationView).
         >>> assert id_to_index(p.index(5)) == 5
         >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        return numpy.where(self.all_cells==id)[0].item()
+        index, = numpy.where(self.all_cells==id)
+        if index.size == 1:
+            return index.item()
+        elif index.size == 0:
+            raise IndexError("id %s not found in %s" % (id, self))
+        else:
+            raise Exception("Something has gone very wrong: repeated ID")
 
-    def describe(self):
-        return "PopulationView called %s has parent %s and mask %s" % (self.label,
-                                                                       self.parent.label,
-                                                                       self.mask)
+    def describe(self, template='standard'):
+        context = {"label": self.label, "parent": self.parent.label, "mask": self.mask}
+        if template is None:
+            return context
+        else:
+            template = "PopulationView called %(label)s has parent %(parent)s and mask %(mask)s"
+            return template % context
 
 # ==============================================================================
 
@@ -1140,28 +1151,14 @@ class Projection(object):
             assert isinstance(self.synapse_dynamics, standardmodels.SynapseDynamics), \
               "The synapse_dynamics argument, if specified, must be a standardmodels.SynapseDynamics object, not a %s" % type(synapse_dynamics)
             if self.synapse_dynamics.fast:
-                assert isinstance(self.synapse_dynamics.fast, standardmodels.ShortTermPlasticityMechanism)
                 if hasattr(self.synapse_dynamics.fast, 'native_name'):
                     self.short_term_plasticity_mechanism = self.synapse_dynamics.fast.native_name
                 else:
                     self.short_term_plasticity_mechanism = self.synapse_dynamics.fast.possible_models
                 self._short_term_plasticity_parameters = self.synapse_dynamics.fast.parameters.copy()
             if self.synapse_dynamics.slow:
-                assert isinstance(self.synapse_dynamics.slow, standardmodels.STDPMechanism)
-                assert 0 <= self.synapse_dynamics.slow.dendritic_delay_fraction <= 1.0
-                td = self.synapse_dynamics.slow.timing_dependence
-                wd = self.synapse_dynamics.slow.weight_dependence
-                self._stdp_parameters = td.parameters.copy()
-                self._stdp_parameters.update(wd.parameters)
-                
-                possible_models = td.possible_models.intersection(wd.possible_models)
-                if len(possible_models) == 1 :
-                    self.long_term_plasticity_mechanism = list(possible_models)[0]
-                elif len(possible_models) == 0 :
-                    raise NoModelAvailableError("No available plasticity models")
-                elif len(possible_models) > 1 :
-                    # we pass the set of models back to the simulator-specific module for it to deal with
-                    self.long_term_plasticity_mechanism = possible_models
+                self._stdp_parameters = self.synapse_dynamics.slow.all_parameters
+                self.long_term_plasticity_mechanism = self.synapse_dynamics.slow.possible_models
 
     def __len__(self):
         """Return the total number of local connections."""

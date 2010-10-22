@@ -4,7 +4,7 @@ import numpy
 from mock import Mock, patch
 from tools import assert_arrays_equal
     
-
+builtin_open = open
 id_map = {'larry': 0, 'curly': 1, 'moe': 2}
 
 class MockStandardCell(standardmodels.StandardCellType):
@@ -29,6 +29,41 @@ class MockID(object):
     def __init__(self, label, parent):
         self.label = label
         self.parent = parent
+
+def test__getitem__int():
+    p = MockPopulation()
+    assert_equal(p[0], 0)
+    assert_equal(p[12], 12)
+    assert_raises(IndexError, p.__getitem__, 13)
+    assert_equal(p[-1], 12)
+    
+def test__getitem__slice():
+    orig_PV = common.PopulationView
+    common.PopulationView = Mock()
+    p = MockPopulation()
+    pv = p[3:9]
+    common.PopulationView.assert_called_with(p, slice(3,9,None))
+    common.PopulationView = orig_PV
+
+def test__getitem__list():
+    orig_PV = common.PopulationView
+    common.PopulationView = Mock()
+    p = MockPopulation()
+    pv = p[range(3,9)]
+    common.PopulationView.assert_called_with(p, range(3,9))
+    common.PopulationView = orig_PV
+
+def test__getitem__tuple():
+    orig_PV = common.PopulationView
+    common.PopulationView = Mock()
+    p = MockPopulation()
+    pv = p[(3,5,7)]
+    common.PopulationView.assert_called_with(p, [3,5,7])
+    common.PopulationView = orig_PV
+
+def test__getitem__invalid():
+    p = MockPopulation()
+    assert_raises(TypeError, p.__getitem__, "foo")
 
 def test_len():
     p = MockPopulation()
@@ -168,7 +203,7 @@ def test_initialize():
     p._set_initial_value_array = Mock()
     p.initialize('v', -65.0)
     assert_equal(p.initial_values['v'].value, -65.0)
-    p._set_initial_value_array.assert_called_with('v', -65.0)
+    p._set_initial_value_array.assert_called_with('v', -65.0)    
     
 def test_can_record():
     p = MockPopulation()
@@ -321,3 +356,7 @@ def test_inject():
     assert_equal(meth, "inject_into")
     assert_equal(args, (p,))
 
+def test_inject_into_invalid_celltype():
+    p = MockPopulation()
+    p.celltype.recordable = ['spikes']
+    assert_raises(TypeError, p.inject, Mock())
