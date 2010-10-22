@@ -200,11 +200,12 @@ class Projection(common.Projection):
         
         
         ## Deal with short-term synaptic plasticity
-        if self.short_term_plasticity_mechanism:
-            U = self._short_term_plasticity_parameters['U']
-            tau_rec = self._short_term_plasticity_parameters['tau_rec']
-            tau_facil = self._short_term_plasticity_parameters['tau_facil']
-            u0 = self._short_term_plasticity_parameters['u0']
+        if self.synapse_dynamics and self.synapse_dynamics.fast:
+            # need to check it is actually the Ts-M model, even though that is the only one at present!
+            U = self.synapse_dynamics.fast.parameters['U']
+            tau_rec = self.synapse_dynamics.fast.parameters['tau_rec']
+            tau_facil = self.synapse_dynamics.fast.parameters['tau_facil']
+            u0 = self.synapse_dynamics.fast.parameters['u0']
             for cell in self.post:
                 cell._cell.set_Tsodyks_Markram_synapses(self.synapse_type, U, tau_rec, tau_facil, u0)
             synapse_model = 'Tsodyks-Markram'
@@ -221,7 +222,7 @@ class Projection(common.Projection):
         logger.info("--- Projection[%s].__init__() ---" %self.label)
                
         ## Deal with long-term synaptic plasticity
-        if self.long_term_plasticity_mechanism:
+        if self.synapse_dynamics and self.synapse_dynamics.slow:
             ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
             if ddf > 0.5 and num_processes() > 1:
                 # depending on delays, can run into problems with the delay from the
@@ -230,9 +231,11 @@ class Projection(common.Projection):
                 # node with the pre-synaptic neurons for ddf>0.5 and on the node
                 # with the post-synaptic neuron (as is done now) for ddf<0.5
                 raise NotImplementedError("STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
-            self._stdp_parameters['allow_update_on_post'] = int(False) # for compatibility with NEST
+            stdp_parameters = self.synapse_dynamics.slow.all_parameters
+            stdp_parameters['allow_update_on_post'] = int(False) # for compatibility with NEST
+            long_term_plasticity_mechanism = self.synapse_dynamics.slow.possible_models
             for c in self.connections:
-                c.useSTDP(self.long_term_plasticity_mechanism, self._stdp_parameters, ddf)
+                c.useSTDP(long_term_plasticity_mechanism, stdp_parameters, ddf)
         
         # Check none of the delays are out of bounds. This should be redundant,
         # as this should already have been done in the Connector object, so

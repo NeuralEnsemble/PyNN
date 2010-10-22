@@ -212,6 +212,11 @@ class SynapseDynamics(object):
         component (short-term facilitation/depression) and a `slow` component
         (long-term potentiation/depression).
         """
+        if fast:
+            assert isinstance(fast, ShortTermPlasticityMechanism)
+        if slow:
+            assert isinstance(slow, STDPMechanism)
+            assert 0 <= slow.dendritic_delay_fraction <= 1.0
         self.fast = fast
         self.slow = slow
     
@@ -272,7 +277,26 @@ class STDPMechanism(object):
         self.weight_dependence = weight_dependence
         self.voltage_dependence = voltage_dependence
         self.dendritic_delay_fraction = dendritic_delay_fraction
-        
+    
+    @property
+    def possible_models(self):
+        td = self.timing_dependence
+        wd = self.weight_dependence
+        pm = td.possible_models.intersection(wd.possible_models)
+        if len(pm) == 1 :
+            return list(pm)[0]
+        elif len(pm) == 0 :
+            raise NoModelAvailableError("No available plasticity models")
+        elif len(pm) > 1 :
+            # we pass the set of models back to the simulator-specific module for it to deal with
+            return pm
+    
+    @property
+    def all_parameters(self):
+        parameters = self.timing_dependence.parameters.copy()
+        parameters.update(self.weight_dependence.parameters)
+        return parameters
+    
     def describe(self):
         """
         Return a human-readable description of the STDP mechanism.

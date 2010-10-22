@@ -321,20 +321,22 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    method, source, target,
                                    synapse_dynamics, label, rng)
-
         self.synapse_type = target or 'excitatory'
-
-        if isinstance(self.long_term_plasticity_mechanism, Set):
-            logger.warning("Several STDP models are available for these connections:")
-            logger.warning(", ".join(model for model in self.long_term_plasticity_mechanism))
-            self.long_term_plasticity_mechanism = list(self.long_term_plasticity_mechanism)[0]
-            logger.warning("By default, %s is used" % self.long_term_plasticity_mechanism)
-
-        if synapse_dynamics and synapse_dynamics.fast and synapse_dynamics.slow:
-                raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
-        self._plasticity_model = self.short_term_plasticity_mechanism or \
-                                 self.long_term_plasticity_mechanism or \
-                                 "static_synapse"
+        if self.synapse_dynamics:
+            if self.synapse_dynamics.fast:
+                if self.synapse_dynamics.slow:
+                    raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
+                else:
+                    self._plasticity_model = self.synapse_dynamics.fast.possible_models
+            elif synapse_dynamics.slow:
+                self._plasticity_model = self.synapse_dynamics.slow.possible_models
+                if isinstance(self._plasticity_model, Set):
+                    logger.warning("Several STDP models are available for these connections:")
+                    logger.warning(", ".join(model for model in self._plasticity_model))
+                    self._plasticity_model = list(self._plasticity_model)[0]
+                    logger.warning("By default, %s is used" % self._plasticity_model)
+        else:        
+            self._plasticity_model = "static_synapse"
         assert self._plasticity_model in NEST_SYNAPSE_TYPES, self._plasticity_model
 
         # Set synaptic plasticity parameters 
@@ -349,23 +351,24 @@ class Projection(common.Projection):
         if 'num_connectors' in synapse_defaults:
             synapse_defaults.pop('num_connectors')
             
-        if hasattr(self, '_short_term_plasticity_parameters') and self._short_term_plasticity_parameters:
-            synapse_defaults.update(self._short_term_plasticity_parameters)
+        if self.synapse_dynamics:
+            if self.synapse_dynamics.fast:
+                synapse_defaults.update(self.synapse_dynamics.parameters)
+            elif self.synapse_dynamics.slow:
+                stdp_parameters = self.synapse_dynamics.slow.all_parameters
+                # NEST does not support w_min != 0
+                stdp_parameters.pop("w_min_always_zero_in_NEST")
+                # Tau_minus is a parameter of the post-synaptic cell, not of the connection
+                tau_minus = stdp_parameters.pop("tau_minus")
+                # The following is a temporary workaround until the NEST guys stop renaming parameters!
+                if 'tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
+                    nest.SetStatus(self.post.local_cells.tolist(), [{'tau_minus': tau_minus}])
+                elif 'Tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
+                    nest.SetStatus(self.post.local_cells.tolist(), [{'Tau_minus': tau_minus}])
+                else:
+                    raise Exception("Postsynaptic cell model does not support STDP.")
 
-        if hasattr(self, '_stdp_parameters') and self._stdp_parameters:
-            # NEST does not support w_min != 0
-            self._stdp_parameters.pop("w_min_always_zero_in_NEST")
-            # Tau_minus is a parameter of the post-synaptic cell, not of the connection
-            tau_minus = self._stdp_parameters.pop("tau_minus")
-            # The following is a temporary workaround until the NEST guys stop renaming parameters!
-            if 'tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
-                nest.SetStatus(self.post.local_cells.tolist(), [{'tau_minus': tau_minus}])
-            elif 'Tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
-                nest.SetStatus(self.post.local_cells.tolist(), [{'Tau_minus': tau_minus}])
-            else:
-                raise Exception("Postsynaptic cell model does not support STDP.")
-
-            synapse_defaults.update(self._stdp_parameters)
+            synapse_defaults.update(stdp_parameters)
 
         nest.CopyModel(self._plasticity_model, self.plasticity_name, synapse_defaults)
         self.connection_manager = simulator.ConnectionManager(self.synapse_type,
