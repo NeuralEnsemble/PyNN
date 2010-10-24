@@ -462,7 +462,7 @@ class Population(common.Population):
     def print_v(self, file, gather=True, compatible_output=True):
         pass
 
-class AlltoAllConnector(connectors.AllToAllConnector):
+class AllToAllConnector(connectors.AllToAllConnector):
     
     def connect(self, projection):
         connectivity_node = build_node('net:connectivity_pattern')
