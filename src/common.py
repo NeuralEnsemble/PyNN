@@ -803,7 +803,11 @@ class Population(BasePopulation):
         label is an optional name for the population.
         """
         if not isinstance(size, int): # also allow a single integer, for a 1D population
-            assert isinstance(size, tuple), "`size` must be an integer or a tuple. You have supplied a %s" % type(size)
+            assert isinstance(size, tuple), "`size` must be an integer or a tuple of ints. You have supplied a %s" % type(size)
+            # check the things inside are ints
+            for e in size:
+                assert isinstance(e, int), "`size` must be an integer or a tuple of ints. Element '%s' is not an int" % str(e)
+                
             assert structure is None, "If you specify `size` as a tuple you may not specify structure."
             if len(size) == 1:
                 structure = space.Line()
