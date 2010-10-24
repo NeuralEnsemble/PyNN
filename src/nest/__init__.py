@@ -24,8 +24,12 @@ from pyNN.random import RandomDistribution
 
 Set = set
 tempdirs       = []
-NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
-                      "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse"]
+#NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
+#                      "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse",
+#                      "stdp_triplet_synapse", ]
+
+NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')
+
 STATE_VARIABLE_MAP = {"v": "V_m", "w": "w"}
 logger = logging.getLogger("PyNN")
 
@@ -337,7 +341,8 @@ class Projection(common.Projection):
                     logger.warning("By default, %s is used" % self._plasticity_model)
         else:        
             self._plasticity_model = "static_synapse"
-        assert self._plasticity_model in NEST_SYNAPSE_TYPES, self._plasticity_model
+        if self._plasticity_model not in NEST_SYNAPSE_TYPES:
+            raise ValueError, "Synapse dynamics model '%s' not a valid NEST synapse model.  Possible models in your NEST build are: " % ( self._plasticity_model,), nest.Models(mtype='synapses')
 
         # Set synaptic plasticity parameters 
         # We create a particular synapse context just for this projection, by copying
