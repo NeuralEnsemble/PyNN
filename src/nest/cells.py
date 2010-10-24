@@ -242,7 +242,6 @@ class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
         ('a',        'a'),
         ('b',        'b'),
         ('tbins',    'tbins'),
-        ('rmax',     'rmax'),
         ('start',    'start'),
         ('duration', 'stop',   "duration+start", "stop-start"),
     )

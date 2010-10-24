@@ -304,8 +304,7 @@ class SpikeSourceInhGamma(StandardCellType):
     default_parameters = {
         'a'        : numpy.array([1.0]), # time histogram of parameter a of a gamma distribution (dimensionless)
         'b'        : numpy.array([1.0]), # time histogram of parameter b of a gamma distribution (seconds)
-        'tbins'    : numpy.array([0]),   # time bins of the time histogram of a,b in units of ms
-        'rmax'     : 1.0,                # Rate (Hz) of the Poisson process to be thinned, usually set to max(1/b)
+        'tbins'    : numpy.array([0.0]),   # time bins of the time histogram of a,b in units of ms
         'start'    : 0.0,                # Start time (ms)
         'duration' : 1e6                 # Duration of spike sequence (ms)
     }
