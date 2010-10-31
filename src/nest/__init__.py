@@ -331,7 +331,7 @@ class Projection(common.Projection):
                 if self.synapse_dynamics.slow:
                     raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
                 else:
-                    self._plasticity_model = self.synapse_dynamics.fast.possible_models
+                    self._plasticity_model = self.synapse_dynamics.fast.native_name
             elif synapse_dynamics.slow:
                 self._plasticity_model = self.synapse_dynamics.slow.possible_models
                 if isinstance(self._plasticity_model, Set):
@@ -342,7 +342,7 @@ class Projection(common.Projection):
         else:        
             self._plasticity_model = "static_synapse"
         if self._plasticity_model not in NEST_SYNAPSE_TYPES:
-            raise ValueError, "Synapse dynamics model '%s' not a valid NEST synapse model.  Possible models in your NEST build are: " % ( self._plasticity_model,), nest.Models(mtype='synapses')
+            raise ValueError, "Synapse dynamics model '%s' not a valid NEST synapse model.  Possible models in your NEST build are: %s" % ( self._plasticity_model, str(nest.Models(mtype='synapses')))
 
         # Set synaptic plasticity parameters 
         # We create a particular synapse context just for this projection, by copying
@@ -358,7 +358,7 @@ class Projection(common.Projection):
             
         if self.synapse_dynamics:
             if self.synapse_dynamics.fast:
-                synapse_defaults.update(self.synapse_dynamics.parameters)
+                synapse_defaults.update(self.synapse_dynamics.fast.parameters)
             elif self.synapse_dynamics.slow:
                 stdp_parameters = self.synapse_dynamics.slow.all_parameters
                 # NEST does not support w_min != 0
@@ -373,7 +373,7 @@ class Projection(common.Projection):
                 else:
                     raise Exception("Postsynaptic cell model does not support STDP.")
 
-            synapse_defaults.update(stdp_parameters)
+                synapse_defaults.update(stdp_parameters)
 
         nest.CopyModel(self._plasticity_model, self.plasticity_name, synapse_defaults)
         self.connection_manager = simulator.ConnectionManager(self.synapse_type,
