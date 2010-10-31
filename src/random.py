@@ -18,12 +18,13 @@ $Id:random.py 188 2008-01-29 10:03:59Z apdavison $
 import sys
 import logging
 import numpy.random
+
 try:
     import pygsl.rng
     have_gsl = True
 except (ImportError, Warning):
-    import warnings
-    warnings.warn("GSL random number generators not available")
+    #import warnings
+    #warnings.warn("GSL random number generators not available")
     have_gsl = False
 import time
 
@@ -132,6 +133,8 @@ class GSLRNG(WrappedRNG):
     """Wrapper for the GSL random number generators."""
        
     def __init__(self, seed=None, type='mt19937', rank=0, num_processes=1, parallel_safe=True):
+        if not have_gsl:
+            raise ImportError, "GSLRNG: Cannot import pygsl"
         WrappedRNG.__init__(self, seed, rank, num_processes, parallel_safe)
         self.rng = getattr(pygsl.rng, type)()
         if self.seed:
