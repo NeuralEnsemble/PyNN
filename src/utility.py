@@ -77,20 +77,32 @@ def get_script_args(n_args, usage=''):
         raise Exception(usage)
     return args
     
-def init_logging(logfile, debug=False, num_processes=1, rank=0):
-    if num_processes > 1:
-        logfile += '.%d' % rank
-    logfile = os.path.abspath(logfile)
+def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
+    # allow logfile == None
+    # which implies output to stderr
+    if logfile:
+        if num_processes > 1:
+            logfile += '.%d' % rank
+        logfile = os.path.abspath(logfile)
+
+    # prefix log messages with mpi rank
+    mpi_prefix = ""
+    if num_processes>1:
+        mpi_prefix = 'Rank %d of %d: ' % (rank, num_processes)
+
     if debug:
-        logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    filename=logfile,
-                    filemode='w')
+       log_level = logging.DEBUG
     else:
-        logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    filename=logfile,
-                    filemode='w')
+       log_level = logging.INFO
+
+    # allow user to override exact log_level
+    if level:
+        log_level = level
+        
+    logging.basicConfig(level=log_level,
+                        format=mpi_prefix+'%(asctime)s %(levelname)s %(message)s',
+                        filename=logfile,
+                        filemode='w')
 
 def save_population(population,filename,variables=[]):
     """
