@@ -532,14 +532,14 @@ class Projection(common.Projection, WDManager):
                 weight_scale_factor = 1e-9
             
             if self.synapse_dynamics.fast:
-                possible_models = possible_models.intersection(self.short_term_plasticity_mechanism)
-                plasticity_parameters.update(self._short_term_plasticity_parameters)
+                possible_models = possible_models.intersection(self.synapse_dynamics.fast.possible_models)
+                plasticity_parameters.update(self.synapse_dynamics.fast.parameters)
                 # perhaps need to ensure that STDP is turned off here, to be turned back on by the next block
             else:
                 possible_models = possible_models.difference(dynamic_synapse_models) # imported from synapses module
             if self.synapse_dynamics.slow:
-                possible_models = possible_models.intersection(self.long_term_plasticity_mechanism)
-                plasticity_parameters.update(self._stdp_parameters)
+                possible_models = possible_models.intersection(self.synapse_dynamics.slow.possible_models)
+                plasticity_parameters.update(self.synapse_dynamics.slow.all_parameters)
                 dendritic_delay = self.synapse_dynamics.slow.dendritic_delay_fraction * d
                 transmission_delay = d - dendritic_delay
                 plasticity_parameters.update({'back_delay': 2*0.001*dendritic_delay, 'Winit': w*weight_scale_factor})

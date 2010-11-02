@@ -180,7 +180,7 @@ try:
             context should be a dict.
             """
             template = cls.get_template(template)(namespaces=[context])
-            return str(template)
+            return template.respond()
 
     TEMPLATE_ENGINES['cheetah'] = CheetahTemplateEngine
 except ImportError:

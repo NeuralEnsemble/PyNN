@@ -1140,22 +1140,9 @@ class Projection(object):
         if label is None:
             if self.pre.label and self.post.label:
                 self.label = "%s→%s" % (self.pre.label, self.post.label)
-    
-        # Deal with synaptic plasticity
-        self.short_term_plasticity_mechanism = None
-        self.long_term_plasticity_mechanism = None
         if self.synapse_dynamics:
             assert isinstance(self.synapse_dynamics, standardmodels.SynapseDynamics), \
               "The synapse_dynamics argument, if specified, must be a standardmodels.SynapseDynamics object, not a %s" % type(synapse_dynamics)
-            if self.synapse_dynamics.fast:
-                if hasattr(self.synapse_dynamics.fast, 'native_name'):
-                    self.short_term_plasticity_mechanism = self.synapse_dynamics.fast.native_name
-                else:
-                    self.short_term_plasticity_mechanism = self.synapse_dynamics.fast.possible_models
-                self._short_term_plasticity_parameters = self.synapse_dynamics.fast.parameters.copy()
-            if self.synapse_dynamics.slow:
-                self._stdp_parameters = self.synapse_dynamics.slow.all_parameters
-                self.long_term_plasticity_mechanism = self.synapse_dynamics.slow.possible_models
 
     def __len__(self):
         """Return the total number of local connections."""
