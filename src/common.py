@@ -44,8 +44,7 @@ import numpy
 import logging
 from warnings import warn
 import operator
-from pyNN import random, utility, recording, errors, standardmodels, core, space
-from string import Template
+from pyNN import random, utility, recording, errors, standardmodels, core, space, descriptions
 from itertools import chain
 
 if not 'simulator' in locals():
@@ -841,9 +840,6 @@ class Population(BasePopulation):
                           'v': self.recorder_class('v', population=self),
                           'gsyn': self.recorder_class('gsyn', population=self)}
         Population.nPop += 1
-        logger.info(self.describe('Creating Population "$label" of size $size, '+
-                                   'containing `$celltype`s with indices between $first_id and $last_id'))
-        logger.debug(self.describe())
     
     @property
     def local_cells(self):
@@ -902,54 +898,34 @@ class Population(BasePopulation):
                          giving the x,y,z coordinates of all the neurons (soma, in the
                          case of non-point models).""")
     
-    def describe(self, template='standard', fill=lambda t,c: Template(t).safe_substitute(c)):
+    def describe(self, template='population_default.txt', engine='default'):
         """
-        Returns a human-readable description of the population
+        Returns a human-readable description of the population.
+        
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+        
+        If template is None, then a dictionary containing the template context
+        will be returned.
         """
-        if template == 'standard':
-            #lines = ['==== Population $label ====',
-            #         '  Dimensions: $dim',
-            #         '  Local cells: $n_cells_local',
-            #         '  Cell type: $celltype',
-            #         '  ID range: $first_id-$last_id',
-            #         '  First cell on this node:',
-            #         '    ID: $local_first_id',
-            #         '    Parameters: $cell_parameters']
-            lines = ['------- Population description -------',
-                     'Population called $label is made of $n_cells cells [$n_cells_local being local]']
-            if self.structure:
-                lines += ["-> Cells are arranged in a %s" % self.structure.describe(self.size)]
-            lines += ["-> Celltype is $celltype",
-                      "-> ID range is $first_id-$last_id",]
-            if len(self.local_cells) > 0:
-                lines += ["-> Cell Parameters used for first cell on this node are: "]
-                for name, value in self.local_cells[0].get_parameters().items():
-                    lines += ["    | %-12s: %s" % (name, value)]
-            else:
-                lines += ["-> There are no cells on this node."]
-            lines += ["--- End of Population description ----"]
-            template = "\n".join(lines)
-            
-        context = self.__dict__.copy()
+        context = {
+            "label": self.label,
+            "celltype": self.celltype.describe(template=None),
+            "structure": None,
+            "size": self.size,
+            "size_local": len(self.local_cells),
+            "first_id": self.first_id,
+            "last_id": self.last_id,
+        }
         if len(self.local_cells) > 0:
             first_id = self.local_cells[0]
-            context.update(local_first_id=first_id)
-            cell_parameters = first_id.get_parameters()
-            names = cell_parameters.keys()
-            names.sort()
-            context.update(cell_parameters=[(name,cell_parameters[name]) for name in names])
-        context.update(celltype=self.celltype.__class__.__name__)
-        context.update(n_cells=len(self))
-        context.update(n_cells_local=len(self.local_cells))
-        for k in context.keys():
-            if k[0] == '_':
-                context.pop(k)
-                
-        if template == None:
-            return context
-        else:
-            return fill(template, context)
-    
+            context.update({
+                "local_first_id": first_id,
+                "cell_parameters": first_id.get_parameters(),
+            })
+        if self.structure:
+            context["structure"] = self.structure.describe(template=None)
+        return descriptions.render(engine, template, context)
 
 
 class PopulationView(BasePopulation):
@@ -1003,13 +979,22 @@ class PopulationView(BasePopulation):
         else:
             raise Exception("Something has gone very wrong: repeated ID")
 
-    def describe(self, template='standard'):
-        context = {"label": self.label, "parent": self.parent.label, "mask": self.mask}
-        if template is None:
-            return context
-        else:
-            template = "PopulationView called %(label)s has parent %(parent)s and mask %(mask)s"
-            return template % context
+    def describe(self, template='populationview_default.txt', engine='default'):
+        """
+        Returns a human-readable description of the population view.
+        
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+        
+        If template is None, then a dictionary containing the template context
+        will be returned.
+        """
+        context = {"label": self.label,
+                   "parent": self.parent.label,
+                   "mask": self.mask,
+                   "size": self.size}
+        return descriptions.render(engine, template, context)
+
 
 # ==============================================================================
 
@@ -1079,17 +1064,25 @@ class Assembly(object):
     def record(self, record_from=None, rng=None, to_file=True):
         self._record('spikes', record_from, rng, to_file)
 
-    def describe(self):
-        description = "Neuronal assembly '%s', consisting of:\n  " % self.label
-        description += "\n  ".join(p.describe() for p in self.populations)
-        return description
-
     def get_population(self, label):
         for p in self.populations:
             if label == p.label:
                 return p
         raise KeyError("Assembly does not contain a population with the label %s" % label)
 
+    def describe(self, template='assembly_default.txt', engine='default'):
+        """
+        Returns a human-readable description of the assembly.
+        
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+        
+        If template is None, then a dictionary containing the template context
+        will be returned.
+        """
+        context = {"label": self.label,
+                   "populations": [p.describe(template=None) for p in self.populations]}
+        return descriptions.render(engine, template, context)
 
 # ==============================================================================
 
@@ -1336,41 +1329,30 @@ class Projection(object):
         bins = numpy.arange(min, max, float(max-min)/nbins)
         return numpy.histogram(self.getWeights(format='list', gather=True), bins) # returns n, bins
     
-    def describe(self, template='standard'):
+    def describe(self, template='projection_default.txt', engine='default'):
         """
-        Return a human-readable description of the projection
-        """
-        if template == 'standard':
-            lines = ["------- Projection description -------",
-                     "Projection '$label' from '$pre_label' [$pre_n_cells cells] to '$post_label' [$post_n_cells cells]",
-                     "    | Connector : $connector",
-                     "    | Weights : $weights",
-                     "    | Delays : $delays",
-                     "    | Plasticity : $plasticity",
-                     "    | Num. connections : $nconn",
-                    ]        
-            lines += ["---- End of Projection description -----"]
-            template = '\n'.join(lines)
+        Returns a human-readable description of the projection.
         
-        context = self.__dict__.copy()
-        context.update({
-            'nconn': len(self),
-            'pre_label': self.pre.label,
-            'post_label': self.post.label,
-            'pre_n_cells': self.pre.size,
-            'post_n_cells': self.post.size,
-            'weights': str(self._method.weights),
-            'delays': str(self._method.delays),
-            'connector': self._method.__class__.__name__
-        })
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+        
+        If template is None, then a dictionary containing the template context
+        will be returned.
+        """
+        context = {
+            "label": self.label,
+            "pre": self.pre.describe(template=None),
+            "post": self.post.describe(template=None),
+            "source": self.source,
+            "target": self.target,
+            "size_local": len(self),
+            "size": self.size(gather=True),
+            "connector": self._method.describe(template=None),
+            "plasticity": None,
+        }
         if self.synapse_dynamics:
-            context.update(plasticity=self.synapse_dynamics.describe())
-        else:
-            context.update(plasticity='None')
-            
-        if template == None:
-            return context
-        else:
-            return Template(template).substitute(context)
+            context.update(plasticity=self.synapse_dynamics.describe(template=None))
+        return descriptions.render(engine, template, context)
+
 
 # ==============================================================================

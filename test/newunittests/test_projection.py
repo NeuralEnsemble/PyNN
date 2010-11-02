@@ -22,5 +22,5 @@ def test_create_simple():
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
     
-def test_create_with_synapse_dynamics():
+#def test_create_with_synapse_dynamics():
     

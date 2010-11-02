@@ -6,7 +6,7 @@ for improved performance.
 """
 
 import numpy, logging, sys, re
-from pyNN import errors, common, core, random, utility, recording
+from pyNN import errors, common, core, random, utility, recording, descriptions
 from pyNN.space import Space
 from pyNN.random import RandomDistribution
 from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
@@ -235,7 +235,28 @@ class Connector(object):
         if self.verbose and common.rank() == 0:           
             print self.prog, "\r",
             sys.stdout.flush()
-            
+    
+    def get_parameters(self):
+        P = {}
+        for name in self.parameter_names:
+            P[name] = getattr(self, name)
+        return P
+    
+    def describe(self, template='connector_default.txt', engine='default'):
+        """
+        Returns a human-readable description of the connection method.
+        
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+        
+        If template is None, then a dictionary containing the template context
+        will be returned.
+        """
+        context = {'name': self.__class__.__name__,
+                   'parameters': self.get_parameters(),
+                   'weights': self.weights,
+                   'delays': self.delays}
+        return descriptions.render(engine, template, context)
 
 
 class ProbabilisticConnector(Connector):
@@ -311,6 +332,7 @@ class AllToAllConnector(Connector):
     Connects all cells in the presynaptic population to all cells in the
     postsynaptic population.
     """
+    parameter_names = ('allow_self_connections',)
     
     def __init__(self, allow_self_connections=True, weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
         """
@@ -345,6 +367,7 @@ class FixedProbabilityConnector(Connector):
     """
     For each pair of pre-post cells, the connection probability is constant.
     """
+    parameter_names = ('allow_self_connections', 'p_connect')
     
     def __init__(self, p_connect, allow_self_connections=True, weights=0.0, delays=None, space=Space(), 
                        safe=True, verbose=False):
@@ -384,6 +407,7 @@ class DistanceDependentProbabilityConnector(Connector):
     """
     For each pair of pre-post cells, the connection probability depends on distance.
     """
+    parameter_names = ('allow_self_connections', 'd_expression')
     
     def __init__(self, d_expression, allow_self_connections=True,
                  weights=0.0, delays=None, space=Space(), safe=True, verbose=False, n_connections=None):
@@ -434,6 +458,7 @@ class FromListConnector(Connector):
     """
     Make connections according to a list.
     """
+    parameter_names = ('conn_list',)
     
     def __init__(self, conn_list, safe=True, verbose=False):
         """
@@ -466,6 +491,7 @@ class FromFileConnector(FromListConnector):
     """
     Make connections according to a list read from a file.
     """
+    parameter_names = ('filename', 'distributed')
     
     def __init__(self, filename, distributed=False, safe=True, verbose=False):
         """
@@ -514,6 +540,7 @@ class FixedNumberPostConnector(Connector):
     population, all possible single connections are made before starting to add
     duplicate connections.
     """
+    parameter_names = ('allow_self_connections', 'n')
     
     def __init__(self, n, allow_self_connections=True, weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
         """
@@ -599,6 +626,7 @@ class FixedNumberPreConnector(Connector):
     population, all possible single connections are made before starting to add
     duplicate connections.
     """
+    parameter_names = ('allow_self_connections', 'n')
     
     def __init__(self, n, allow_self_connections=True, weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
         """
@@ -678,6 +706,7 @@ class OneToOneConnector(Connector):
     cell i in the presynaptic population to cell i in the postsynaptic
     population for all i.
     """
+    parameter_names = tuple()
     
     def __init__(self, weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
         """
@@ -722,6 +751,7 @@ class SmallWorldConnector(Connector):
     """
     For each pair of pre-post cells, the connection probability depends on distance.
     """
+    parameter_names = ('allow_self_connections', 'degree', 'rewiring')
     
     def __init__(self, degree, rewiring, allow_self_connections=True,
                  weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
@@ -809,6 +839,8 @@ class SmallWorldConnector(Connector):
 
 
 class CSAConnector(Connector):
+    parameter_names = ('cset',)
+    
     if haveCSA:
         def __init__ (self, cset, weights=None, delays=None, safe=True, verbose=False):
             """

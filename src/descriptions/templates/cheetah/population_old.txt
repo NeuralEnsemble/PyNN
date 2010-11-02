@@ -1,0 +1,16 @@
+------- Population description -------
+Population called $label is made of $size cells [$size_local being local]
+#if $structure
+-> Cells are arranged in a $structure
+#end if
+-> Celltype is $celltype
+-> ID range is $first_id-$last_id
+#if $n_cells_local > 0
+-> Cell Parameters used for first cell on this node are:
+    #for $name, $value in $cell_parameters.items()
+    $name: $value
+    #end for
+#else
+-> There are no cells on this node.
+#end if
+--- End of Population description ----

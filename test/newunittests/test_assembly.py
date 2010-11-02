@@ -16,6 +16,11 @@ class MockPopulation(BasePopulation):
     local_cells = range(1,10,2)
     all_cells = range(10)
     initialize = Mock()
+    def describe(self, template='abcd', engine=None):
+        if template is None:
+            return {'label': 'dummy'}
+        else:
+            return ""
 
 def test_create_with_one_population():
     p = MockPopulation()
@@ -112,7 +117,7 @@ def test_describe():
     p2 = MockPopulation()
     a = Assembly(p1, p2)
     assert isinstance(a.describe(), basestring)
-    #assert isinstance(a.describe(template=None), dict)
+    assert isinstance(a.describe(template=None), dict)
 
 def test_get_population():
     p1 = MockPopulation()

@@ -1,0 +1,2 @@
+Neuronal assembly called "$label", consisting of the following populations: $populations
+    

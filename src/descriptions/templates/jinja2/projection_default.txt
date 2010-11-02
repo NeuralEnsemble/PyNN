@@ -1,0 +1,21 @@
+Projection "{{label}}" from "{{pre.label}}" ({{pre.size}} cells) to "{{post.label}}" ({{post.size}} cells)
+    Target     : {{target}}
+    Connector  : {{connector.name}}
+        {%- for name,value in connector.parameters.items() %}
+        {{name}} : {{value}}{% endfor %}
+        Weights : {{connector.weights}}
+        Delays : {{connector.delays}}
+    Plasticity : {% if plasticity %}
+        Short-term : {{plasticity.fast}}
+        Long-term  : {% if plasticity.slow %}
+            Timing-dependence  : {{plasticity.slow.timing_dependence.name}}
+                {%- for name,value in plasticity.slow.timing_dependence.parameters.items() %}
+                {{name}} : {{value}}{% endfor %}
+            Weight-dependence  : {{plasticity.slow.weight_dependence.name}}
+                {%- for name,value in plasticity.slow.weight_dependence.parameters.items() %}
+                {{name}} : {{value}}{% endfor %}
+            Voltage-dependence : {{plasticity.slow.voltage_dependence}}
+            Dendritic delay fraction : {{plasticity.slow.dendritic_delay_fraction}}{% endif %}{% else %}None{% endif %}
+    Total connections : {{size}}
+    Local connections : {{size_local}}
+

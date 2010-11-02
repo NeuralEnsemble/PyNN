@@ -1,0 +1,2 @@
+Short-term plasticity mechanism: $fast
+Long-term plasticity mechanism: $slow

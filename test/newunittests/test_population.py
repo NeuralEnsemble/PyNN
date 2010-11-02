@@ -15,6 +15,8 @@ class MockID(object):
 class MockPopulation(common.Population):
     recorder_class = Mock()
     initialize = Mock()
+    first_id = 999
+    last_id = 7777
     
     def _create_cells(self, cellclass, cellparams, size):
         self.all_cells = numpy.array([MockID(i, self) for i in range(size)], MockID)

@@ -1,0 +1,15 @@
+Population "$label"
+    Structure   : $structure.name
+      #for $name,$value in $structure.parameters.items()
+      $name: $value
+      #end for
+    Local cells : $size_local
+    Cell type   : $celltype.name
+    ID range    : $first_id-$last_id
+    #if $size_local
+    First cell on this node:
+      ID: $local_first_id
+      #for $name,$value in $cell_parameters.items()
+      $name: $value
+      #end for
+    #end if

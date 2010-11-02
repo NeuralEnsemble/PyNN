@@ -1,0 +1,30 @@
+Projection "$label" from "$pre.label" ($pre.size cells) to "$post.label" ($post.size cells)
+    Target     : $target
+    Connector  : $connector.name
+        #for $name,$value in $connector.parameters.items()
+        $name : $value
+        #end for
+        Weights : $connector.weights
+        Delays : $connector.delays
+    Plasticity :
+        #if $plasticity
+        Short-term : $plasticity.fast
+        Long-term  :
+            #if $plasticity.slow
+            Timing-dependence  : $plasticity.slow.timing_dependence.name
+                #for $name,$value in $plasticity.slow.timing_dependence.parameters.items()
+                $name : $value
+                #end for
+            Weight-dependence  : $plasticity.slow.weight_dependence.name
+                #for $name,$value in $plasticity.slow.weight_dependence.parameters.items()
+                $name : $value
+                #end for
+            Voltage-dependence : $plasticity.slow.voltage_dependence
+            Dendritic delay fraction : $plasticity.slow.dendritic_delay_fraction
+            #end if
+        #else
+            None
+        #end if
+    Total connections : $size
+    Local connections : $size_local
+

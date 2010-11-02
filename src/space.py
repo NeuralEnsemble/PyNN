@@ -10,6 +10,7 @@ import numpy
 import math
 from operator import and_
 from pyNN.random import NumpyRNG
+from pyNN import descriptions
 
 def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
              periodic_boundaries=None): # may need to add an offset parameter
@@ -97,6 +98,20 @@ class BaseStructure(object):
             P[name] = getattr(self, name)
         return P
 
+    def describe(self, template='structure_default.txt', engine='default'):
+        """
+        Returns a human-readable description of the network structure.
+        
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+        
+        If template is None, then a dictionary containing the template context
+        will be returned.
+        """
+        context = {'name': self.__class__.__name__,
+                   'parameters': self.get_parameters()}
+        return descriptions.render(engine, template, context)
+
 
 class Line(BaseStructure):
     parameter_names = ("dx", "x0", "y0", "z0")
@@ -112,9 +127,6 @@ class Line(BaseStructure):
         y = numpy.zeros(n) + self.y0
         z = numpy.zeros(n) + self.z0
         return numpy.array((x,y,z))
-    
-    def describe(self, n):
-        return "line with %d positions" % n
 
 
 class Grid2D(BaseStructure):
@@ -143,13 +155,11 @@ class Grid2D(BaseStructure):
         x = self.x0 + self.dx*x.flatten()
         y = self.y0 + self.dy*y.flatten()
         z = self.z + z.flatten()
+        positions = numpy.array((x,y,z)) # use column_stack, if we decide to switch from (3,n) to (n,3)
         if self.fill_order == 'sequential':
-            return numpy.array((x,y,z)) # use column_stack, if we decide to switch from (3,n) to (n,3)
-        else:
-            raise NotImplementedError
-    
-    def describe(self, n):
-        return "2D grid of size (%d, %d)" % self.calculate_size(n)
+            return positions
+        else: # random
+            return numpy.random.permutation(positions.T).T
         
 
 class Grid3D(BaseStructure):
@@ -187,8 +197,6 @@ class Grid3D(BaseStructure):
         else:
             raise NotImplementedError
 
-    def describe(self, n):
-        return "3D grid of size (%d, %d, %d)" % self.calculate_size(n)
 
 class Shape(object):
     pass

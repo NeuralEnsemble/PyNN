@@ -1,0 +1,8 @@
+Population "$label"
+    Structure   : $structure
+    Local cells : $size_local
+    Cell type   : $celltype.name
+    ID range    : $first_id-$last_id
+    First cell on this node:
+      ID: $local_first_id
+      $cell_parameters

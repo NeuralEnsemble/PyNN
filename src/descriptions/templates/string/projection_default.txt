@@ -1,0 +1,9 @@
+Projection "$label"
+    From: $pre
+    To: $post
+    Target     : $target
+    Connector  : $connector
+    Plasticity : $plasticity
+    Total connections : $size
+    Local connections : $size_local
+

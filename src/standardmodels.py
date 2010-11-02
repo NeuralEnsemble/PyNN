@@ -19,6 +19,7 @@ Classes:
 """
 
 import copy
+import descriptions
 import numpy
 from core import is_listlike
 import errors
@@ -175,10 +176,23 @@ class StandardModelType(object):
         update self.parameters with those in parameters 
         """
         self.parameters.update(self.translate(parameters))
-        
-    def describe(self, template='standard'):
-        return str(self)
     
+    def describe(self, template='standardmodeltype_default.txt', engine='default'):
+        """
+        Returns a human-readable description of the cell type.
+        
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+        
+        If template is None, then a dictionary containing the template context
+        will be returned.
+        """
+        context = {
+            "name": self.__class__.__name__,
+            "parameters": self.parameters,
+        }
+        return descriptions.render(engine, template, context)
+
 
 class StandardCellType(StandardModelType):
     """Base class for standardized cell model classes."""
@@ -220,22 +234,21 @@ class SynapseDynamics(object):
         self.fast = fast
         self.slow = slow
     
-    def describe(self, template='standard'):
+    def describe(self, template='synapsedynamics_default.txt', engine='default'):
         """
-        Return a human-readable description of the synaptic properties.
+        Returns a human-readable description of the synapse dynamics.
+        
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+        
+        If template is None, then a dictionary containing the template context
+        will be returned.
         """
-        if template == 'standard':
-            lines = ["Short-term plasticity mechanism: $fast",
-                     "Long-term plasticity mechanism: $slow"]
-            template = "\n".join(lines)
-        context = {'fast': self.fast and self.fast.describe() or 'None',
-                   'slow': self.slow and self.slow.describe() or 'None'}
-        if template == None:
-            return context
-        else:
-            return Template(template).substitute(context)
-        
-        
+        context = {'fast': self.fast and self.fast.describe(template=None) or 'None',
+                   'slow': self.slow and self.slow.describe(template=None) or 'None'}
+        return descriptions.render(engine, template, context)
+
+
 class ShortTermPlasticityMechanism(StandardModelType):
     """Abstract base class for models of short-term synaptic dynamics."""
     
@@ -297,11 +310,21 @@ class STDPMechanism(object):
         parameters.update(self.weight_dependence.parameters)
         return parameters
     
-    def describe(self):
+    def describe(self, template='stdpmechanism_default.txt', engine='default'):
         """
-        Return a human-readable description of the STDP mechanism.
+        Returns a human-readable description of the STDP mechanism.
+        
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+        
+        If template is None, then a dictionary containing the template context
+        will be returned.
         """
-        return "STDP mechanism (this description needs to be filled out)."
+        context = {'weight_dependence': self.weight_dependence.describe(template=None),
+                   'timing_dependence': self.timing_dependence.describe(template=None),
+                   'voltage_dependence': self.voltage_dependence and self.voltage_dependence.describe(template=None) or None,
+                   'dendritic_delay_fraction': self.dendritic_delay_fraction}
+        return descriptions.render(engine, template, context)
 
 
 class STDPWeightDependence(StandardModelType):
