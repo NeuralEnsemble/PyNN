@@ -2,6 +2,7 @@ import tempfile
 import os
 import numpy
 import logging
+import warnings
 import nest
 from pyNN import recording, common, errors
 from pyNN.nest import simulator
@@ -161,9 +162,18 @@ class Recorder(recording.Recorder):
             self._merged_file.seek(0)
             data = numpy.load(self._merged_file)
         else:
-            if "filename" not in nest.GetStatus(self._device)[0]: # indicates that run() has not been called.
-                raise errors.NothingToWriteError("No data. Have you called run()?")
-            nest_files = nest.GetStatus(self._device, "filename")[0]
+            d = nest.GetStatus(self._device)[0]
+            if "filename" in d:
+                nest_files = d['filename']
+                warning = "Your version of NEST uses the old 'filename' key for spike_detector filenames.  Please upgrade your NEST version, as backwards compatibility will be removed in future releases"
+                logger.warning(warning)
+                warnings.warn(warning)
+            elif "filenames" in d:
+                nest_files = d['filenames']
+            else:
+                # indicates that run() has not been called.
+                raise errors.NothingToWriteError("No recorder data. Have you called run()?")
+                
             # possibly we can just keep on saving to the end of self._merged_file, instead of concatenating everything in memory
             logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
             non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
