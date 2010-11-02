@@ -1179,6 +1179,7 @@ class Projection(object):
         synapses.
         """
         # should perhaps add a "distribute" argument, for symmetry with "gather" in getWeights()
+        # if post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
         w = check_weight(w, self.synapse_type, is_conductance(self.post.local_cells[0]))
         self.connection_manager.set('weight', w)
     
@@ -1217,7 +1218,7 @@ class Projection(object):
         """
         Set parameters of the synapse dynamics to values taken from rand_distr
         """
-        self.setstandardmodels.SynapseDynamics(param, rand_distr.next(len(self)))
+        self.setSynapseDynamics(param, rand_distr.next(len(self)))
     
     # --- Methods for writing/reading information to/from file. ----------------
     
