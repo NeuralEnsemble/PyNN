@@ -1,10 +1,17 @@
 PyNN testing is divided into several different types of test:
     * checking the API is syntactically consistent between different backends
     * unit tests
-    * regression tests
     * system tests
     * running the example scripts
     * doctests    
+
+
+NOTE: the test suite is currently being reorganised to work with nose (http://somethingaboutorange.com/mrl/projects/nose), 
+in order to facilitate continuous integration testing.
+
+Many of the scripts listed below have been temporarily moved to an `unsorted` directory, until they can be
+integrated into the nose framework.
+
 
 
 API syntax consistency
@@ -28,9 +35,8 @@ command-line argument.
 Regression tests
 ----------------
 
-Any time there is a bug/defect on the tracker, a script should be added to the
-`regression` subdirectory, so we can check that the problem does not re-occur
-in the future.
+Any time there is a bug/defect on the tracker, appropriate tests should be added to both
+the `unittests` and `system` directories. 
 
 
 System tests

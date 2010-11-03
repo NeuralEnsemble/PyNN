@@ -202,7 +202,7 @@ def test_describe():
             ('c', 'C', 'c + a', 'C - A'),
         )
     m = M({})
-    assert isinstance(m.describe(), basestring)
+    assert isinstance(m.describe(), str)
 
 # test StandardCellType
 
@@ -212,7 +212,7 @@ def test_describe():
 
 def test_describe_SD():
     sd = SynapseDynamics()
-    assert isinstance(sd.describe(), basestring)
+    assert isinstance(sd.describe(), str)
     assert isinstance(sd.describe(template=None), dict)
 
 ## test ShortTermPlasticityMechanism
