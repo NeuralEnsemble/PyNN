@@ -39,7 +39,7 @@ class MockStructure(space.BaseStructure):
 def test_create_population_standard_cell_simple():
     p = MockPopulation(11, MockStandardCell)
     assert_equal(p.size, 11)
-    assert_equal(p.label, 'population0')
+    assert isinstance(p.label, basestring)
     assert isinstance(p.celltype, MockStandardCell)
     assert isinstance(p._structure, space.Line)
     assert_equal(p._positions, None)

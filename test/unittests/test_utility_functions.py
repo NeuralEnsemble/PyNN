@@ -22,7 +22,9 @@ class MockSimulator(object):
         min_delay = MIN_DELAY
         max_delay = MAX_DELAY
     state = MockState()
-common.simulator = MockSimulator
+    
+def setup():
+    common.simulator = MockSimulator
 
 def test_is_conductance_with_standard_model():
     for cb in (True, False):
