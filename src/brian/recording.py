@@ -73,6 +73,16 @@ class Recorder(recording.Recorder):
         return data
 
     def _local_count(self, filter=None):
-        raise NotImplementedError
+        # very inefficient implementation
+        N = {}
+        filtered_ids = self.filter_recorded(filter)
+        for (id, time) in self._devices[0].spikes:
+            if id in filtered_ids:
+                if id in N:
+                    N[id] += 1
+                else:
+                    N[id] = 1
+        return N
+        
 
 simulator.Recorder = Recorder

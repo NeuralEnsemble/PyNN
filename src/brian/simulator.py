@@ -200,8 +200,6 @@ def run(simtime):
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
 
-    non_parameter_attributes = list(common.IDMixin.non_parameter_attributes) + ['parent_group']
-
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""
         int.__init__(n)

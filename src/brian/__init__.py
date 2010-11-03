@@ -150,8 +150,8 @@ class Population(common.Population, BasePopulation):
         # should we globally track the IDs used, so as to ensure each cell gets a unique integer? (need only track the max ID)
         self.all_cells = numpy.array([simulator.ID(cell) for cell in xrange(len(brian_cells))], simulator.ID)
         for cell in self.all_cells:
-            cell.parent_group = brian_cells
             cell.parent = self
+            cell.parent_group = brian_cells
        
         self._mask_local = numpy.ones((n,), bool) # all cells are local. This doesn't seem very efficient.
         self.first_id = self.all_cells[0]
