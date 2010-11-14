@@ -1130,7 +1130,7 @@ class Projection(object):
         if isinstance(rng, random.AbstractRNG):
             self.rng = rng
         elif rng is None:
-            self.rng = random.NumpyRNG(seed=151985012, rank=rank(), num_processes=num_processes(), parallel_safe=True)
+            self.rng = random.NumpyRNG(seed=151985012)
         else:
             raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
         self._method = method

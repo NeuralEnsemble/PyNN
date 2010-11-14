@@ -128,7 +128,7 @@ def nprint(s):
 timer.start() # start timer on construction    
 
 print "%d Setting up random number generator" %rank
-rng = NumpyRNG(kernelseed, parallel_safe=True, rank=rank, num_processes=np)
+rng = NumpyRNG(kernelseed, parallel_safe=True)
 
 print "%d Creating excitatory population with %d neurons." % (rank, NE)
 E_net = Population((NE,),IF_curr_alpha,cell_params,"E_net")

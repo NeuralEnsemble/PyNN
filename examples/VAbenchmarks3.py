@@ -132,7 +132,7 @@ if benchmark == "COBA":
     ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
 
 print "%s Initialising membrane potential to random values..." % node_id
-rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe, rank=node_id, num_processes=np)
+rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
 uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
 all_cells.initialize('v', uniformDistr)
 

@@ -23,10 +23,17 @@ try:
     import pygsl.rng
     have_gsl = True
 except (ImportError, Warning):
-    #import warnings
-    #warnings.warn("GSL random number generators not available")
     have_gsl = False
 import time
+
+try:
+    from mpi4py import MPI
+    mpi_rank = MPI.COMM_WORLD.rank
+    num_processes = MPI.COMM_WORLD.size
+except ImportError:
+    MPI = None
+    mpi_rank = 0
+    num_processes = 1
 
 logger = logging.getLogger("PyNN")
  
@@ -45,7 +52,7 @@ class AbstractRNG:
         self.random = self.next
         self.sample = self.next
     
-    def next(self, n=1, distribution='uniform', parameters=[]):
+    def next(self, n=1, distribution='uniform', parameters=[], mask_local=None):
         """Return n random numbers from the distribution.
         
         If n is 1, return a float, if n > 1, return a Numpy array,
@@ -53,17 +60,16 @@ class AbstractRNG:
         # arguably, rng.next() should return a float, rng.next(1) an array of length 1
         raise NotImplementedError
 
+
 class WrappedRNG(AbstractRNG):
     
-    def __init__(self, seed=None, rank=0, num_processes=1, parallel_safe=True):
+    def __init__(self, seed=None, parallel_safe=True):
         AbstractRNG.__init__(self, seed)
-        self.rank = rank # MPI rank
-        self.num_processes = num_processes # total number of MPI processes
         self.parallel_safe = parallel_safe
         if self.seed and not parallel_safe:
-            self.seed += rank # ensure different nodes get different sequences
-            if rank != 0:
-                logger.warning("Changing the seed to %s on node %d" % (self.seed, rank))
+            self.seed += mpi_rank # ensure different nodes get different sequences
+            if mpi_rank != 0:
+                logger.warning("Changing the seed to %s on node %d" % (self.seed, mpi_rank))
     
     def next(self, n=1, distribution='uniform', parameters=[], mask_local=None):
         """Return n random numbers from the distribution.
@@ -73,30 +79,27 @@ class WrappedRNG(AbstractRNG):
         if n == 0:
             rarr = numpy.random.rand(0) # We return an empty array
         elif n > 0:
-            if self.num_processes > 1 and not self.parallel_safe:
+            if num_processes > 1 and not self.parallel_safe:
                 # n is the number for the whole model, so if we do not care about
                 # having exactly the same random numbers independent of the
                 # number of processors (m), we only need generate n/m+1 per node
                 # (assuming round-robin distribution of cells between processors)
                 if mask_local is None:
-                    n = n/self.num_processes + 1
+                    n = n/num_processes + 1
                 else:
                     n = mask_local.sum()
             rarr = self._next(distribution, n, parameters)
         else:
             raise ValueError, "The sample number must be positive"
-        if self.parallel_safe and self.num_processes > 1:
-            if mask_local is False:
+        if self.parallel_safe and num_processes > 1:
+            if mask_local is False: # return all the numbers on all nodes
                 pass
-            # strip out the random numbers that should be used on other processors.
-            elif mask_local is not None:
+            elif mask_local is not None: # strip out the random numbers that
+                                         # should be used on other processors.
                 assert mask_local.size == n
                 rarr = rarr[mask_local]    
             else:
-                # This assumes that the first neuron in a population is always created on
-                # the node with rank 0, and that neurons are distributed in a round-robin
-                # This assumption is not true for NEST
-                rarr = rarr[numpy.arange(self.rank, len(rarr), self.num_processes)]
+                raise Exception("For a parallel-safe RNG, mask_local must be either an array or False.")
         if hasattr(rarr, '__len__') and len(rarr) == 1:
             return rarr[0]
         else:
@@ -104,8 +107,8 @@ class WrappedRNG(AbstractRNG):
     
     def __getattr__(self, name):
         """
-        This is to give the PyNN RNGs the same methods as the wrapped RNGs (
-        numpy.random.RandomState or the GSL RNGs.
+        This is to give the PyNN RNGs the same methods as the wrapped RNGs 
+        (numpy.random.RandomState or the GSL RNGs.)
         """
         return getattr(self.rng, name)
     
@@ -113,8 +116,8 @@ class WrappedRNG(AbstractRNG):
 class NumpyRNG(WrappedRNG):
     """Wrapper for the numpy.random.RandomState class (Mersenne Twister PRNG)."""
     
-    def __init__(self, seed=None, rank=0, num_processes=1, parallel_safe=True):
-        WrappedRNG.__init__(self, seed, rank, num_processes, parallel_safe)
+    def __init__(self, seed=None, parallel_safe=True):
+        WrappedRNG.__init__(self, seed, parallel_safe)
         self.rng = numpy.random.RandomState()
         if self.seed:
             self.rng.seed(self.seed)
@@ -126,16 +129,16 @@ class NumpyRNG(WrappedRNG):
 
     def describe(self):
         return "NumpyRNG() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
-            self.seed, self.rank, self.num_processes, self.parallel_safe and "Is" or "Not")
+            self.seed, mpi_rank, z, self.parallel_safe and "Is" or "Not")
 
 
 class GSLRNG(WrappedRNG):
     """Wrapper for the GSL random number generators."""
        
-    def __init__(self, seed=None, type='mt19937', rank=0, num_processes=1, parallel_safe=True):
+    def __init__(self, seed=None, type='mt19937', parallel_safe=True):
         if not have_gsl:
             raise ImportError, "GSLRNG: Cannot import pygsl"
-        WrappedRNG.__init__(self, seed, rank, num_processes, parallel_safe)
+        WrappedRNG.__init__(self, seed, parallel_safe)
         self.rng = getattr(pygsl.rng, type)()
         if self.seed:
             self.rng.set(self.seed)

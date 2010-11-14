@@ -36,7 +36,7 @@ node = setup(timestep=0.025, min_delay=1.0, max_delay=1.0, debug=True, quit_on_e
 print "Process with rank %d running on %s" % (node, socket.gethostname())
 
 
-rng = NumpyRNG(seed=seed, parallel_safe=True, rank=rank(), num_processes=num_processes())
+rng = NumpyRNG(seed=seed, parallel_safe=True)
 
 print "[%d] Creating populations" % node
 n_spikes = int(2*tstop*input_rate/1000.0)
