@@ -762,12 +762,12 @@ class BasePopulation(object):
             raise TypeError("Can't inject current into a spike source.")
         current_source.inject_into(self)
     
-    def save_positions(self, filename, gather=True, compatible_output=True):
+    def save_positions(self, filename):
         """
         Save positions to file. The output format is id x y z
         """
         # this should be rewritten to use self.positions and recording.files
-        fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%g", "%g", "%g")
+        fmt   = "%s\t%s\t%s\t%s\n" % ("%d", "%g", "%g", "%g")
         lines = []
         for cell in self.all():  
             x,y,z = cell.position
@@ -824,7 +824,7 @@ class Population(BasePopulation):
         if isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
             self.celltype = cellclass(cellparams)
         else:
-            self.celltype = cellclass
+            self.celltype = cellclass        
         self._structure = structure or space.Line()
         self._positions = None
         self.cellparams = cellparams
@@ -834,11 +834,12 @@ class Population(BasePopulation):
         # The local cells are also stored in a list, for easy iteration
         self._create_cells(cellclass, cellparams, size)
         self.initial_values = {}
-        for variable, value in self.celltype.default_initial_values.items():
-            self.initialize(variable, value)
+        if hasattr(self.celltype, "default_initial_values"):
+            for variable, value in self.celltype.default_initial_values.items():
+                self.initialize(variable, value)
         self.recorders = {'spikes': self.recorder_class('spikes', population=self),
-                          'v': self.recorder_class('v', population=self),
-                          'gsyn': self.recorder_class('gsyn', population=self)}
+                          'v'     : self.recorder_class('v', population=self),
+                          'gsyn'  : self.recorder_class('gsyn', population=self)}
         Population.nPop += 1
     
     @property
@@ -1287,7 +1288,7 @@ class Projection(object):
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
         if gather == False or rank() == 0:
             f = open(filename, 'w')
-            f.write(self.pre.label + "\n" + self.post.label + "\n")
+            f.write("#" + self.pre.label + "\n#" + self.post.label + "\n")
             f.writelines(lines)
             f.close()
     

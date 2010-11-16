@@ -129,12 +129,12 @@ if benchmark == "COBA":
 print "%s Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
 uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
-exc_cells.randomInit(uniformDistr)
-inh_cells.randomInit(uniformDistr)
+exc_cells.initialize('v', uniformDistr)
+inh_cells.initialize('v', uniformDistr)
 
 print "%s Connecting populations..." % node_id
-exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay)
-inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay)
+exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay, verbose=True)
+inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay, verbose=True)
 
 connections={}
 connections['e2e'] = Projection(exc_cells, exc_cells, exc_conn, target='excitatory', rng=rng)

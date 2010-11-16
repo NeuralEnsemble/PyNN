@@ -283,7 +283,7 @@ class Population(common.Population):
             value = rarr #numpy.array(rarr)
             assert len(rarr) == len(self.local_cells), "%d != %d" % (len(rarr), len(self.local_cells))
         nest.SetStatus(self.local_cells.tolist(), STATE_VARIABLE_MAP[variable], value)
-        self.initial_values[variable] = core.LazyArray(self.size, value)
+        self.initial_values[variable] = core.LazyArray(value, self.size)
 
     def _record(self, variable, record_from=None, rng=None, to_file=True):
         common.Population._record(self, variable, record_from, rng, to_file)
@@ -412,7 +412,7 @@ class Projection(common.Projection):
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
         if gather == False or rank() == 0:
             f = open(filename, 'w')
-            f.write(self.pre.label + "\n" + self.post.label + "\n")
+            f.write("#" + self.pre.label + "\n#" + self.post.label + "\n")
             f.writelines(lines)
             f.close()
 

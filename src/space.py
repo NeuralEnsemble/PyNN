@@ -251,5 +251,5 @@ class RandomStructure(BaseStructure):
         self.rng = rng or NumpyRNG()
         
     def generate_positions(self, n):
-        return numpy.array(self.origin) + self.boundary.sample(n, self.rng)
+        return (numpy.array(self.origin) + self.boundary.sample(n, self.rng)).T
     

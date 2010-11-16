@@ -131,21 +131,21 @@ print "%d Setting up random number generator" %rank
 rng = NumpyRNG(kernelseed, parallel_safe=True)
 
 print "%d Creating excitatory population with %d neurons." % (rank, NE)
-E_net = Population((NE,),IF_curr_alpha,cell_params,"E_net")
+E_net = Population(NE, IF_curr_alpha, cell_params, label="E_net")
 
 print "%d Creating inhibitory population with %d neurons." % (rank, NI)
-I_net = Population((NI,),IF_curr_alpha,cell_params,"I_net")
+I_net = Population(NI, IF_curr_alpha, cell_params, label="I_net")
 
 print "%d Initialising membrane potential to random values between %g mV and %g mV." % (rank, U0, theta)
-uniformDistr = RandomDistribution('uniform', [U0,theta], rng)
-E_net.randomInit(uniformDistr)
-I_net.randomInit(uniformDistr)
+uniformDistr = RandomDistribution('uniform', [U0, theta], rng)
+E_net.initialize('v', uniformDistr)
+I_net.initialize('v', uniformDistr)
 
 print "%d Creating excitatory Poisson generator with rate %g spikes/s." % (rank, p_rate)
-expoisson = Population((NE,), SpikeSourcePoisson, {'rate': p_rate}, "expoisson")
+expoisson = Population(NE, SpikeSourcePoisson, {'rate': p_rate}, "expoisson")
 
 print "%d Creating inhibitory Poisson generator with the same rate." % rank
-inpoisson = Population((NI,), SpikeSourcePoisson, {'rate': p_rate}, "inpoisson")
+inpoisson = Population(NI, SpikeSourcePoisson, {'rate': p_rate}, "inpoisson")
 
 # Record spikes
 print "%d Setting up recording in excitatory population." % rank
@@ -156,9 +156,9 @@ print "%d Setting up recording in inhibitory population." % rank
 I_net.record(Nrec)
 I_net.record_v([I_net[0],I_net[1]])
 
-E_Connector = FixedProbabilityConnector(epsilon, weights=JE, delays=delay)
-I_Connector = FixedProbabilityConnector(epsilon, weights=JI, delays=delay)
-ext_Connector = OneToOneConnector(weights=JE, delays=dt)
+E_Connector = FixedProbabilityConnector(epsilon, weights=JE, delays=delay, verbose=True)
+I_Connector = FixedProbabilityConnector(epsilon, weights=JI, delays=delay, verbose=True)
+ext_Connector = OneToOneConnector(weights=JE, delays=dt, verbose=True)
 
 print "%d Connecting excitatory population with connection probability %g, weight %g nA and delay %g ms." % (rank, epsilon, JE, delay)
 E_to_E = Projection(E_net, E_net, E_Connector, rng=rng, target="excitatory")
