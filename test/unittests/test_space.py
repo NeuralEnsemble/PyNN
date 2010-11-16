@@ -231,7 +231,7 @@ class TestRandomStructure(object):
         s = space.Sphere(2.5)
         rs = space.RandomStructure(boundary=s, origin=(1.0, 1.0, 1.0))
         positions = rs.generate_positions(n)
-        assert_equal(positions.shape, (n,3))
+        assert_equal(positions.shape, (3,n))
         for axis in range(2):
             assert 3 < max(positions[:,axis]) < 3.5
             assert -1 > min(positions[:,axis]) > -1.5

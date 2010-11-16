@@ -11,10 +11,10 @@ Utility functions and classes:
     is_conductance()
     check_weight()
     check_delay()
-    
+
 Accessing individual neurons:
     IDMixin
-    
+
 Common API implementation/base classes:
   1. Simulation set-up and control:
     setup()
@@ -48,7 +48,7 @@ from pyNN import random, utility, recording, errors, standardmodels, core, space
 from itertools import chain
 
 if not 'simulator' in locals():
-    simulator = None # should be set by simulator-specific modules
+    simulator = None  # should be set by simulator-specific modules
 
 DEFAULT_WEIGHT = 0.0
 DEFAULT_BUFFER_SIZE = 10000
@@ -58,35 +58,36 @@ DEFAULT_MIN_DELAY = DEFAULT_TIMESTEP
 
 logger = logging.getLogger("PyNN")
 
-# ==============================================================================
+# =============================================================================
 #   Utility functions and classes
-# ==============================================================================
+# =============================================================================
 
 
 def is_conductance(target_cell):
     """
-    Returns True if the target cell uses conductance-based synapses, False if it
-    uses current-based synapses, and None if the synapse-basis cannot be determined.
+    Returns True if the target cell uses conductance-based synapses, False if
+    it uses current-based synapses, and None if the synapse-basis cannot be
+    determined.
     """
     if hasattr(target_cell, 'local') and target_cell.local and hasattr(target_cell, 'cellclass'):
         if isinstance(target_cell.cellclass, type):
             is_conductance = target_cell.cellclass.conductance_based
-        else: # where cellclass is a string, i.e. for native cell types in NEST
+        else:  # where cellclass is a string, i.e. for native cell types in NEST
             is_conductance = "cond" in target_cell.cellclass
     else:
         is_conductance = None
     return is_conductance
 
+
 def check_weight(weight, synapse_type, is_conductance):
-    #print "check_weight: node=%s, weight=%s, synapse_type=%s, is_conductance=%s" % (rank(), weight, synapse_type, is_conductance)
     if weight is None:
         weight = DEFAULT_WEIGHT
     if core.is_listlike(weight):
         weight = numpy.array(weight)
-        nan_filter = (1-numpy.isnan(weight)).astype(bool) # weight arrays may contain NaN, which should be ignored
+        nan_filter = (1 - numpy.isnan(weight)).astype(bool)  # weight arrays may contain NaN, which should be ignored
         filtered_weight = weight[nan_filter]
-        all_negative = (filtered_weight<=0).all()
-        all_positive = (filtered_weight>=0).all()
+        all_negative = (filtered_weight <= 0).all()
+        all_positive = (filtered_weight >= 0).all()
         if not (all_negative or all_positive):
             raise errors.InvalidWeightError("Weights must be either all positive or all negative")
     elif numpy.isreal(weight):
@@ -97,25 +98,27 @@ def check_weight(weight, synapse_type, is_conductance):
     if is_conductance or synapse_type == 'excitatory':
         if not all_positive:
             raise errors.InvalidWeightError("Weights must be positive for conductance-based and/or excitatory synapses")
-    elif is_conductance==False and synapse_type == 'inhibitory':
+    elif is_conductance == False and synapse_type == 'inhibitory':
         if not all_negative:
             raise errors.InvalidWeightError("Weights must be negative for current-based, inhibitory synapses")
-    else: # is_conductance is None. This happens if the cell does not exist on the current node.
+    else:  # is_conductance is None. This happens if the cell does not exist on the current node.
         logger.debug("Can't check weight, conductance status unknown.")
     return weight
+
 
 def check_delay(delay):
     if delay is None:
         delay = get_min_delay()
     # If the delay is too small , we have to throw an error
     if delay < get_min_delay() or delay > get_max_delay():
-        raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, get_min_delay(), get_max_delay()))
+        raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % \
+                                     (delay, get_min_delay(), get_max_delay()))
     return delay
 
 
-# ==============================================================================
+# =============================================================================
 #   Accessing individual neurons
-# ==============================================================================
+# =============================================================================
 
 class IDMixin(object):
     """
@@ -136,27 +139,31 @@ class IDMixin(object):
             try:
                 val = self.get_parameters()[name]
             except KeyError:
-                raise errors.NonExistentParameterError(name, self.cellclass.__name__,
+                raise errors.NonExistentParameterError(name,
+                                                       self.cellclass.__name__,
                                                        self.cellclass.get_parameter_names())
         return val
-    
+
     def __setattr__(self, name, value):
         if name == "parent":
             object.__setattr__(self, name, value)
         elif self.cellclass.has_parameter(name):
-            self.set_parameters(**{name:value})
+            self.set_parameters(**{name: value})
         else:
             object.__setattr__(self, name, value)
 
     def set_parameters(self, **parameters):
-        """Set cell parameters, given as a sequence of parameter=value arguments."""
+        """
+        Set cell parameters, given as a sequence of parameter=value arguments.
+        """
         # if some of the parameters are computed from the values of other
         # parameters, need to get and translate all parameters
         if self.local:
             if self.is_standard_cell:
                 computed_parameters = self.cellclass.computed_parameters()
-                have_computed_parameters = numpy.any([p_name in computed_parameters for p_name in parameters])
-                if have_computed_parameters:     
+                have_computed_parameters = numpy.any([p_name in computed_parameters
+                                                      for p_name in parameters])
+                if have_computed_parameters:
                     all_parameters = self.get_parameters()
                     all_parameters.update(parameters)
                     parameters = all_parameters
@@ -164,7 +171,7 @@ class IDMixin(object):
             self.set_native_parameters(parameters)
         else:
             raise errors.NotLocalError("Cannot set parameters for a cell that does not exist on this node.")
-    
+
     def get_parameters(self):
         """Return a dict of all cell parameters."""
         if self.local:
@@ -184,25 +191,26 @@ class IDMixin(object):
             return celltype.__class__
         else:
             return celltype
-     
+
     @property
     def is_standard_cell(self):
-        return (type(self.cellclass) == type and issubclass(self.cellclass, standardmodels.StandardCellType))
-        
+        return (type(self.cellclass) == type and
+                issubclass(self.cellclass, standardmodels.StandardCellType))
+
     def _set_position(self, pos):
         """
         Set the cell position in 3D space.
-        
+
         Cell positions are stored in an array in the parent Population.
         """
         assert isinstance(pos, (tuple, numpy.ndarray))
         assert len(pos) == 3
         self.parent._set_cell_position(self, pos)
-        
+
     def _get_position(self):
         """
         Return the cell position in 3D space.
-        
+
         Cell positions are stored in an array in the parent Population, if any,
         or within the ID object otherwise. Positions are generated the first
         time they are requested and then cached.
@@ -210,11 +218,11 @@ class IDMixin(object):
         return self.parent._get_cell_position(self)
 
     position = property(_get_position, _set_position)
-    
+
     @property
     def local(self):
         return self.parent.is_local(self)
-    
+
     def inject(self, current_source):
         """Inject current from a current source object into the cell."""
         current_source.inject_into([self])
@@ -222,14 +230,16 @@ class IDMixin(object):
     def get_initial_value(self, variable):
         """Get the initial value of a state variable of the cell."""
         return self.parent._get_cell_initial_value(self, variable)
-        
+
     def set_initial_value(self, variable, value):
         """Set the initial value of a state variable of the cell."""
         self.parent._set_cell_initial_value(self, variable, value)
 
-# ==============================================================================
+
+# =============================================================================
 #   Functions for simulation set-up and control
-# ==============================================================================
+# =============================================================================
+
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
           max_delay=DEFAULT_MAX_DELAY, **extra_params):
@@ -246,11 +256,11 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         raise Exception("min_delay has to be less than or equal to max_delay.")
     if min_delay < timestep:
         "min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep)
-    
+
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     raise NotImplementedError
-    
+
 def run(simtime):
     """Run the simulation for simtime ms."""
     raise NotImplementedError
@@ -258,8 +268,9 @@ def run(simtime):
 def reset():
     """
     Reset the time to zero, neuron membrane potentials and synaptic weights to
-    their initial values, and delete any recorded data. The network structure is
-    not changed, nor is the specification of which neurons to record from."""
+    their initial values, and delete any recorded data. The network structure
+    is not changed, nor is the specification of which neurons to record from.
+    """
     simulator.reset()
 
 def initialize(cells, variable, value):
@@ -290,30 +301,31 @@ def rank():
     """Return the MPI rank of the current node."""
     return simulator.state.mpi_rank
 
-# ==============================================================================
-#   Low-level API for creating, connecting and recording from individual neurons
-# ==============================================================================
+# =============================================================================
+#  Low-level API for creating, connecting and recording from individual neurons
+# =============================================================================
 
 def build_create(population_class):
     def create(cellclass, cellparams=None, n=1):
         """
         Create n cells all of the same type.
-        
+
         If n > 1, return a list of cell ids/references.
         If n==1, return just the single id.
         """
-        return population_class(n, cellclass, cellparams) # return the Population or Population.all_cells?
+        return population_class(n, cellclass, cellparams)  # return the Population or Population.all_cells?
     return create
 
 def build_connect(projection_class, connector_class):
-    def connect(source, target, weight=0.0, delay=None, synapse_type=None, p=1, rng=None):
+    def connect(source, target, weight=0.0, delay=None, synapse_type=None,
+                p=1, rng=None):
         """
         Connect a source of spikes to a synaptic target.
-        
-        source and target can both be individual cells or lists of cells, in which
-        case all possible connections are made with probability p, using either the
-        random number generator supplied, or the default rng otherwise.
-        Weights should be in nA or µS.
+
+        source and target can both be individual cells or lists of cells, in
+        which case all possible connections are made with probability p, using
+        either the random number generator supplied, or the default rng
+        otherwise. Weights should be in nA or µS.
         """
         if isinstance(source, IDMixin):
             source = source.parent
@@ -326,7 +338,7 @@ def build_connect(projection_class, connector_class):
 def set(cells, param, val=None):
     """
     Set one or more parameters of an individual cell or list of cells.
-    
+
     param can be a dict, in which case val should not be supplied, or a string
     giving the parameter name, in which case val is the parameter value.
     """
@@ -343,7 +355,7 @@ def build_record(variable, simulator):
         # whether to write to a file.
         assert isinstance(source, (BasePopulation, Assembly))
         source._record(variable, to_file=filename)
-        simulator.recorder_list.append(source.recorders[variable]) # this is a bit hackish - better to add to Population.__del__?
+        simulator.recorder_list.append(source.recorders[variable])  # this is a bit hackish - better to add to Population.__del__?
     if variable == 'v':
         record.__doc__ = """
             Record membrane potential to a file. source can be an individual cell or
@@ -355,14 +367,14 @@ def build_record(variable, simulator):
     return record
 
 
-# ==============================================================================
+# =============================================================================
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
-# ==============================================================================
+# =============================================================================
 
 class BasePopulation(object):
     record_filter = None
-    
+
     def __getitem__(self, index):
         """
         Return a representation of the cell with the given index,
@@ -382,20 +394,20 @@ class BasePopulation(object):
             return PopulationView(self, list(index))
         else:
             raise TypeError("indices must be integers, slices, lists, arrays or tuples, not %s" % type(index).__name__)
-    
+
     def __len__(self):
         """Return the total number of cells in the population (all nodes)."""
         return self.size
-    
+
     def __iter__(self):
         """Iterator over cell ids on the local node."""
         return iter(self.local_cells)
-    
+
     def is_local(self, id):
         assert id.parent is self
         index = self.id_to_index(id)
         return self._mask_local[index]
-    
+
     def all(self):
         """Iterator over cell ids on all nodes."""
         return iter(self.all_cells)
@@ -407,7 +419,7 @@ class BasePopulation(object):
     def _get_cell_position(self, id):
         index = self.id_to_index(id)
         return self.positions[:, index]
-    
+
     def _set_cell_position(self, id, pos):
         index = self.id_to_index(id)
         self.positions[:, index] = pos
@@ -424,16 +436,16 @@ class BasePopulation(object):
 
     def nearest(self, position):
         """Return the neuron closest to the specified position."""
-        # doesn't always work correctly if a position is equidistant between two
-        # neurons, i.e. 0.5 should be rounded up, but it isn't always.
+        # doesn't always work correctly if a position is equidistant between
+        # two neurons, i.e. 0.5 should be rounded up, but it isn't always.
         # also doesn't take account of periodic boundary conditions
-        pos = numpy.array([position]*self.positions.shape[1]).transpose()
+        pos = numpy.array([position] * self.positions.shape[1]).transpose()
         dist_arr = (self.positions - pos)**2
         distances = dist_arr.sum(axis=0)
         nearest = distances.argmin()
         return self[nearest]
-    
-    def get(self, parameter_name): # would be nice to add a 'gather' argument
+
+    def get(self, parameter_name):  # would be nice to add a 'gather' argument
         """
         Get the values of a parameter for every local cell in the population.
         """
@@ -442,26 +454,27 @@ class BasePopulation(object):
         if hasattr(self, "_get_array"):
             return self._get_array(parameter_name)
         else:
-            return [getattr(cell, parameter_name) for cell in self] # list or array?
+            return [getattr(cell, parameter_name) for cell in self]  # list or array?
 
     def set(self, param, val=None):
         """
         Set one or more parameters for every cell in the population. param
         can be a dict, in which case val should not be supplied, or a string
         giving the parameter name, in which case val is the parameter value.
-        val can be a numeric value, or list of such (e.g. for setting spike times).
+        val can be a numeric value, or list of such (e.g. for setting spike
+        times).
         e.g. p.set("tau_m",20.0).
              p.set({'tau_m':20,'v_rest':-65})
         """
         #"""
         # -- Proposed change to arguments --
         #Set one or more parameters for every cell in the population.
-        # 
+        #
         #Each value may be a single number or a list/array of numbers of the same
         #size as the population. If the parameter itself takes lists/arrays as
         #values (e.g. spike times), then the value provided may be either a
         #single lists/1D array, a list of lists/1D arrays, or a 2D array.
-        # 
+        #
         #e.g. p.set(tau_m=20.0).
         #     p.set(tau_m=20, v_rest=[-65.0, -65.3, ... , -67.2])
         #"""
@@ -475,7 +488,7 @@ class BasePopulation(object):
             if isinstance(val, (float, int)):
                 param_dict[name] = float(val)
             elif isinstance(val, (list, numpy.ndarray)):
-                pass # ought to check list/array only contains numeric types
+                pass  # ought to check list/array only contains numeric types
             else:
                 raise errors.InvalidParameterValueError
         logger.debug("%s.set(%s)", self.label, param_dict)
@@ -495,27 +508,27 @@ class BasePopulation(object):
         #'Topographic' set. Each value in parameters should be a function that
         #accepts arguments x,y,z and returns a single value.
         #"""
-        if (self.size,) == value_array.shape: # the values are numbers or non-array objects
+        if (self.size,) == value_array.shape:  # the values are numbers or non-array objects
             local_values = value_array[self._mask_local]
             assert local_values.size == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
-        elif len(value_array.shape) == 2: # the values are themselves 1D arrays
+        elif len(value_array.shape) == 2:  # the values are themselves 1D arrays
             if value_array.shape[0] != self.size:
-                raise errors.InvalidDimensionsError, "Population: %d, value_array first dimension: %s" % (self.size,
-                                                                                                          value_array.shape[0])
-            local_values = value_array[self._mask_local] # not sure this works
+                raise errors.InvalidDimensionsError("Population: %d, value_array first dimension: %s" % (self.size,
+                                                                                                         value_array.shape[0]))
+            local_values = value_array[self._mask_local]  # not sure this works
         else:
-            raise errors.InvalidDimensionsError, "Population: %d, value_array: %s" % (self.size,
-                                                                                      str(value_array.shape))
+            raise errors.InvalidDimensionsError("Population: %d, value_array: %s" % (self.size,
+                                                                                     str(value_array.shape)))
         assert local_values.shape[0] == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
-        
+
         try:
             logger.debug("%s.tset('%s', array(shape=%s, min=%s, max=%s))",
                          self.label, parametername, value_array.shape,
                          value_array.min(), value_array.max())
-        except TypeError: # min() and max() won't work for non-numeric values
+        except TypeError:  # min() and max() won't work for non-numeric values
             logger.debug("%s.tset('%s', non_numeric_array(shape=%s))",
                          self.label, parametername, value_array.shape)
-        
+
         # Set the values for each cell
         if hasattr(self, "_set_array"):
             self._set_array(**{parametername: local_values})
@@ -536,8 +549,8 @@ class BasePopulation(object):
         if isinstance(rand_distr.rng, random.NativeRNG):
             self._native_rset(parametername, rand_distr)
         else:
-            rarr = rand_distr.next(n=self.all_cells.size, mask_local=False) #self._mask_local)
-            rarr = numpy.array(rarr) # isn't rarr already an array?
+            rarr = rand_distr.next(n=self.all_cells.size, mask_local=False)
+            rarr = numpy.array(rarr)  # isn't rarr already an array?
             assert rarr.size == self.size, "%s != %s" % (rarr.size, self.size)
             self.tset(parametername, rarr)
 
@@ -548,12 +561,13 @@ class BasePopulation(object):
         set_background().
         """
         raise NotImplementedError()
-    
+
     def _tcall(self, methodname, objarr):
         """
-        `Topographic' call. Call the method methodname() for every cell in the 
-        population. The argument to the method depends on the coordinates of the
-        cell. objarr is an array with the same dimensions as the Population.
+        `Topographic' call. Call the method methodname() for every cell in the
+        population. The argument to the method depends on the coordinates of
+        the cell. objarr is an array with the same dimensions as the
+        Population.
         e.g. p.tcall("memb_init", vinitArray) calls
         p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
         """
@@ -570,7 +584,7 @@ class BasePopulation(object):
     def initialize(self, variable, value):
         """
         Set initial values of state variables, e.g. the membrane potential.
-        
+
         `value` may either be a numeric value (all neurons set to the same
                 value) or a `RandomDistribution` object (each neuron gets a
                 different value)
@@ -585,15 +599,15 @@ class BasePopulation(object):
             if hasattr(self, "_set_initial_value_array"):
                 self._set_initial_value_array(variable, value)
             else:
-                for cell in self: # only on local node
+                for cell in self:  # only on local node
                     cell.set_initial_value(variable, value)
-        
+
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
         if isinstance(self.celltype, standardmodels.StandardCellType):
             return (variable in self.celltype.recordable)
         else:
-            return True # for now, not able to check for native cells, although it should be possible in principle
+            return True  # for now, not able to check for native cells, although it should be possible in principle
 
     def _record(self, variable, record_from=None, rng=None, to_file=True):
         """
@@ -601,11 +615,11 @@ class BasePopulation(object):
         """
         if not self.can_record(variable):
             raise errors.RecordingError(variable, self.celltype)
-        if isinstance(record_from, list): #record from the fixed list specified by user
+        if isinstance(record_from, list):  # record from the fixed list specified by user
             pass
-        elif record_from is None: # record from all cells:
+        elif record_from is None:  # record from all cells:
             record_from = self.all_cells
-        elif isinstance(record_from, int): # record from a number of cells, selected at random  
+        elif isinstance(record_from, int):  # record from a number of cells, selected at random
             nrec = record_from
             if not rng:
                 rng = random.NumpyRNG()
@@ -619,24 +633,24 @@ class BasePopulation(object):
         self.recorders[variable].record(record_from)
         if isinstance(to_file, basestring):
             self.recorders[variable].file = to_file
-            
 
     def record(self, record_from=None, rng=None, to_file=True):
         """
-        If record_from is not given, record spikes from all cells in the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids of the cells to record.
+        If record_from is not given, record spikes from all cells in the
+        Population. record_from can be an integer - the number of cells to
+        record from, chosen at random (in this case a random number generator
+        can also be supplied) - or a list containing the ids of the cells to
+        record.
         """
         self._record('spikes', record_from, rng, to_file)
 
     def record_v(self, record_from=None, rng=None, to_file=True):
         """
-        If record_from is not given, record the membrane potential for all cells in
-        the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids of the cells to record.
+        If record_from is not given, record the membrane potential for all
+        cells in the Population.
+        record_from can be an integer - the number of cells to record from,
+        chosen at random (in this case a random number generator can also be
+        supplied) - or a list containing the ids of the cells to record.
         """
         self._record('v', record_from, rng, to_file)
 
@@ -644,18 +658,18 @@ class BasePopulation(object):
         """
         If record_from is not given, record synaptic conductances
         for all cells in the Population.
-        record_from can be an integer - the number of cells to record from, chosen
-        at random (in this case a random number generator can also be supplied)
-        - or a list containing the ids of the cells to record.
+        record_from can be an integer - the number of cells to record from,
+        chosen at random (in this case a random number generator can also be
+        supplied) - or a list containing the ids of the cells to record.
         """
         self._record('gsyn', record_from, rng, to_file)
 
     def printSpikes(self, file, gather=True, compatible_output=True):
         """
         Write spike times to file.
-        
+
         file should be either a filename or a PyNN File object.
-        
+
         If compatible_output is True, the format is "spiketime cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
@@ -663,18 +677,18 @@ class BasePopulation(object):
         line for each cell.
         The timestep, first id, last id, and number of data points per cell are
         written in a header, indicated by a '#' at the beginning of the line.
-        
+
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
         spike files.
-        
+
         For parallel simulators, if gather is True, all data will be gathered
         to the master node and a single output file created there. Otherwise, a
         file will be written on each node, containing only the cells simulated
         on that node.
-        """        
+        """
         self.recorders['spikes'].write(file, gather, compatible_output, self.record_filter)
-    
+
     def getSpikes(self, gather=True, compatible_output=True):
         """
         Return a 2-column numpy array containing cell ids and spike times for
@@ -687,39 +701,39 @@ class BasePopulation(object):
     def print_v(self, file, gather=True, compatible_output=True):
         """
         Write membrane potential traces to file.
-        
+
         file should be either a filename or a PyNN File object.
-        
+
         If compatible_output is True, the format is "v cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
         The timestep, first id, last id, and number of data points per cell are
         written in a header, indicated by a '#' at the beginning of the line.
-        
+
         If compatible_output is False, the raw format produced by the simulator
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
-        
+
         For parallel simulators, if gather is True, all data will be gathered
         to the master node and a single output file created there. Otherwise, a
         file will be written on each node, containing only the cells simulated
         on that node.
         """
         self.recorders['v'].write(file, gather, compatible_output, self.record_filter)
-    
+
     def get_v(self, gather=True, compatible_output=True):
         """
         Return a 2-column numpy array containing cell ids and Vm for
         recorded cells.
         """
         return self.recorders['v'].get(gather, compatible_output, self.record_filter)
-    
+
     def print_gsyn(self, file, gather=True, compatible_output=True):
         """
         Write synaptic conductance traces to file.
-        
+
         file should be either a filename or a PyNN File object.
-        
+
         If compatible_output is True, the format is "t g cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
@@ -731,7 +745,7 @@ class BasePopulation(object):
         voltage files.
         """
         self.recorders['gsyn'].write(file, gather, compatible_output, self.record_filter)
-    
+
     def get_gsyn(self, gather=True, compatible_output=True):
         """
         Return a 3-column numpy array containing cell ids and synaptic
@@ -744,14 +758,14 @@ class BasePopulation(object):
         Returns the number of spikes for each neuron.
         """
         return self.recorders['spikes'].count(gather)
-        
+
     def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
         spike_counts = self.recorders['spikes'].count(gather)
         total_spikes = sum(spike_counts.values())
-        if rank() == 0 or not gather: # should maybe use allgather, and get the numbers on all nodes
+        if rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
             return float(total_spikes)/len(spike_counts)
 
     def inject(self, current_source):
@@ -761,17 +775,17 @@ class BasePopulation(object):
         if 'v' not in self.celltype.recordable:
             raise TypeError("Can't inject current into a spike source.")
         current_source.inject_into(self)
-    
+
     def save_positions(self, filename):
         """
         Save positions to file. The output format is id x y z
         """
         # this should be rewritten to use self.positions and recording.files
-        fmt   = "%s\t%s\t%s\t%s\n" % ("%d", "%g", "%g", "%g")
+        fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%g", "%g", "%g")
         lines = []
-        for cell in self.all():  
-            x,y,z = cell.position
-            line = fmt  % (cell, x, y, z)
+        for cell in self.all():
+            x, y, z = cell.position
+            line = fmt % (cell, x, y, z)
             lines.append(line)
         if rank() == 0:
             f = open(filename, 'w')
@@ -784,47 +798,47 @@ class Population(BasePopulation):
     A group of neurons all of the same type.
     """
     nPop = 0
-    
+
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  label=None):
         """
         Create a population of neurons all of the same type.
-        
-        size - number of cells in the Population. For backwards-compatibility, n
-               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
-               is equivalent to n=100 with structure=Grid2D()
+
+        size - number of cells in the Population. For backwards-compatibility,
+               n may also be a tuple giving the dimensions of a grid,
+               e.g. n=(10,10) is equivalent to n=100 with structure=Grid2D()
         cellclass should either be a standardized cell class (a class inheriting
-        from common.standardmodels.StandardCellType) or a string giving the name of the
-        simulator-specific model that makes up the population.
+        from common.standardmodels.StandardCellType) or a string giving the
+        name of the simulator-specific model that makes up the population.
         cellparams should be a dict which is passed to the neuron model
           constructor
         structure should be a Structure instance.
         label is an optional name for the population.
         """
-        if not isinstance(size, int): # also allow a single integer, for a 1D population
+        if not isinstance(size, int):  # also allow a single integer, for a 1D population
             assert isinstance(size, tuple), "`size` must be an integer or a tuple of ints. You have supplied a %s" % type(size)
             # check the things inside are ints
             for e in size:
                 assert isinstance(e, int), "`size` must be an integer or a tuple of ints. Element '%s' is not an int" % str(e)
-                
+
             assert structure is None, "If you specify `size` as a tuple you may not specify structure."
             if len(size) == 1:
                 structure = space.Line()
             elif len(size) == 2:
-                nx,ny = size 
+                nx, ny = size
                 structure = space.Grid2D(nx/float(ny))
             elif len(size) == 3:
-                nx,ny,nz = size
+                nx, ny, nz = size
                 structure = space.Grid3D(nx/float(ny), nx/float(nz))
             else:
                 raise Exception("A maximum of 3 dimensions is allowed. What do you think this is, string theory?")
             size = reduce(operator.mul, size)
         self.size = size
-        self.label = label or 'population%d' % Population.nPop         
+        self.label = label or 'population%d' % Population.nPop
         if isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
             self.celltype = cellclass(cellparams)
         else:
-            self.celltype = cellclass        
+            self.celltype = cellclass
         self._structure = structure or space.Line()
         self._positions = None
         self.cellparams = cellparams
@@ -841,48 +855,50 @@ class Population(BasePopulation):
                           'v'     : self.recorder_class('v', population=self),
                           'gsyn'  : self.recorder_class('gsyn', population=self)}
         Population.nPop += 1
-    
+
     @property
     def local_cells(self):
         return self.all_cells[self._mask_local]
-    
+
     @property
     def cell(self):
-        warn("The `Population.cell` attribute is not an official part of the API, and its use is deprecated. \
-              It will be removed in a future release. All uses of `cell` may be replaced by `all_cells`")
+        warn("The `Population.cell` attribute is not an official part of the \
+              API, and its use is deprecated. It will be removed in a future \
+              release. All uses of `cell` may be replaced by `all_cells`")
         return self.all_cells
-    
+
     def id_to_index(self, id):
         """
-        Given the ID(s) of cell(s) in the Population, return its (their) index (order in the
-        Population).
+        Given the ID(s) of cell(s) in the Population, return its (their) index
+        (order in the Population).
         >>> assert p.id_to_index(p[5]) == 5
         >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        if not self.first_id <= id <= self.last_id: # this test assumes id is a single ID, supposed to support id being a list/array of IDs
+        if not self.first_id <= id <= self.last_id:  # this test assumes id is a single ID, supposed to support id being a list/array of IDs
             raise IndexError("id should be in the range [%d,%d], actually %d" % (self.first_id, self.last_id, id))
-        return id - self.first_id # this assumes ids are consecutive
-    
+        return id - self.first_id  # this assumes ids are consecutive
+
     def id_to_local_index(self, id):
         if num_processes() > 1:
-            return self.local_cells.tolist().index(id) # probably very slow
+            return self.local_cells.tolist().index(id)  # probably very slow
         else:
             return self.id_to_index(id)
-    
+
     def _get_structure(self):
         return self._structure
-    
+
     def _set_structure(self, structure):
         assert isinstance(structure, space.BaseStructure)
         if structure != self._structure:
-            self._positions = None # setting a new structure invalidates previously calculated positions
+            self._positions = None  # setting a new structure invalidates previously calculated positions
             self._structure = structure
     structure = property(fget=_get_structure, fset=_set_structure)
     # arguably structure should be read-only, i.e. it is not possible to change it after Population creation
-    
+
     def _get_positions(self):
         """
-        Try to return self._positions. If it does not exist, create it and then return it
+        Try to return self._positions. If it does not exist, create it and then
+        return it.
         """
         if self._positions is None:
             self._positions = self.structure.generate_positions(self.size)
@@ -891,21 +907,21 @@ class Population(BasePopulation):
     def _set_positions(self, pos_array):
         assert isinstance(pos_array, numpy.ndarray)
         assert pos_array.shape == (3, self.size), "%s != %s" % (pos_array.shape, (3, self.size))
-        self._positions = pos_array.copy() # take a copy in case pos_array is changed later
-        self._structure = None # explicitly setting positions destroys any previous structure
+        self._positions = pos_array.copy()  # take a copy in case pos_array is changed later
+        self._structure = None  # explicitly setting positions destroys any previous structure
 
     positions = property(_get_positions, _set_positions,
                          """A 3xN array (where N is the number of neurons in the Population)
                          giving the x,y,z coordinates of all the neurons (soma, in the
                          case of non-point models).""")
-    
+
     def describe(self, template='population_default.txt', engine='default'):
         """
         Returns a human-readable description of the population.
-        
+
         The output may be customized by specifying a different template
         togther with an associated template engine (see ``pyNN.descriptions``).
-        
+
         If template is None, then a dictionary containing the template context
         will be returned.
         """
@@ -930,23 +946,23 @@ class Population(BasePopulation):
 
 
 class PopulationView(BasePopulation):
-    
+
     def __init__(self, parent, selector, label=None):
         self.parent = parent
-        self.mask = selector # later we can have fancier selectors, for now we just have numpy masks
+        self.mask = selector  # later we can have fancier selectors, for now we just have numpy masks
         self.label = label or "view of %s with mask %s" % (parent.label, self.mask)
         # maybe just redefine __getattr__ instead of the following...
         self.celltype = self.parent.celltype
         self.cellparams = self.parent.cellparams
-        self.all_cells = self.parent.all_cells[self.mask] # do we need to ensure this is ordered?
+        self.all_cells = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?
         self.size = len(self.all_cells)
         self._mask_local = self.parent._mask_local[self.mask]
         self.local_cells = self.all_cells[self._mask_local]
-        self.first_id = self.all_cells[0] # only works if we assume all_cells is sorted, otherwise could use min()
+        self.first_id = self.all_cells[0]  # only works if we assume all_cells is sorted, otherwise could use min()
         self.last_id = self.all_cells[-1]
         self.recorders = self.parent.recorders
         self.record_filter = self.all_cells
-    
+
     @property
     def initial_values(self):
         # this is going to be complex - if we keep initial_values as a dict,
@@ -972,7 +988,7 @@ class PopulationView(BasePopulation):
         >>> assert id_to_index(p.index(5)) == 5
         >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        index, = numpy.where(self.all_cells==id)
+        index, = numpy.where(self.all_cells == id)
         if index.size == 1:
             return index.item()
         elif index.size == 0:
@@ -983,10 +999,10 @@ class PopulationView(BasePopulation):
     def describe(self, template='populationview_default.txt', engine='default'):
         """
         Returns a human-readable description of the population view.
-        
+
         The output may be customized by specifying a different template
         togther with an associated template engine (see ``pyNN.descriptions``).
-        
+
         If template is None, then a dictionary containing the template context
         will be returned.
         """
@@ -997,7 +1013,7 @@ class PopulationView(BasePopulation):
         return descriptions.render(engine, template, context)
 
 
-# ==============================================================================
+# =============================================================================
 
 class Assembly(object):
     """
@@ -1012,30 +1028,32 @@ class Assembly(object):
         for p in populations:
             if not isinstance(p, BasePopulation):
                 raise TypeError("argument is a %s, not a Population." % type(p).__name__)
-        self.populations = list(populations) # should this be a set?
+        self.populations = list(populations)  # should this be a set?
         self.label = kwargs.get('label', 'assembly%d' % Assembly.count)
         assert isinstance(self.label, basestring), "label must be a string or unicode"
         Assembly.count += 1
 
     @property
     def local_cells(self):
-        return numpy.append(self.populations[0].local_cells, [p.local_cells for p in self.populations[1:]])
+        return numpy.append(self.populations[0].local_cells,
+                            [p.local_cells for p in self.populations[1:]])
 
     @property
     def all_cells(self):
-        return numpy.append(self.populations[0].all_cells, [p.all_cells for p in self.populations[1:]])
+        return numpy.append(self.populations[0].all_cells,
+                            [p.all_cells for p in self.populations[1:]])
 
     @property
     def size(self):
         return sum(p.size for p in self.populations)
-    
+
     def __iter__(self):
         return chain(iter(p) for p in self.populations)
-    
+
     def __len__(self):
         """Return the total number of cells in the population (all nodes)."""
         return self.size
-    
+
     def __add__(self, other):
         if isinstance(other, BasePopulation):
             return Assembly(*(self.populations + [other]))
@@ -1043,7 +1061,7 @@ class Assembly(object):
             return Assembly(*(self.populations + other.populations))
         else:
             raise TypeError("can only add a Population or another Assembly to an Assembly")
-    
+
     def __iadd__(self, other):
         if isinstance(other, BasePopulation):
             self.populations.append(other)
@@ -1052,7 +1070,7 @@ class Assembly(object):
         else:
             raise TypeError("can only add a Population or another Assembly to an Assembly")
         return self
-    
+
     def initialize(self, variable, value):
         for p in self.populations:
             p.initialize(variable, value)
@@ -1074,10 +1092,10 @@ class Assembly(object):
     def describe(self, template='assembly_default.txt', engine='default'):
         """
         Returns a human-readable description of the assembly.
-        
+
         The output may be customized by specifying a different template
         togther with an associated template engine (see ``pyNN.descriptions``).
-        
+
         If template is None, then a dictionary containing the template context
         will be returned.
         """
@@ -1085,48 +1103,51 @@ class Assembly(object):
                    "populations": [p.describe(template=None) for p in self.populations]}
         return descriptions.render(engine, template, context)
 
-# ==============================================================================
+# =============================================================================
+
 
 class Projection(object):
     """
     A container for all the connections of a given type (same synapse type and
-    plasticity mechanisms) between two populations, together with methods to set
-    parameters of those connections, including of plasticity mechanisms.
+    plasticity mechanisms) between two populations, together with methods to
+    set parameters of those connections, including of plasticity mechanisms.
     """
-    
+
     def __init__(self, presynaptic_neurons, postsynaptic_neurons, method,
                  source=None, target=None, synapse_dynamics=None,
                  label=None, rng=None):
         """
         presynaptic_neurons and postsynaptic_neurons - Population, PopulationView
                                                        or Assembly objects.
-        
+
         source - string specifying which attribute of the presynaptic cell
                  signals action potentials. This is only needed for
-                 multicompartmental cells with branching axons or dendrodendritic
-                 synapses. All standard cells have a single source, and this
-                 is the default.
-                 
+                 multicompartmental cells with branching axons or
+                 dendrodendriticsynapses. All standard cells have a single
+                 source, and this is the default.
+
         target - string specifying which synapse on the postsynaptic cell to
                  connect to. For standard cells, this can be 'excitatory' or
                  'inhibitory'. For non-standard cells, it could be 'NMDA', etc.
-                 If target is not given, the default values of 'excitatory' is used.
-        
+                 If target is not given, the default values of 'excitatory' is
+                 used.
+
         method - a Connector object, encapsulating the algorithm to use for
                  connecting the neurons.
-        
-        synapse_dynamics - a `standardmodels.SynapseDynamics` object specifying which
-                 synaptic plasticity mechanisms to use.
-        
+
+        synapse_dynamics - a `standardmodels.SynapseDynamics` object specifying
+                 which synaptic plasticity mechanisms to use.
+
         rng - specify an RNG object to be used by the Connector.
         """
-        for prefix, pop in zip(("pre", "post"), (presynaptic_neurons, postsynaptic_neurons)):
+        for prefix, pop in zip(("pre", "post"),
+                               (presynaptic_neurons, postsynaptic_neurons)):
             if not isinstance(pop, (BasePopulation, Assembly)):
                 raise errors.ConnectionError("%ssynaptic_neurons must be a Population, PopulationView or Assembly, not a %s" % (prefix, type(pop)))
-        self.pre    = presynaptic_neurons  # } these really        
-        self.source = source               # } should be
-        self.post   = postsynaptic_neurons # } read-only
-        self.target = target               # }
+        self.pre    = presynaptic_neurons  #  } these really
+        self.source = source               #  } should be
+        self.post   = postsynaptic_neurons #  } read-only
+        self.target = target               #  }
         self.label  = label
         if isinstance(rng, random.AbstractRNG):
             self.rng = rng
@@ -1148,7 +1169,7 @@ class Projection(object):
     def __len__(self):
         """Return the total number of local connections."""
         return len(self.connection_manager)
-    
+
     def size(self, gather=True):
         """
         Return the total number of connections.
@@ -1160,16 +1181,15 @@ class Projection(object):
             return recording.mpi_sum(n)
         else:
             return len(self)
-    
+
     def __repr__(self):
         return 'Projection("%s")' % self.label
-    
-    
+
     def __getitem__(self, i):
         return self.connection_manager[i]
-    
-    # --- Methods for setting connection parameters ----------------------------
-    
+
+    # --- Methods for setting connection parameters ---------------------------
+
     def setWeights(self, w):
         """
         w can be a single number, in which case all weights are set to this
@@ -1183,7 +1203,7 @@ class Projection(object):
         # if post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
         w = check_weight(w, self.synapse_type, is_conductance(self.post.local_cells[0]))
         self.connection_manager.set('weight', w)
-    
+
     def randomizeWeights(self, rand_distr):
         """
         Set weights to random values taken from rand_distr.
@@ -1192,7 +1212,7 @@ class Projection(object):
         # argument type. It could make for easier-to-read simulation code to
         # give it a separate name, though. Comments?
         self.setWeights(rand_distr.next(len(self)))
-    
+
     def setDelays(self, d):
         """
         d can be a single number, in which case all delays are set to this
@@ -1201,7 +1221,7 @@ class Projection(object):
         connectivity matrix (as returned by `getDelays(format='array')`).
         """
         self.connection_manager.set('delay', d)
-    
+
     def randomizeDelays(self, rand_distr):
         """
         Set delays to random values taken from rand_distr.
@@ -1220,13 +1240,13 @@ class Projection(object):
         Set parameters of the synapse dynamics to values taken from rand_distr
         """
         self.setSynapseDynamics(param, rand_distr.next(len(self)))
-    
-    # --- Methods for writing/reading information to/from file. ----------------
-    
+
+    # --- Methods for writing/reading information to/from file. ---------------
+
     def getWeights(self, format='list', gather=True):
         """
         Get synaptic weights for all connections in this Projection.
-        
+
         Possible formats are: a list of length equal to the number of connections
         in the projection, a 2D weight array (with NaN for non-existent
         connections). Note that for the array format, if there is more than
@@ -1235,11 +1255,11 @@ class Projection(object):
         if gather:
             logger.error("getWeights() with gather=True not yet implemented")
         return self.connection_manager.get('weight', format, offset=(self.pre.first_id, self.post.first_id))
-            
+
     def getDelays(self, format='list', gather=True):
         """
         Get synaptic delays for all connections in this Projection.
-        
+
         Possible formats are: a list of length equal to the number of connections
         in the projection, a 2D delay array (with NaN for non-existent
         connections).
@@ -1256,23 +1276,23 @@ class Projection(object):
         if gather:
             logger.error("getstandardmodels.SynapseDynamics() with gather=True not yet implemented")
         return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
-    
+
     def saveConnections(self, filename, gather=True, compatible_output=True):
         """
         Save connections to file in a format suitable for reading in with a
         FromFileConnector.
-        """    
+        """
         fmt = "%d\t%d\t%g\t%g\n"
         lines = []
         if not compatible_output:
-            for c in self.connections:   
-                line = fmt  % (c.source, 
+            for c in self.connections:
+                line = fmt  % (c.source,
                                c.target,
                                c.weight,
                                c.delay)
                 lines.append(line)
         else:
-            for c in self.connections:   
+            for c in self.connections: 
                 line = fmt  % (self.pre.id_to_index(c.source),
                                self.post.id_to_index(c.target),
                                c.weight,
@@ -1291,10 +1311,12 @@ class Projection(object):
             f.write("#" + self.pre.label + "\n#" + self.post.label + "\n")
             f.writelines(lines)
             f.close()
-    
+
     def printWeights(self, filename, format='list', gather=True):
-        """Print synaptic weights to file. In the array format, zeros are printed
-        for non-existent connections."""
+        """
+        Print synaptic weights to file. In the array format, zeros are printed
+        for non-existent connections.
+        """
         weights = self.getWeights(format=format, gather=gather)
         f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
         if format == 'list':
@@ -1306,7 +1328,7 @@ class Projection(object):
             #for row in weights:
             #    f.write(fmt % tuple(row))
         f.close()
-    
+
     def weightHistogram(self, min=None, max=None, nbins=10):
         """
         Return a histogram of synaptic weights.
@@ -1316,15 +1338,15 @@ class Projection(object):
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
         bins = numpy.arange(min, max, float(max-min)/nbins)
-        return numpy.histogram(self.getWeights(format='list', gather=True), bins) # returns n, bins
-    
+        return numpy.histogram(self.getWeights(format='list', gather=True), bins)  # returns n, bins
+
     def describe(self, template='projection_default.txt', engine='default'):
         """
         Returns a human-readable description of the projection.
-        
+
         The output may be customized by specifying a different template
         togther with an associated template engine (see ``pyNN.descriptions``).
-        
+
         If template is None, then a dictionary containing the template context
         will be returned.
         """
@@ -1344,4 +1366,4 @@ class Projection(object):
         return descriptions.render(engine, template, context)
 
 
-# ==============================================================================
+# =============================================================================
