@@ -1,4 +1,124 @@
 
+=================
+Developers' guide
+=================
+
+This guide contains information about contributing to PyNN development, and aims
+to explain the overall architecture and some of the internal details of the
+PyNN codebase.
+
+Discussions about PyNN take place in the `NeuralEnsemble Google Group`_.
+
+Contributing to PyNN
+====================
+
+If you find a bug or would like to add a new feature to PyNN, the first thing to
+do is to create a ticket for it at http://neuralensemble.org/trac/PyNN/newticket.
+You do not need an account, but it is better if you do have one since then we
+can see who reported it, and you have a better chance of avoiding the spam filter.
+
+If you know how to fix the bug, please attach a patch to the ticket, and please
+also provide a unit test that fails with the original code and passes when your
+patch is applied. If you would like commit rights for the Subversion repository,
+please contact us.
+
+If you do have commit rights, please make sure *all* the tests pass before you
+make a commit (see below).
+
+Code style
+==========
+
+We try to stay fairly close to PEP8_. Please note in particular:
+
+    - indentation of four spaces, no tabs
+    - single space around most operators, but no space around the '=' sign when
+      used to indicate a keyword argument or a default parameter value.
+    - some function/method names in PyNN use ``mixedCase``, but these will
+      gradually be deprecated and replaced with ``lower_case_with_underscores``.
+      Any new functions or methods should use the latter.
+    - we currently target versions 2.5 to 2.7. The main consequence of this is
+      that ``except Exception`` can't use the ``as`` statement, since this is
+      not supported in 2.5.
+
+Testing
+=======
+
+Running the PyNN test suite requires the *nose_* and *mock_* packages, and
+optionally the *coverage_* package. To run the entire test suite, in the
+``test`` subdirectory of the source tree::
+
+    $ nosetests
+    
+To see how well the codebase is covered by the tests, run::
+
+    $ nosetests --with-coverage --cover-package=pyNN --cover-erase
+    
+There are currently two sorts of tests, unit tests, which aim to exercise
+small pieces of code such as individual functions and methods, and system tests
+which aim to test that all the pieces of the system work together as expected.
+
+If you add a new feature to PyNN, you should write both unit and system tests.
+
+Unit tests should where necessary make use of mock/fake/stub/dummy objects to
+isolate the component under test as well as possible. Except when testing a
+specific simulator interface, unit tests should be able to run without a
+simulator installed.
+
+System tests should be written so that they can run with any of the simulators.
+The suggested way to do this is to write test functions in a separate file that
+take a simulator module as an argument, and then call these functions from
+``test_neuron.py``, ``test_nest.py``, etc.
+
+The ``test/unsorted`` directory contains a number of old tests that are either
+no longer useful or have not yet been adapted to the nose framework. These are
+not part of the test suite, but we are gradually adapting those tests that are
+useful and deleting the others.
+
+Structure of the codebase
+=========================
+
+PyNN is both an API for simulator-independent model descriptions and an
+implementation of that API for a number of simulators.
+
+If you wish to add PyNN support for your own simulator, you are welcome to add
+it as part of the main PyNN codebase, or you can maintain it separately. The
+advantage of the former is that we can help maintain it, and keep it up to date
+as the API evolves.
+
+A PyNN-compliant interface is not required to use any of the code from the
+``pyNN`` package, it can implement the API entirely independently. However, by
+basing an interface on the "common" implementation you can save yourself a lot
+of work, since once you implement a small number of low-level functions and
+classes, you get the rest of the API for free.
+
+The common implementation
+-------------------------
+
+The NEST interface
+------------------
+
+The NEURON interface
+--------------------
+
+The PCSIM interface
+-------------------
+
+The Brian interface
+-------------------
+
+
+Adding a new simulator interface
+================================
+
+
+.. _`NeuralEnsemble Google Group`: http://groups.google.com/group/neuralensemble
+.. _PEP8: http://www.python.org/dev/peps/pep-0008/
+.. _nose: http://somethingaboutorange.com/mrl/projects/nose/
+.. _mock: http://www.voidspace.org.uk/python/mock/
+.. _coverage: http://nedbatchelder.com/code/coverage/
+
+A walk through the lifecycle of a simulation
+============================================
 
 
 Import phase

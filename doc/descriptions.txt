@@ -1,0 +1,96 @@
+====================
+Network descriptions
+====================
+
+intro to mention finding bugs, literate programming
+
+::
+
+    >>> p1 = sim.Population(100, sim.IF_cond_exp, cell_parameters,
+    ...                     structure=space.Grid2D(dx=50.0, dy=50.0),
+    ...                     label="excitatory neurons")
+  
+    
+::
+    
+    >>> p1.describe(template=None)
+    {'cell_parameters': {'cm': 1.0,
+                         'e_rev_E': 0.0,
+                         'e_rev_I': -70.0,
+                         'i_offset': 0.0,
+                         'tau_m': 20.0,
+                         'tau_refrac': 0.10000000000000001,
+                         'tau_syn_E': 5.0,
+                         'tau_syn_I': 5.0,
+                         'v_reset': -65.0,
+                         'v_rest': -65.0,
+                         'v_thresh': -50.0},
+     'celltype': {'name': 'IF_cond_exp',
+                  'parameters': {'C_m': 1000.0,
+                                 'E_L': -65.0,
+                                 'E_ex': 0.0,
+                                 'E_in': -70.0,
+                                 'I_e': 0.0,
+                                 'V_reset': -65.0,
+                                 'V_th': -50.0,
+                                 'g_L': 50.0,
+                                 't_ref': 0.10000000000000001,
+                                 'tau_syn_ex': 5.0,
+                                 'tau_syn_in': 5.0}},
+     'first_id': 1,
+     'label': 'excitatory neurons',
+     'last_id': 100,
+     'local_first_id': 1,
+     'size': 100,
+     'size_local': 100,
+     'structure': {'name': 'Grid2D',
+                   'parameters': {'aspect_ratio': 1.0,
+                                  'dx': 50.0,
+                                  'dy': 50.0,
+                                  'fill_order': 'sequential',
+                                  'x0': 0.0,
+                                  'y0': 0.0}}}
+                                  
+
+::
+
+    >>> print p1.describe()
+    Population "excitatory neurons"
+    Structure   : Grid2D
+      fill_order: sequential
+      dx: 50.0
+      dy: 50.0
+      aspect_ratio: 1.0
+      y0: 0.0
+      x0: 0.0
+    Local cells : 100
+    Cell type   : IF_cond_exp
+    ID range    : 1-100
+    First cell on this node:
+      ID: 1
+      tau_refrac: 0.1
+      tau_m: 20.0
+      e_rev_E: 0.0
+      i_offset: 0.0
+      cm: 1.0
+      e_rev_I: -70.0
+      v_thresh: -50.0
+      tau_syn_E: 5.0
+      v_rest: -65.0
+      tau_syn_I: 5.0
+      v_reset: -65.0
+    
+    >>> print(p1.describe(engine='string'))
+    Population "excitatory neurons"
+    Structure   : {'name': 'Grid2D', 'parameters': {'fill_order': 'sequential', 'dx': 50.0, 'dy': 50.0, 'aspect_ratio': 1.0, 'y0': 0.0, 'x0': 0.0}}
+    Local cells : 100
+    Cell type   : {'name': 'IF_cond_exp', 'parameters': {'E_in': -70.0, 'E_ex': 0.0, 'V_th': -50.0, 'I_e': 0.0, 'C_m': 1000.0, 'tau_syn_ex': 5.0, 'g_L': 50.0, 'V_reset': -65.0, 'tau_syn_in': 5.0, 'E_L': -65.0, 't_ref': 0.10000000000000001}}.name
+    ID range    : 1-100
+    First cell on this node:
+      ID: 1
+      {'tau_refrac': 0.10000000000000001, 'tau_m': 20.0, 'e_rev_E': 0.0, 'i_offset': 0.0, 'cm': 1.0, 'e_rev_I': -70.0, 'v_thresh': -50.0, 'tau_syn_E': 5.0, 'v_rest': -65.0, 'tau_syn_I': 5.0, 'v_reset': -65.0}
+    
+    >>> print p1.describe('Population "{{label}}" consists of {{size}} {{celltype.name}} neurons, arranged in a {{structure.name}} structure with grid spacing ({{structure.parameters.dx}},{{structure.parameters.dy}})', engine='jinja2') )
+Population "excitatory neurons" consists of 100 IF_cond_exp neurons, arranged in a Grid2D structure with grid spacing (50.0,50.0)', engine='jinja2')
+
+    >>> print p1.describe('Population "$label" consists of $size $celltype.name neurons, arranged in a $structure.name structure with grid spacing ($structure.parameters.dx,$structure.parameters.dy)', engine='cheetah')
