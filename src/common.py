@@ -581,7 +581,7 @@ class BasePopulation(object):
             for cell, val in zip(self, rarr):
                 cell.set_initial_value(variable, val)
         else:
-            self.initial_values[variable] = core.LazyArray(self.size, value)
+            self.initial_values[variable] = core.LazyArray(value, shape=(self.size,))
             if hasattr(self, "_set_initial_value_array"):
                 self._set_initial_value_array(variable, value)
             else:

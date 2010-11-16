@@ -99,7 +99,7 @@ class WrappedRNG(AbstractRNG):
                 assert mask_local.size == n
                 rarr = rarr[mask_local]    
             else:
-                raise Exception("For a parallel-safe RNG, mask_local must be either an array or False.")
+                raise Exception("For a parallel-safe RNG, mask_local must be either an array or False, not %s" % mask_local)
         if hasattr(rarr, '__len__') and len(rarr) == 1:
             return rarr[0]
         else:
@@ -175,7 +175,8 @@ class RandomDistribution(object):
     numbers from a given distribution.
     """
        
-    def __init__(self, distribution='uniform', parameters=[], rng=None, boundaries=None, constrain="clip"):
+    def __init__(self, distribution='uniform', parameters=[], rng=None,
+                 boundaries=None, constrain="clip"):
         """
         If present, rng should be a NumpyRNG or GSLRNG object.
         distribution should be the name of a method supported by the underlying
