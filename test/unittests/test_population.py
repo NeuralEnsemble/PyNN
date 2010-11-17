@@ -83,7 +83,7 @@ def test_cell_property():
 # test structure property
 def test_set_structure():
     p = MockPopulation(11, MockStandardCell)
-    p._positions = "some positions"
+    p._positions = numpy.arange(33).reshape(3,11)
     new_struct = MockStructure()
     p.structure = new_struct
     assert_equal(p._structure, new_struct)
@@ -92,14 +92,16 @@ def test_set_structure():
 # test positions property
 def test_get_positions():
     p = MockPopulation(11, MockStandardCell)
+    pos1 = numpy.arange(33).reshape(3,11)
     p._structure = Mock()
-    p._structure.generate_positions = Mock(return_value="some positions")
+    p._structure.generate_positions = Mock(return_value=pos1)
     assert_equal(p._positions, None)
-    assert_equal(p.positions, "some positions")
-    assert_equal(p._positions, "some positions")
+    assert_arrays_equal(p.positions, pos1)
+    assert_arrays_equal(p._positions, pos1)
     
-    p._positions = "some other positions"
-    assert_equal(p.positions, "some other positions")
+    pos2 = 1+numpy.arange(33).reshape(3,11)
+    p._positions = pos2
+    assert_arrays_equal(p.positions, pos2)
 
 def test_set_positions():
     p = MockPopulation(11, MockStandardCell)

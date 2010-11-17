@@ -3,6 +3,7 @@ import unittest
 import numpy
 from mock import Mock
 from nose.tools import assert_equal, assert_raises
+from tools import assert_arrays_equal
 from math import sqrt
 
 def assert_arrays_almost_equal(a, b, threshold, msg=''):
@@ -61,6 +62,23 @@ class SpaceTest(unittest.TestCase):
                                numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
                                s.distances(self.ABCD, self.A).T)
+        assert_arrays_equal(s.distances(self.ABCD, self.ABCD),
+                            numpy.array([(0.0, sqrt(3), sqrt(3), sqrt(29)),
+                                         (sqrt(3), 0.0, sqrt(12), sqrt(14)),
+                                         (sqrt(3), sqrt(12), 0.0, sqrt(50.0)),
+                                         (sqrt(29), sqrt(14), sqrt(50.0), 0.0)]))
+        
+    def test_generator_for_infinite_space_with_3D_distances(self):
+        s = space.Space()
+        f = lambda i: self.ABCD[:,i]
+        g = lambda j: self.ABCD[:,j]
+        self.assertArraysEqual(s.distance_generator(f, g)(0, numpy.arange(4)),
+                               numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
+        assert_arrays_equal(s.distance_generator(f, g)(numpy.arange(4), numpy.arange(4)),
+                            numpy.array([(0.0, sqrt(3), sqrt(3), sqrt(29)),
+                                         (sqrt(3), 0.0, sqrt(12), sqrt(14)),
+                                         (sqrt(3), sqrt(12), 0.0, sqrt(50.0)),
+                                         (sqrt(29), sqrt(14), sqrt(50.0), 0.0)]))
     
     def test_infinite_space_with_collapsed_axes(self):
         s_x = space.Space(axes='x')
@@ -94,27 +112,32 @@ class SpaceTest(unittest.TestCase):
                                s.distances(self.ABCD, self.A).T)
         self.assertArraysEqual(s.distances(self.C, self.ABCD),
                                numpy.array([sqrt(3), sqrt(4+4+4), 0.0, sqrt(4+1+0)]))
-    
 
 
 class LineTest(unittest.TestCase):
     
     def test_generate_positions_default_parameters(self):
         line = space.Line()
+        n = 4
+        positions = line.generate_positions(n)
+        assert_equal(positions.shape, (3,n))
         assert_arrays_almost_equal(
-            line.generate_positions(3),
-            numpy.array([[0,0,0], [1,0,0], [2,0,0]], float).T,
+            positions,
+            numpy.array([[0,0,0], [1,0,0], [2,0,0], [3,0,0]], float).T,
             threshold=1e-15
         )
     
     def test_generate_positions(self):
         line = space.Line(dx=100.0, x0=-100.0, y0=444.0, z0=987.0)
+        n = 2
+        positions = line.generate_positions(n)
+        assert_equal(positions.shape, (3,n))
         assert_arrays_almost_equal(
-            line.generate_positions(2),
+            positions,
             numpy.array([[-100,444,987], [0,444,987]], float).T,
             threshold=1e-15
         )
-    
+
     def test__eq__(self):
         line1 = space.Line()
         line2 = space.Line(1.0, 0.0, 0.0, 0.0)
@@ -145,8 +168,11 @@ class Grid2D_Test(object):
         assert_raises(Exception, self.grid2.calculate_size, n=4)
         
     def test_generate_positions(self):
+        n = 4
+        positions = self.grid1.generate_positions(n)
+        assert_equal(positions.shape, (3,n))
         assert_arrays_almost_equal(
-            self.grid1.generate_positions(4),
+            positions,
             numpy.array([
                 [0,0,0], [0,1,0],
                 [1,0,0], [1,1,0]
@@ -184,8 +210,11 @@ class Grid3D_Test(object):
         assert_raises(Exception, self.grid2.calculate_size, n=100)
 
     def test_generate_positions(self):
+        n = 8
+        positions = self.grid1.generate_positions(n)
+        assert_equal(positions.shape, (3,n))
         assert_arrays_almost_equal(
-            self.grid1.generate_positions(8),
+            positions,
             numpy.array([
                 [0,0,0], [0,0,1], [0,1,0], [0,1,1],
                 [1,0,0], [1,0,1], [1,1,0], [1,1,1]
@@ -233,7 +262,7 @@ class TestRandomStructure(object):
         positions = rs.generate_positions(n)
         assert_equal(positions.shape, (3,n))
         for axis in range(2):
-            assert 3 < max(positions[:,axis]) < 3.5
-            assert -1 > min(positions[:,axis]) > -1.5
+            assert 3 < max(positions[axis,:]) < 3.5
+            assert -1 > min(positions[axis,:]) > -1.5
         
     

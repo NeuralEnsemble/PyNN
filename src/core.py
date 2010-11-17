@@ -1,3 +1,7 @@
+"""
+Assorted utility classes and functions.
+"""
+
 import numpy
 from pyNN import random
 import operator
@@ -14,6 +18,10 @@ def is_listlike(obj):
 
 
 def check_shape(meth):
+    """
+    Decorator for LazyArray magic methods, to ensure that the operand has
+    the same shape as the array.
+    """
     def wrapped_meth(self, val):
         if isinstance(val, (LazyArray, numpy.ndarray)):
             if val.shape != self.shape:
@@ -35,6 +43,16 @@ class LazyArray(object):
     """
 
     def __init__(self, value, shape):
+        """
+        Create a new LazyArray.
+        
+        `value` : may be an int, long, float, bool, numpy array,
+                  RandomDistribution or a function f(i,j).
+                  
+        f(i,j) should return a single number when i and j are integers, and a 1D
+        array when either i or j is a numpy array. The case where both i and j
+        are arrays need not be supported.
+        """
         if is_listlike(value):
             assert numpy.isreal(value).all()
             if not isinstance(value, numpy.ndarray):
@@ -42,7 +60,7 @@ class LazyArray(object):
             assert value.shape == shape
         else:
             assert numpy.isreal(value)
-        self.initial_value = value
+        self.base_value = value
         self.shape = shape
         self.operations = []
         
@@ -74,8 +92,8 @@ class LazyArray(object):
         if isinstance(val, (int, long, float)) and val == new_value:
             pass
         else:
-            self.initial_value = self.as_array()
-            self.initial_value[addr] = new_value
+            self.base_value = self.as_array()
+            self.base_value[addr] = new_value
     
     def check_bounds(self, addr):
         if isinstance(addr, (int, long, float)):
@@ -90,51 +108,66 @@ class LazyArray(object):
         return x
     
     def by_column(self, mask=None):
+        """
+        Iterate over the columns of the array. Columns will be yielded either
+        as a 1D array or as a single value (for a flat array).
+        
+        `mask`: either None or a boolean array indicating which columns should
+                be included.
+        """
         column_indices = numpy.arange(self.ncols)
         if mask is not None:
             assert len(mask) == self.ncols
             column_indices = column_indices[mask]
-        if isinstance(self.initial_value, (int, long, float, bool)):
+        if isinstance(self.base_value, (int, long, float, bool)):
             for j in column_indices:
-                yield self._apply_operations(self.initial_value)
-        elif isinstance(self.initial_value, numpy.ndarray):
+                yield self._apply_operations(self.base_value)
+        elif isinstance(self.base_value, numpy.ndarray):
             for j in column_indices:
-                yield self._apply_operations(self.initial_value[:, j])
-        elif isinstance(self.initial_value, random.RandomDistribution):
+                yield self._apply_operations(self.base_value[:, j])
+        elif isinstance(self.base_value, random.RandomDistribution):
             if mask is None:
                 for j in column_indices:
-                    yield self._apply_operations(self.initial_value.next(self.nrows, mask_local=False))
+                    yield self._apply_operations(self.base_value.next(self.nrows, mask_local=False))
             else:
                 column_indices = numpy.arange(self.ncols)
                 for j,local in zip(column_indices, mask):
-                    col = self.initial_value.next(self.nrows, mask_local=False)
+                    col = self.base_value.next(self.nrows, mask_local=False)
                     if local:
                         yield self._apply_operations(col)
-        elif callable(self.initial_value): # a function of (i,j)
+        elif callable(self.base_value): # a function of (i,j)
+            row_indices = numpy.arange(self.nrows, dtype=int)
             for j in column_indices:
-                row_indices = numpy.arange(self.nrows, dtype=int)
-                yield self._apply_operations(self.initial_value(row_indices, j))
+                yield self._apply_operations(self.base_value(row_indices, j))
         else:
             raise Exception("invalid mapping")
 
     @property
     def value(self):
-        val = self._apply_operations(self.initial_value)
+        """
+        Returns the base value with all operations applied to it. Works only
+        when the base value is a scalar or a real numpy array, not when the
+        base value is a RandomDistribution or mapping function.
+        """
+        val = self._apply_operations(self.base_value)
         if isinstance(val, LazyArray):
             val = val.value
         return val
 
     def as_array(self):
-        if isinstance(self.initial_value, (int, long, float, bool)):
-            x = self.initial_value*numpy.ones(self.shape)
-        elif isinstance(self.initial_value, numpy.ndarray):
-            x = self.initial_value
-        elif isinstance(self.initial_value, random.RandomDistribution):
+        """
+        Return the LazyArray as a real numpy array.
+        """
+        if isinstance(self.base_value, (int, long, float, bool)):
+            x = self.base_value*numpy.ones(self.shape)
+        elif isinstance(self.base_value, numpy.ndarray):
+            x = self.base_value
+        elif isinstance(self.base_value, random.RandomDistribution):
             n = self.nrows*self.ncols
-            x = self.initial_value.next(n).reshape(self.shape)
-        elif callable(self.initial_value):
-            j, i = numpy.meshgrid(range(self.ncols), range(self.nrows))
-            x = self.initial_value(i, j)
+            x = self.base_value.next(n).reshape(self.shape)
+        elif callable(self.base_value):
+            row_indices = numpy.arange(self.nrows, dtype=int)
+            x = numpy.array([self.base_value(row_indices, j) for j in range(self.ncols)]).T
         else:
             raise Exception("invalid mapping")
         return self._apply_operations(x)

@@ -85,6 +85,20 @@ class Space(object):
         numpy.sqrt(d, d)
         return d
 
+    def distance_generator(self, f, g):
+        """
+        Return a function that calculates the distance matrix as a function of
+        indices i,j, given two functions f(i) and g(j) that return coordinates.
+        """
+        def distance_map(i, j):
+            d = self.distances(f(i), g(j))
+            if d.shape[0] == 1:
+                d = d[0,:] # arguably this transformation should go in distances()
+            elif d.shape[1] == 1:
+                d = d[:,0]
+            return d
+        return distance_map
+
 
 class BaseStructure(object):
     
@@ -160,7 +174,7 @@ class Grid2D(BaseStructure):
             return positions
         else: # random
             return numpy.random.permutation(positions.T).T
-        
+
 
 class Grid3D(BaseStructure):
     parameter_names = ("aspect_ratios", "dx", "dy", "dz", "x0", "y0", "z0", "fill_order")
@@ -252,4 +266,3 @@ class RandomStructure(BaseStructure):
         
     def generate_positions(self, n):
         return (numpy.array(self.origin) + self.boundary.sample(n, self.rng)).T
-    

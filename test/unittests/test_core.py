@@ -158,7 +158,7 @@ def test_iadd_with_flat_array():
     m = LazyArray(5, shape=(4,3))
     m += 2
     assert_arrays_equal(m.as_array(), 7*numpy.ones((4,3)))
-    assert_equal(m.initial_value, 5)
+    assert_equal(m.base_value, 5)
     assert_equal(m.value, 7)
 
 def test_add_with_flat_array():
@@ -231,7 +231,7 @@ def test_add_two_constant_arrays():
     assert_equal(m2.value, 12)
     # the following tests the internals, not the behaviour
     # it is just to check I understand what's going on
-    assert_equal(m2.initial_value, m0.initial_value)
+    assert_equal(m2.base_value, m0.base_value)
     assert_equal(m2.operations, [(operator.add, m1)])
     
 def test_add_incommensurate_arrays():

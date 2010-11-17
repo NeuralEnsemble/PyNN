@@ -111,7 +111,9 @@ class ConnectionAttributeGenerator(object):
             values     = source_row[self.local_mask]
             if sub_mask is not None:
                 values = values[sub_mask]
-            return values    
+            return values
+        else:
+            raise Exception("Invalid source")
 
     def get_safe(self, N, distance_matrix=None, sub_mask=None):
         return self.check(self.extract(N, distance_matrix, sub_mask))
@@ -225,7 +227,7 @@ class Connector(object):
             self.delays = delays        
         
     def connect(self, projection):
-        pass
+        raise NotImplementedError()
     
     def progressbar(self, N):
         self.prog = utility.ProgressBar(0, N, 20, mode='fixed')        
@@ -261,7 +263,8 @@ class Connector(object):
 
 class ProbabilisticConnector(Connector):
     
-    def __init__(self, projection, weights=0.0, delays=None, allow_self_connections=True, space=Space(), safe=True):
+    def __init__(self, projection, weights=0.0, delays=None,
+                 allow_self_connections=True, space=Space(), safe=True):
 
         Connector.__init__(self, weights, delays, space, safe)
         if isinstance(projection.rng, random.NativeRNG):
@@ -369,8 +372,8 @@ class FixedProbabilityConnector(Connector):
     """
     parameter_names = ('allow_self_connections', 'p_connect')
     
-    def __init__(self, p_connect, allow_self_connections=True, weights=0.0, delays=None, space=Space(), 
-                       safe=True, verbose=False):
+    def __init__(self, p_connect, allow_self_connections=True, weights=0.0,
+                 delays=None, space=Space(), safe=True, verbose=False):
         """
         Create a new connector.
         
@@ -396,7 +399,9 @@ class FixedProbabilityConnector(Connector):
         
     def connect(self, projection):
         #assert projection.rng.parallel_safe
-        connector = ProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
+        connector = ProbabilisticConnector(projection, self.weights, self.delays,
+                                           self.allow_self_connections, self.space,
+                                           safe=self.safe)
         self.progressbar(len(projection.pre))
         for count, src in enumerate(projection.pre.all()):
             connector._probabilistic_connect(src, self.p_connect)

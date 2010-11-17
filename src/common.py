@@ -895,6 +895,12 @@ class Population(BasePopulation):
     structure = property(fget=_get_structure, fset=_set_structure)
     # arguably structure should be read-only, i.e. it is not possible to change it after Population creation
 
+    @property
+    def position_generator(self):
+        def gen(i):
+            return self.positions[:,i]
+        return gen
+
     def _get_positions(self):
         """
         Try to return self._positions. If it does not exist, create it and then
@@ -902,6 +908,7 @@ class Population(BasePopulation):
         """
         if self._positions is None:
             self._positions = self.structure.generate_positions(self.size)
+        assert self._positions.shape == (3, self.size)
         return self._positions
 
     def _set_positions(self, pos_array):
