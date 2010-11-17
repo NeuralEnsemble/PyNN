@@ -55,6 +55,8 @@ class LazyArray(object):
         return self.shape[1]
     
     def __getitem__(self, addr):
+        if isinstance(addr, (int, long, float)):
+            addr = (addr,)
         if len(addr) != len(self.shape):
             raise IndexError("invalid index")
         if not isinstance(addr, (int, long, tuple)):

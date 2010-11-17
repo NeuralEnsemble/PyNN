@@ -4,41 +4,73 @@ Synapse Dynamics classes for the brian module.
 $Id$
 """
 
-from pyNN import standardmodels
+from pyNN import standardmodels, synapses
 
 
-class SynapseDynamics(standardmodels.SynapseDynamics):
-    def __init__(self, fast=None, slow=None):
-        synapses.SynapseDynamics.__init__(self, fast, slow)
+SynapseDynamics = standardmodels.SynapseDynamics
 
 class STDPMechanism(standardmodels.STDPMechanism):
+    """Specification of STDP models."""
+    
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0):
         assert dendritic_delay_fraction == 1, """Brian does not currently support axonal delays:
                                                  for the purpose of STDP calculations all delays
                                                  are assumed to be dendritic."""
-        synapses.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
+        standardmodels.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
                                       voltage_dependence, dendritic_delay_fraction)
 
-class TsodkysMarkramMechanism(standardmodels.ModelNotAvailable):
+
+class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
-        synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
-        self.parameters = self.translate(parameters)
-        self.eqs = '''
-              dR/dt=(1-R)/%g : 1
-              tau_rec        : ms
-              ''' %tau_rec
-
+        parameters = dict(locals())
+        parameters.pop('self')
+        self.parameters = parameters
+        
     def reset(population,spikes, v_reset):
         population.R_[spikes]-=U_SE*population.R_[spikes]
         population.v_[spikes]= v_reset
 
-class AdditiveWeightDependence(standardmodels.ModelNotAvailable):
-    pass
 
-class MultiplicativeWeightDependence(standardmodels.ModelNotAvailable):
-    pass
+class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
+    
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
+        if w_min != 0: 
+            raise Exception("Non-zero minimum weight is not supported by Brian.")
+        parameters = dict(locals())
+        parameters.pop('self')
+        self.parameters = parameters
+        self.parameters['mu_plus']  = 0.
+        self.parameters['mu_minus'] = 0.
 
-class SpikePairRule(standardmodels.ModelNotAvailable):
-    pass
+
+class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
+    
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
+        if w_min != 0: 
+            raise Exception("Non-zero minimum weight is not supported by Brian.")
+        parameters = dict(locals())
+        parameters.pop('self')
+        self.parameters = parameters
+        self.parameters['mu_plus']  = 1.
+        self.parameters['mu_minus'] = 1.
+
+class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
+    
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
+        if w_min != 0:
+            raise Exception("Non-zero minimum weight is not supported by NEST.")
+        parameters = dict(locals())
+        parameters.pop('self')
+        self.parameters = parameters
+        self.parameters['mu_plus']  = 0.0
+        self.parameters['mu_minus'] = 1.0
+
+
+class SpikePairRule(synapses.SpikePairRule):
+    
+    def __init__(self, tau_plus=20.0, tau_minus=20.0):
+        parameters = dict(locals())
+        parameters.pop('self')
+        self.parameters = parameters

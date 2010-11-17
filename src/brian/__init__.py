@@ -116,9 +116,9 @@ class Population(common.Population, BasePopulation):
                 eqs = brian.Equations(cellclass)
             except Exception, errmsg:
                 raise errors.InvalidModelError(errmsg)
-            v_thresh   = cellparams['v_thresh']
-            v_reset    = cellparams['v_reset']
-            tau_refrac = cellparams['tau_refrac']
+            v_thresh   = cellparams['v_thresh'] * mV
+            v_reset    = cellparams['v_reset'] * mV
+            tau_refrac = cellparams['tau_refrac'] * ms
             brian_cells = brian.NeuronGroup(n,
                                             model=eqs,
                                             threshold=v_thresh,
@@ -130,7 +130,6 @@ class Population(common.Population, BasePopulation):
         elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
             celltype = cellclass(cellparams)
             cell_parameters = celltype.parameters
-            
             if isinstance(celltype, cells.SpikeSourcePoisson):    
                 fct = celltype.fct
                 brian_cells = simulator.PoissonGroupWithDelays(n, rates=fct)
@@ -138,7 +137,14 @@ class Population(common.Population, BasePopulation):
                 spike_times = cell_parameters['spiketimes']
                 brian_cells = simulator.MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(n)])
             else:
-                brian_cells = simulator.ThresholdNeuronGroup(n, cellclass.eqs)
+                v_thresh   = cell_parameters['v_thresh'] * mV
+                v_reset    = cell_parameters['v_reset'] * mV
+                tau_refrac = cell_parameters['tau_refrac'] * ms
+                brian_cells = simulator.ThresholdNeuronGroup(n, 
+                                                             cellclass.eqs, 
+                                                             v_thresh,
+                                                             v_reset, 
+                                                             tau_refrac)
         elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.ModelNotAvailable):
             raise NotImplementedError("The %s model is not available for this simulator." % cellclass.__name__)
         else:
@@ -154,8 +160,8 @@ class Population(common.Population, BasePopulation):
             cell.parent_group = brian_cells
        
         self._mask_local = numpy.ones((n,), bool) # all cells are local. This doesn't seem very efficient.
-        self.first_id = self.all_cells[0]
-        self.last_id = self.all_cells[-1]
+        self.first_id    = self.all_cells[0]
+        self.last_id     = self.all_cells[-1]
         self.brian_cells = brian_cells
         simulator.net.add(brian_cells)
 
@@ -173,7 +179,8 @@ class Population(common.Population, BasePopulation):
             value = numpy.array(rarr)
         else:
             value = value*numpy.ones((len(self),))
-        self.brian_cells.initial_values[variable] = value*mV
+        if variable is 'v':
+            self.brian_cells.initial_values[variable] = value*mV
         self.brian_cells.initialize()
         self.initial_values[variable] = core.LazyArray(self.size, value)
 
@@ -209,14 +216,61 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    source, target, synapse_dynamics, label, rng)
         
-        self._method  = method
-        self._connections = None
-        self._plasticity_model = "static_synapse"
-        self.synapse_type = target
+        self._method           = method
+        self._connections      = None
+        self.synapse_type      = target or 'excitatory'
         
-        self.connection_manager = simulator.ConnectionManager(self.synapse_type, parent=self)
+        if self.synapse_dynamics:
+            if self.synapse_dynamics.fast:
+                if self.synapse_dynamics.slow:
+                    raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
+                else:
+                    self._plasticity_model = "tsodyks_markram_synapse"
+            elif synapse_dynamics.slow:
+                self._plasticity_model = "stdp_synapse"
+        else:        
+            self._plasticity_model = "static_synapse"
+                                        
+        self.connection_manager = simulator.ConnectionManager(self.synapse_type, self._plasticity_model, parent=self)
         self.connections = self.connection_manager
         method.connect(self)
+        
+        if self._plasticity_model != "static_synapse":
+            synapse_obj = postsynaptic_population[0].cellclass.synapses[self.synapse_type]
+            if common.is_conductance(postsynaptic_population[0]):
+                units = uS
+            else:
+                units = nA
+            synapses = self.connections._get_brian_connection(presynaptic_population.brian_cells,
+                                        postsynaptic_population.brian_cells,
+                                        synapse_obj,
+                                        units)
+            if self._plasticity_model is "stdp_synapse":
+                #if isinstance(self.synapse_dynamics.slow.weight_dependence, 
+                parameters   = self.synapse_dynamics.slow.all_parameters
+                myupdate     = None
+                if parameters['mu_plus'] == 0:
+                    if parameters['mu_minus'] == 0:
+                        myupdate='additive'
+                    elif parameters['mu_minus'] == 1:
+                        myupdate='mixed'
+                elif parameters['mu_plus'] == 1:
+                    if parameters['mu_minus'] == 1:
+                        myupdate='multiplicative'
+                if myupdate is None:
+                    raise Exception("Brian only support additive, multiplicative, or mixed STDP rule (van Rossum) !")
+                brian.ExponentialSTDP(synapses, 
+                                      parameters['tau_plus']*ms,
+                                      parameters['tau_minus']*ms,
+                                      parameters['A_plus'],
+                                      -parameters['A_minus'],
+                                      wmax  =10000*parameters['w_max'],
+                                      update=myupdate)
+            elif self._plasticity_model is "tsodyks_markram_synapse":
+                parameters   = self.synapse_dynamics.fast.parameters
+                brian.STP(synapses, parameters['tau_rec'] * ms, 
+                                    parameters['tau_facil'] * ms, 
+                                    parameters['U'])
 
 
 Space = space.Space
@@ -236,5 +290,6 @@ record = common.build_record('spikes', simulator)
 record_v = common.build_record('v', simulator)
 
 record_gsyn = common.build_record('gsyn', simulator)
+
 
 # ==============================================================================

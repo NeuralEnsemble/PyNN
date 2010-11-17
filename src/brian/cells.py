@@ -18,7 +18,7 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     translations = standardmodels.build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
-        ('cm',         'c_m',         nF), 
+        ('cm',         'c_m',        nF), 
         ('tau_m',      'tau_m',      ms),
         ('tau_refrac', 'tau_refrac'),
         ('tau_syn_E',  'tau_syn_E',  ms),
@@ -32,7 +32,7 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         dye/dt = -ye/tau_syn_E                        : nA
         dgi/dt = (2.7182818284590451*yi-gi)/tau_syn_I : nA
         dyi/dt = -yi/tau_syn_I                        : nA
-        c_m                                    : nF
+        c_m                                   : nF
         tau_syn_E                             : ms
         tau_syn_I                             : ms
         tau_m                                 : ms
@@ -82,7 +82,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
         ('cm',         'c_m',        nF), 
-        ('tau_m',      'tau_m',      mV),
+        ('tau_m',      'tau_m',      ms),
         ('tau_refrac', 'tau_refrac'),
         ('tau_syn_E',  'tau_syn_E',  ms),
         ('tau_syn_I',  'tau_syn_I',  ms),
@@ -116,7 +116,7 @@ class IF_cond_exp(cells.IF_cond_exp):
     translations = standardmodels.build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
-        ('cm',         'cm',         nF), 
+        ('cm',         'c_m',        nF), 
         ('tau_m',      'tau_m',      ms),
         ('tau_refrac', 'tau_refrac'),
         ('tau_syn_E',  'tau_syn_E',  ms),
@@ -127,13 +127,13 @@ class IF_cond_exp(cells.IF_cond_exp):
         ('e_rev_I',    'e_rev_I',    mV),
     )
     eqs= brian.Equations('''
-        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v) + i_offset + i_inj)/cm : mV
+        dv/dt  = (v_rest-v)/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v) + i_offset + i_inj)/c_m : mV
         dge/dt = -ge/tau_syn_E : uS
         dgi/dt = -gi/tau_syn_I : uS
         tau_syn_E              : ms
         tau_syn_I              : ms
         tau_m                  : ms
-        cm                     : nF
+        c_m                    : nF
         v_rest                 : mV
         e_rev_E                : mV
         e_rev_I                : mV

@@ -77,11 +77,11 @@ def nesteddictwalk(d):
 
 class ThresholdNeuronGroup(brian.NeuronGroup):
     
-    def __init__(self, n, equations):
+    def __init__(self, n, equations, threshold=-50*mV, reset=-60*mV, refractory=100*ms):
         brian.NeuronGroup.__init__(self, n, model=equations,
-                                   threshold=-50.0*mV,
-                                   reset=-60.0*mV,
-                                   refractory=100.0*ms, # this is set to a very large value as it acts as a maximum refractoriness
+                                   threshold=threshold,
+                                   reset=reset,
+                                   refractory=refractory, # this is set to a very large value as it acts as a maximum refractoriness
                                    compile=True,
                                    clock=state.simclock,
                                    max_delay=state.max_delay*ms,
@@ -91,10 +91,6 @@ class ThresholdNeuronGroup(brian.NeuronGroup):
             if var in self.parameter_names:
                 self.parameter_names.remove(var)
         self.initial_values = {}
-        
-    tau_refrac = _new_property('_resetfun', 'period', ms)
-    v_reset = _new_property('_resetfun', 'resetvalue', mV)
-    v_thresh = _new_property('_threshold', 'threshold', mV)
 
     def initialize(self):
         for variable, values in self.initial_values.items():
@@ -323,10 +319,11 @@ class ConnectionManager(object):
         `synapse_model` -- not used. Present for consistency with other simulators.
         `parent` -- the parent `Projection`, if any.
         """
-        self.synapse_type = synapse_type
+        self.synapse_type  = synapse_type
+        self.synapse_model = synapse_model
         self.parent = parent
         self.connections = {}
-        self.n = 0
+        self.n  = 0
 
     def __getitem__(self, i):
         """Return the `i`th connection as a Connection object."""
@@ -354,7 +351,7 @@ class ConnectionManager(object):
         """Return an iterator over all connections in this manager."""
         return self.__connection_generator()
     
-    def _get_brian_connection(self, source_group, target_group, synapse_obj, weight_units):
+    def _get_brian_connection(self, source_group, target_group, synapse_obj, weight_units, homogeneous=False):
         """
         Return the Brian Connection object that connects two NeuronGroups with a
         given synapse model.
@@ -382,16 +379,22 @@ class ConnectionManager(object):
             assert isinstance(source_group, brian.NeuronGroup)
             assert isinstance(target_group, brian.NeuronGroup), type(target_group)
             assert isinstance(synapse_obj, basestring), "%s (%s)" % (synapse_obj, type(synapse_obj))
-            bc = brian.DelayConnection(source_group,
+            if not homogeneous:
+                bc = brian.DelayConnection(source_group,
                                        target_group,
-                                       synapse_obj,
+                                       state=synapse_obj,
+                                       max_delay=state.max_delay)
+            else:
+                bc = brian.Connection(source_group,
+                                       target_group,
+                                       state=synapse_obj,
                                        max_delay=state.max_delay)
             bc.weight_units = weight_units
             net.add(bc)
             self.connections[syn_id][src_id][tgt_id] = bc
-        return bc
+        return self.connections[syn_id][src_id][tgt_id]
     
-    def connect(self, source, targets, weights, delays):
+    def connect(self, source, targets, weights, delays, homogeneous=False):
         """
         Connect a neuron to one or more other neurons with a static connection.
         
@@ -420,7 +423,6 @@ class ConnectionManager(object):
             units = uS
         else:
             units = nA
-            
         synapse_type = self.synapse_type or "excitatory"
         synapse_obj  = targets[0].cellclass.synapses[synapse_type]
         try:
@@ -431,18 +433,18 @@ class ConnectionManager(object):
         bc = self._get_brian_connection(source_group,
                                         target_group,
                                         synapse_obj,
-                                        units)
-        #W = brian.connection.SparseMatrix(shape=(1,len(target_group)), dtype=float)
-        W = scipy.sparse.lil_matrix((len(source_group), len(target_group)), dtype=float)
-        D = scipy.sparse.lil_matrix((len(source_group), len(target_group)), dtype=float)
-        
-        src = int(source)
-        for tgt, w, d in zip(targets, weights, delays):
-            w = w or ZERO_WEIGHT # since sparse matrices use 0 for empty entries, we use this value to mark a connection as existing but of zero weight
-            W[src, int(tgt)] = w*units
-            D[src, int(tgt)] = d*ms
-        bc.connect(W=W)
-        bc.delayvec[0:len(bc.source),0:len(bc.target)] = D
+                                        units, 
+                                        homogeneous)        
+        src     = int(source)
+        targets = numpy.array(targets, int)
+        weights = numpy.array(weights)
+        delays  = numpy.array(delays)
+        weights[weights == 0] = ZERO_WEIGHT
+        bc[src, targets]      = weights * units
+        if not homogeneous:
+            bc.delayvec[src, targets] = delays * ms
+        else:
+            bc.delay = delays[0]
         self.n += len(targets)
         
     def get(self, parameter_name, format, offset=(0,0)):
@@ -471,15 +473,15 @@ class ConnectionManager(object):
                                         synapse_obj,
                                         weight_units)
         if parameter_name == "weight":
-            M = bc.W
+            M     = bc.W
             units = weight_units
         elif parameter_name == 'delay':
-            M = bc.delay
+            M     = bc.delay
             units = ms
         else:
             raise Exception("Getting parameters other than weight and delay not yet supported.")
         
-        values = M.toarray()        
+        values = M.todense()        
         values = numpy.where(values==0, numpy.nan, values)
         mask = values>0
         values = numpy.where(values<=ZERO_WEIGHT, 0.0, values)
