@@ -9,7 +9,7 @@ from pyNN.nest import simulator
 
 RECORDING_DEVICE_NAMES = {'spikes': 'spike_detector',
                           'v':      'voltmeter',
-                          'gsyn':   'conductancemeter'}
+                          'gsyn':   'multimeter'}
 
 logger = logging.getLogger("PyNN")
 
@@ -40,6 +40,8 @@ class Recorder(recording.Recorder):
         device_name = RECORDING_DEVICE_NAMES[self.variable]
         self._device = nest.Create(device_name)
         device_parameters = {"withgid": True, "withtime": True}
+        if self.variable is 'gsyn':
+            device_parameters["record_from"] = ['g_ex', 'g_in']
         if self.variable != 'spikes':
             device_parameters["interval"] = common.get_time_step()
         else:
@@ -61,7 +63,7 @@ class Recorder(recording.Recorder):
         device_name = nest.GetStatus(self._device, "model")[0]
         if device_name == "spike_detector":
             nest.ConvergentConnect(new_ids, self._device, model='static_synapse')
-        elif device_name in ('voltmeter', 'conductancemeter'):
+        elif device_name in ('voltmeter', 'multimeter'):
             nest.DivergentConnect(self._device, new_ids, model='static_synapse')
         else:
             raise Exception("%s is not a valid recording device" % device_name)
@@ -95,9 +97,9 @@ class Recorder(recording.Recorder):
         if self.variable == 'spikes':
             data = numpy.array((ids, times)).T
         elif self.variable == 'v':
-            data = numpy.array((ids, times, events['potentials'])).T
+            data = numpy.array((ids, times, events['V_m'])).T
         elif self.variable == 'gsyn':
-            data = numpy.array((ids, times, events['exc_conductance'], events['inh_conductance'])).T
+            data = numpy.array((ids, times, events['g_ex'], events['g_in'])).T
         return data
                    
     def _read_data_from_memory(self, gather, compatible_output):

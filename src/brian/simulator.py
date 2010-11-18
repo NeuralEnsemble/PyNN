@@ -96,7 +96,6 @@ class ThresholdNeuronGroup(brian.NeuronGroup):
         for variable, values in self.initial_values.items():
             setattr(self, variable, values)
 
-
 class PoissonGroupWithDelays(brian.PoissonGroup):
 
     def __init__(self, N, rates=0):
@@ -262,9 +261,9 @@ class Connection(object):
                    in the weight array.
         """
         # the index is the nth non-zero element
-        self.bc = brian_connection
+        self.bc       = brian_connection
         n_rows,n_cols = self.bc.W.shape
-        self.addr = self.__get_address(index)
+        self.addr     = self.__get_address(index)
         self.source, self.target = self.addr
         #print "creating connection with index", index, "and address", self.addr
 
@@ -319,23 +318,22 @@ class ConnectionManager(object):
         `synapse_model` -- not used. Present for consistency with other simulators.
         `parent` -- the parent `Projection`, if any.
         """
-        self.synapse_type  = synapse_type
-        self.synapse_model = synapse_model
-        self.parent = parent
-        self.connections = {}
-        self.n  = 0
+        self.synapse_type      = synapse_type
+        self.synapse_model     = synapse_model
+        self.parent            = parent
+        self.n                 = 0
+        self.brian_connections = None
 
     def __getitem__(self, i):
         """Return the `i`th connection as a Connection object."""
         j = 0
-        for bc in nesteddictwalk(self.connections):
-            assert isinstance(bc, brian.Connection), str(bc)
-            j_new = j + bc.W.getnnz()
-            if i < j_new:
-                return Connection(bc, i-j)
-            else:
-                j = j_new
-        raise Exception("No such connection. i=%d. connection object lengths=%s" % (i, str([c.W.getnnz() for c in nesteddictwalk(self.connections)])))
+        assert isinstance(self.brian_connections, brian.Connection), str(self.brian_connections)
+        j_new = j + self.brian_connections.W.getnnz()
+        if i < j_new:
+            return Connection(self.brian_connections, i-j)
+        else:
+            j = j_new
+        raise Exception("No such connection. i=%d. connection object lengths=%s" % (i, str(self.brian_connections.W.getnnz())))
     
     def __len__(self):
         """Return the total number of connections in this manager."""
@@ -343,9 +341,8 @@ class ConnectionManager(object):
     
     def __connection_generator(self):
         """Yield each connection in turn."""
-        for bc in nesteddictwalk(self.connections):
-            for j in range(bc.W.getnnz()):
-                yield Connection(bc, j)
+        for j in range(self.brian_connections.W.getnnz()):
+            yield Connection(self.brian_connections, j)
                 
     def __iter__(self):
         """Return an iterator over all connections in this manager."""
@@ -363,36 +360,22 @@ class ConnectionManager(object):
         weight_units -- Brian Units object: nA for current-based synapses,
                         uS for conductance-based synapses.
         """
-        bc = None
-        syn_id = id(synapse_obj)
-        src_id = id(source_group)
-        tgt_id = id(target_group)
-        if syn_id in self.connections:
-            if src_id in self.connections[syn_id]:
-                if tgt_id in self.connections[syn_id][src_id]:
-                    bc = self.connections[syn_id][src_id][tgt_id]
-            else:
-                self.connections[syn_id][src_id] = {}
-        else:
-            self.connections[syn_id] = {src_id: {}}
-        if bc is None:
+        if self.brian_connections is None:
             assert isinstance(source_group, brian.NeuronGroup)
             assert isinstance(target_group, brian.NeuronGroup), type(target_group)
             assert isinstance(synapse_obj, basestring), "%s (%s)" % (synapse_obj, type(synapse_obj))
             if not homogeneous:
-                bc = brian.DelayConnection(source_group,
-                                       target_group,
-                                       state=synapse_obj,
-                                       max_delay=state.max_delay)
+                self.brian_connections = brian.DelayConnection(source_group,
+                                           target_group,
+                                           synapse_obj,
+                                           max_delay=state.max_delay)
             else:
-                bc = brian.Connection(source_group,
-                                       target_group,
-                                       state=synapse_obj,
-                                       max_delay=state.max_delay)
-            bc.weight_units = weight_units
-            net.add(bc)
-            self.connections[syn_id][src_id][tgt_id] = bc
-        return self.connections[syn_id][src_id][tgt_id]
+                self.brian_connections = brian.Connection(source_group,
+                                      target_group,
+                                      synapse_obj)
+            self.brian_connections.weight_units = weight_units
+            net.add(self.brian_connections)
+        return self.brian_connections
     
     def connect(self, source, targets, weights, delays, homogeneous=False):
         """
@@ -430,7 +413,7 @@ class ConnectionManager(object):
         except AttributeError, errmsg:
             raise errors.ConnectionError("%s. Maybe trying to connect from non-existing cell (ID=%s)." % (errmsg, source))
         target_group = targets[0].parent_group # we assume here all the targets belong to the same NeuronGroup
-        bc = self._get_brian_connection(source_group,
+        bc      = self._get_brian_connection(source_group,
                                         target_group,
                                         synapse_obj,
                                         units, 
@@ -443,8 +426,10 @@ class ConnectionManager(object):
         bc[src, targets]      = weights * units
         if not homogeneous:
             bc.delayvec[src, targets] = delays * ms
-        else:
-            bc.delay = delays[0]
+        elif len(delays) > 0:
+            delay = delays[0] * ms
+            bc.source.set_max_delay(delay)
+            bc.delay = int(delay / bc.source.clock.dt)
         self.n += len(targets)
         
     def get(self, parameter_name, format, offset=(0,0)):
