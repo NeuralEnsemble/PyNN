@@ -296,8 +296,11 @@ class Connection(object):
 
     def _get_delay(self):
         """Synaptic delay in ms."""
-        return float(self.bc.delay[self.addr]/ms)
-
+        if isinstance(self.bc, brian.DelayConnection):
+            return float(self.bc.delay[self.addr]/ms)
+        if isinstance(self.bc, brian.Connection):
+            return float(self.bc.delay/ms)
+            
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
     
@@ -366,13 +369,14 @@ class ConnectionManager(object):
             assert isinstance(synapse_obj, basestring), "%s (%s)" % (synapse_obj, type(synapse_obj))
             if not homogeneous:
                 self.brian_connections = brian.DelayConnection(source_group,
-                                           target_group,
-                                           synapse_obj,
-                                           max_delay=state.max_delay)
+                                                               target_group,
+                                                               synapse_obj,
+                                                               max_delay=state.max_delay)
             else:
                 self.brian_connections = brian.Connection(source_group,
-                                      target_group,
-                                      synapse_obj)
+                                                          target_group,
+                                                          synapse_obj,
+                                                          max_delay=state.max_delay)
             self.brian_connections.weight_units = weight_units
             net.add(self.brian_connections)
         return self.brian_connections
@@ -413,23 +417,18 @@ class ConnectionManager(object):
         except AttributeError, errmsg:
             raise errors.ConnectionError("%s. Maybe trying to connect from non-existing cell (ID=%s)." % (errmsg, source))
         target_group = targets[0].parent_group # we assume here all the targets belong to the same NeuronGroup
-        bc      = self._get_brian_connection(source_group,
-                                        target_group,
-                                        synapse_obj,
-                                        units, 
-                                        homogeneous)        
+        bc      = self._get_brian_connection(source_group, target_group, synapse_obj, units, homogeneous)        
         src     = int(source)
         targets = numpy.array(targets, int)
         weights = numpy.array(weights)
         delays  = numpy.array(delays)
+        delays  = delays * ms
         weights[weights == 0] = ZERO_WEIGHT
         bc[src, targets]      = weights * units
         if not homogeneous:
-            bc.delayvec[src, targets] = delays * ms
-        elif len(delays) > 0:
-            delay = delays[0] * ms
-            bc.source.set_max_delay(delay)
-            bc.delay = int(delay / bc.source.clock.dt)
+            bc.delayvec[src, targets] = delays
+        else:
+            bc.delay = int(delays[0] / bc.source.clock.dt)
         self.n += len(targets)
         
     def get(self, parameter_name, format, offset=(0,0)):
