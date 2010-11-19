@@ -236,8 +236,7 @@ class Projection(common.Projection):
         method.connect(self)
         if self._plasticity_model != "static_synapse":
             synapses = self.connections.brian_connections
-            if self._plasticity_model is "stdp_synapse":
-                #if isinstance(self.synapse_dynamics.slow.weight_dependence, 
+            if self._plasticity_model is "stdp_synapse": 
                 parameters   = self.synapse_dynamics.slow.all_parameters
                 myupdate     = None
                 if parameters['mu_plus'] == 0:
@@ -250,17 +249,21 @@ class Projection(common.Projection):
                         myupdate='multiplicative'
                 if myupdate is None:
                     raise Exception("pyNN.brian only support additive, multiplicative, or mixed STDP rule (van Rossum) yet!")
+                if common.is_conductance(self.post[0]):
+                    units = uS
+                else:
+                    units = nA
                 stdp = brian.ExponentialSTDP(synapses, 
-                                      parameters['tau_plus']*ms,
-                                      parameters['tau_minus']*ms,
+                                      parameters['tau_plus'] * ms,
+                                      parameters['tau_minus'] * ms,
                                       parameters['A_plus'],
                                       -parameters['A_minus'],
-                                      wmax   = parameters['w_max'],
+                                      wmax   = parameters['w_max'] * units,
                                       update = myupdate)
                 simulator.net.add(stdp)
                 simulator.net.add(stdp.pre_group)
                 simulator.net.add(stdp.post_group)
-                simulator.net.add(stp.contained_objects)
+                simulator.net.add(stdp.contained_objects)
             elif self._plasticity_model is "tsodyks_markram_synapse":
                 parameters   = self.synapse_dynamics.fast.parameters
                 stp = brian.STP(synapses, parameters['tau_rec'] * ms, 
@@ -269,7 +272,37 @@ class Projection(common.Projection):
                 simulator.net.add(stp)
                 simulator.net.add(stp.vars)
                 simulator.net.add(stp.contained_objects)
-                
+
+    def saveConnections(self, filename, gather=True, compatible_output=True):
+        """
+        Save connections to file in a format suitable for reading in with a
+        FromFileConnector.
+        """
+        import operator
+        fmt = "%d\t%d\t%g\t%g\n"
+        lines = []
+        bc    = self.connection_manager.brian_connections
+        sources, targets = bc.W.nonzero()   
+        delays           = bc.delay * ms
+        if isinstance(bc, brian.Connection):
+            delays = [delays] * len(sources)            
+        for src, tgt, d in zip(sources, targets, delays):  
+            line = fmt  % (src, tgt, bc[src, tgt]/bc.weight_units, d)
+            lines.append(line)
+        if gather == True and num_processes() > 1:
+            all_lines = { rank(): lines }
+            all_lines = recording.gather_dict(all_lines)
+            if rank() == 0:
+                lines = reduce(operator.add, all_lines.values())
+        elif num_processes() > 1:
+            filename += '.%d' % rank()
+        logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
+        if gather == False or rank() == 0:
+            f = open(filename, 'w')
+            f.write("#" + self.pre.label + "\n#" + self.post.label + "\n")
+            f.writelines(lines)
+            f.close()
+
 Space = space.Space
 
 # ==============================================================================

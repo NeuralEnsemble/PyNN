@@ -261,9 +261,9 @@ class Connection(object):
                    in the weight array.
         """
         # the index is the nth non-zero element
-        self.bc       = brian_connection
-        n_rows,n_cols = self.bc.W.shape
-        self.addr     = self.__get_address(index)
+        self.bc                  = brian_connection
+        self.size                = self.bc.W.getnnz()
+        self.addr                = self.__get_address(index)
         self.source, self.target = self.addr
         #print "creating connection with index", index, "and address", self.addr
 
@@ -273,14 +273,11 @@ class Connection(object):
         that corresponds to the connection with the given index, i.e. the
         nth non-zero element in the weight array where n=index.
         """
-        count = 0
-        for i, row in enumerate(self.bc.W.data):
-            new_count = count + len(row)
-            if index < new_count:
-                j = self.bc.W.rows[i][index-count]
-                return (i,j)
-            count = new_count
-        raise IndexError("connection with index %d requested, but Connection only contains %d connections." % (index, self.bc.W.getnnz()))
+        if index < self.size:
+            x, y = self.bc.W.nonzero()
+            return (x[index], y[index])
+        else:
+            raise IndexError("connection with index %d requested, but Connection only contains %d connections." % (index, self.size))
 
     def _set_weight(self, w):
         w = w or ZERO_WEIGHT
@@ -344,8 +341,8 @@ class ConnectionManager(object):
     
     def __connection_generator(self):
         """Yield each connection in turn."""
-        for j in range(self.brian_connections.W.getnnz()):
-            yield Connection(self.brian_connections, j)
+        for i in range(self.brian_connections.W.getnnz()):
+            yield Connection(self.brian_connections, i)
                 
     def __iter__(self):
         """Return an iterator over all connections in this manager."""
@@ -467,7 +464,7 @@ class ConnectionManager(object):
         
         values = M.todense()        
         values = numpy.where(values==0, numpy.nan, values)
-        mask = values>0
+        mask   = values>0
         values = numpy.where(values<=ZERO_WEIGHT, 0.0, values)
         values /= units
         if format == 'list':
