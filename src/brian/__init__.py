@@ -284,11 +284,15 @@ class Projection(common.Projection):
         bc    = self.connection_manager.brian_connections
         sources, targets = bc.W.nonzero()   
         delays           = bc.delay * ms
-        if isinstance(bc, brian.Connection):
-            delays = [delays] * len(sources)            
-        for src, tgt, d in zip(sources, targets, delays):  
-            line = fmt  % (src, tgt, bc[src, tgt]/bc.weight_units, d)
-            lines.append(line)
+        if isinstance(bc, brian.DelayConnection):           
+            for src, tgt in zip(sources, targets):
+                line = fmt  % (src, tgt, bc[src, tgt]/bc.weight_units, delays[src, tgt])
+                lines.append(line)
+        else:
+            delays = [delays] * len(sources)
+            for src, tgt, d in zip(sources, targets, delays):  
+                line = fmt  % (src, tgt, bc[src, tgt]/bc.weight_units, d)
+                lines.append(line)
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
             all_lines = recording.gather_dict(all_lines)
