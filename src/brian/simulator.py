@@ -240,7 +240,25 @@ class ID(int, common.IDMixin):
 
 # --- For implementation of create() and Population.__init__() ----------------- 
     
-
+class STDP(brian.STDP):
+    '''
+    See documentation for brian:class:`STDP` for more details. Options hidden here could be used in a more
+    general manner. For example, spike interactions (all-to-all, nearest), or the axonal vs. dendritic delays
+    because Brian do support those features....
+    '''
+    def __init__(self, C, taup, taum, Ap, Am, mu_p, mu_m, wmin=0, wmax=None,
+                 delay_pre=None, delay_post=None):
+        if wmax is None:
+            raise AttributeError, "You must specify the maximum synaptic weight"
+        wmax = float(wmax) # removes units
+        eqs = brian.Equations('''
+            dA_pre/dt  = -A_pre/taup  : 1
+            dA_post/dt = -A_post/taum : 1''', taup=taup, taum=taum, wmax=wmax)
+        pre   = 'A_pre  += %g' %Ap
+        post  = 'A_post += %g' %Am        
+        pre  += '\nw = %g*pow(w/%g, %g)*A_post' %(wmax, wmax, mu_m)
+        post += '\nw = %g*(1-pow(w/%g, %g))*A_pre' %(wmax, wmax, mu_p)
+        brian.STDP.__init__(self, C, eqs=eqs, pre=pre, post=post, wmin=wmin, wmax=wmax, delay_pre=None, delay_post=None, clock=None)
 
 # --- For implementation of connect() and Connector classes --------------------
 
@@ -445,29 +463,19 @@ class ConnectionManager(object):
         """
         if self.parent is None:
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
-        synapse_obj = self.parent.post.celltype.synapses[self.parent.target or "excitatory"]
-        weight_units = ("cond" in self.parent.post.celltype.__class__.__name__) and uS or nA
-        ###print "in ConnectionManager.get(), weight_units = %s" % weight_units
-        bc = self._get_brian_connection(self.parent.pre.brian_cells,
-                                        self.parent.post.brian_cells,
-                                        synapse_obj,
-                                        weight_units)
-        if parameter_name == "weight":
-            M     = bc.W
-            units = weight_units
+        bc = self.brian_connections
+        if parameter_name == "weight":            
+            values = bc.W.alldata / bc.weight_units            
         elif parameter_name == 'delay':
-            M     = bc.delay
-            units = ms
+            if isinstance(bc, brian.DelayConnection):
+                delays  = bc.delay.alldata * ms
+            else:
+                delays = [bc.delay * ms] * len(sources)
         else:
             raise Exception("Getting parameters other than weight and delay not yet supported.")
         
-        values = M.todense()        
-        values = numpy.where(values==0, numpy.nan, values)
-        mask   = values>0
-        values = numpy.where(values<=ZERO_WEIGHT, 0.0, values)
-        values /= units
         if format == 'list':
-            values = values[mask].flatten().tolist()
+            values = values.tolist()
         elif format == 'array':
             pass
         else:
@@ -486,13 +494,7 @@ class ConnectionManager(object):
         """
         if self.parent is None:
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
-        synapse_obj = self.parent.post.celltype.synapses[self.parent.target or "excitatory"]
-        weight_units = ("cond" in self.parent.post.celltype.__class__.__name__) and uS or nA
-        ###print "in ConnectionManager.set(), weight_units = %s" % weight_units
-        bc = self._get_brian_connection(self.parent.pre.brian_cells,
-                                        self.parent.post.brian_cells,
-                                        synapse_obj,
-                                        weight_units)
+        bc = self.brian_connections
         if name == 'weight':
             M = bc.W
             units = weight_units

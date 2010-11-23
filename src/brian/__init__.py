@@ -229,41 +229,26 @@ class Projection(common.Projection):
             synapses = self.connections.brian_connections
             if self._plasticity_model is "stdp_synapse": 
                 parameters   = self.synapse_dynamics.slow.all_parameters
-                myupdate     = None
-                if parameters['mu_plus'] == 0:
-                    if parameters['mu_minus'] == 0:
-                        myupdate='additive'
-                    elif parameters['mu_minus'] == 1:
-                        myupdate='mixed'
-                elif parameters['mu_plus'] == 1:
-                    if parameters['mu_minus'] == 1:
-                        myupdate='multiplicative'
-                if myupdate is None:
-                    raise Exception("pyNN.brian only support additive, multiplicative, or mixed STDP rule (van Rossum) yet!")
                 if common.is_conductance(self.post[0]):
                     units = uS
                 else:
                     units = nA
-                stdp = brian.ExponentialSTDP(synapses, 
+                stdp = simulator.STDP(synapses, 
                                       parameters['tau_plus'] * ms,
                                       parameters['tau_minus'] * ms,
                                       parameters['A_plus'],
                                       -parameters['A_minus'],
-                                      wmax   = parameters['w_max'] * units,
-                                      update = myupdate)
+                                      parameters['mu_plus'],
+                                      parameters['mu_minus'],
+                                      wmax   = parameters['w_max'] * units)
                 simulator.net.add(stdp)
-                simulator.net.add(stdp.pre_group)
-                simulator.net.add(stdp.post_group)
-                simulator.net.add(stdp.contained_objects)
             elif self._plasticity_model is "tsodyks_markram_synapse":
                 parameters   = self.synapse_dynamics.fast.parameters
                 stp = brian.STP(synapses, parameters['tau_rec'] * ms, 
                                           parameters['tau_facil'] * ms, 
                                           parameters['U'])
                 simulator.net.add(stp)
-                simulator.net.add(stp.vars)
-                simulator.net.add(stp.contained_objects)
-
+                
     def saveConnections(self, filename, gather=True, compatible_output=True):
         """
         Save connections to file in a format suitable for reading in with a
