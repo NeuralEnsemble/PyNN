@@ -50,9 +50,6 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
     simulator.state.dt = timestep
-    
-    
-    
     reset()
     return rank()
 
@@ -86,17 +83,7 @@ rank = common.rank
 #   neurons.
 # ==============================================================================
 
-class BasePopulation(common.BasePopulation):
-    
-    def meanSpikeCount(self, gather=True):
-        """ 
-        Returns the mean number of spikes per neuron. 
-        """
-        rec = self.recorders['spikes']
-        return float(rec._devices[0].nspikes)/len(rec.recorded) 
-
-
-class Population(common.Population, BasePopulation):
+class Population(common.Population, common.BasePopulation):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
@@ -286,17 +273,15 @@ class Projection(common.Projection):
         fmt = "%d\t%d\t%g\t%g\n"
         lines = []
         bc    = self.connection_manager.brian_connections
-        sources, targets = bc.W.nonzero()   
-        delays           = bc.delay * ms
-        if isinstance(bc, brian.DelayConnection):           
-            for src, tgt in zip(sources, targets):
-                line = fmt  % (src, tgt, bc[src, tgt]/bc.weight_units, delays[src, tgt])
-                lines.append(line)
+        sources, targets = bc.W.nonzero()
+        weights = bc.W[sources, targets].toarray().flatten() / bc.weight_units
+        if isinstance(bc, brian.DelayConnection):
+            delays  = bc.delay[sources, targets].toarray().flatten() * ms
         else:
-            delays = [delays] * len(sources)
-            for src, tgt, d in zip(sources, targets, delays):  
-                line = fmt  % (src, tgt, bc[src, tgt]/bc.weight_units, d)
-                lines.append(line)
+            delays = [bc.delay * ms] * len(sources)
+        for src, tgt, w, d in zip(sources, targets, weights, delays):
+            line = fmt  % (src, tgt, w, d)
+            lines.append(line)
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
             all_lines = recording.gather_dict(all_lines)

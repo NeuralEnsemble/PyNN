@@ -203,7 +203,8 @@ class Recorder(recording.Recorder):
             data = self._read_data(gather, compatible_output)
         
         if filter is not None:
-            mask = reduce(numpy.add, (data[:,0]==id for id in filter))
+            filtered_ids = self.filter_recorded(filter)
+            mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
             data = data[mask]
         return data
     
@@ -224,15 +225,13 @@ class Recorder(recording.Recorder):
         else:
             spikes = self._get(gather=False, compatible_output=False,
                                filter=filter)
-            for id in spikes[:,0].astype(int):
-                assert id in filtered_ids
-                if id in N:
-                    N[id] += 1
-                else:
-                    N[id] = 1
-            for id in filtered_ids:
-                if id not in N:
-                    N[id] = 0
+            ids          = numpy.sort(spikes[:,0].astype(int))
+            filtered_ids = numpy.sort(numpy.array(list(filtered_ids)))
+            if len(filtered_ids) > 0:
+                left  = numpy.searchsorted(ids, filtered_ids, 'left')
+                right = numpy.searchsorted(ids, filtered_ids, 'right')
+                for id, l, r in zip(filtered_ids, left, right):
+                    N[id] = r-l
         return N
     
 simulator.Recorder = Recorder # very inelegant. Need to rethink the module structure

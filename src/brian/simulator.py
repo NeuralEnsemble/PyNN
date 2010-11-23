@@ -417,11 +417,10 @@ class ConnectionManager(object):
         bc      = self._get_brian_connection(source_group, target_group, synapse_obj, units, homogeneous)        
         src     = int(source)
         targets = numpy.array(targets, int)
-        weights = numpy.array(weights)
-        delays  = numpy.array(delays)
-        delays  = delays * ms
+        weights = numpy.array(weights) * units
+        delays  = numpy.array(delays) * ms
         weights[weights == 0] = ZERO_WEIGHT
-        bc[src, targets]      = weights * units
+        bc[src, targets]      = weights
         if not homogeneous:
             bc.delayvec[src, targets] = delays
         else:

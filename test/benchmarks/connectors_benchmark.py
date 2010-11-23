@@ -6,7 +6,7 @@ import os
 
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
-
+timer = Timer()
 def draw_rf(cell, positions, connections, color='k'):
     idx     = numpy.where(connections[:,1] == cell)[0]
     sources = connections[idx, 0]   
@@ -20,15 +20,17 @@ def distances(pos_1, pos_2, N):
     dy = numpy.minimum(dy, N-dy)
     return sqrt(dx*dx + dy*dy)
 
-
+timer.start()
 node_id = setup(timestep=0.1, min_delay=0.1, max_delay=4.)    
 print "Creating cells population..."
-N       = 30
+N       = 50
 
-structure = RandomStructure(Cuboid(1, 1, 1), origin=(0.5,0.5,0.5))
+structure = RandomStructure(Cuboid(1, 1, 1), origin=(0.5,0.5,0.5), rng=NumpyRNG(2652))
 #structure = Grid2D(dx=1/float(N), dy=1/float(N))
 
 x       = Population(N**2, IF_curr_exp, structure=structure)
+mytime = timer.diff()
+print "Time to build the cell population:", mytime, 's'
 
 def test(cases=[1]):    
     
@@ -37,7 +39,8 @@ def test(cases=[1]):
     verbose       = True
     autapse       = False
     parallel_safe = True    
-    render        = False
+    render        = True
+    to_file       = True
         
     for case in cases:
         #w = RandomDistribution('uniform', (0,1))
@@ -87,22 +90,26 @@ def test(cases=[1]):
         print "Generating data for %s" %fig_name
         rng   = NumpyRNG(23434, parallel_safe=parallel_safe)
         prj   = Projection(x, x, conn, rng=rng)
-
-        simulation_time = timer.elapsedTime()
-        print "Building time", simulation_time
+        
+        mytime = timer.diff()
+        print "Time to connect the cell population:", mytime, 's'
         print "Nb synapses built", len(prj)
-
-        if render : 
+        
+        if to_file:
+           print "Saving Connections...."
+           prj.saveConnections('Results/connections.dat', compatible_output=False)
+        
+        mytime = timer.diff()
+        print "Time to save the projection:", mytime, 's'
+        
+        if render and to_file: 
             if not(os.path.isdir('Results')):
                 os.mkdir('Results')
 
             print "Saving Positions...."
-            x.save_positions('Results/positions.dat')
-
-            print "Saving Connections...."
-            prj.saveConnections('Results/connections.dat', compatible_output=False)
+            x.save_positions('Results/positions.dat')          
             
-        if node_id == 0 and render:
+        if node_id == 0 and render and to_file:
             figure()
             print "Generating and saving %s" %fig_name
             positions        = numpy.loadtxt('Results/positions.dat')

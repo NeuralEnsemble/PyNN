@@ -41,47 +41,50 @@ class Recorder(recording.Recorder):
         self.recorded = self.recorded.union(ids)
         if len(self._devices) == 0:
             self._devices = self._create_devices(ids[0].parent_group)
-        if self.variable is not 'spikes':
+        if not self.variable is 'spikes':
             for device in self._devices:
-                device.record = list(self.recorded)
+                device.record      = list(self.recorded)
                 device.recordindex = dict((i,j) for i,j in zip(device.record,
-                                                               range(len(device.record))))
+                                                            range(len(device.record))))
     
     def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         filtered_ids = self.filter_recorded(filter)
         if self.variable == 'spikes':
-            data = numpy.array([(id, time/ms) for (id, time) in self._devices[0].spikes if id in filtered_ids])
+            data    = numpy.empty((0,2))
+            for id in filtered_ids:
+                times    = self._devices[0].spiketimes[id]/ms
+                new_data = numpy.array([numpy.ones(times.shape)*id, times]).T
+                data     = numpy.concatenate((data, new_data))
         elif self.variable == 'v':
             values = numpy.array(self._devices[0]._values)/mV
             times  = self._devices[0].times/ms
             data   = numpy.empty((0,3))
             for id, row in zip(self.recorded, values.T):
-                if id in filtered_ids:
-                    new_data = numpy.array([numpy.ones(row.shape)*id, times, row]).T
-                    data = numpy.concatenate((data, new_data))
+                new_data = numpy.array([numpy.ones(row.shape)*id, times, row]).T
+                data = numpy.concatenate((data, new_data))
+            if filter is not None:
+                mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
+                data = data[mask]
         elif self.variable == 'gsyn':
             values1 = numpy.array(self._devices[0]._values)/uS
             values2 = numpy.array(self._devices[1]._values)/uS
-            times = self._devices[0].times/ms
-            data = numpy.empty((0,4))
+            times   = self._devices[0].times/ms
+            data    = numpy.empty((0,4))
             for id, row1, row2 in zip(self.recorded, values1.T, values2.T):
                 assert row1.shape == row2.shape
-                if id in filtered_ids:
-                    new_data = numpy.array([numpy.ones(row1.shape)*id, times, row1, row2]).T
-                    data = numpy.concatenate((data, new_data))
+                new_data = numpy.array([numpy.ones(row1.shape)*id, times, row1, row2]).T
+                data = numpy.concatenate((data, new_data))
+            if filter is not None:
+                mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
+                data = data[mask]
         return data
 
     def _local_count(self, filter=None):
-        # very inefficient implementation
         N = {}
         filtered_ids = self.filter_recorded(filter)
-        for (id, time) in self._devices[0].spikes:
-            if id in filtered_ids:
-                if id in N:
-                    N[id] += 1
-                else:
-                    N[id] = 1
+        for id in filtered_ids:
+            N[id] = len(self._devices[0].spiketimes[id])
         return N
         
 
