@@ -8,6 +8,7 @@ for improved performance.
 import numpy, logging, sys, re
 from pyNN import errors, common, core, random, utility, recording, descriptions
 from pyNN.space import Space
+from pyNN.recording import files
 from pyNN.random import RandomDistribution
 from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                     fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
@@ -478,58 +479,56 @@ class FromListConnector(Connector):
         """
         # needs extending for dynamic synapses.
         Connector.__init__(self, 0., common.get_min_delay(), safe=safe, verbose=verbose)
-        self.conn_list = conn_list        
+        self.conn_list = numpy.array(conn_list)        
         
     def connect(self, projection):
         """Connect-up a Projection."""
-        # slow: should maybe sort by pre
-        self.progressbar(len(self.conn_list))
-        for count, i in enumerate(xrange(len(self.conn_list))):
-            src, tgt, weight, delay = self.conn_list[i][:]
-            src_id = projection.pre[src]           
-            tgt_id = projection.post[tgt]
-            projection.connection_manager.connect(src_id, [tgt_id], weight, delay)
+        idx     = numpy.argsort(self.conn_list[:, 0])
+        sources = numpy.unique(self.conn_list[:,0]).astype(int)        
+        self.conn_list = self.conn_list[idx]
+        self.progressbar(len(sources))        
+        count = 0
+        left  = numpy.searchsorted(self.conn_list[:,0], sources, 'left')
+        right = numpy.searchsorted(self.conn_list[:,0], sources, 'right')
+        for src, l, r in zip(sources, left, right):
+            targets = self.conn_list[l:r, 1].astype(int)
+            weights = self.conn_list[l:r, 2]
+            delays  = self.conn_list[l:r, 3]
+            src     = projection.pre.all_cells[src]     
+            tgts    = projection.post.all_cells[targets]
+            projection.connection_manager.connect(src, tgts.tolist(), weights, delays)
             self.progression(count)
-            
-
+            count += 1
+    
 class FromFileConnector(FromListConnector):
     """
     Make connections according to a list read from a file.
     """
     parameter_names = ('filename', 'distributed')
     
-    def __init__(self, filename, distributed=False, safe=True, verbose=False):
+    def __init__(self, file, distributed=False, safe=True, verbose=False):
         """
         Create a new connector.
         
-        `filename` -- name of a text file containing a list of connections, in
-                      the format required by `FromListConnector`.
+        `file`        -- file object containing a list of connections, in
+                         the format required by `FromListConnector`.
         `distributed` -- if this is True, then each node will read connections
                          from a file called `filename.x`, where `x` is the MPI
                          rank. This speeds up loading connections for
                          distributed simulations.
         """
         Connector.__init__(self, 0., common.get_min_delay(), safe=safe, verbose=verbose)
-        self.filename = filename
+        
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='r')        
+        self.file        = file
         self.distributed = distributed
 
     def connect(self, projection):
         """Connect-up a Projection."""
         if self.distributed:
-            self.filename += ".%d" % common.rank()
-        # open the file...
-        f = open(self.filename, 'r', 10000)
-        source_label = f.readline() # we don't actually use these, so
-        target_label = f.readline() # they don't really need to be in the file
-        lines = f.readlines()
-        f.close()
-        # gather all the data in a list of tuples (one per line)
-        input_tuples = []
-        for line in lines:
-            single_line = line.rstrip()
-            src, tgt, w, d = single_line.split("\t", 4)
-            input_tuples.append((int(src), int(tgt), float(w), float(d)))
-        self.conn_list = input_tuples
+            self.file.rename("%s.%d" % (self.file.name, common.rank()))        
+        self.conn_list = self.file.read()
         FromListConnector.connect(self, projection)
 
 

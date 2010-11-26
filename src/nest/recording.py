@@ -225,13 +225,12 @@ class Recorder(recording.Recorder):
         else:
             spikes = self._get(gather=False, compatible_output=False,
                                filter=filter)
-            ids          = numpy.sort(spikes[:,0].astype(int))
-            filtered_ids = numpy.sort(numpy.array(list(filtered_ids)))
-            if len(filtered_ids) > 0:
-                left  = numpy.searchsorted(ids, filtered_ids, 'left')
-                right = numpy.searchsorted(ids, filtered_ids, 'right')
-                for id, l, r in zip(filtered_ids, left, right):
-                    N[id] = r-l
+            ids   = numpy.sort(spikes[:,0].astype(int))
+            idx   = numpy.unique(ids)
+            left  = numpy.searchsorted(ids, idx, 'left')
+            right = numpy.searchsorted(ids, idx, 'right')
+            for id, l, r in zip(idx, left, right):
+                N[id] = r-l
         return N
     
 simulator.Recorder = Recorder # very inelegant. Need to rethink the module structure

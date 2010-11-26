@@ -319,7 +319,7 @@ class Connection(object):
         if isinstance(self.bc, brian.DelayConnection):
             return float(self.bc.delay[self.addr]/ms)
         if isinstance(self.bc, brian.Connection):
-            return float(self.bc.delay/ms)
+            return float(self.bc.delay * self.bc.source.clock.dt/ms)
             
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
