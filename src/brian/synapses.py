@@ -36,8 +36,6 @@ class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
-        if w_min != 0: 
-            raise Exception("Non-zero minimum weight is not supported by Brian.")
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = parameters
@@ -48,8 +46,6 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
 class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
-        if w_min != 0: 
-            raise Exception("Non-zero minimum weight is not supported by Brian.")
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = parameters
@@ -59,8 +55,6 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
 class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
-        if w_min != 0:
-            raise Exception("Non-zero minimum weight is not supported by NEST.")
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = parameters

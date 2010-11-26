@@ -45,8 +45,8 @@ import logging
 from warnings import warn
 import operator
 from pyNN import random, utility, recording, errors, standardmodels, core, space, descriptions
+from pyNN.recording import files
 from itertools import chain
-
 if not 'simulator' in locals():
     simulator = None  # should be set by simulator-specific modules
 
@@ -776,22 +776,21 @@ class BasePopulation(object):
             raise TypeError("Can't inject current into a spike source.")
         current_source.inject_into(self)
 
-    def save_positions(self, filename):
+    def save_positions(self, file):
         """
         Save positions to file. The output format is id x y z
         """
         # this should be rewritten to use self.positions and recording.files
-        fmt = "%s\t%s\t%s\t%s\n" % ("%d", "%g", "%g", "%g")
-        lines = []
-        for cell in self.all():
-            x, y, z = cell.position
-            line = fmt % (cell, x, y, z)
-            lines.append(line)
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        cells  = self.all_cells
+        result = numpy.empty((len(cells), 4))
+        result[:,0]   = cells
+        result[:,1:4] = self.positions.T 
         if rank() == 0:
-            f = open(filename, 'w')
-            f.writelines(lines)
-            f.close()
-
+            file.write(result, {})
+            file.close()    
+        
 
 class Population(BasePopulation):
     """
@@ -874,8 +873,13 @@ class Population(BasePopulation):
         >>> assert p.id_to_index(p[5]) == 5
         >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        if not self.first_id <= id <= self.last_id:  # this test assumes id is a single ID, supposed to support id being a list/array of IDs
-            raise IndexError("id should be in the range [%d,%d], actually %d" % (self.first_id, self.last_id, id))
+        if isinstance(id, IDMixin):
+            if not self.first_id <= id <= self.last_id:
+                raise IndexError("id should be in the range [%d,%d], actually %d" % (self.first_id, self.last_id, id))
+        else:
+            id = numpy.array(id, IDMixin)
+            if (self.first_id > id.min()) or (self.last_id < id.max()):
+                raise IndexError("ids should be in the range [%d,%d], actually [%d, %d]" % (self.first_id, self.last_id, id.min(), id.max()))
         return id - self.first_id  # this assumes ids are consecutive
 
     def id_to_local_index(self, id):
@@ -1284,57 +1288,51 @@ class Projection(object):
             logger.error("getstandardmodels.SynapseDynamics() with gather=True not yet implemented")
         return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
 
-    def saveConnections(self, filename, gather=True, compatible_output=True):
+    def saveConnections(self, file, gather=True, compatible_output=True):
         """
         Save connections to file in a format suitable for reading in with a
         FromFileConnector.
         """
-        fmt = "%d\t%d\t%g\t%g\n"
+        
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        
         lines = []
         if not compatible_output:
             for c in self.connections:
-                line = fmt  % (c.source,
-                               c.target,
-                               c.weight,
-                               c.delay)
-                lines.append(line)
+                lines.append([c.source, c.target, c.weight, c.delay])
         else:
             for c in self.connections: 
-                line = fmt  % (self.pre.id_to_index(c.source),
-                               self.post.id_to_index(c.target),
-                               c.weight,
-                               c.delay)
-                lines.append(line)
+                lines.append([self.pre.id_to_index(c.source), self.post.id_to_index(c.target), c.weight, c.delay])
+        
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
             all_lines = recording.gather_dict(all_lines)
             if rank() == 0:
                 lines = reduce(operator.add, all_lines.values())
         elif num_processes() > 1:
-            filename += '.%d' % rank()
+            file.rename('%s.%d' % (file.name, rank()))
+        
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
+        
         if gather == False or rank() == 0:
-            f = open(filename, 'w')
-            f.write("#" + self.pre.label + "\n#" + self.post.label + "\n")
-            f.writelines(lines)
-            f.close()
+            file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
+            file.close()
 
-    def printWeights(self, filename, format='list', gather=True):
+    def printWeights(self, file, format='list', gather=True):
         """
         Print synaptic weights to file. In the array format, zeros are printed
         for non-existent connections.
         """
         weights = self.getWeights(format=format, gather=gather)
-        f = open(filename, 'w', DEFAULT_BUFFER_SIZE)
-        if format == 'list':
-            f.write("\n".join([str(w) for w in weights]))
-        elif format == 'array':
+        
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        
+        if format == 'array':
             weights = numpy.where(numpy.isnan(weights), 0.0, weights)
-            numpy.savetxt(f, weights, "%g")
-            #fmt = "%g "*len(self.post) + "\n"
-            #for row in weights:
-            #    f.write(fmt % tuple(row))
-        f.close()
+        file.write(weights, {})
+        file.close()    
 
     def weightHistogram(self, min=None, max=None, nbins=10):
         """

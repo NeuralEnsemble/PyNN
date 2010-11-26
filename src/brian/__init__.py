@@ -13,7 +13,7 @@ from pyNN import common, recording, space, standardmodels, core, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 from pyNN.random import *
-
+from pyNN.recording import files
 from pyNN.brian.cells import *
 from pyNN.brian.connectors import *
 from pyNN.brian.synapses import *
@@ -240,7 +240,8 @@ class Projection(common.Projection):
                                       -parameters['A_minus'],
                                       parameters['mu_plus'],
                                       parameters['mu_minus'],
-                                      wmax   = parameters['w_max'] * units)
+                                      wmin = parameters['w_min'] * units,
+                                      wmax = parameters['w_max'] * units)
                 simulator.net.add(stdp)
             elif self._plasticity_model is "tsodyks_markram_synapse":
                 parameters   = self.synapse_dynamics.fast.parameters
@@ -249,37 +250,39 @@ class Projection(common.Projection):
                                           parameters['U'])
                 simulator.net.add(stp)
                 
-    def saveConnections(self, filename, gather=True, compatible_output=True):
+    def saveConnections(self, file, gather=True, compatible_output=True):
         """
         Save connections to file in a format suitable for reading in with a
         FromFileConnector.
         """
         import operator
-        fmt = "%d\t%d\t%g\t%g\n"
-        lines = []
         bc    = self.connection_manager.brian_connections
+        N     = bc.W.getnnz()
+        lines = numpy.empty((N, 4))
         sources, targets = bc.W.nonzero()
-        weights = bc.W[sources, targets].toarray().flatten() / bc.weight_units
-        if isinstance(bc, brian.DelayConnection):
-            delays  = bc.delay[sources, targets].toarray().flatten() * ms
+        lines[:,0] = sources 
+        lines[:,1] = targets
+        if not hasattr(bc.W, 'alldata'): 
+            weights = bc.W.connection_matrix().alldata 
         else:
-            delays = [bc.delay * ms] * len(sources)
-        for src, tgt, w, d in zip(sources, targets, weights, delays):
-            line = fmt  % (src, tgt, w, d)
-            lines.append(line)
-        if gather == True and num_processes() > 1:
-            all_lines = { rank(): lines }
-            all_lines = recording.gather_dict(all_lines)
-            if rank() == 0:
-                lines = reduce(operator.add, all_lines.values())
-        elif num_processes() > 1:
-            filename += '.%d' % rank()
+            weights = bc.W.alldata / bc.weight_units
+        lines[:,2] = weights / bc.weight_units
+        if isinstance(bc, brian.DelayConnection):
+            if not hasattr(bc.delay, 'alldata'): 
+                delays = bc.delay.connection_matrix().alldata
+            else:
+                delays = bc.delay.alldata
+            lines[:,3] = delays / ms
+        else:
+            lines[:,3] = bc.delay * bc.source.clock.dt * numpy.ones(N) / ms
+        
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
-        if gather == False or rank() == 0:
-            f = open(filename, 'w')
-            f.write("#" + self.pre.label + "\n#" + self.post.label + "\n")
-            f.writelines(lines)
-            f.close()
+        
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        
+        file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
+        file.close()
 
 Space = space.Space
 

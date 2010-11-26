@@ -250,14 +250,19 @@ class STDP(brian.STDP):
                  delay_pre=None, delay_post=None):
         if wmax is None:
             raise AttributeError, "You must specify the maximum synaptic weight"
-        wmax = float(wmax) # removes units
+        wmax  = float(wmax) # removes units
+        wmin  = float(wmin)
+        Ap   *= wmax   # removes units
+        Am   *= wmax   # removes units
+        print wmax, wmin, Ap, Am
         eqs = brian.Equations('''
             dA_pre/dt  = -A_pre/taup  : 1
             dA_post/dt = -A_post/taum : 1''', taup=taup, taum=taum, wmax=wmax)
-        pre   = 'A_pre  += %g' %Ap
-        post  = 'A_post += %g' %Am        
-        pre  += '\nw = %g*pow(w/%g, %g)*A_post' %(wmax, wmax, mu_m)
-        post += '\nw = %g*(1-pow(w/%g, %g))*A_pre' %(wmax, wmax, mu_p)
+        pre   = 'A_pre += Ap'
+        pre  += '\nw += pow(w/wmax, mu_m)*A_post'
+        
+        post  = 'A_post += Am'        
+        post += '\nw += pow(1-w/wmax, mu_p)*A_pre'
         brian.STDP.__init__(self, C, eqs=eqs, pre=pre, post=post, wmin=wmin, wmax=wmax, delay_pre=None, delay_post=None, clock=None)
 
 # --- For implementation of connect() and Connector classes --------------------
@@ -386,12 +391,12 @@ class ConnectionManager(object):
                 self.brian_connections = brian.DelayConnection(source_group,
                                                                target_group,
                                                                synapse_obj,
-                                                               max_delay=state.max_delay)
+                                                               max_delay=state.max_delay*ms)
             else:
                 self.brian_connections = brian.Connection(source_group,
                                                           target_group,
                                                           synapse_obj,
-                                                          max_delay=state.max_delay)
+                                                          max_delay=state.max_delay*ms)
             self.brian_connections.weight_units = weight_units
             net.add(self.brian_connections)
         return self.brian_connections
@@ -464,13 +469,21 @@ class ConnectionManager(object):
         if self.parent is None:
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
         bc = self.brian_connections
-        if parameter_name == "weight":            
-            values = bc.W.alldata / bc.weight_units            
+        if parameter_name == "weight":
+            if not hasattr(bc.W, 'alldata'): 
+                weights = bc.W.connection_matrix().alldata
+            else:
+                weights = bc.W.alldata
+            values = weights / bc.weight_units            
         elif parameter_name == 'delay':
             if isinstance(bc, brian.DelayConnection):
-                delays  = bc.delay.alldata * ms
+                if not hasattr(bc.delay, 'alldata'): 
+                    delays = bc.delay.connection_matrix().alldata
+                else:
+                    delays = bc.delay.alldata
+                values = delays / ms
             else:
-                delays = [bc.delay * ms] * len(sources)
+                values = bc.delay * bc.source.clock.dt * numpy.ones(self.brian_connections.W.getnnz()) /ms
         else:
             raise Exception("Getting parameters other than weight and delay not yet supported.")
         
@@ -497,22 +510,32 @@ class ConnectionManager(object):
         bc = self.brian_connections
         if name == 'weight':
             M = bc.W
-            units = weight_units
+            units = bc.weight_units
         elif name == 'delay':
             M = bc.delay
             units = ms
         else:
             raise Exception("Setting parameters other than weight and delay not yet supported.")
+        value = value*units
         if numpy.isscalar(value):
-            for row in M.data:
-                for i in range(len(row)):
-                    row[i] = value*units
+            if (name == 'weight') or (name == 'delay' and isinstance(bc, brian.DelayConnection)):
+                for row in M.data:
+                    for i in range(len(row)):
+                        row[i] = value
+            elif (name == 'delay' and isinstance(bc, brian.Connection)):
+                bc.delay = int(value / bc.source.clock.dt)
+            else:
+                raise Exception("Setting a non appropriate parameter")
         elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
+            if (name == 'delay') and not isinstance(bc, brian.DelayConnection):
+                raise Exception("FastConnector have been used, and only fixed homogeneous delays are allowed")
             address_gen = ((i,j) for i,row in enumerate(bc.W.rows) for j in row)
             for (i,j) in address_gen:
                 M[i,j] = value[i,j]*units
         elif core.is_listlike(value):
             assert len(value) == M.getnnz()
+            if (name == 'delay') and not isinstance(bc, brian.DelayConnection):
+                raise Exception("FastConnector have been used, and only fixed homogeneous delays are allowed")
             address_gen = ((i,j) for i,row in enumerate(bc.W.rows) for j in row)
             for ((i,j),val) in izip(address_gen, value):
                 M[i,j] = val*units

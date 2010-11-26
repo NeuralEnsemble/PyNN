@@ -15,6 +15,7 @@ import os
 import shutil
 import logging
 import tempfile
+from pyNN.recording import files
 from pyNN.nest.cells import *
 from pyNN.nest.connectors import *
 from pyNN.nest.synapses import *
@@ -24,10 +25,6 @@ from pyNN.random import RandomDistribution
 
 Set = set
 tempdirs       = []
-#NEST_SYNAPSE_TYPES = ["cont_delay_synapse" ,"static_synapse", "stdp_pl_synapse_hom",
-#                      "stdp_synapse", "stdp_synapse_hom", "tsodyks_synapse",
-#                      "stdp_triplet_synapse", ]
-
 NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')
 
 STATE_VARIABLE_MAP = {"v": "V_m", "w": "w"}
@@ -366,14 +363,15 @@ class Projection(common.Projection):
                 # Tau_minus is a parameter of the post-synaptic cell, not of the connection
                 tau_minus = stdp_parameters.pop("tau_minus")
                 # The following is a temporary workaround until the NEST guys stop renaming parameters!
-                if 'tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
-                    nest.SetStatus(self.post.local_cells.tolist(), [{'tau_minus': tau_minus}])
-                elif 'Tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
-                    nest.SetStatus(self.post.local_cells.tolist(), [{'Tau_minus': tau_minus}])
-                else:
-                    raise Exception("Postsynaptic cell model does not support STDP.")
+                if len(self.post.local_cells) > 0:
+                    if 'tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
+                        nest.SetStatus(self.post.local_cells.tolist(), [{'tau_minus': tau_minus}])
+                    elif 'Tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
+                        nest.SetStatus(self.post.local_cells.tolist(), [{'Tau_minus': tau_minus}])
+                    else:
+                       raise Exception("Postsynaptic cell model does not support STDP.")
 
-                synapse_defaults.update(stdp_parameters)
+                synapse_defaults.update(stdp_parameters)                
 
         nest.CopyModel(self._plasticity_model, self.plasticity_name, synapse_defaults)
         self.connection_manager = simulator.ConnectionManager(self.synapse_type,
@@ -384,37 +382,36 @@ class Projection(common.Projection):
 
         self.connections = self.connection_manager
 
-    def saveConnections(self, filename, gather=True, compatible_output=True):
+    def saveConnections(self, file, gather=True, compatible_output=True):
         """
         Save connections to file in a format suitable for reading in with a
         FromFileConnector.
         """
         import operator
-        fmt = "%d\t%d\t%g\t%g\n"
-        lines = []
-        res   = nest.GetStatus(self.connection_manager.connections, ('source', 'target', 'weight', 'delay'))
-
-        if not compatible_output:
-            for c in res:   
-                line = fmt  % (c[0], c[1], 0.001*c[2], c[3])
-                lines.append(line)
-        else:
-            for c in res:   
-                line = fmt  % (self.pre.id_to_index(c[0]), self.post.id_to_index(c[1]), 0.001*c[2], c[3])
-                lines.append(line)
+        
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        
+        lines   = nest.GetStatus(self.connection_manager.connections, ('source', 'target', 'weight', 'delay'))        
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
             all_lines = recording.gather_dict(all_lines)
             if rank() == 0:
                 lines = reduce(operator.add, all_lines.values())
         elif num_processes() > 1:
-            filename += '.%d' % rank()
+            file.rename('%s.%d' % (file.name, rank()))
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
+                
+        
+        
         if gather == False or rank() == 0:
-            f = open(filename, 'w')
-            f.write("#" + self.pre.label + "\n#" + self.post.label + "\n")
-            f.writelines(lines)
-            f.close()
+            lines       = numpy.array(lines)
+            lines[:,2] *= 0.001
+            if compatible_output:
+                lines[:,0] = self.pre.id_to_index(lines[:,0])
+                lines[:,1] = self.post.id_to_index(lines[:,1])  
+            file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
+            file.close()        
 
     def randomizeWeights(self, rand_distr):
         """

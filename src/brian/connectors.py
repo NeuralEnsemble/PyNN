@@ -19,7 +19,8 @@ from pyNN.connectors import AllToAllConnector, \
                             SmallWorldConnector, \
                             CSAConnector, \
                             WeightGenerator, \
-                            DelayGenerator
+                            DelayGenerator, \
+                            ProbaGenerator
 
 class FastProbabilisticConnector(ProbabilisticConnector):
     

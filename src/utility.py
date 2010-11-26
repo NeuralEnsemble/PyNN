@@ -241,7 +241,10 @@ class ProgressBar:
         self.amount.
         """
         diff = float(self.amount - self.min)
-        percent_done = int(round((diff / float(self.span)) * 100.0))
+        try:
+            percent_done = int(round((diff / float(self.span)) * 100.0))
+        except Exception:
+            percent_done = 100
  
         # figure the proper number of 'character' make up the bar 
         all_full = self.width - 2
