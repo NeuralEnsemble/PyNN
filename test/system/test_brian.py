@@ -1,6 +1,14 @@
-
+from nose.plugins.skip import SkipTest
 from scenarios import *
-import pyNN.brian
+
+try:
+    import pyNN.brian
+    have_brian = True
+except ImportError:
+    have_brian = False
 
 def test_all():
-    scenario1(pyNN.brian)
+    if have_brian:
+        scenario1(pyNN.brian)
+    else:
+        raise SkipTest
