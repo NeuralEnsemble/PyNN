@@ -53,6 +53,11 @@ class BaseFile(object):
     def __del__(self):
         self.close()
 
+    def rename(self, filename):
+        self.close()
+        self.name = filename
+        self.fileobj = open(self.name, self.mode, DEFAULT_BUFFER_SIZE)
+        
     def write(self, data, metadata):
         """
         Write data and metadata to file. `data` should be a NumPy array,
