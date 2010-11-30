@@ -479,24 +479,29 @@ class FromListConnector(Connector):
         """
         # needs extending for dynamic synapses.
         Connector.__init__(self, 0., common.get_min_delay(), safe=safe, verbose=verbose)
-        self.conn_list = numpy.array(conn_list)        
+        self.conn_list  = numpy.array(conn_list)               
         
     def connect(self, projection):
         """Connect-up a Projection."""
         idx     = numpy.argsort(self.conn_list[:, 0])
-        sources = numpy.unique(self.conn_list[:,0]).astype(int)        
-        self.conn_list = self.conn_list[idx]
-        self.progressbar(len(sources))        
+        self.sources    = numpy.unique(self.conn_list[:,0]).astype(int)
+        self.candidates = projection.post.local_cells
+        self.conn_list  = self.conn_list[idx]
+        self.progressbar(len(self.sources))        
         count = 0
-        left  = numpy.searchsorted(self.conn_list[:,0], sources, 'left')
-        right = numpy.searchsorted(self.conn_list[:,0], sources, 'right')
-        for src, l, r in zip(sources, left, right):
+        left  = numpy.searchsorted(self.conn_list[:,0], self.sources, 'left')
+        right = numpy.searchsorted(self.conn_list[:,0], self.sources, 'right')
+        tests = "|".join(['(tgts == %d)' %id for id in self.candidates])
+        for src, l, r in zip(self.sources, left, right):
             targets = self.conn_list[l:r, 1].astype(int)
             weights = self.conn_list[l:r, 2]
             delays  = self.conn_list[l:r, 3]
             src     = projection.pre.all_cells[src]     
             tgts    = projection.post.all_cells[targets]
-            projection.connection_manager.connect(src, tgts.tolist(), weights, delays)
+            ## We need to exclude the non local cells. Fastidious, need maybe
+            ## to use a convergent_connect method, instead of a divergent_connect one
+            idx     = eval(tests)
+            projection.connection_manager.connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
             self.progression(count)
             count += 1
     
