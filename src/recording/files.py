@@ -15,8 +15,11 @@ $Id$
 """
 
 
-import numpy
+import numpy, sys, os, shutil
 import cPickle as pickle
+sys.path.append('%s/lib' %numpy.__path__[0])
+import format
+
 try:
     import tables
     have_hdf5 = True
@@ -37,6 +40,40 @@ def _savetxt(filename, data, format, delimiter):
     f.close()
 
 
+def savez(file, *args, **kwds):
+    
+    __doc__ = numpy.savez.__doc__    
+    import zipfile
+   
+    if isinstance(file, basestring):
+        if not file.endswith('.npz'):
+            file = file + '.npz'
+
+    namedict = kwds
+    for i, val in enumerate(args):
+        key = 'arr_%d' % i
+        if key in namedict.keys():
+            raise ValueError, "Cannot use un-named variables and keyword %s" % key
+        namedict[key] = val
+
+    zip = zipfile.ZipFile(file, mode="w")
+
+    # Place to write temporary .npy files
+    #  before storing them in the zip. We need to path this to have a working
+    # function in parallel !
+    import tempfile
+    direc = tempfile.mkdtemp()
+    for key, val in namedict.iteritems():
+        fname = key + '.npy'
+        filename = os.path.join(direc, fname)
+        fid = open(filename,'wb')
+        format.write_array(fid, numpy.asanyarray(val))
+        fid.close()
+        zip.write(filename, arcname=fname)
+    zip.close()
+    shutil.rmtree(direc)
+    
+
 class BaseFile(object):
     """
     Base class for PyNN File classes.
@@ -48,15 +85,22 @@ class BaseFile(object):
         """
         self.name = filename
         self.mode = mode
-        self.fileobj = open(self.name, mode, DEFAULT_BUFFER_SIZE)
+        try: ## Need this because in parallel, file names are changed
+            self.fileobj = open(self.name, mode, DEFAULT_BUFFER_SIZE)
+        except Exception:
+            pass
 
     def __del__(self):
         self.close()
 
     def rename(self, filename):
         self.close()
+        try: ## Need this because in parallel, only one node will delete the file with NFS
+            os.remove(self.name)
+        except Exception:
+            pass
         self.name = filename
-        self.fileobj = open(self.name, self.mode, DEFAULT_BUFFER_SIZE)
+        self.fileobj = open(self.name, self.mode, DEFAULT_BUFFER_SIZE)        
         
     def write(self, data, metadata):
         """
@@ -136,7 +180,7 @@ class NumpyBinaryFile(BaseFile):
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
         metadata_array = numpy.array(metadata.items())
-        numpy.savez(self.fileobj, data=data, metadata=metadata_array)
+        savez(self.fileobj, data=data, metadata=metadata_array)
         
     def read(self):
         __doc__ = BaseFile.read.__doc__

@@ -240,8 +240,8 @@ class Projection(common.Projection):
                                       -parameters['A_minus'],
                                       parameters['mu_plus'],
                                       parameters['mu_minus'],
-                                      wmin = parameters['w_min'] * units,
-                                      wmax = parameters['w_max'] * units)
+                                      wmin = parameters['w_min'],
+                                      wmax = parameters['w_max'])
                 simulator.net.add(stdp)
             elif self._plasticity_model is "tsodyks_markram_synapse":
                 parameters   = self.synapse_dynamics.fast.parameters
@@ -259,9 +259,7 @@ class Projection(common.Projection):
         bc    = self.connection_manager.brian_connections
         N     = bc.W.getnnz()
         lines = numpy.empty((N, 4))
-        sources, targets = bc.W.nonzero()
-        lines[:,0] = sources 
-        lines[:,1] = targets
+        lines[:,0], lines[:,1] = bc.W.nonzero()
         if not hasattr(bc.W, 'alldata'): 
             weights = bc.W.connection_matrix().alldata 
         else:
@@ -274,7 +272,7 @@ class Projection(common.Projection):
                 delays = bc.delay.alldata
             lines[:,3] = delays / ms
         else:
-            lines[:,3] = bc.delay * bc.source.clock.dt * numpy.ones(N) / ms
+            lines[:,3] = bc.delay * bc.source.clock.dt / ms
         
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
         

@@ -24,7 +24,7 @@ def distances(pos_1, pos_2, N):
 timer.start()
 node_id = setup(timestep=0.1, min_delay=0.1, max_delay=4.)    
 print "Creating cells population..."
-N       = 30
+N       = 60
 
 structure = RandomStructure(Cuboid(1, 1, 1), origin=(0.5,0.5,0.5), rng=NumpyRNG(2652))
 #structure = Grid2D(dx=1/float(N), dy=1/float(N))
@@ -33,14 +33,14 @@ x       = Population(N**2, IF_curr_exp, structure=structure)
 mytime = timer.diff()
 print "Time to build the cell population:", mytime, 's'
 
-def test(cases=[7]):    
+def test(cases=[2, 7]):    
     
     sp            = Space(periodic_boundaries=((0,1), (0,1), None), axes='xy')
     safe          = False
     verbose       = True
     autapse       = False
     parallel_safe = False    
-    render        = True
+    render        = False
     to_file       = True
         
     for case in cases:
@@ -65,7 +65,7 @@ def test(cases=[7]):
             conn  = DistanceDependentProbabilityConnector(d_expression, delays=delay, weights=w, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
             fig_name = "DistanceDependent_%s_np_%d.png" %(simulator_name, np)
         elif case is 2:
-            conn  = FixedProbabilityConnector(0.05, weights=w, delays=delay, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
+            conn  = FastFixedProbabilityConnector(0.02, weights=w, delays=delay, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
             fig_name = "FixedProbability_%s_np_%d.png" %(simulator_name, np)
         elif case is 3:
             conn  = AllToAllConnector(delays=delay, weights=w, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
@@ -81,7 +81,7 @@ def test(cases=[7]):
             conn  = OneToOneConnector(safe=safe, weights=w, delays=delay, verbose=verbose)
             fig_name = "OneToOne_%s_np_%d.png" %(simulator_name, np)
         elif case is 7:
-            conn  = FromFileConnector(files.NumpyBinaryFile('Results/connections.dat', mode='r'), safe=safe, verbose=verbose)
+            conn  = FromFileConnector(files.NumpyBinaryFile('Results/connections.dat', mode='r'), safe=safe, verbose=verbose, distributed=True)
             fig_name = "FromFile_%s_np_%d.png" %(simulator_name, np)
         elif case is 8:
             conn  = SmallWorldConnector(degree=0.1, rewiring=0., weights=w, delays=delay, safe=safe, verbose=verbose, allow_self_connections=autapse, space=sp)
@@ -98,7 +98,7 @@ def test(cases=[7]):
         
         if to_file:
            print "Saving Connections...."
-           prj.saveConnections(files.NumpyBinaryFile('Results/connections.dat', mode='w'), compatible_output=True)
+           prj.saveConnections(files.NumpyBinaryFile('Results/connections.dat', mode='w'), compatible_output=True,gather=False)
         
         mytime = timer.diff()
         print "Time to save the projection:", mytime, 's'
@@ -109,7 +109,7 @@ def test(cases=[7]):
 
             print "Saving Positions...."
             x.save_positions('Results/positions.dat')          
-            
+        end()
         if node_id == 0 and render and to_file:
             figure()
             print "Generating and saving %s" %fig_name
@@ -146,10 +146,11 @@ def test(cases=[7]):
             os.remove('Results/positions.dat')
     
 if __name__ == '__main__':
-    import hotshot, os
-    prof = hotshot.Profile("hotshot_edi_stats")
-    prof.runcall(test)
-    prof.close()
-    from hotshot import stats
-    s = stats.load("hotshot_edi_stats")
-    s.sort_stats("time").print_stats()
+    #import hotshot, os
+    #prof = hotshot.Profile("hotshot_edi_stats")
+    #prof.runcall(test)
+    #prof.close()
+    #from hotshot import stats
+    #s = stats.load("hotshot_edi_stats")
+    #s.sort_stats("time").print_stats()
+    test()

@@ -392,7 +392,8 @@ class Projection(common.Projection):
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
         
-        lines   = nest.GetStatus(self.connection_manager.connections, ('source', 'target', 'weight', 'delay'))        
+        lines   = nest.GetStatus(self.connection_manager.connections, ('source', 'target', 'weight', 'delay'))  
+        
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
             all_lines = recording.gather_dict(all_lines)
@@ -402,8 +403,6 @@ class Projection(common.Projection):
             file.rename('%s.%d' % (file.name, rank()))
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
                 
-        
-        
         if gather == False or rank() == 0:
             lines       = numpy.array(lines)
             lines[:,2] *= 0.001

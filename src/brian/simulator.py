@@ -252,17 +252,17 @@ class STDP(brian.STDP):
             raise AttributeError, "You must specify the maximum synaptic weight"
         wmax  = float(wmax) # removes units
         wmin  = float(wmin)
-        Ap   *= wmax   # removes units
-        Am   *= wmax   # removes units
+        #Ap   *= wmax   # removes units
+        #Am   *= wmax   # removes units
         print wmax, wmin, Ap, Am
         eqs = brian.Equations('''
             dA_pre/dt  = -A_pre/taup  : 1
             dA_post/dt = -A_post/taum : 1''', taup=taup, taum=taum, wmax=wmax)
         pre   = 'A_pre += Ap'
-        pre  += '\nw += pow(w/wmax, mu_m)*A_post'
+        pre  += '\nw += pow(w, mu_m)*A_post'
         
         post  = 'A_post += Am'        
-        post += '\nw += pow(1-w/wmax, mu_p)*A_pre'
+        post += '\nw += pow(wmax-w, mu_p)*A_pre'
         brian.STDP.__init__(self, C, eqs=eqs, pre=pre, post=post, wmin=wmin, wmax=wmax, delay_pre=None, delay_post=None, clock=None)
 
 # --- For implementation of connect() and Connector classes --------------------
@@ -490,7 +490,10 @@ class ConnectionManager(object):
         if format == 'list':
             values = values.tolist()
         elif format == 'array':
-            pass
+            value_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
+            sources, targets = bc.W.nonzero()
+            values_arr[sources, targets] = values
+            values = values_arr
         else:
             raise Exception("format must be 'list' or 'array', actually '%s'" % format)
         return values

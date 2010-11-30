@@ -767,7 +767,9 @@ class BasePopulation(object):
         total_spikes = sum(spike_counts.values())
         if rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
             return float(total_spikes)/len(spike_counts)
-
+        else:
+            return numpy.nan
+        
     def inject(self, current_source):
         """
         Connect a current source to all cells in the Population.
