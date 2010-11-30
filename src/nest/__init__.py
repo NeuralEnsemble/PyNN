@@ -404,7 +404,7 @@ class Projection(common.Projection):
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
                 
         if gather == False or rank() == 0:
-            lines       = numpy.array(lines)
+            lines       = numpy.array(lines, dtype=float)
             lines[:,2] *= 0.001
             if compatible_output:
                 lines[:,0] = self.pre.id_to_index(lines[:,0])

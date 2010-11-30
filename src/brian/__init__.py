@@ -225,6 +225,7 @@ class Projection(common.Projection):
         self.connection_manager = simulator.ConnectionManager(self.synapse_type, self._plasticity_model, parent=self)
         self.connections = self.connection_manager        
         method.connect(self)
+        self.connection_manager._finalize()
         if self._plasticity_model != "static_synapse":
             synapses = self.connections.brian_connections
             if self._plasticity_model is "stdp_synapse": 
@@ -259,18 +260,10 @@ class Projection(common.Projection):
         bc    = self.connection_manager.brian_connections
         N     = bc.W.getnnz()
         lines = numpy.empty((N, 4))
-        lines[:,0], lines[:,1] = bc.W.nonzero()
-        if not hasattr(bc.W, 'alldata'): 
-            weights = bc.W.connection_matrix().alldata 
-        else:
-            weights = bc.W.alldata / bc.weight_units
-        lines[:,2] = weights / bc.weight_units
+        lines[:,0], lines[:,1] = self.connection_manager.indices
+        lines[:,2] = bc.W.alldata / bc.weight_units
         if isinstance(bc, brian.DelayConnection):
-            if not hasattr(bc.delay, 'alldata'): 
-                delays = bc.delay.connection_matrix().alldata
-            else:
-                delays = bc.delay.alldata
-            lines[:,3] = delays / ms
+            lines[:,3] = bc.delay.alldata / ms
         else:
             lines[:,3] = bc.delay * bc.source.clock.dt / ms
         

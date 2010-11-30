@@ -254,7 +254,6 @@ class STDP(brian.STDP):
         wmin  = float(wmin)
         Ap   *= wmax   # removes units
         Am   *= wmax   # removes units
-        print Ap, Am, mu_p, mu_m
         eqs = brian.Equations('''
             dA_pre/dt  = -A_pre/taup  : 1
             dA_post/dt = -A_post/taum : 1''', taup=taup, taum=taum, wmax=wmax, mu_m=mu_m, mu_p=mu_p)
@@ -273,7 +272,7 @@ class Connection(object):
     and other attributes.
     """
     
-    def __init__(self, brian_connection, index):
+    def __init__(self, brian_connection, index, indices):
         """
         Create a new connection.
         
@@ -282,25 +281,15 @@ class Connection(object):
         `index` -- the index of the current connection within
                    `brian_connection`, i.e. the nth non-zero element
                    in the weight array.
+        `indices` -- the mapping of the x, y coordinates of the established
+                     connections, stored by the connection_manager handling those
+                     connections.
         """
         # the index is the nth non-zero element
         self.bc                  = brian_connection
         self.size                = self.bc.W.getnnz()
-        self.addr                = self.__get_address(index)
-        self.source, self.target = self.addr
-        #print "creating connection with index", index, "and address", self.addr
-
-    def __get_address(self, index):
-        """
-        Return the (i,j) indices of the element in the weight/delay matrices
-        that corresponds to the connection with the given index, i.e. the
-        nth non-zero element in the weight array where n=index.
-        """
-        if index < self.size:
-            x, y = self.bc.W.nonzero()
-            return (x[index], y[index])
-        else:
-            raise IndexError("connection with index %d requested, but Connection only contains %d connections." % (index, self.size))
+        self.addr                = indices[0][index], indices[1][index]
+        self.source, self.target = self.addr        
 
     def _set_weight(self, w):
         w = w or ZERO_WEIGHT
@@ -346,16 +335,12 @@ class ConnectionManager(object):
         self.parent            = parent
         self.n                 = 0
         self.brian_connections = None
+        self.indices           = None        
 
     def __getitem__(self, i):
         """Return the `i`th connection as a Connection object."""
-        j = 0
         assert isinstance(self.brian_connections, brian.Connection), str(self.brian_connections)
-        j_new = j + self.brian_connections.W.getnnz()
-        if i < j_new:
-            return Connection(self.brian_connections, i-j)
-        else:
-            j = j_new
+        return Connection(self.brian_connections, i, self.indices)
         raise Exception("No such connection. i=%d. connection object lengths=%s" % (i, str(self.brian_connections.W.getnnz())))
     
     def __len__(self):
@@ -370,6 +355,10 @@ class ConnectionManager(object):
     def __iter__(self):
         """Return an iterator over all connections in this manager."""
         return self.__connection_generator()
+    
+    def _finalize(self):
+        self.indices = self.brian_connections.W.nonzero()
+        self.brian_connections.compress()            
     
     def _get_brian_connection(self, source_group, target_group, synapse_obj, weight_units, homogeneous=False):
         """
@@ -472,18 +461,10 @@ class ConnectionManager(object):
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
         bc = self.brian_connections
         if parameter_name == "weight":
-            if not hasattr(bc.W, 'alldata'): 
-                weights = bc.W.connection_matrix().alldata
-            else:
-                weights = bc.W.alldata
-            values = weights / bc.weight_units            
+            values = bc.W.alldata / bc.weight_units            
         elif parameter_name == 'delay':
             if isinstance(bc, brian.DelayConnection):
-                if not hasattr(bc.delay, 'alldata'): 
-                    delays = bc.delay.connection_matrix().alldata
-                else:
-                    delays = bc.delay.alldata
-                values = delays / ms
+                values = bc.delay.alldata / ms
             else:
                 values = bc.delay * bc.source.clock.dt * numpy.ones(self.brian_connections.W.getnnz()) /ms
         else:
@@ -493,7 +474,7 @@ class ConnectionManager(object):
             values = values.tolist()
         elif format == 'array':
             value_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
-            sources, targets = bc.W.nonzero()
+            sources, targets = self.indices
             values_arr[sources, targets] = values
             values = values_arr
         else:
@@ -524,9 +505,7 @@ class ConnectionManager(object):
         value = value*units
         if numpy.isscalar(value):
             if (name == 'weight') or (name == 'delay' and isinstance(bc, brian.DelayConnection)):
-                for row in M.data:
-                    for i in range(len(row)):
-                        row[i] = value
+                M.alldata = value
             elif (name == 'delay' and isinstance(bc, brian.Connection)):
                 bc.delay = int(value / bc.source.clock.dt)
             else:
@@ -536,14 +515,12 @@ class ConnectionManager(object):
                 raise Exception("FastConnector have been used, and only fixed homogeneous delays are allowed")
             address_gen = ((i,j) for i,row in enumerate(bc.W.rows) for j in row)
             for (i,j) in address_gen:
-                M[i,j] = value[i,j]*units
+                M[i,j] = value[i,j]
         elif core.is_listlike(value):
             assert len(value) == M.getnnz()
             if (name == 'delay') and not isinstance(bc, brian.DelayConnection):
-                raise Exception("FastConnector have been used, and only fixed homogeneous delays are allowed")
-            address_gen = ((i,j) for i,row in enumerate(bc.W.rows) for j in row)
-            for ((i,j),val) in izip(address_gen, value):
-                M[i,j] = val*units
+                raise Exception("FastConnector have been used: only fixed homogeneous delays are allowed")
+            M.alldata = value
         else:
             raise Exception("Values must be scalars or lists/arrays")
                 
