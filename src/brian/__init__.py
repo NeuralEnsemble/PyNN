@@ -240,8 +240,8 @@ class Projection(common.Projection):
                                       -parameters['A_minus'],
                                       parameters['mu_plus'],
                                       parameters['mu_minus'],
-                                      wmin = parameters['w_min'],
-                                      wmax = parameters['w_max'])
+                                      wmin = parameters['w_min'] * units,
+                                      wmax = parameters['w_max'] * units)
                 simulator.net.add(stdp)
             elif self._plasticity_model is "tsodyks_markram_synapse":
                 parameters   = self.synapse_dynamics.fast.parameters

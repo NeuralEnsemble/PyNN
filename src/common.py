@@ -790,7 +790,7 @@ class BasePopulation(object):
         result[:,0]   = cells
         result[:,1:4] = self.positions.T 
         if rank() == 0:
-            file.write(result, {})
+            file.write(result, {'population' : self.label})
             file.close()    
         
 

@@ -491,7 +491,7 @@ class FromListConnector(Connector):
         count = 0
         left  = numpy.searchsorted(self.conn_list[:,0], self.sources, 'left')
         right = numpy.searchsorted(self.conn_list[:,0], self.sources, 'right')
-        tests = "|".join(['(tgts == %d)' %id for id in self.candidates])
+        #tests = "|".join(['(tgts == %d)' %id for id in self.candidates])
         for src, l, r in zip(self.sources, left, right):
             targets = self.conn_list[l:r, 1].astype(int)
             weights = self.conn_list[l:r, 2]
@@ -500,8 +500,9 @@ class FromListConnector(Connector):
             tgts    = projection.post.all_cells[targets]
             ## We need to exclude the non local cells. Fastidious, need maybe
             ## to use a convergent_connect method, instead of a divergent_connect one
-            idx     = eval(tests)
-            projection.connection_manager.connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
+            #idx     = eval(tests)
+            #projection.connection_manager.connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
+            projection.connection_manager.connect(src, tgts.tolist(), weights, delays)
             self.progression(count)
             count += 1
     
