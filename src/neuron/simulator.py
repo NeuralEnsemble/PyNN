@@ -397,7 +397,16 @@ class ConnectionManager(object):
         
     def __getitem__(self, i):
         """Return the `i`th connection on the local MPI node."""
-        return self.connections[i]
+        if isinstance(i, int):
+            if i < len(self):
+                return self.connections[i]
+            else:
+                raise IndexError("%d > %d" % (i, len(self)-1))
+        elif isinstance(i, slice):
+            if i.stop < len(self):
+                return [self.connections[j] for j in range(i.start, i.stop, i.step or 1)]
+            else:
+                raise IndexError("%d > %d" % (i.stop, len(self)-1))
     
     def __len__(self):
         """Return the number of connections on the local MPI node."""

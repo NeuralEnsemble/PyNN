@@ -183,11 +183,6 @@ def reset():
     for group in net.groups:
         group.reinit()
         group.initialize()
-
-def run(simtime):
-    """Advance the simulation for a certain time."""
-    # The run() command of brian accepts seconds
-    net.run(simtime*ms)
     
     
 # --- For implementation of access to individual neurons' parameters -----------
@@ -287,7 +282,6 @@ class Connection(object):
         """
         # the index is the nth non-zero element
         self.bc                  = brian_connection
-        self.size                = self.bc.W.getnnz()
         self.addr                = indices[0][index], indices[1][index]
         self.source, self.target = self.addr        
 
@@ -297,7 +291,6 @@ class Connection(object):
 
     def _get_weight(self):
         """Synaptic weight in nA or µS."""
-        ###print "in Connection._get_weight(), weight_units = %s" % self.bc.weight_units
         return float(self.bc[self.addr]/self.bc.weight_units)
 
     def _set_delay(self, d):
@@ -339,9 +332,16 @@ class ConnectionManager(object):
 
     def __getitem__(self, i):
         """Return the `i`th connection as a Connection object."""
-        assert isinstance(self.brian_connections, brian.Connection), str(self.brian_connections)
-        return Connection(self.brian_connections, i, self.indices)
-        raise Exception("No such connection. i=%d. connection object lengths=%s" % (i, str(self.brian_connections.W.getnnz())))
+        if isinstance(i, int):
+            if i < len(self):
+                return Connection(self.brian_connections, i, self.indices)
+            else:
+                raise IndexError("%d > %d" % (i, len(self)-1))
+        elif isinstance(i, slice):
+            if i.stop < len(self):
+                return [Connection(self.brian_connections, j, self.indices) for j in range(i.start, i.stop, i.step or 1)]
+            else:
+                raise IndexError("%d > %d" % (i.stop, len(self)-1))
     
     def __len__(self):
         """Return the total number of connections in this manager."""
@@ -349,7 +349,7 @@ class ConnectionManager(object):
     
     def __connection_generator(self):
         """Yield each connection in turn."""
-        for i in range(self.brian_connections.W.getnnz()):
+        for i in range(len(self)):
             yield Connection(self.brian_connections, i)
                 
     def __iter__(self):

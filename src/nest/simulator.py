@@ -232,8 +232,8 @@ class ConnectionManager:
     @property
     def connections(self):
         if self._connections is None:
-            sources = numpy.unique(self.sources).tolist()
-            self._connections = nest.FindConnections(sources, synapse_type=self.synapse_model)
+            self.sources = numpy.unique(self.sources)
+            self._connections = nest.FindConnections(self.sources, synapse_type=self.synapse_model)
         return self._connections
     
     def connect(self, source, targets, weights, delays):

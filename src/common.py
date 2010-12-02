@@ -445,16 +445,25 @@ class BasePopulation(object):
         nearest = distances.argmin()
         return self[nearest]
 
-    def get(self, parameter_name):  # would be nice to add a 'gather' argument
+    def get(self, parameter_name, gather=False):
         """
         Get the values of a parameter for every local cell in the population.
         """
         # if all the cells have the same value for this parameter, should
         # we return just the number, rather than an array?
+        
         if hasattr(self, "_get_array"):
-            return self._get_array(parameter_name)
+            values = self._get_array(parameter_name)
         else:
-            return [getattr(cell, parameter_name) for cell in self]  # list or array?
+            values = [getattr(cell, parameter_name) for cell in self]  # list or array?
+        
+        if gather == True and num_processes() > 1:
+            all_values = { rank(): values }
+            all_values = recording.gather_dict(all_values)
+            if rank() == 0:
+                values = reduce(operator.add, all_values.values())
+        return values
+            
 
     def set(self, param, val=None):
         """
@@ -791,8 +800,8 @@ class BasePopulation(object):
         result[:,1:4] = self.positions.T 
         if rank() == 0:
             file.write(result, {'population' : self.label})
-            file.close()    
-        
+            file.close()
+
 
 class Population(BasePopulation):
     """

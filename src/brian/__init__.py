@@ -44,12 +44,11 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     simulator but not by others.
     """
     common.setup(timestep, min_delay, max_delay, **extra_params)
-    simulator.net = brian.Network()
     brian.set_global_preferences(**extra_params)
     simulator.net.add(update_currents) # from electrodes
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
-    simulator.state.dt = timestep
+    simulator.state.dt        = timestep
     reset()
     return rank()
 
@@ -60,10 +59,10 @@ def end(compatible_output=True):
 
 def run(simtime):
     """Run the simulation for simtime ms."""
-    simulator.run(simtime)
+    simulator.net.run(simtime * ms)
     return get_current_time()
 
-reset = common.reset
+reset = simulator.reset
 
 initialize = common.initialize
 
@@ -166,7 +165,7 @@ class Population(common.Population, common.BasePopulation):
                 different value)
         """
         if isinstance(value, RandomDistribution):
-            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
+            rarr  = value.next(n=self.all_cells.size, mask_local=self._mask_local)
             value = numpy.array(rarr)
         else:
             value = value*numpy.ones((len(self),))
@@ -257,9 +256,8 @@ class Projection(common.Projection):
         FromFileConnector.
         """
         import operator
-        bc    = self.connection_manager.brian_connections
-        N     = bc.W.getnnz()
-        lines = numpy.empty((N, 4))
+        lines = numpy.empty((len(self.connection_manager), 4))
+        bc    = self.connection_manager.brian_connections    
         lines[:,0], lines[:,1] = self.connection_manager.indices
         lines[:,2] = bc.W.alldata / bc.weight_units
         if isinstance(bc, brian.DelayConnection):
