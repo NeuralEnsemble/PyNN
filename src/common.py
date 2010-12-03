@@ -431,7 +431,6 @@ class BasePopulation(object):
     def _get_cell_initial_value(self, id, variable):
         assert isinstance(self.initial_values[variable], core.LazyArray)
         index = self.id_to_index(id)
-        print "test", self.initial_values[variable].shape, index, id        
         return self.initial_values[variable][index]
 
     def _set_cell_initial_value(self, id, variable, value):
