@@ -355,7 +355,11 @@ def build_record(variable, simulator):
         # whether to write to a file.
         assert isinstance(source, (BasePopulation, Assembly))
         source._record(variable, to_file=filename)
-        simulator.recorder_list.append(source.recorders[variable])  # this is a bit hackish - better to add to Population.__del__?
+        if isinstance(source, BasePopulation):
+            simulator.recorder_list.append(source.recorders[variable])  # this is a bit hackish - better to add to Population.__del__?
+        if isinstance(source, Assembly):
+            for population in source.populations:
+                simulator.recorder_list.append(population.recorders[variable])
     if variable == 'v':
         record.__doc__ = """
             Record membrane potential to a file. source can be an individual cell or
@@ -427,6 +431,7 @@ class BasePopulation(object):
     def _get_cell_initial_value(self, id, variable):
         assert isinstance(self.initial_values[variable], core.LazyArray)
         index = self.id_to_index(id)
+        print "test", self.initial_values[variable].shape, index, id        
         return self.initial_values[variable][index]
 
     def _set_cell_initial_value(self, id, variable, value):

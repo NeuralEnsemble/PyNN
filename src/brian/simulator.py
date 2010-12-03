@@ -96,6 +96,27 @@ class ThresholdNeuronGroup(brian.NeuronGroup):
         for variable, values in self.initial_values.items():
             setattr(self, variable, values)
 
+class ImplicitThresholdNeuronGroup(brian.NeuronGroup):
+    
+    def __init__(self, n, equations, threshold):
+        brian.NeuronGroup.__init__(self, n, model=equations,
+                                   threshold=threshold,
+                                   implicit=True,
+                                   freeze=True,
+                                   compile=True,
+                                   clock=state.simclock,
+                                   max_delay=state.max_delay*ms,
+                                   )
+        self.parameter_names = equations._namespace.keys() + ['v_thresh', 'v_reset', 'tau_refrac']
+        for var in ('v', 'ge', 'gi', 'ie', 'ii'): # can probably get this list from brian
+            if var in self.parameter_names:
+                self.parameter_names.remove(var)
+        self.initial_values = {}
+
+    def initialize(self):
+        for variable, values in self.initial_values.items():
+            setattr(self, variable, values)
+
 class PoissonGroupWithDelays(brian.PoissonGroup):
 
     def __init__(self, N, rates=0):
@@ -505,7 +526,8 @@ class ConnectionManager(object):
         value = value*units
         if numpy.isscalar(value):
             if (name == 'weight') or (name == 'delay' and isinstance(bc, brian.DelayConnection)):
-                M.alldata = value
+                for row in xrange(M.shape[0]):
+                    M.set_row(row, value)
             elif (name == 'delay' and isinstance(bc, brian.Connection)):
                 bc.delay = int(value / bc.source.clock.dt)
             else:
