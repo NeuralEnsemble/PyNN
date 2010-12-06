@@ -496,8 +496,14 @@ class FromListConnector(Connector):
             targets = self.conn_list[l:r, 1].astype(int)
             weights = self.conn_list[l:r, 2]
             delays  = self.conn_list[l:r, 3]
-            src     = projection.pre.all_cells[src]     
-            tgts    = projection.post.all_cells[targets]
+            try:
+                src     = projection.pre.all_cells[src]
+            except IndexError:
+                raise errors.ConnectionError("invalid source index %s" % src)
+            try:
+                tgts    = projection.post.all_cells[targets]
+            except IndexError:
+                raise errors.ConnectionError("invalid target index or indices")
             ## We need to exclude the non local cells. Fastidious, need maybe
             ## to use a convergent_connect method, instead of a divergent_connect one
             #idx     = eval(tests)

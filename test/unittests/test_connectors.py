@@ -1,5 +1,6 @@
 from pyNN import connectors, common, random, errors, space
 import numpy
+import os
 from mock import Mock
 from nose.tools import assert_equal, assert_raises
 from tools import assert_arrays_equal
@@ -12,6 +13,8 @@ class MockSimulator(object):
     class MockState(object):
         min_delay = MIN_DELAY
         max_delay = MAX_DELAY
+        num_processes = 2
+        mpi_rank = 1
     state = MockState()
 common.simulator = MockSimulator
 
@@ -46,6 +49,9 @@ class MockPost(object):
         self.positions = numpy.array([(i, 88.8, 99.9) for i in self.all_cells]).T
         self.position_generator = lambda i: self.positions[:,i]
 
+    def __len__(self):
+        return self.size
+
 
 class MockConnectionManager(object):
     
@@ -63,6 +69,8 @@ class MockConnectionManager(object):
             weights = repeat(weights)
         if isinstance(delays, float):
             delays = repeat(delays)
+        if not hasattr(targets, "__len__"):
+            targets = [targets]
         for tgt, w, d in zip(targets, weights, delays):
             self.connections.append((src, tgt, w, d))
 
@@ -88,6 +96,7 @@ class MockRNG(random.WrappedRNG):
         s = self.start
         self.start += n*self.delta
         return numpy.arange(s, s+n*self.delta, self.delta)
+
 
 class MockProjection(object):
     
@@ -213,8 +222,157 @@ class TestFixedProbabilityConnector(object):
                       (17, 82, 0.0, MIN_DELAY),
                       (18, 80, 0.0, MIN_DELAY)])
 
+class TestDistanceDependentProbabilityConnector(object):
 
-class TestDistanceMatrix():
+    def setup(self):
+        self.prj = MockProjection(MockPre(4),
+                                  MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
+        self.prj.rng = MockRNG(num_processes=2, delta=0.01)
+
+    def test_connect_with_default_args(self):
+        C = connectors.DistanceDependentProbabilityConnector(d_expression="d<62.5")
+        C.progressbar = Mock()
+        C.progression = Mock()
+        C.connect(self.prj)
+        # 20 possible connections. Only those with a sufficiently small distance
+        # are created
+        assert_equal(self.prj.connection_manager.connections,
+                     [(18, 80, 0.0, MIN_DELAY),
+                      (19, 80, 0.0, MIN_DELAY),
+                      (20, 80, 0.0, MIN_DELAY),
+                      (20, 82, 0.0, MIN_DELAY)])
+
+class TestFromListConnector(object):
+    
+    def setup(self):
+        self.prj = MockProjection(MockPre(4),
+                                  MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
+        
+    def test_connect_with_valid_list(self):
+        connection_list = [
+            (0, 0, 0.1, 0.1),   # 17 -> 79
+            (3, 0, 0.2, 0.11),  # 20 -> 79
+            (2, 3, 0.3, 0.12),  # 19 -> 82  local
+            (2, 2, 0.4, 0.13),  # 19 -> 81
+            (0, 1, 0.5, 0.14),  # 17 -> 80 local
+            ]
+        C = connectors.FromListConnector(connection_list)
+        C.progressbar = Mock()
+        C.progression = Mock()
+        C.connect(self.prj)
+        # note that ListConnector does not filter out non-local connections
+        assert_equal(self.prj.connection_manager.connections,
+                     [(17, 79, 0.1, 0.1),
+                      (17, 80, 0.5, 0.14),
+                      (19, 82, 0.3, 0.12),
+                      (19, 81, 0.4, 0.13),
+                      (20, 79, 0.2, 0.11)])
+        
+    def test_connect_with_out_of_range_index(self):
+        connection_list = [
+            (0, 0, 0.1, 0.1),   # 17 -> 79
+            (3, 0, 0.2, 0.11),  # 20 -> 79
+            (2, 3, 0.3, 0.12),  # 19 -> 82  local
+            (5, 2, 0.4, 0.13),  # NON-EXISTENT -> 81
+            (0, 1, 0.5, 0.14),  # 17 -> 80 local
+            ]
+        C = connectors.FromListConnector(connection_list)
+        assert_raises(errors.ConnectionError, C.connect, self.prj)
+
+
+class TestFromFileConnector(object):
+    
+    def setup(self):
+        self.prj = MockProjection(MockPre(4),
+                                  MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
+        self.connection_list = [
+            (0, 0, 0.1, 0.1),   # 17 -> 79
+            (3, 0, 0.2, 0.11),  # 20 -> 79
+            (2, 3, 0.3, 0.12),  # 19 -> 82  local
+            (2, 2, 0.4, 0.13),  # 19 -> 81
+            (0, 1, 0.5, 0.14),  # 17 -> 80 local
+            ]
+    
+    def teardown(self):
+        if os.path.exists("test.connections"):
+            os.remove("test.connections")
+    
+    def test_connect_with_standard_text_file_not_distributed(self):
+        numpy.savetxt("test.connections", self.connection_list)
+        C = connectors.FromFileConnector("test.connections", distributed=False)
+        C.connect(self.prj)
+        assert_equal(self.prj.connection_manager.connections,
+                     [(17, 79, 0.1, 0.1),
+                      (17, 80, 0.5, 0.14),
+                      (19, 82, 0.3, 0.12),
+                      (19, 81, 0.4, 0.13),
+                      (20, 79, 0.2, 0.11)])
+        
+    def test_connect_with_standard_text_file_distributed(self):
+        local_connection_list = [c for c in self.connection_list if c[1]%2 == 1]
+        numpy.savetxt("test.connections.1", local_connection_list)
+        C = connectors.FromFileConnector("test.connections", distributed=True)
+        C.connect(self.prj)
+        assert_equal(self.prj.connection_manager.connections,
+                     [(17, 80, 0.5, 0.14),
+                      (19, 82, 0.3, 0.12)])
+
+
+class TestFixedNumberPostConnector(object):
+    
+    def setup(self):
+        self.prj = MockProjection(MockPre(4),
+                                  MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
+        self.prj.rng.rng = Mock()
+        self.prj.rng.rng.permutation = lambda x: x
+        
+    def test_with_n_smaller_than_population_size(self):
+        C = connectors.FixedNumberPostConnector(n=3)
+        C.progressbar = Mock()
+        C.progression = Mock()
+        assert self.prj.rng is not None
+        C.connect(self.prj)
+        # FixedNumberPost does not currently filter out only local connections
+        assert_equal(self.prj.connection_manager.connections,
+                     [(17, 79, 0.0, MIN_DELAY),
+                      (17, 80, 0.0, MIN_DELAY),
+                      (17, 81, 0.0, MIN_DELAY),
+                      (18, 79, 0.0, MIN_DELAY),
+                      (18, 80, 0.0, MIN_DELAY),
+                      (18, 81, 0.0, MIN_DELAY),
+                      (19, 79, 0.0, MIN_DELAY),
+                      (19, 80, 0.0, MIN_DELAY),
+                      (19, 81, 0.0, MIN_DELAY),
+                      (20, 79, 0.0, MIN_DELAY),
+                      (20, 80, 0.0, MIN_DELAY),
+                      (20, 81, 0.0, MIN_DELAY)])
+
+
+class TestFixedNumberPreConnector(object):
+    
+    def setup(self):
+        self.prj = MockProjection(MockPre(4),
+                                  MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
+        self.prj.rng.rng = Mock()
+        self.prj.rng.rng.permutation = lambda x: x
+        
+    def test_with_n_smaller_than_population_size(self):
+        C = connectors.FixedNumberPreConnector(n=3)
+        C.progressbar = Mock()
+        C.progression = Mock()
+        assert self.prj.rng is not None
+        self.prj.post.local_cells = [MockCell(n) for n in self.prj.post.local_cells]
+        C.connect(self.prj)
+        assert_equal(self.prj.connection_manager.connections,
+                     [(17, 80, 0.0, MIN_DELAY),
+                      (18, 80, 0.0, MIN_DELAY),
+                      (19, 80, 0.0, MIN_DELAY),
+                      (17, 82, 0.0, MIN_DELAY),
+                      (18, 82, 0.0, MIN_DELAY),
+                      (19, 82, 0.0, MIN_DELAY)])
+     
+
+class TestDistanceMatrix(object):
     
     def test_really_simple0(self):
         A = numpy.zeros((3,))
