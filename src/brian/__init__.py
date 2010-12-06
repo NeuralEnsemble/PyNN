@@ -120,7 +120,6 @@ class Population(common.Population, common.BasePopulation):
         elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
             celltype = cellclass(cellparams)
             cell_parameters = celltype.parameters
-            print cell_parameters
             if isinstance(celltype, cells.SpikeSourcePoisson):    
                 fct = celltype.fct
                 brian_cells = simulator.PoissonGroupWithDelays(n, rates=fct)
@@ -134,7 +133,6 @@ class Population(common.Population, common.BasePopulation):
                     params['refractory'] = cell_parameters['tau_refrac'] * ms
                 if hasattr(celltype, 'extra'):
                     params.update(celltype.extra)
-                print params
                 brian_cells = simulator.ThresholdNeuronGroup(n, cellclass.eqs, **params)
                 
         elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.ModelNotAvailable):

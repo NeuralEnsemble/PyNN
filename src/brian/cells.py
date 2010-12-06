@@ -8,6 +8,7 @@ from pyNN import standardmodels, cells, errors
 #import brian_no_units_no_warnings
 from brian.library.synapses import *
 import brian
+from simulator import SimpleCustomRefractoriness, AdaptiveReset
 from brian import mV, ms, nF, nA, uS, second, Hz, volt
 import numpy
 
@@ -265,7 +266,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         dye/dt = -ye/tau_syn_E                         : uS
         dgi/dt = (2.7182818284590451*yi-gi)/tau_syn_I  : uS 
         dyi/dt = -yi/tau_syn_I                         : uS
-        dw/dt  = (a*tau_m*(v-v_rest)/second - w)/tau_w : nA
+        dw/dt  = (a*(v-v_rest) - w)/tau_w : nA
         tau_syn_E                             : ms
         tau_syn_I                             : ms
         tau_m                                 : ms
@@ -292,7 +293,8 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         
     @property
     def reset(self):
-        return '''v = %g * mV; w += %g * amp''' %(self.parameters['v_reset'], self.parameters['b'])
+        reset = AdaptiveReset(self.parameters['v_reset'] * mV, self.parameters['b'])
+        return SimpleCustomRefractoriness(reset, period = self.parameters['tau_refrac'] * ms)
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     """
@@ -328,7 +330,7 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         dv/dt  = ((v_rest-v) + delta_T*exp((v - v_thresh)/delta_T))/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v) + i_offset + i_inj - w)/c_m : mV
         dge/dt = -ge/tau_syn_E                : uS
         dgi/dt = -gi/tau_syn_I                : uS
-        dw/dt  = (a*tau_m*(v-v_rest)/second - w)/tau_w  : nA
+        dw/dt  = (a*(v-v_rest) - w)/tau_w  : nA
         tau_syn_E                             : ms
         tau_syn_I                             : ms
         tau_m                                 : ms
@@ -355,8 +357,9 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         
     @property
     def reset(self):
-        return '''v = %g * mV; w += %g * amp''' %(self.parameters['v_reset'], self.parameters['b'])
-
+        reset = AdaptiveReset(self.parameters['v_reset'] * mV, self.parameters['b'])
+        return SimpleCustomRefractoriness(reset, period = self.parameters['tau_refrac'] * ms)
+        
 
 class HH_cond_exp(cells.HH_cond_exp):
    
@@ -378,9 +381,9 @@ class HH_cond_exp(cells.HH_cond_exp):
    
    eqs= brian.Equations('''
        dv/dt = (g_leak*(e_rev_leak-v)+ge*(e_rev_E-v)+gi*(e_rev_I-v)-gbar_Na*(m*m*m)*h*(v-e_rev_Na)-gbar_K*(n*n*n*n)*(v-e_rev_K) + i_offset + i_inj)/c_m : mV
-       dm/dt  = alpham*(1-m)-betam*m : 1
-       dn/dt  = alphan*(1-n)-betan*n : 1
-       dh/dt  = alphah*(1-h)-betah*h : 1
+       dm/dt  = (alpham*(1-m)-betam*m) : 1
+       dn/dt  = (alphan*(1-n)-betan*n) : 1
+       dh/dt  = (alphah*(1-h)-betah*h) : 1
        dge/dt = -ge/tau_syn_E : uS
        dgi/dt = -gi/tau_syn_I : uS
        alpham = 0.32*(mV**-1)*(13*mV-v+v_offset)/(exp((13*mV-v+v_offset)/(4*mV))-1.)/ms  : Hz

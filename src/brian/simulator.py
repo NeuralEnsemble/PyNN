@@ -260,6 +260,58 @@ class STDP(brian.STDP):
         post += '\nw += A_pre*pow(1-w/wmax, mu_p)'
         brian.STDP.__init__(self, C, eqs=eqs, pre=pre, post=post, wmin=wmin, wmax=wmax, delay_pre=None, delay_post=None, clock=None)
 
+    
+class SimpleCustomRefractoriness(brian.Refractoriness):
+    
+    @brian.check_units(period=brian.second)
+    def __init__(self, resetfun, period=5*brian.msecond, state=0):
+        self.period = period
+        self.resetfun = resetfun
+        self.state = state
+        self._periods = {} # a dictionary mapping group IDs to periods
+        self.statevectors = {}
+        self.lastresetvalues = {}
+
+    def __call__(self,P):
+        '''
+        Clamps state variable at reset value.
+        '''
+        # if we haven't computed the integer period for this group yet.
+        # do so now
+        if id(P) in self._periods:
+            period = self._periods[id(P)]
+        else:
+            period = int(self.period/P.clock.dt)+1
+            self._periods[id(P)] = period
+        V = self.statevectors.get(id(P),None)
+        if V is None:
+            V = P.state_(self.state)
+            self.statevectors[id(P)] = V
+        LRV = self.lastresetvalues.get(id(P),None)
+        if LRV is None:
+            LRV = numpy.zeros(len(V))
+            self.lastresetvalues[id(P)] = LRV
+        lastspikes = P.LS.lastspikes()
+        self.resetfun(P,lastspikes)             # call custom reset function 
+        LRV[lastspikes] = V[lastspikes]         # store a copy of the custom resetted values
+        clampedindices = P.LS[0:period] 
+        V[clampedindices] = LRV[clampedindices] # clamp at custom resetted values
+        
+    def __repr__(self):
+        return 'Custom refractory period, '+str(self.period)
+
+
+class AdaptiveReset(object):
+
+    def __init__(self, Vr= -70.6 * mV, b=0.0805 * nA):
+        self.Vr = Vr
+        self.b  = b
+
+    def __call__(self, P, spikes):
+        P.v[spikes] = self.Vr
+        P.w[spikes] += self.b
+
+
 # --- For implementation of connect() and Connector classes --------------------
 
 class Connection(object):
