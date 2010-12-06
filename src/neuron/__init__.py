@@ -8,15 +8,15 @@ __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
 from pyNN.neuron import simulator
-from pyNN import common, recording, space, standardmodels, __doc__
+from pyNN import common, recording as base_recording, space, standardmodels, __doc__
 common.simulator = simulator
-recording.simulator = simulator
+base_recording.simulator = simulator
 
 from pyNN.neuron.cells import *
 from pyNN.neuron.connectors import *
 from pyNN.neuron.synapses import *
 from pyNN.neuron.electrodes import *
-from pyNN.neuron.recording import *
+from pyNN.neuron.recording import Recorder
 
 import numpy
 import logging

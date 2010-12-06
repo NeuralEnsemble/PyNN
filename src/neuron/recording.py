@@ -57,7 +57,7 @@ class Recorder(recording.Recorder):
                     elif ge.size == ge_TM.size:
                         ge = ge + ge_TM
                     else:
-                        raise Exception()
+                        raise Exception("Inconsistent conductance array sizes: ge.size=%d, ge_TM.size=%d", (ge.size, ge_TM.size))
                     if gi.size == 0:
                         gi = gi_TM
                     elif gi.size == gi_TM.size:

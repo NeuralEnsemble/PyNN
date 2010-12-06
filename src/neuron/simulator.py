@@ -125,7 +125,7 @@ class _Initializer(object):
         objects must have a `memb_init()` method.
         """
         for item in items:
-            if isinstance(item, common.Population):
+            if isinstance(item, (common.BasePopulation, common.Assembly)):
                 if "Source" not in item.celltype.__class__.__name__: # don't do memb_init() on spike sources
                     self.population_list.append(item)
             else:
@@ -203,7 +203,7 @@ def run(simtime):
             assert local_minimum_delay >= state.min_delay,\
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, state.min_delay)
     state.tstop += simtime
-    logger.info("Running the simulation for %d ms" % simtime)
+    logger.info("Running the simulation for %g ms" % simtime)
     state.parallel_context.psolve(state.tstop)
 
 def finalize(quit=False):
