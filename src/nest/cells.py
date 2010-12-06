@@ -263,3 +263,35 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     nest_name = {"on_grid": 'spike_generator',
                  "off_grid": 'spike_generator'}
     always_local = True
+
+class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
+    """
+    Exponential integrate and fire neuron with spike triggered and sub-threshold
+    adaptation currents (isfa, ista reps.) according to:
+    
+    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
+    an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
+
+    See also: IF_cond_exp_gsfa_grr
+    """
+
+    translations = standardmodels.build_translations(
+        ('cm'        , 'C_m',       1000.0),  # nF -> pF
+        ('tau_refrac', 't_ref'), 
+        ('v_spike'   , 'V_peak'),
+        ('v_reset'   , 'V_reset'),
+        ('v_rest'    , 'E_L'),
+        ('tau_m'     , 'g_L',       "cm/tau_m*1000.0", "C_m/g_L"),
+        ('i_offset'  , 'I_e',       1000.0),  # nA -> pA
+        ('a'         , 'a'),       
+        ('b'         , 'b',         1000.0),  # nA -> pA.
+        ('delta_T'   , 'Delta_T'), 
+        ('tau_w'     , 'tau_w'), 
+        ('v_thresh'  , 'V_th'), 
+        ('e_rev_E'   , 'E_ex'),
+        ('tau_syn_E' , 'tau_syn_ex'), 
+        ('e_rev_I'   , 'E_in'), 
+        ('tau_syn_I' , 'tau_syn_in'),
+    )
+    nest_name = {"on_grid": "aeif_cond_exp",
+                 "off_grid": "aeif_cond_exp"}

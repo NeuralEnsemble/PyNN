@@ -120,6 +120,7 @@ class Population(common.Population, common.BasePopulation):
         elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
             celltype = cellclass(cellparams)
             cell_parameters = celltype.parameters
+            print cell_parameters
             if isinstance(celltype, cells.SpikeSourcePoisson):    
                 fct = celltype.fct
                 brian_cells = simulator.PoissonGroupWithDelays(n, rates=fct)
@@ -127,14 +128,15 @@ class Population(common.Population, common.BasePopulation):
                 spike_times = cell_parameters['spiketimes']
                 brian_cells = simulator.MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(n)])
             else:
-                v_thresh   = cell_parameters['v_thresh'] * mV
-                v_reset    = cell_parameters['v_reset'] * mV
-                tau_refrac = cell_parameters['tau_refrac'] * ms
-                brian_cells = simulator.ThresholdNeuronGroup(n, 
-                                                             cellclass.eqs, 
-                                                             v_thresh,
-                                                             v_reset, 
-                                                             tau_refrac)
+                params = {'threshold'  : celltype.threshold, 
+                          'reset'      : celltype.reset}
+                if cell_parameters.has_key('tau_refrac'):                 
+                    params['refractory'] = cell_parameters['tau_refrac'] * ms
+                if hasattr(celltype, 'extra'):
+                    params.update(celltype.extra)
+                print params
+                brian_cells = simulator.ThresholdNeuronGroup(n, cellclass.eqs, **params)
+                
         elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.ModelNotAvailable):
             raise NotImplementedError("The %s model is not available for this simulator." % cellclass.__name__)
         else:

@@ -73,45 +73,25 @@ def nesteddictwalk(d):
             for value2 in nesteddictwalk(value1):  # recurse into subdict
                 yield value2
         else:
-            yield value1
+            yield value1     
 
 class ThresholdNeuronGroup(brian.NeuronGroup):
     
-    def __init__(self, n, equations, threshold=-50*mV, reset=-60*mV, refractory=100*ms):
+    def __init__(self, n, equations, **kwargs):
         brian.NeuronGroup.__init__(self, n, model=equations,
-                                   threshold=threshold,
-                                   reset=reset,
-                                   refractory=refractory, # this is set to a very large value as it acts as a maximum refractoriness
                                    compile=True,
                                    clock=state.simclock,
                                    max_delay=state.max_delay*ms,
-                                   )
+                                   **kwargs)
         self.parameter_names = equations._namespace.keys() + ['v_thresh', 'v_reset', 'tau_refrac']
         for var in ('v', 'ge', 'gi', 'ie', 'ii'): # can probably get this list from brian
             if var in self.parameter_names:
                 self.parameter_names.remove(var)
         self.initial_values = {}
 
-    def initialize(self):
-        for variable, values in self.initial_values.items():
-            setattr(self, variable, values)
-
-class ImplicitThresholdNeuronGroup(brian.NeuronGroup):
-    
-    def __init__(self, n, equations, threshold):
-        brian.NeuronGroup.__init__(self, n, model=equations,
-                                   threshold=threshold,
-                                   implicit=True,
-                                   freeze=True,
-                                   compile=True,
-                                   clock=state.simclock,
-                                   max_delay=state.max_delay*ms,
-                                   )
-        self.parameter_names = equations._namespace.keys() + ['v_thresh', 'v_reset', 'tau_refrac']
-        for var in ('v', 'ge', 'gi', 'ie', 'ii'): # can probably get this list from brian
-            if var in self.parameter_names:
-                self.parameter_names.remove(var)
-        self.initial_values = {}
+    tau_refrac = _new_property('_resetfun', 'period', ms)
+    v_reset    = _new_property('_resetfun', 'resetvalue', mV)
+    v_thresh   = _new_property('_threshold', 'threshold', mV)
 
     def initialize(self):
         for variable, values in self.initial_values.items():
@@ -135,8 +115,8 @@ class PoissonGroupWithDelays(brian.PoissonGroup):
         #self.var_index = {'rate':0}
         self.parameter_names = ['rate', 'start', 'duration']
 
-    start = _new_property('rates', 'start', ms)
-    rate = _new_property('rates', 'rate', Hz)
+    start    = _new_property('rates', 'start', ms)
+    rate     = _new_property('rates', 'rate', Hz)
     duration = _new_property('rates', 'duration', ms)
     
     def initialize(self):
