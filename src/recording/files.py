@@ -17,8 +17,7 @@ $Id$
 
 import numpy, sys, os, shutil
 import cPickle as pickle
-sys.path.append('%s/lib' %numpy.__path__[0])
-import format
+from numpy.lib import format
 
 try:
     import tables

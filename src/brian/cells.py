@@ -9,7 +9,7 @@ from pyNN import standardmodels, cells, errors
 from brian.library.synapses import *
 import brian
 from simulator import SimpleCustomRefractoriness, AdaptiveReset
-from brian import mV, ms, nF, nA, uS, second, Hz, volt
+from brian import mV, ms, nF, nA, uS, second, Hz, amp
 import numpy
 
 class IF_curr_alpha(cells.IF_curr_alpha):
@@ -293,7 +293,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         
     @property
     def reset(self):
-        reset = AdaptiveReset(self.parameters['v_reset'] * mV, self.parameters['b'])
+        reset = AdaptiveReset(self.parameters['v_reset'] * mV, self.parameters['b'] * amp)
         return SimpleCustomRefractoriness(reset, period = self.parameters['tau_refrac'] * ms)
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
@@ -357,7 +357,7 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         
     @property
     def reset(self):
-        reset = AdaptiveReset(self.parameters['v_reset'] * mV, self.parameters['b'])
+        reset = AdaptiveReset(self.parameters['v_reset'] * mV, self.parameters['b'] * amp)
         return SimpleCustomRefractoriness(reset, period = self.parameters['tau_refrac'] * ms)
         
 
@@ -412,7 +412,7 @@ class HH_cond_exp(cells.HH_cond_exp):
    
    @property
    def threshold(self):
-       return brian.EmpiricalThreshold(threshold=20*mV, refractory=3*ms)
+       return brian.EmpiricalThreshold(threshold=-40*mV, refractory=2*ms)
 
    @property
    def reset(self):
@@ -420,7 +420,7 @@ class HH_cond_exp(cells.HH_cond_exp):
 
    @property 
    def extra(self):
-       return {'implicit' : True, 'freeze' : True}
+       return {'implicit' : True}
 
 class SpikeSourceInhGamma(standardmodels.ModelNotAvailable):
     pass

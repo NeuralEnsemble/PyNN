@@ -82,6 +82,7 @@ class ThresholdNeuronGroup(brian.NeuronGroup):
                                    compile=True,
                                    clock=state.simclock,
                                    max_delay=state.max_delay*ms,
+                                   freeze=True,
                                    **kwargs)
         self.parameter_names = equations._namespace.keys() + ['v_thresh', 'v_reset', 'tau_refrac']
         for var in ('v', 'ge', 'gi', 'ie', 'ii'): # can probably get this list from brian
