@@ -97,7 +97,7 @@ class SpikePairRule(synapses.SpikePairRule):
         ('tau_plus',  'tauLTP'),
         ('tau_minus', 'tauLTD'),
     )
-    possible_models = set(['StdwaSA','StdwaSoft','StdwaGuetig'])
+    possible_models = set(['StdwaSA', 'StdwaSoft', 'StdwaGuetig'])
     
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
         #synapses.SpikePairRule.__init__(self, tau_plus, tau_minus)

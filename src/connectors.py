@@ -15,9 +15,9 @@ from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                     sin, sinh, sqrt, tan, tanh, maximum, minimum
 try:
     import csa
-    haveCSA=True
+    haveCSA = True
 except ImportError:
-    haveCSA=False
+    haveCSA = False
 
 logger = logging.getLogger("PyNN")
 
@@ -127,9 +127,9 @@ class WeightGenerator(ConnectionAttributeGenerator):
     """Generator for synaptic weights. %s""" % ConnectionAttributeGenerator.__doc__
     
     def __init__(self, source, local_mask, projection, safe=True):
-      ConnectionAttributeGenerator.__init__(self, source, local_mask, safe)
-      self.projection     = projection
-      self.is_conductance = common.is_conductance(projection.post.all_cells[0])
+        ConnectionAttributeGenerator.__init__(self, source, local_mask, safe)
+        self.projection     = projection
+        self.is_conductance = common.is_conductance(projection.post.all_cells[0])
       
     def check(self, weight):
         if weight is None:

@@ -3,7 +3,7 @@ Connection method classes for nest
 
 $Id$
 """
-from pyNN import random, common, core
+from pyNN import random, core
 from pyNN.connectors import Connector, AllToAllConnector, FixedProbabilityConnector, \
                             DistanceDependentProbabilityConnector, FixedNumberPreConnector, \
                             FixedNumberPostConnector, OneToOneConnector, SmallWorldConnector, \

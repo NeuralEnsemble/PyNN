@@ -24,6 +24,7 @@ class NonExistentParameterError(Exception):
     """
     
     def __init__(self, parameter_name, model_name, valid_parameter_names=['unknown']):
+        Exception.__init__(self)
         self.parameter_name = parameter_name
         self.model_name = model_name
         self.valid_parameter_names = valid_parameter_names

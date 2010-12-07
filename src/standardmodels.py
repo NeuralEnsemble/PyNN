@@ -19,11 +19,9 @@ Classes:
 """
 
 import copy
-import descriptions
+from pyNN import descriptions, errors
 import numpy
-from core import is_listlike
-import errors
-from string import Template
+from pyNN.core import is_listlike
 
 # ==============================================================================
 #   Standard cells
@@ -299,7 +297,7 @@ class STDPMechanism(object):
         if len(pm) == 1 :
             return list(pm)[0]
         elif len(pm) == 0 :
-            raise NoModelAvailableError("No available plasticity models")
+            raise errors.NoModelAvailableError("No available plasticity models")
         elif len(pm) > 1 :
             # we pass the set of models back to the simulator-specific module for it to deal with
             return pm

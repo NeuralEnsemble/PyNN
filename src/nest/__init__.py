@@ -219,7 +219,7 @@ class Population(common.Population):
                 param_dict = {param: [val]*len(self)}
             else:
                 raise errors.InvalidParameterValueError
-        elif isinstance(param,dict):
+        elif isinstance(param, dict):
             param_dict = param
         else:
             raise errors.InvalidParameterValueError
@@ -369,7 +369,7 @@ class Projection(common.Projection):
                     elif 'Tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
                         nest.SetStatus(self.post.local_cells.tolist(), [{'Tau_minus': tau_minus}])
                     else:
-                       raise Exception("Postsynaptic cell model does not support STDP.")
+                        raise Exception("Postsynaptic cell model does not support STDP.")
 
                 synapse_defaults.update(stdp_parameters)                
 

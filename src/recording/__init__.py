@@ -13,7 +13,7 @@ import logging
 import os.path
 import numpy
 import os
-import files
+from pyNN.recording import files
 try:
     from mpi4py import MPI
 except ImportError:
@@ -50,7 +50,9 @@ def gather(data):
     displacements = [sum(sizes[:i]) for i in range(len(sizes))]
     #print mpi_comm.rank, sizes, displacements, data
     gdata = numpy.empty(sum(sizes))
-    mpi_comm.Gatherv([data.flatten(), size, MPI.DOUBLE], [gdata, (sizes,displacements), MPI.DOUBLE], root=MPI_ROOT)
+    mpi_comm.Gatherv([data.flatten(), size, MPI.DOUBLE],
+                     [gdata, (sizes, displacements), MPI.DOUBLE],
+                     root=MPI_ROOT)
     if len(data.shape) == 1:
         return gdata
     else:
@@ -140,7 +142,7 @@ class Recorder(object):
         data = self.get(gather, compatible_output, filter)
         metadata = self.metadata
         logger.debug("data has size %s" % str(data.size))
-        if simulator.state.mpi_rank == 0 or gather==False:
+        if simulator.state.mpi_rank == 0 or gather == False:
             if compatible_output:
                 data = self._make_compatible(data)
             # Open the output file, if necessary and write the data

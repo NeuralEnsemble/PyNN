@@ -27,18 +27,19 @@ import logging
 import time
 import os
 
-red     = 0010; green  = 0020; yellow = 0030; blue = 0040;
+red     = 0010; green  = 0020; yellow = 0030; blue = 0040
 magenta = 0050; cyan   = 0060; bright = 0100
 try:
     import ll.ansistyle
     def colour(col, text):
-        return str(ll.ansistyle.Text(col,str(text)))
+        return str(ll.ansistyle.Text(col, str(text)))
 except ImportError:
     def colour(col, text):
         return text
 
 
-def notify(msg="Simulation finished.", subject="Simulation finished.", smtphost=SMTPHOST, address=EMAIL):
+def notify(msg="Simulation finished.", subject="Simulation finished.",
+           smtphost=SMTPHOST, address=EMAIL):
     """Send an e-mail stating that the simulation has finished."""
     if not (smtphost and address):
         print "SMTP host and/or e-mail address not specified.\nUnable to send notification message."
@@ -87,13 +88,13 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
 
     # prefix log messages with mpi rank
     mpi_prefix = ""
-    if num_processes>1:
+    if num_processes > 1:
         mpi_prefix = 'Rank %d of %d: ' % (rank, num_processes)
 
     if debug:
-       log_level = logging.DEBUG
+        log_level = logging.DEBUG
     else:
-       log_level = logging.INFO
+        log_level = logging.INFO
 
     # allow user to override exact log_level
     if level:
@@ -104,7 +105,8 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
                         filename=logfile,
                         filemode='w')
 
-def save_population(population,filename,variables=[]):
+
+def save_population(population, filename, variables=[]):
     """
     Saves the spike_times of a  population and the size, structure, labels such that one can load it back into a SpikeSourceArray population using the load_population function.
     """
@@ -120,17 +122,21 @@ def save_population(population,filename,variables=[]):
     s['variables'] = variables_dict
     s.close()
 
+
 def load_population(filename, sim):
     """
     Loads a population that was saved with the save_population function into SpikeSourceArray.
     """
     import shelve
     s = shelve.open(filename)
-    population = getattr(sim, "Population")(s['size'], SpikeSourceArray, structure=s['structure'], label=s['label'])
+    ssa = getattr(sim, "SpikeSourceArray")
+    population = getattr(sim, "Population")(s['size'], ssa,
+                                            structure=s['structure'],
+                                            label=s['label'])
     # set the spiketimes
     spikes = s['spike_times']
-    for neuron in numpy.arange(s['size']):
-        spike_times = spikes[spikes[:,0]==neuron][:,1]
+    for neuron in range(s['size']):
+        spike_times = spikes[spikes[:,0] == neuron][:,1]
         neuron_in_new_population = neuron+population.first_id
         index = population.id_to_index(neuron_in_new_population)
         population[index].set_parameters(**{'spike_times':spike_times})
@@ -139,6 +145,7 @@ def load_population(filename, sim):
         setattr(population, variable, value)
     s.close()
     return population
+
 
 class Timer(object):
     """For timing script execution."""
@@ -155,7 +162,7 @@ class Timer(object):
         """Return the elapsed time in seconds but keep the clock running."""
         current_time = time.time()
         elapsed_time = current_time - self._start_time
-        if format=='long':
+        if format == 'long':
             elapsed_time = Timer.time_in_words(elapsed_time)
         self._last_check = current_time
         return elapsed_time
@@ -192,11 +199,13 @@ class Timer(object):
         T['day'], T['hour'] = divmod(h, 24)
         def add_units(val, units):
             return "%d %s" % (int(val), units) + (val>1 and 's' or '')
-        return ', '.join([add_units(T[part], part) for part in ('year', 'day', 'hour', 'minute', 'second') if T[part]>0])
+        return ', '.join([add_units(T[part], part)
+                          for part in ('year', 'day', 'hour', 'minute', 'second')
+                          if T[part]>0])
 
 
 class ProgressBar:
-    def __init__(self, min_value = 0, max_value = 100, width=77,**kwargs):
+    def __init__(self, min_value=0, max_value=100, width=77, **kwargs):
         self.char = kwargs.get('char', '#')
         self.mode = kwargs.get('mode', 'dynamic') # fixed or dynamic
         if not self.mode in ['fixed', 'dynamic']:

@@ -11,7 +11,7 @@ $Id$
 
 import nest
 import numpy
-from simulator import state
+from pyNN.nest.simulator import state
 from pyNN.random import NumpyRNG, NativeRNG
 from pyNN.common import Population
 

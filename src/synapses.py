@@ -15,7 +15,7 @@ Classes for defining STDP rules:
     
 """
 
-from standardmodels import ShortTermPlasticityMechanism, STDPWeightDependence, STDPTimingDependence
+from pyNN.standardmodels import ShortTermPlasticityMechanism, STDPWeightDependence, STDPTimingDependence
 
 class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):
     """

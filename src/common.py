@@ -44,7 +44,7 @@ import numpy
 import logging
 from warnings import warn
 import operator
-from pyNN import random, utility, recording, errors, standardmodels, core, space, descriptions
+from pyNN import random, recording, errors, standardmodels, core, space, descriptions
 from pyNN.recording import files
 from itertools import chain
 if not 'simulator' in locals():

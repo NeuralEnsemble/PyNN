@@ -28,7 +28,7 @@ $Id$
 """
 
 from pyNN import __path__ as pyNN_path
-from pyNN import common, random, errors, standardmodels, core
+from pyNN import common, errors, core
 import platform
 import logging
 import numpy
@@ -93,7 +93,7 @@ def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
 def h_property(name):
     """Return a property that accesses a global variable in Hoc."""
     def _get(self):
-        return getattr(h,name)
+        return getattr(h, name)
     def _set(self, val):
         setattr(h, name, val)
     return property(fget=_get, fset=_set)
@@ -158,7 +158,7 @@ class _State(object):
         h('tstop = 0')
         h('steps_per_ms = 1/dt')
         self.parallel_context = h.ParallelContext()
-        self.parallel_context.spike_compress(1,0)
+        self.parallel_context.spike_compress(1, 0)
         self.num_processes = int(self.parallel_context.nhost())
         self.mpi_rank = int(self.parallel_context.id())
         self.cvode = h.CVode()
@@ -200,7 +200,7 @@ def run(simtime):
         state.tstop = 0
         logger.debug("local_minimum_delay on host #%d = %g" % (state.mpi_rank, local_minimum_delay))
         if state.num_processes > 1:
-            assert local_minimum_delay >= state.min_delay,\
+            assert local_minimum_delay >= state.min_delay, \
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, state.min_delay)
     state.tstop += simtime
     logger.info("Running the simulation for %g ms" % simtime)
@@ -441,7 +441,7 @@ class ConnectionManager(object):
             if not isinstance(target, common.IDMixin):
                 raise errors.ConnectionError("Invalid target ID: %s" % target)
               
-        assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
+        assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets), len(weights), len(delays))
         for target, weight, delay in zip(targets, weights, delays):
             if target.local:
                 if self.synapse_type is None:
@@ -485,7 +485,7 @@ class ConnectionManager(object):
         for source, weight, delay in zip(sources, weights, delays):
             if source.local:
                 if self.synapse_type is None:
-                    self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
+                    self.synapse_type = weight >= 0 and 'excitatory' or 'inhibitory'
                 if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
                     self.synapse_type += '_TM'
                 synapse_object = getattr(target._cell, self.synapse_type)  

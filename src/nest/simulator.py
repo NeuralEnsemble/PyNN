@@ -26,10 +26,9 @@ $Id$
 """
 
 import nest
-from pyNN import common, random, errors, standardmodels, core
+from pyNN import common, errors, core
 import logging
 import numpy
-import os
 import sys
 
 CHECK_CONNECTIONS = False

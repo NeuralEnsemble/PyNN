@@ -219,7 +219,7 @@ class RandomDistribution(object):
             if type(res) == numpy.float64:
                 res = numpy.array([res])
             if self.constrain == "clip":
-                return numpy.maximum(numpy.minimum(res,self.max_bound),self.min_bound)
+                return numpy.maximum(numpy.minimum(res, self.max_bound), self.min_bound)
             elif self.constrain == "redraw": # not sure how well this works with parallel_safe, mask_local
                 if len(res) == 1:
                     while not ((res > self.min_bound) and (res < self.max_bound)):
@@ -228,7 +228,7 @@ class RandomDistribution(object):
                 else:
                     idx = numpy.where((res > self.max_bound) | (res < self.min_bound))[0]
                     while len(idx) > 0:
-                        res[idx] = self.rng.next(len(idx),distribution=self.name,parameters=self.parameters)
+                        res[idx] = self.rng.next(len(idx), distribution=self.name, parameters=self.parameters)
                         idx = numpy.where((res > self.max_bound) | (res < self.min_bound))[0]
                     return res
             else:
