@@ -7,18 +7,36 @@ import numpy
 
 class MockCellClass(object):
     recordable = ['v']
+    parameters = ['romans', 'judeans']
+    def has_parameter(self, name):
+        return name in self.parameters
 
-class MockCell(int):
+class MockCell(object):
+    parameter_names = ['romans', 'judeans']
+    def __init__(self, romans=0, judeans=1):
+        self.source_section = h.Section()
+        self.source = self.source_section(0.5)._ref_v
+        self.synapse = h.tmgsyn(self.source_section(0.5))
+        self.record = Mock()
+        self.record_v = Mock()
+        self.record_gsyn = Mock()
+        self.memb_init = Mock()
+        self.excitatory_TM = None
+        self.inhibitory_TM = None
+        self.romans = romans
+        self.judeans = judeans
+        self.foo_init = -99.9
+
+class MockID(int):
     def __init__(self, n):
         int.__init__(n)
         self.local = bool(n%2)
         self.cellclass = MockCellClass
-        self._cell = Mock()
-        self._cell.source_section = h.Section()
+        self._cell = MockCell()
 
 class MockPopulation(common.BasePopulation):
     celltype = MockCellClass()
-    local_cells = [MockCell(44), MockCell(33)]
+    local_cells = [MockID(44), MockID(33)]
 
 # simulator
 def test_load_mechanisms():
@@ -40,6 +58,9 @@ def test_native_rng_pick():
     assert -3 <= rarr.min() < -2.5
     assert 5.5 < rarr.max() < 6
 
+def test_register_gid():
+    cell = MockCell()
+    simulator.register_gid(84568345, cell.source, cell.source_section)
 
 class TestInitializer(object):
 
@@ -53,7 +74,7 @@ class TestInitializer(object):
     
     def test_register(self):
         init = simulator.initializer
-        cell = MockCell(22)
+        cell = MockID(22)
         pop = MockPopulation()
         init.clear()
         init.register(cell, pop)
@@ -62,7 +83,7 @@ class TestInitializer(object):
 
     def test_initialize(self):
         init = simulator.initializer
-        cell = MockCell(77)
+        cell = MockID(77)
         pop = MockPopulation()
         init.register(cell, pop)
         init._initialize()
@@ -77,6 +98,15 @@ class TestInitializer(object):
         init.clear()
         assert_equal(init.cell_list, [])
         assert_equal(init.population_list, [])
+
+
+class TestState(object):
+    
+    def test_dt_property(self):
+        simulator.state.dt = 0.01
+        assert_equal(h.dt, 0.01)
+        assert_equal(h.steps_per_ms, 100.0)
+        assert_equal(simulator.state.dt, 0.01)
 
 
 def test_reset():
@@ -109,11 +139,84 @@ def test_finalize():
     simulator.state.parallel_context.done.assert_called()
     simulator.state.parallel_context = orig_pc
 
+
+class TestID(object):
+    
+    def setup(self):
+        self.id = simulator.ID(984329856)
+        self.id.parent = MockPopulation()
+        self.id._cell = MockCell()
+
+    def test_create(self):
+        assert_equal(self.id, 984329856)
+
+    def test_build_cell(self):
+        parameters = {'judeans': 1, 'romans': 0}
+        self.id._build_cell(MockCell, parameters)
+     
+    def test_get_native_parameters(self):   
+        D = self.id.get_native_parameters()
+        assert isinstance(D, dict)
+    
+    def test_set_native_parameters(self):   
+        self.id.set_native_parameters({'romans': 3, 'judeans': 1})
+    
+    def test_get_initial_value(self):
+        foo_init = self.id.get_initial_value('foo')
+        assert_equal(foo_init, -99.9)
+        
+    #def test_set_initial_value(self):
+        
+        
+class TestConnection(object):
+    
+    def setup(self):
+        self.source = MockID(252)
+        self.target = MockID(539)
+        self.nc = h.NetCon(self.source._cell.source,
+                           self.target._cell.synapse,
+                           sec=self.source._cell.source_section)
+        self.nc.delay = 1.0
+        self.c = simulator.Connection(self.source, self.target, self.nc)
+    
+    def test_create(self):
+        c = self.c
+        assert_equal(c.source, self.source)
+        assert_equal(c.target, self.target)
+    
+    def test_useSTDP(self):
+        self.c.useSTDP("StdwaSA", {'wmax': 0.04}, ddf=0)
+
+    def test_weight_property(self):
+        self.nc.weight[0] = 0.123
+        assert_equal(self.c.weight, 0.123)
+        self.c.weight = 0.234
+        assert_equal(self.nc.weight[0], 0.234)
+        
+    def test_delay_property(self):
+        self.nc.delay = 12.3
+        assert_equal(self.c.delay, 12.3)
+        self.c.delay = 23.4
+        assert_equal(self.nc.delay, 23.4)
+
+    def test_U_property(self):
+        self.target._cell.synapse.U = 0.1
+        assert_equal(self.c.U, 0.1)
+        self.c.U = 0.2
+        assert_equal(self.target._cell.synapse.U, 0.2)
+
+    def test_w_max_property(self):
+        self.c.useSTDP("StdwaSA", {'wmax': 0.04}, ddf=0)
+        assert_equal(self.c.w_max, 0.04)
+        self.c.w_max = 0.05
+        assert_equal(self.c.weight_adjuster.wmax, 0.05)
+
+
 # electrodes
 class TestCurrentSources(object):
 
     def setup(self):
-        self.cells = [MockCell(n) for n in range(5)]
+        self.cells = [MockID(n) for n in range(5)]
 
     def test_inject_dc(self):
         cs = electrodes.DCSource()
@@ -138,7 +241,7 @@ class TestRecorder(object):
         self.rg = recording.Recorder('gsyn')
         self.rs = recording.Recorder('spikes')
         self.rf = recording.Recorder('foo')
-        self.cells = [MockCell(22), MockCell(29)]
+        self.cells = [MockID(22), MockID(29)]
     
     def teardown(self):
         recording.Recorder.formats.pop("foo")
@@ -150,7 +253,7 @@ class TestRecorder(object):
         for cell in self.cells:
             cell._cell.record.assert_called_with(1)
             cell._cell.record_v.assert_called_with(1)
-            cell._cell.record_gsyn.assert_called_with('inhibitory_TM', 1)
+            cell._cell.record_gsyn.assert_called_with('inhibitory', 1)
         assert_raises(Exception, self.rf._record, self.cells)
         
     def test__get_v(self):

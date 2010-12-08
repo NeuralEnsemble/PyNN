@@ -309,7 +309,8 @@ class Connection(object):
         self.pre2wa.delay = self.nc.delay * (1-ddf)
         self.pre2wa.weight[0] = 1
         # directly create NetCon as wa is on the same machine as the post-synaptic cell
-        self.post2wa = h.NetCon(self.target._cell.source, self.weight_adjuster)
+        self.post2wa = h.NetCon(self.target._cell.source, self.weight_adjuster,
+                                sec=self.target._cell.source_section)
         self.post2wa.threshold = 1
         self.post2wa.delay = self.nc.delay * ddf
         self.post2wa.weight[0] = -1
@@ -352,7 +353,7 @@ def generate_synapse_property(name):
         if hasattr(synapse, name):
             setattr(synapse, name, val)
         else:
-            raise Exception("synapse type does not have an attribute 'U'")
+            raise Exception("synapse type does not have an attribute '%s'" % name)
     return property(_get, _set)
 setattr(Connection, 'U', generate_synapse_property('U'))
 setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))

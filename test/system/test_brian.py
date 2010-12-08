@@ -1,5 +1,5 @@
 from nose.plugins.skip import SkipTest
-from scenarios import *
+from scenarios import scenarios
 
 try:
     import pyNN.brian
@@ -8,7 +8,8 @@ except ImportError:
     have_brian = False
 
 def test_all():
-    for scenario in (scenario1, scenario2):
+    for scenario in scenarios:
+        scenario.description = scenario.__name__
         if have_brian:
             yield scenario, pyNN.brian
         else:

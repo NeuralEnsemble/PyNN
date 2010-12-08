@@ -6,50 +6,51 @@ November 2008
 """
 import sys
 simulator_name = sys.argv[-1]
-exec("from pyNN.%s import *" % simulator_name)
+exec("import pyNN.%s as sim" % simulator_name)
+from pyNN.utility import save_population, load_population
+import numpy
 
-setup()
+sim.setup()
 # create population
 dim = (2,2,1)
 orientation = 1.
 # neurons
-neurons = Population(dim,IF_cond_exp,label='v1')
+neurons = sim.Population(dim, sim.IF_cond_exp, label='v1')
 neurons.record()
 neurons.orientation = orientation
 # input
-poisson_input = Population(dim,SpikeSourcePoisson,label='poisson')
+poisson_input = sim.Population(dim, sim.SpikeSourcePoisson, label='poisson')
 poisson_input.set({'rate':1000.})
 # Projection
-s = Projection(poisson_input,neurons,OneToOneConnector())
+s = sim.Projection(poisson_input, neurons, sim.OneToOneConnector())
 s.setWeights(0.004)
 
 
 # second neuron population
-neurons2 = Population(dim,IF_cond_exp,label='v2')
+neurons2 = sim.Population(dim, sim.IF_cond_exp, label='v2')
 neurons2.record_v()
 # Projection
-s = Projection(neurons,neurons2,OneToOneConnector())
+s = sim.Projection(neurons, neurons2, sim.OneToOneConnector())
 s.setWeights(0.004)
 
-run(500.)
+sim.run(500.)
 v1 = neurons2.get_v()
 # save population
-filename = 'Results/save_load_populations.shelve'
-save_population(neurons,filename,variables=['orientation'])
-
+filename = 'save_load_populations.shelve'
+save_population(neurons, filename, variables=['orientation'])
 
 # load population
-setup()
-neurons_loaded = load_population(filename)
+sim.setup()
+neurons_loaded = load_population(filename, sim)
 
 # second neuron population
-neurons2 = Population(dim,IF_cond_exp,label='v2')
+neurons2 = sim.Population(dim, sim.IF_cond_exp, label='v2')
 neurons2.record_v()
 # Projection
-s = Projection(neurons_loaded,neurons2,OneToOneConnector())
+s = sim.Projection(neurons_loaded, neurons2, sim.OneToOneConnector())
 s.setWeights(0.004)
 
-run(500.)
+sim.run(500.)
 v2 = neurons2.get_v() 
 
 neurons = numpy.unique(v1[:,0])
@@ -59,4 +60,4 @@ for neuron in neurons:
 
 assert neurons_loaded.orientation == orientation
 
-end()
+sim.end()
