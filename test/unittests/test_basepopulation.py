@@ -2,7 +2,7 @@ from pyNN import common, errors, random, standardmodels
 from nose.tools import assert_equal, assert_raises
 import numpy
 from mock import Mock, patch
-from tools import assert_arrays_equal
+from pyNN.utility import assert_arrays_equal
     
 builtin_open = open
 id_map = {'larry': 0, 'curly': 1, 'moe': 2}

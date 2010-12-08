@@ -1,11 +1,17 @@
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN import common, recording
+from nose.tools import assert_equal
+import numpy
+from pyNN.utility import assert_arrays_equal, sort_by_column
 
 def set_simulator(sim):
     common.simulator = sim.simulator
     recording.simulator = sim.simulator
 
 def scenario1(sim):
+    """
+    Balanced network of integrate-and-fire neurons.
+    """
     set_simulator(sim)
     cell_params = {
         'tau_m': 20.0, 'tau_syn_E': 5.0, 'tau_syn_I': 10.0, 'v_rest': -60.0,
@@ -69,4 +75,48 @@ def scenario1(sim):
     sim.end()
 
 
+def scenario2(sim):
+    """
+    Array of neurons, each injected with a different current.
     
+    firing period of a IF neuron injected with a current I:
+    (where v_rest = v_reset = 0.0)
+    T = tau_m*log(I*tau_m/(I*tau_m - v_thresh*cm))
+    """
+    set_simulator(sim)
+    n = 100
+    t_start = 25.0
+    duration = 100.0
+    t_stop = 150.0
+    tau_m = 20.0
+    v_thresh = 10.0
+    cm = 1.0
+    cell_params = {"tau_m": tau_m, "v_rest": 0.0, "v_reset": 0.0,
+                   "tau_refrac": 100.0, "v_thresh": v_thresh, "cm": cm}
+    I0 = (v_thresh*cm)/tau_m
+    sim.setup(timestep=0.01, spike_precision="off_grid")
+    neurons = sim.Population(n, sim.IF_curr_exp, cell_params)
+    neurons.initialize('v', 0.0)
+    I = numpy.arange(I0, I0+1.0, 1.0/n)
+    currents = [sim.DCSource(start=t_start, stop=t_start+duration, amplitude=amp)
+                  for amp in I]
+    for j, (neuron, current) in enumerate(zip(neurons, currents)):
+        if j%2 == 0:                      # these should
+            neuron.inject(current)        # be entirely
+        else:                             # equivalent
+            current.inject_into([neuron])
+    neurons.record_v()
+    neurons.record()
+    sim.run(t_stop)
+    spikes = neurons.getSpikes()
+    spikes = sort_by_column(spikes, 0)
+    assert_equal(spikes.shape, (99,2)) # first cell does not fire
+    spike_times = spikes[:,1]
+    expected_spike_times = t_start + tau_m*numpy.log(I*tau_m/(I*tau_m - v_thresh*cm))
+    a = spike_times = spikes[:,1]
+    b = expected_spike_times[1:]
+    max_error = abs((a-b)/b).max()
+    assert max_error < 0.005, max_error
+    #neurons.printSpikes("scenario2_%s.spikes" % sim.__name__)
+    sim.end()
+    #return a,b, spikes

@@ -97,7 +97,7 @@ def test_reset():
 def test_run():
     simulator.reset()
     simulator.run(12.3)
-    assert_almost_equal(h.t, 12.3, places=12)
+    assert_almost_equal(h.t, 12.3, places=11)
     simulator.run(7.7)
     assert_almost_equal(h.t, 20.0, places=11)
 

@@ -2,7 +2,7 @@
 from pyNN.common import Assembly, BasePopulation
 from nose.tools import assert_equal, assert_raises
 import numpy
-from tools import assert_arrays_equal
+from pyNN.utility import assert_arrays_equal
 from mock import Mock
     
 

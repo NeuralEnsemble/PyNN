@@ -8,7 +8,8 @@ except ImportError:
     have_neuron = False
 
 def test_all():
-    if have_neuron:
-        scenario1(pyNN.neuron)
-    else:
-        raise SkipTest
+    for scenario in (scenario1, scenario2):
+        if have_neuron:
+            yield scenario, pyNN.neuron
+        else:
+            raise SkipTest

@@ -4,7 +4,7 @@ from mock import Mock
 from nose.tools import assert_equal
 import numpy
 import os
-from tools import assert_arrays_equal
+from pyNN.utility import assert_arrays_equal
 
 builtin_open = open
 

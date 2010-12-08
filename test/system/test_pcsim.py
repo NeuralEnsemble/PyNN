@@ -8,7 +8,8 @@ except ImportError:
     have_pcsim = False
 
 def test_all():
-    if have_pcsim:
-        scenario1(pyNN.pcsim)
-    else:
-        raise SkipTest
+    for scenario in (scenario1, scenario2):
+        if have_pcsim:
+            yield scenario, pyNN.pcsim
+        else:
+            raise SkipTest

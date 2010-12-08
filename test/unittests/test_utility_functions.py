@@ -1,7 +1,7 @@
 from pyNN import common, errors
 import numpy
 from nose.tools import assert_equal, assert_raises
-from tools import assert_arrays_equal
+from pyNN.utility import assert_arrays_equal
 
 MIN_DELAY = 1.23
 MAX_DELAY = 999

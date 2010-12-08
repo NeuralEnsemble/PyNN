@@ -3,7 +3,7 @@ import unittest
 import numpy
 from mock import Mock
 from nose.tools import assert_equal, assert_raises
-from tools import assert_arrays_equal
+from pyNN.utility import assert_arrays_equal
 from math import sqrt
 
 def assert_arrays_almost_equal(a, b, threshold, msg=''):

@@ -2,7 +2,7 @@ from pyNN.core import is_listlike, LazyArray
 from pyNN import random
 import numpy
 from nose.tools import assert_raises, assert_equal
-from tools import assert_arrays_equal, assert_arrays_almost_equal
+from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal
 import operator
 
 class MockRNG(random.WrappedRNG):

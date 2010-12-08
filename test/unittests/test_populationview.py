@@ -2,7 +2,7 @@ from pyNN import common, standardmodels
 from nose.tools import assert_equal, assert_raises
 import numpy
 from mock import Mock, patch
-from tools import assert_arrays_equal
+from pyNN.utility import assert_arrays_equal
 
 class MockID(object):
     def __init__(self, i, parent):

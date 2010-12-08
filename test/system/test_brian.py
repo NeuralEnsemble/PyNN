@@ -8,7 +8,8 @@ except ImportError:
     have_brian = False
 
 def test_all():
-    if have_brian:
-        scenario1(pyNN.brian)
-    else:
-        raise SkipTest
+    for scenario in (scenario1, scenario2):
+        if have_brian:
+            yield scenario, pyNN.brian
+        else:
+            raise SkipTest

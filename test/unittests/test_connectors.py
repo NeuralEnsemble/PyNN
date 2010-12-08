@@ -3,7 +3,7 @@ import numpy
 import os
 from mock import Mock
 from nose.tools import assert_equal, assert_raises
-from tools import assert_arrays_equal
+from pyNN.utility import assert_arrays_equal
 from itertools import repeat
 
 MIN_DELAY = 0.123
