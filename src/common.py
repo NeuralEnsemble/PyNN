@@ -175,7 +175,7 @@ class IDMixin(object):
     def get_parameters(self):
         """Return a dict of all cell parameters."""
         if self.local:
-            parameters = self.get_native_parameters()
+            parameters = self.get_native_parameters()            
             if self.is_standard_cell:
                 parameters = self.cellclass.reverse_translate(parameters)
             return parameters
@@ -1058,17 +1058,46 @@ class Assembly(object):
         self.label = kwargs.get('label', 'assembly%d' % Assembly.count)
         assert isinstance(self.label, basestring), "label must be a string or unicode"
         Assembly.count += 1
+        self._local_cells_ = None
+        self._all_cells_   = None
+        self._mask_local_  = None
+        self._positions_   = None
+
+    def _reset(self):
+        self._local_cells_ = None
+        self._all_cells_   = None
+        self._mask_local_  = None
+        self._positions_   = None
 
     @property
     def local_cells(self):
-        return numpy.append(self.populations[0].local_cells,
+        if self._local_cells_ is None:
+            self._local_cells_ = numpy.append(self.populations[0].local_cells,
                             [p.local_cells for p in self.populations[1:]])
+        return self._local_cells_
 
     @property
     def all_cells(self):
-        return numpy.append(self.populations[0].all_cells,
+        if self._all_cells_ is None:
+            self._all_cells_ = numpy.append(self.populations[0].all_cells,
                             [p.all_cells for p in self.populations[1:]])
-
+        return self._all_cells_
+        
+    @property
+    def _mask_local(self):
+        if self._mask_local_ is None:
+            self._mask_local_ = numpy.append(self.populations[0]._mask_local,
+                            [p._mask_local for p in self.populations[1:]])
+        return self._mask_local_
+            
+    @property
+    def positions(self):
+        if self._positions_ is None:
+            self._positions_ = self.populations[0].positions
+            for p in self.populations[1:]:
+                self._positions_ = numpy.hstack((self._positions_, p.positions))
+        return self._positions_
+        
     @property
     def size(self):
         return sum(p.size for p in self.populations)
@@ -1087,6 +1116,7 @@ class Assembly(object):
             return Assembly(*(self.populations + other.populations))
         else:
             raise TypeError("can only add a Population or another Assembly to an Assembly")
+        self._reset()
 
     def __iadd__(self, other):
         if isinstance(other, BasePopulation):
@@ -1095,8 +1125,9 @@ class Assembly(object):
             self.populations += other.populations
         else:
             raise TypeError("can only add a Population or another Assembly to an Assembly")
+        self._reset()
         return self
-
+        
     def initialize(self, variable, value):
         for p in self.populations:
             p.initialize(variable, value)

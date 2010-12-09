@@ -14,7 +14,7 @@ def is_listlike(obj):
     
     Maybe need to split into different functions, as don't always need length.
     """
-    return hasattr(obj, "__len__") and not isinstance(obj, basestring)
+    return type(obj) in [list, numpy.ndarray, tuple, set]
 
 
 def check_shape(meth):

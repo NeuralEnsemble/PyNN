@@ -210,6 +210,9 @@ class Projection(common.Projection):
         self._connections      = None
         self.synapse_type      = target or 'excitatory'
         
+        if isinstance(presynaptic_population, common.Assembly) or isinstance(postsynaptic_population, common.Assembly):
+            raise Exception("Projections with Assembly objects are not working yet in Brian")
+        
         if self.synapse_dynamics:
             if self.synapse_dynamics.fast:
                 if self.synapse_dynamics.slow:
