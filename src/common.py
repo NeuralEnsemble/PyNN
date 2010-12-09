@@ -274,7 +274,7 @@ def reset():
     simulator.reset()
 
 def initialize(cells, variable, value):
-    assert isinstance(cells, (BasePopulation, Assembly))
+    assert isinstance(cells, (BasePopulation, Assembly)), type(cells)
     cells.initialize(variable, value)
 
 def get_current_time():
@@ -1388,7 +1388,7 @@ class Projection(object):
         """
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
-        bins = numpy.arange(min, max, float(max-min)/nbins)
+        bins = numpy.linspace(min, max, nbins+1)
         return numpy.histogram(self.getWeights(format='list', gather=True), bins)  # returns n, bins
 
     def describe(self, template='projection_default.txt', engine='default'):

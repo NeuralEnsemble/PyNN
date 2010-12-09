@@ -277,7 +277,7 @@ class ProbabilisticConnector(Connector):
         self.N                 = projection.post.size
         self.weights_generator = WeightGenerator(weights, self.local, projection, safe)
         self.delays_generator  = DelayGenerator(delays, self.local, safe)
-        self.probas_generator  = ProbaGenerator(RandomDistribution('uniform',(0,1), rng=self.rng), self.local)
+        self.probas_generator  = ProbaGenerator(RandomDistribution('uniform', (0,1), rng=self.rng), self.local)
         self._distance_matrix  = None
         self.projection        = projection
         self.candidates        = projection.post.local_cells
@@ -511,7 +511,8 @@ class FromListConnector(Connector):
             projection.connection_manager.connect(src, tgts.tolist(), weights, delays)
             self.progression(count)
             count += 1
-    
+
+
 class FromFileConnector(FromListConnector):
     """
     Make connections according to a list read from a file.
@@ -618,7 +619,7 @@ class FixedNumberPostConnector(Connector):
             while len(create) < n: # if the number of requested cells is larger than the size of the
                                     # postsynaptic population, we allow multiple connections for a given cell   
                 create = numpy.concatenate((create, projection.rng.permutation(idx)[:n]))                 
-            
+
             distance_matrix.set_source(src.position)
             create  = create[:n].astype(int)
             targets = candidates[create]
@@ -629,7 +630,7 @@ class FixedNumberPostConnector(Connector):
                 projection.connection_manager.connect(src, targets.tolist(), weights, delays)
             
             self.progression(count)
-        
+
 
 class FixedNumberPreConnector(Connector):
     """

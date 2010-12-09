@@ -1,19 +1,22 @@
+# encoding: utf-8
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN import common, recording
 from nose.tools import assert_equal
 import numpy
-from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal, sort_by_column
+from pyNN.utility import init_logging, assert_arrays_equal, assert_arrays_almost_equal, sort_by_column
+
 
 def set_simulator(sim):
     common.simulator = sim.simulator
     recording.simulator = sim.simulator
 
-scenarios = []
 
+scenarios = []
 def register(scenario):
     if scenario not in scenarios:
         scenarios.append(scenario)
     return scenario
+
 
 @register
 def scenario1(sim):
@@ -33,7 +36,6 @@ def scenario1(sim):
     rngseed = 98765
     parallel_safe = True
     n_threads = 1
-    dt = 0.1
     pconn_recurr = 0.02
     pconn_input = 0.01
     tstop = 1000.0
@@ -76,11 +78,62 @@ def scenario1(sim):
     
     E_count = cells['excitatory'].meanSpikeCount()
     I_count = cells['inhibitory'].meanSpikeCount()
-    
     print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
     print "Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,)
-    
     sim.end()
+
+
+@register
+def scenario1a(sim):
+    """
+    Balanced network of integrate-and-fire neurons, built with the "low-level"
+    API.
+    """
+    set_simulator(sim)
+    cell_params = {
+        'tau_m': 10.0, 'tau_syn_E': 2.0, 'tau_syn_I': 5.0, 'v_rest': -60.0,
+        'v_reset': -65.0, 'v_thresh': -55.0, 'cm': 0.5, 'tau_refrac': 2.5,
+        'e_rev_E': 0.0, 'e_rev_I': -75.0
+    }
+    stimulation_params = {'rate': 80.0, 'duration': 50.0}
+    n_exc = 80
+    n_inh = 20
+    n_input = 20
+    rngseed = 87546
+    parallel_safe = True
+    n_threads = 1
+    pconn_recurr = 0.03
+    pconn_input = 0.01
+    tstop = 1000.0
+    delay = 0.3
+    w_exc = 3.0e-3
+    w_inh = 45.0e-3
+    w_input = 0.12
+       
+    sim.setup(timestep=0.1, threads=n_threads)
+    excitatory_cells = sim.create(sim.IF_cond_alpha, cell_params, n=n_exc)
+    inhibitory_cells = sim.create(sim.IF_cond_alpha, cell_params, n=n_inh)
+    inputs = sim.create(sim.SpikeSourcePoisson, stimulation_params, n=n_input)
+    all_cells = excitatory_cells + inhibitory_cells
+    sim.initialize(all_cells, 'v', cell_params['v_rest'])
+    
+    sim.connect(excitatory_cells, all_cells, weight=w_exc, delay=delay,
+                synapse_type='excitatory', p=pconn_recurr)
+    sim.connect(inhibitory_cells, all_cells, weight=w_exc, delay=delay,
+                synapse_type='inhibitory', p=pconn_recurr)
+    sim.connect(inputs, all_cells, weight=w_input, delay=delay,
+                synapse_type='excitatory', p=pconn_input)
+    sim.record(all_cells, "scenario1a_%s.spikes" % sim.__name__)
+    sim.record_v(excitatory_cells[0:2], "scenario1a_%s.v" % sim.__name__)
+    
+    sim.run(tstop)
+    
+    E_count = excitatory_cells.meanSpikeCount()
+    I_count = inhibitory_cells.meanSpikeCount()
+    print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
+    print "Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,)
+    sim.end()
+
 
 @register
 def scenario2(sim):
@@ -112,7 +165,7 @@ def scenario2(sim):
     neurons.initialize('v', 0.0)
     I = numpy.arange(I0, I0+1.0, 1.0/n)
     currents = [sim.DCSource(start=t_start, stop=t_start+duration, amplitude=amp)
-                  for amp in I]
+                for amp in I]
     for j, (neuron, current) in enumerate(zip(neurons, currents)):
         if j%2 == 0:                      # these should
             neuron.inject(current)        # be entirely
@@ -133,10 +186,95 @@ def scenario2(sim):
     max_error = abs((a-b)/b).max()
     print "max error =", max_error
     assert max_error < 0.005, max_error
-    #neurons.printSpikes("scenario2_%s.spikes" % sim.__name__)
     sim.end()
-    #return a,b, spikes
+    return a,b, spikes
+
+@register
+def scenario3(sim):
+    """
+    Simple feed-forward network network with additive STDP. The second half of
+    the presynaptic neurons fires faster than the second half, so their
+    connections should be potentiated more.
+    """
+    set_simulator(sim)
+
+    init_logging(logfile=None, debug=True)
+    second = 1000.0
+    duration = 10
+    tau_m = 20 # ms
+    cm = 1.0 # nF
+    v_reset = -60 
+    cell_parameters = dict(
+        tau_m = tau_m,
+        cm = cm,
+        v_rest = -70,
+        e_rev_E = 0,
+        e_rev_I = -70,
+        v_thresh = -54,
+        v_reset = v_reset,      
+        tau_syn_E = 5,
+        tau_syn_I = 5,
+    )
+    g_leak = cm/tau_m # µS
+
+    w_min = 0.0*g_leak
+    w_max = 0.05*g_leak
     
+    r1 = 5.0
+    r2 = 40.0
+    
+    sim.setup()
+    pre = sim.Population(100, sim.SpikeSourcePoisson)
+    post = sim.Population(10, sim.IF_cond_exp)
+    
+    pre.set("duration", duration*second)
+    pre.set("start", 0.0)
+    pre[:50].set("rate", r1)
+    pre[50:].set("rate", r2)
+    assert_equal(pre[49].rate, r1)
+    assert_equal(pre[50].rate, r2)
+    post.set(cell_parameters)
+    post.initialize('v', RandomDistribution('normal', (v_reset, 5.0)))
+    
+    stdp = sim.SynapseDynamics(
+                slow=sim.STDPMechanism(
+                        sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0 ),
+                        sim.AdditiveWeightDependence(w_min=w_min, w_max=w_max,
+                                                     A_plus=0.01, A_minus=0.01),
+                        dendritic_delay_fraction=0.5))
+    
+    connections = sim.Projection(pre, post, sim.AllToAllConnector(),
+                                 target='excitatory', synapse_dynamics=stdp)
+    
+    initial_weight_distr = RandomDistribution('uniform', (w_min, w_max))
+    connections.randomizeWeights(initial_weight_distr)
+    initial_weights = connections.getWeights(format='array')
+    assert initial_weights.min() >= w_min
+    assert initial_weights.max() < w_max
+    assert initial_weights[0,0] != initial_weights[1,0]
+    
+    pre.record()
+    post.record()
+    post.record_v(1)
+    
+    sim.run(duration*second)
+    
+    assert abs(pre.meanSpikeCount()/duration - (r1+r2)/2) < 1, pre.meanSpikeCount()
+    #assert abs(pre[:50].meanSpikeCount()/duration - r1) < 1
+    #assert abs(pre[50:].meanSpikeCount()/duration- r2) < 1
+    final_weights = connections.getWeights(format='array')
+    assert initial_weights[0,0] != final_weights[0,0]
+    
+    import scipy.stats
+    t,p = scipy.stats.ttest_ind(initial_weights[:50,:].flat, initial_weights[50:,:].flat)
+    assert p > 0.05, p
+    t,p = scipy.stats.ttest_ind(final_weights[:50,:].flat, final_weights[50:,:].flat)
+    assert p < 0.01, p
+    assert final_weights[:50,:].mean() < final_weights[50:,:].mean()
+    
+    return initial_weights, final_weights, pre, post, connections
+    
+
 @register
 def ticket166(sim):
     """
@@ -146,7 +284,7 @@ def ticket166(sim):
     dt = 0.1 # ms
     t_step = 100.0 # ms
     lag = 3.0 # ms
-    interactive = True
+    interactive = False
     
     if interactive:
         import pylab
@@ -187,7 +325,8 @@ def ticket166(sim):
     
     assert final_v_0 > -64.0  # first neuron has been depolarized again
     assert final_v_1 < -64.99 # second neuron has decayed back towards rest
-    
+
+
 @register
 def test_reset(sim):
     """
@@ -209,6 +348,7 @@ def test_reset(sim):
 
     for rec in data:
         assert_arrays_almost_equal(rec, data[0], 1e-12)
+
 
 @register
 def test_setup(sim):

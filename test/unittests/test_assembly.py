@@ -13,8 +13,9 @@ def test_create_with_zero_populations():
 
 class MockPopulation(BasePopulation):
     size = 10
-    local_cells = range(1,10,2)
-    all_cells = range(10)
+    local_cells = numpy.arange(1,10,2)
+    all_cells = numpy.arange(10)
+    _mask_local = numpy.arange(10)%2 == 1
     initialize = Mock()
     def describe(self, template='abcd', engine=None):
         if template is None:
@@ -128,3 +129,37 @@ def test_get_population():
     assert_equal(a.get_population("pop1"), p1)
     assert_equal(a.get_population("pop2"), p2)
     assert_raises(KeyError, a.get_population, "foo")
+
+def test_all_cells():
+    p1 = MockPopulation()
+    p2 = MockPopulation()
+    p3 = MockPopulation()
+    a = Assembly(p1, p2, p3)
+    assert_equal(a.all_cells.size,
+                 p1.all_cells.size + p2.all_cells.size + p3.all_cells.size)
+    assert_equal(a.all_cells[0], p1.all_cells[0])
+    assert_equal(a.all_cells[-1], p3.all_cells[-1])
+    assert_arrays_equal(a.all_cells, numpy.append(p1.all_cells, (p2.all_cells, p3.all_cells)))
+    
+def test_local_cells():
+    p1 = MockPopulation()
+    p2 = MockPopulation()
+    p3 = MockPopulation()
+    a = Assembly(p1, p2, p3)
+    assert_equal(a.local_cells.size,
+                 p1.local_cells.size + p2.local_cells.size + p3.local_cells.size)
+    assert_equal(a.local_cells[0], p1.local_cells[0])
+    assert_equal(a.local_cells[-1], p3.local_cells[-1])
+    assert_arrays_equal(a.local_cells, numpy.append(p1.local_cells, (p2.local_cells, p3.local_cells)))
+
+def test_mask_local():
+    p1 = MockPopulation()
+    p2 = MockPopulation()
+    p3 = MockPopulation()
+    a = Assembly(p1, p2, p3)
+    assert_equal(a._mask_local.size,
+                 p1._mask_local.size + p2._mask_local.size + p3._mask_local.size)
+    assert_equal(a._mask_local[0], p1._mask_local[0])
+    assert_equal(a._mask_local[-1], p3._mask_local[-1])
+    assert_arrays_equal(a._mask_local, numpy.append(p1._mask_local, (p2._mask_local, p3._mask_local)))
+    assert_arrays_equal(a.local_cells, a.all_cells[a._mask_local])
