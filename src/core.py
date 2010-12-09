@@ -5,7 +5,8 @@ Assorted utility classes and functions.
 import numpy
 from pyNN import random
 import operator
-from copy import deepcopy
+from copy import copy, deepcopy
+import functools
 
 def is_listlike(obj):
     """
@@ -28,6 +29,27 @@ def check_shape(meth):
                 raise ValueError("shape mismatch: objects cannot be broadcast to a single shape")
         return meth(self, val)
     return wrapped_meth
+
+def lazy_operation(name):
+    def op(self, val):
+        new_map = deepcopy(self)
+        new_map.operations.append((getattr(operator, name), val))
+        return new_map
+    return check_shape(op)
+
+def lazy_inplace_operation(name):
+    def op(self, val):
+        self.operations.append((getattr(operator, name), val))
+        return self
+    return check_shape(op)
+
+def lazy_unary_operation(name):
+    def op(self):
+        new_map = deepcopy(self)
+        new_map.operations.append((getattr(operator, name), None))
+        return new_map
+    return op
+
 
 class LazyArray(object):
     """
@@ -102,9 +124,27 @@ class LazyArray(object):
             if (i < -size) or (i >= size):
                 raise IndexError("index out of bounds")
     
+    def apply(self, f):
+        """
+        Add the function f(x) to the list of the operations to be performed,
+        where x will be a scalar or a numpy array.
+        
+        >>> m = LazyArray(4, shape=(2,2))
+        >>> m.apply(numpy.sqrt)
+        >>> m.value
+        2.0
+        >>> m.as_array()
+        array([[ 2.,  2.],
+               [ 2.,  2.]])
+        """
+        self.operations.append((f, None))
+    
     def _apply_operations(self, x):
         for f, arg in self.operations:
-            x = f(x, arg)
+            if arg is None:
+                x = f(x)
+            else:
+                x = f(x, arg)
         return x
     
     def by_column(self, mask=None):
@@ -135,6 +175,9 @@ class LazyArray(object):
                     col = self.base_value.next(self.nrows, mask_local=False)
                     if local:
                         yield self._apply_operations(col)
+        #elif isinstance(self.base_value, LazyArray):
+        #    for column in self.base_value.by_column(mask=mask):
+        #        yield self._apply_operations(column)
         elif callable(self.base_value): # a function of (i,j)
             row_indices = numpy.arange(self.nrows, dtype=int)
             for j in column_indices:
@@ -172,27 +215,59 @@ class LazyArray(object):
             raise Exception("invalid mapping")
         return self._apply_operations(x)
 
-    @check_shape
-    def __iadd__(self, val):
-        self.operations.append((operator.add, val))
-        return self
-
-    @check_shape
-    def __add__(self, val):
-        new_map = deepcopy(self)
-        new_map.operations.append((operator.add, val))
-        return new_map
+    __iadd__ = lazy_inplace_operation('add')
+    __isub__ = lazy_inplace_operation('sub')
+    __imul__ = lazy_inplace_operation('mul')
+    __idiv__ = lazy_inplace_operation('div')
+    __ipow__  = lazy_inplace_operation('pow')
+    
+    __add__  = lazy_operation('add')
     __radd__ = __add__
-
-    @check_shape
-    def __mul__(self, val):
-        new_map = deepcopy(self)
-        new_map.operations.append((operator.mul, val))
-        return new_map
+    __sub__  = lazy_operation('sub')
+    __mul__  = lazy_operation('mul')
     __rmul__ = __mul__
+    __div__  = lazy_operation('div')
+    __pow__  = lazy_operation('pow')
+    
+    __lt__   = lazy_operation('lt')
+    __gt__   = lazy_operation('gt')
+    __le__   = lazy_operation('le')
+    __ge__   = lazy_operation('ge')
+    
+    __neg__  = lazy_unary_operation('neg')
+    __pos__  = lazy_unary_operation('pos')
+    __abs__  = lazy_unary_operation('abs')
 
-    @check_shape
-    def __lt__(self, val):
-        new_map = deepcopy(self)
-        new_map.operations.append((operator.lt, val))
-        return new_map
+
+# based on http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
+class forgetful_memoize(object):
+    """
+    Decorator that caches the result from the last time a function was called.
+    If the next call uses the same arguments, the cached value is returned, and
+    not re-evaluated. If the next call uses different arguments, the cached
+    value is overwritten.
+    
+    The use case is when the same, heavy-weight function is called repeatedly
+    with the same arguments in different places.
+    """
+    
+    def __init__(self, func):
+        self.func = func
+        self.cached_args = None
+        self.cached_value = None
+          
+    def __call__(self, *args):
+        import pdb; pdb.set_trace()
+        if args == self.cached_args:
+            print "using cached value"
+            return self.cached_value
+        else:
+            #print "calculating value"
+            value = self.func(*args)
+            self.cached_args = args
+            self.cached_value = value
+            return value
+    
+    def __get__(self, obj, objtype):
+        """Support instance methods."""
+        return functools.partial(self.__call__, obj)
