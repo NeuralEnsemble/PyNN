@@ -449,6 +449,27 @@ class BasePopulation(object):
         nearest = distances.argmin()
         return self[nearest]
 
+    def sample(self, cells, rng=None):
+        """
+        Sample cells from the Population, and return a PopulationView object. cells can be
+        either a list of ids, or an int. In this case, n cells are randomly sampled according 
+        to the random number generator rng provided or not. 
+        """
+        if isinstance(record_from, list):  # sample from the fixed list specified by user
+            pass
+        elif isinstance(cells, int):  # sample from a number of cells, selected at random
+            nrec = cells
+            if not rng:
+                rng = random.NumpyRNG()
+            cells = rng.permutation(self.all_cells)[0:nrec]
+            logger.debug("The %d cells recorded have IDs %s" % (nrec, record_from))
+        else:
+            raise Exception("cells must be either a list of cells or the number of cells to sample")
+        # cells is now a list or numpy array. We do not have to worry about whether the cells are
+        # local because the Recorder object takes care of this.
+        logger.debug("%s.sample(%s)", self.label, record_from[:5])
+        return PopulationView(self, cells)
+
     def get(self, parameter_name, gather=False):
         """
         Get the values of a parameter for every local cell in the population.
@@ -463,9 +484,14 @@ class BasePopulation(object):
         
         if gather == True and num_processes() > 1:
             all_values = { rank(): values }
+            all_index  = { rank(): self.local_cells.tolist()}
             all_values = recording.gather_dict(all_values)
+            all_index  = recording.gather_dict(all_index)
             if rank() == 0:
                 values = reduce(operator.add, all_values.values())
+                index  = reduce(operator.add, all_index.values())
+            idx    = argsort(index)
+            values = numpy.array(values)[idx]
         return values
             
 
@@ -509,6 +535,7 @@ class BasePopulation(object):
             self._set_array(**param_dict)
         else:
             for cell in self:
+                print param_dict
                 cell.set_parameters(**param_dict)
 
     def tset(self, parametername, value_array):
@@ -978,16 +1005,16 @@ class PopulationView(BasePopulation):
         self.mask = selector  # later we can have fancier selectors, for now we just have numpy masks
         self.label = label or "view of %s with mask %s" % (parent.label, self.mask)
         # maybe just redefine __getattr__ instead of the following...
-        self.celltype = self.parent.celltype
-        self.cellparams = self.parent.cellparams
-        self.all_cells = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?
-        self.size = len(self.all_cells)
-        self._mask_local = self.parent._mask_local[self.mask]
-        self.local_cells = self.all_cells[self._mask_local]
-        self.first_id = self.all_cells[0]  # only works if we assume all_cells is sorted, otherwise could use min()
-        self.last_id = self.all_cells[-1]
-        self.recorders = self.parent.recorders
-        self.record_filter = self.all_cells
+        self.celltype     = self.parent.celltype
+        self.cellparams   = self.parent.cellparams
+        self.all_cells    = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?
+        self.size         = len(self.all_cells)
+        self._mask_local  = self.parent._mask_local[self.mask]
+        self.local_cells  = self.all_cells[self._mask_local]
+        self.first_id     = self.all_cells[0]  # only works if we assume all_cells is sorted, otherwise could use min()
+        self.last_id      = self.all_cells[-1]
+        self.recorders    = self.parent.recorders
+        self.record_filter= self.all_cells
 
     @property
     def initial_values(self):
@@ -1058,45 +1085,28 @@ class Assembly(object):
         self.label = kwargs.get('label', 'assembly%d' % Assembly.count)
         assert isinstance(self.label, basestring), "label must be a string or unicode"
         Assembly.count += 1
-        self._local_cells_ = None
-        self._all_cells_   = None
-        self._mask_local_  = None
-        self._positions_   = None
-
-    def _reset(self):
-        self._local_cells_ = None
-        self._all_cells_   = None
-        self._mask_local_  = None
-        self._positions_   = None
 
     @property
     def local_cells(self):
-        if self._local_cells_ is None:
-            self._local_cells_ = numpy.append(self.populations[0].local_cells,
+        return numpy.append(self.populations[0].local_cells,
                             [p.local_cells for p in self.populations[1:]])
-        return self._local_cells_
 
     @property
     def all_cells(self):
-        if self._all_cells_ is None:
-            self._all_cells_ = numpy.append(self.populations[0].all_cells,
+        return numpy.append(self.populations[0].all_cells,
                             [p.all_cells for p in self.populations[1:]])
-        return self._all_cells_
         
     @property
     def _mask_local(self):
-        if self._mask_local_ is None:
-            self._mask_local_ = numpy.append(self.populations[0]._mask_local,
+        return numpy.append(self.populations[0]._mask_local,
                             [p._mask_local for p in self.populations[1:]])
-        return self._mask_local_
             
     @property
     def positions(self):
-        if self._positions_ is None:
-            self._positions_ = self.populations[0].positions
-            for p in self.populations[1:]:
-                self._positions_ = numpy.hstack((self._positions_, p.positions))
-        return self._positions_
+        result = self.populations[0].positions
+        for p in self.populations[1:]:
+            result = numpy.hstack((result, p.positions))
+        return result
         
     @property
     def size(self):
@@ -1116,7 +1126,6 @@ class Assembly(object):
             return Assembly(*(self.populations + other.populations))
         else:
             raise TypeError("can only add a Population or another Assembly to an Assembly")
-        self._reset()
 
     def __iadd__(self, other):
         if isinstance(other, BasePopulation):
@@ -1125,7 +1134,6 @@ class Assembly(object):
             self.populations += other.populations
         else:
             raise TypeError("can only add a Population or another Assembly to an Assembly")
-        self._reset()
         return self
         
     def initialize(self, variable, value):
@@ -1145,6 +1153,28 @@ class Assembly(object):
             if label == p.label:
                 return p
         raise KeyError("Assembly does not contain a population with the label %s" % label)
+
+    def save_positions(self, file):
+        """
+        Save positions to file. The output format is id x y z
+        """
+        # this should be rewritten to use self.positions and recording.files
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        cells  = self.all_cells
+        result = numpy.empty((len(cells), 4))
+        result[:,0]   = cells
+        result[:,1:4] = self.positions.T 
+        if rank() == 0:
+            file.write(result, {'population' : self.label})
+            file.close()
+
+    @property
+    def position_generator(self):
+        def gen(i):
+            return self.positions[:,i]
+        return gen
+
 
     def describe(self, template='assembly_default.txt', engine='default'):
         """
