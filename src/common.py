@@ -255,7 +255,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     if min_delay > max_delay:
         raise Exception("min_delay has to be less than or equal to max_delay.")
     if min_delay < timestep:
-        "min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep)
+        raise Exception("min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep))
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
@@ -449,26 +449,18 @@ class BasePopulation(object):
         nearest = distances.argmin()
         return self[nearest]
 
-    def sample(self, cells, rng=None):
+    def sample(self, n, rng=None):
         """
-        Sample cells from the Population, and return a PopulationView object. cells can be
-        either a list of ids, or an int. In this case, n cells are randomly sampled according 
-        to the random number generator rng provided or not. 
+        Randomly sample n cells from the Population, and return a PopulationView
+        object.
         """
-        if isinstance(cells, list):  # sample from the fixed list specified by user
-            pass
-        elif isinstance(cells, int):  # sample from a number of cells, selected at random
-            nrec = cells
-            if not rng:
-                rng = random.NumpyRNG()
-            cells = rng.permutation(numpy.arange(len(self)))[0:nrec]
-            logger.debug("The %d cells recorded have IDs %s" % (nrec, cells))
-        else:
-            raise Exception("cells must be either a list of cells or the number of cells to sample")
-        # cells is now a list or numpy array. We do not have to worry about whether the cells are
-        # local because the Recorder object takes care of this.
-        logger.debug("%s.sample(%s)", self.label, cells[:5])
-        return PopulationView(self, cells)
+        assert isinstance(n, int)
+        if not rng:
+            rng = random.NumpyRNG()
+        indices = rng.permutation(numpy.arange(len(self)))[0:n]
+        logger.debug("The %d cells recorded have indices %s" % (n, indices))
+        logger.debug("%s.sample(%s)", self.label, n)
+        return PopulationView(self, indices)
 
     def get(self, parameter_name, gather=False):
         """
@@ -493,7 +485,6 @@ class BasePopulation(object):
             idx    = argsort(index)
             values = numpy.array(values)[idx]
         return values
-            
 
     def set(self, param, val=None):
         """
@@ -630,17 +621,19 @@ class BasePopulation(object):
                 different value)
         """
         if isinstance(value, random.RandomDistribution):
-            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
-            self.initial_values[variable] = rarr
-            for cell, val in zip(self, rarr):
-                cell.set_initial_value(variable, val)
+            initial_value = value.next(n=self.all_cells.size, mask_local=self._mask_local)
         else:
-            self.initial_values[variable] = core.LazyArray(value, shape=(self.size,))
-            if hasattr(self, "_set_initial_value_array"):
-                self._set_initial_value_array(variable, value)
+            initial_value = value
+        self.initial_values[variable] = core.LazyArray(initial_value, shape=(self.size,))
+        if hasattr(self, "_set_initial_value_array"):
+            self._set_initial_value_array(variable, initial_value)
+        else:
+            if isinstance(value, random.RandomDistribution):
+                for cell, val in zip(self, initial_value):
+                    cell.set_initial_value(variable, val)
             else:
                 for cell in self:  # only on local node
-                    cell.set_initial_value(variable, value)
+                    cell.set_initial_value(variable, initial_value)
 
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
@@ -822,7 +815,8 @@ class BasePopulation(object):
         """
         Save positions to file. The output format is id x y z
         """
-        # this should be rewritten to use self.positions and recording.files
+        # first column should probably be indices, not ids. This would make it
+        # simulator independent.
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
         cells  = self.all_cells
