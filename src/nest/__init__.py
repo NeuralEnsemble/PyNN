@@ -90,6 +90,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     # reset the simulation kernel
     nest.ResetKernel()
     
+    # all NEST to erase previously written files (defaut with all the other simulators)
+    nest.SetKernelStatus({'overwrite_files' : True})
+    
     # set tempdir
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
@@ -250,7 +253,7 @@ class Population(common.Population):
                                                                                                                         type(self.celltype.default_parameters[key]),
                                                                                                                         type(value)))
                 # Then we do the call to SetStatus
-                if key in self.celltype.scaled_parameters():
+                if key in self.celltype.scaled_parameters() or key in self.celltype.computed_parameters():
                     translation = self.celltype.translations[key]
                     value = eval(translation['forward_transform'], globals(), {key:value})
                     to_be_set[translation['translated_name']] = value
@@ -282,8 +285,8 @@ class Population(common.Population):
         nest.SetStatus(self.local_cells.tolist(), STATE_VARIABLE_MAP[variable], value)
         self.initial_values[variable] = core.LazyArray(value, (self.size,))
 
-    def _record(self, variable, record_from=None, rng=None, to_file=True):
-        common.Population._record(self, variable, record_from, rng, to_file)
+    def _record(self, variable, to_file=True):
+        common.Population._record(self, variable, to_file)
         # need to set output filename if supplied
         nest.SetStatus(self.recorders[variable]._device, {'to_file': bool(to_file), 'to_memory' : not to_file})
 

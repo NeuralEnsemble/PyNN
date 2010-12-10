@@ -208,14 +208,13 @@ class Recorder(recording.Recorder):
             data = data[mask]
         return data
     
-    def write(self, file=None, gather=False, compatible_output=True,filter=None):
+    def write(self, file=None, gather=False, compatible_output=True, filter=None):
         """Write recorded data to file."""
         if self._device is None:
             raise errors.NothingToWriteError("%s not recorded from any cells, so no data to write to file." % self.variable)
         recording.Recorder.write(self, file, gather, compatible_output, filter)
 
     def _local_count(self, filter):
-        filtered_ids = self.filter_recorded(filter)
         N = {}
         if self.in_memory():
             events = nest.GetStatus(self._device, 'events')[0]

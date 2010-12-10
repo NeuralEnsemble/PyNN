@@ -642,60 +642,37 @@ class BasePopulation(object):
         else:
             return True  # for now, not able to check for native cells, although it should be possible in principle
 
-    def _record(self, variable, record_from=None, rng=None, to_file=True):
+    def _record(self, variable, to_file=True):
         """
         Private method called by record() and record_v().
         """
         if not self.can_record(variable):
-            raise errors.RecordingError(variable, self.celltype)
-        if isinstance(record_from, list):  # record from the fixed list specified by user
-            pass
-        elif record_from is None:  # record from all cells:
-            record_from = self.all_cells
-        elif isinstance(record_from, int):  # record from a number of cells, selected at random
-            nrec = record_from
-            if not rng:
-                rng = random.NumpyRNG()
-            record_from = rng.permutation(self.all_cells)[0:nrec]
-            logger.debug("The %d cells recorded have IDs %s" % (nrec, record_from))
+            raise errors.RecordingError(variable, self.celltype)        
+        logger.debug("%s.record('%s')", self.label, variable)
+        if self.record_filter is not None:
+            self.recorders[variable].record(self.record_filter)
         else:
-            raise Exception("record_from must be either a list of cells or the number of cells to record from")
-        # record_from is now a list or numpy array. We do not have to worry about whether the cells are
-        # local because the Recorder object takes care of this.
-        logger.debug("%s.record('%s', %s)", self.label, variable, record_from[:5])
-        self.recorders[variable].record(record_from)
+            self.recorders[variable].record(self.all_cells)
         if isinstance(to_file, basestring):
             self.recorders[variable].file = to_file
 
-    def record(self, record_from=None, rng=None, to_file=True):
+    def record(self, to_file=True):
         """
-        If record_from is not given, record spikes from all cells in the
-        Population. record_from can be an integer - the number of cells to
-        record from, chosen at random (in this case a random number generator
-        can also be supplied) - or a list containing the ids of the cells to
-        record.
+        Record spikes from all cells in the Population.
         """
-        self._record('spikes', record_from, rng, to_file)
+        self._record('spikes', to_file)
 
-    def record_v(self, record_from=None, rng=None, to_file=True):
+    def record_v(self, to_file=True):
         """
-        If record_from is not given, record the membrane potential for all
-        cells in the Population.
-        record_from can be an integer - the number of cells to record from,
-        chosen at random (in this case a random number generator can also be
-        supplied) - or a list containing the ids of the cells to record.
+        Record the membrane potential for all cells in the Population.
         """
-        self._record('v', record_from, rng, to_file)
+        self._record('v', to_file)
 
-    def record_gsyn(self, record_from=None, rng=None, to_file=True):
+    def record_gsyn(self, to_file=True):
         """
-        If record_from is not given, record synaptic conductances
-        for all cells in the Population.
-        record_from can be an integer - the number of cells to record from,
-        chosen at random (in this case a random number generator can also be
-        supplied) - or a list containing the ids of the cells to record.
+        Record synaptic conductances for all cells in the Population.
         """
-        self._record('gsyn', record_from, rng, to_file)
+        self._record('gsyn', to_file)
 
     def printSpikes(self, file, gather=True, compatible_output=True):
         """
@@ -790,13 +767,13 @@ class BasePopulation(object):
         """
         Returns the number of spikes for each neuron.
         """
-        return self.recorders['spikes'].count(gather)
+        return self.recorders['spikes'].count(gather, self.record_filter)
 
     def meanSpikeCount(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
-        spike_counts = self.recorders['spikes'].count(gather)
+        spike_counts = self.recorders['spikes'].count(gather, self.record_filter)
         total_spikes = sum(spike_counts.values())
         if rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
             return float(total_spikes)/len(spike_counts)
@@ -1043,7 +1020,7 @@ class PopulationView(BasePopulation):
             raise IndexError("id %s not found in %s" % (id, self))
         else:
             raise Exception("Something has gone very wrong: repeated ID")
-
+    
     def describe(self, template='populationview_default.txt', engine='default'):
         """
         Returns a human-readable description of the population view.
