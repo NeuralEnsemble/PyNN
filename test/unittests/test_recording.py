@@ -93,9 +93,18 @@ def test_get__zero_offset():
 class MockState(object):
     def __init__(self, mpi_rank):
         self.mpi_rank = mpi_rank
+        self.dt = 0.123
 class MockSimulator(object):
     def __init__(self, mpi_rank):
         self.state = MockState(mpi_rank)
+
+class MockPopulation(object):
+    size = 11
+    first_id = 2454
+    last_id = first_id + size
+    label = "mock population"
+    def __len__(self):
+        return self.size
 
 def test_write__with_filename__compatible_output__gather__onroot():
     recording.simulator = MockSimulator(mpi_rank=0)
@@ -114,9 +123,32 @@ def test_write__with_filename__compatible_output__gather__onroot():
     os.remove("tmp.spikes")
     recording.Recorder.metadata = orig_metadata
 
-#def test_metadata_property():
+def test_metadata_property():
+    r = recording.Recorder('spikes', population=None)
+    r._get = Mock(return_value=numpy.random.uniform(size=(6,2)))
+    assert_equal(r.metadata,
+                 {'variable': 'spikes', 'dt': 0.123, 'n': 6})
+    
+    r = recording.Recorder('v', population=MockPopulation())
+    r._get = Mock(return_value=numpy.random.uniform(size=(6,2)))
+    assert_equal(r.metadata,
+                 {'first_id': 2454, 'label': 'mock population', 'n': 6,
+                  'variable': 'v', 'dt': 0.123, 'last_id': 2465, 'size': 11})
+    
+def test__make_compatible_spikes():
+    r = recording.Recorder('spikes')
+    input_data = numpy.array([[0, 12.3], [1, 45.2], [0, 46.3],
+                              [4, 49.4], [0, 78.3]])
+    output_data = r._make_compatible(input_data) # time id
+    assert_arrays_equal(input_data[:,(1,0)], output_data)
 
-#def test__make_compatible():
+def test__make_compatible_v():
+    r = recording.Recorder('v')
+    input_data = numpy.array([[0, 0.0, -65.0], [3, 0.0, -65.0],
+                              [0, 0.1, -64.3], [3, 0.1, -65.1],
+                              [0, 0.2, -63.7], [3, 0.2, -65.5]])
+    output_data = r._make_compatible(input_data) # voltage id
+    assert_arrays_equal(input_data[:,(2,0)], output_data) 
 
 #def test_count__spikes_gather():
 

@@ -127,11 +127,12 @@ class IF_cond_exp(StandardCellType):
 class IF_cond_exp_gsfa_grr(StandardCellType):
     """
     Linear leaky integrate and fire model with fixed threshold,
-    decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
-    and a conductance-based relative refractory mechanism.
+    decaying-exponential post-synaptic conductance, conductance based
+    spike-frequency adaptation, and a conductance-based relative refractory
+    mechanism.
 
-    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond mean-adaptation
-    and renewal theories. Neural Computation 19: 2958-3010.
+    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond
+    mean-adaptation and renewal theories. Neural Computation 19: 2958-3010.
 
     See also: EIF_cond_alpha_isfa_ista
     """

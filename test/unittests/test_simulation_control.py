@@ -28,6 +28,7 @@ def test_setup():
     assert_raises(Exception, common.setup, mindelay=1.0)  # } common
     assert_raises(Exception, common.setup, maxdelay=10.0) # } misspellings
     assert_raises(Exception, common.setup, dt=0.1)        # }
+    assert_raises(Exception, common.setup, timestep=0.1, min_delay=0.09)
         
 def test_end():
     assert_raises(NotImplementedError, common.end)

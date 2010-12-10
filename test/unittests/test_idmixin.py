@@ -4,9 +4,10 @@ from nose.tools import assert_equal, assert_raises
 class MockStandardCell(standardmodels.StandardCellType):
     default_parameters = {
         'a': 20.0,
-        'b': -34.9
+        'b': -34.9,
+        'c': 2.2,
     }
-    translations = standardmodels.build_translations(('a', 'A'), ('b', 'B'))
+    translations = standardmodels.build_translations(('a', 'A'), ('b', 'B'), ('c', 'C', 'c + a', 'C - A'))
 
 class MockNativeCell(object):
     @classmethod
@@ -19,7 +20,7 @@ class MockNativeCell(object):
 class MockPopulation(object):
     def __init__(self, standard):
         if standard:
-            self.celltype = MockStandardCell
+            self.celltype = MockStandardCell({})
         else:
             self.celltype = MockNativeCell
         self._is_local_called = False
@@ -43,7 +44,7 @@ class MockID(common.IDMixin):
     def __init__(self, standard_cell):
         self.parent = MockPopulation(standard=standard_cell)
         self.foo = "bar"
-        self._parameters = {'A': 76.5, 'B': 23.4}
+        self._parameters = {'A': 76.5, 'B': 23.4, 'C': 100.0}
         
     def get_native_parameters(self):
         return self._parameters
@@ -63,20 +64,33 @@ class Test_IDMixin():
         self.id_ns = MockID(standard_cell=False)
         
     def test_getattr_with_parameter_attr(self):
+        assert_equal(self.id.a, 76.5)
+        assert_equal(self.id_ns.A, 76.5)
         assert_raises(errors.NonExistentParameterError, self.id.__getattr__, "tau_m")
         assert_raises(errors.NonExistentParameterError, self.id_ns.__getattr__, "tau_m")
         
     def test_getattr_with_nonparameter_attr(self):
         assert_equal(self.id.foo, "bar")
         assert_equal(self.id_ns.foo, "bar")
-        
+    
+    def test_getattr_with_parent_not_set(self):
+        del(self.id.parent)
+        assert_raises(Exception, self.id.__getattr__, "parent")
+    
+    def test_setattr_with_parameter_attr(self):
+        self.id.a = 87.6
+        self.id_ns.A = 98.7
+        assert_equal(self.id.a, 87.6)
+        assert_equal(self.id_ns.A, 98.7)
+    
     def test_set_parameters(self):
         assert_raises(errors.NonExistentParameterError, self.id.set_parameters, hello='world')
         ##assert_raises(errors.NonExistentParameterError, self.id_ns.set_parameters, hello='world')
-        self.id.set_parameters(a=12.3)
-        
+        self.id.set_parameters(a=12.3, c=77.7)
+        assert_equal(self.id._parameters, {'A': 12.3, 'B': 23.4, 'C': 90.0})
+
     def test_get_parameters(self):
-        assert_equal(self.id.get_parameters(), {'a': 76.5, 'b': 23.4})
+        assert_equal(self.id.get_parameters(), {'a': 76.5, 'b': 23.4, 'c': 23.5})
         
     def test_cellclass_property(self):
         assert_equal(self.id.cellclass, MockStandardCell)

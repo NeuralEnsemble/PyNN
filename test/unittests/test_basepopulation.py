@@ -3,6 +3,7 @@ from nose.tools import assert_equal, assert_raises
 import numpy
 from mock import Mock, patch
 from pyNN.utility import assert_arrays_equal
+from pyNN import core
     
 builtin_open = open
 id_map = {'larry': 0, 'curly': 1, 'moe': 2}
@@ -12,12 +13,13 @@ class MockStandardCell(standardmodels.StandardCellType):
 
 class MockPopulation(common.BasePopulation):
     size = 13
-    all_cells = numpy.arange(13)
+    all_cells = numpy.arange(100, 113)
     _mask_local = numpy.array([0,1,0,1,0,1,0,1,0,1,0,1,0], bool)
     local_cells = all_cells[_mask_local]
     positions = numpy.arange(39).reshape((13,3)).T
     label = "mock_population"
     celltype = MockStandardCell({})
+    initial_values = {"foo": core.LazyArray(numpy.array((98, 99, 100)), shape=(3,))}
 
     def id_to_index(self, id):
         if id.label in id_map:
@@ -32,10 +34,10 @@ class MockID(object):
 
 def test__getitem__int():
     p = MockPopulation()
-    assert_equal(p[0], 0)
-    assert_equal(p[12], 12)
+    assert_equal(p[0], 100)
+    assert_equal(p[12], 112)
     assert_raises(IndexError, p.__getitem__, 13)
-    assert_equal(p[-1], 12)
+    assert_equal(p[-1], 112)
     
 def test__getitem__slice():
     orig_PV = common.PopulationView
@@ -110,7 +112,37 @@ def test_set_cell_position():
     p._set_cell_position(id, numpy.array([100,101,102]))
     assert_equal(p.positions[0,0], 100)
     assert_equal(p.positions[0,1], 3)
-    
+
+def test_get_cell_initial_value():
+    p = MockPopulation()
+    id = MockID("larry", parent=p)
+    assert_equal(p._get_cell_initial_value(id, "foo"), 98)
+
+def test_set_cell_initial_value():
+    p = MockPopulation()
+    id = MockID("curly", parent=p)
+    p._set_cell_initial_value(id, "foo", -1)
+    assert_equal(p._get_cell_initial_value(id, "foo"), -1)
+
+def test_nearest():
+    p = MockPopulation()
+    p.positions = numpy.arange(39).reshape((13,3)).T
+    assert_equal(p.nearest((0.0, 1.0, 2.0)), p[0])
+    assert_equal(p.nearest((3.0, 4.0, 5.0)), p[1])
+    assert_equal(p.nearest((36.0, 37.0, 38.0)), p[12])
+    assert_equal(p.nearest((1.49, 2.49, 3.49)), p[0])
+    assert_equal(p.nearest((1.51, 2.51, 3.51)), p[1])
+
+def test_sample():
+    orig_pv = common.PopulationView
+    common.PopulationView = Mock()
+    p = MockPopulation()
+    rng = Mock()
+    rng.permutation = Mock(return_value=numpy.array([7,4,8,12,0,3,9,1,2,11,5,10,6]))
+    pv = p.sample(5, rng=rng)
+    assert_arrays_equal(common.PopulationView.call_args[0][1], numpy.array([7,4,8,12,0]))
+    common.PopulationView = orig_pv
+
 def test_get_should_call_get_array_if_it_exists():
     p = MockPopulation()
     p._get_array = Mock()
@@ -124,7 +156,23 @@ def test_get_with_no_get_array():
     values = p.get("i_offset")
     assert_equal(values[0]._name, "i_offset")
     MockPopulation.__iter__ = orig_iter
-    
+
+#def test_get_with_gather():
+#    np_orig = common.num_processes
+#    rank_orig = common.rank
+#    gd_orig = common.recording.gather_dict
+#    common.num_processes = lambda: 2
+#    common.rank = 0
+#    common.recording.gather_dict = Mock(return_value={0: 
+#    
+#    p = MockPopulation()
+#    p._get_array = Mock(return_value=numpy.arange(10.0, 23.0, 1.0))
+#    p.get("tau_m")
+#    
+#    common.num_processes = np_orig
+#    common.rank = rank_orig
+#    common.recording.gather_dict = gd_orig
+
 def test_set_from_dict():
     p = MockPopulation()
     p._set_array = Mock()
@@ -152,6 +200,12 @@ def test_set_with_no_get_array():
     values = p.set("i_offset", 0.1)
     mock_cell.set_parameters.assert_called_with(**{"i_offset": 0.1})
     MockPopulation.__iter__ = orig_iter
+
+def test_set_with_list():
+    p = MockPopulation()
+    p._set_array = Mock()
+    p.set('foo', range(10))
+    p._set_array.assert_called_with(**{'foo': range(10)})
     
 def test_tset_with_numeric_values():
     p = MockPopulation()
@@ -170,11 +224,16 @@ def test_tset_with_array_values():
     assert_arrays_equal(call_args.flatten(),
                         spike_times[p._mask_local].flatten())
     
-def test_tset_invalid_dimensions():
+def test_tset_invalid_dimensions_2D():
     """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
     p = MockPopulation()
     array_in = numpy.array([[0.1,0.2,0.3],[0.4,0.5,0.6]])
     assert_raises(errors.InvalidDimensionsError, p.tset, 'i_offset', array_in)
+
+def test_tset_invalid_dimensions_1D():
+    p = MockPopulation()
+    tau_m = numpy.linspace(10.0, 20.0, num=p.size+1)
+    assert_raises(errors.InvalidDimensionsError, p.tset, "tau_m", tau_m)
 
 def test_rset():
     """Population.rset()"""
@@ -204,7 +263,18 @@ def test_initialize():
     p.initialize('v', -65.0)
     assert_equal(p.initial_values['v'].value, -65.0)
     p._set_initial_value_array.assert_called_with('v', -65.0)    
-    
+
+def test_initialize_random_distribution():
+    p = MockPopulation()
+    p.initial_values = {}
+    p._set_initial_value_array = Mock()
+    class MockRandomDistribution(random.RandomDistribution):
+        def next(self, n, mask_local):
+            return 42*numpy.ones(n)
+    p.initialize('v', MockRandomDistribution())
+    assert_arrays_equal(p.initial_values['v'].value, 42*numpy.ones(p.size))
+    #p._set_initial_value_array.assert_called_with('v', 42*numpy.ones(p.size)) 
+
 def test_can_record():
     p = MockPopulation()
     p.celltype = MockStandardCell({})
@@ -347,6 +417,15 @@ def test_meanSpikeCount():
     p.recorders['spikes'].count = Mock(return_value={0: 2, 1: 5})
     assert_equal(p.meanSpikeCount(), 3.5)
     common.rank = orig_rank
+
+def test_meanSpikeCount_on_slave_node():
+    orig_rank = common.rank
+    common.rank = lambda: 1
+    p = MockPopulation()
+    p.recorders = {'spikes': Mock()}
+    p.recorders['spikes'].count = Mock(return_value={0: 2, 1: 5})
+    assert p.meanSpikeCount() is numpy.NaN
+    common.rank = orig_rank
     
 def test_inject():
     p = MockPopulation()
@@ -360,3 +439,18 @@ def test_inject_into_invalid_celltype():
     p = MockPopulation()
     p.celltype.recordable = ['spikes']
     assert_raises(TypeError, p.inject, Mock())
+
+def test_save_positions():
+    import os
+    orig_rank = common.rank
+    common.rank = lambda: 0
+    p = MockPopulation()
+    p.all_cells = numpy.array([34, 45, 56, 67])
+    p.positions = numpy.arange(12).reshape((4,3)).T
+    output_file = Mock()
+    p.save_positions(output_file)
+    assert_arrays_equal(output_file.write.call_args[0][0],
+                        numpy.array([[34, 0, 1, 2], [45, 3, 4, 5], [56, 6, 7, 8], [67, 9, 10, 11]]))
+    assert_equal(output_file.write.call_args[0][1], {'population': p.label})
+    # arguably, the first column should contain indices, not ids.
+    common.rank = orig_rank
