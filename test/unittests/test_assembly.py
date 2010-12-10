@@ -1,4 +1,4 @@
-
+from pyNN import common
 from pyNN.common import Assembly, BasePopulation
 from nose.tools import assert_equal, assert_raises
 import numpy
@@ -17,6 +17,7 @@ class MockPopulation(BasePopulation):
     all_cells = numpy.arange(10)
     _mask_local = numpy.arange(10)%2 == 1
     initialize = Mock()
+    positions = numpy.arange(3*size).reshape(3,size)
     def describe(self, template='abcd', engine=None):
         if template is None:
             return {'label': 'dummy'}
@@ -44,6 +45,12 @@ def test_size_property():
     p2 = MockPopulation()
     a = Assembly(p1, p2, label="test")
     assert_equal(a.size, p1.size + p2.size)
+
+def test_positions_property():
+    p1 = MockPopulation()
+    p2 = MockPopulation()
+    a = Assembly(p1, p2, label="test")
+    assert_arrays_equal(a.positions, numpy.concatenate((p1.positions, p2.positions), axis=1))
 
 def test__len__():
     p1 = MockPopulation()
@@ -102,7 +109,14 @@ def test_add_inplace_assembly():
     a2 = Assembly(p2, p3)
     a1 += a2
     assert_equal(a1.populations, [p1, p2, p2, p3])
-    
+
+def test_add_invalid_object():
+    p1 = MockPopulation()
+    p2 = MockPopulation()
+    a = Assembly(p1, p2)
+    assert_raises(TypeError, a.__add__, 42)
+    assert_raises(TypeError, a.__iadd__, 42)
+
 def test_initialize():
     p1 = MockPopulation()
     p2 = MockPopulation()
@@ -163,3 +177,22 @@ def test_mask_local():
     assert_equal(a._mask_local[-1], p3._mask_local[-1])
     assert_arrays_equal(a._mask_local, numpy.append(p1._mask_local, (p2._mask_local, p3._mask_local)))
     assert_arrays_equal(a.local_cells, a.all_cells[a._mask_local])
+
+def test_save_positions():
+    import os
+    orig_rank = common.rank
+    common.rank = lambda: 0
+    p1 = MockPopulation()
+    p2 = MockPopulation()
+    p1.all_cells = numpy.array([34, 45])
+    p2.all_cells = numpy.array([56, 67])
+    p1.positions = numpy.arange(0,6).reshape((2,3)).T
+    p2.positions = numpy.arange(6,12).reshape((2,3)).T
+    a = Assembly(p1, p2, label="test")
+    output_file = Mock()
+    a.save_positions(output_file)
+    assert_arrays_equal(output_file.write.call_args[0][0],
+                        numpy.array([[34, 0, 1, 2], [45, 3, 4, 5], [56, 6, 7, 8], [67, 9, 10, 11]]))
+    assert_equal(output_file.write.call_args[0][1], {'assembly': a.label})
+    # arguably, the first column should contain indices, not ids.
+    common.rank = orig_rank

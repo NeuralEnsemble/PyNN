@@ -157,21 +157,26 @@ def test_get_with_no_get_array():
     assert_equal(values[0]._name, "i_offset")
     MockPopulation.__iter__ = orig_iter
 
-#def test_get_with_gather():
-#    np_orig = common.num_processes
-#    rank_orig = common.rank
-#    gd_orig = common.recording.gather_dict
-#    common.num_processes = lambda: 2
-#    common.rank = 0
-#    common.recording.gather_dict = Mock(return_value={0: 
-#    
-#    p = MockPopulation()
-#    p._get_array = Mock(return_value=numpy.arange(10.0, 23.0, 1.0))
-#    p.get("tau_m")
-#    
-#    common.num_processes = np_orig
-#    common.rank = rank_orig
-#    common.recording.gather_dict = gd_orig
+def test_get_with_gather():
+    np_orig = common.num_processes
+    rank_orig = common.rank
+    gd_orig = common.recording.gather_dict
+    common.num_processes = lambda: 2
+    common.rank = lambda: 0
+    def mock_gather_dict(D): # really hacky
+        assert isinstance(D[0], list)
+        D[1] = [i-1 for i in D[0]] + [D[0][-1] + 1]
+        return D
+    common.recording.gather_dict = mock_gather_dict
+    
+    p = MockPopulation()
+    p._get_array = Mock(return_value=numpy.arange(11.0, 23.0, 2.0))
+    assert_arrays_equal(p.get("tau_m", gather=True),
+                        numpy.arange(10.0, 23.0))
+    
+    common.num_processes = np_orig
+    common.rank = rank_orig
+    common.recording.gather_dict = gd_orig
 
 def test_set_from_dict():
     p = MockPopulation()

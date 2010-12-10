@@ -3,6 +3,7 @@ from nose.tools import assert_equal, assert_raises
 from mock import Mock
 import numpy
 import os
+from pyNN.utility import assert_arrays_equal
 
 orig_rank = common.rank
 orig_np = common.num_processes
@@ -188,6 +189,30 @@ def test_print_weights_as_array():
     prj.printWeights(filename, format='array', gather=False)
     assert os.path.exists(filename)
     os.remove(filename)
+
+def test_weight_histogram_with_args():
+    p1 = MockPopulation()
+    p2 = MockPopulation()
+    prj = common.Projection(p1, p2, method=Mock())
+    prj.getWeights = Mock(return_value=numpy.array(range(10)*42))
+    n, bins = prj.weightHistogram(min=0.0, max=9.0, nbins=10)
+    assert_equal(n.size, 10)
+    assert_equal(bins.size, n.size+1)
+    assert_arrays_equal(n, 42*numpy.ones(10))
+    assert_equal(n.sum(), 420)
+    assert_arrays_equal(bins, numpy.arange(0.0, 9.1, 0.9))
+
+def test_weight_histogram_no_args():
+    p1 = MockPopulation()
+    p2 = MockPopulation()
+    prj = common.Projection(p1, p2, method=Mock())
+    prj.getWeights = Mock(return_value=numpy.array(range(10)*42))
+    n, bins = prj.weightHistogram(nbins=10)
+    assert_equal(n.size, 10)
+    assert_equal(bins.size, n.size+1)
+    assert_arrays_equal(n, 42*numpy.ones(10))
+    assert_equal(n.sum(), 420)
+    assert_arrays_equal(bins, numpy.arange(0.0, 9.1, 0.9))
 
 def test_describe():
     p1 = MockPopulation()

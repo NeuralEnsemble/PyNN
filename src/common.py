@@ -470,19 +470,19 @@ class BasePopulation(object):
         # we return just the number, rather than an array?
         
         if hasattr(self, "_get_array"):
-            values = self._get_array(parameter_name)
+            values = self._get_array(parameter_name).tolist()
         else:
             values = [getattr(cell, parameter_name) for cell in self]  # list or array?
         
         if gather == True and num_processes() > 1:
-            all_values = { rank(): values }
-            all_index  = { rank(): self.local_cells.tolist()}
-            all_values = recording.gather_dict(all_values)
-            all_index  = recording.gather_dict(all_index)
+            all_values  = { rank(): values }
+            all_indices = { rank(): self.local_cells.tolist()}
+            all_values  = recording.gather_dict(all_values)
+            all_indices = recording.gather_dict(all_indices)
             if rank() == 0:
-                values = reduce(operator.add, all_values.values())
-                index  = reduce(operator.add, all_index.values())
-            idx    = argsort(index)
+                values  = reduce(operator.add, all_values.values())
+                indices = reduce(operator.add, all_indices.values())
+            idx    = numpy.argsort(indices)
             values = numpy.array(values)[idx]
         return values
 
@@ -911,12 +911,13 @@ class Population(BasePopulation):
         """
         if isinstance(id, IDMixin):
             if not self.first_id <= id <= self.last_id:
-                raise IndexError("id should be in the range [%d,%d], actually %d" % (self.first_id, self.last_id, id))
+                raise ValueError("id should be in the range [%d,%d], actually %d" % (self.first_id, self.last_id, id))
+            return int(id - self.first_id)  # this assumes ids are consecutive
         else:
             id = numpy.array(id, IDMixin)
             if (self.first_id > id.min()) or (self.last_id < id.max()):
-                raise IndexError("ids should be in the range [%d,%d], actually [%d, %d]" % (self.first_id, self.last_id, id.min(), id.max()))
-        return id - self.first_id  # this assumes ids are consecutive
+                raise ValueError("ids should be in the range [%d,%d], actually [%d, %d]" % (self.first_id, self.last_id, id.min(), id.max()))
+            return (id - self.first_id).astype(int)  # this assumes ids are consecutive
 
     def id_to_local_index(self, id):
         if num_processes() > 1:
@@ -1160,7 +1161,7 @@ class Assembly(object):
         result[:,0]   = cells
         result[:,1:4] = self.positions.T 
         if rank() == 0:
-            file.write(result, {'population' : self.label})
+            file.write(result, {'assembly' : self.label})
             file.close()
 
     @property
@@ -1412,8 +1413,13 @@ class Projection(object):
         """
         # it is arguable whether functions operating on the set of weights
         # should be put here or in an external module.
+        weights = self.getWeights(format='list', gather=True)
+        if min is None:
+            min = weights.min()
+        if max is None:
+            max = weights.max()
         bins = numpy.linspace(min, max, nbins+1)
-        return numpy.histogram(self.getWeights(format='list', gather=True), bins)  # returns n, bins
+        return numpy.histogram(weights, bins, new=True)  # returns n, bins
 
     def describe(self, template='projection_default.txt', engine='default'):
         """

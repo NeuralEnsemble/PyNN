@@ -5,22 +5,22 @@ from mock import Mock, patch
 from pyNN.utility import assert_arrays_equal
 
 
-class MockID(object):
-    def __init__(self, i, parent):
-        self.label = str(i)
-        self.parent = parent
+class MockID(int, common.IDMixin):
+    def __init__(self, n):
+        int.__init__(n)
+        common.IDMixin.__init__(self)
     def get_parameters(self):
         return {}
 
 class MockPopulation(common.Population):
     recorder_class = Mock()
     initialize = Mock()
-    first_id = 999
-    last_id = 7777
     
     def _create_cells(self, cellclass, cellparams, size):
-        self.all_cells = numpy.array([MockID(i, self) for i in range(size)], MockID)
-        self._mask_local = numpy.arange(size)%5==3
+        self.all_cells = numpy.array([MockID(i) for i in range(999, 999+size)], MockID)
+        self._mask_local = numpy.arange(size)%5==3 # every 5th cell, starting with the 4th, is on this node
+        self.first_id = self.all_cells[0]
+        self.last_id = self.all_cells[-1]
 
 class MockStandardCell(standardmodels.StandardCellType):
     default_parameters = {
@@ -76,9 +76,55 @@ def test_cell_property():
     p = MockPopulation(11, MockStandardCell)
     assert_arrays_equal(p.cell, p.all_cells)
 
-#def test_id_to_index():
+def test_id_to_index():
+    p = MockPopulation(11, MockStandardCell)
+    assert isinstance(p[0], common.IDMixin)
+    assert_equal(p.id_to_index(p[0]), 0)
+    assert_equal(p.id_to_index(p[10]), 10)
 
-# test id_to_local_index
+def test_id_to_index_with_array():
+    p = MockPopulation(11, MockStandardCell)
+    assert isinstance(p[0], common.IDMixin)
+    assert_arrays_equal(p.id_to_index(p.all_cells[3:9:2]), numpy.arange(3,9,2))
+
+def test_id_to_index_with_populationview():
+    p = MockPopulation(11, MockStandardCell)
+    assert isinstance(p[0], common.IDMixin)
+    view = p[3:7]
+    assert isinstance(view, common.PopulationView)
+    assert_arrays_equal(p.id_to_index(view), numpy.arange(3,7))
+
+def test_id_to_index_with_invalid_id():
+    p = MockPopulation(11, MockStandardCell)
+    assert isinstance(p[0], common.IDMixin)
+    assert_raises(ValueError, p.id_to_index, MockID(p.last_id+1))
+    assert_raises(ValueError, p.id_to_index, MockID(p.first_id-1))
+    
+def test_id_to_index_with_invalid_ids():
+    p = MockPopulation(11, MockStandardCell)
+    assert_raises(ValueError, p.id_to_index, [MockID(p.first_id-1)] + p.all_cells[0:3].tolist())
+
+def test_id_to_local_index():
+    orig_np = common.num_processes
+    common.num_processes = lambda: 5
+    p = MockPopulation(11, MockStandardCell)
+    # every 5th cell, starting with the 4th, is on this node.
+    assert_equal(p.id_to_local_index(p[3]), 0)
+    assert_equal(p.id_to_local_index(p[8]), 1)
+    
+    common.num_processes = lambda: 1
+    # only one node
+    assert_equal(p.id_to_local_index(p[3]), 3)
+    assert_equal(p.id_to_local_index(p[8]), 8)
+    common.num_processes = orig_np
+
+def test_id_to_local_index_with_invalid_id():
+    orig_np = common.num_processes
+    common.num_processes = lambda: 5
+    p = MockPopulation(11, MockStandardCell)
+    # every 5th cell, starting with the 4th, is on this node.
+    assert_raises(ValueError, p.id_to_local_index, p[0])
+    common.num_processes = orig_np
 
 # test structure property
 def test_set_structure():
@@ -112,6 +158,15 @@ def test_set_positions():
     assert_arrays_equal(p.positions, new_positions)
     new_positions[0,0] = 99.9
     assert p.positions[0,0] != 99.9
+
+def test_position_generator():
+    p = MockPopulation(11, MockStandardCell)
+    assert_arrays_equal(p.position_generator(0), p.positions[:,0])
+    assert_arrays_equal(p.position_generator(10), p.positions[:,10])
+    assert_arrays_equal(p.position_generator(-1), p.positions[:,10])
+    assert_arrays_equal(p.position_generator(-11), p.positions[:,0])
+    assert_raises(IndexError, p.position_generator, 11)
+    assert_raises(IndexError, p.position_generator, -12)
 
 # test describe method
 def test_describe():

@@ -73,7 +73,11 @@ def test_create_with_slice_selector():
 
 # test initial values property
 
-# test structure property
+def test_structure_property():
+    p = MockPopulation(11, MockStandardCell)
+    mask = slice(3,9,2)
+    pv = common.PopulationView(parent=p, selector=mask)
+    assert_equal(pv.structure, p.structure)
 
 # test positions property
 def test_get_positions():
