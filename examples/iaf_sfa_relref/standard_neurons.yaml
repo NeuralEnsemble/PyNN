@@ -1,0 +1,45 @@
+# These are the parameters for the excitatory and inhibitory neurons used in: 
+#
+# Muller, E., Buesing, L., Schemmel, J., & Meier, K. (2007).  Spike-frequency
+# adapting neural ensembles: Beyond mean adaptation and renewal theories.
+# Neural Computation, 19, 2958-3010.
+# 
+# and
+# 
+# Muller, E., Meier, K., & Schemmel, J. (2004). Methods for simulating
+# high-conductance states in neural microcircuits. Proc. of BICS2004. 
+
+excitatory:
+  cm: 0.2895
+  e_rev_E: 0.0
+  e_rev_I: -75.0
+  e_rev_rr: -70.0
+  e_rev_sfa: -70.0
+  q_rr: 3214.0
+  q_sfa: 14.48
+  tau_m: 10.0
+  tau_refrac: 0.1
+  tau_rr: 1.97
+  tau_sfa: 110.0
+  tau_syn_E: 1.5
+  tau_syn_I: 10.0
+  v_reset: -70.0
+  v_rest: -70.0
+  v_thresh: -57.0
+inhibitory:
+  cm: 0.141
+  e_rev_E: 0.0
+  e_rev_I: -75.0
+  e_rev_rr: -70.0
+  e_rev_sfa: -70.0
+  q_rr: 1565.0
+  q_sfa: 0.0
+  tau_m: 6.664
+  tau_refrac: 0.1
+  tau_rr: 1.97
+  tau_sfa: 110.0
+  tau_syn_E: 1.5
+  tau_syn_I: 10.0
+  v_reset: -70.0
+  v_rest: -70.0
+  v_thresh: -54.5

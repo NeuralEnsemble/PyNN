@@ -1,0 +1,38 @@
+This directory contains example scripts using the PyNN IF_cond_exp_gsfa_grr
+neuron model.
+
+Specifically, it includes a PyNN implementation of the model described in:
+
+Muller, E., Meier, K., & Schemmel, J. (2004). Methods for simulating
+high-conductance states in neural microcircuits. Proc. of BICS2004. 
+
+The excitatory neuron parameterization was then the subject of an
+analytical study using the adapting Markov process in:
+
+Muller, E., Buesing, L., Schemmel, J., & Meier, K. (2007).  Spike-frequency
+adapting neural ensembles: Beyond mean adaptation and renewal theories.
+Neural Computation, 19, 2958-3010.
+
+The standard parameters are in: standard_neurons.yaml
+
+The iaf_sfa_network.py is a MPI enabled simulation of a 10x10x10
+lattice modeling cortical layer 4, as described in Muller
+et. al. 2004 (above), with a transient step increase in stimulation at
+1s<=t<1.2s, and can be run as follows:
+
+$ /opt/mpich2/bin/mpiexec -n 4 python iaf_sfa_network.py
+
+It produces an output figure as myFigure.pdf, which can be compared to
+the expected output myFigure_expected.pdf.  It is interesting to
+Increase the connection factor ICFactorE_E = 0.12 to something like
+0.16 or 0.2, and observe the spontaneous ~10Hz oscillatory activity
+that results from excitatory avalanches due to the network being in a
+supra-critical excitatory feedback regime.  The period of network
+oscillations/bursts is determined by the time-constant of
+Spike-Frequency Adapation, an intrinsic neuronal self-inhibition
+mechanism which transiently prevents the avalanches, and thus causes
+them to occur at regular intervals.
+
+
+
+
