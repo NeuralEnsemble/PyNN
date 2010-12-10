@@ -455,19 +455,19 @@ class BasePopulation(object):
         either a list of ids, or an int. In this case, n cells are randomly sampled according 
         to the random number generator rng provided or not. 
         """
-        if isinstance(record_from, list):  # sample from the fixed list specified by user
+        if isinstance(cells, list):  # sample from the fixed list specified by user
             pass
         elif isinstance(cells, int):  # sample from a number of cells, selected at random
             nrec = cells
             if not rng:
                 rng = random.NumpyRNG()
-            cells = rng.permutation(self.all_cells)[0:nrec]
-            logger.debug("The %d cells recorded have IDs %s" % (nrec, record_from))
+            cells = rng.permutation(numpy.arange(len(self)))[0:nrec]
+            logger.debug("The %d cells recorded have IDs %s" % (nrec, cells))
         else:
             raise Exception("cells must be either a list of cells or the number of cells to sample")
         # cells is now a list or numpy array. We do not have to worry about whether the cells are
         # local because the Recorder object takes care of this.
-        logger.debug("%s.sample(%s)", self.label, record_from[:5])
+        logger.debug("%s.sample(%s)", self.label, cells[:5])
         return PopulationView(self, cells)
 
     def get(self, parameter_name, gather=False):
