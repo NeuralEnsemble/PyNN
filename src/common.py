@@ -1091,6 +1091,14 @@ class Assembly(object):
         """Return the total number of cells in the population (all nodes)."""
         return self.size
 
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            return self.populations[index]
+        elif isinstance(index, (slice, list, numpy.ndarray)):
+            return Assembly(*self.populations[index])
+        else:
+            raise TypeError("indices must be integers, slices, lists, arrays, not %s" % type(index).__name__)
+
     def __add__(self, other):
         if isinstance(other, BasePopulation):
             return Assembly(*(self.populations + [other]))
@@ -1112,13 +1120,13 @@ class Assembly(object):
         for p in self.populations:
             p.initialize(variable, value)
 
-    def _record(self, variable, record_from=None, rng=None, to_file=True):
+    def _record(self, variable, to_file=True):
         # need to think about record_from
         for p in self.populations:
-            p._record(variable, record_from, rng, to_file)
+            p._record(variable, to_file)
 
-    def record(self, record_from=None, rng=None, to_file=True):
-        self._record('spikes', record_from, rng, to_file)
+    def record(self, to_file=True):
+        self._record('spikes', to_file)
 
     def get_population(self, label):
         for p in self.populations:
@@ -1147,6 +1155,78 @@ class Assembly(object):
             return self.positions[:,i]
         return gen
 
+    def meanSpikeCount(self, gather=True):
+        """
+        Returns the mean number of spikes per neuron.
+        """
+        try:
+            spike_counts = self[0].recorders['spikes'].count(gather, self[0].record_filter)
+        except errors.NothingToWriteError:
+            spike_counts = {}
+        for p in self.populations[1:]:
+            try:
+                spike_counts.update(p.recorders['spikes'].count(gather, p.record_filter))
+            except errors.NothingToWriteError:
+                pass
+        total_spikes = sum(spike_counts.values())
+        if rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
+            return float(total_spikes)/len(spike_counts)
+        else:
+            return numpy.nan
+
+    def get_v(self, gather=True, compatible_output=True):
+        """
+        Return a 2-column numpy array containing cell ids and Vm for
+        recorded cells.
+        """
+        try:
+            result = self[0].recorders['v'].get(gather, compatible_output, self[0].record_filter)
+        except errors.NothingToWriteError:
+            result = numpy.zeros((0, 3))            
+        for p in self.populations[1:]:
+            try:
+                result = numpy.vstack((result, p.recorders['v'].get(gather, compatible_output, p.record_filter)))
+            except errors.NothingToWriteError:
+                pass
+        return result
+
+    def get_gsyn(self, gather=True, compatible_output=True):
+        """
+        Return a 3-column numpy array containing cell ids and synaptic
+        conductances for recorded cells.
+        """
+        try:
+            result = self[0].recorders['gsyn'].get(gather, compatible_output, self[0].record_filter)
+        except errors.NothingToWriteError:
+            result = numpy.zeros((0, 4))
+        for p in self.populations[1:]:
+            try:
+                result = numpy.vstack((result, p.recorders['gsyn'].get(gather, compatible_output, p.record_filter)))
+            except errors.NothingToWriteError:
+                pass
+        return result
+
+    def get_spike_counts(self, gather=True):
+        """
+        Returns the number of spikes for each neuron.
+        """
+        try:
+            spike_counts = self[0].recorders['spikes'].count(gather, self[0].record_filter)      
+        except errors.NothingToWriteError:
+            spike_counts = {}
+        for p in self.populations[1:]:
+            try:
+                spike_counts.update(p.recorders['spikes'].count(gather, p.record_filter))
+            except errors.NothingToWriteError:
+                pass
+        return spike_counts
+
+    def inject(self, current_source):
+        """
+        Connect a current source to all cells in the Population.
+        """
+        for p in self.populations:
+            current_source.inject_into(p)
 
     def describe(self, template='assembly_default.txt', engine='default'):
         """
