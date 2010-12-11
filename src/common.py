@@ -1228,6 +1228,56 @@ class Assembly(object):
                 pass
         return spike_counts
 
+    def _print(self, file, variable, format, gather=True, compatible_output=True):
+        
+        ## First, we write all the individual data for the heterogeneous populations
+        ## embedded within the Assembly. To speed things up, we write them in temporary 
+        ## folders as Numpy Binary objects
+        tempdir   = tempfile.mkdtemp()
+        filenames = {} 
+        filename  = '%s/%s.%s' %(tempdir, self[0].label, variable)
+        p_file    = files.NumpyBinaryFile(filename, mode='w')
+        try:
+            self[0].recorders[variable].write(p_file, gather, compatible_output, self[0].record_filter)
+            filenames[filename] = True        
+        except errors.NothingToWriteError:
+            filenames[filename] = False       
+        for p in self.populations[1:]:
+            filename = '%s/%s.%s' %(tempdir, p.label, variable)
+            p_file = files.NumpyBinaryFile(filename, mode='w')           
+            try:
+                p.recorders[variable].write(p_file, gather, compatible_output, p.record_filter)
+                filenames[filename] = True
+            except errors.NothingToWriteError:
+                filenames[filename] = False
+                
+        ## Then we need to merge the previsouly written files into a single one, to be consistent
+        ## with a Population object. Note that the header should be better considered.          
+        metadata = {'variable'    : variable,
+                    'size'        : self.size,
+                    'label'       : self.label,
+                    'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
+                    'first_id'    : numpy.min([p.first_id for p in self.populations]),
+                    'last_id'     : numpy.max([p.last_id for p in self.populations])}
+                    
+        metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        data = numpy.zeros(format)
+        for f in filenames.keys():
+            if filenames[f] is True:
+                p_file = files.NumpyBinaryFile(f, mode='r') 
+                data   = numpy.concatenate((data, p_file.read()))
+            os.remove(f)
+        metadata['n'] = data.shape[0]             
+        os.rmdir(tempdir)
+        
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        
+        if rank() == 0:
+            file.write(data, metadata)
+            file.close()
+
+
     def printSpikes(self, file, gather=True, compatible_output=True):
         """
         Write spike times to file.
@@ -1251,53 +1301,7 @@ class Assembly(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        
-        ## First, we write all the individual data for the heterogeneous populations
-        ## embedded within the Assembly. To speed things up, we write them in temporary 
-        ## folders as Numpy Binary objects
-        tempdir   = tempfile.mkdtemp()
-        filenames = {} 
-        filename  = '%s/%s.spikes' %(tempdir, self[0].label)
-        p_file    = files.NumpyBinaryFile(filename, mode='w')
-        try:
-            self[0].recorders['spikes'].write(p_file, gather, compatible_output, self[0].record_filter)
-            filenames[filename] = True        
-        except errors.NothingToWriteError:
-            filenames[filename] = False       
-        for p in self.populations[1:]:
-            filename = '%s/%s.spikes' %(tempdir, p.label)
-            p_file = files.NumpyBinaryFile(filename, mode='w')           
-            try:
-                p.recorders['spikes'].write(p_file, gather, compatible_output, p.record_filter)
-                filenames[filename] = True
-            except errors.NothingToWriteError:
-                filenames[filename] = False
-                
-        ## Then we need to merge the previsouly written files into a single one, to be consistent
-        ## with a Population object. Note that the header should be better considered.          
-        metadata = {'variable'    : 'spikes',
-                    'size'        : self.size,
-                    'label'       : self.label,
-                    'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
-                    'first_id'    : numpy.min([p.first_id for p in self.populations]),
-                    'last_id'     : numpy.max([p.last_id for p in self.populations])}
-                    
-        metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
-        data = numpy.zeros((0, 2))
-        for f in filenames.keys():
-            if filenames[f] is True:
-                p_file = files.NumpyBinaryFile(f, mode='r') 
-                data   = numpy.concatenate((data, p_file.read()))
-            os.remove(f)
-        metadata['n'] = data.shape[0]             
-        os.rmdir(tempdir)
-        
-        if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
-        
-        if rank() == 0:
-            file.write(data, metadata)
-            file.close()
+        self._print(file, 'spikes', (0, 2), gather, compatible_output)
 
     def print_v(self, file, gather=True, compatible_output=True):
         """
@@ -1320,49 +1324,7 @@ class Assembly(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        tempdir   = tempfile.mkdtemp()
-        filenames = {}
-        filename  = '%s/%s.v' %(tempdir, self[0].label)
-        p_file    = files.NumpyBinaryFile(filename, mode='w')
-        try:
-            self[0].recorders['v'].write(p_file, gather, compatible_output, self[0].record_filter)
-            filenames[filename] = True
-        except errors.NothingToWriteError:
-            filenames[filename] = False
-        for p in self.populations[1:]:
-            filename = '%s/%s.v' %(tempdir, p.label)
-            p_file = files.NumpyBinaryFile(filename, mode='w')
-            try:
-                p.recorders['v'].write(p_file, gather, compatible_output, p.record_filter)
-                filenames[filename] = True
-            except errors.NothingToWriteError:
-                filenames[filename] = False
-                
-        ## Then we need to merge the previsouly written files into a single one, to be consistent
-        ## with a Population object. Note that the header should be better considered.          
-        metadata = {'variable'    : 'v',
-                    'size'        : self.size,
-                    'label'       : self.label,
-                    'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
-                    'first_id'    : numpy.min([p.first_id for p in self.populations]),
-                    'last_id'     : numpy.max([p.last_id for p in self.populations])}
-                    
-        metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
-        data = numpy.zeros((0, 2))
-        for f in filenames.keys():
-            if filenames[f] is True:
-                p_file = files.NumpyBinaryFile(f, mode='r') 
-                data   = numpy.concatenate((data, p_file.read()))
-            os.remove(f)
-        metadata['n'] = data.shape[0]             
-        os.rmdir(tempdir)
-        
-        if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
-        
-        if rank() == 0:
-            file.write(data, metadata)
-            file.close()
+        self._print(file, 'v', (0, 2), gather, compatible_output)
 
     def print_gsyn(self, file, gather=True, compatible_output=True):
         """
@@ -1380,50 +1342,7 @@ class Assembly(object):
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        tempdir   = tempfile.mkdtemp()
-        filenames = {} 
-        filename  = '%s/%s.gsyn' %(tempdir, self[0].label)
-        p_file    = files.NumpyBinaryFile(filename, mode='w')
-        try:
-            self[0].recorders['gsyn'].write(p_file, gather, compatible_output, self[0].record_filter)
-            filenames[filename] = True
-        except errors.NothingToWriteError:
-            filenames[filename] = False
-        for p in self.populations[1:]:
-            filename = '%s/%s.gsyn' %(tempdir, p.label)
-            p_file = files.NumpyBinaryFile(filename, mode='w')                
-            try:
-                p.recorders['gsyn'].write(p_file, gather, compatible_output, p.record_filter)               
-                filenames[filename] = True
-            except errors.NothingToWriteError:
-                filenames[filename] = False
-                
-        ## Then we need to merge the previsouly written files into a single one, to be consistent
-        ## with a Population object. Note that the header should be better considered.          
-        metadata = {'variable'    : 'gsyn',
-                    'size'        : self.size,
-                    'label'       : self.label,
-                    'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
-                    'first_id'    : numpy.min([p.first_id for p in self.populations]),
-                    'last_id'     : numpy.max([p.last_id for p in self.populations])}
-                    
-        metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
-        data = numpy.zeros((0, 3))
-        for f in filenames.keys():
-            if filenames[f] is True:
-                p_file = files.NumpyBinaryFile(f, mode='r') 
-                data   = numpy.concatenate((data, p_file.read()))
-            os.remove(f)
-        metadata['n'] = data.shape[0]             
-        os.rmdir(tempdir)
-        
-        if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
-        
-        if rank() == 0:
-            file.write(data, metadata)
-            file.close()
-
+        self._print(file, 'gsyn', (0, 3), gather, compatible_output)
 
     def inject(self, current_source):
         """
