@@ -299,36 +299,36 @@ def test__record_invalid_variable():
     p = MockPopulation()
     assert_raises(errors.RecordingError, p._record, 'foo')
 
-def test__record_int():
-    p = MockPopulation()
-    p.recorders = {'spikes': Mock()}
-    p._record('spikes', 5)
-    meth, args, kwargs = p.recorders['spikes'].method_calls[0]
-    id_arr, = args
-    assert_equal(meth, 'record')
-    assert_equal(id_arr.size, 5)
+#def test__record_int():
+    #p = MockPopulation()
+    #p.recorders = {'spikes': Mock()}
+    #p._record('spikes', 5)
+    #meth, args, kwargs = p.recorders['spikes'].method_calls[0]
+    #id_arr, = args
+    #assert_equal(meth, 'record')
+    #assert_equal(id_arr.size, 5)
 
-def test__record_with_RNG():
-    p = MockPopulation()
-    p.recorders = {'v': Mock()}
-    rng = Mock()
-    rng.permutation = Mock(return_value=numpy.arange(p.size))
-    p._record('v', 5, rng)
-    meth, args, kwargs = p.recorders['v'].method_calls[0]
-    id_arr, = args
-    assert_equal(meth, 'record')
-    assert_equal(id_arr.size, 5)
-    rng.permutation.assert_called_with(p.all_cells)
+#def test__record_with_RNG():
+    #p = MockPopulation()
+    #p.recorders = {'v': Mock()}
+    #rng = Mock()
+    #rng.permutation = Mock(return_value=numpy.arange(p.size))
+    #p._record('v', 5, rng)
+    #meth, args, kwargs = p.recorders['v'].method_calls[0]
+    #id_arr, = args
+    #assert_equal(meth, 'record')
+    #assert_equal(id_arr.size, 5)
+    #rng.permutation.assert_called_with(p.all_cells)
 
-def test__record_list():
-    record_list = ['curly', 'larry', 'moe'] # should really check that record_list contains IDs
-    p = MockPopulation()
-    p.recorders = {'v': Mock()}
-    p._record('v', record_list)
-    meth, args, kwargs = p.recorders['v'].method_calls[0]
-    id_list, = args
-    assert_equal(meth, 'record')
-    assert_equal(id_list, record_list)
+#def test__record_list():
+    #record_list = ['curly', 'larry', 'moe'] # should really check that record_list contains IDs
+    #p = MockPopulation()
+    #p.recorders = {'v': Mock()}
+    #p._record('v', record_list)
+    #meth, args, kwargs = p.recorders['v'].method_calls[0]
+    #id_list, = args
+    #assert_equal(meth, 'record')
+    #assert_equal(id_list, record_list)
     
 def test_invalid_record_from():
     p = MockPopulation()
@@ -337,20 +337,20 @@ def test_invalid_record_from():
 def test_spike_recording():
     p = MockPopulation()
     p._record = Mock()
-    p.record("arg1", "arg2", "arg3")
-    p._record.assert_called_with('spikes', "arg1", "arg2", "arg3")
+    p.record("arg1")
+    p._record.assert_called_with('spikes', "arg1")
     
 def test_record_v():
     p = MockPopulation()
     p._record = Mock()
-    p.record_v("arg1", "arg2", "arg3")
-    p._record.assert_called_with('v', "arg1", "arg2", "arg3")
+    p.record_v("arg1")
+    p._record.assert_called_with('v', "arg1")
 
 def test_record_gsyn():
     p = MockPopulation()
     p._record = Mock()
-    p.record_gsyn("arg1", "arg2", "arg3")
-    p._record.assert_called_with('gsyn', "arg1", "arg2", "arg3")
+    p.record_gsyn("arg1")
+    p._record.assert_called_with('gsyn', "arg1")
 
 def test_printSpikes():
     p = MockPopulation()
@@ -412,7 +412,7 @@ def test_get_spike_counts():
     p.get_spike_counts("arg1")
     meth, args, kwargs = p.recorders['spikes'].method_calls[0]
     assert_equal(meth, 'count')
-    assert_equal(args, ("arg1",))
+    assert_equal(args, ("arg1", None))
     
 def test_meanSpikeCount():
     orig_rank = common.rank

@@ -777,7 +777,10 @@ class BasePopulation(object):
         spike_counts = self.recorders['spikes'].count(gather, self.record_filter)
         total_spikes = sum(spike_counts.values())
         if rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
-            return float(total_spikes)/len(spike_counts)
+            if len(spike_counts) > 0:
+                return float(total_spikes)/len(spike_counts)
+            else:
+                return numpy.nan
         else:
             return numpy.nan
         

@@ -122,7 +122,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     simulator.reset()
     
     return rank()
-
+ 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     global tempdirs
@@ -133,6 +133,7 @@ def end(compatible_output=True):
     for tempdir in tempdirs:
         shutil.rmtree(tempdir)
     tempdirs = []
+    simulator.recorder_list = []
 
 def run(simtime):
     """Run the simulation for simtime ms."""
