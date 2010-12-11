@@ -40,10 +40,11 @@ Common API implementation/base classes:
 $Id$
 """
 
-import numpy
+import numpy, os
 import logging
 from warnings import warn
 import operator
+import tempfile
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions
 from pyNN.recording import files
 from itertools import chain
@@ -1128,6 +1129,12 @@ class Assembly(object):
     def record(self, to_file=True):
         self._record('spikes', to_file)
 
+    def record_v(self, to_file=True):
+        self._record('v', to_file)
+
+    def record_gsyn(self, to_file=True):
+        self._record('gsyn', to_file)
+
     def get_population(self, label):
         for p in self.populations:
             if label == p.label:
@@ -1220,6 +1227,203 @@ class Assembly(object):
             except errors.NothingToWriteError:
                 pass
         return spike_counts
+
+    def printSpikes(self, file, gather=True, compatible_output=True):
+        """
+        Write spike times to file.
+
+        file should be either a filename or a PyNN File object.
+
+        If compatible_output is True, the format is "spiketime cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
+        This allows easy plotting of a `raster' plot of spiketimes, with one
+        line for each cell.
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
+
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        spike files.
+
+        For parallel simulators, if gather is True, all data will be gathered
+        to the master node and a single output file created there. Otherwise, a
+        file will be written on each node, containing only the cells simulated
+        on that node.
+        """
+        
+        ## First, we write all the individual data for the heterogeneous populations
+        ## embedded within the Assembly. To speed things up, we write them in temporary 
+        ## folders as Numpy Binary objects
+        tempdir   = tempfile.mkdtemp()
+        filenames = {} 
+        filename  = '%s/%s.spikes' %(tempdir, self[0].label)
+        p_file    = files.NumpyBinaryFile(filename, mode='w')
+        try:
+            self[0].recorders['spikes'].write(p_file, gather, compatible_output, self[0].record_filter)
+            filenames[filename] = True        
+        except errors.NothingToWriteError:
+            filenames[filename] = False       
+        for p in self.populations[1:]:
+            filename = '%s/%s.spikes' %(tempdir, p.label)
+            p_file = files.NumpyBinaryFile(filename, mode='w')           
+            try:
+                p.recorders['spikes'].write(p_file, gather, compatible_output, p.record_filter)
+                filenames[filename] = True
+            except errors.NothingToWriteError:
+                filenames[filename] = False
+                
+        ## Then we need to merge the previsouly written files into a single one, to be consistent
+        ## with a Population object. Note that the header should be better considered.          
+        metadata = {'variable'    : 'spikes',
+                    'size'        : self.size,
+                    'label'       : self.label,
+                    'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
+                    'first_id'    : numpy.min([p.first_id for p in self.populations]),
+                    'last_id'     : numpy.max([p.last_id for p in self.populations])}
+                    
+        metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        data = numpy.zeros((0, 2))
+        for f in filenames.keys():
+            if filenames[f] is True:
+                p_file = files.NumpyBinaryFile(f, mode='r') 
+                data   = numpy.concatenate((data, p_file.read()))
+            os.remove(f)
+        metadata['n'] = data.shape[0]             
+        os.rmdir(tempdir)
+        
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        
+        if rank() == 0:
+            file.write(data, metadata)
+            file.close()
+
+    def print_v(self, file, gather=True, compatible_output=True):
+        """
+        Write membrane potential traces to file.
+
+        file should be either a filename or a PyNN File object.
+
+        If compatible_output is True, the format is "v cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
+
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        voltage files.
+
+        For parallel simulators, if gather is True, all data will be gathered
+        to the master node and a single output file created there. Otherwise, a
+        file will be written on each node, containing only the cells simulated
+        on that node.
+        """
+        tempdir   = tempfile.mkdtemp()
+        filenames = {}
+        filename  = '%s/%s.v' %(tempdir, self[0].label)
+        p_file    = files.NumpyBinaryFile(filename, mode='w')
+        try:
+            self[0].recorders['v'].write(p_file, gather, compatible_output, self[0].record_filter)
+            filenames[filename] = True
+        except errors.NothingToWriteError:
+            filenames[filename] = False
+        for p in self.populations[1:]:
+            filename = '%s/%s.v' %(tempdir, p.label)
+            p_file = files.NumpyBinaryFile(filename, mode='w')
+            try:
+                p.recorders['v'].write(p_file, gather, compatible_output, p.record_filter)
+                filenames[filename] = True
+            except errors.NothingToWriteError:
+                filenames[filename] = False
+                
+        ## Then we need to merge the previsouly written files into a single one, to be consistent
+        ## with a Population object. Note that the header should be better considered.          
+        metadata = {'variable'    : 'v',
+                    'size'        : self.size,
+                    'label'       : self.label,
+                    'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
+                    'first_id'    : numpy.min([p.first_id for p in self.populations]),
+                    'last_id'     : numpy.max([p.last_id for p in self.populations])}
+                    
+        metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        data = numpy.zeros((0, 2))
+        for f in filenames.keys():
+            if filenames[f] is True:
+                p_file = files.NumpyBinaryFile(f, mode='r') 
+                data   = numpy.concatenate((data, p_file.read()))
+            os.remove(f)
+        metadata['n'] = data.shape[0]             
+        os.rmdir(tempdir)
+        
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        
+        if rank() == 0:
+            file.write(data, metadata)
+            file.close()
+
+    def print_gsyn(self, file, gather=True, compatible_output=True):
+        """
+        Write synaptic conductance traces to file.
+
+        file should be either a filename or a PyNN File object.
+
+        If compatible_output is True, the format is "t g cell_id",
+        where cell_id is the index of the cell counting along rows and down
+        columns (and the extension of that for 3-D).
+        The timestep, first id, last id, and number of data points per cell are
+        written in a header, indicated by a '#' at the beginning of the line.
+
+        If compatible_output is False, the raw format produced by the simulator
+        is used. This may be faster, since it avoids any post-processing of the
+        voltage files.
+        """
+        tempdir   = tempfile.mkdtemp()
+        filenames = {} 
+        filename  = '%s/%s.gsyn' %(tempdir, self[0].label)
+        p_file    = files.NumpyBinaryFile(filename, mode='w')
+        try:
+            self[0].recorders['gsyn'].write(p_file, gather, compatible_output, self[0].record_filter)
+            filenames[filename] = True
+        except errors.NothingToWriteError:
+            filenames[filename] = False
+        for p in self.populations[1:]:
+            filename = '%s/%s.gsyn' %(tempdir, p.label)
+            p_file = files.NumpyBinaryFile(filename, mode='w')                
+            try:
+                p.recorders['gsyn'].write(p_file, gather, compatible_output, p.record_filter)               
+                filenames[filename] = True
+            except errors.NothingToWriteError:
+                filenames[filename] = False
+                
+        ## Then we need to merge the previsouly written files into a single one, to be consistent
+        ## with a Population object. Note that the header should be better considered.          
+        metadata = {'variable'    : 'gsyn',
+                    'size'        : self.size,
+                    'label'       : self.label,
+                    'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
+                    'first_id'    : numpy.min([p.first_id for p in self.populations]),
+                    'last_id'     : numpy.max([p.last_id for p in self.populations])}
+                    
+        metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        data = numpy.zeros((0, 3))
+        for f in filenames.keys():
+            if filenames[f] is True:
+                p_file = files.NumpyBinaryFile(f, mode='r') 
+                data   = numpy.concatenate((data, p_file.read()))
+            os.remove(f)
+        metadata['n'] = data.shape[0]             
+        os.rmdir(tempdir)
+        
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        
+        if rank() == 0:
+            file.write(data, metadata)
+            file.close()
+
 
     def inject(self, current_source):
         """
