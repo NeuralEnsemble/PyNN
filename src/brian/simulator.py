@@ -105,20 +105,11 @@ class PoissonGroupWithDelays(brian.PoissonGroup):
                                    threshold=brian.PoissonThreshold(),
                                    clock=state.simclock,
                                    max_delay=state.max_delay*ms)
-        if callable(rates): # a function is passed
-            self._variable_rate=True
-            self.rates=rates
-            self._S0[0]=self.rates(self.clock.t)
-        else:
-            self._variable_rate = False
-            self._S[0,:] = rates
-            self._S0[0] = rates
+        self._variable_rate = True
+        self.rates          = rates
+        self._S0[0]         = self.rates(self.clock.t)
         #self.var_index = {'rate':0}
         self.parameter_names = ['rate', 'start', 'duration']
-
-    start    = _new_property('rates', 'start', ms)
-    rate     = _new_property('rates', 'rate', Hz)
-    duration = _new_property('rates', 'duration', ms)
     
     def initialize(self):
         pass
@@ -154,38 +145,47 @@ class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
 class _State(object):
     """Represent the simulator state."""
     
-    def __init__(self):
+    def __init__(self, timestep, min_delay, max_delay):
         """Initialize the simulator."""
-        self.simclock = None
-        self.initialized = False
+        self.network       = brian.Network()
+        self._set_dt(timestep)
+        self.initialized   = True
         self.num_processes = 1
-        self.mpi_rank = 0
-        self.min_delay = numpy.NaN
-        self.max_delay = numpy.NaN
+        self.mpi_rank      = 0
+        self.min_delay     = min_delay
+        self.max_delay     = max_delay
         
     def _get_dt(self):
-        if self.simclock is None:
+        if self.network.clock is None:
             raise Exception("Simulation timestep not yet set. Need to call setup()")
-        return self.simclock.dt/ms
+        return self.network.clock.dt/ms
+        
     def _set_dt(self, timestep):
-        if self.simclock is None or timestep != self._get_dt():
-            self.simclock = brian.Clock(dt=timestep*ms)
+        if self.network.clock is None or timestep != self._get_dt():
+            self.network.clock = brian.Clock(dt=timestep*ms)
     dt = property(fget=_get_dt, fset=_set_dt)
+
+    @property
+    def simclock(self):
+        if self.network.clock is None:
+            raise Exception("Simulation timestep not yet set. Need to call setup()")
+        return self.network.clock
 
     @property
     def t(self):
         return self.simclock.t/ms
 
+    def run(self, simtime):
+        self.network.run(simtime * ms)        
+
+    def add(self, object):
+        self.network.add(object)
+
 def reset():
     """Reset the state of the current network to time t = 0."""
-    state.simclock.reinit()
-    for device in net.operations:
-        if hasattr(device, "reinit"):
-            device.reinit()
-    for group in net.groups:
-        group.reinit()
-        group.initialize()
-    
+    state.network.reinit()
+    for group in state.network.groups:
+        group.initialize()    
     
 # --- For implementation of access to individual neurons' parameters -----------
     
@@ -202,11 +202,13 @@ class ID(int, common.IDMixin):
         params = {}
         assert hasattr(self.parent_group, "parameter_names"), str(self.cellclass)
         for name in self.parent_group.parameter_names:
-            if name in ['v_thresh', 'v_reset', 'tau_refrac', 'start', 'rate', 'duration']:
+            if name in ['v_thresh', 'v_reset', 'tau_refrac']:
                 # parameter shared among all cells
                 params[name] = float(getattr(self.parent_group, name))
+            elif name in ['rate', 'duration', 'start']:
+                params[name] = getattr(self.parent_group.rates, name)[int(self)]
             elif name == 'spiketimes':
-                params[name] = getattr(self.parent_group, name)[int(self)]
+                params[name] = getattr(self.parent_group,name)[int(self)]
             else:
                 # parameter may vary from cell to cell
                 try:
@@ -218,9 +220,11 @@ class ID(int, common.IDMixin):
     def set_native_parameters(self, parameters):
         """Set parameters of the Brian cell model from a dictionary."""
         for name, value in parameters.items():
-            if name in ['v_thresh', 'v_reset', 'tau_refrac', 'start', 'rate', 'duration']:
+            if name in ['v_thresh', 'v_reset', 'tau_refrac']:
                 setattr(self.parent_group, name, value)
-                logger.warning("This parameter cannot be set for individual cells within a Population. Changing the value for all cells in the Population.")
+                #logger.warning("This parameter cannot be set for individual cells within a Population. Changing the value for all cells in the Population.")
+            elif name in ['rate', 'duration', 'start']:
+                eval('self.parent_group.rates.%s' %name)[int(self)] = value
             elif name == 'spiketimes':
                 all_spiketimes = [st[st>state.t] for st in self.parent_group.spiketimes]
                 all_spiketimes[int(self)] = value
@@ -441,7 +445,7 @@ class ConnectionManager(object):
                                                           synapse_obj,
                                                           max_delay=state.max_delay*ms)
             self.brian_connections.weight_units = weight_units
-            net.add(self.brian_connections)
+            state.add(self.brian_connections)
         return self.brian_connections
     
     def connect(self, source, targets, weights, delays, homogeneous=False):
@@ -527,7 +531,7 @@ class ConnectionManager(object):
         if format == 'list':
             values = values.tolist()
         elif format == 'array':
-            value_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
+            values_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
             sources, targets = self.indices
             values_arr[sources, targets] = values
             values = values_arr
@@ -582,6 +586,5 @@ class ConnectionManager(object):
 
 # --- Initialization, and module attributes ------------------------------------
 
-state = _State()  # a Singleton, so only a single instance ever exists
-del _State
-net = brian.Network()
+state = None  # a Singleton, so only a single instance ever exists
+#del _State

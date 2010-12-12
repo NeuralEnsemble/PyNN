@@ -32,7 +32,7 @@ class Recorder(recording.Recorder):
             device2 = brian.StateMonitor(group, varname, record=True, clock=clock)
             devices = [device1, device2]
         for device in devices:
-            simulator.net.add(device)
+            simulator.state.add(device)
         return devices
     
     def record(self, ids):

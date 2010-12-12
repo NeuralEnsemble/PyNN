@@ -35,6 +35,8 @@ CHECK_CONNECTIONS = False
 recorder_list = []
 connection_managers = []
 
+global net
+net    = None
 logger = logging.getLogger("PyNN")
 
 # --- For implementation of get_time_step() and similar functions --------------
@@ -43,11 +45,13 @@ class _State(object):
     """Represent the simulator state."""
     
     def __init__(self):
+        
         self.initialized = False
         self.running     = False
         self.optimize    = False
         self.nominal_time = 0.0
         self.spike_precision = "on_grid"
+        
 
     @property
     def t(self):

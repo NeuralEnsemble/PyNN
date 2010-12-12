@@ -9,7 +9,7 @@ $Id$
 """
 
 from brian import ms, nA, network_operation
-from simulator import state, net
+from simulator import state
 import numpy
 
 current_sources = []
@@ -19,8 +19,6 @@ def update_currents():
     global current_sources
     for current_source in current_sources:
         current_source._update_current()
-net.add(update_currents)
-
 
 class CurrentSource(object):
     """Base class for a source of current to be injected into a neuron."""
@@ -56,7 +54,7 @@ class StepCurrentSource(CurrentSource):
         CurrentSource.__init__(self)
         assert len(times) == len(amplitudes), "times and amplitudes must be the same size (len(times)=%d, len(amplitudes)=%d" % (len(times), len(amplitudes))
         self.times = times
-        self.amplitudes = amplitudes
+        self.amplitudes = numpy.array(amplitudes) * nA
         self.i = 0
         self.running = True
     
@@ -67,14 +65,12 @@ class StepCurrentSource(CurrentSource):
         
         This is called at every timestep.
         """
-        if self.running and state.t >= self.times[self.i]: #*ms:
-            amp = self.amplitudes[self.i]*nA               
+        if self.running and state.t >= self.times[self.i]: #*ms:   
+            for cell in self.cell_list:
+                cell.parent_group.i_inj[int(cell)] = self.amplitudes[self.i]
             self.i += 1
             if self.i >= len(self.times):
-                self.running = False
-            #print self.i, state.t, amp
-            for cell in self.cell_list:
-                cell.parent_group[int(cell)].i_inj = amp
+                self.running = False            
         
                 
 class DCSource(StepCurrentSource):

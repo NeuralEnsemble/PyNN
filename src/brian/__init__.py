@@ -45,21 +45,28 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     common.setup(timestep, min_delay, max_delay, **extra_params)
     brian.set_global_preferences(**extra_params)
-    simulator.net.add(update_currents) # from electrodes
+    simulator.state = simulator._State(timestep, min_delay, max_delay)
+    simulator.state.add(update_currents) # from electrodes
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
     simulator.state.dt        = timestep
-    reset()
     return rank()
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     for recorder in simulator.recorder_list:
         recorder.write(gather=True, compatible_output=compatible_output)
+    simulator.recorder_list = []
+    electrodes.current_sources = []
+    brian.clear()
 
+def get_current_time():
+    """Return the current time in the simulation."""
+    return simulator.state.t
+    
 def run(simtime):
     """Run the simulation for simtime ms."""
-    simulator.net.run(simtime * ms)
+    simulator.state.run(simtime)
     return get_current_time()
 
 reset = simulator.reset
@@ -70,7 +77,6 @@ initialize = common.initialize
 #   Functions returning information about the simulation state
 # ==============================================================================
 
-get_current_time = common.get_current_time
 get_time_step = common.get_time_step
 get_min_delay = common.get_min_delay
 get_max_delay = common.get_max_delay
@@ -121,7 +127,7 @@ class Population(common.Population, common.BasePopulation):
             celltype = cellclass(cellparams)
             cell_parameters = celltype.parameters
             if isinstance(celltype, cells.SpikeSourcePoisson):    
-                fct = celltype.fct
+                fct = celltype.rates(cell_parameters['start'], cell_parameters['duration'], cell_parameters['rate'], n)
                 brian_cells = simulator.PoissonGroupWithDelays(n, rates=fct)
             elif isinstance(celltype, cells.SpikeSourceArray):
                 spike_times = cell_parameters['spiketimes']
@@ -153,7 +159,7 @@ class Population(common.Population, common.BasePopulation):
         self.first_id    = self.all_cells[0]
         self.last_id     = self.all_cells[-1]
         self.brian_cells = brian_cells
-        simulator.net.add(brian_cells)
+        simulator.state.network.add(brian_cells)
 
     def initialize(self, variable, value):
         """
@@ -245,13 +251,13 @@ class Projection(common.Projection):
                                       parameters['mu_minus'],
                                       wmin = parameters['w_min'] * units,
                                       wmax = parameters['w_max'] * units)
-                simulator.net.add(stdp)
+                simulator.state.add(stdp)
             elif self._plasticity_model is "tsodyks_markram_synapse":
                 parameters   = self.synapse_dynamics.fast.parameters
                 stp = brian.STP(synapses, parameters['tau_rec'] * ms, 
                                           parameters['tau_facil'] * ms, 
                                           parameters['U'])
-                simulator.net.add(stp)
+                simulator.state.add(stp)
                 
     def saveConnections(self, file, gather=True, compatible_output=True):
         """

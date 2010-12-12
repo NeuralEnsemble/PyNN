@@ -527,7 +527,6 @@ class BasePopulation(object):
             self._set_array(**param_dict)
         else:
             for cell in self:
-                print param_dict
                 cell.set_parameters(**param_dict)
 
     def tset(self, parametername, value_array):

@@ -198,21 +198,21 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         Acts as a function of time for the PoissonGroup, while storing the
         parameters for later retrieval.
         """
-        def __init__(self, start, duration, rate):
-            self.start = start*ms
-            self.duration = duration*ms
-            self.rate = rate*Hz
+        def __init__(self, start, duration, rate, n):
+            self.start    = start * numpy.ones(n) * ms
+            self.duration = duration * numpy.ones(n) * ms
+            self.rate     = rate * numpy.ones(n) * Hz
+        
         def __call__(self, t):
             #print t, self.start, self.duration, self.rate
-            return (self.start <= t <= self.start + self.duration) and self.rate or 0.0*Hz
+            idx = (self.start <= t) & (t <= self.start + self.duration)
+            return numpy.where(idx, self.rate, 0)
     
     def __init__(self, parameters):
         cells.SpikeSourcePoisson.__init__(self, parameters)
         start    = self.parameters['start']
         duration = self.parameters['duration']
-        rate     = self.parameters['rate']
-        self.fct = SpikeSourcePoisson.rates(start, duration, rate)
-    
+        rate     = self.parameters['rate']    
     
 class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""

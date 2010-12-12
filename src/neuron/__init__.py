@@ -69,6 +69,7 @@ def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     for recorder in simulator.recorder_list:
         recorder.write(gather=True, compatible_output=compatible_output)
+    simulator.recorder_list = []
     #simulator.finalize()
         
 def run(simtime):
