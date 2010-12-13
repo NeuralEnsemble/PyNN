@@ -78,10 +78,15 @@ def nesteddictwalk(d):
 class ThresholdNeuronGroup(brian.NeuronGroup):
     
     def __init__(self, n, equations, **kwargs):
+        try:
+            clock = state.simclock
+            max_delay = state.max_delay*ms
+        except Exception:
+            raise Exception("Simulation timestep not yet set. Need to call setup()")
         brian.NeuronGroup.__init__(self, n, model=equations,
                                    compile=True,
-                                   clock=state.simclock,
-                                   max_delay=state.max_delay*ms,
+                                   clock=clock,
+                                   max_delay=max_delay,
                                    freeze=True,
                                    **kwargs)
         self.parameter_names = equations._namespace.keys() + ['v_thresh', 'v_reset', 'tau_refrac']
@@ -89,6 +94,7 @@ class ThresholdNeuronGroup(brian.NeuronGroup):
             if var in self.parameter_names:
                 self.parameter_names.remove(var)
         self.initial_values = {}
+        self._S0 = self._S[:,0]
 
     tau_refrac = _new_property('_resetfun', 'period', ms)
     v_reset    = _new_property('_resetfun', 'resetvalue', mV)
@@ -101,14 +107,18 @@ class ThresholdNeuronGroup(brian.NeuronGroup):
 class PoissonGroupWithDelays(brian.PoissonGroup):
 
     def __init__(self, N, rates=0):
+        try:
+            clock = state.simclock
+            max_delay = state.max_delay*ms
+        except Exception:
+            raise Exception("Simulation timestep not yet set. Need to call setup()")
         brian.NeuronGroup.__init__(self, N, model=brian.LazyStateUpdater(),
                                    threshold=brian.PoissonThreshold(),
-                                   clock=state.simclock,
-                                   max_delay=state.max_delay*ms)
+                                   clock=clock,
+                                   max_delay=max_delay)
         self._variable_rate = True
         self.rates          = rates
         self._S0[0]         = self.rates(self.clock.t)
-        #self.var_index = {'rate':0}
         self.parameter_names = ['rate', 'start', 'duration']
     
     def initialize(self):
@@ -118,12 +128,17 @@ class PoissonGroupWithDelays(brian.PoissonGroup):
 class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
    
     def __init__(self, spiketimes):
+        try:
+            clock = state.simclock
+            max_delay = state.max_delay*ms
+        except Exception:
+            raise Exception("Simulation timestep not yet set. Need to call setup()")
         thresh = brian.directcontrol.MultipleSpikeGeneratorThreshold(spiketimes)
         brian.NeuronGroup.__init__(self, len(spiketimes),
                                    model=brian.LazyStateUpdater(),
                                    threshold=thresh,
-                                   clock=state.simclock,
-                                   max_delay=state.max_delay*ms)
+                                   clock=clock,
+                                   max_delay=max_delay)
         self.parameter_names = ['spiketimes']
 
     def _get_spiketimes(self):
@@ -224,7 +239,7 @@ class ID(int, common.IDMixin):
                 setattr(self.parent_group, name, value)
                 #logger.warning("This parameter cannot be set for individual cells within a Population. Changing the value for all cells in the Population.")
             elif name in ['rate', 'duration', 'start']:
-                eval('self.parent_group.rates.%s' %name)[int(self)] = value
+                getattr(self.parent_group.rates, name)[int(self)] = value
             elif name == 'spiketimes':
                 all_spiketimes = [st[st>state.t] for st in self.parent_group.spiketimes]
                 all_spiketimes[int(self)] = value
@@ -434,11 +449,15 @@ class ConnectionManager(object):
             assert isinstance(source_group, brian.NeuronGroup)
             assert isinstance(target_group, brian.NeuronGroup), type(target_group)
             assert isinstance(synapse_obj, basestring), "%s (%s)" % (synapse_obj, type(synapse_obj))
+            try:
+                max_delay = state.max_delay*ms
+            except Exception:
+                raise Exception("Simulation timestep not yet set. Need to call setup()")
             if not homogeneous:
                 self.brian_connections = brian.DelayConnection(source_group,
                                                                target_group,
                                                                synapse_obj,
-                                                               max_delay=state.max_delay*ms)
+                                                               max_delay=max_delay)
             else:
                 self.brian_connections = brian.Connection(source_group,
                                                           target_group,

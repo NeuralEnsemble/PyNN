@@ -58,7 +58,9 @@ def end(compatible_output=True):
         recorder.write(gather=True, compatible_output=compatible_output)
     simulator.recorder_list = []
     electrodes.current_sources = []
-    brian.clear()
+    for item in simulator.state.network.groups + simulator.state.network._all_operations:
+        del item    
+    del simulator.state
 
 def get_current_time():
     """Return the current time in the simulation."""
