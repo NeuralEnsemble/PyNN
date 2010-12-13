@@ -98,13 +98,13 @@ class ID(long, common.IDMixin):
         pcsim_cell = self._pcsim_cell()
         pcsim_parameters = {}
         if self.is_standard_cell:
-            parameter_names = [D['translated_name'] for D in self.cellclass.translations.values()]
+            parameter_names = [D['translated_name'] for D in self.celltype.translations.values()]
         else:
             parameter_names = [] # for native cells, is there a way to get their list of parameters?
         
         for translated_name in parameter_names:
-            if hasattr(self.cellclass, 'getterMethods') and translated_name in self.cellclass.getterMethods:
-                getterMethod = self.cellclass.getterMethods[translated_name]
+            if hasattr(self.celltype, 'getterMethods') and translated_name in self.celltype.getterMethods:
+                getterMethod = self.celltype.getterMethods[translated_name]
                 pcsim_parameters[translated_name] = getattr(pcsim_cell, getterMethod)()    
             else:
                 try:
@@ -120,8 +120,8 @@ class ID(long, common.IDMixin):
         """Set parameters of the PCSIM cell model from a dictionary."""
         simobj = self._pcsim_cell()
         for name, value in parameters.items():
-            if hasattr(self.cellclass, 'setterMethods') and name in self.cellclass.setterMethods:
-                setterMethod = self.cellclass.setterMethods[name]
+            if hasattr(self.celltype, 'setterMethods') and name in self.celltype.setterMethods:
+                setterMethod = self.celltype.setterMethods[name]
                 getattr(simobj, setterMethod)(value)
             else:               
                 setattr(simobj, name, value)
@@ -129,8 +129,8 @@ class ID(long, common.IDMixin):
     def get_initial_value(self, variable):
         pcsim_name, unit_conversion = STATE_VARIABLE_MAP[variable]
         pcsim_cell = self._pcsim_cell()
-        if hasattr(self.cellclass, 'getterMethods') and variable in self.cellclass.getterMethods:
-            getterMethod = self.cellclass.getterMethods[pcsim_name]
+        if hasattr(self.celltype, 'getterMethods') and variable in self.celltype.getterMethods:
+            getterMethod = self.celltype.getterMethods[pcsim_name]
             value = getattr(pcsim_cell, getterMethod)()    
         else:
             try:
@@ -143,8 +143,8 @@ class ID(long, common.IDMixin):
         pcsim_name, unit_conversion = STATE_VARIABLE_MAP[variable]
         pcsim_cell = self._pcsim_cell()
         value = unit_conversion*value
-        if hasattr(self.cellclass, 'setterMethods') and variable in self.cellclass.setterMethods:
-            setterMethod = self.cellclass.setterMethods[pcsim_name]
+        if hasattr(self.celltype, 'setterMethods') and variable in self.celltype.setterMethods:
+            setterMethod = self.celltype.setterMethods[pcsim_name]
             getattr(pcsim_cell, setterMethod)(value)    
         else:
             try:

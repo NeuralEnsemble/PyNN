@@ -22,7 +22,7 @@ class MockPopulation(object):
         if standard:
             self.celltype = MockStandardCell({})
         else:
-            self.celltype = MockNativeCell
+            self.celltype = MockNativeCell()
         self._is_local_called = False
         self._positions = {}
         self._initial_values = {}
@@ -45,7 +45,7 @@ class MockID(common.IDMixin):
         self.parent = MockPopulation(standard=standard_cell)
         self.foo = "bar"
         self._parameters = {'A': 76.5, 'B': 23.4, 'C': 100.0}
-        
+    
     def get_native_parameters(self):
         return self._parameters
     def set_native_parameters(self, parameters):
@@ -92,9 +92,9 @@ class Test_IDMixin():
     def test_get_parameters(self):
         assert_equal(self.id.get_parameters(), {'a': 76.5, 'b': 23.4, 'c': 23.5})
         
-    def test_cellclass_property(self):
-        assert_equal(self.id.cellclass, MockStandardCell)
-        assert_equal(self.id_ns.cellclass, MockNativeCell)
+    def test_celltype_property(self):
+        assert_equal(self.id.celltype.__class__, MockStandardCell)
+        assert_equal(self.id_ns.celltype.__class__, MockNativeCell)
         
     def test_is_standard_cell(self):
         assert self.id.is_standard_cell

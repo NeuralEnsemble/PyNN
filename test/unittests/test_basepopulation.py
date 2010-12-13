@@ -10,6 +10,10 @@ id_map = {'larry': 0, 'curly': 1, 'moe': 2}
 
 class MockStandardCell(standardmodels.StandardCellType):
     recordable = ['v', 'spikes']
+    default_parameters = {'tau_m': 999.9, 'i_offset': 321, 'spike_times': [0,1,2], 'foo': 33.3}
+    @classmethod
+    def translate(cls, parameters):
+        return parameters
 
 class MockPopulation(common.BasePopulation):
     size = 13
@@ -442,7 +446,7 @@ def test_inject():
 
 def test_inject_into_invalid_celltype():
     p = MockPopulation()
-    p.celltype.recordable = ['spikes']
+    p.celltype.injectable = False
     assert_raises(TypeError, p.inject, Mock())
 
 def test_save_positions():

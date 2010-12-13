@@ -23,7 +23,7 @@ class CurrentSource(object):
         else:
             delay = simulator.state.min_delay # perhaps it would be better to replicate the current source on each node, to avoid this delay
         for cell in cell_list:
-            if cell.local and 'v' not in cell.cellclass.recordable:
+            if cell.local and not cell.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
             c = simulator.net.connect(self.input_node, cell, pypcsim.StaticAnalogSynapse(delay=0.001*delay))
             self.connections.append(c)

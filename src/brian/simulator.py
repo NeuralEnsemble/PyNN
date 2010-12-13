@@ -215,7 +215,7 @@ class ID(int, common.IDMixin):
     def get_native_parameters(self):
         """Return a dictionary of parameters for the Brian cell model."""
         params = {}
-        assert hasattr(self.parent_group, "parameter_names"), str(self.cellclass)
+        assert hasattr(self.parent_group, "parameter_names"), str(self.celltype)
         for name in self.parent_group.parameter_names:
             if name in ['v_thresh', 'v_reset', 'tau_refrac']:
                 # parameter shared among all cells
@@ -229,7 +229,7 @@ class ID(int, common.IDMixin):
                 try:
                     params[name] = float(getattr(self.parent_group, name)[int(self)])
                 except TypeError, errmsg:
-                    raise TypeError("%s. celltype=%s, parameter name=%s" % (errmsg, self.cellclass, name))
+                    raise TypeError("%s. celltype=%s, parameter name=%s" % (errmsg, self.celltype, name))
         return params
     
     def set_native_parameters(self, parameters):
@@ -497,7 +497,7 @@ class ConnectionManager(object):
         else:
             units = nA
         synapse_type = self.synapse_type or "excitatory"
-        synapse_obj  = targets[0].cellclass.synapses[synapse_type]
+        synapse_obj  = targets[0].celltype.synapses[synapse_type]
         try:
             source_group = source.parent_group
         except AttributeError, errmsg:

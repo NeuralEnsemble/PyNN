@@ -257,8 +257,9 @@ class ConnectionManager:
         if not core.is_listlike(targets):
             targets = [targets]
         assert len(targets) > 0
-        if self.synapse_type not in ('excitatory', 'inhibitory', None):
-            raise errors.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
+        
+        if self.synapse_type not in targets[0].celltype.synapse_types:
+            raise errors.ConnectionError("synapse_type must be one of %s" % "', '".join(str(st for st in targets[0].celltype.synapse_types)))
         weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
@@ -273,11 +274,15 @@ class ConnectionManager:
         elif isinstance(delays, float):
             delays = [delays]
         
-        try:
-            nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)            
-        except nest.NESTError, e:
-            raise errors.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                                         e, source, targets, weights, delays, self.synapse_model))
+        if targets[0].celltype.standard_receptor_type:
+            try:
+                nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)            
+            except nest.NESTError, e:
+                raise errors.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                                             e, source, targets, weights, delays, self.synapse_model))
+        else:
+            for target, w, d in zip(targets, weights, delays):
+                nest.Connect([source], [target], {'weight': w, 'delay': d, 'receptor_type': target.celltype.get_receptor_type(self.synapse_type)})
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self.sources.append(source)
 

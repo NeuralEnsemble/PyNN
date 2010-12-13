@@ -70,11 +70,8 @@ def is_conductance(target_cell):
     it uses current-based synapses, and None if the synapse-basis cannot be
     determined.
     """
-    if hasattr(target_cell, 'local') and target_cell.local and hasattr(target_cell, 'cellclass'):
-        if isinstance(target_cell.cellclass, type):
-            is_conductance = target_cell.cellclass.conductance_based
-        else:  # where cellclass is a string, i.e. for native cell types in NEST
-            is_conductance = "cond" in target_cell.cellclass
+    if hasattr(target_cell, 'local') and target_cell.local and hasattr(target_cell, 'celltype'):
+        is_conductance = target_cell.celltype.conductance_based
     else:
         is_conductance = None
     return is_conductance
@@ -141,14 +138,14 @@ class IDMixin(object):
                 val = self.get_parameters()[name]
             except KeyError:
                 raise errors.NonExistentParameterError(name,
-                                                       self.cellclass.__name__,
-                                                       self.cellclass.get_parameter_names())
+                                                       self.celltype.__class__.__name__,
+                                                       self.celltype.get_parameter_names())
         return val
 
     def __setattr__(self, name, value):
         if name == "parent":
             object.__setattr__(self, name, value)
-        elif self.cellclass.has_parameter(name):
+        elif self.celltype.has_parameter(name):
             self.set_parameters(**{name: value})
         else:
             object.__setattr__(self, name, value)
@@ -161,14 +158,14 @@ class IDMixin(object):
         # parameters, need to get and translate all parameters
         if self.local:
             if self.is_standard_cell:
-                computed_parameters = self.cellclass.computed_parameters()
+                computed_parameters = self.celltype.computed_parameters()
                 have_computed_parameters = numpy.any([p_name in computed_parameters
                                                       for p_name in parameters])
                 if have_computed_parameters:
                     all_parameters = self.get_parameters()
                     all_parameters.update(parameters)
                     parameters = all_parameters
-                parameters = self.cellclass.translate(parameters)
+                parameters = self.celltype.translate(parameters)
             self.set_native_parameters(parameters)
         else:
             raise errors.NotLocalError("Cannot set parameters for a cell that does not exist on this node.")
@@ -178,25 +175,18 @@ class IDMixin(object):
         if self.local:
             parameters = self.get_native_parameters()            
             if self.is_standard_cell:
-                parameters = self.cellclass.reverse_translate(parameters)
+                parameters = self.celltype.reverse_translate(parameters)
             return parameters
         else:
             raise errors.NotLocalError("Cannot obtain parameters for a cell that does not exist on this node.")
 
     @property
-    def cellclass(self):
-        celltype = self.parent.celltype
-        if isinstance(celltype, str):
-            return celltype
-        elif isinstance(celltype, standardmodels.StandardCellType):
-            return celltype.__class__
-        else:
-            return celltype
+    def celltype(self):
+        return self.parent.celltype
 
     @property
     def is_standard_cell(self):
-        return (type(self.cellclass) == type and
-                issubclass(self.cellclass, standardmodels.StandardCellType))
+        return issubclass(self.celltype.__class__, standardmodels.StandardCellType)
 
     def _set_position(self, pos):
         """
@@ -516,6 +506,8 @@ class BasePopulation(object):
         else:
             raise errors.InvalidParameterValueError
         for name, val in param_dict.items():
+            if name not in self.celltype.get_parameter_names():
+                raise errors.NonExistentParameterError(name, self.celltype, self.celltype.get_parameter_names())
             if isinstance(val, (float, int)):
                 param_dict[name] = float(val)
             elif isinstance(val, (list, numpy.ndarray)):
@@ -539,6 +531,8 @@ class BasePopulation(object):
         #'Topographic' set. Each value in parameters should be a function that
         #accepts arguments x,y,z and returns a single value.
         #"""
+        if parametername not in self.celltype.get_parameter_names():
+            raise errors.NonExistentParameterError(parametername, self.celltype, self.celltype.get_parameter_names())
         if (self.size,) == value_array.shape:  # the values are numbers or non-array objects
             local_values = value_array[self._mask_local]
             assert local_values.size == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
@@ -637,10 +631,7 @@ class BasePopulation(object):
 
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
-        if isinstance(self.celltype, standardmodels.StandardCellType):
-            return (variable in self.celltype.recordable)
-        else:
-            return True  # for now, not able to check for native cells, although it should be possible in principle
+        return (variable in self.celltype.recordable)
 
     def _record(self, variable, to_file=True):
         """
@@ -787,7 +778,7 @@ class BasePopulation(object):
         """
         Connect a current source to all cells in the Population.
         """
-        if 'v' not in self.celltype.recordable:
+        if not self.celltype.injectable:
             raise TypeError("Can't inject current into a spike source.")
         current_source.inject_into(self)
 
@@ -850,22 +841,17 @@ class Population(BasePopulation):
             size = reduce(operator.mul, size)
         self.size = size
         self.label = label or 'population%d' % Population.nPop
-        if isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
-            self.celltype = cellclass(cellparams)
-        else:
-            self.celltype = cellclass
+        self.celltype = cellclass(cellparams)
         self._structure = structure or space.Line()
         self._positions = None
-        self.cellparams = cellparams
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
         # The local cells are also stored in a list, for easy iteration
         self._create_cells(cellclass, cellparams, size)
         self.initial_values = {}
-        if hasattr(self.celltype, "default_initial_values"):
-            for variable, value in self.celltype.default_initial_values.items():
-                self.initialize(variable, value)
+        for variable, value in self.celltype.default_initial_values.items():
+            self.initialize(variable, value)
         self.recorders = {'spikes': self.recorder_class('spikes', population=self),
                           'v'     : self.recorder_class('v', population=self),
                           'gsyn'  : self.recorder_class('gsyn', population=self)}
@@ -981,7 +967,6 @@ class PopulationView(BasePopulation):
         self.label = label or "view of %s with mask %s" % (parent.label, self.mask)
         # maybe just redefine __getattr__ instead of the following...
         self.celltype     = self.parent.celltype
-        self.cellparams   = self.parent.cellparams
         self.all_cells    = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?
         self.size         = len(self.all_cells)
         self._mask_local  = self.parent._mask_local[self.mask]

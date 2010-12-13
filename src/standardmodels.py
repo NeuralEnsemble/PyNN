@@ -197,8 +197,9 @@ class StandardCellType(StandardModelType):
 
     recordable = ['spikes', 'v', 'gsyn']
     synapse_types = ('excitatory', 'inhibitory')
-    conductance_based = True # over-ride for cells with current-based synapses
-    always_local = False # over-ride for NEST spike sources
+    conductance_based = True # override for cells with current-based synapses
+    always_local = False # override for NEST spike sources
+    injectable = True # override for spike sources
 
 
 class ModelNotAvailable(object):

@@ -26,9 +26,9 @@ class Recorder(recording.Recorder):
             devices = [brian.StateMonitor(group, 'v', record=True, clock=clock)]
         elif self.variable == 'gsyn':
             example_cell = list(self.recorded)[0]
-            varname = example_cell.cellclass.synapses['excitatory']
+            varname = example_cell.celltype.synapses['excitatory']
             device1 = brian.StateMonitor(group, varname, record=True, clock=clock)
-            varname = example_cell.cellclass.synapses['inhibitory']
+            varname = example_cell.celltype.synapses['inhibitory']
             device2 = brian.StateMonitor(group, varname, record=True, clock=clock)
             devices = [device1, device2]
         for device in devices:

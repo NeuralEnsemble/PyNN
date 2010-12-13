@@ -449,7 +449,11 @@ class ConnectionManager(object):
                     self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
                 if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
                     self.synapse_type += '_TM'        
-                synapse_object = getattr(target._cell, self.synapse_type)
+                if "." in self.synapse_type: 
+                    section, synapse_type = self.synapse_type.split(".") 
+                    synapse_object = getattr(getattr(target._cell, section), synapse_type) 
+                else: 
+                    synapse_object = getattr(target._cell, self.synapse_type) 
                 nc = state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
                 nc.delay  = delay

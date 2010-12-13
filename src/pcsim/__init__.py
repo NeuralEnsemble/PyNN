@@ -249,20 +249,20 @@ class Population(common.Population):
         global net
         assert n > 0, 'n must be a positive integer'
         
-        if isinstance(cellclass, str):
-            if not cellclass in dir(pypcsim):
-                raise errors.InvalidModelError('Trying to create non-existent cellclass ' + cellclass )
-            cellclass = getattr(pypcsim, cellclass)
-            self.celltype = cellclass
-        if issubclass(cellclass, standardmodels.StandardCellType):
-            self.celltype = cellclass(cellparams)
-            self.cellfactory = self.celltype.simObjFactory
-        else:
-            self.celltype = cellclass
-            if issubclass(cellclass, pypcsim.SimObject):
-                self.cellfactory = cellclass(**cellparams)
-            else:
-                raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
+#        if isinstance(cellclass, str):
+#            if not cellclass in dir(pypcsim):
+#                raise errors.InvalidModelError('Trying to create non-existent cellclass ' + cellclass )
+#            cellclass = getattr(pypcsim, cellclass)
+#            self.celltype = cellclass
+#        if issubclass(cellclass, standardmodels.StandardCellType):
+        self.celltype = cellclass(cellparams)
+        self.cellfactory = self.celltype.simObjFactory
+#        else:
+#            self.celltype = cellclass
+#            if issubclass(cellclass, pypcsim.SimObject):
+#                self.cellfactory = cellclass(**cellparams)
+#            else:
+#                raise exceptions.AttributeError('Trying to create non-existent cellclass ' + cellclass.__name__ )
             
         self.all_cells = numpy.array([id for id in simulator.net.add(self.cellfactory, n)], simulator.ID)
         self.first_id = self.all_cells[0]

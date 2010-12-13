@@ -8,8 +8,9 @@ import numpy
 class MockCellClass(object):
     recordable = ['v']
     parameters = ['romans', 'judeans']
-    def has_parameter(self, name):
-        return name in self.parameters
+    @classmethod
+    def has_parameter(cls, name):
+        return name in cls.parameters
 
 class MockCell(object):
     parameter_names = ['romans', 'judeans']
@@ -31,7 +32,7 @@ class MockID(int):
     def __init__(self, n):
         int.__init__(n)
         self.local = bool(n%2)
-        self.cellclass = MockCellClass
+        self.celltype = MockCellClass()
         self._cell = MockCell()
 
 class MockPopulation(common.BasePopulation):

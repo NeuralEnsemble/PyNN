@@ -43,7 +43,7 @@ def test_create_population_standard_cell_simple():
     assert isinstance(p.celltype, MockStandardCell)
     assert isinstance(p._structure, space.Line)
     assert_equal(p._positions, None)
-    assert_equal(p.cellparams, None) #? shouldn't we fill in the default values?
+    assert_equal(p.celltype.parameters, {'A': 20.0, 'B': -34.9})
     assert_equal(p.initial_values, {})
     assert isinstance(p.recorders, dict)
     p.initialize.assert_called_with('m', -1.23)
@@ -51,7 +51,7 @@ def test_create_population_standard_cell_simple():
 def test_create_population_standard_cell_with_params():
     p = MockPopulation(11, MockStandardCell, {'a': 17.0, 'b': 0.987})
     assert isinstance(p.celltype, MockStandardCell)
-    assert_equal(p.cellparams, {'a': 17.0, 'b': 0.987})
+    assert_equal(p.celltype.parameters, {'A': 17.0, 'B': 0.987})
 
 # test create native cell
 

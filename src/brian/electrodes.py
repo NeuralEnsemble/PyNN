@@ -31,7 +31,7 @@ class CurrentSource(object):
     def inject_into(self, cell_list):
         """Inject this current source into some cells."""
         for cell in cell_list:
-            if 'v' not in cell.cellclass.recordable:
+            if not cell.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
         self.cell_list.extend(cell_list)        
     

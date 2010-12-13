@@ -25,7 +25,8 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     )
     nest_name = {"on_grid": "iaf_psc_alpha",
                  "off_grid": "iaf_psc_alpha"}
-
+    standard_receptor_type = True
+    
 
 class IF_curr_exp(cells.IF_curr_exp):
     """
@@ -47,7 +48,8 @@ class IF_curr_exp(cells.IF_curr_exp):
     )
     nest_name = {"on_grid": 'iaf_psc_exp',
                  "off_grid": 'iaf_psc_exp_ps'}
-
+    standard_receptor_type = True
+    
 
 class IF_cond_alpha(cells.IF_cond_alpha):
     """
@@ -70,6 +72,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     )
     nest_name = {"on_grid": "iaf_cond_alpha",
                  "off_grid": "iaf_cond_alpha"}
+    standard_receptor_type = True
         
 
 class IF_cond_exp(cells.IF_cond_exp):
@@ -93,6 +96,7 @@ class IF_cond_exp(cells.IF_cond_exp):
     )
     nest_name = {"on_grid": "iaf_cond_exp",
                  "off_grid": "iaf_cond_exp"}
+    standard_receptor_type = True
 
 
 class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
@@ -128,6 +132,7 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
     )
     nest_name = {"on_grid": "iaf_cond_exp_sfa_rr",
                  "off_grid": "iaf_cond_exp_sfa_rr"}
+    standard_receptor_type = True
 
 
 class IF_facets_hardware1(cells.IF_facets_hardware1):
@@ -150,6 +155,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
     )
     nest_name = {"on_grid": "iaf_cond_exp",
                  "off_grid": "iaf_cond_exp"}
+    standard_receptor_type = True
 
     def __init__(self, parameters):
         cells.IF_facets_hardware1.__init__(self, parameters)
@@ -178,6 +184,7 @@ class HH_cond_exp(cells.HH_cond_exp):
     )
     nest_name = {"on_grid": "hh_cond_exp_traub",
                  "off_grid": "hh_cond_exp_traub"}
+    standard_receptor_type = True
     
    
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
@@ -211,6 +218,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     )
     nest_name = {"on_grid": "aeif_cond_alpha",
                  "off_grid": "aeif_cond_alpha"}
+    standard_receptor_type = True
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
@@ -296,3 +304,4 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     )
     nest_name = {"on_grid": "aeif_cond_exp",
                  "off_grid": "aeif_cond_exp"}
+    standard_receptor_type = True

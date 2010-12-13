@@ -178,27 +178,20 @@ class Population(common.Population):
         # this method should never be called more than once
         # perhaps should check for that
         assert n > 0, 'n must be a positive integer'
-        if isinstance(cellclass, basestring):  # celltype is not a standard cell
-            nest_model = cellclass
-            cell_parameters = cellparams or {}
-        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
-            celltype = cellclass(cellparams)
-            nest_model = celltype.nest_name[simulator.state.spike_precision]
-            cell_parameters = celltype.parameters
-        else:
-            raise Exception("Invalid cell type: %s" % type(cellclass))
+        celltype = cellclass(cellparams)
+        nest_model = celltype.nest_name[simulator.state.spike_precision]
         try:
             self.all_cells = nest.Create(nest_model, n)
         except nest.NESTError, err:
             if "UnknownModelName" in err.message and "cond" in err.message:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
             raise errors.InvalidModelError(err)
-        if cell_parameters:
-            try:
-                nest.SetStatus(self.all_cells, [cell_parameters])
-            except nest.NESTError:
-                print "NEST error when trying to set the following dictionary: %s" % cell_parameters
-                raise
+#        if cell_parameters:
+        try:
+            nest.SetStatus(self.all_cells, [celltype.parameters])
+        except nest.NESTError:
+            print "NEST error when trying to set the following dictionary: %s" % cell_parameters
+            raise
         self.first_id = self.all_cells[0]
         self.last_id = self.all_cells[-1]
         self._mask_local = numpy.array(nest.GetStatus(self.all_cells, 'local'))
@@ -283,8 +276,10 @@ class Population(common.Population):
             rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
             value = rarr #numpy.array(rarr)
             assert len(rarr) == len(self.local_cells), "%d != %d" % (len(rarr), len(self.local_cells))
-        nest.SetStatus(self.local_cells.tolist(), STATE_VARIABLE_MAP[variable], value)
         self.initial_values[variable] = core.LazyArray(value, (self.size,))
+        if variable in STATE_VARIABLE_MAP:
+            variable = STATE_VARIABLE_MAP[variable]
+        nest.SetStatus(self.local_cells.tolist(), variable, value)
 
     def _record(self, variable, to_file=True):
         common.Population._record(self, variable, to_file)

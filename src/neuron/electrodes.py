@@ -66,7 +66,7 @@ class StepCurrentSource(CurrentSource):
         """Inject this current source into some cells."""
         for id in cell_list:
             if id.local:
-                if 'v' not in id.cellclass.recordable:
+                if 'v' not in id.celltype.recordable:
                     raise TypeError("Can't inject current into a spike source.")
                 iclamp = h.IClamp(0.5, sec=id._cell.source_section)
                 iclamp.delay = 0.0

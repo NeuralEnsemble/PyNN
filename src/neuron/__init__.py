@@ -123,19 +123,9 @@ class Population(common.Population):
         # this method should never be called more than once
         # perhaps should check for that
         assert n > 0, 'n must be a positive integer'
-        if isinstance(cellclass, basestring): # cell defined in hoc template
-            try:
-                cell_model = getattr(h, cellclass)
-            except AttributeError:
-                raise errors.InvalidModelError("There is no hoc template called %s" % cellclass)
-            cell_parameters = cellparams or {}
-        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
-            celltype = cellclass(cellparams)
-            cell_model = celltype.model
-            cell_parameters = celltype.parameters
-        else:
-            cell_model = cellclass
-            cell_parameters = cellparams
+        celltype = cellclass(cellparams)
+        cell_model = celltype.model
+        cell_parameters = celltype.parameters
         self.first_id = simulator.state.gid_counter
         self.last_id = simulator.state.gid_counter + n - 1
         self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id+1)], simulator.ID)

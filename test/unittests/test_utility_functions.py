@@ -9,7 +9,7 @@ MAX_DELAY = 999
 
 class MockCell(object):
     def __init__(self, cellclass, local=True):
-        self.cellclass = cellclass
+        self.celltype = cellclass()
         self.local = local
 
 def build_cellclass(cb):
@@ -26,14 +26,10 @@ class MockSimulator(object):
 def setup():
     common.simulator = MockSimulator
 
-def test_is_conductance_with_standard_model():
+def test_is_conductance():
     for cb in (True, False):
         cell = MockCell(build_cellclass(cb))
         assert common.is_conductance(cell) == cb
-    
-def test_is_conductance_with_nonstandard_model():
-    cell = MockCell("iaf_cond_neuron")
-    assert common.is_conductance(cell)
     
 def test_is_conductance_with_nonlocal_cell():
     cell = MockCell(build_cellclass(True), local=False)

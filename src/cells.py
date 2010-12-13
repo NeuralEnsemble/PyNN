@@ -282,6 +282,7 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
         'w': 0.0,
     }
 
+
 class SpikeSourcePoisson(StandardCellType):
     """Spike source, generating spikes according to a Poisson process."""
 
@@ -291,7 +292,9 @@ class SpikeSourcePoisson(StandardCellType):
         'duration' : 1e10      # Duration of spike sequence (ms)
     }
     recordable = ['spikes']
+    injectable = False
     synapse_types = ()
+
 
 class SpikeSourceInhGamma(StandardCellType):
     """
@@ -310,13 +313,16 @@ class SpikeSourceInhGamma(StandardCellType):
         'duration' : 1e10                 # Duration of spike sequence (ms)
     }
     recordable = ['spikes']
+    injectable = False
     synapse_types = ()
+
 
 class SpikeSourceArray(StandardCellType):
     """Spike source generating spikes at the times given in the spike_times array."""
     
     default_parameters = { 'spike_times' : [] } # list or numpy array containing spike times in milliseconds.
     recordable = ['spikes']
+    injectable = False
     synapse_types = ()    
            
     def __init__(self, parameters):

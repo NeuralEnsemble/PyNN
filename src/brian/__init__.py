@@ -115,44 +115,44 @@ class Population(common.Population, common.BasePopulation):
         # arguably we should use n NeuronGroups each containing a single cell
         # either that or use the subgroup() method in connect(), etc
         assert n > 0, 'n must be a positive integer'
-        if isinstance(cellclass, basestring):  # celltype is not a standard cell
-            try:
-                eqs = brian.Equations(cellclass)
-            except Exception, errmsg:
-                raise errors.InvalidModelError(errmsg)
-            v_thresh   = cellparams['v_thresh'] * mV
-            v_reset    = cellparams['v_reset'] * mV
-            tau_refrac = cellparams['tau_refrac'] * ms
-            brian_cells = brian.NeuronGroup(n,
-                                            model=eqs,
-                                            threshold=v_thresh,
-                                            reset=v_reset,
-                                            clock=state.simclock,
-                                            compile=True,
-                                            max_delay=state.max_delay)
-            cell_parameters = cellparams or {}
-        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
-            celltype = cellclass(cellparams)
-            cell_parameters = celltype.parameters
-            if isinstance(celltype, cells.SpikeSourcePoisson):    
-                fct = celltype.rates(cell_parameters['start'], cell_parameters['duration'], cell_parameters['rate'], n)
-                brian_cells = simulator.PoissonGroupWithDelays(n, rates=fct)
-            elif isinstance(celltype, cells.SpikeSourceArray):
-                spike_times = cell_parameters['spiketimes']
-                brian_cells = simulator.MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(n)])
-            else:
-                params = {'threshold'  : celltype.threshold, 
-                          'reset'      : celltype.reset}
-                if cell_parameters.has_key('tau_refrac'):                 
-                    params['refractory'] = cell_parameters['tau_refrac'] * ms
-                if hasattr(celltype, 'extra'):
-                    params.update(celltype.extra)
-                brian_cells = simulator.ThresholdNeuronGroup(n, cellclass.eqs, **params)
-                
-        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.ModelNotAvailable):
-            raise NotImplementedError("The %s model is not available for this simulator." % cellclass.__name__)
+#        if isinstance(cellclass, basestring):  # celltype is not a standard cell
+#            try:
+#                eqs = brian.Equations(cellclass)
+#            except Exception, errmsg:
+#                raise errors.InvalidModelError(errmsg)
+#            v_thresh   = cellparams['v_thresh'] * mV
+#            v_reset    = cellparams['v_reset'] * mV
+#            tau_refrac = cellparams['tau_refrac'] * ms
+#            brian_cells = brian.NeuronGroup(n,
+#                                            model=eqs,
+#                                            threshold=v_thresh,
+#                                            reset=v_reset,
+#                                            clock=state.simclock,
+#                                            compile=True,
+#                                            max_delay=state.max_delay)
+#            cell_parameters = cellparams or {}
+#        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
+        celltype = cellclass(cellparams)
+        cell_parameters = celltype.parameters
+        if isinstance(celltype, cells.SpikeSourcePoisson):    
+            fct = celltype.rates(cell_parameters['start'], cell_parameters['duration'], cell_parameters['rate'], n)
+            brian_cells = simulator.PoissonGroupWithDelays(n, rates=fct)
+        elif isinstance(celltype, cells.SpikeSourceArray):
+            spike_times = cell_parameters['spiketimes']
+            brian_cells = simulator.MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(n)])
         else:
-            raise Exception("Invalid cell type: %s" % type(cellclass))    
+            params = {'threshold'  : celltype.threshold, 
+                      'reset'      : celltype.reset}
+            if cell_parameters.has_key('tau_refrac'):                 
+                params['refractory'] = cell_parameters['tau_refrac'] * ms
+            if hasattr(celltype, 'extra'):
+                params.update(celltype.extra)
+            brian_cells = simulator.ThresholdNeuronGroup(n, cellclass.eqs, **params)
+                
+#        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.ModelNotAvailable):
+#            raise NotImplementedError("The %s model is not available for this simulator." % cellclass.__name__)
+#        else:
+#            raise Exception("Invalid cell type: %s" % type(cellclass))    
     
         if cell_parameters:
             for key, value in cell_parameters.items():
