@@ -110,12 +110,36 @@ The Brian interface
 Adding a new simulator interface
 ================================
 
+The quickest way to add an interface for a new simulator is to implement the
+"internal API", described below. Each simulator interface is implemented as
+a sub-package within the ``pyNN`` package. The suggested layout for this
+sub-package is as follows::
+ 
+    |\_   __init__.py
+    |\_   cells.py
+    |\_   connectors.py
+    |\_   electrodes.py
+    |\_   recording.py
+    |\_   simulator.py
+     \_   synapses.py
 
-.. _`NeuralEnsemble Google Group`: http://groups.google.com/group/neuralensemble
-.. _PEP8: http://www.python.org/dev/peps/pep-0008/
-.. _nose: http://somethingaboutorange.com/mrl/projects/nose/
-.. _mock: http://www.voidspace.org.uk/python/mock/
-.. _coverage: http://nedbatchelder.com/code/coverage/
+The only two files that are *required* are ``__init__.py`` and ``simulator.py``:
+the contents of all the other modules being imported into ``__init__.py``.
+
+[Maybe just provide a template, rather than discussing the whole thing]
+
+__init__:
+    list_standard_models()  [surely this could be in common?]
+    setup()
+    end(), run(), set(), reset(), initialize(), get_X(), num_processes(), rank() may be
+    imported from common provided common.simulator is set to the local
+    ``simulator`` module.
+    create -> common.build_create(Population)
+    connect = common.build_connect(Projection, FixedProbabilityConnector)
+    record = common.build_record('spikes', simulator)
+    record_v = common.build_record('v', simulator)
+    record_gsyn = common.build_record('gsyn', simulator)
+
 
 A walk through the lifecycle of a simulation
 ============================================
@@ -188,3 +212,8 @@ Finishing up, or resetting for a new run
 ----------------------------------------
 
 
+.. _`NeuralEnsemble Google Group`: http://groups.google.com/group/neuralensemble
+.. _PEP8: http://www.python.org/dev/peps/pep-0008/
+.. _nose: http://somethingaboutorange.com/mrl/projects/nose/
+.. _mock: http://www.voidspace.org.uk/python/mock/
+.. _coverage: http://nedbatchelder.com/code/coverage/

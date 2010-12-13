@@ -1,5 +1,211 @@
 ====================
-Release 0.6.0 (r???)
+Release 0.7.0 (r???)
+====================
+
+This release sees a major extension of the API with the addition of the
+`PopulationView` and `Assembly` classes, which aim to make building large,
+structured networks much simpler and cleaner. A `PopulationView` allows a
+sub-set of the neurons from a `Population` to be encapsulated in an object. We
+call it a "view", rather than a "sub-population", to emphasize the fact that the
+neurons are not copied: they are the same neurons as in the parent `Population`,
+and any operations on either view or parent (setting parameter values, recording,
+etc.) will be reflected in the other.  An `Assembly` is a list of `Population`
+and/or `PopulationView` objects, enabling multiple cell types to be encapsulated
+in a single object. `PopulationView` and `Assembly` objects behave in most ways
+like `Population`: you can record them, connect them using a `Projection`, you
+can have views of views...
+
+The "low-level API" (rechristened "procedural API") has been reimplemented in
+in terms of `Population` and `Projection`. For example, `create()` now returns a
+`Population` object rather than a list of IDs, and `connect()` returns a
+`Projection`object. This change should be almost invisible to the user, since
+`Population` now behaves very much like a list of IDs (can be sliced, joined,
+etc.).
+There has been a major change to cell addressing: Populations now always store
+cells in a one-dimensional array, which means cells no longer have an address
+but just an index. To specify the spatial structure of a Population, pass a
+Structure object to the constructor, e.g.
+
+  `p = Population((12,10), IF_cond_exp)`
+
+  is now
+
+  `p = Population(120, IF_cond_exp, structure=Grid2D(1.2))`
+
+although the former syntax still works, for backwards compatibility. The reasons
+for doing this are:
+  (i)   we can now have more interesting structures than just grids
+  (ii)  efficiency (less juggling addresses, flattening)
+  (iii) simplicity (less juggling addresses, less code).
+
+The API for setting initial values has changed: this is now done via the
+`initialize()` function or the `Population.initialize()` method, rather than by
+having `v_init` and similar parameters for cell models.
+  
+Other API changes:
+
+- simplification of the `record_X()` methods.
+- enhanced `describe()` methods: can now use Jinja2 or Cheetah templating
+  engines to produce much nicer, better formatted network descriptions.
+- connections and neuron positions can now be saved to various binary formats as
+  well as to text files.
+- added some new connectors: `SmallWorldConnector` and `CSAConnector`
+  (CSA = Connection Set Algebra)
+
+Backend changes:
+
+- the NEST backend has been updated to work with NEST version 2.0.0.
+- the Brian backend has seen extensive work on performance and on bringing it
+  to feature parity with the other backends.
+
+
+Details:
+
+* Simplification of the record_X() methods. With the addition of the
+  `PopulationView` class, the selection logic implemented by the `record_from`
+  and `rng` arguments duplicated that in `Population.__getitem__()` and
+  `Population.sample()`, and so these arguments have been removed, and the
+  `record_X()` methods now record all neurons within a `Population`,
+  `PopulationView` or `Assembly`.
+  Examples of syntax changes:
+     `pop.record_v([pop[0], pop[17]])` --> `pop[(0, 17)].record_v()`
+     `pop.record(10, rng=rng)` --> `pop.sample(10, rng).record()
+
+* Added a `sample()` method to `Population`, which returns a `PopulationView`
+  of a random sample of the neurons in the parent population.
+
+* Added the EIF_cond_exp/alpha_isfa/ista and HH_cond_exp standard models in
+  Brian.
+
+* Added a `gather` option to the `Population.get()` method.
+
+* `brian.setup()` now accepts a number of addtional argumenbts in `extra_params`,
+  For example, extra_params={'useweave': True} will lead to inline C++ code generation
+
+* Wrote a first draft of a developers' guide.
+
+* Considerably extended the `core.LazyArray` class, as a basis for a possible
+  rewrite of the `connectors` module.
+
+* The `random` module now uses `mpi4py` to determine the MPI rank and
+  num_processes, rather than receiving these as arguments to the RNG constructor
+  (see ticket:164). 
+
+* Many fixes and performance enhancements for the `brian` module, which now
+  supports synaptic plasticity.
+
+* Made the `describe()` method of `Population`, `Projection`, etc. much more
+  powerful by adding a simple plugin-like structure for templating engines.
+  Jinja2 and Cheetah currently available, with fallback to string.Template.
+
+* No more GSL warning every time! Just raise an Exception if we attempt to use
+  GSLRNG and pygsl is not available.
+
+* Added some more flexibility to init_logging: logfile=None -> stderr, format
+  includes size & rank, user can override log-level
+
+* NEST __init__.py changed to query NEST for filling NEST_SYNAPSE_TYPES.
+  Allows _S connectors if available for use with inh_gamma_generator
+
+* Started to move synapse dynamics related stuff out of Projection and into the
+  synapse dynamics-related classes, where it belongs.
+
+* Added an `Assembly` class to the API. An `Assembly` is a list of `Population`
+  and/or `PopulationView` objects, enabling multiple cell types to be
+  encapsulated in a single object. An `Assembly` object is intended to
+  behave in most ways like `Population`: you can record them, connect them using
+  a `Projection`...
+
+* Added a new "spike_precision" option to `nest.setup()`
+  (see http://neuralensemble.org/trac/PyNN/wiki/SimulatorSpecificOptions)
+
+* Updated the NEST backend to work with version 2.0.0
+
+* Rewrote the test suite, making a much cleaner distinction between unit tests,
+  which now make heavy use of mock objects to better-isolate components, and
+  system tests. Test suite now runs with nose (http://somethingaboutorange.com/mrl/projects/nose),
+  in order to facilitate continuous integration testing.
+
+* the "low-level API" (rechristened "procedural API") has been reimplemented in
+  in terms of `Population` and `Projection`, with the aim of improved
+  maintainability. For example, `create()` now returns a `Population` object
+  rather than a list of IDs, and `connect()` returns a `Projection`object. With
+  the addition of `PopulationView` and `Assembly`, `Population` now behaves much
+  more like a list of IDs (can be sliced, joined, etc.), so this should have
+  minimal impact on existing simulation scripts.
+
+* Changed the format of connection files, as written by `saveConnections()` and
+  read by `FromFileConnector`: files no longer contain the population label.
+  Connections can now also be written to NumpyBinaryFile or PickleFile objects,
+  instead of just text files. Same for `Population.save_positions()`.
+
+* Added CSAConnector, which wraps the Connection Set Algebra for use by PyNN.
+  Requires the csa package: http://pypi.python.org/pypi/csa/
+
+* Added a `PopulationView` class to the API. This allows a sub-set of the neurons
+  from a `Population` to be encapsulated in an object. We call it a "view",
+  rather than a "sub-population", to emphasize the fact that the neurons are
+  not copied: they are the same neurons as in the parent `Population`, and any
+  operations on either view or parent (setting parameter values, recording, etc.)
+  will be reflected in the other. `PopulationView` objects are intended to
+  behave in most ways like `Population`: you can record them, connect them using
+  a `Projection`, you can have views of views...
+
+* A major change to cell addressing: Populations now always store cells in a
+  one-dimensional array, which means cells no longer have an address but just
+  an index. To specify the spatial structure of a Population, pass a Structure
+  object to the constructor, e.g.
+
+  `p = Population((12,10), IF_cond_exp)`
+
+  is now
+
+  `p = Population(120, IF_cond_exp, structure=Grid2D(1.2))`
+
+  although the former syntax still works, for backwards compatibility. The reasons for doing this are:
+  (i)   we can now have more interesting structures than just grids
+  (ii)  efficiency (less juggling addresses, flattening)
+  (iii) simplicity (less juggling addresses, less code - this opens the way to a
+        much easier implementation of sub-populations).
+
+* Removed the `v_init` parameter from all cell models. Setting initial values of
+  state variables is now done via the `initialize()` function or the
+  `Population.initialize()` method.
+
+* Enhance the distance expressions by allowing expressions such as
+  (d[0] < 0.1) & (d[1] < 0.2). Complex forms can therefore now be drawn,
+  such as squares, ellipses, and so on.
+
+* Added an `n_connections` flag to the DistanceDependentProbabiblityConnector in
+order to be able to constrain the total number of connections. Can be useful for normalizations
+
+* Added a simple SmallWorldConnector. Cells are connected within a certain
+  degree d. Then, all the connections are rewired with a probability given by a
+  rewiring parameter and new targets are uniformly selected among all the
+  possible targets.
+
+* Added a method to save cell positions to file.
+
+* Added a progress bar to connectors. Now, a verbose flag allows to display or
+  not a progress bar indicating the percentage of connections established.
+
+* New implementation of the connector classes, with much improved performance
+  and scaling with MPI, and extension of distance-dependent weights and delays
+  to all connectors. In addition, a `safe` flag has been added to all connectors:
+  on by default, a user can turn it off to avoid tests on weights and delays.
+  
+* Added the ability to set the `atol` and `rtol` parameters of NEURON's cvode
+  solver in the `extra_params` argument of `setup()` (patch from Johannes Partzsch).
+
+* Made `nest`s handling of the refractory period consistent with the other backends.
+  Made the default refractory period 0.1 ms rather than 0.0 ms, since NEST appears
+  not to handle zero refractory period.
+
+* Moved standard model (cells and synapses) machinery, the `Space` class, and
+  `Error` classes out of `common` into their own modules.
+
+====================
+Release 0.6.0 (r710)
 ====================
 
 There have been three major changes to the API in this version.
