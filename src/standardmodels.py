@@ -52,17 +52,12 @@ def build_translations(*translation_list):
     return translations
 
 
-class StandardModelType(object):
-    """Base class for standardized cell model and synapse model classes."""
-    
-    translations = {}
+class BaseModelType(object):
+    """Base class for standard and native cell and synapse model classes."""
+    # does not really belong in this module. Some reorganisation required.
     default_parameters = {}
     default_initial_values = {}
-    
-    def __init__(self, parameters):
-        self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
-        self.parameters = self.__class__.translate(self.parameters)
-    
+
     @classmethod
     def has_parameter(cls, name):
         return name in cls.default_parameters
@@ -114,6 +109,32 @@ class StandardModelType(object):
                 else:
                     raise errors.NonExistentParameterError(k, cls, cls.default_parameters.keys())
         return parameters
+
+    def describe(self, template='modeltype_default.txt', engine='default'):
+        """
+        Returns a human-readable description of the cll or synapse type.
+        
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+        
+        If template is None, then a dictionary containing the template context
+        will be returned.
+        """
+        context = {
+            "name": self.__class__.__name__,
+            "parameters": self.parameters,
+        }
+        return descriptions.render(engine, template, context)
+        
+
+class StandardModelType(BaseModelType):
+    """Base class for standardized cell model and synapse model classes."""
+    
+    translations = {}
+    
+    def __init__(self, parameters):
+        self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
+        self.parameters = self.__class__.translate(self.parameters)
     
     @classmethod
     def translate(cls, parameters):
@@ -174,32 +195,21 @@ class StandardModelType(object):
         update self.parameters with those in parameters 
         """
         self.parameters.update(self.translate(parameters))
-    
-    def describe(self, template='standardmodeltype_default.txt', engine='default'):
-        """
-        Returns a human-readable description of the cell type.
-        
-        The output may be customized by specifying a different template
-        togther with an associated template engine (see ``pyNN.descriptions``).
-        
-        If template is None, then a dictionary containing the template context
-        will be returned.
-        """
-        context = {
-            "name": self.__class__.__name__,
-            "parameters": self.parameters,
-        }
-        return descriptions.render(engine, template, context)
 
 
-class StandardCellType(StandardModelType):
+class BaseCellType(object):
+    """Base class for cell model classes."""
+    recordable = []
+    synapse_types = []
+    conductance_based = True # override for cells with current-based synapses
+    injectable = True # override for spike sources
+
+
+class StandardCellType(StandardModelType, BaseCellType):
     """Base class for standardized cell model classes."""
-
     recordable = ['spikes', 'v', 'gsyn']
     synapse_types = ('excitatory', 'inhibitory')
-    conductance_based = True # override for cells with current-based synapses
     always_local = False # override for NEST spike sources
-    injectable = True # override for spike sources
 
 
 class ModelNotAvailable(object):
