@@ -150,11 +150,11 @@ inpoisson = Population(NI, SpikeSourcePoisson, {'rate': p_rate}, "inpoisson")
 # Record spikes
 print "%d Setting up recording in excitatory population." % rank
 E_net.record(Nrec)
-E_net.record_v([E_net[0],E_net[1]])
+E_net[[0, 1]].record_v()
 
 print "%d Setting up recording in inhibitory population." % rank
 I_net.record(Nrec)
-I_net.record_v([I_net[0],I_net[1]])
+I_net[[0, 1]].record_v()
 
 E_Connector = FixedProbabilityConnector(epsilon, weights=JE, delays=delay, verbose=True)
 I_Connector = FixedProbabilityConnector(epsilon, weights=JI, delays=delay, verbose=True)
@@ -195,8 +195,8 @@ vinfilename = "Results/Brunel_inh_np%d_%s.v"   % (np, simulator_name) # output f
 # write data to file
 E_net.printSpikes(exfilename)
 I_net.printSpikes(infilename)
-E_net.print_v(vexfilename)
-I_net.print_v(vinfilename)
+E_net[[0, 1]].print_v(vexfilename)
+I_net[[0, 1]].print_v(vinfilename)
 
 E_rate = E_net.meanSpikeCount()*1000.0/simtime
 I_rate = I_net.meanSpikeCount()*1000.0/simtime

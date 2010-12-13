@@ -204,7 +204,6 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
             self.rate     = rate * numpy.ones(n) * Hz
         
         def __call__(self, t):
-            #print t, self.start, self.duration, self.rate
             idx = (self.start <= t) & (t <= self.start + self.duration)
             return numpy.where(idx, self.rate, 0)
     

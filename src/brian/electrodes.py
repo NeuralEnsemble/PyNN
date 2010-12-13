@@ -9,7 +9,7 @@ $Id$
 """
 
 from brian import ms, nA, network_operation
-from simulator import state
+import simulator
 import numpy
 
 current_sources = []
@@ -65,7 +65,7 @@ class StepCurrentSource(CurrentSource):
         
         This is called at every timestep.
         """
-        if self.running and state.t >= self.times[self.i]: #*ms:   
+        if self.running and simulator.state.t >= self.times[self.i]: #*ms:   
             for cell in self.cell_list:
                 cell.parent_group.i_inj[int(cell)] = self.amplitudes[self.i]
             self.i += 1

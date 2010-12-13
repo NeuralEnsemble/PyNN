@@ -45,11 +45,14 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     common.setup(timestep, min_delay, max_delay, **extra_params)
     brian.set_global_preferences(**extra_params)
-    simulator.state = simulator._State(timestep, min_delay, max_delay)
+    simulator.state = simulator._State(timestep, min_delay, max_delay)    
     simulator.state.add(update_currents) # from electrodes
+    ## We need to reset the clock of the update_currents function, for the electrodes
+    simulator.state.network._all_operations[0].clock = brian.Clock(t=0*ms, dt=timestep*ms)
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
     simulator.state.dt        = timestep
+    reset()
     return rank()
 
 def end(compatible_output=True):
@@ -66,9 +69,12 @@ def get_current_time():
     """Return the current time in the simulation."""
     return simulator.state.t
     
-def run(simtime):
+def run(simtime):    
     """Run the simulation for simtime ms."""
-    simulator.state.run(simtime)
+    try:
+        simulator.state.run(simtime)
+    except Exception:
+        raise Exception("Nothing to run... Have you created any objects ?")
     return get_current_time()
 
 reset = simulator.reset

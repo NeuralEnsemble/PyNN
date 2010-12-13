@@ -149,15 +149,14 @@ if (benchmark == "COBA"):
 print "%s Setting up recording..." % node_id
 exc_cells.record()
 inh_cells.record()
-vrecord_list = [exc_cells[0],exc_cells[1]]
-exc_cells.record_v(vrecord_list)
+exc_cells[[0, 1]].record_v()
 
 buildCPUTime = timer.diff()
 
 # === Save connections to file =================================================
 
-for prj in connections.keys():
-    connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator_name, np))
+#for prj in connections.keys():
+    #connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator_name, np))
 saveCPUTime = timer.diff()
 
 # === Run simulation ===========================================================
@@ -179,7 +178,7 @@ if not(os.path.isdir('Results')):
 
 exc_cells.printSpikes("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator_name, np))
 inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator_name, np))
-exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator_name, np))
+exc_cells[[0, 1]].print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator_name, np))
 writeCPUTime = timer.diff()
 
 connections = "%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].size(),
