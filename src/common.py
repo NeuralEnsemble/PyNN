@@ -972,6 +972,8 @@ class PopulationView(BasePopulation):
         # If the mask is a slice, IDs will be consecutives without duplication.
         # If not, then we need to remove duplicated IDs
         if not isinstance(self.mask, slice):
+            if isinstance(self.mask, list):
+                self.mask = numpy.array(self.mask)
             if self.mask.dtype is numpy.dtype('bool'):
                 if len(self.mask) != len(self.parent):
                     raise Exception("Boolean masks should have the size of Parent Population")
@@ -1312,17 +1314,17 @@ class Assembly(object):
         p_file    = files.NumpyBinaryFile(filename, mode='w')
         try:
             self[0].recorders[variable].write(p_file, gather, compatible_output, self[0].record_filter)
-            filenames[filename] = True        
+            filenames[self[0]] = (filename, True)        
         except errors.NothingToWriteError:
-            filenames[filename] = False       
+            filenames[self[O]] = (filename, False)       
         for p in self.populations[1:]:
             filename = '%s/%s.%s' %(tempdir, p.label, variable)
             p_file = files.NumpyBinaryFile(filename, mode='w')           
             try:
                 p.recorders[variable].write(p_file, gather, compatible_output, p.record_filter)
-                filenames[filename] = True
+                filenames[p] = (filename, True)
             except errors.NothingToWriteError:
-                filenames[filename] = False
+                filenames[p] = (filename, False)
                 
         ## Then we need to merge the previsouly written files into a single one, to be consistent
         ## with a Population object. Note that the header should be better considered.          
@@ -1332,16 +1334,18 @@ class Assembly(object):
                     'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
                     'first_id'    : self.first_id,
                     'last_id'     : self.last_id}
-                    
+        
         metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
         data = numpy.zeros(format)
-        for count, f in enumerate(filenames.keys()):
-            if filenames[f] is True:
-                p_file = files.NumpyBinaryFile(f, mode='r') 
-                data   = numpy.concatenate((data, p_file.read()))
-                # Need to add the padding of this population within the Assembly
-                data[:,0] = self.id_to_index(data[:,0] + self.populations[count].first_id)
-            os.remove(f)
+        for pop in filenames.keys():
+            if filenames[pop][1] is True:
+                name     = filenames[pop][0]
+                p_file   = files.NumpyBinaryFile(name, mode='r') 
+                tmp_data = p_file.read()                    
+                if compatible_output:
+                    tmp_data[:, -1] = self.id_to_index(tmp_data[:,-1] + pop.first_id)
+                data = numpy.vstack((data, tmp_data))
+            os.remove(name)
         metadata['n'] = data.shape[0]             
         os.rmdir(tempdir)
         
