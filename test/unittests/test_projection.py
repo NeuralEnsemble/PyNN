@@ -28,7 +28,7 @@ class MockConnectionManager(object):
         return 999
     def __getitem__(self, i):
         return 888+i
-    def get(self, name, format, offset):
+    def get(self, name, format):
         return numpy.arange(100)
 
 class MockConnection(object):
@@ -140,8 +140,7 @@ def test_get_weights():
     prj.connection_manager = MockConnectionManager()
     prj.connection_manager.get = Mock()
     prj.getWeights(format='list', gather=False)
-    prj.connection_manager.get.assert_called_with('weight', 'list',
-                                                  offset=(prj.pre.first_id, prj.post.first_id))
+    prj.connection_manager.get.assert_called_with('weight', 'list')
     
 def test_get_delays():
     p1 = MockPopulation()
@@ -150,8 +149,7 @@ def test_get_delays():
     prj.connection_manager = MockConnectionManager()
     prj.connection_manager.get = Mock()
     prj.getDelays(format='list', gather=False)
-    prj.connection_manager.get.assert_called_with('delay', 'list',
-                                                  offset=(prj.pre.first_id, prj.post.first_id))
+    prj.connection_manager.get.assert_called_with('delay', 'list')
 
 def test_save_connections():
     filename = "test.connections"
