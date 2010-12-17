@@ -92,7 +92,7 @@ def test__add__assembly():
     a1 = Assembly(p1, p2)
     a2 = Assembly(p2, p3)
     a3 = a1 + a2
-    assert_equal(a3.populations, [p1, p2, p2, p3]) # or do we want [p1, p2, p3]?
+    assert_equal(a3.populations, [p1, p2, p3]) # or do we want [p1, p2, p3]?
 
 def test_add_inplace_population():
     p1 = MockPopulation()
@@ -108,7 +108,7 @@ def test_add_inplace_assembly():
     a1 = Assembly(p1, p2)
     a2 = Assembly(p2, p3)
     a1 += a2
-    assert_equal(a1.populations, [p1, p2, p2, p3])
+    assert_equal(a1.populations, [p1, p2, p3])
 
 def test_add_invalid_object():
     p1 = MockPopulation()
@@ -124,9 +124,7 @@ def test_initialize():
     a.initialize("v", -54.3)
     p1.initialize.assert_called_with("v", -54.3)
     p2.initialize.assert_called_with("v", -54.3)
-
-#test record
-
+    
 def test_describe():
     p1 = MockPopulation()
     p2 = MockPopulation()

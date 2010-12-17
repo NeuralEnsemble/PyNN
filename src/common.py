@@ -875,12 +875,14 @@ class Population(BasePopulation):
         >>> assert p.id_to_index(p[5]) == 5
         >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        if isinstance(id, IDMixin):
+        if not numpy.iterable(id):
             if not self.first_id <= id <= self.last_id:
                 raise ValueError("id should be in the range [%d,%d], actually %d" % (self.first_id, self.last_id, id))
             return int(id - self.first_id)  # this assumes ids are consecutive
         else:
-            id = numpy.array(id, IDMixin)
+            if isinstance(id, PopulationView):
+                id = id.all_cells
+            id = numpy.array(id)
             if (self.first_id > id.min()) or (self.last_id < id.max()):
                 raise ValueError("ids should be in the range [%d,%d], actually [%d, %d]" % (self.first_id, self.last_id, id.min(), id.max()))
             return (id - self.first_id).astype(int)  # this assumes ids are consecutive
@@ -963,16 +965,26 @@ class PopulationView(BasePopulation):
 
     def __init__(self, parent, selector, label=None):
         self.parent = parent
-        self.mask = selector  # later we can have fancier selectors, for now we just have numpy masks
-        self.label = label or "view of %s with mask %s" % (parent.label, self.mask)
+        self.mask = selector # later we can have fancier selectors, for now we just have numpy masks              
+        self.label  = label or "view of %s with mask %s" % (parent.label, self.mask)
         # maybe just redefine __getattr__ instead of the following...
         self.celltype     = self.parent.celltype
-        self.all_cells    = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?
+        # If the mask is a slice, IDs will be consecutives without duplication.
+        # If not, then we need to remove duplicated IDs
+        if not isinstance(self.mask, slice):
+            if self.mask.dtype is numpy.dtype('bool'):
+                if len(self.mask) != len(self.parent):
+                    raise Exception("Boolean masks should have the size of Parent Population")
+                self.mask = numpy.arange(len(self.parent))[self.mask]     
+            if len(numpy.unique(self.mask)) != len(self.mask):
+                logging.warning("PopulationView can contain only once each ID, duplicated IDs are remove")
+                self.mask = numpy.unique(self.mask)
+        self.all_cells    = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?       
         self.size         = len(self.all_cells)
         self._mask_local  = self.parent._mask_local[self.mask]
         self.local_cells  = self.all_cells[self._mask_local]
-        self.first_id     = self.all_cells[0]  # only works if we assume all_cells is sorted, otherwise could use min()
-        self.last_id      = self.all_cells[-1]
+        self.first_id     = numpy.min(self.all_cells) # only works if we assume all_cells is sorted, otherwise could use min()
+        self.last_id      = numpy.max(self.all_cells)
         self.recorders    = self.parent.recorders
         self.record_filter= self.all_cells
 
@@ -992,8 +1004,6 @@ class PopulationView(BasePopulation):
     def positions(self):
         return self.parent.positions.T[self.mask].T  # make positions N,3 instead of 3,N to avoid all this transposing?
 
-    # implementation of getSpikes(), printSpikes(), etc. needs some thought.
-
     def id_to_index(self, id):
         """
         Given the ID(s) of cell(s) in the PopulationView, return its/their
@@ -1001,14 +1011,26 @@ class PopulationView(BasePopulation):
         >>> assert id_to_index(p.index(5)) == 5
         >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
         """
-        index, = numpy.where(self.all_cells == id)
-        if index.size == 1:
-            return index.item()
-        elif index.size == 0:
-            raise IndexError("id %s not found in %s" % (id, self))
+        if not numpy.iterable(id):
+            result = numpy.where(self.all_cells == id)[0]
+            if len(result) == 0:
+                raise IndexError("ID %s not present in the View" %id)
+            elif len(result) > 1:
+                raise Exception("ID %s is duplicated in the View" %id)
+            else:
+                return result
         else:
-            raise Exception("Something has gone very wrong: repeated ID")
-    
+            result = numpy.array([])
+            for item in id:
+                data = numpy.where(self.all_cells == item)[0]
+                if len(data) == 0:
+                    raise IndexError("ID %s not present in the View" %item)
+                elif len(data) > 1:
+                    raise Exception("ID %s is duplicated in the View" %item)
+                else:
+                    result = numpy.append(result, data)
+            return result
+        
     def describe(self, template='populationview_default.txt', engine='default'):
         """
         Returns a human-readable description of the population view.
@@ -1038,29 +1060,92 @@ class Assembly(object):
     def __init__(self, *populations, **kwargs):
         if kwargs:
             assert kwargs.keys() == ['label']
+        self.populations = []
         for p in populations:
-            if not isinstance(p, BasePopulation):
-                raise TypeError("argument is a %s, not a Population." % type(p).__name__)
-        self.populations = list(populations)  # should this be a set?
+            self._insert(p)
         self.label = kwargs.get('label', 'assembly%d' % Assembly.count)
         assert isinstance(self.label, basestring), "label must be a string or unicode"
         Assembly.count += 1
 
+    def _insert(self, element):
+        if not isinstance(element, BasePopulation):
+            raise TypeError("argument is a %s, not a Population." % type(element).__name__)
+        if isinstance(element, PopulationView):
+            if not element.parent in self.populations:
+                double = False
+                for p in self.populations:
+                    data = numpy.concatenate((p.all_cells, element.all_cells))
+                    if len(numpy.unique(data))!= len(p.all_cells) + len(element.all_cells):
+                        logging.warning('Adding a PopulationView to an Assembly containing elements already present is not posible')
+                        double = True #Should we automatically remove duplicated IDs ?
+                        break
+                if not double:
+                    self.populations.append(element)
+            else:
+                logging.warning('Adding a PopulationView to an Assembly when parent Population is there is not possible')
+        elif isinstance(element, BasePopulation):
+            if not element in self.populations:
+                self.populations.append(element)
+            else:
+                logging.warning('Adding a Population twice in an Assembly is not possible')
+
     @property
     def local_cells(self):
-        return numpy.append(self.populations[0].local_cells,
-                            [p.local_cells for p in self.populations[1:]])
+        result = self.populations[0].local_cells
+        for p in self.populations[1:]:
+            result = numpy.concatenate((result, p.local_cells))
+        return result
 
     @property
     def all_cells(self):
-        return numpy.append(self.populations[0].all_cells,
-                            [p.all_cells for p in self.populations[1:]])
+        result = self.populations[0].all_cells
+        for p in self.populations[1:]:
+            result = numpy.concatenate((result, p.all_cells))
+        return result
         
     @property
     def _mask_local(self):
-        return numpy.append(self.populations[0]._mask_local,
-                            [p._mask_local for p in self.populations[1:]])
-            
+        result = self.populations[0]._mask_local
+        for p in self.populations[1:]:
+            result = numpy.concatenate((result, p._mask_local))
+        return result
+    
+    @property
+    def first_id(self):
+        return numpy.min(self.all_cells)
+        
+    @property
+    def last_id(self):
+        return numpy.max(self.all_cells)
+    
+    def id_to_index(self, id):
+        """
+        Given the ID(s) of cell(s) in the Assembly, return its (their) index
+        (order in the Assembly).
+        >>> assert p.id_to_index(p[5]) == 5
+        >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
+        """
+        all_cells = self.all_cells
+        if not numpy.iterable(id):
+            result = numpy.where(all_cells == id)[0]
+            if len(result) == 0:
+                raise IndexError("ID %s not present in the View" %id)
+            elif len(result) > 1:
+                raise Exception("ID %s is duplicated in the View" %id)
+            else:
+                return result
+        else:
+            result = numpy.array([])
+            for item in id:
+                data = numpy.where(all_cells == item)[0]
+                if len(data) == 0:
+                    raise IndexError("ID %s not present in the View" %item)
+                elif len(data) > 1:
+                    raise Exception("ID %s is duplicated in the View" %item)
+                else:
+                    result = numpy.append(result, data)
+            return result
+                
     @property
     def positions(self):
         result = self.populations[0].positions
@@ -1097,9 +1182,10 @@ class Assembly(object):
 
     def __iadd__(self, other):
         if isinstance(other, BasePopulation):
-            self.populations.append(other)
+            self._insert(other)
         elif isinstance(other, Assembly):
-            self.populations += other.populations
+            for p in other.populations:
+                self._insert(p)
         else:
             raise TypeError("can only add a Population or another Assembly to an Assembly")
         return self
@@ -1244,15 +1330,17 @@ class Assembly(object):
                     'size'        : self.size,
                     'label'       : self.label,
                     'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
-                    'first_id'    : numpy.min([p.first_id for p in self.populations]),
-                    'last_id'     : numpy.max([p.last_id for p in self.populations])}
+                    'first_id'    : self.first_id,
+                    'last_id'     : self.last_id}
                     
         metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
         data = numpy.zeros(format)
-        for f in filenames.keys():
+        for count, f in enumerate(filenames.keys()):
             if filenames[f] is True:
                 p_file = files.NumpyBinaryFile(f, mode='r') 
                 data   = numpy.concatenate((data, p_file.read()))
+                # Need to add the padding of this population within the Assembly
+                data[:,0] = self.id_to_index(data[:,0] + self.populations[count].first_id)
             os.remove(f)
         metadata['n'] = data.shape[0]             
         os.rmdir(tempdir)
@@ -1503,7 +1591,7 @@ class Projection(object):
         """
         if gather:
             logger.error("getWeights() with gather=True not yet implemented")
-        return self.connection_manager.get('weight', format, offset=(self.pre.first_id, self.post.first_id))
+        return self.connection_manager.get('weight', format)
 
     def getDelays(self, format='list', gather=True):
         """
@@ -1515,7 +1603,7 @@ class Projection(object):
         """
         if gather:
             logger.error("getDelays() with gather=True not yet implemented")
-        return self.connection_manager.get('delay', format, offset=(self.pre.first_id, self.post.first_id))
+        return self.connection_manager.get('delay', format)
 
     def getSynapseDynamics(self, parameter_name, format='list', gather=True):
         """
@@ -1524,7 +1612,7 @@ class Projection(object):
         """
         if gather:
             logger.error("getstandardmodels.SynapseDynamics() with gather=True not yet implemented")
-        return self.connection_manager.get(parameter_name, format, offset=(self.pre.first_id, self.post.first_id))
+        return self.connection_manager.get(parameter_name, format)
 
     def saveConnections(self, file, gather=True, compatible_output=True):
         """

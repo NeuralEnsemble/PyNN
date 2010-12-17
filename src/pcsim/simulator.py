@@ -341,7 +341,7 @@ class ConnectionManager(object):
             if target.local:
                 self.connections.append(Connection(source, target, net.object(c), 1.0/weight_scale_factor))
         
-    def get(self, parameter_name, format, offset=(0,0)):
+    def get(self, parameter_name, format):
         """
         Get the values of a given attribute (weight, delay, etc) for all
         connections on the local MPI node.
@@ -349,8 +349,6 @@ class ConnectionManager(object):
         `parameter_name` -- name of the attribute whose values are wanted.
         `format` -- "list" or "array". Array format implicitly assumes that all
                     connections belong to a single Projection.
-        `offset` -- an (i,j) tuple giving the offset to be used in converting
-                    source and target IDs to array indices.
         
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
@@ -363,10 +361,7 @@ class ConnectionManager(object):
         elif format == 'array':
             values = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
             for c in self:
-                if self.parent:
-                    addr = (self.parent.pre.id_to_index(c.source), self.parent.post.id_to_index(c.target))
-                else:
-                    addr = (c.source-offset[0], c.target-offset[1])
+                addr = (self.parent.pre.id_to_index(c.source), self.parent.post.id_to_index(c.target))
                 values[addr] = getattr(c, parameter_name)
         else:
             raise Exception("format must be 'list' or 'array'")
@@ -386,9 +381,8 @@ class ConnectionManager(object):
             for c in self:
                 setattr(c, name, value)
         elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
-            offset = (self.parent.pre.first_id, self.parent.post.first_id)
             for c in self.connections:
-                addr = (c.source-offset[0], c.target-offset[1])
+                addr = (self.parent.pre.id_to_index(c.source), self.parent.post.id_to_index(c.target))
                 try:
                     val = value[addr]
                 except IndexError, e:

@@ -105,6 +105,9 @@ class MockPopulation(object):
     label = "mock population"
     def __len__(self):
         return self.size
+    
+    def id_to_index(self, id):
+       return id
 
 def test_write__with_filename__compatible_output__gather__onroot():
     recording.simulator = MockSimulator(mpi_rank=0)

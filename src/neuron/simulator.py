@@ -500,7 +500,7 @@ class ConnectionManager(object):
                 # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
                 self.connections.append(Connection(source, target, nc))
 
-    def get(self, parameter_name, format, offset=(0,0)):
+    def get(self, parameter_name, format):
         """
         Get the values of a given attribute (weight, delay, etc) for all
         connections on the local MPI node.
@@ -508,8 +508,6 @@ class ConnectionManager(object):
         `parameter_name` -- name of the attribute whose values are wanted.
         `format` -- "list" or "array". Array format implicitly assumes that all
                     connections belong to a single Projection.
-        `offset` -- an (i,j) tuple giving the offset to be used in converting
-                    source and target IDs to array indices.
         
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
@@ -525,7 +523,7 @@ class ConnectionManager(object):
             values = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
             for c in self.connections:
                 value = getattr(c, parameter_name)
-                addr = (c.source-offset[0], c.target-offset[1])
+                addr = (self.parent.pre.id_to_index(c.source), self.parent.post.id_to_index(c.target))
                 if numpy.isnan(values[addr]):
                     values[addr] = value
                 else:
@@ -548,9 +546,8 @@ class ConnectionManager(object):
             for c in self:
                 setattr(c, name, value)
         elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
-            offset = (self.parent.pre.first_id, self.parent.post.first_id)
             for c in self.connections:
-                addr = (c.source-offset[0], c.target-offset[1])
+                addr = (self.parent.pre.id_to_index(c.source), self.parent.post.id_to_index(c.target))
                 try:
                     val = value[addr]
                 except IndexError, e:

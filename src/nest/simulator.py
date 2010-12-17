@@ -327,16 +327,15 @@ class ConnectionManager:
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self.sources.extend(sources)
     
-    def get(self, parameter_name, format, offset=(0,0)):
+    def get(self, parameter_name, format):
         """
-        Get the values of a given attribute (weight, delay, etc) for all
-        connections on the local MPI node.
+        Get the values of a given attribute (weight or delay) for all
+        connections in this manager.
         
         `parameter_name` -- name of the attribute whose values are wanted.
+        
         `format` -- "list" or "array". Array format implicitly assumes that all
                     connections belong to a single Projection.
-        `offset` -- an (i,j) tuple giving the offset to be used in converting
-                    source and target IDs to array indices.
         
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
@@ -367,14 +366,12 @@ class ConnectionManager:
                 values = [0.001*val for val in values]
         elif format == 'array':
             value_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
-            connection_parameters = nest.GetStatus(self.connections)
+            connection_parameters = nest.GetStatus(self.connections, ('source', 'target', parameter_name))
             for conn in connection_parameters: 
                 # don't need to pass offset as arg, now we store the parent projection
                 # (offset is always 0,0 for connections created with connect())
-                src = conn['source']
-                tgt = conn['target']
-                value = conn[parameter_name]
-                addr = (src-offset[0], tgt-offset[1])
+                src, tgt, value = conn
+                addr = self.parent.pre.id_to_index(src), self.parent.post.id_to_index(tgt)
                 if numpy.isnan(value_arr[addr]):
                     value_arr[addr] = value
                 else:
@@ -393,6 +390,7 @@ class ConnectionManager:
         Set connection attributes for all connections on the local MPI node.
         
         `name`  -- attribute name
+        
         `value` -- the attribute numeric value, or a list/1D array of such
                    values of the same length as the number of local connections,
                    or a 2D array with the same dimensions as the connectivity
@@ -402,11 +400,10 @@ class ConnectionManager:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")   
         
         if isinstance(value, numpy.ndarray) and len(value.shape) == 2:
-            offset = (self.parent.pre.first_id, self.parent.post.first_id)
             value_list = []
-            connection_parameters = nest.GetStatus(self.connections)
+            connection_parameters = nest.GetStatus(self.connections, ('source', 'target'))
             for conn in connection_parameters: 
-                addr = (conn['source']-offset[0], conn['target']-offset[1])
+                addr = self.parent.pre.id_to_index(conn['source']), self.parent.post.id_to_index(conn['target'])
                 try:
                     val = value[addr]
                 except IndexError, e:
