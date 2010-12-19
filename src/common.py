@@ -844,6 +844,7 @@ class Population(BasePopulation):
         self.celltype = cellclass(cellparams)
         self._structure = structure or space.Line()
         self._positions = None
+        self._is_sorted = True
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
@@ -981,7 +982,12 @@ class PopulationView(BasePopulation):
             if len(numpy.unique(self.mask)) != len(self.mask):
                 logging.warning("PopulationView can contain only once each ID, duplicated IDs are remove")
                 self.mask = numpy.unique(self.mask)
-        self.all_cells    = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?       
+        self.all_cells    = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?
+        idx = numpy.argsort(self.all_cells)
+        if numpy.all(idx == numpy.arange(len(self.all_cells))):
+            self._is_sorted = True
+        else:
+            self._is_sorted = False
         self.size         = len(self.all_cells)
         self._mask_local  = self.parent._mask_local[self.mask]
         self.local_cells  = self.all_cells[self._mask_local]
@@ -1014,24 +1020,28 @@ class PopulationView(BasePopulation):
         >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
         """
         if not numpy.iterable(id):
-            result = numpy.where(self.all_cells == id)[0]
+            if self._is_sorted:
+                return numpy.searchsorted(self.all_cells, id)
+            else:
+                result = numpy.where(self.all_cells == id)[0]
             if len(result) == 0:
                 raise IndexError("ID %s not present in the View" %id)
-            elif len(result) > 1:
-                raise Exception("ID %s is duplicated in the View" %id)
             else:
                 return result
         else:
-            result = numpy.array([])
-            for item in id:
-                data = numpy.where(self.all_cells == item)[0]
-                if len(data) == 0:
-                    raise IndexError("ID %s not present in the View" %item)
-                elif len(data) > 1:
-                    raise Exception("ID %s is duplicated in the View" %item)
-                else:
-                    result = numpy.append(result, data)
-            return result
+            if self._is_sorted:
+                return numpy.searchsorted(self.all_cells, id)
+            else:
+                result = numpy.array([])
+                for item in id:
+                    data = numpy.where(self.all_cells == item)[0]
+                    if len(data) == 0:
+                        raise IndexError("ID %s not present in the View" %item)
+                    elif len(data) > 1:
+                        raise Exception("ID %s is duplicated in the View" %item)
+                    else:
+                        result = numpy.append(result, data)
+                return result
         
     def describe(self, template='populationview_default.txt', engine='default'):
         """
@@ -1104,7 +1114,15 @@ class Assembly(object):
         for p in self.populations[1:]:
             result = numpy.concatenate((result, p.all_cells))
         return result
-        
+    
+    @property
+    def _is_sorted(self):
+        idx = numpy.argsort(self.all_cells)
+        if numpy.all(idx == numpy.arange(len(self.all_cells))):
+            return True
+        else:
+            return False
+    
     @property
     def _mask_local(self):
         result = self.populations[0]._mask_local
@@ -1129,24 +1147,28 @@ class Assembly(object):
         """
         all_cells = self.all_cells
         if not numpy.iterable(id):
-            result = numpy.where(all_cells == id)[0]
+            if self._is_sorted:
+                return numpy.searchsorted(all_cells, id)
+            else:
+                result = numpy.where(all_cells == id)[0]
             if len(result) == 0:
                 raise IndexError("ID %s not present in the View" %id)
-            elif len(result) > 1:
-                raise Exception("ID %s is duplicated in the View" %id)
             else:
                 return result
         else:
-            result = numpy.array([])
-            for item in id:
-                data = numpy.where(all_cells == item)[0]
-                if len(data) == 0:
-                    raise IndexError("ID %s not present in the View" %item)
-                elif len(data) > 1:
-                    raise Exception("ID %s is duplicated in the View" %item)
-                else:
-                    result = numpy.append(result, data)
-            return result
+            if self._is_sorted:
+                return numpy.searchsorted(all_cells, id)
+            else:
+                result = numpy.array([])
+                for item in id:
+                    data = numpy.where(all_cells == item)[0]
+                    if len(data) == 0:
+                        raise IndexError("ID %s not present in the View" %item)
+                    elif len(data) > 1:
+                        raise Exception("ID %s is duplicated in the View" %item)
+                    else:
+                        result = numpy.append(result, data)
+                return result
                 
     @property
     def positions(self):
@@ -1340,6 +1362,8 @@ class Assembly(object):
         for pop in filenames.keys():
             if filenames[pop][1] is True:
                 name     = filenames[pop][0]
+                if gather==False and simulator.state.num_processes > 1:
+                    name += '.%d' % simulator.state.mpi_rank            
                 p_file   = files.NumpyBinaryFile(name, mode='r') 
                 tmp_data = p_file.read()                    
                 if compatible_output:
@@ -1350,9 +1374,13 @@ class Assembly(object):
         os.rmdir(tempdir)
         
         if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
+            filename = file
+            if gather==False and simulator.state.num_processes > 1:
+                filename += '.%d' % simulator.state.mpi_rank
+        else:
+            filename = file.name                
         
-        if rank() == 0:
+        if simulator.state.mpi_rank == 0 or gather == False:
             file.write(data, metadata)
             file.close()
 
