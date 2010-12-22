@@ -984,10 +984,7 @@ class PopulationView(BasePopulation):
                 self.mask = numpy.unique(self.mask)
         self.all_cells    = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?
         idx = numpy.argsort(self.all_cells)
-        if numpy.all(idx == numpy.arange(len(self.all_cells))):
-            self._is_sorted = True
-        else:
-            self._is_sorted = False
+        self._is_sorted =  numpy.all(idx == numpy.arange(len(self.all_cells)))
         self.size         = len(self.all_cells)
         self._mask_local  = self.parent._mask_local[self.mask]
         self.local_cells  = self.all_cells[self._mask_local]
@@ -1118,10 +1115,16 @@ class Assembly(object):
     @property
     def _is_sorted(self):
         idx = numpy.argsort(self.all_cells)
-        if numpy.all(idx == numpy.arange(len(self.all_cells))):
-            return True
-        else:
-            return False
+        return numpy.all(idx == numpy.arange(len(self.all_cells)))
+    
+    @property
+    def _homogeneous_synapses(self):
+        syn = is_conductance(self[0].all_cells[0])
+        for p in self.populations[1:]:
+            if syn != is_conductance(p.all_cells[0]):
+                return False
+        return True
+    
     
     @property
     def _mask_local(self):
@@ -1374,11 +1377,9 @@ class Assembly(object):
         os.rmdir(tempdir)
         
         if isinstance(file, basestring):
-            filename = file
             if gather==False and simulator.state.num_processes > 1:
-                filename += '.%d' % simulator.state.mpi_rank
-        else:
-            filename = file.name                
+                file += '.%d' % simulator.state.mpi_rank
+            file = files.StandardTextFile(file, mode='w')
         
         if simulator.state.mpi_rank == 0 or gather == False:
             file.write(data, metadata)
@@ -1513,6 +1514,11 @@ class Projection(object):
                                (presynaptic_neurons, postsynaptic_neurons)):
             if not isinstance(pop, (BasePopulation, Assembly)):
                 raise errors.ConnectionError("%ssynaptic_neurons must be a Population, PopulationView or Assembly, not a %s" % (prefix, type(pop)))
+        
+        if isinstance(postsynaptic_neurons, Assembly):
+            if not postsynaptic_neurons._homogeneous_synapses:
+                raise Exception('Projection to an Assembly object can be made only with homogeneous synapses types')
+            
         self.pre    = presynaptic_neurons  #  } these really
         self.source = source               #  } should be
         self.post   = postsynaptic_neurons #  } read-only
