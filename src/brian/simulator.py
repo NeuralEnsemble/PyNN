@@ -169,6 +169,7 @@ class _State(object):
         self.mpi_rank      = 0
         self.min_delay     = min_delay
         self.max_delay     = max_delay
+        self.gid           = 0
         
     def _get_dt(self):
         if self.network.clock is None:
@@ -195,6 +196,13 @@ class _State(object):
 
     def add(self, object):
         self.network.add(object)
+    
+    @property
+    def next_id(self):        
+        res = self.gid
+        self.gid += 1
+        return res
+        
 
 def reset():
     """Reset the state of the current network to time t = 0."""
@@ -207,8 +215,12 @@ def reset():
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
 
+    gid = 0
+
     def __init__(self, n):
-        """Create an ID object with numerical value `n`."""
+        """Create an ID object with numerical value `n`."""    
+        if n is None:
+            n = gid
         int.__init__(n)
         common.IDMixin.__init__(self)
     
@@ -340,7 +352,7 @@ class Connection(object):
     and other attributes.
     """
     
-    def __init__(self, brian_connection, index, indices):
+    def __init__(self, brian_connection, indices, addr):
         """
         Create a new connection.
         
@@ -355,8 +367,8 @@ class Connection(object):
         """
         # the index is the nth non-zero element
         self.bc                  = brian_connection
-        self.addr                = indices[0][index], indices[1][index]
-        self.source, self.target = self.addr        
+        self.addr                = indices[0], indices[1]
+        self.source, self.target = addr        
 
     def _set_weight(self, w):
         w = w or ZERO_WEIGHT
@@ -399,39 +411,79 @@ class ConnectionManager(object):
         self.synapse_type      = synapse_type
         self.synapse_model     = synapse_model
         self.parent            = parent
-        self.n                 = 0
-        self.brian_connections = None
-        self.indices           = None        
-
+        self.n                 = {}
+        self.brian_connections = {}
+        self.indices           = {}
+        self._populations      = [{}, {}]
+        
     def __getitem__(self, i):
         """Return the `i`th connection as a Connection object."""
+        cumsum_idx     = numpy.cumsum(self.n.values())
+        idx            = numpy.searchsorted(cumsum_idx, i, 'left')
+        keys           = self.keys[idx]
+        global_indices = self._indices
         if isinstance(i, int):
             if i < len(self):
-                return Connection(self.brian_connections, i, self.indices)
+                pad        = i - cumsum_idx[idx]
+                local_idx  = self.indices[keys][0][pad], self.indices[keys][1][pad]
+                local_addr = global_indices[0][i], global_indices[1][i]
+                return Connection(self.brian_connections[keys], local_idx, local_addr)
             else:
                 raise IndexError("%d > %d" % (i, len(self)-1))
         elif isinstance(i, slice):
             if i.stop < len(self):
-                return [Connection(self.brian_connections, j, self.indices) for j in range(i.start, i.stop, i.step or 1)]
+                res = []
+                for count, j in enumerate(xrange(i.start, i.stop, i.step or 1)):
+                    key = keys[count]
+                    pad = j - cumsum_idx[idx[count]]
+                    local_idx  = self.indices[keys][0][pad], self.indices[keys][1][pad]
+                    local_addr = global_indices[0][j], global_indices[1][j]
+                    res.append(Connection(self.brian_connections[key], local_idx, local_addr))
+                return res
             else:
                 raise IndexError("%d > %d" % (i.stop, len(self)-1))
     
     def __len__(self):
         """Return the total number of connections in this manager."""
-        return self.n
+        result = 0
+        for key in self.keys:
+          result += self.n[key]
+        return result 
     
     def __connection_generator(self):
         """Yield each connection in turn."""
-        for i in range(len(self)):
-            yield Connection(self.brian_connections, i)
+        global_indices = self._indices
+        count          = 0
+        for key in self.keys:
+            bc = self.brian_connections[key]
+            for i in xrange(bc.W.getnnz()):
+                local_idx  = self.indices[key][0][i], self.indices[key][0][i] 
+                local_addr = global_indices[0][count], global_indices[1][count]
+                yield Connection(bc, self.indices[key])
+                count     += 1                
+                
+    @property
+    def keys(self):
+        return self.brian_connections.keys()
                 
     def __iter__(self):
         """Return an iterator over all connections in this manager."""
         return self.__connection_generator()
     
     def _finalize(self):
-        self.indices = self.brian_connections.W.nonzero()
-        self.brian_connections.compress()            
+        for key in self.keys:
+            self.indices[key]  = self.brian_connections[key].W.nonzero()
+            self.brian_connections[key].compress()            
+    
+    @property
+    def _indices(self):
+        sources = numpy.array([], int)
+        targets = numpy.array([], int)
+        for key in self.keys:
+            paddings = self._populations[0][key[0]], self._populations[1][key[1]] 
+            sources  = numpy.concatenate((sources, self.indices[key][0] + paddings[0]))
+            targets  = numpy.concatenate((targets, self.indices[key][1] + paddings[1]))
+        return sources.astype(int), targets.astype(int)    
     
     def _get_brian_connection(self, source_group, target_group, synapse_obj, weight_units, homogeneous=False):
         """
@@ -445,7 +497,8 @@ class ConnectionManager(object):
         weight_units -- Brian Units object: nA for current-based synapses,
                         uS for conductance-based synapses.
         """
-        if self.brian_connections is None:
+        key = (source_group, target_group, synapse_obj)
+        if not self.brian_connections.has_key(key):
             assert isinstance(source_group, brian.NeuronGroup)
             assert isinstance(target_group, brian.NeuronGroup), type(target_group)
             assert isinstance(synapse_obj, basestring), "%s (%s)" % (synapse_obj, type(synapse_obj))
@@ -454,18 +507,29 @@ class ConnectionManager(object):
             except Exception:
                 raise Exception("Simulation timestep not yet set. Need to call setup()")
             if not homogeneous:
-                self.brian_connections = brian.DelayConnection(source_group,
+                self.brian_connections[key] = brian.DelayConnection(source_group,
                                                                target_group,
                                                                synapse_obj,
                                                                max_delay=max_delay)
             else:
-                self.brian_connections = brian.Connection(source_group,
+                self.brian_connections[key] = brian.Connection(source_group,
                                                           target_group,
                                                           synapse_obj,
                                                           max_delay=state.max_delay*ms)
-            self.brian_connections.weight_units = weight_units
-            state.add(self.brian_connections)
-        return self.brian_connections
+            self.brian_connections[key].weight_units = weight_units
+            state.add(self.brian_connections[key])
+            self.n[key] = 0
+        return self.brian_connections[key]
+    
+    def _detect_parent_groups(self, cells):
+        groups = {}
+        for index, cell in enumerate(cells):
+            group = cell.parent_group
+            if not groups.has_key(group):
+                groups[group] = [index]
+            else:
+                groups[group] += [index]
+        return groups
     
     def connect(self, source, targets, weights, delays, homogeneous=False):
         """
@@ -497,28 +561,45 @@ class ConnectionManager(object):
         else:
             units = nA
         synapse_type = self.synapse_type or "excitatory"
-        synapse_obj  = targets[0].celltype.synapses[synapse_type]
         try:
             source_group = source.parent_group
         except AttributeError, errmsg:
             raise errors.ConnectionError("%s. Maybe trying to connect from non-existing cell (ID=%s)." % (errmsg, source))
-        target_group = targets[0].parent_group # we assume here all the targets belong to the same NeuronGroup
-        bc      = self._get_brian_connection(source_group, target_group, synapse_obj, units, homogeneous)        
-        src     = int(source)
-        targets = numpy.array(targets, int)
+        groups = self._detect_parent_groups(targets) # we assume here all the targets belong to the same NeuronGroup
+        
         weights = numpy.array(weights) * units
         delays  = numpy.array(delays) * ms
-        weights[weights == 0] = ZERO_WEIGHT
-        bc.W.rows[src] = targets
-        bc.W.data[src] = weights        
-        if not homogeneous:
-            bc.delayvec.rows[src] = targets
-            bc.delayvec.data[src] = delays
-        else:
-            bc.delay = int(delays[0] / bc.source.clock.dt)
-        self.n += len(targets)
+        weights[weights == 0] = ZERO_WEIGHT            
         
-    def get(self, parameter_name, format, offset=(0,0)):
+        for target_group, indices in groups.items():
+            synapse_obj = targets[indices[0]].parent.celltype.synapses[synapse_type]        
+            bc          = self._get_brian_connection(source_group, target_group, synapse_obj, units, homogeneous)       
+            padding     = (int(source.parent.first_id), int(targets[indices[0]].parent.first_id))
+            src         = int(source) - padding[0]
+            mytargets   = numpy.array(targets, int)[indices] - padding[1]            
+            bc.W.rows[src] = mytargets
+            bc.W.data[src] = weights[indices]        
+            if not homogeneous:
+                bc.delayvec.rows[src] = mytargets
+                bc.delayvec.data[src] = delays[indices]
+            else:
+                bc.delay = int(delays[0] / bc.source.clock.dt)
+            key = (source_group, target_group, synapse_obj)
+            self.n[key] += len(mytargets)
+            
+            pop_sources = self._populations[0]
+            if len(pop_sources) is 0:
+                pop_sources[source_group] = 0
+            elif not pop_sources.has_key(source_group):
+                pop_sources[source_group] = numpy.sum([len(item) for item in pop_sources.keys()])
+            pop_targets = self._populations[1]
+            if len(pop_targets) is 0:
+                pop_targets[target_group] = 0
+            elif not pop_targets.has_key(target_group):
+                pop_targets[target_group] = numpy.sum([len(item) for item in pop_targets.keys()])  
+                
+        
+    def get(self, parameter_name, format):
         """
         Get the values of a given attribute (weight or delay) for all
         connections in this manager.
@@ -526,7 +607,6 @@ class ConnectionManager(object):
         `parameter_name` -- name of the attribute whose values are wanted.
         `format` -- "list" or "array". Array format implicitly assumes that all
                     connections belong to a single Projection.
-        `offset` -- not used. Present for consistency with other simulators.
         
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
@@ -536,22 +616,25 @@ class ConnectionManager(object):
         """
         if self.parent is None:
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
-        bc = self.brian_connections
-        if parameter_name == "weight":
-            values = bc.W.alldata / bc.weight_units            
-        elif parameter_name == 'delay':
-            if isinstance(bc, brian.DelayConnection):
-                values = bc.delay.alldata / ms
+        values = numpy.array([])
+        for key in self.keys:
+            bc = self.brian_connections[key]
+            if parameter_name == "weight":
+                values = numpy.concatenate((values, bc.W.alldata / bc.weight_units))            
+            elif parameter_name == 'delay':
+                if isinstance(bc, brian.DelayConnection):
+                    values = numpy.concatenate((values, bc.delay.alldata / ms))
+                else:
+                    data   = bc.delay * bc.source.clock.dt * numpy.ones(bc.W.getnnz()) /ms
+                    values = numpy.concatenate((values, data))
             else:
-                values = bc.delay * bc.source.clock.dt * numpy.ones(self.brian_connections.W.getnnz()) /ms
-        else:
-            raise Exception("Getting parameters other than weight and delay not yet supported.")
+                raise Exception("Getting parameters other than weight and delay not yet supported.")
         
         if format == 'list':
             values = values.tolist()
         elif format == 'array':
             values_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
-            sources, targets = self.indices
+            sources, targets = self._indices
             values_arr[sources, targets] = values
             values = values_arr
         else:
@@ -570,38 +653,42 @@ class ConnectionManager(object):
         """
         if self.parent is None:
             raise Exception("Only implemented for connections created via a Projection object, not using connect()")
-        bc = self.brian_connections
-        if name == 'weight':
-            M = bc.W
-            units = bc.weight_units
-        elif name == 'delay':
-            M = bc.delay
-            units = ms
-        else:
-            raise Exception("Setting parameters other than weight and delay not yet supported.")
-        value = value*units
-        if numpy.isscalar(value):
-            if (name == 'weight') or (name == 'delay' and isinstance(bc, brian.DelayConnection)):
-                for row in xrange(M.shape[0]):
-                    M.set_row(row, value)
-            elif (name == 'delay' and isinstance(bc, brian.Connection)):
-                bc.delay = int(value / bc.source.clock.dt)
+        for key in self.keys:
+            bc = self.brian_connections[key]
+            padding = 0
+            if name == 'weight':
+                M = bc.W
+                units = bc.weight_units
+            elif name == 'delay':
+                M = bc.delay
+                units = ms
             else:
-                raise Exception("Setting a non appropriate parameter")
-        elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
-            if (name == 'delay') and not isinstance(bc, brian.DelayConnection):
-                raise Exception("FastConnector have been used, and only fixed homogeneous delays are allowed")
-            address_gen = ((i,j) for i,row in enumerate(bc.W.rows) for j in row)
-            for (i,j) in address_gen:
-                M[i,j] = value[i,j]
-        elif core.is_listlike(value):
-            assert len(value) == M.getnnz()
-            if (name == 'delay') and not isinstance(bc, brian.DelayConnection):
-                raise Exception("FastConnector have been used: only fixed homogeneous delays are allowed")
-            M.alldata = value
-        else:
-            raise Exception("Values must be scalars or lists/arrays")
-                
+                raise Exception("Setting parameters other than weight and delay not yet supported.")
+            value = value*units
+            if numpy.isscalar(value):
+                if (name == 'weight') or (name == 'delay' and isinstance(bc, brian.DelayConnection)):
+                    for row in xrange(M.shape[0]):
+                        M.set_row(row, value)
+                elif (name == 'delay' and isinstance(bc, brian.Connection)):
+                    bc.delay = int(value / bc.source.clock.dt)
+                else:
+                    raise Exception("Setting a non appropriate parameter")
+            elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
+                if (name == 'delay') and not isinstance(bc, brian.DelayConnection):
+                    raise Exception("FastConnector have been used, and only fixed homogeneous delays are allowed")
+                address_gen = ((i, j) for i,row in enumerate(bc.W.rows) for j in row)
+                for (i,j) in address_gen:
+                    M[i,j] = value[i,j]
+            elif core.is_listlike(value):
+                N = M.getnnz()
+                assert len(value[padding:padding+N]) == N
+                if (name == 'delay') and not isinstance(bc, brian.DelayConnection):
+                    raise Exception("FastConnector have been used: only fixed homogeneous delays are allowed")
+                M.alldata = value
+            else:
+                raise Exception("Values must be scalars or lists/arrays")
+            padding += M.getnnz()
+                    
 
 # --- Initialization, and module attributes ------------------------------------
 

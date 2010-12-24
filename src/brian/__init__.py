@@ -52,6 +52,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
     simulator.state.dt        = timestep
+    recording.simulator = simulator
     reset()
     return rank()
 
@@ -158,7 +159,7 @@ class Population(common.Population, common.BasePopulation):
             for key, value in cell_parameters.items():
                 setattr(brian_cells, key, value)
         # should we globally track the IDs used, so as to ensure each cell gets a unique integer? (need only track the max ID)
-        self.all_cells = numpy.array([simulator.ID(cell) for cell in xrange(len(brian_cells))], simulator.ID)
+        self.all_cells = numpy.array([simulator.ID(simulator.state.next_id) for cell in xrange(len(brian_cells))], simulator.ID)
         for cell in self.all_cells:
             cell.parent = self
             cell.parent_group = brian_cells
@@ -224,8 +225,8 @@ class Projection(common.Projection):
         self._connections      = None
         self.synapse_type      = target or 'excitatory'
         
-        if isinstance(presynaptic_population, common.Assembly) or isinstance(postsynaptic_population, common.Assembly):
-            raise Exception("Projections with Assembly objects are not working yet in Brian")
+        #if isinstance(presynaptic_population, common.Assembly) or isinstance(postsynaptic_population, common.Assembly):
+            #raise Exception("Projections with Assembly objects are not working yet in Brian")
         
         if self.synapse_dynamics:
             if self.synapse_dynamics.fast:
@@ -243,45 +244,50 @@ class Projection(common.Projection):
         method.connect(self)
         self.connection_manager._finalize()
         if self._plasticity_model != "static_synapse":
-            synapses = self.connections.brian_connections
-            if self._plasticity_model is "stdp_synapse": 
-                parameters   = self.synapse_dynamics.slow.all_parameters
-                if common.is_conductance(self.post[0]):
-                    units = uS
-                else:
-                    units = nA
-                stdp = simulator.STDP(synapses, 
-                                      parameters['tau_plus'] * ms,
-                                      parameters['tau_minus'] * ms,
-                                      parameters['A_plus'],
-                                      -parameters['A_minus'],
-                                      parameters['mu_plus'],
-                                      parameters['mu_minus'],
-                                      wmin = parameters['w_min'] * units,
-                                      wmax = parameters['w_max'] * units)
-                simulator.state.add(stdp)
-            elif self._plasticity_model is "tsodyks_markram_synapse":
-                parameters   = self.synapse_dynamics.fast.parameters
-                stp = brian.STP(synapses, parameters['tau_rec'] * ms, 
-                                          parameters['tau_facil'] * ms, 
-                                          parameters['U'])
-                simulator.state.add(stp)
-                
+            for key in self.connections.key():
+                synapses = self.connections.brian_connections[key]
+                if self._plasticity_model is "stdp_synapse": 
+                    parameters   = self.synapse_dynamics.slow.all_parameters
+                    if common.is_conductance(self.post[0]):
+                        units = uS
+                    else:
+                        units = nA
+                    stdp = simulator.STDP(synapses, 
+                                        parameters['tau_plus'] * ms,
+                                        parameters['tau_minus'] * ms,
+                                        parameters['A_plus'],
+                                        -parameters['A_minus'],
+                                        parameters['mu_plus'],
+                                        parameters['mu_minus'],
+                                        wmin = parameters['w_min'] * units,
+                                        wmax = parameters['w_max'] * units)
+                    simulator.state.add(stdp)
+                elif self._plasticity_model is "tsodyks_markram_synapse":
+                    parameters   = self.synapse_dynamics.fast.parameters
+                    stp = brian.STP(synapses, parameters['tau_rec'] * ms, 
+                                            parameters['tau_facil'] * ms, 
+                                            parameters['U'])
+                    simulator.state.add(stp)
+                    
     def saveConnections(self, file, gather=True, compatible_output=True):
         """
         Save connections to file in a format suitable for reading in with a
         FromFileConnector.
         """
         import operator
-        lines = numpy.empty((len(self.connection_manager), 4))
-        bc    = self.connection_manager.brian_connections    
-        lines[:,0], lines[:,1] = self.connection_manager.indices
-        lines[:,2] = bc.W.alldata / bc.weight_units
-        if isinstance(bc, brian.DelayConnection):
-            lines[:,3] = bc.delay.alldata / ms
-        else:
-            lines[:,3] = bc.delay * bc.source.clock.dt / ms
-        
+        lines   = numpy.empty((len(self.connection_manager), 4))
+        padding = 0
+        for key in self.connection_manager.key:
+            bc   = self.connection_manager.brian_connections[key]
+            size = bc.getnnz()
+            lines[padding:padding+size,0], lines[padding:padding+size,1] = self.connection_manager.indices[key]
+            lines[padding:padding+size,2] = bc.W.alldata / bc.weight_units
+            if isinstance(bc, brian.DelayConnection):
+                lines[padding:padding+size,3] = bc.delay.alldata / ms
+            else:
+                lines[padding:padding+size,3] = bc.delay * bc.source.clock.dt / ms
+            padding += size
+            
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
         
         if isinstance(file, basestring):
