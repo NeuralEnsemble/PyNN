@@ -14,10 +14,11 @@ common.simulator = simulator
 recording.simulator = simulator
 from pyNN.random import *
 from pyNN.recording import files
-from pyNN.brian.cells import *
+from pyNN.brian.standardmodels.cells import *
 from pyNN.brian.connectors import *
-from pyNN.brian.synapses import *
+from pyNN.brian.standardmodels.synapses import *
 from pyNN.brian.electrodes import *
+from pyNN.brian import electrodes
 from pyNN.brian.recording import *
 
 logger = logging.getLogger("PyNN")

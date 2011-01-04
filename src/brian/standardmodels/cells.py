@@ -4,18 +4,19 @@ Standard cells for the brian module
 $Id$
 """
 
-from pyNN import standardmodels, cells, errors
+from pyNN.standardmodels import cells, build_translations, ModelNotAvailable
+from pyNN import errors
 #import brian_no_units_no_warnings
 from brian.library.synapses import *
 import brian
-from simulator import SimpleCustomRefractoriness, AdaptiveReset
+from pyNN.brian.simulator import SimpleCustomRefractoriness, AdaptiveReset
 from brian import mV, ms, nF, nA, uS, second, Hz, amp
 import numpy
 
 class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
         ('cm',         'c_m',        nF), 
@@ -56,7 +57,7 @@ class IF_curr_exp(cells.IF_curr_exp):
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses."""
     
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
         ('cm',         'c_m',        nF), 
@@ -93,7 +94,7 @@ class IF_curr_exp(cells.IF_curr_exp):
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
         ('cm',         'c_m',        nF), 
@@ -137,7 +138,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
 class IF_cond_exp(cells.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and 
     exponentially-decaying post-synaptic conductance."""
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
         ('cm',         'c_m',        nF), 
@@ -176,7 +177,7 @@ class IF_cond_exp(cells.IF_cond_exp):
         return self.parameters['v_reset'] * mV    
 
 
-class IF_facets_hardware1(standardmodels.ModelNotAvailable):
+class IF_facets_hardware1(ModelNotAvailable):
     """Leaky integrate and fire model with conductance-based synapses and fixed
     threshold as it is resembled by the FACETS Hardware Stage 1. For further
     details regarding the hardware model see the FACETS-internal Wiki:
@@ -187,7 +188,7 @@ class IF_facets_hardware1(standardmodels.ModelNotAvailable):
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('rate',     'rate'),
         ('start',    'start'),
         ('duration', 'duration'),
@@ -215,7 +216,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     
 class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('spike_times', 'spiketimes', ms),
     )
 
@@ -240,7 +241,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     See also: IF_cond_exp_gsfa_grr, EIF_cond_exp_isfa_ista
     """
     
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('cm',         'c_m',        nF),  
         ('v_spike',    'v_spike'),
         ('v_rest',     'v_rest',     mV),
@@ -306,7 +307,7 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     See also: IF_cond_exp_gsfa_grr, EIF_cond_exp_isfa_ista
     """
     
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('cm',         'c_m',        nF),  
         ('v_spike',    'v_spike'),
         ('v_rest',     'v_rest',     mV),
@@ -362,7 +363,7 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
 
 class HH_cond_exp(cells.HH_cond_exp):
    
-   translations = standardmodels.build_translations(
+   translations = build_translations(
        ('gbar_Na',    'gbar_Na',    uS),   
        ('gbar_K',     'gbar_K',     uS),    
        ('g_leak',     'g_leak',     uS),    
@@ -421,9 +422,9 @@ class HH_cond_exp(cells.HH_cond_exp):
    def extra(self):
        return {'implicit' : True}
 
-class SpikeSourceInhGamma(standardmodels.ModelNotAvailable):
+class SpikeSourceInhGamma(ModelNotAvailable):
     pass
 
 
-class IF_cond_exp_gsfa_grr(standardmodels.ModelNotAvailable):
+class IF_cond_exp_gsfa_grr(ModelNotAvailable):
     pass

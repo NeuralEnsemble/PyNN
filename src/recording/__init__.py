@@ -81,7 +81,8 @@ class Recorder(object):
 
     formats = {'spikes': 'id t',
                'v': 'id t v',
-               'gsyn': 'id t ge gi'}
+               'gsyn': 'id t ge gi',
+               'generic': 'id t variable'}
     
     def __init__(self, variable, population=None, file=None):
         """
@@ -95,10 +96,11 @@ class Recorder(object):
             - `None` (write to a temporary file)
             - `False` (write to memory).
         """
-        assert variable in Recorder.formats
         self.variable = variable
         self.file = file
         self.population = population # needed for writing header information
+        if population:
+            assert population.can_record(variable)
         self.recorded = set([])
         
     def record(self, ids):
@@ -181,7 +183,8 @@ class Recorder(object):
         logger.debug("Number of data elements = %d" % N)
         if N > 0:
             # Shuffle columns if necessary
-            input_format = self.formats[self.variable].split()
+            input_format = self.formats.get(self.variable,
+                                            self.formats["generic"]).split()
             time_column = input_format.index('t')
             id_column = input_format.index('id')
             
@@ -195,7 +198,8 @@ class Recorder(object):
             elif self.variable == 'spikes': # spike files
                 column_map = [time_column, id_column]
             else:
-                raise Exception("Invalid variable")
+                variable_column = input_format.index('variable')
+                column_map = [variable_column, id_column]
             
             data_array = data_source[:, column_map]
         else:

@@ -24,7 +24,6 @@ class Recorder(recording.Recorder):
     
     def __init__(self, variable, population=None, file=None):
         __doc__ = recording.Recorder.__doc__
-        assert variable in RECORDING_DEVICE_NAMES
         recording.Recorder.__init__(self, variable, population, file)       
         # we defer creating the actual device until it is needed.
         self._device = None
@@ -37,11 +36,13 @@ class Recorder(recording.Recorder):
 
     def _create_device(self):
         """Create a NEST recording device."""
-        device_name = RECORDING_DEVICE_NAMES[self.variable]
+        device_name = RECORDING_DEVICE_NAMES.get(self.variable, "multimeter")
         self._device = nest.Create(device_name)
         device_parameters = {"withgid": True, "withtime": True}
         if self.variable is 'gsyn':
             device_parameters["record_from"] = ['g_ex', 'g_in']
+        elif self.variable not in Recorder.formats:
+            device_parameters["record_from"] = [self.variable]
         if self.variable != 'spikes':
             device_parameters["interval"] = common.get_time_step()
         else:
@@ -54,6 +55,7 @@ class Recorder(recording.Recorder):
             nest.SetStatus(self._device, device_parameters)
         except nest.hl_api.NESTError, e:
             raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, device_parameters))
+        logging.debug("Created %s with parameters %s" % (device_name, device_parameters))
 
     def _record(self, new_ids):
         """Called by record()."""
@@ -183,9 +185,12 @@ class Recorder(recording.Recorder):
                 data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files]
                 data = numpy.concatenate(data_list)
             if len(non_empty_nest_files) == 0 or data.size == 0:
-                ncol = len(Recorder.formats[self.variable].split())
+                if self.variable in Recorder.formats:
+                    ncol = len(Recorder.formats[self.variable].split())
+                else:
+                    ncol = 3
                 data = numpy.empty([0, ncol])
-            if compatible_output:
+            if compatible_output and self.variable in Recorder.formats:
                 data = self._add_initial_and_scale(data)
             self._merged_file = tempfile.TemporaryFile()
             numpy.save(self._merged_file, data)

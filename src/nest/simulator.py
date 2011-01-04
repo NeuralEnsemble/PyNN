@@ -108,12 +108,20 @@ class ID(int, common.IDMixin):
 
     def get_native_parameters(self):
         """Return a dictionary of parameters for the NEST cell model."""
-        return nest.GetStatus([int(self)])[0]
+        if "source" in self.__dict__: # self is a parrot_neuron
+            gid = self.source
+        else:
+            gid = int(self)
+        return nest.GetStatus([gid])[0]
 
     def set_native_parameters(self, parameters):
         """Set parameters of the NEST cell model from a dictionary."""
+        if hasattr(self, "source"): # self is a parrot_neuron
+            gid = self.source
+        else:
+            gid = self
         try:
-            nest.SetStatus([self], [parameters])
+            nest.SetStatus([gid], [parameters])
         except: # I can't seem to catch the NESTError that is raised, hence this roundabout way of doing it.
             exc_type, exc_value, traceback = sys.exc_info()
             if exc_type == 'NESTError' and "Unsupported Numpy array type" in exc_value:
@@ -206,7 +214,7 @@ class ConnectionManager:
         self.synapse_type = synapse_type
         self.parent = parent
         if parent is not None:
-            assert parent.plasticity_name == self.synapse_model
+            assert parent.synapse_model == self.synapse_model
         self._connections = None
         connection_managers.append(self)
 

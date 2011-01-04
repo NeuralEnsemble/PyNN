@@ -73,6 +73,7 @@ def scenario1(sim):
     
     all_cells.record()
     cells['excitatory'][0:2].record_v()
+    assert_equal(cells['excitatory'][0:2].grandparent, all_cells)
     
     sim.run(tstop)
     
@@ -241,7 +242,8 @@ def scenario3(sim):
                         sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0 ),
                         sim.AdditiveWeightDependence(w_min=w_min, w_max=w_max,
                                                      A_plus=0.01, A_minus=0.01),
-                        dendritic_delay_fraction=0.5))
+                        #dendritic_delay_fraction=0.5))
+                        dendritic_delay_fraction=1))
     
     connections = sim.Projection(pre, post, sim.AllToAllConnector(),
                                  target='excitatory', synapse_dynamics=stdp)

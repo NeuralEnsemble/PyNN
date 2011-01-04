@@ -6,7 +6,7 @@ $Id$
 """
 import nest
 from pyNN.nest import simulator
-from pyNN import common, recording, errors, space, standardmodels, __doc__
+from pyNN import common, recording, errors, space, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 
@@ -16,12 +16,15 @@ import shutil
 import logging
 import tempfile
 from pyNN.recording import files
-from pyNN.nest.cells import *
+from pyNN.nest.cells import NativeCellType, native_cell_type
+from pyNN.nest.synapses import NativeSynapseDynamics, NativeSynapseMechanism
+from pyNN.nest.standardmodels.cells import *
 from pyNN.nest.connectors import *
-from pyNN.nest.synapses import *
+from pyNN.nest.standardmodels.synapses import *
 from pyNN.nest.electrodes import *
 from pyNN.nest.recording import *
 from pyNN.random import RandomDistribution
+from pyNN import standardmodels
 
 Set = set
 tempdirs       = []
@@ -82,6 +85,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     
     if "spike_precision" in extra_params:
         simulator.state.spike_precision = extra_params["spike_precision"]
+    else:
+        simulator.state.spike_precision = "on_grid"
     nest.SetKernelStatus({'off_grid_spiking': simulator.state.spike_precision=='off_grid'})
     
     # clear the sli stack, if this is not done --> memory leak cause the stack increases
@@ -181,23 +186,26 @@ class Population(common.Population):
         celltype = cellclass(cellparams)
         nest_model = celltype.nest_name[simulator.state.spike_precision]
         try:
-            self.all_cells = nest.Create(nest_model, n)
+            self.all_cells = nest.Create(nest_model, n, params=celltype.parameters)
         except nest.NESTError, err:
             if "UnknownModelName" in err.message and "cond" in err.message:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
             raise errors.InvalidModelError(err)
-#        if cell_parameters:
-        try:
-            nest.SetStatus(self.all_cells, [celltype.parameters])
-        except nest.NESTError:
-            print "NEST error when trying to set the following dictionary: %s" % cell_parameters
-            raise
+        # create parrot neurons if necessary
+        if hasattr(celltype, "uses_parrot") and celltype.uses_parrot:
+            self.all_cells_source = numpy.array(self.all_cells)  # we put the parrots into all_cells, since this will
+            self.all_cells = nest.Create("parrot_neuron", n)     # be used for connections and recording. all_cells_source
+            nest.Connect(self.all_cells_source, self.all_cells)  # should be used for setting parameters
         self.first_id = self.all_cells[0]
         self.last_id = self.all_cells[-1]
         self._mask_local = numpy.array(nest.GetStatus(self.all_cells, 'local'))
         self.all_cells = numpy.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
         for gid in self.all_cells:
             gid.parent = self
+        if hasattr(celltype, "uses_parrot") and celltype.uses_parrot:
+            for gid, source in zip(self.all_cells, self.all_cells_source):
+                gid.source = source
+        
 
     def set(self, param, val=None):
         """
@@ -220,7 +228,7 @@ class Population(common.Population):
             param_dict = param
         else:
             raise errors.InvalidParameterValueError
-        
+        param_dict = self.celltype.checkParameters(param_dict, with_defaults=False)
         # The default implementation in common is is not very efficient for
         # simple and scaled parameters.
         # Should call nest.SetStatus(self.local_cells,...) for the parameters in
@@ -229,39 +237,32 @@ class Population(common.Population):
         # case, it may be quicker to test whether the parameters participating
         # in the computation vary between cells, since if this is not the case
         # we can do the computation here and use nest.SetStatus.
-        to_be_set = {}
-        for key, value in param_dict.items():
-            if not isinstance(self.celltype, str):
-                # Here we check the consistency of the given parameters
-                try:
-                    self.celltype.default_parameters[key]
-                except Exception:
-                    raise errors.NonExistentParameterError(key, self.celltype.__class__)
-                if type(value) != type(self.celltype.default_parameters[key]):
-                    if isinstance(value, int) and isinstance(self.celltype.default_parameters[key], float):
-                        value = float(value)
-                    elif (isinstance(value, numpy.ndarray) and len(value.shape) == 1) and isinstance(self.celltype.default_parameters[key], list):
-                        pass
-                    else:
-                        raise errors.InvalidParameterValueError("The parameter %s should be a %s, you supplied a %s" % (key,
-                                                                                                                        type(self.celltype.default_parameters[key]),
-                                                                                                                        type(value)))
-                # Then we do the call to SetStatus
-                if key in self.celltype.scaled_parameters() or key in self.celltype.computed_parameters():
+        
+        if isinstance(self.celltype, standardmodels.StandardCellType):
+            to_be_set = {}
+            if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
+                gids = self.all_cells_source[self._mask_local]
+            else:
+                gids = self.local_cells
+            for key, value in param_dict.items():
+                if key in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[key]
                     value = eval(translation['forward_transform'], globals(), {key:value})
-                    to_be_set[translation['translated_name']] = value
+                    to_be_set[translation['translated_name']] = value                
                 elif key in self.celltype.simple_parameters():
                     translation = self.celltype.translations[key]
                     to_be_set[translation['translated_name']] = value                    
                 else:
-                    to_be_set[key] = value
-            else:
-                try:
-                    nest.SetStatus(self.local_cells, key, value)
-                except Exception:
-                    raise errors.InvalidParameterValueError
-            nest.SetStatus(self.local_cells.tolist(), to_be_set)
+                    assert key in self.celltype.computed_parameters()
+            logging.debug("Setting the following parameters: %s" % to_be_set)
+            nest.SetStatus(gids.tolist(), to_be_set)
+            for key, value in param_dict.items():
+                if key in self.celltype.computed_parameters():
+                    logging.debug("Setting %s = %s" % (key, value))
+                    for cell in self:
+                        cell.set_parameters(**{key:value})
+        else:
+            nest.SetStatus(self.local_cells.tolist(), param_dict)
 
     def initialize(self, variable, value):
         """
@@ -323,63 +324,18 @@ class Projection(common.Projection):
                                    synapse_dynamics, label, rng)
         self.synapse_type = target or 'excitatory'
         if self.synapse_dynamics:
-            if self.synapse_dynamics.fast:
-                if self.synapse_dynamics.slow:
-                    raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
-                else:
-                    self._plasticity_model = self.synapse_dynamics.fast.native_name
-            elif synapse_dynamics.slow:
-                self._plasticity_model = self.synapse_dynamics.slow.possible_models
-                if isinstance(self._plasticity_model, Set):
-                    logger.warning("Several STDP models are available for these connections:")
-                    logger.warning(", ".join(model for model in self._plasticity_model))
-                    self._plasticity_model = list(self._plasticity_model)[0]
-                    logger.warning("By default, %s is used" % self._plasticity_model)
+            synapse_dynamics = self.synapse_dynamics
+            self.synapse_dynamics.set_tau_minus(self.post.local_cells) 
         else:        
-            self._plasticity_model = "static_synapse"
-        if self._plasticity_model not in NEST_SYNAPSE_TYPES:
-            raise ValueError, "Synapse dynamics model '%s' not a valid NEST synapse model.  Possible models in your NEST build are: %s" % ( self._plasticity_model, str(nest.Models(mtype='synapses')))
-
-        # Set synaptic plasticity parameters 
-        # We create a particular synapse context just for this projection, by copying
-        # the one which is desired. The name of the synapse context is randomly generated
-        # and will be available as projection.plasticity_name
-        self.plasticity_name = "projection_%d" % Projection.nProj
-        Projection.nProj += 1
-        synapse_defaults = nest.GetDefaults(self._plasticity_model)
-        synapse_defaults.pop('synapsemodel')
-        synapse_defaults.pop('num_connections')
-        if 'num_connectors' in synapse_defaults:
-            synapse_defaults.pop('num_connectors')
-            
-        if self.synapse_dynamics:
-            if self.synapse_dynamics.fast:
-                synapse_defaults.update(self.synapse_dynamics.fast.parameters)
-            elif self.synapse_dynamics.slow:
-                stdp_parameters = self.synapse_dynamics.slow.all_parameters
-                # NEST does not support w_min != 0
-                stdp_parameters.pop("w_min_always_zero_in_NEST")
-                # Tau_minus is a parameter of the post-synaptic cell, not of the connection
-                tau_minus = stdp_parameters.pop("tau_minus")
-                # The following is a temporary workaround until the NEST guys stop renaming parameters!
-                if len(self.post.local_cells) > 0:
-                    if 'tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
-                        nest.SetStatus(self.post.local_cells.tolist(), [{'tau_minus': tau_minus}])
-                    elif 'Tau_minus' in nest.GetStatus([self.post.local_cells[0]])[0]:
-                        nest.SetStatus(self.post.local_cells.tolist(), [{'Tau_minus': tau_minus}])
-                    else:
-                        raise Exception("Postsynaptic cell model does not support STDP.")
-
-                synapse_defaults.update(stdp_parameters)                
-
-        nest.CopyModel(self._plasticity_model, self.plasticity_name, synapse_defaults)
+            synapse_dynamics = NativeSynapseDynamics("static_synapse")
+        self.synapse_model = synapse_dynamics.get_nest_synapse_model("projection_%d" % Projection.nProj)
         self.connection_manager = simulator.ConnectionManager(self.synapse_type,
-                                                              self.plasticity_name, parent=self)
-        
+                                                              self.synapse_model,
+                                                              parent=self)
         # Create connections
         method.connect(self)
-
         self.connections = self.connection_manager
+        Projection.nProj += 1
 
     def saveConnections(self, file, gather=True, compatible_output=True):
         """

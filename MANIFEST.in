@@ -1,6 +1,6 @@
-include src/hoc/*.mod
+include src/neuron/nmodl/*.mod
 include test/parameters/*
-include test/*tests.py
+include test/system/*.py
 include test/unittests/*.py
 include examples/*.py
 include doc/*.txt

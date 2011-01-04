@@ -1,6 +1,10 @@
 import numpy
 from pyNN import recording
 from pyNN.neuron import simulator
+import re
+from neuron import h
+
+recordable_pattern = re.compile(r'(?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.(?P<var>\w+)')
 
 # --- For implementation of record_X()/get_X()/print_X() -----------------------
 
@@ -23,8 +27,27 @@ class Recorder(recording.Recorder):
                     id._cell.record_gsyn("excitatory_TM", 1)
                     id._cell.record_gsyn("inhibitory_TM", 1)
         else:
-            raise Exception("Recording of %s not implemented." % self.variable)
+            for id in new_ids:
+               self._native_record(id)
         
+    def _native_record(self, id):
+        match = recordable_pattern.match(self.variable)
+        if match:
+            parts = match.groupdict()
+            section = getattr(id._cell, parts['section'])
+            if parts['location']:
+                segment = section(float(parts['location']))
+            else:
+                segment = section
+            id._cell.traces[self.variable] = vec = h.Vector()
+            vec.record(getattr(segment, "_ref_%s" % parts['var']))
+            if not id._cell.recording_time:
+                id._cell.record_times = h.Vector()
+                id._cell.record_times.record(h._ref_t)
+                id._cell.recording_time += 1
+        else:
+            raise Exception("Recording of %s not implemented." % self.variable)
+    
     def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         # compatible_output is not used, but is needed for compatibility with the nest module.
@@ -68,7 +91,13 @@ class Recorder(recording.Recorder):
                 new_data = numpy.array([numpy.ones(ge.shape)*id, t, ge, gi]).T
                 data = numpy.concatenate((data, new_data))
         else:
-            raise Exception("Recording of %s not implemented." % self.variable)
+            data = numpy.empty((0,3))
+            for id in self.filter_recorded(filter):
+                var = numpy.array(id._cell.traces[self.variable])  
+                t = numpy.array(id._cell.record_times)               
+                new_data = numpy.array([numpy.ones(var.shape)*id, t, var]).T
+                data = numpy.concatenate((data, new_data))    
+            #raise Exception("Recording of %s not implemented." % self.variable)
         if gather and simulator.state.num_processes > 1:
             data = recording.gather(data)
         return data

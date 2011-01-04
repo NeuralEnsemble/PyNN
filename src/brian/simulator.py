@@ -31,7 +31,7 @@ import brian
 import numpy
 from itertools import izip
 import scipy.sparse
-from pyNN import common, cells, errors, standardmodels, core
+from pyNN import common, errors, core
 
 mV = brian.mV
 ms = brian.ms

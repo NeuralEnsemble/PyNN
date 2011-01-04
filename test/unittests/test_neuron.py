@@ -8,6 +8,7 @@ import numpy
 class MockCellClass(object):
     recordable = ['v']
     parameters = ['romans', 'judeans']
+    injectable = True
     @classmethod
     def has_parameter(cls, name):
         return name in cls.parameters

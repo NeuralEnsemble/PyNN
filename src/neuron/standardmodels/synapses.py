@@ -4,14 +4,11 @@ Synapse Dynamics classes for the neuron module.
 $Id$
 """
 
-from pyNN import standardmodels, synapses
-
-SynapseDynamics = standardmodels.SynapseDynamics
-STDPMechanism = standardmodels.STDPMechanism
+from pyNN.standardmodels import synapses, build_translations, STDPMechanism, SynapseDynamics
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('U', 'U'),
         ('tau_rec', 'tau_rec'),
         ('tau_facil', 'tau_facil'),
@@ -36,7 +33,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     be greater than `w_max` it is set to `w_max`.
     """
     
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('w_max',     'wmax'),
         ('w_min',     'wmin'),
         ('A_plus',    'aLTP'),
@@ -56,7 +53,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     For depression, Dw propto w-w_min
     For potentiation, Dw propto w_max-w
     """
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('w_max',     'wmax'),
         ('w_min',     'wmin'),
         ('A_plus',    'aLTP'),
@@ -74,7 +71,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
     The amplitude of the weight change depends on the current weight for
     depression (Dw propto w-w_min) and is fixed for potentiation
     """
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('w_max',     'wmax'),
         ('w_min',     'wmin'),
         ('A_plus',    'aLTP'),
@@ -93,7 +90,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
 
 class SpikePairRule(synapses.SpikePairRule):
     
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('tau_plus',  'tauLTP'),
         ('tau_minus', 'tauLTD'),
     )

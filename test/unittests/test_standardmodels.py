@@ -47,6 +47,8 @@ def test_instantiate():
     of translate(checkParameters(parameters)).
     """
     M = StandardModelType
+    M.default_parameters = {'a': 0.0, 'b': 0.0}
+    M.translations = {'a': None, 'b': None}
     P1 = {'a': 22.2, 'b': 33.3}
     P2 = {'A': 22.2, 'B': 333}
     orig_checkParameters = M.checkParameters

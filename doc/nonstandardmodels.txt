@@ -1,0 +1,150 @@
+=================================================
+Using non-standard/native cell and synapse models
+=================================================
+
+Standard models are neuron/synapse models that are available in at least two of
+the simulation engines supported by PyNN. Non-standard models, then, work only
+with a single simulator. We also call these "native" models.
+
+With native models, we lose full simulator-independence. However, for people
+who work mainly with a single simulator, native models allow them to use PyNN's
+high-level API for building and instrumenting networks but with a broader range
+of neuron and synapse models. This is also often a useful intermediate step in
+converting a native network model to PyNN.
+
+
+Using native NEST models
+------------------------
+
+To use a NEST neuron model with PyNN, we wrap the NEST model with a PyNN
+``NativeCellType`` class, e.g.::
+
+    >>> from pyNN.nest import native_cell_type, Population, run, setup
+    >>> setup()
+    >>> ht_neuron = native_cell_type('ht_neuron')
+    >>> poisson = native_cell_type('poisson_generator')
+    >>> p1 = Population(10, ht_neuron, {'Tau_m': 20.0})
+    >>> p2 = Population(1, poisson, {'rate': 200.0})
+    
+We can now initialize state variables, set/get parameter values, and record from
+these neurons as from standard cells::
+
+    >>> p1.get('Tau_m')
+    [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]
+    >>> p1.get('Tau_theta')
+    [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    >>> p1.get('C_m')
+    NonExistentParameterError: C_m (valid parameters for ht_neuron are:
+      AMPA_E_rev, AMPA_Tau_1, AMPA_Tau_2, AMPA_g_peak, E_K, E_Na, GABA_A_E_rev,
+      GABA_A_Tau_1, GABA_A_Tau_2, GABA_A_g_peak, GABA_B_E_rev, GABA_B_Tau_1,
+      GABA_B_Tau_2, GABA_B_g_peak, KNa_E_rev, KNa_g_peak, NMDA_E_rev, NMDA_Sact,
+      NMDA_Tau_1, NMDA_Tau_2, NMDA_Vact, NMDA_g_peak, NaP_E_rev, NaP_g_peak,
+      T_E_rev, T_g_peak, Tau_m, Tau_spike, Tau_theta, Theta_eq, g_KL, g_NaL,
+      h_E_rev, h_g_peak, spike_duration)
+      
+    >>> p1.initialize('V_m', -70.0)
+    >>> p1.initialize('Theta', -50.0)
+    
+Note that the API for recording is somewhat clumsy for native models, and will
+be improved in the next PyNN release::
+
+    >>> p1._record('V_m')
+    >>> run(250.0)
+    >>> id, t, v = p1.recorders['V_m'].get().T
+    
+To connect populations of native cells, you need to know the available
+synaptic receptor types::
+
+    >>> ht_neuron.synapse_types
+    {'AMPA': 1, 'GABA_A': 3, 'GABA_B': 4, 'NMDA': 2}
+    >>> from pyNN.nest import Projection, AllToAllConnector
+    >>> connector = AllToAllConnector()
+    >>> prj_ampa = Projection(p2, p1, connector, target='AMPA')
+    >>> prj_nmda = Projection(p2, p1, connector, target='NMDA')
+
+To use a NEST STDP model with PyNN, we use the ``NativeSynapseDynamics`` class::
+
+    >>> from pyNN.nest import NativeSynapseDynamics
+    >>> stdp = NativeSynapseDynamics("stdp_synapse", {'Wmax': 50.0, 'lambda': 0.015})
+    >>> prj_plastic = Projection(p1, p1, connector, target='AMPA', synapse_dynamics=stdp)
+    
+
+Using native NEURON models
+--------------------------
+
+A native NEURON cell model is described using a Python class (which may wrap a
+Hoc template). For this class to work with PyNN, there are a small number of
+requirements:
+
+    - the ``__init__()`` method should take just ``**parameters`` as its argument.
+    - instances should have attributes:
+    
+        - ``source``: a reference to the membrane potential which will be
+                      monitored for spike emission, e.g. ``self.soma(0.5)._ref_v``
+        - ``source_section``: the Hoc ``Section`` in which ``source`` is located.
+        - ``parameter_names``: a tuple of the names of attributes/properties of
+                               the class that correspond to parameters of the model.
+        - ``traces``: an empty dict, used for recording.
+        - ``recording_time``: should be ``False`` initially.
+    
+    - there must be ``memb_init()`` method, taking no arguments.
+
+Here is an example, which uses the nrnutils_ package for conciseness::
+
+    from nrnutils import Mechanism, Section
+
+    class SimpleNeuron(object):
+    
+        def __init__(self, **parameters):
+            hh = Mechanism('hh', gl=parameters['g_leak'], el=-65,
+                           gnabar=parameters['gnabar'], gkbar=parameters['gkbar'])
+            self.soma = Section(L=30, diam=30, mechanisms=[hh])
+            self.soma.add_synapse('ampa', 'Exp2Syn', e=0.0, tau1=0.1, tau2=5.0)
+
+            # needed for PyNN
+            self.source_section = self.soma
+            self.source = self.soma(0.5)._ref_v
+            self.parameter_names = ('g_leak', 'gnabar', 'gkbar')
+            self.traces = {}
+            self.recording_time = False
+            
+        def _set_gnabar(self, value):
+            for seg in self.soma:
+                seg.hh.gnabar = value
+        def _get_gnabar(self):
+            return self.soma(0.5).hh.gnabar
+        gnabar = property(fget=_get_gnabar, fset=_set_gnabar)
+
+        # ... gkbar and g_leak properties defined similarly
+        
+        def memb_init(self):
+            for seg in self.soma:
+                seg.v = self.v_init
+
+
+For each cell model, you must also define a cell type::
+
+    class SimpleNeuronType(NativeCellType):
+        default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}
+        default_initial_values = {'v': -65.0}
+        recordable = ['soma(0.5).v', 'soma(0.5).ina']
+        model = SimpleNeuron
+
+The requirement to explicitly list all variables you might wish to record in the
+``recordable`` attribute is a temporary inconvenience, which will be removed in
+a future version.
+
+It is now straightforward to use this cell type in PyNN:
+
+    >>> from pyNN.neuron import setup, run, Population, Projection, AllToAllConnector
+    >>> setup()
+    >>> p1 = Population(10, SimpleNeuronType, {'g_leak': 0.0003})
+    >>> p1._record('soma(0.5).ina')
+    >>> prj = Projection(p1, p1, AllToAllConnector(), target='soma.ampa')
+    >>> run(100.0)
+    >>> id, t, ina = p1.recorders['soma(0.5).ina'].get().T
+
+
+
+.. _nrnutils: http://pypi.python.org/pypi/nrnutils/
+

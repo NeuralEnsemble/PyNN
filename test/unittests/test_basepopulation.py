@@ -10,7 +10,8 @@ id_map = {'larry': 0, 'curly': 1, 'moe': 2}
 
 class MockStandardCell(standardmodels.StandardCellType):
     recordable = ['v', 'spikes']
-    default_parameters = {'tau_m': 999.9, 'i_offset': 321, 'spike_times': [0,1,2], 'foo': 33.3}
+    default_parameters = {'tau_m': 999.9, 'i_offset': 321.0, 'spike_times': [0,1,2], 'foo': 33.3}
+    translations = {'tau_m': None, 'i_offset': None, 'spike_times': None, 'foo': None}
     @classmethod
     def translate(cls, parameters):
         return parameters
@@ -201,6 +202,11 @@ def test_set_invalid_type():
     assert_raises(errors.InvalidParameterValueError, p.set, 'foo', 'bar')
     assert_raises(errors.InvalidParameterValueError, p.set, {'foo': 'bar'})
 
+def test_set_inconsistent_type():
+    p = MockPopulation()
+    p._set_array = Mock()
+    assert_raises(errors.InvalidParameterValueError, p.set, 'tau_m', [12.34, 56.78])
+
 def test_set_with_no_get_array():
     mock_cell = Mock()
     orig_iter = MockPopulation.__iter__
@@ -213,8 +219,8 @@ def test_set_with_no_get_array():
 def test_set_with_list():
     p = MockPopulation()
     p._set_array = Mock()
-    p.set('foo', range(10))
-    p._set_array.assert_called_with(**{'foo': range(10)})
+    p.set('spike_times', range(10))
+    p._set_array.assert_called_with(**{'spike_times': range(10)})
     
 def test_tset_with_numeric_values():
     p = MockPopulation()

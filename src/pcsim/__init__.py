@@ -24,9 +24,9 @@ import types
 import sys
 import numpy
 import pypcsim
-from pyNN.pcsim.cells import *
+from pyNN.pcsim.standardmodels.cells import *
 from pyNN.pcsim.connectors import *
-from pyNN.pcsim.synapses import *
+from pyNN.pcsim.standardmodels.synapses import *
 from pyNN.pcsim.electrodes import *
 from pyNN.pcsim.recording import *
 

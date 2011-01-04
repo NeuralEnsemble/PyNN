@@ -32,6 +32,22 @@ if MPI:
 
 #def test_mpi_sum():
 
+class MockPopulation(object):
+    size = 11
+    first_id = 2454
+    last_id = first_id + size
+    label = "mock population"
+    def __len__(self):
+        return self.size
+    def can_record(self, variable):
+        if variable in ["spikes", "v", "gsyn"]:
+            return True
+        else:
+            return False
+    def id_to_index(self, id):
+        return id
+
+
 def test_Recorder_create():
     r = recording.Recorder('spikes')
     assert_equal(r.variable, 'spikes')
@@ -41,7 +57,7 @@ def test_Recorder_create():
     
 def test_Recorder_invalid_variable():
     assert_raises(AssertionError,
-                  recording.Recorder, 'foo')
+                  recording.Recorder, 'foo', population=MockPopulation())
 
 class MockID(object):
     def __init__(self, id, local):
@@ -97,17 +113,6 @@ class MockState(object):
 class MockSimulator(object):
     def __init__(self, mpi_rank):
         self.state = MockState(mpi_rank)
-
-class MockPopulation(object):
-    size = 11
-    first_id = 2454
-    last_id = first_id + size
-    label = "mock population"
-    def __len__(self):
-        return self.size
-    
-    def id_to_index(self, id):
-       return id
 
 def test_write__with_filename__compatible_output__gather__onroot():
     recording.simulator = MockSimulator(mpi_rank=0)

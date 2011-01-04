@@ -87,8 +87,9 @@ class Recorder(recording.Recorder):
     def _local_count(self, filter=None):
         N = {}
         filtered_ids = self.filter_recorded(filter)
-        cells        = list(filtered_ids) 
-        filtered_ids = numpy.array(cells) - cells[0].parent.first_id        
+        cells        = list(filtered_ids)
+        padding      = cells[0].parent.first_id
+        filtered_ids = numpy.array(cells) - padding   
         for id in filtered_ids:
             N[id + padding] = len(self._devices[0].spiketimes[id])
         return N

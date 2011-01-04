@@ -4,7 +4,8 @@ Standard cells for pcsim
 $Id$
 """
 
-from pyNN import common, cells, errors, standardmodels
+from pyNN import common, errors
+from pyNN.standardmodels import cells, build_translations, ModelNotAvailable
 import pypcsim
 import numpy
 import logging
@@ -15,7 +16,7 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
     
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('tau_m',      'taum',      1e-3),
         ('cm',         'Cm',        1e-9), 
         ('v_rest',     'Vresting',  1e-3), 
@@ -41,7 +42,7 @@ class IF_curr_exp(cells.IF_curr_exp):
        decaying-exponential post-synaptic current. (Separate synaptic currents for
        excitatory and inhibitory synapses."""
     
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('tau_m',      'taum',      1e-3),
         ('cm',         'Cm',        1e-9), 
         ('v_rest',     'Vresting',  1e-3), 
@@ -66,7 +67,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
     
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('tau_m',      'taum',      1e-3),
         ('cm',         'Cm',        1e-9), 
         ('v_rest',     'Vresting',  1e-3), 
@@ -94,7 +95,7 @@ class IF_cond_exp(cells.IF_cond_exp):
     """Leaky integrate and fire model with fixed threshold and 
     exponentially-decaying post-synaptic conductance."""
     
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('tau_m',      'taum',      1e-3),
         ('cm',         'Cm',        1e-9), 
         ('v_rest',     'Vresting',  1e-3), 
@@ -122,7 +123,7 @@ class IF_cond_exp(cells.IF_cond_exp):
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('start',    'Tstart',   1e-3), 
         ('rate',     'rate'), 
         ('duration', 'duration', 1e-3)
@@ -160,7 +161,7 @@ def sanitize_spike_times(spike_times):
 
 class SpikeSourceArray(cells.SpikeSourceArray):
     """Spike source generating spikes at the times given in the spike_times array."""
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('spike_times', 'spikeTimes'), # 1e-3), 
     )
     pcsim_name = 'SpikingInputNeuron'
@@ -196,7 +197,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
             standard_parameters['spike_times'] *= 1000.0 
         return standard_parameters
 
-class EIF_cond_alpha_isfa_ista(standardmodels.ModelNotAvailable):
+class EIF_cond_alpha_isfa_ista(ModelNotAvailable):
     pass
 #class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
 #    """
@@ -209,7 +210,7 @@ class EIF_cond_alpha_isfa_ista(standardmodels.ModelNotAvailable):
 #    See also: IF_cond_exp_gsfa_grr
 #    """
 #
-#    translations = standardmodels.build_translations(
+#    translations = build_translations(
 #        ('cm'        , 'Cm',        1e-9),  # nF -> F
 #        ('tau_refrac', 'Trefract',  1e-3),  # ms -> s 
 #        ('v_spike'   , 'Vpeak',     1e-3),
@@ -241,16 +242,16 @@ class EIF_cond_alpha_isfa_ista(standardmodels.ModelNotAvailable):
 #            limited_parameters[k] = self.parameters[k]
 #        self.simObjFactory = getattr(pypcsim, EIF_cond_alpha_isfa_ista.pcsim_name)(**limited_parameters)
 
-class IF_facets_hardware1(standardmodels.ModelNotAvailable):
+class IF_facets_hardware1(ModelNotAvailable):
     pass
 
-class HH_cond_exp(standardmodels.ModelNotAvailable):
+class HH_cond_exp(ModelNotAvailable):
     pass
 
 #class HH_cond_exp(cells.HH_cond_exp):
 #    """docstring needed here."""
 #    
-#    translations = standardmodels.build_translations(
+#    translations = build_translations(
 #        ('gbar_Na',    'gbar_Na'),   
 #        ('gbar_K',     'gbar_K'),    
 #        ('g_leak',     'Rm',    '1/g_leak', '1/Rm'),    # check HHNeuronTraubMiles91.h, not sure this is right
@@ -276,8 +277,8 @@ class HH_cond_exp(standardmodels.ModelNotAvailable):
         
         
         
-class SpikeSourceInhGamma(standardmodels.ModelNotAvailable):
+class SpikeSourceInhGamma(ModelNotAvailable):
     pass
 
-class IF_cond_exp_gsfa_grr(standardmodels.ModelNotAvailable):
+class IF_cond_exp_gsfa_grr(ModelNotAvailable):
     pass

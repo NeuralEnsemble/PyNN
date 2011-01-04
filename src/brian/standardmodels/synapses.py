@@ -4,12 +4,10 @@ Synapse Dynamics classes for the brian module.
 $Id$
 """
 
-from pyNN import standardmodels, synapses
+from pyNN.standardmodels import synapses, SynapseDynamics, STDPMechanism
 
 
-SynapseDynamics = standardmodels.SynapseDynamics
-
-class STDPMechanism(standardmodels.STDPMechanism):
+class STDPMechanism(STDPMechanism):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,

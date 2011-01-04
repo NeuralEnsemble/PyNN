@@ -12,9 +12,9 @@ from pyNN import common, recording as base_recording, space, standardmodels, __d
 common.simulator = simulator
 base_recording.simulator = simulator
 
-from pyNN.neuron.cells import *
+from pyNN.neuron.standardmodels.cells import *
 from pyNN.neuron.connectors import *
-from pyNN.neuron.synapses import *
+from pyNN.neuron.standardmodels.synapses import *
 from pyNN.neuron.electrodes import *
 from pyNN.neuron.recording import Recorder
 

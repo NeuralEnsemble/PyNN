@@ -45,7 +45,7 @@ import logging
 from warnings import warn
 import operator
 import tempfile
-from pyNN import random, recording, errors, standardmodels, core, space, descriptions
+from pyNN import random, recording, errors, models, standardmodels, core, space, descriptions
 from pyNN.recording import files
 from itertools import chain
 if not 'simulator' in locals():
@@ -173,7 +173,7 @@ class IDMixin(object):
     def get_parameters(self):
         """Return a dict of all cell parameters."""
         if self.local:
-            parameters = self.get_native_parameters()            
+            parameters = self.get_native_parameters()
             if self.is_standard_cell:
                 parameters = self.celltype.reverse_translate(parameters)
             return parameters
@@ -505,15 +505,7 @@ class BasePopulation(object):
             param_dict = param
         else:
             raise errors.InvalidParameterValueError
-        for name, val in param_dict.items():
-            if name not in self.celltype.get_parameter_names():
-                raise errors.NonExistentParameterError(name, self.celltype, self.celltype.get_parameter_names())
-            if isinstance(val, (float, int)):
-                param_dict[name] = float(val)
-            elif isinstance(val, (list, numpy.ndarray)):
-                pass  # ought to check list/array only contains numeric types
-            else:
-                raise errors.InvalidParameterValueError
+        param_dict = self.celltype.checkParameters(param_dict, with_defaults=False)
         logger.debug("%s.set(%s)", self.label, param_dict)
         if hasattr(self, "_set_array"):
             self._set_array(**param_dict)
@@ -614,6 +606,7 @@ class BasePopulation(object):
                 value) or a `RandomDistribution` object (each neuron gets a
                 different value)
         """
+        logging.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
         if isinstance(value, random.RandomDistribution):
             initial_value = value.next(n=self.all_cells.size, mask_local=self._mask_local)
         else:
@@ -633,6 +626,16 @@ class BasePopulation(object):
         """Determine whether `variable` can be recorded from this population."""
         return (variable in self.celltype.recordable)
 
+    def _add_recorder(self, variable):
+        """Create a new Recorder for the supplied variable."""
+        assert variable not in self.recorders
+        if hasattr(self, "parent"):
+            population = self.grandparent
+        else:
+            population = self
+        population.recorders[variable] = population.recorder_class(variable,
+                                                                   population=population)
+
     def _record(self, variable, to_file=True):
         """
         Private method called by record() and record_v().
@@ -640,6 +643,8 @@ class BasePopulation(object):
         if not self.can_record(variable):
             raise errors.RecordingError(variable, self.celltype)        
         logger.debug("%s.record('%s')", self.label, variable)
+        if variable not in self.recorders:
+            self._add_recorder(variable)
         if self.record_filter is not None:
             self.recorders[variable].record(self.record_filter)
         else:
@@ -853,9 +858,7 @@ class Population(BasePopulation):
         self.initial_values = {}
         for variable, value in self.celltype.default_initial_values.items():
             self.initialize(variable, value)
-        self.recorders = {'spikes': self.recorder_class('spikes', population=self),
-                          'v'     : self.recorder_class('v', population=self),
-                          'gsyn'  : self.recorder_class('gsyn', population=self)}
+        self.recorders = {}
         Population.nPop += 1
 
     @property
@@ -963,6 +966,9 @@ class Population(BasePopulation):
 
 
 class PopulationView(BasePopulation):
+    """
+    docstring needed
+    """
 
     def __init__(self, parent, selector, label=None):
         self.parent = parent
@@ -1018,6 +1024,8 @@ class PopulationView(BasePopulation):
         """
         if not numpy.iterable(id):
             if self._is_sorted:
+                if id not in self.all_cells:
+                    raise IndexError("ID %s not present in the View" %id)
                 return numpy.searchsorted(self.all_cells, id)
             else:
                 result = numpy.where(self.all_cells == id)[0]
@@ -1040,6 +1048,20 @@ class PopulationView(BasePopulation):
                         result = numpy.append(result, data)
                 return result
         
+    @property
+    def grandparent(self):
+        """
+        Returns the parent Population at the root of the tree (since the
+        immediate parent may itself be a PopulationView).
+        
+        The name "grandparent" is of course a little misleading, as it could
+        be just the parent, or the great, great, great, ..., grandparent.
+        """
+        if hasattr(self.parent, "parent"):
+            return self.parent.grandparent
+        else:
+            return self.parent
+    
     def describe(self, template='populationview_default.txt', engine='default'):
         """
         Returns a human-readable description of the population view.
@@ -1538,8 +1560,8 @@ class Projection(object):
             if self.pre.label and self.post.label:
                 self.label = "%s→%s" % (self.pre.label, self.post.label)
         if self.synapse_dynamics:
-            assert isinstance(self.synapse_dynamics, standardmodels.SynapseDynamics), \
-              "The synapse_dynamics argument, if specified, must be a standardmodels.SynapseDynamics object, not a %s" % type(synapse_dynamics)
+            assert isinstance(self.synapse_dynamics, models.BaseSynapseDynamics), \
+              "The synapse_dynamics argument, if specified, must be a models.BaseSynapseDynamics object, not a %s" % type(synapse_dynamics)
 
     def __len__(self):
         """Return the total number of local connections."""

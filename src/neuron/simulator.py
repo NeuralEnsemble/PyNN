@@ -51,12 +51,12 @@ def load_mechanisms(path=pyNN_path[0]):
         arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc']
         # in case NEURON is assuming a different architecture to Python, we try multiple possibilities
         for arch in arch_list:
-            lib_path = os.path.join(path, 'hoc', arch, '.libs', 'libnrnmech.so')
+            lib_path = os.path.join(path, 'neuron', 'nmodl', arch, '.libs', 'libnrnmech.so')
             if os.path.exists(lib_path):
                 h.nrn_load_dll(lib_path)
                 nrn_dll_loaded.append(path)
                 return
-        raise Exception("NEURON mechanisms not found in %s." % os.path.join(path, 'hoc'))
+        raise Exception("NEURON mechanisms not found in %s." % os.path.join(path, 'neuron', 'nmodl'))
 
 def is_point_process(obj):
     """Determine whether a particular object is a NEURON point process."""

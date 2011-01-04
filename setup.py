@@ -15,7 +15,7 @@ class build(_build):
             import subprocess
             p = subprocess.Popen(nrnivmodl, shell=True, stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                         close_fds=True, cwd=os.path.join(os.getcwd(), self.build_lib, 'pyNN/hoc'))
+                         close_fds=True, cwd=os.path.join(os.getcwd(), self.build_lib, 'pyNN/neuron/nmodl'))
             result = p.wait()
             # test if nrnivmodl was successful
             if result != 0:
@@ -42,8 +42,11 @@ setup(
     name = "PyNN",
     version = "0.7pre",
     package_dir={'pyNN': 'src'},
-    packages = ['pyNN','pyNN.nest', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.brian', 'pyNN.recording', 'pyNN.descriptions'],
-    package_data = {'pyNN': ['hoc/*.hoc', 'hoc/*.mod', "descriptions/templates/*/*"]},
+    packages = ['pyNN','pyNN.nest', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.brian',
+                'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
+                'pyNN.nest.standardmodels', 'pyNN.pcsim.standardmodels',
+                'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels'],
+    package_data = {'pyNN': ['neuron/nmodl/*.hoc', 'neuron/nmodl/*.mod', "descriptions/templates/*/*"]},
     author = "The NeuralEnsemble Community",
     author_email = "pynn@neuralensemble.org",
     description = "A Python package for simulator-independent specification of neuronal network models",
