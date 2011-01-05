@@ -1,7 +1,6 @@
 import moose
 import pylab
 pylab.rcParams['interactive'] = True
-from pyNN.moose.cells import SingleCompHH
 
 ms = 1e-3
 mV = 1e-3

@@ -22,7 +22,7 @@ class Recorder(recording.Recorder):
         else:
             raise Exception("Recording of %s not implemented." % self.variable)
         
-    def _get(self, gather=False, compatible_output=True):
+    def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         # compatible_output is not used, but is needed for compatibility with the nest module.
         # Does nest really need it?                
@@ -70,6 +70,11 @@ class Recorder(recording.Recorder):
             raise Exception("Recording of %s not implemented." % self.variable)
     #    if gather and simulator.state.num_processes > 1:
     #        data = recording.gather(data)
+    
+        if filter is not None:
+            filtered_ids = self.filter_recorded(filter)
+            mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
+            data = data[mask]
         return data
         
     #def _local_count(self, gather=False):

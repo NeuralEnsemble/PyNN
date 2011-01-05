@@ -1,6 +1,6 @@
 import moose
 import numpy
-from pyNN import standardmodels, cells
+from pyNN.standardmodels import build_translations, cells
 
 mV = 1e-3
 ms = 1e-3
@@ -94,6 +94,7 @@ class RandomSpikeSource(moose.RandomSpike):
         self.resetValue = 0.0
         # how to handle start and duration?
         self.useClock(0)
+        self.source = self
 
     def record_state(self):
         # for testing, can be deleted when everything is working
@@ -105,7 +106,7 @@ class RandomSpikeSource(moose.RandomSpike):
 
 class HH_cond_exp(cells.HH_cond_exp):
     """Single compartment cell with an Na channel and a K channel"""
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('gbar_Na',    'GbarNa', 1e-9),   
         ('gbar_K',     'GbarK', 1e-9),    
         ('g_leak',     'GLeak', 1e-9),    
@@ -119,7 +120,7 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('tau_syn_E',  'tauE', 1e-3),
         ('tau_syn_I',  'tauI', 1e-3),
         ('i_offset',   'inject', 1e-9),
-        ('v_init',     'initVm', 1e-3),
+        #('v_init',     'initVm', 1e-3),
     )
     model = SingleCompHH
 
@@ -128,7 +129,7 @@ class HH_cond_exp(cells.HH_cond_exp):
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""
 
-    translations = standardmodels.build_translations(
+    translations = build_translations(
         ('start',    'start'),
         ('rate',     'rate'),
         ('duration', 'duration'),

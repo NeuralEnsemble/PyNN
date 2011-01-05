@@ -4,17 +4,20 @@ MOOSE implementation of the PyNN API
 
 Authors: Subhasis Ray and Andrew Davison
 
-$Id:$
+$Id$
 """
 
 import moose
+import numpy
 from pyNN.moose import simulator
 from pyNN import common, recording
 common.simulator = simulator
 recording.simulator = simulator
 
-from pyNN.moose.cells import *
-from pyNN.moose.recording import *
+from pyNN.connectors import FixedProbabilityConnector, AllToAllConnector
+from pyNN.moose.standardmodels.cells import SpikeSourcePoisson, HH_cond_exp
+from pyNN.moose.recording import Recorder
+from pyNN import standardmodels
 
 import logging
 logger = logging.getLogger("PyNN")
@@ -37,12 +40,17 @@ def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     for recorder in simulator.recorder_list:
         recorder.write(gather=True, compatible_output=compatible_output)
+    simulator.recorder_list = []
     moose.PyMooseBase.endSimulation()
 
 def run(simtime):
-	"""Run the simulation for simtime"""
-	simulator.run(simtime)
+    """Run the simulation for simtime"""
+    simulator.run(simtime)
+    return get_current_time()
 
+reset = common.reset
+
+initialize = common.initialize
 
 # ==============================================================================
 #   Functions returning information about the simulation state
@@ -53,22 +61,108 @@ get_time_step = common.get_time_step
 get_min_delay = common.get_min_delay
 get_max_delay = common.get_max_delay
 num_processes = common.num_processes
-rank = common.rank   
+rank = common.rank
 
+# ==============================================================================
+#   High-level API for creating, connecting and recording from populations of
+#   neurons.
+# ==============================================================================
+
+class Population(common.Population):
+    """
+    An array of neurons all of the same type. `Population' is used as a generic
+    term intended to include layers, columns, nuclei, etc., of cells.
+    """
+    recorder_class = Recorder
+
+    def _create_cells(self, cellclass, cellparams, n):
+        """
+        Create cells in MOOSE.
+        
+        `cellclass`  -- a PyNN standard cell or a native MOOSE model.
+        `cellparams` -- a dictionary of cell parameters.
+        `n`          -- the number of cells to create
+        """
+        assert n > 0, 'n must be a positive integer'
+        if isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
+            celltype = cellclass(cellparams)
+        else:
+            print cellclass
+            raise Exception("Only standard cells currently supported.")
+        self.first_id = simulator.state.gid_counter
+        self.last_id = simulator.state.gid_counter + n - 1
+        self.all_cells = numpy.array([simulator.ID(id)
+                                      for id in range(self.first_id, self.last_id+1)],
+                                     dtype=simulator.ID)
+        # mask_local is used to extract those elements from arrays that apply to the cells on the current node
+        self._mask_local = self.all_cells%simulator.state.num_processes == simulator.state.mpi_rank # round-robin distribution of cells between nodes
+        for id in self.all_cells:
+            id.parent = self
+            id._build_cell(celltype.model, celltype.parameters)
+        simulator.state.gid_counter += n
+
+
+class Projection(common.Projection):
+    """
+    A container for all the connections of a given type (same synapse type and
+    plasticity mechanisms) between two populations, together with methods to set
+    parameters of those connections, including of plasticity mechanisms.
+    """
+
+    nProj = 0
+
+    def __init__(self, presynaptic_population, postsynaptic_population,
+                 method, source=None,
+                 target=None, synapse_dynamics=None, label=None, rng=None):
+        """
+        presynaptic_population and postsynaptic_population - Population objects.
+
+        source - string specifying which attribute of the presynaptic cell
+                 signals action potentials
+
+        target - string specifying which synapse on the postsynaptic cell to
+                 connect to
+
+        If source and/or target are not given, default values are used.
+
+        method - a Connector object, encapsulating the algorithm to use for
+                 connecting the neurons.
+
+        synapse_dynamics - a `SynapseDynamics` object specifying which
+        synaptic plasticity mechanisms to use.
+
+        rng - specify an RNG object to be used by the Connector.
+        """
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
+                                   method, source, target,
+                                   synapse_dynamics, label, rng)
+        self.synapse_type = target or 'excitatory'
+        assert synapse_dynamics is None, "don't yet handle synapse dynamics"
+        self.synapse_model = None
+        self.connection_manager = simulator.ConnectionManager(self.synapse_type,
+                                                              self.synapse_model,
+                                                              parent=self)
+        # Create connections
+        method.connect(self)
+        self.connections = self.connection_manager
+        Projection.nProj += 1
+        
+        
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================
 
-create = common.create
+create = common.build_create(Population)
 
-#connect = common.connect
+connect = common.build_connect(Projection, FixedProbabilityConnector)
 
-#set = common.set
+set = common.set
 
 record = common.build_record('spikes', simulator)
 
 record_v = common.build_record('v', simulator)
 
 record_gsyn = common.build_record('gsyn', simulator)
-	
+
+# ==============================================================================
 

@@ -4,9 +4,7 @@ Implementation of the "low-level" functionality used by the common
 implementation of the API, for the MOOSE simulator.
 
 Functions and classes useable by the common implementation:
-
-Functions:
-    create_cells()
+    run()
 
 
 All other functions and classes are private, and should not be used by other
@@ -16,8 +14,7 @@ $Id:$
 """
 
 import moose
-import numpy
-from pyNN import common, standardmodels
+from pyNN import common, core
 
 # global variables
 recorder_list = []
@@ -35,6 +32,8 @@ class _State(object):
         self.gid_counter = 0
         self.num_processes = 1 # we're not supporting MPI
         self.mpi_rank = 0      # for now
+        self.min_delay = 0.0
+        self.max_delay = 1e12
 
     @property
     def t(self):
@@ -92,51 +91,63 @@ class ID(int, common.IDMixin):
             setattr(self._cell, name, val)
 
 
-# --- For implementation of create() and Population.__init__() -----------------
+class ConnectionManager(object):
+    """
+    Manage synaptic connections, providing methods for creating, listing,
+    accessing individual connections.
+    """
 
-def create_cells(cellclass, cellparams, n, parent=None):
-    """
-    Create cells in MOOSE.
+    def __init__(self, synapse_type, synapse_model=None, parent=None):
+        """
+        Create a new ConnectionManager.
+        
+        `synapse_model` -- either None or 'Tsodyks-Markram'.
+        `parent` -- the parent `Projection`
+        """
+        assert parent is not None
+        self.connections = []
+        self.parent = parent
+        self.synapse_type = synapse_type
+        self.synapse_model = synapse_model
     
-    `cellclass`  -- a PyNN standard cell or a native MOOSE cell class that
-                   implements an as-yet-undescribed interface.
-    `cellparams` -- a dictionary of cell parameters.
-    `n`          -- the number of cells to create
-    `parent`     -- the parent Population, or None if the cells don't belong to
-                    a Population.
-    
-    This function is used by both `create()` and `Population.__init__()`
-    
-    Return:
-        - a 1D array of all cell IDs
-        - a 1D boolean array indicating which IDs are present on the local MPI
-          node
-        - the ID of the first cell created
-        - the ID of the last cell created
-    """
-    assert n > 0, 'n must be a positive integer'
-    if isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
-        celltype = cellclass(cellparams)
-        cell_model = celltype.model
-        cell_parameters = celltype.parameters
-    else:
-        print cellclass
-        raise Exception("Only standard cells currently supported.")
-    first_id = state.gid_counter
-    last_id = state.gid_counter + n - 1
-    all_ids = numpy.array([id for id in range(first_id, last_id+1)], ID)
-    # mask_local is used to extract those elements from arrays that apply to the cells on the current node
-    mask_local = all_ids%state.num_processes==state.mpi_rank # round-robin distribution of cells between nodes
-    for i,(id,is_local) in enumerate(zip(all_ids, mask_local)):
-        all_ids[i] = ID(id)
-        all_ids[i].parent = parent
-        if is_local:
-            all_ids[i].local = True
-            all_ids[i]._build_cell(cell_model, cell_parameters)
-        else:
-            all_ids[i].local = False
-    state.gid_counter += n
-    return all_ids, mask_local, first_id, last_id
+    def connect(self, source, targets, weights, delays):
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `source`  -- the ID of the pre-synaptic cell.
+        `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        if not isinstance(source, int) or source > state.gid_counter or source < 0:
+            errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, state.gid_counter)
+            raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(targets):
+            targets = [targets]
+            
+        weights = weights*1000.0 # scale units
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(targets) > 0
+        # need to scale weights for appropriate units
+        for target, weight, delay in zip(targets, weights, delays):
+            if target.local:
+                if not isinstance(target, common.IDMixin):
+                    raise errors.ConnectionError("Invalid target ID: %s" % target)
+                if self.synapse_type == "excitatory":
+                    synapse_object = target._cell.synE
+                elif self.synapse_type == "inhibitory":
+                    synapse_object = target._cell.synI
+                else:
+                    synapse_object = getattr(target._cell, self.synapse_type)
+                source._cell.source.connect('event', synapse_object, 'synapse')
+                print "setting weight", weight
+                synapse_object.setWeight(0, weight) # presumably the first arg is the connection number?
+                synapse_object.setDelay(0, delay)
 
 state = _State()  # a Singleton, so only a single instance ever exists
 del _State
