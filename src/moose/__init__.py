@@ -9,13 +9,16 @@ $Id$
 
 import moose
 import numpy
+import shutil
+import os.path
 from pyNN.moose import simulator
 from pyNN import common, recording
 common.simulator = simulator
 recording.simulator = simulator
 
 from pyNN.connectors import FixedProbabilityConnector, AllToAllConnector
-from pyNN.moose.standardmodels.cells import SpikeSourcePoisson, HH_cond_exp
+from pyNN.moose.standardmodels.cells import SpikeSourcePoisson, SpikeSourceArray, HH_cond_exp, IF_cond_exp, IF_cond_alpha
+from pyNN.moose.cells import temporary_directory
 from pyNN.moose.recording import Recorder
 from pyNN import standardmodels
 
@@ -34,6 +37,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     common.setup(timestep, min_delay, max_delay, **extra_params)
     simulator.state.dt = timestep
+    if not os.path.exists(temporary_directory):
+        os.mkdir(temporary_directory)
     return 0
 
 def end(compatible_output=True):
@@ -41,6 +46,7 @@ def end(compatible_output=True):
     for recorder in simulator.recorder_list:
         recorder.write(gather=True, compatible_output=compatible_output)
     simulator.recorder_list = []
+    shutil.rmtree(temporary_directory, ignore_errors=True)
     moose.PyMooseBase.endSimulation()
 
 def run(simtime):

@@ -139,9 +139,9 @@ class ConnectionManager(object):
                 if not isinstance(target, common.IDMixin):
                     raise errors.ConnectionError("Invalid target ID: %s" % target)
                 if self.synapse_type == "excitatory":
-                    synapse_object = target._cell.synE
+                    synapse_object = target._cell.esyn
                 elif self.synapse_type == "inhibitory":
-                    synapse_object = target._cell.synI
+                    synapse_object = target._cell.isyn
                 else:
                     synapse_object = getattr(target._cell, self.synapse_type)
                 source._cell.source.connect('event', synapse_object, 'synapse')

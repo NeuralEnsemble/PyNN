@@ -20,6 +20,9 @@ except ImportError:
 #            raise SkipTest
 
 def test_recording():
+    if not have_moose:
+        raise SkipTest
+    
     sim = pyNN.moose
     sim.setup()
     
@@ -37,14 +40,20 @@ def test_recording():
 
 
 def test_synaptic_connections():
+    if not have_moose:
+        raise SkipTest
+    
+    import numpy
     sim = pyNN.moose
     sim.setup()
     
-    p1 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': 100.0})
+    p1 = sim.Population(1, sim.SpikeSourceArray, {'spike_times': numpy.arange(3.0, 103, 10.0)})
+    #p1 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': 100.0})
     #p1 = sim.Population(1, sim.HH_cond_exp, {'i_offset': 1.0})
-    p2 = sim.Population(1, sim.HH_cond_exp)
+    #p2 = sim.Population(1, sim.HH_cond_exp)
+    p2 = sim.Population(1, sim.IF_cond_exp)
     
-    prj = sim.Projection(p1, p2, sim.AllToAllConnector(weights=0.1))
+    prj = sim.Projection(p1, p2, sim.AllToAllConnector(weights=1e-4))
 
     p2.record_v()
     

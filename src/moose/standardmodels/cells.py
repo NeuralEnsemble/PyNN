@@ -1,108 +1,46 @@
-import moose
-import numpy
 from pyNN.standardmodels import build_translations, cells
+from pyNN.moose.cells import StandardIF, SingleCompHH, RandomSpikeSource, VectorSpikeSource
+from pyNN.moose.cells import mV, ms, nA, uS, nF
 
-mV = 1e-3
-ms = 1e-3
-nA = 1e-9
-uS = 1e-6
-nF = 1e-9
-
-class SingleCompHH(moose.Neutral):
     
-    def __init__(self, path, GbarNa=20*uS, GbarK=6*uS, GLeak=0.01*uS, Cm=0.2*nF,
-                 ENa=40*mV, EK=-90*mV, VLeak=-65*mV, Voff=-63*mV, ESynE=0*mV,
-                 ESynI=-70*mV, tauE=2*ms, tauI=5*ms, inject=0*nA, initVm=-65*mV):
-        moose.Neutral.__init__(self, path)
-        self.comp = moose.Compartment("compartment", self)
-        print "compartment is at %s" % self.comp.path
-        print locals()
-        self.comp.initVm = initVm
-        self.comp.Rm = 1/GLeak
-        self.comp.Cm = Cm
-        self.comp.Em = VLeak
-        self.comp.inject = inject
-        self.na = moose.HHChannel("na", self.comp)
-        self.na.Ek = ENa
-        self.na.Gbar = GbarNa
-        self.na.Xpower = 3
-        self.na.Ypower = 1
-        self.na.setupAlpha("X", 3.2e5 * (13*mV+Voff), -3.2e5, -1, -(13*mV+Voff), -4*mV, # alpha
-                               -2.8e5 * (40*mV+Voff),  2.8e5, -1, -(40*mV+Voff), 5*mV)  # beta
-        self.na.setupAlpha("Y", 128,                   0,      0, -(17*mV+Voff), 18*mV, # alpha
-                                4.0e3,                 0,      1, -(40*mV+Voff), -5*mV) # beta
 
-        self.k = moose.HHChannel("k", self.comp)
-        self.k.Ek = EK
-        self.k.Gbar = GbarK
-        self.k.Xpower = 4
-        self.k.setupAlpha("X", 3.2e4 * (15*mV+Voff), -3.2e4, -1, -(15*mV+Voff), -5*mV,
-                               500,                  0,       0, -(10*mV+Voff),  40*mV)
 
-        self.synE = moose.SynChan("excitatory", self.comp)
-        self.synE.Ek = ESynE
-        self.synE.tau1 = 0.001*ms
-        self.synE.tau2 = tauE
-        self.synE.Gbar = 1e-9
-        self.synI = moose.SynChan("inhibitory", self.comp)
-        self.synI.Ek = ESynI
-        self.synI.tau1 = 0.001*ms
-        self.synI.tau2 = tauI
-        self.synI.Gbar = 1e-9
+class IF_cond_exp(cells.IF_cond_exp):
+    """Leaky integrate and fire model with fixed threshold and 
+    exponentially-decaying post-synaptic conductance."""
     
-        self.comp.connect("channel", self.synE, "channel")
-        self.comp.connect("channel", self.synI, "channel")
-        self.comp.connect("channel", self.na, "channel")
-        self.comp.connect("channel", self.k , "channel")
-        
-        self.comp.useClock(0)
-        self.comp.useClock(1, "init")
-        
-        self.source = moose.SpikeGen("source", self.comp)
-        self.source.thresh = 0.0
-        self.source.abs_refract = 2.0
-        self.comp.connect("VmSrc", self.source, "Vm")
+    translations = build_translations(
+        ('tau_m',      'Rm',        '1e6*tau_m/cm',     '1e3*Rm*Cm'),
+        ('cm',         'Cm',        nF),
+        ('v_rest',     'Em',        mV),
+        ('v_thresh',   'Vt',        mV),
+        ('v_reset',    'Vr',        mV),
+        ('tau_refrac', 'refractT',  ms),
+        ('i_offset',   'inject',    nA),
+        ('tau_syn_E',  'tau_e',     ms),
+        ('tau_syn_I',  'tau_i',     ms),
+        ('e_rev_E',    'e_e',       mV),
+        ('e_rev_I',    'e_i',       mV)
+    )
+    model = StandardIF
 
-    def record_v(self):
-        self.vmTable = moose.Table("Vm", self)
-        self.vmTable.stepMode = 3
-        self.vmTable.connect("inputRequest", self.comp, "Vm")
-        self.vmTable.useClock(2)
-        print "vmTable is at %s" % self.vmTable.path
-
-    def record_gsyn(self, syn_name):
-        syn_map = {
-            'excitatory': self.synE,
-            'inhibitory': self.synI
-        }
-        if not hasattr(self, "gsyn_tables"):
-            self.gsyn_tables = {}
-        self.gsyn_tables[syn_name] = moose.Table(syn_name, self)
-        self.gsyn_tables[syn_name].stepMode = 3
-        self.gsyn_tables[syn_name].connect("inputRequest", syn_map[syn_name], "Gk")
-        self.gsyn_tables[syn_name].useClock(2)
+    def __init__(self, parameters):
+        cells.IF_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
+                                                     # values for not-specified parameters.
+        self.parameters['syn_shape'] = 'exp'
 
 
-class RandomSpikeSource(moose.RandomSpike):
+class IF_cond_alpha(cells.IF_cond_alpha):
+    """Leaky integrate and fire model with fixed threshold and alpha-function-
+    shaped post-synaptic conductance."""
     
-    def __init__(self, path, rate, start=0.0, duration=numpy.inf):
-        moose.RandomSpike.__init__(self, path)
-        self.minAmp = 1.0
-        self.maxAmp = 1.0
-        self.rate = rate
-        self.reset = 1 #True
-        self.resetValue = 0.0
-        # how to handle start and duration?
-        self.useClock(0)
-        self.source = self
+    translations = IF_cond_exp.translations
+    model = StandardIF
+    
+    def __init__(self, parameters):
+        cells.IF_cond_alpha.__init__(self, parameters)
+        self.parameters['syn_shape'] = 'alpha'
 
-    def record_state(self):
-        # for testing, can be deleted when everything is working
-        self.stateTable = moose.Table("state", self)
-        self.stateTable.stepMode = 3
-        self.stateTable.connect("inputRequest", self, "state")
-        self.stateTable.useClock(2)
-        
 
 class HH_cond_exp(cells.HH_cond_exp):
     """Single compartment cell with an Na channel and a K channel"""
@@ -120,7 +58,6 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('tau_syn_E',  'tauE', 1e-3),
         ('tau_syn_I',  'tauI', 1e-3),
         ('i_offset',   'inject', 1e-9),
-        #('v_init',     'initVm', 1e-3),
     )
     model = SingleCompHH
 
@@ -135,6 +72,15 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         ('duration', 'duration'),
     )
     model = RandomSpikeSource
+
+
+class SpikeSourceArray(cells.SpikeSourceArray):
+    """Spike source generating spikes at the times given in the spike_times array."""
+
+    translations = build_translations(
+        ('spike_times', 'spike_times'),
+    )
+    model = VectorSpikeSource
 
 
 
