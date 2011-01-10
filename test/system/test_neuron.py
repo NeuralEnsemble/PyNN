@@ -16,11 +16,12 @@ except ImportError:
 
 def test_scenarios():
     for scenario in scenarios:
-        scenario.description = scenario.__name__
-        if have_neuron:
-            yield scenario, pyNN.neuron
-        else:
-            raise SkipTest
+        if "neuron" not in scenario.exclude:
+            scenario.description = scenario.__name__
+            if have_neuron:
+                yield scenario, pyNN.neuron
+            else:
+                raise SkipTest
 
 def test_ticket168():
     """

@@ -12,13 +12,17 @@ def set_simulator(sim):
 
 
 scenarios = []
-def register(scenario):
-    if scenario not in scenarios:
-        scenarios.append(scenario)
-    return scenario
+def register(exclude=[]):
+    def inner_register(scenario):
+        print "registering %s with exclude=%s" % (scenario, exclude)
+        if scenario not in scenarios:
+            scenario.exclude = exclude
+            scenarios.append(scenario)
+        return scenario
+    return inner_register
 
 
-@register
+@register()
 def scenario1(sim):
     """
     Balanced network of integrate-and-fire neurons.
@@ -84,7 +88,7 @@ def scenario1(sim):
     sim.end()
 
 
-@register
+@register()
 def scenario1a(sim):
     """
     Balanced network of integrate-and-fire neurons, built with the "low-level"
@@ -136,7 +140,7 @@ def scenario1a(sim):
     sim.end()
 
 
-@register
+@register(exclude=["moose"])
 def scenario2(sim):
     """
     Array of neurons, each injected with a different current.
@@ -190,7 +194,8 @@ def scenario2(sim):
     sim.end()
     return a,b, spikes
 
-@register
+
+@register(exclude=["moose", "brian"])
 def scenario3(sim):
     """
     Simple feed-forward network network with additive STDP. The second half of
@@ -277,7 +282,7 @@ def scenario3(sim):
     return initial_weights, final_weights, pre, post, connections
     
 
-@register
+@register()
 def ticket166(sim):
     """
     Check that changing the spike_times of a SpikeSourceArray mid-simulation
@@ -296,7 +301,7 @@ def ticket166(sim):
     sim.setup(timestep=dt)
     
     spikesources = sim.Population(2, sim.SpikeSourceArray)
-    cells = sim.Population(2, sim.IF_curr_exp)
+    cells = sim.Population(2, sim.IF_cond_exp)
     conn = sim.Projection(spikesources, cells, sim.OneToOneConnector(weights=0.1))
     cells.record_v()
     
@@ -329,7 +334,7 @@ def ticket166(sim):
     assert final_v_1 < -64.99 # second neuron has decayed back towards rest
 
 
-@register
+@register()
 def test_reset(sim):
     """
     Run the same simulation n times without recreating the network,
@@ -352,7 +357,7 @@ def test_reset(sim):
         assert_arrays_almost_equal(rec, data[0], 1e-12)
 
 
-@register
+@register()
 def test_setup(sim):
     """
     Run the same simulation n times, recreating the network each time,

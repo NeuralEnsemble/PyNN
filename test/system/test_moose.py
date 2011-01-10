@@ -11,13 +11,14 @@ except ImportError:
     have_moose = False
    
 
-#def test_scenarios():
-#    for scenario in scenarios[0:1]:
-#        scenario.description = scenario.__name__
-#        if have_moose:
-#            yield scenario, pyNN.moose
-#        else:
-#            raise SkipTest
+def test_scenarios():
+    for scenario in scenarios:
+        if "moose" not in scenario.exclude:
+            scenario.description = scenario.__name__
+            if have_moose:
+                yield scenario, pyNN.moose
+            else:
+                raise SkipTest
 
 def test_recording():
     if not have_moose:

@@ -9,8 +9,9 @@ except ImportError:
 
 def test_all():
     for scenario in scenarios:
-        scenario.description = scenario.__name__
-        if have_brian:
-            yield scenario, pyNN.brian
-        else:
-            raise SkipTest
+        if "brian" not in scenario.exclude:
+            scenario.description = scenario.__name__
+            if have_brian:
+                yield scenario, pyNN.brian
+            else:
+                raise SkipTest
