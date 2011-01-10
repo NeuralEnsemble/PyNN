@@ -16,7 +16,7 @@ from pyNN import common, recording
 common.simulator = simulator
 recording.simulator = simulator
 
-from pyNN.connectors import FixedProbabilityConnector, AllToAllConnector
+from pyNN.connectors import FixedProbabilityConnector, AllToAllConnector, OneToOneConnector
 from pyNN.moose.standardmodels.cells import SpikeSourcePoisson, SpikeSourceArray, HH_cond_exp, IF_cond_exp, IF_cond_alpha
 from pyNN.moose.cells import temporary_directory
 from pyNN.moose.recording import Recorder

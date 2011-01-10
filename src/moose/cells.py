@@ -14,6 +14,13 @@ nF = 1e-9
 
 class RecorderMixin(object):
     
+    def record_spikes(self):
+        self.spike_table = moose.Table("spikes", self)
+        self.spike_table.stepMode = 4
+        self.spike_table.stepSize = 0.5
+        self.spike_table.useClock(0)
+        self.spike_table.connect('inputRequest', self.source, 'state')
+    
     def record_v(self):
         self.vmTable = moose.Table("Vm", self)
         self.vmTable.stepMode = 3
@@ -67,17 +74,16 @@ class SingleCompHH(moose.Neutral, RecorderMixin):
 
         self.esyn = moose.SynChan("excitatory", self.comp)
         self.esyn.Ek = ESynE
-        self.esyn.tau1 = tauE #0.001*ms
-        self.esyn.tau2 = 1e-6 #tauE
-        self.esyn.Gbar = 1*uS
+        self.esyn.tau1 = tauE 
         self.isyn = moose.SynChan("inhibitory", self.comp)
         self.isyn.Ek = ESynI
-        self.isyn.tau1 = tauI #0.001*ms
-        self.isyn.tau2 = 1e-6 #tauI
-        self.isyn.Gbar = 1*uS
-    
-        self.comp.connect("channel", self.esyn, "channel")
-        self.comp.connect("channel", self.isyn, "channel")
+        self.isyn.tau1 = tauI
+        for syn in self.esyn, self.isyn:
+            syn.tau2 = 1e-6
+            syn.Gbar = 1*uS
+            self.comp.connect("channel", syn, "channel")
+            syn.n_incoming_connections = 0
+
         self.comp.connect("channel", self.na, "channel")
         self.comp.connect("channel", self.k , "channel")
         
@@ -115,12 +121,17 @@ class StandardIF(moose.IntFire, RecorderMixin):
             syn.tau2 = 1e-6 # instantaneous rise, for shape=='exp'
             syn.Gbar = 1*uS
             self.connect("channel", syn, "channel")
+            syn.n_incoming_connections = 0
         
         self.tau_e = tau_e
         self.tau_i = tau_i
         self.e_e = e_e
         self.e_i = e_i
         
+        self.source = moose.SpikeGen("source", self)
+        self.source.thresh = 0.0
+        self.source.abs_refract = 2.0
+        self.connect("VmSrc", self.source, "Vm")
         self.comp = self # for recorder mixin
         
     def _get_tau_e(self):

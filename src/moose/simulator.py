@@ -53,6 +53,8 @@ def run(simtime):
     state.ctx.reset()
     state.ctx.step(simtime*ms)
 
+def reset():
+    state.ctx.reset()
 
 # --- For implementation of access to individual neurons' parameters -----------
 
@@ -145,9 +147,11 @@ class ConnectionManager(object):
                 else:
                     synapse_object = getattr(target._cell, self.synapse_type)
                 source._cell.source.connect('event', synapse_object, 'synapse')
-                print "setting weight", weight
-                synapse_object.setWeight(0, weight) # presumably the first arg is the connection number?
-                synapse_object.setDelay(0, delay)
+                synapse_object.n_incoming_connections += 1
+                index = synapse_object.n_incoming_connections - 1
+                synapse_object.setWeight(index, weight)
+                synapse_object.setDelay(index, delay)
+                self.connections.append((source, target, index))
 
 state = _State()  # a Singleton, so only a single instance ever exists
 del _State
