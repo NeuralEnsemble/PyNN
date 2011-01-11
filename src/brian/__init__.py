@@ -278,7 +278,7 @@ class Projection(common.Projection):
         import operator
         lines   = numpy.empty((len(self.connection_manager), 4))
         padding = 0
-        for key in self.connection_manager.key:
+        for key in self.connection_manager.keys:
             bc   = self.connection_manager.brian_connections[key]
             size = bc.getnnz()
             lines[padding:padding+size,0], lines[padding:padding+size,1] = self.connection_manager.indices[key]

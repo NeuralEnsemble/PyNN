@@ -7,7 +7,7 @@ try:
 except ImportError:
     have_brian = False
 
-def test_all():
+def test_scenarios():
     for scenario in scenarios:
         if "brian" not in scenario.exclude:
             scenario.description = scenario.__name__

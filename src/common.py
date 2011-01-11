@@ -633,6 +633,7 @@ class BasePopulation(object):
             population = self.grandparent
         else:
             population = self
+        logging.debug("Adding recorder for %s to %s" % (variable, self.label))
         population.recorders[variable] = population.recorder_class(variable,
                                                                    population=population)
 
@@ -703,6 +704,8 @@ class BasePopulation(object):
         Useful for small populations, for example for single neuron Monte-Carlo.
         """
         return self.recorders['spikes'].get(gather, compatible_output, self.record_filter)
+        # if we haven't called record(), this will give a KeyError. A more
+        # informative error message would be nice.
 
     def print_v(self, file, gather=True, compatible_output=True):
         """
@@ -1141,12 +1144,11 @@ class Assembly(object):
     
     @property
     def _homogeneous_synapses(self):
-        syn = is_conductance(self[0].all_cells[0])
+        syn = is_conductance(self.populations[0].all_cells[0])
         for p in self.populations[1:]:
             if syn != is_conductance(p.all_cells[0]):
                 return False
         return True
-    
     
     @property
     def _mask_local(self):
@@ -1214,10 +1216,29 @@ class Assembly(object):
         return self.size
 
     def __getitem__(self, index):
-        if isinstance(index, int):
-            return self.populations[index]
+        """
+        Where index is an integer, return an ID.
+        Where index is a slice, list or numpy array, return a new Assembly
+          consisting of appropriate populations and (possibly newly created)
+          population views.
+        """
+        count = 0; boundaries = [0]
+        for p in self.populations:
+            count += p.size
+            boundaries.append(count)
+        boundaries = numpy.array(boundaries)
+        
+        if isinstance(index, int): # return an ID
+            pindex = boundaries[1:].searchsorted(index, side='right')
+            return self.populations[pindex][index-boundaries[pindex]]
         elif isinstance(index, (slice, list, numpy.ndarray)):
-            return Assembly(*self.populations[index])
+            if isinstance(index, slice):
+                indices = numpy.arange(self.size)[index]
+            else:
+                indices = index
+            pindices = boundaries[1:].searchsorted(indices, side='right')
+            views = (self.populations[i][indices[pindices==i] - boundaries[i]] for i in numpy.unique(pindices))
+            return Assembly(*views)
         else:
             raise TypeError("indices must be integers, slices, lists, arrays, not %s" % type(index).__name__)
 
@@ -1284,63 +1305,53 @@ class Assembly(object):
             return self.positions[:,i]
         return gen
 
-    def meanSpikeCount(self, gather=True):
-        """
-        Returns the mean number of spikes per neuron.
-        """
+    def _get_recorded_variable(self, variable, gather=True, compatible_output=True, size=1):
         try:
-            spike_counts = self[0].recorders['spikes'].count(gather, self[0].record_filter)
+            result = self.populations[0].recorders[variable].get(gather, compatible_output, self.populations[0].record_filter)
         except errors.NothingToWriteError:
-            spike_counts = {}
+            result = numpy.zeros((0, size+2))
+        count = self.populations[0].size
         for p in self.populations[1:]:
             try:
-                spike_counts.update(p.recorders['spikes'].count(gather, p.record_filter))
+                data = p.recorders[variable].get(gather, compatible_output, p.record_filter)
+                data[:,0] += count # map index-in-population to index-in-assembly
+                result = numpy.vstack((result, data))
             except errors.NothingToWriteError:
                 pass
-        total_spikes = sum(spike_counts.values())
-        if rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
-            return float(total_spikes)/len(spike_counts)
-        else:
-            return numpy.nan
+            count += p.size
+        return result
 
     def get_v(self, gather=True, compatible_output=True):
         """
         Return a 2-column numpy array containing cell ids and Vm for
         recorded cells.
         """
-        try:
-            result = self[0].recorders['v'].get(gather, compatible_output, self[0].record_filter)
-        except errors.NothingToWriteError:
-            result = numpy.zeros((0, 3))            
-        for p in self.populations[1:]:
-            try:
-                result = numpy.vstack((result, p.recorders['v'].get(gather, compatible_output, p.record_filter)))
-            except errors.NothingToWriteError:
-                pass
-        return result
+        return self._get_recorded_variable('v', gather, compatible_output, size=1)
 
     def get_gsyn(self, gather=True, compatible_output=True):
         """
         Return a 3-column numpy array containing cell ids and synaptic
         conductances for recorded cells.
         """
-        try:
-            result = self[0].recorders['gsyn'].get(gather, compatible_output, self[0].record_filter)
-        except errors.NothingToWriteError:
-            result = numpy.zeros((0, 4))
-        for p in self.populations[1:]:
-            try:
-                result = numpy.vstack((result, p.recorders['gsyn'].get(gather, compatible_output, p.record_filter)))
-            except errors.NothingToWriteError:
-                pass
-        return result
+        return self._get_recorded_variable('gsyn', gather, compatible_output, size=2)
+
+    def meanSpikeCount(self, gather=True):
+        """
+        Returns the mean number of spikes per neuron.
+        """
+        spike_counts = self.get_spike_counts()
+        total_spikes = sum(spike_counts.values())
+        if rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
+            return float(total_spikes)/len(spike_counts)
+        else:
+            return numpy.nan
 
     def get_spike_counts(self, gather=True):
         """
         Returns the number of spikes for each neuron.
         """
         try:
-            spike_counts = self[0].recorders['spikes'].count(gather, self[0].record_filter)      
+            spike_counts = self.populations[0].recorders['spikes'].count(gather, self.populations[0].record_filter)      
         except errors.NothingToWriteError:
             spike_counts = {}
         for p in self.populations[1:]:
@@ -1357,13 +1368,13 @@ class Assembly(object):
         ## folders as Numpy Binary objects
         tempdir   = tempfile.mkdtemp()
         filenames = {} 
-        filename  = '%s/%s.%s' %(tempdir, self[0].label, variable)
+        filename  = '%s/%s.%s' %(tempdir, self.populations[0].label, variable)
         p_file    = files.NumpyBinaryFile(filename, mode='w')
         try:
-            self[0].recorders[variable].write(p_file, gather, compatible_output, self[0].record_filter)
-            filenames[self[0]] = (filename, True)        
+            self.populations[0].recorders[variable].write(p_file, gather, compatible_output, self.populations[0].record_filter)
+            filenames[self.populations[0]] = (filename, True)        
         except errors.NothingToWriteError:
-            filenames[self[O]] = (filename, False)       
+            filenames[self.populations[0]] = (filename, False)       
         for p in self.populations[1:]:
             filename = '%s/%s.%s' %(tempdir, p.label, variable)
             p_file = files.NumpyBinaryFile(filename, mode='w')           
@@ -1406,7 +1417,6 @@ class Assembly(object):
         if simulator.state.mpi_rank == 0 or gather == False:
             file.write(data, metadata)
             file.close()
-
 
     def printSpikes(self, file, gather=True, compatible_output=True):
         """

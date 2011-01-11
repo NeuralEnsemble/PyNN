@@ -57,7 +57,7 @@ projection.saveConnections('%s.conn' % file_stem)
 
 input_population.record()
 output_population.record()
-output_population.record_v(n_record, rng)
+output_population.sample(n_record, rng).record_v()
 
 print "[%d] Running simulation" % node
 run(tstop)

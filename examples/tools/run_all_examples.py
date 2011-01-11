@@ -11,15 +11,18 @@ for sim in "pcsim", "neuron", "nest", "brian":
         pass
 
 exclude = {
-    'PCSIM': ("brunel.py", "VAbenchmarks.py", "HH_cond_exp.py", "EIF_cond_alpha_isfa_ista.py"),
-    'NEURON': ("brunel.py", "VAbenchmarks.py"),
-    'NEST': ("brunel.py", "VAbenchmarks.py"),
-    'Brian': ("brunel.py", "VAbenchmarks.py", "HH_cond_exp.py", "tsodyksmarkram.py",
-              "tsodyksmarkram2.py", "simple_STDP.py", "simple_STDP2.py", "EIF_cond_alpha_isfa_ista.py"),
+    'PCSIM': ("brunel.py", "HH_cond_exp.py", "EIF_cond_alpha_isfa_ista.py"),
+    'NEURON': ("brunel.py"),
+    'NEST': ("brunel.py"),
+    'Brian': ("brunel.py", "tsodyksmarkram.py", "tsodyksmarkram2.py",
+              "simple_STDP.py", "simple_STDP2.py"),
 }
 
 extra_args = {
+    "VAbenchmarks.py": "CUBA",
     "VAbenchmarks2.py": "CUBA",
+    "VAbenchmarks2-csa.py": "CUBA",
+    "VAbenchmarks3.py": "CUBA",
 }
 
 for simulator in 'PCSIM', 'NEST', 'NEURON', 'Brian':

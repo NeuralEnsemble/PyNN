@@ -14,7 +14,7 @@ def set_simulator(sim):
 scenarios = []
 def register(exclude=[]):
     def inner_register(scenario):
-        print "registering %s with exclude=%s" % (scenario, exclude)
+        #print "registering %s with exclude=%s" % (scenario, exclude)
         if scenario not in scenarios:
             scenario.exclude = exclude
             scenarios.append(scenario)
@@ -378,3 +378,51 @@ def test_setup(sim):
     assert data[0].size > 0
     for rec in data:
         assert_arrays_equal(rec, data[0])
+
+@register()
+def test_EIF_cond_alpha_isfa_ista(sim):
+    set_simulator(sim)
+    sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
+    ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista,
+                        {'i_offset': 1.0, 'tau_refrac': 2.0, 'v_spike': -40})   
+    ifcell.record()
+    sim.run(200.0)
+    expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67,  113.13, 142.69, 174.79])
+    diff = (ifcell.getSpikes()[:,1] - expected_spike_times)/expected_spike_times
+    assert abs(diff).max() < 0.001
+    sim.end()
+
+@register()
+def test_record_vm_and_gsyn_from_assembly(sim):
+    from pyNN.utility import init_logging
+    init_logging(logfile=None, debug=True)
+    set_simulator(sim)
+    sim.setup(timestep=0.1)
+    cells = sim.Population(5, sim.IF_cond_exp) + sim.Population(6, sim.EIF_cond_exp_isfa_ista)
+    inputs = sim.Population(5, sim.SpikeSourcePoisson, {'rate': 50.0})
+    sim.connect(inputs, cells, weight=0.1, delay=0.5, synapse_type='inhibitory')
+    sim.connect(inputs, cells, weight=0.1, delay=0.3, synapse_type='excitatory')
+    cells.record_v()
+    cells[2:9].record_gsyn()
+    for p in cells.populations:
+        assert_equal(p.recorders['v'].recorded, set(p.all_cells))
+    
+    assert_equal(cells.populations[0].recorders['gsyn'].recorded, set(cells.populations[0].all_cells[2:5]))
+    assert_equal(cells.populations[1].recorders['gsyn'].recorded, set(cells.populations[1].all_cells[0:4]))
+    sim.run(100.0)
+    vm_p0 = cells.populations[0].get_v()
+    vm_p1 = cells.populations[1].get_v()
+    vm_all = cells.get_v()
+    gsyn_p0 = cells.populations[0].get_gsyn()
+    gsyn_p1 = cells.populations[1].get_gsyn()
+    gsyn_all = cells.get_gsyn()
+    assert_equal(numpy.unique(vm_p0[:,0]).tolist(), [ 0., 1., 2., 3., 4.])
+    assert_equal(numpy.unique(vm_p1[:,0]).tolist(), [ 0., 1., 2., 3., 4., 5.])
+    assert_equal(numpy.unique(vm_all[:,0]).astype(int).tolist(), range(11))
+    assert_equal(numpy.unique(gsyn_p0[:,0]).tolist(), [ 2., 3., 4.])
+    assert_equal(numpy.unique(gsyn_p1[:,0]).tolist(), [ 0., 1., 2., 3.])
+    assert_equal(numpy.unique(gsyn_all[:,0]).astype(int).tolist(), range(2,9))
+    
+    assert_arrays_equal(vm_p1[vm_p1[:,0]==3][:,2], vm_all[vm_all[:,0]==8][:,2])
+
+    sim.end()
