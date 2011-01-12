@@ -94,8 +94,33 @@ classes, you get the rest of the API for free.
 The common implementation
 -------------------------
 
+Recording
+~~~~~~~~~
+
+The ``recording`` modules provides a base class ``Recorder`` that exposes
+methods ``record()``, ``get()``, ``write()`` and ``count()``. Each simulator
+using the common implementation then subclasses this base class, and must
+implement at least the methods ``_record()``, ``_get()`` and ``_local_count()``.
+Each ``Recorder`` instance records only a single variable, whose name is passed
+in the constructor.
+
+By default, PyNN scales recorded data to the standard PyNN units (mV for voltage,
+etc.), reorders columns if necessary, and adds initial values to the beginning
+of the recording if the simulator does not record the value at time 0. In this
+way, the structure of the output data is harmonized between simulators. For
+large datasets, this can be very time-consuming, and so this restructuring can
+be turned off by setting the ``compatible_output`` flag to ``False``.
+
+.. TODO: discuss output file formats.
+
+.. TODO: discuss gathering with MPI
+
+
 The NEST interface
 ------------------
+
+
+
 
 The NEURON interface
 --------------------

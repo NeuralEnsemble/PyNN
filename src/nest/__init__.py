@@ -254,11 +254,11 @@ class Population(common.Population):
                     to_be_set[translation['translated_name']] = value                    
                 else:
                     assert key in self.celltype.computed_parameters()
-            logging.debug("Setting the following parameters: %s" % to_be_set)
+            logger.debug("Setting the following parameters: %s" % to_be_set)
             nest.SetStatus(gids.tolist(), to_be_set)
             for key, value in param_dict.items():
                 if key in self.celltype.computed_parameters():
-                    logging.debug("Setting %s = %s" % (key, value))
+                    logger.debug("Setting %s = %s" % (key, value))
                     for cell in self:
                         cell.set_parameters(**{key:value})
         else:
@@ -281,11 +281,6 @@ class Population(common.Population):
         if variable in STATE_VARIABLE_MAP:
             variable = STATE_VARIABLE_MAP[variable]
         nest.SetStatus(self.local_cells.tolist(), variable, value)
-
-    def _record(self, variable, to_file=True):
-        common.Population._record(self, variable, to_file)
-        # need to set output filename if supplied
-        nest.SetStatus(self.recorders[variable]._device, {'to_file': bool(to_file), 'to_memory' : not to_file})
 
 
 class Projection(common.Projection):

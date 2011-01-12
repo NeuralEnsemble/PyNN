@@ -28,7 +28,8 @@ def test_record_native_model():
     nest.setup()
     
     parameters = {'Tau_m': 17.0}
-    p1 = nest.Population(10, nest.native_cell_type("ht_neuron"), parameters)
+    n_cells = 10
+    p1 = nest.Population(n_cells, nest.native_cell_type("ht_neuron"), parameters)
     p1.initialize('V_m', -70.0)
     p1.initialize('Theta', -50.0)
     p1.set('Theta_eq', -51.5)
@@ -51,9 +52,11 @@ def test_record_native_model():
     
     prj_ampa = nest.Projection(p2, p1, connector, target='AMPA')
     
-    nest.run(250.0)
+    tstop = 250.0
+    nest.run(tstop)
     
-    assert_equal(p1.recorders['V_m'].get().shape, (25000, 3))
+    n_points = int(tstop/nest.get_time_step()) + 1
+    assert_equal(p1.recorders['V_m'].get().shape, (n_points*n_cells, 3))
     id, t, v = p1.recorders['V_m'].get().T
     assert v.max() > 0.0 # should have some spikes
 

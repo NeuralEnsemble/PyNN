@@ -33,6 +33,7 @@ import sys
 
 CHECK_CONNECTIONS = False
 recorder_list = []
+recording_devices = []
 connection_managers = []
 
 global net
@@ -85,6 +86,8 @@ class _State(object):
 
 def run(simtime):
     """Advance the simulation for a certain time."""
+    for device in recording_devices:
+        device.connect_to_cells()
     state.nominal_time += simtime
     if not state.running:
         simtime += state.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data

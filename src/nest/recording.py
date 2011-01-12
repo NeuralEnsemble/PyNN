@@ -7,104 +7,117 @@ import nest
 from pyNN import recording, common, errors
 from pyNN.nest import simulator
 
-RECORDING_DEVICE_NAMES = {'spikes': 'spike_detector',
-                          'v':      'voltmeter',
-                          'gsyn':   'multimeter'}
+VARIABLE_MAP = {'v': ['V_m'], 'gsyn': ['g_ex', 'g_in']}
+REVERSE_VARIABLE_MAP = {'V_m': 'v'}
 
 logger = logging.getLogger("PyNN")
 
 # --- For implementation of record_X()/get_X()/print_X() -----------------------
 
-class Recorder(recording.Recorder):
-    """Encapsulates data and functions related to recording model variables."""
+class RecordingDevice(object):
+    """
+    Now that NEST introduced the multimeter, and does not allow a node to be
+    connected to multiple multimeters, most of the functionality of `Recorder`
+    has been moved to this class, while `Recorder` is a wrapper to maintain the
+    fiction that each recorder only records a single variable.
+    """
+    scale_factors = {'V_m': 1, 'g_ex': 0.001, 'g_in': 0.001}
     
-    scale_factors = {'spikes': 1,
-                     'v': 1,
-                     'gsyn': 0.001} # units conversion
-    
-    def __init__(self, variable, population=None, file=None):
-        __doc__ = recording.Recorder.__doc__
-        recording.Recorder.__init__(self, variable, population, file)       
-        # we defer creating the actual device until it is needed.
-        self._device = None
-        self._local_files_merged = False
-        self._gathered = False
+    def __init__(self, device_type, to_memory=False):
+        assert device_type in ("multimeter", "spike_detector")
+        self.type = device_type
+        self.device = nest.Create(device_type)
         
-    def in_memory(self):
-        """Determine whether data is being recorded to memory."""
-        return nest.GetStatus(self._device, 'to_memory')[0]
-
-    def _create_device(self):
-        """Create a NEST recording device."""
-        device_name = RECORDING_DEVICE_NAMES.get(self.variable, "multimeter")
-        self._device = nest.Create(device_name)
         device_parameters = {"withgid": True, "withtime": True}
-        if self.variable is 'gsyn':
-            device_parameters["record_from"] = ['g_ex', 'g_in']
-        elif self.variable not in Recorder.formats:
-            device_parameters["record_from"] = [self.variable]
-        if self.variable != 'spikes':
+        if self.type is 'multimeter':
             device_parameters["interval"] = common.get_time_step()
         else:
             device_parameters["precise_times"] = True
-        if self.file is False:
+        if to_memory:
             device_parameters.update(to_file=False, to_memory=True)
-        else: # (includes self.file is None)
+        else:
             device_parameters.update(to_file=True, to_memory=False)
         try:
-            nest.SetStatus(self._device, device_parameters)
+            nest.SetStatus(self.device, device_parameters)
         except nest.hl_api.NESTError, e:
             raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, device_parameters))
-        logging.debug("Created %s with parameters %s" % (device_name, device_parameters))
+        
+        self.record_from = []
+        self._local_files_merged = False
+        self._gathered = False
+        self._connected = False
+        self._all_ids = set([])
+        simulator.recording_devices.append(self)
+        logger.debug("Created %s with parameters %s" % (device_type, device_parameters))
 
-    def _record(self, new_ids):
-        """Called by record()."""
-        new_ids = list(new_ids)
-        if self._device is None:
-            self._create_device()       
-        device_name = nest.GetStatus(self._device, "model")[0]
-        if device_name == "spike_detector":
-            nest.ConvergentConnect(new_ids, self._device, model='static_synapse')
-        elif device_name in ('voltmeter', 'multimeter'):
-            nest.DivergentConnect(self._device, new_ids, model='static_synapse')
-        else:
-            raise Exception("%s is not a valid recording device" % device_name)
+    def add_variables(self, *variables):
+        assert self.type is "multimeter", "Can't add variables to a spike detector"
+        self.record_from.extend(variables)
+        nest.SetStatus(self.device, {'record_from': self.record_from})
+
+    def add_cells(self, new_ids):
+        self._all_ids = self._all_ids.union(new_ids)
+        
+    def connect_to_cells(self):
+        if not self._connected:
+            ids = list(self._all_ids)
+            if self.type is "spike_detector":
+                nest.ConvergentConnect(ids, self.device, model='static_synapse')
+            else:
+                nest.DivergentConnect(self.device, ids, model='static_synapse')
+            self._connected = True
+
+    def in_memory(self):
+        """Determine whether data is being recorded to memory."""
+        return nest.GetStatus(self.device, 'to_memory')[0]
     
-    def _add_initial_and_scale(self, data):
-        """
-        Add initial values (NEST does not record the value at t=0), and scale the
-        data to give appropriate units.
-        """
-        if self.variable == 'v':
-            initial = [[id, 0.0, id.get_initial_value('v')] for id in self.recorded]
-        elif self.variable == 'gsyn': # we should support non-zero initial synaptic conductances
-            initial = [[id, 0.0, 0.0, 0.0] for id in self.recorded]
-        else:
-            initial = None
-        if initial and self.recorded:
-            data = numpy.concatenate((initial, data))
-        # scale data
-        scale_factor = Recorder.scale_factors[self.variable]
-        if scale_factor != 1:
-            data[:,2:] *= scale_factor # first two columns are id and t, which should not be scaled.
-        return data
-    
-    def _events_to_array(self, events):
+    def events_to_array(self, events):
         """
         Transform the NEST events dictionary (when recording to memory) to a
         Numpy array.
         """
         ids = events['senders']
         times = events['times']
-        if self.variable == 'spikes':
+        if self.type == 'spike_detector':
             data = numpy.array((ids, times)).T
-        elif self.variable == 'v':
-            data = numpy.array((ids, times, events['V_m'])).T
-        elif self.variable == 'gsyn':
-            data = numpy.array((ids, times, events['g_ex'], events['g_in'])).T
+        else:
+            data = [ids, times]
+            for var in self.record_from:
+                data.append(events[var])
+            data = numpy.array(data).T
         return data
-                   
-    def _read_data_from_memory(self, gather, compatible_output):
+
+    def scale_data(self, data):
+        """
+        Scale the data to give appropriate units.
+        """
+        scale_factors = [RecordingDevice.scale_factors.get(var, 1)
+                         for var in self.record_from]
+        for i, scale_factor in enumerate(scale_factors):
+            column = i+2 # first two columns are id and t, which should not be scaled.
+            if scale_factor != 1:
+                data[:, column] *= scale_factor 
+        return data
+
+    def add_initial_values(self, data):
+        """
+        Add initial values (NEST does not record the value at t=0).
+        """
+        initial_values = []
+        for id in self._all_ids:
+            initial = [id, 0.0]
+            for variable in self.record_from:
+                variable = REVERSE_VARIABLE_MAP.get(variable, variable)
+                try:
+                    initial.append(id.get_initial_value(variable))
+                except KeyError:
+                    initial.append(0.0) # unsatisfactory
+            initial_values.append(initial)    
+        if initial_values:
+            data = numpy.concatenate((initial_values, data))
+        return data
+
+    def read_data_from_memory(self, gather, compatible_output):
         """
         Return memory-recorded data.
         
@@ -112,15 +125,54 @@ class Recorder(recording.Recorder):
         `compatible_output` -- if True, transform the data into the PyNN
                                standard format.
         """
-        data = nest.GetStatus(self._device,'events')[0] # only for spikes?
+        data = nest.GetStatus(self.device,'events')[0]
         if compatible_output:
-            data = self._events_to_array(data)
-            data = self._add_initial_and_scale(data)
+            data = self.events_to_array(data)
+            data = self.scale_data(data)
         if gather and simulator.state.num_processes > 1:
             data = recording.gather(data)
         return data
-                     
-    def _read_data(self, gather, compatible_output):
+    
+    def read_local_data(self, compatible_output):
+        """
+        Return file-recorded data from the local MPI node, merging data from
+        different threads if applicable.
+        
+        The merged data is cached, to avoid the overhead of re-merging if the
+        method is called again.
+        """
+        # what if the method is called with different values of
+        # `compatible_output`? Need to cache these separately.
+        if self._local_files_merged:
+            self._merged_file.seek(0)
+            data = numpy.load(self._merged_file)
+        else:
+            d = nest.GetStatus(self.device)[0]
+            if "filenames" in d:
+                nest_files = d['filenames']
+            else: # indicates that run() has not been called.
+                raise errors.NothingToWriteError("No recorder data. Have you called run()?")   
+            # possibly we can just keep on saving to the end of self._merged_file, instead of concatenating everything in memory
+            logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
+            non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
+            if len(non_empty_nest_files) > 0:
+                data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files]
+                data = numpy.concatenate(data_list)
+            if len(non_empty_nest_files) == 0 or data.size == 0:
+                if self.type is "spike_detector":
+                    ncol = 2
+                else:
+                    ncol = len(self.record_from)
+                data = numpy.empty([0, ncol])
+            if compatible_output and self.type is not "spike_detector":
+                data = self.scale_data(data)
+                data = self.add_initial_values(data)
+            self._merged_file = tempfile.TemporaryFile()
+            numpy.save(self._merged_file, data)
+            self._local_files_merged = True
+        return data
+    
+    def read_data(self, gather, compatible_output):
         """
         Return file-recorded data.
         
@@ -139,7 +191,7 @@ class Recorder(recording.Recorder):
                 self._gathered_file.seek(0)
                 data = numpy.load(self._gathered_file)
             else:
-                local_data = self._read_local_data(compatible_output)
+                local_data = self.read_local_data(compatible_output)
                 if self.population and hasattr(self.population.celltype, 'always_local') and self.population.celltype.always_local:
                     data = local_data # for always_local cells, no need to gather
                 else:
@@ -150,79 +202,70 @@ class Recorder(recording.Recorder):
                 self._gathered = True
             return data
         else:
-            return self._read_local_data(compatible_output)
-                        
-    def _read_local_data(self, compatible_output):
-        """
-        Return file-recorded data from the local MPI node, merging data from
-        different threads if applicable.
-        
-        The merged data is cached, to avoid the overhead of re-merging if the
-        method is called again.
-        """
-        # what if the method is called with different values of
-        # `compatible_output`? Need to cache these separately.
-        if self._local_files_merged:
-            self._merged_file.seek(0)
-            data = numpy.load(self._merged_file)
-        else:
-            d = nest.GetStatus(self._device)[0]
-            if "filename" in d:
-                nest_files = d['filename']
-                warning = "Your version of NEST uses the old 'filename' key for spike_detector filenames.  Please upgrade your NEST version, as backwards compatibility will be removed in future releases"
-                logger.warning(warning)
-                warnings.warn(warning)
-            elif "filenames" in d:
-                nest_files = d['filenames']
-            else:
-                # indicates that run() has not been called.
-                raise errors.NothingToWriteError("No recorder data. Have you called run()?")
-                
-            # possibly we can just keep on saving to the end of self._merged_file, instead of concatenating everything in memory
-            logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
-            non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
-            if len(non_empty_nest_files) > 0:
-                data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files]
-                data = numpy.concatenate(data_list)
-            if len(non_empty_nest_files) == 0 or data.size == 0:
-                if self.variable in Recorder.formats:
-                    ncol = len(Recorder.formats[self.variable].split())
-                else:
-                    ncol = 3
-                data = numpy.empty([0, ncol])
-            if compatible_output and self.variable in Recorder.formats:
-                data = self._add_initial_and_scale(data)
-            self._merged_file = tempfile.TemporaryFile()
-            numpy.save(self._merged_file, data)
-            self._local_files_merged = True
-        return data
+            return self.read_local_data(compatible_output)
     
+    def read_subset(self, variables, gather, compatible_output):
+        if self.in_memory():
+            data = self.read_data_from_memory(gather, compatible_output)
+        else: # in file
+            data = self.read_data(gather, compatible_output)
+        indices = []
+        for variable in variables:
+            try:
+                indices.append(self.record_from.index(variable))
+            except ValueError:
+                raise Exception("%s not recorded" % variable)
+        columns = tuple([0, 1] + [index + 2 for index in indices])
+        return data[:, columns]
+
+
+class Recorder(recording.Recorder):
+    """Encapsulates data and functions related to recording model variables."""
+    
+    scale_factors = {'spikes': 1,
+                     'v': 1,
+                     'gsyn': 0.001} # units conversion
+    
+    def __init__(self, variable, population=None, file=None):
+        __doc__ = recording.Recorder.__doc__
+        recording.Recorder.__init__(self, variable, population, file)
+        to_memory = (file is False) # note file=None means we save to a temporary file, not to memory
+        if variable is "spikes":
+            self._device = RecordingDevice("spike_detector", to_memory)
+        else:
+            self._device = None
+            for recorder in population.recorders.values():
+                if recorder._device.type == 'multimeter':
+                    self._device = recorder._device
+                    break
+            if self._device is None:
+                self._device = RecordingDevice("multimeter", to_memory)
+            self._device.add_variables(*VARIABLE_MAP.get(variable, [variable]))
+
+    def _record(self, new_ids):
+        """Called by record()."""
+        self._device.add_cells(new_ids)
+   
     def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         if self._device is None:
             raise errors.NothingToWriteError("No cells recorded, so no data to return")
         
-        if self.in_memory():
-            data = self._read_data_from_memory(gather, compatible_output)
-        else: # in file
-            data = self._read_data(gather, compatible_output)
+        if self.variable is "spikes":
+            data = self._device.read_data(gather, compatible_output)
+        else:
+            variables = VARIABLE_MAP.get(self.variable, [self.variable])
+            data = self._device.read_subset(variables, gather, compatible_output)
         
-        if filter is not None:
-            filtered_ids = self.filter_recorded(filter)
-            mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
-            data = data[mask]
+        filtered_ids = self.filter_recorded(filter)
+        mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
+        data = data[mask]
         return data
-    
-    def write(self, file=None, gather=False, compatible_output=True, filter=None):
-        """Write recorded data to file."""
-        if self._device is None:
-            raise errors.NothingToWriteError("%s not recorded from any cells, so no data to write to file." % self.variable)
-        recording.Recorder.write(self, file, gather, compatible_output, filter)
 
     def _local_count(self, filter):
         N = {}
-        if self.in_memory():
-            events = nest.GetStatus(self._device, 'events')[0]
+        if self._device.in_memory():
+            events = nest.GetStatus(self._device.device, 'events')[0]
             for id in filtered_ids:
                 mask = events['senders'] == int(id)
                 N[id] = len(events['times'][mask])

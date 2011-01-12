@@ -397,7 +397,9 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     from pyNN.utility import init_logging
     init_logging(logfile=None, debug=True)
     set_simulator(sim)
-    sim.setup(timestep=0.1)
+    dt = 0.1
+    tstop = 100.0
+    sim.setup(timestep=dt)
     cells = sim.Population(5, sim.IF_cond_exp) + sim.Population(6, sim.EIF_cond_exp_isfa_ista)
     inputs = sim.Population(5, sim.SpikeSourcePoisson, {'rate': 50.0})
     sim.connect(inputs, cells, weight=0.1, delay=0.5, synapse_type='inhibitory')
@@ -409,7 +411,7 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     
     assert_equal(cells.populations[0].recorders['gsyn'].recorded, set(cells.populations[0].all_cells[2:5]))
     assert_equal(cells.populations[1].recorders['gsyn'].recorded, set(cells.populations[1].all_cells[0:4]))
-    sim.run(100.0)
+    sim.run(tstop)
     vm_p0 = cells.populations[0].get_v()
     vm_p1 = cells.populations[1].get_v()
     vm_all = cells.get_v()
@@ -422,6 +424,14 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     assert_equal(numpy.unique(gsyn_p0[:,0]).tolist(), [ 2., 3., 4.])
     assert_equal(numpy.unique(gsyn_p1[:,0]).tolist(), [ 0., 1., 2., 3.])
     assert_equal(numpy.unique(gsyn_all[:,0]).astype(int).tolist(), range(2,9))
+    
+    n_points = int(tstop/dt) + 1
+    assert_equal(vm_p0.shape[0], 5*n_points)
+    assert_equal(vm_p1.shape[0], 6*n_points)
+    assert_equal(vm_all.shape[0], 11*n_points)
+    assert_equal(gsyn_p0.shape[0], 3*n_points)
+    assert_equal(gsyn_p1.shape[0], 4*n_points)
+    assert_equal(gsyn_all.shape[0], 7*n_points)
     
     assert_arrays_equal(vm_p1[vm_p1[:,0]==3][:,2], vm_all[vm_all[:,0]==8][:,2])
 

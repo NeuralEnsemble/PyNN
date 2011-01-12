@@ -346,6 +346,7 @@ def build_record(variable, simulator):
         # whether to write to a file.
         assert isinstance(source, (BasePopulation, Assembly))
         source._record(variable, to_file=filename)
+        # recorder_list is used by end()
         if isinstance(source, BasePopulation):
             simulator.recorder_list.append(source.recorders[variable])  # this is a bit hackish - better to add to Population.__del__?
         if isinstance(source, Assembly):
@@ -606,7 +607,7 @@ class BasePopulation(object):
                 value) or a `RandomDistribution` object (each neuron gets a
                 different value)
         """
-        logging.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
+        logger.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
         if isinstance(value, random.RandomDistribution):
             initial_value = value.next(n=self.all_cells.size, mask_local=self._mask_local)
         else:
@@ -633,7 +634,7 @@ class BasePopulation(object):
             population = self.grandparent
         else:
             population = self
-        logging.debug("Adding recorder for %s to %s" % (variable, self.label))
+        logger.debug("Adding recorder for %s to %s" % (variable, self.label))
         population.recorders[variable] = population.recorder_class(variable,
                                                                    population=population)
 
