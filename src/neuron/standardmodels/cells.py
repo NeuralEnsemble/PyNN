@@ -7,7 +7,7 @@ $Id: cells.py 873 2010-12-13 22:40:03Z apdavison $
 
 from pyNN.standardmodels import cells, build_translations
 from pyNN import errors
-from pyNN.neuron.cells import StandardIF, SingleCompartmentTraub, RandomSpikeSource, VectorSpikeSource, BretteGerstnerIF
+from pyNN.neuron.cells import StandardIF, SingleCompartmentTraub, RandomSpikeSource, VectorSpikeSource, BretteGerstnerIF, GsfaGrrIF
 from math import pi
 import logging
 
@@ -165,6 +165,48 @@ class HH_cond_exp(cells.HH_cond_exp):
                                                      # values for not-specified parameters.
         self.parameters['syn_type']  = 'conductance'
         self.parameters['syn_shape'] = 'exp'
+
+
+class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
+    """
+    Linear leaky integrate and fire model with fixed threshold,
+    decaying-exponential post-synaptic conductance, conductance based
+    spike-frequency adaptation, and a conductance-based relative refractory
+    mechanism.
+
+    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond
+    mean-adaptation and renewal theories. Neural Computation 19: 2958-3010.
+
+    See also: EIF_cond_alpha_isfa_ista
+    """
+    translations = build_translations(
+        ('v_rest',     'v_reset'),
+        ('v_reset',    'v_reset'),
+        ('cm',         'c_m'),
+        ('tau_m',      'tau_m'),
+        ('tau_refrac', 't_refrac'),
+        ('tau_syn_E',  'tau_e'),
+        ('tau_syn_I',  'tau_i'),
+        ('v_thresh',   'v_thresh'),
+        ('i_offset',   'i_offset'),
+        ('e_rev_E',    'e_e'),
+        ('e_rev_I',    'e_i'),
+        ('tau_sfa',    'tau_sfa'),
+        ('e_rev_sfa',  'e_sfa'),
+        ('q_sfa',      'q_sfa'),
+        ('tau_rr',     'tau_rr'),
+        ('e_rev_rr',   'e_rr'),
+        ('q_rr',       'q_rr')
+    )
+    model = GsfaGrrIF
+    
+    def __init__(self, parameters):
+        cells.IF_cond_exp_gsfa_grr.__init__(self, parameters) # checks supplied parameters and adds default
+                                                              # values for not-specified parameters.
+        self.parameters['syn_type']  = 'conductance'
+        self.parameters['syn_shape'] = 'exp'
+
+
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     """Spike source, generating spikes according to a Poisson process."""

@@ -337,6 +337,51 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
             seg.w = self.w_init
 
 
+class GsfaGrrIF(StandardIF):
+    """docstring"""
+    
+    def __init__(self, syn_type, syn_shape, tau_m=10.0, c_m=1.0, v_rest=-70.0,
+                 v_thresh=-57.0, t_refrac=0.1, i_offset=0.0,
+                 tau_e=1.5, tau_i=10.0, e_e=0.0, e_i=-75.0,
+                 v_spike=0.0, v_reset=-70.0, q_rr=3214.0, q_sfa=14.48,
+                 e_rr=-70.0, e_sfa=-70.0,
+                 tau_rr=1.97, tau_sfa=110.0):
+
+        StandardIF.__init__(self, syn_type, syn_shape, tau_m, c_m, v_rest,
+                            v_thresh, t_refrac, i_offset, v_reset,
+                            tau_e, tau_i, e_e, e_i)
+    
+        # insert GsfaGrr mechanism
+        self.gsfa_grr = h.GsfaGrr(0.5, sec=self)
+        self.v_thresh = v_thresh
+        
+        self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 'v_reset',
+                                't_refrac', 'tau_e', 'tau_i', 'i_offset',
+                                'e_rr', 'e_sfa', 'q_rr', 'q_sfa', 'tau_rr', 'tau_sfa']
+        if syn_type == 'conductance':
+            self.parameter_names.extend(['e_e', 'e_i'])
+        self.set_parameters(locals())
+
+    q_sfa        = _new_property('gsfa_grr',  'q_s')
+    q_rr        = _new_property('gsfa_grr',  'q_r')
+    tau_sfa        = _new_property('gsfa_grr',  'tau_s')
+    tau_rr        = _new_property('gsfa_grr',  'tau_r')
+    e_sfa = _new_property('gsfa_grr',  'E_s')
+    e_rr = _new_property('gsfa_grr',  'E_r')
+    
+    def __set_v_thresh(self, value):
+        self.spike_reset.vthresh = value
+        # this can fail on constructor
+        try:
+            self.gsfa_grr.vthresh = value
+        except AttributeError:
+            pass
+        
+    def __get_v_thresh(self):
+        return self.spike_reset.vthresh
+    v_thresh = property(fget=__get_v_thresh, fset=__set_v_thresh)
+
+
 class SingleCompartmentTraub(SingleCompartmentNeuron):
     
     def __init__(self, syn_type, syn_shape, c_m=1.0, e_leak=-65,
