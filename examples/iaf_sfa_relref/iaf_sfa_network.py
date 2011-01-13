@@ -22,6 +22,7 @@ import pyNN.space as space
 from pyNN.utility import init_logging
 from pyNN import standardmodels
 import nest
+from pyNN.nest.synapses import NativeSynapseDynamics
 from mpi4py import MPI
 import logging
 
@@ -267,8 +268,8 @@ gammaE_I = sim.Population((1,),cellclass=sim.SpikeSourceInhGamma,cellparams=gamm
 # these generators are to be silenced after the initial 500ms
 gammaE_E_silenced = sim.Population((1,),cellclass=sim.SpikeSourceInhGamma,cellparams=gammaE_Eparams)
 gammaE_I_silenced = sim.Population((1,),cellclass=sim.SpikeSourceInhGamma,cellparams=gammaE_Iparams)
-gammaE_I_silenced.cellparams['stop']=tinit
-gammaE_E_silenced.cellparams['stop']=tinit
+gammaE_I_silenced.stop=tinit
+gammaE_E_silenced.stop=tinit
 
 # inhibitory is Poisson
 poissonI_Eparams = {'rate': rateI_E*connectionsI_E, 'start': 0.0,
@@ -322,8 +323,8 @@ seeds = numpy.arange(numberOfNodes)
 # different seeds.  This way, all nodes get the list from rank=0.
 seeds = MPI.COMM_WORLD.bcast(seeds)
 
-rng = NumpyRNG(seed=seeds[rank], parallel_safe=False, rank=rank,
-               num_processes=numberOfNodes)
+#rng = NumpyRNG(seed=seeds[rank], parallel_safe=False, rank=rank,
+#               num_processes=numberOfNodes)
 
 nest.SetKernelStatus({'rng_seeds': list(seeds)})
 
@@ -346,12 +347,8 @@ myConnectorE_I_silenced = sim.FixedNumberPreConnector(NumOfConE_I,weights=global
 # InhGamma Generators need "_S" (selective) type synapses
 # Passing this class to the Projection in a SynapseDynamics object
 # is how to get them:
-class SelectiveSynapse(standardmodels.ShortTermPlasticityMechanism):
-    native_name = 'static_synapse_S'
-    def __init__(self):
-        self.parameters = {}
 
-sd = standardmodels.SynapseDynamics(fast=SelectiveSynapse())
+sd = NativeSynapseDynamics('static_synapse_S')
 
 prjE_E = sim.Projection(gammaE_E, popE, method=myConnectorE_E, target='excitatory', synapse_dynamics = sd)
 prjE_I = sim.Projection(gammaE_I, popI, method=myConnectorE_I, target='excitatory', synapse_dynamics = sd)
@@ -384,8 +381,8 @@ printTimer("Time for first half of run")
 
 # Lower the external network "ghost" processes according to how many connections of that
 # type were added.
-poissonI_E.cellparams["rate"] = rateI_E * (connectionsI_E - NumOfConI_E)
-poissonI_I.cellparams["rate"] = rateI_I * (connectionsI_I - NumOfConI_I)
+poissonI_E.rate = rateI_E * (connectionsI_E - NumOfConI_E)
+poissonI_I.rate = rateI_I * (connectionsI_I - NumOfConI_I)
 # E->X connections are running inh_gamma_generators, so they are handled differently
 # i.e. a subset of them have a stop time of tinit.
 #poissonE_E.cellparams["rate"] = rateE_E * (connectionsE_E - NumOfConE_E)
