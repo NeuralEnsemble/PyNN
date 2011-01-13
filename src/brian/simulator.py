@@ -75,6 +75,32 @@ def nesteddictwalk(d):
         else:
             yield value1     
 
+
+class PlainNeuronGroup(brian.NeuronGroup):
+    
+    def __init__(self, n, equations, **kwargs):
+        try:
+            clock = state.simclock
+            max_delay = state.max_delay*ms
+        except Exception:
+            raise Exception("Simulation timestep not yet set. Need to call setup()")
+        brian.NeuronGroup.__init__(self, n, model=equations,
+                                   compile=True,
+                                   clock=clock,
+                                   max_delay=max_delay,
+                                   freeze=True,
+                                   **kwargs)
+        self.parameter_names = equations._namespace.keys()
+        for var in ('v', 'ge', 'gi', 'ie', 'ii'): # can probably get this list from brian
+            if var in self.parameter_names:
+                self.parameter_names.remove(var)
+        self.initial_values = {}
+        self._S0 = self._S[:,0]
+
+    def initialize(self):
+        for variable, values in self.initial_values.items():
+            setattr(self, variable, values)
+
 class ThresholdNeuronGroup(brian.NeuronGroup):
     
     def __init__(self, n, equations, **kwargs):

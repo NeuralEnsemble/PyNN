@@ -56,10 +56,15 @@ BREAKPOINT {
  
  
 INITIAL {
-	rates(v)
-	m = minf
-	h = hinf
-	n = ninf
+        : the following (commented out) is the preferred initialization
+	:rates(v)
+	:m = minf
+	:h = hinf
+	:n = ninf
+        : but for compatibility with NEST, we use the following
+        m = 0
+        h = 0
+        n = 0
 }
 
 DERIVATIVE states {  

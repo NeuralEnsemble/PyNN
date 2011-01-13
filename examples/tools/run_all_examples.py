@@ -12,7 +12,7 @@ for sim in "pcsim", "neuron", "nest", "brian":
 
 exclude = {
     'PCSIM': ("brunel.py", "HH_cond_exp.py", "EIF_cond_alpha_isfa_ista.py"),
-    'NEURON': ("brunel.py"),
+    'NEURON': ("brunel.py", "tsodyksmarkram2.py"),
     'NEST': ("brunel.py"),
     'Brian': ("brunel.py", "tsodyksmarkram.py", "tsodyksmarkram2.py",
               "simple_STDP.py", "simple_STDP2.py"),

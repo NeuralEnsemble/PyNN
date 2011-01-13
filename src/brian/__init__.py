@@ -142,7 +142,7 @@ class Population(common.Population, common.BasePopulation):
         elif isinstance(celltype, cells.SpikeSourceArray):
             spike_times = cell_parameters['spiketimes']
             brian_cells = simulator.MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(n)])
-        else:
+        elif 'v_reset' in cell_parameters:
             params = {'threshold'  : celltype.threshold, 
                       'reset'      : celltype.reset}
             if cell_parameters.has_key('tau_refrac'):                 
@@ -150,6 +150,11 @@ class Population(common.Population, common.BasePopulation):
             if hasattr(celltype, 'extra'):
                 params.update(celltype.extra)
             brian_cells = simulator.ThresholdNeuronGroup(n, cellclass.eqs, **params)
+        else:
+            params = {'threshold'  : celltype.threshold}
+            if hasattr(celltype, 'extra'):
+                params.update(celltype.extra)
+            brian_cells = simulator.PlainNeuronGroup(n, cellclass.eqs, **params)
                 
 #        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.ModelNotAvailable):
 #            raise NotImplementedError("The %s model is not available for this simulator." % cellclass.__name__)

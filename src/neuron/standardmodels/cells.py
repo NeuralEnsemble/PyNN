@@ -144,9 +144,9 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
 class HH_cond_exp(cells.HH_cond_exp):
     
     translations = build_translations(
-        ('gbar_Na',    'gbar_Na', 1e-6),   
-        ('gbar_K',     'gbar_K', 1e-6),    
-        ('g_leak',     'g_leak', 1e-6),    
+        ('gbar_Na',    'gbar_Na',   1e-3),   # uS -> mS
+        ('gbar_K',     'gbar_K',    1e-3),    
+        ('g_leak',     'g_leak',    1e-3),    
         ('cm',         'c_m'),  
         ('v_offset',   'v_offset'),
         ('e_rev_Na',   'ena'),

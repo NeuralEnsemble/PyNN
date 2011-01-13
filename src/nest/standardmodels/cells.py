@@ -168,10 +168,10 @@ class HH_cond_exp(cells.HH_cond_exp):
     """Single-compartment Hodgkin-Huxley model."""
     
     translations = build_translations(
-        ('gbar_Na',    'g_Na'),   
-        ('gbar_K',     'g_K'),    
-        ('g_leak',     'g_L'),    
-        ('cm',         'C_m',    1000.0),  
+        ('gbar_Na',    'g_Na',  1000.0), # uS --> nS   
+        ('gbar_K',     'g_K',   1000.0),
+        ('g_leak',     'g_L',   1000.0),
+        ('cm',         'C_m',   1000.0),  # nF --> pF
         ('v_offset',   'V_T'),
         ('e_rev_Na',   'E_Na'),
         ('e_rev_K',    'E_K'), 
@@ -180,7 +180,7 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('e_rev_I',    'E_in'),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
-        ('i_offset',   'I_e', 1000.0),
+        ('i_offset',   'I_e',   1000.0),  # nA --> pA
     )
     nest_name = {"on_grid": "hh_cond_exp_traub",
                  "off_grid": "hh_cond_exp_traub"}

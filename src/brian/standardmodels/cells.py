@@ -407,7 +407,6 @@ class HH_cond_exp(cells.HH_cond_exp):
        i_offset               : nA
        i_inj                  : nA
    ''')
-
    synapses  = {'excitatory': 'ge', 'inhibitory': 'gi'}
    
    @property

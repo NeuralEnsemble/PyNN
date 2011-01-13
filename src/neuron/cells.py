@@ -63,9 +63,13 @@ class SingleCompartmentNeuron(nrn.Section):
         synapse_model = StandardIF.synapse_models[syn_type][syn_shape]
         self.esyn = synapse_model(0.5, sec=self)
         self.isyn = synapse_model(0.5, sec=self)
-        if self.syn_type == 'conductance' and self.syn_shape == 'exp':
-            self.esyn_TM = h.tmgsyn(0.5, sec=self)
-            self.isyn_TM = h.tmgsyn(0.5, sec=self)
+        if self.syn_shape == 'exp':
+            if self.syn_type == 'conductance':
+                self.esyn_TM = h.tmgsyn(0.5, sec=self)
+                self.isyn_TM = h.tmgsyn(0.5, sec=self)
+            else:
+                self.esyn_TM = h.tmisyn(0.5, sec=self)
+                self.isyn_TM = h.tmisyn(0.5, sec=self)
         
         # insert current source
         self.stim = h.IClamp(0.5, sec=self)
@@ -73,13 +77,13 @@ class SingleCompartmentNeuron(nrn.Section):
         self.stim.dur = 1e12
         self.stim.amp = i_offset
 
-        # for recording spikes
+        # for recording
         self.spike_times = h.Vector(0)
+        self.traces = {}
         self.gsyn_trace = {}
         self.recording_time = 0
         
         self.v_init = None
-        
 
     @property
     def excitatory(self):
@@ -184,9 +188,7 @@ class SingleCompartmentNeuron(nrn.Section):
         #self.seg.v = self.v_init
 
     def set_Tsodyks_Markram_synapses(self, ei, U, tau_rec, tau_facil, u0):
-        if self.syn_type == 'current':
-            raise Exception("Tsodyks-Markram mechanism only available for conductance-based synapses.")
-        elif self.syn_shape == 'alpha':
+        if self.syn_shape == 'alpha':
             raise Exception("Tsodyks-Markram mechanism not available for alpha-function-shaped synapses.")
         elif ei == 'excitatory':
             syn = self.esyn_TM
@@ -386,8 +388,11 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
     
     def __init__(self, syn_type, syn_shape, c_m=1.0, e_leak=-65,
                  i_offset=0, tau_e=5, tau_i=5, e_e=0, e_i=-70,
-                 gbar_Na=20000, gbar_K=6000, g_leak=10, ena=50,
+                 gbar_Na=20e-3, gbar_K=6e-3, g_leak=0.01e-3, ena=50,
                  ek=-90, v_offset=-63):
+        """
+        Conductances are in millisiemens (S/cm2, since A = 1e-3)
+        """
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
                                          tau_e, tau_i, e_e, e_i)
         self.source = self.seg._ref_v

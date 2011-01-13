@@ -193,19 +193,19 @@ class HH_cond_exp(StandardCellType):
     """
     
     default_parameters = {
-        'gbar_Na'   : 20000.0,
-        'gbar_K'    : 6000.0,
-        'g_leak'    : 10.0,
-        'cm'        : 0.2,
-        'v_offset'  : -63.0,
+        'gbar_Na'   : 20.0, # uS
+        'gbar_K'    : 6.0,  # uS
+        'g_leak'    : 0.01, # uS
+        'cm'        : 0.2,  # nF
+        'v_offset'  : -63.0, # mV
         'e_rev_Na'  : 50.0,
         'e_rev_K'   : -90.0,
         'e_rev_leak': -65.0,
         'e_rev_E'   : 0.0,
         'e_rev_I'   : -80.0,
-        'tau_syn_E' : 0.2,
+        'tau_syn_E' : 0.2, # ms
         'tau_syn_I' : 2.0,
-        'i_offset'  : 0.0,
+        'i_offset'  : 0.0, # nA
     }
     recordable = ['spikes', 'v', 'gsyn']
     default_initial_values = {

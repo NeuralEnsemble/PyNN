@@ -31,6 +31,8 @@ class Recorder(recording.Recorder):
             varname = example_cell.celltype.synapses['inhibitory']
             device2 = brian.StateMonitor(group, varname, record=True, clock=clock)
             devices = [device1, device2]
+        else:
+            devices = [brian.StateMonitor(group, self.variable, record=True, clock=clock)]
         for device in devices:
             simulator.state.add(device)
         return devices
@@ -78,6 +80,16 @@ class Recorder(recording.Recorder):
             for id, row1, row2 in zip(self.recorded, values1.T, values2.T):
                 assert row1.shape == row2.shape
                 new_data = numpy.array([numpy.ones(row1.shape)*id, times, row1, row2]).T
+                data = numpy.concatenate((data, new_data))
+            if filter is not None:
+                mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids + padding))
+                data = data[mask]
+        else:
+            values = numpy.array(self._devices[0]._values)/mV
+            times  = self._devices[0].times/ms
+            data   = numpy.empty((0,3))
+            for id, row in zip(self.recorded, values.T):
+                new_data = numpy.array([numpy.ones(row.shape)*id, times, row]).T
                 data = numpy.concatenate((data, new_data))
             if filter is not None:
                 mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids + padding))
