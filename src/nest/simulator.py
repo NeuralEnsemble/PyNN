@@ -186,6 +186,18 @@ class Connection(object):
 
     weight = property(_get_weight, _set_weight)
     delay  = property(_get_delay, _set_delay)
+
+def generate_synapse_property(name):
+    def _get(self):
+        return nest.GetStatus([self.id()], name)[0]
+    def _set(self, val):
+        nest.SetStatus([self.id()], name, val)
+    return property(_get, _set)
+setattr(Connection, 'U', generate_synapse_property('U'))
+setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))
+setattr(Connection, 'tau_facil', generate_synapse_property('tau_fac'))
+setattr(Connection, 'u0', generate_synapse_property('u0'))
+setattr(Connection, '_tau_psc', generate_synapse_property('tau_psc'))
     
 
 class ConnectionManager:
@@ -246,6 +258,15 @@ class ConnectionManager:
             self.sources = numpy.unique(self.sources)
             self._connections = nest.FindConnections(self.sources, synapse_type=self.synapse_model)
         return self._connections
+    
+    def _set_tsodyks_params(self):
+        if 'tsodyks' in self.synapse_model: # there should be a better way to do this. In particular, if the synaptic time constant is changed
+                                            # after creating the Projection, tau_psc ought to be changed as well.
+            assert self.synapse_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
+            logger.debug("setting tau_psc")
+            for c in self:
+                tau_psc = getattr(c.target, "tau_syn_%s" % self.synapse_type[0].upper()) # hack
+                c._tau_psc = tau_psc
     
     def connect(self, source, targets, weights, delays):
         """

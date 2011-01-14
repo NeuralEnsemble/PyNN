@@ -329,6 +329,7 @@ class Projection(common.Projection):
                                                               parent=self)
         # Create connections
         method.connect(self)
+        self.connection_manager._set_tsodyks_params()
         self.connections = self.connection_manager
         Projection.nProj += 1
 

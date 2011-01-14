@@ -20,7 +20,13 @@ from pyNN.standardmodels import ShortTermPlasticityMechanism, STDPWeightDependen
 class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):
     """
     Synapse exhibiting facilitation and depression, implemented using the model
-    of Tsodyks and Markram.
+    of Tsodyks, Markram et al.:
+    
+    Tsodyks, Uziel, Markram (2000) Synchrony Generation in Recurrent Networks
+       with Frequency-Dependent Synapses. Journal of Neuroscience, vol 20 RC50
+       
+    Note that the time constant of the post-synaptic current is set in the
+    neuron model, not here.
     """
     default_parameters = {
         'U': 0.5,   # use parameter
