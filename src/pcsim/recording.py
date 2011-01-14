@@ -45,6 +45,9 @@ class Recorder(recording.Recorder):
         else:
             raise NotImplementedError("Recording of %s not implemented." % self.variable)
 
+    def _reset(self):
+        raise NotImplementedError("TO DO")
+
     def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         # compatible_output is not used, but is needed for compatibility with the nest module.

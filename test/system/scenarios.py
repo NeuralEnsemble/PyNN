@@ -357,6 +357,31 @@ def test_reset(sim):
         assert_arrays_almost_equal(rec, data[0], 1e-12)
 
 
+@register(exclude=['brian'])
+def test_reset_recording(sim):
+    """
+    Check that _record(None) resets the list of things to record.
+    """
+    sim.setup()
+    p = sim.Population(2, sim.IF_cond_exp)
+    p[0].i_offset = 0.1
+    p[1].i_offset = 0.2
+    p[0:1].record_v()
+    assert_equal(p.recorders['v'].recorded, set([p[0]]))
+    sim.run(10.0)
+    idA, tA, vA = p.get_v().T
+    sim.reset()
+    p._record(None)
+    p[1:2].record_v()
+    assert_equal(p.recorders['v'].recorded, set([p[1]]))
+    sim.run(10.0)
+    idB, tB, vB = p.get_v().T
+    assert_arrays_equal(tA, tB)
+    assert (idA == 0).all()
+    assert (idB == 1).all()
+    assert (vA != vB).any()
+
+
 @register()
 def test_setup(sim):
     """
@@ -391,6 +416,33 @@ def test_EIF_cond_alpha_isfa_ista(sim):
     diff = (ifcell.getSpikes()[:,1] - expected_spike_times)/expected_spike_times
     assert abs(diff).max() < 0.001
     sim.end()
+
+@register()
+def test_HH_cond_exp(sim):
+    sim.setup(timestep=0.001, min_delay=0.1)
+    cellparams = {
+        'gbar_Na'   : 20.0,
+        'gbar_K'    : 6.0,
+        'g_leak'    : 0.01,
+        'cm'        : 0.2,
+        'v_offset'  : -63.0,
+        'e_rev_Na'  : 50.0,
+        'e_rev_K'   : -90.0,
+        'e_rev_leak': -65.0,
+        'e_rev_E'   : 0.0,
+        'e_rev_I'   : -80.0,
+        'tau_syn_E' : 0.2,
+        'tau_syn_I' : 2.0,
+        'i_offset'  : 1.0,
+    }
+    hhcell = sim.create(sim.HH_cond_exp, cellparams=cellparams)
+    sim.initialize(hhcell, 'v', -64.0)
+    hhcell.record_v()
+    sim.run(20.0)
+    id, t, v = hhcell.get_v().T
+    first_spike = t[numpy.where(v>0)[0][0]]
+    assert first_spike - 2.95 < 0.01 
+    
 
 @register()
 def test_record_vm_and_gsyn_from_assembly(sim):

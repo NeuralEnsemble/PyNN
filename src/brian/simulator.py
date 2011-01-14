@@ -220,8 +220,8 @@ class _State(object):
     def run(self, simtime):
         self.network.run(simtime * ms)        
 
-    def add(self, object):
-        self.network.add(object)
+    def add(self, obj):
+        self.network.add(obj)
     
     @property
     def next_id(self):        

@@ -150,6 +150,8 @@ class SingleCompartmentNeuron(nrn.Section):
         if active:
             rec = h.NetCon(self.source, None)
             rec.record(self.spike_times)
+        else:
+            self.spike_times = h.Vector(0)
     
     def record_v(self, active):
         if active:

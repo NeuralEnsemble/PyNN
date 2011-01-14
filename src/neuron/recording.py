@@ -29,7 +29,15 @@ class Recorder(recording.Recorder):
         else:
             for id in new_ids:
                self._native_record(id)
-        
+    
+    def _reset(self):
+        for id in self.recorded:
+            id._cell.traces = {}
+            id._cell.record(active=False)
+            id._cell.record_v(active=False)
+            for syn_name in id._cell.gsyn_trace:
+                id._cell.record_gsyn(syn_name, active=False)
+    
     def _native_record(self, id):
         match = recordable_pattern.match(self.variable)
         if match:

@@ -112,6 +112,11 @@ class Recorder(object):
         logger.debug('Recorder.recorded contains %d ids' % len(self.recorded))
         self._record(new_ids)
     
+    def reset(self):
+        """Reset the list of things to be recorded."""
+        self._reset()
+        self.recorded = set([])
+    
     def filter_recorded(self, filter):
         if filter is not None:
             return set(filter).intersection(self.recorded)

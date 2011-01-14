@@ -2,10 +2,13 @@ import numpy
 import brian
 from pyNN import recording
 from pyNN.brian import simulator
+import logging
 
 mV = brian.mV
 ms = brian.ms
 uS = brian.uS
+
+logger = logging.getLogger("PyNN")
 
 # --- For implementation of record_X()/get_X()/print_X() -----------------------
 
@@ -44,12 +47,16 @@ class Recorder(recording.Recorder):
         if len(self._devices) == 0:
             self._devices = self._create_devices(ids[0].parent_group)
         if not self.variable is 'spikes':
+            cells              = list(self.recorded)
             for device in self._devices:
-                cells              = list(self.recorded)
                 device.record      = numpy.array(cells) - cells[0].parent.first_id
                 device.recordindex = dict((i,j) for i,j in zip(device.record,
                                                             range(len(device.record))))
+            logger.debug("recording %s from %s" % (self.variable, cells))
     
+    def _reset(self):
+        raise NotImplementedError("Recording reset is not currently supported for pyNN.brian")
+
     def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         filtered_ids = self.filter_recorded(filter)

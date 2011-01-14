@@ -50,6 +50,11 @@ class RecordingDevice(object):
         simulator.recording_devices.append(self)
         logger.debug("Created %s with parameters %s" % (device_type, device_parameters))
 
+    def __del__(self):
+        for name in "_merged_file", "_gathered_file":
+            if hasattr(self, name):
+                getattr(self, name).close()
+
     def add_variables(self, *variables):
         assert self.type is "multimeter", "Can't add variables to a spike detector"
         self.record_from.extend(variables)
@@ -172,7 +177,7 @@ class RecordingDevice(object):
             self._local_files_merged = True
         return data
     
-    def read_data(self, gather, compatible_output):
+    def read_data(self, gather, compatible_output, always_local=False):
         """
         Return file-recorded data.
         
@@ -192,7 +197,8 @@ class RecordingDevice(object):
                 data = numpy.load(self._gathered_file)
             else:
                 local_data = self.read_local_data(compatible_output)
-                if self.population and hasattr(self.population.celltype, 'always_local') and self.population.celltype.always_local:
+                #if self.population and hasattr(self.population.celltype, 'always_local') and self.population.celltype.always_local:
+                if always_local:
                     data = local_data # for always_local cells, no need to gather
                 else:
                     data = recording.gather(local_data)
@@ -204,11 +210,11 @@ class RecordingDevice(object):
         else:
             return self.read_local_data(compatible_output)
     
-    def read_subset(self, variables, gather, compatible_output):
+    def read_subset(self, variables, gather, compatible_output, always_local=False):
         if self.in_memory():
             data = self.read_data_from_memory(gather, compatible_output)
         else: # in file
-            data = self.read_data(gather, compatible_output)
+            data = self.read_data(gather, compatible_output, always_local)
         indices = []
         for variable in variables:
             try:
@@ -229,33 +235,44 @@ class Recorder(recording.Recorder):
     def __init__(self, variable, population=None, file=None):
         __doc__ = recording.Recorder.__doc__
         recording.Recorder.__init__(self, variable, population, file)
-        to_memory = (file is False) # note file=None means we save to a temporary file, not to memory
-        if variable is "spikes":
+        self._create_device()
+        
+    def _create_device(self):
+        to_memory = (self.file is False) # note file=None means we save to a temporary file, not to memory
+        if self.variable is "spikes":
             self._device = RecordingDevice("spike_detector", to_memory)
         else:
             self._device = None
-            for recorder in population.recorders.values():
-                if recorder._device.type == 'multimeter':
+            for recorder in self.population.recorders.values():
+                if hasattr(recorder, "_device") and recorder._device is not None and recorder._device.type == 'multimeter':
                     self._device = recorder._device
                     break
             if self._device is None:
                 self._device = RecordingDevice("multimeter", to_memory)
-            self._device.add_variables(*VARIABLE_MAP.get(variable, [variable]))
+            self._device.add_variables(*VARIABLE_MAP.get(self.variable, [self.variable]))
 
     def _record(self, new_ids):
         """Called by record()."""
         self._device.add_cells(new_ids)
-   
+
+    def _reset(self):
+        """ """
+        try:
+            simulator.recording_devices.remove(self._device)
+        except ValueError:
+            pass
+        self._create_device()
+
     def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         if self._device is None:
             raise errors.NothingToWriteError("No cells recorded, so no data to return")
-        
+        always_local = (hasattr(self.population.celltype, 'always_local') and self.population.celltype.always_local)
         if self.variable is "spikes":
-            data = self._device.read_data(gather, compatible_output)
+            data = self._device.read_data(gather, compatible_output, always_local)
         else:
             variables = VARIABLE_MAP.get(self.variable, [self.variable])
-            data = self._device.read_subset(variables, gather, compatible_output)
+            data = self._device.read_subset(variables, gather, compatible_output, always_local)
         
         filtered_ids = self.filter_recorded(filter)
         mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))

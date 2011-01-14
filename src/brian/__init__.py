@@ -73,10 +73,7 @@ def get_current_time():
     
 def run(simtime):    
     """Run the simulation for simtime ms."""
-    try:
-        simulator.state.run(simtime)
-    except Exception:
-        raise Exception("Nothing to run... Have you created any objects ?")
+    simulator.state.run(simtime)
     return get_current_time()
 
 reset = simulator.reset

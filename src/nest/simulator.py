@@ -50,14 +50,12 @@ class _State(object):
         self.initialized = False
         self.running     = False
         self.optimize    = False
-        self.nominal_time = 0.0
         self.spike_precision = "on_grid"
         
 
     @property
     def t(self):
-        #return nest.GetKernelStatus()['time']
-        return self.nominal_time
+        return nest.GetKernelStatus()['time']
     
     dt = property(fget=lambda self: nest.GetKernelStatus()['resolution'],
                   fset=lambda self, timestep: nest.SetKernelStatus({'resolution': timestep}))    
@@ -88,7 +86,6 @@ def run(simtime):
     """Advance the simulation for a certain time."""
     for device in recording_devices:
         device.connect_to_cells()
-    state.nominal_time += simtime
     if not state.running:
         simtime += state.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
         state.running = True
@@ -96,8 +93,8 @@ def run(simtime):
     
 def reset():
     nest.ResetNetwork()
+    nest.SetKernelStatus({'time': 0.0})
     state.running = False
-    state.nominal_time = 0.0
 
 # --- For implementation of access to individual neurons' parameters ----------- 
 

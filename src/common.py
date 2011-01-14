@@ -642,17 +642,24 @@ class BasePopulation(object):
         """
         Private method called by record() and record_v().
         """
-        if not self.can_record(variable):
-            raise errors.RecordingError(variable, self.celltype)        
-        logger.debug("%s.record('%s')", self.label, variable)
-        if variable not in self.recorders:
-            self._add_recorder(variable)
-        if self.record_filter is not None:
-            self.recorders[variable].record(self.record_filter)
+        if variable is None: # reset the list of things to record
+                             # note that if _record(None) is called on a view of a population
+                             # recording will be reset for the entire population, not just the view
+            for recorder in self.recorders.values():
+                recorder.reset()
+            self.recorders = {}    
         else:
-            self.recorders[variable].record(self.all_cells)
-        if isinstance(to_file, basestring):
-            self.recorders[variable].file = to_file
+            if not self.can_record(variable):
+                raise errors.RecordingError(variable, self.celltype)        
+            logger.debug("%s.record('%s')", self.label, variable)
+            if variable not in self.recorders:
+                self._add_recorder(variable)
+            if self.record_filter is not None:
+                self.recorders[variable].record(self.record_filter)
+            else:
+                self.recorders[variable].record(self.all_cells)
+            if isinstance(to_file, basestring):
+                self.recorders[variable].file = to_file
 
     def record(self, to_file=True):
         """
