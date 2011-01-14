@@ -79,7 +79,8 @@ class LazyArray(object):
             assert numpy.isreal(value).all()
             if not isinstance(value, numpy.ndarray):
                 value = numpy.array(value)
-            assert value.shape == shape
+            #Should remove the following line, because in parallel, value.shape differs from the total shape
+	    #assert value.shape == shape
         else:
             assert numpy.isreal(value)
         self.base_value = value

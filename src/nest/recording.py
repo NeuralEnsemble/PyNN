@@ -197,7 +197,6 @@ class RecordingDevice(object):
                 data = numpy.load(self._gathered_file)
             else:
                 local_data = self.read_local_data(compatible_output)
-                #if self.population and hasattr(self.population.celltype, 'always_local') and self.population.celltype.always_local:
                 if always_local:
                     data = local_data # for always_local cells, no need to gather
                 else:
@@ -273,11 +272,11 @@ class Recorder(recording.Recorder):
         else:
             variables = VARIABLE_MAP.get(self.variable, [self.variable])
             data = self._device.read_subset(variables, gather, compatible_output, always_local)
-        
-        filtered_ids = self.filter_recorded(filter)
-        mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
-        data = data[mask]
-        return data
+        if not self._device._gathered:
+            filtered_ids = self.filter_recorded(filter)
+	    mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
+            data = data[mask]
+	return data
 
     def _local_count(self, filter):
         N = {}
