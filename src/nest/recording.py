@@ -167,7 +167,7 @@ class RecordingDevice(object):
                 if self.type is "spike_detector":
                     ncol = 2
                 else:
-                    ncol = len(self.record_from)
+                    ncol = 2 + len(self.record_from)
                 data = numpy.empty([0, ncol])
             if compatible_output and self.type is not "spike_detector":
                 data = self.scale_data(data)
