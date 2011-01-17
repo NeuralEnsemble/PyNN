@@ -786,7 +786,7 @@ class BasePopulation(object):
             if len(spike_counts) > 0:
                 return float(total_spikes)/len(spike_counts)
             else:
-                return numpy.nan
+                return 0
         else:
             return numpy.nan
         
