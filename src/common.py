@@ -20,6 +20,7 @@ Common API implementation/base classes:
     setup()
     end()
     run()
+    reset()
     get_time_step()
     get_current_time()
     get_min_delay()
@@ -31,10 +32,13 @@ Common API implementation/base classes:
     create()
     connect()
     set()
+    initialize()
     build_record()
 
   3. Creating, connecting and recording from populations of neurons:
     Population
+    PopulationView
+    Assembly
     Projection
 
 $Id$
@@ -235,7 +239,9 @@ class IDMixin(object):
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
           max_delay=DEFAULT_MAX_DELAY, **extra_params):
     """
-    Should be called at the very beginning of a script.
+    Initialises/reinitialises the simulator. Any existing network structure is
+    destroyed.
+    
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
@@ -339,8 +345,8 @@ def set(cells, param, val=None):
 def build_record(variable, simulator):
     def record(source, filename):
         """
-        Record spikes to a file. source can be an individual cell or a list of
-        cells.
+        Record spikes to a file. source can be an individual cell, a Population,
+        PopulationView or Assembly.
         """
         # would actually like to be able to record to an array and choose later
         # whether to write to a file.
@@ -353,13 +359,15 @@ def build_record(variable, simulator):
             for population in source.populations:
                 simulator.recorder_list.append(population.recorders[variable])
     if variable == 'v':
+        record.__name__ = "record_v"
         record.__doc__ = """
-            Record membrane potential to a file. source can be an individual cell or
-            a list of cells."""
+            Record membrane potential to a file. source can be an individual
+            cell, a Population, PopulationView or Assembly."""
     elif variable == 'gsyn':
+        record.__name__ = "record_gsyn"
         record.__doc__ = """
-            Record synaptic conductances to a file. source can be an individual cell
-            or a list of cells."""
+            Record synaptic conductances to a file. source can be an individual
+            cell, a Population, PopulationView or Assembly."""
     return record
 
 
@@ -373,14 +381,14 @@ class BasePopulation(object):
 
     def __getitem__(self, index):
         """
-        Return a representation of the cell with the given index,
-        suitable for being passed to other methods that require a cell id.
+        Return either a single cell (ID object) from the Population, if index
+        is an integer, or a subset of the cells (PopulationView object), if
+        index is a slice or array.
+        
         Note that __getitem__ is called when using [] access, e.g.
             p = Population(...)
             p[2] is equivalent to p.__getitem__(2).
-        Also accepts slices, e.g.
-            p[3:6]
-        which returns an array of cells.
+            p[3:6] is equivalent to p.__getitem__(slice(3, 6))
         """
         if isinstance(index, int):
             return self.all_cells[index]
@@ -400,6 +408,9 @@ class BasePopulation(object):
         return iter(self.local_cells)
 
     def is_local(self, id):
+        """
+        Determine whether the cell with the given ID exists on the local MPI node.
+        """
         assert id.parent is self
         index = self.id_to_index(id)
         return self._mask_local[index]
@@ -409,6 +420,10 @@ class BasePopulation(object):
         return iter(self.all_cells)
 
     def __add__(self, other):
+        """
+        A Population/PopulationView can be added to another Population,
+        PopulationView or Assembly, returning an Assembly.
+        """
         assert isinstance(other, BasePopulation)
         return Assembly(self, other)
 
@@ -903,6 +918,10 @@ class Population(BasePopulation):
             return (id - self.first_id).astype(int)  # this assumes ids are consecutive
 
     def id_to_local_index(self, id):
+        """
+        Given the ID(s) of cell(s) in the Population, return its (their) index
+        (order in the Population), counting only cells on the local MPI node.
+        """
         if num_processes() > 1:
             return self.local_cells.tolist().index(id)  # probably very slow
         else:
@@ -978,10 +997,29 @@ class Population(BasePopulation):
 
 class PopulationView(BasePopulation):
     """
-    docstring needed
+    A view of a subset of neurons within a Population.
+    
+    In most ways, Populations and PopulationViews have the same behaviour, i.e.
+    they can be recorded, connected with Projections, etc. It should be noted
+    that any changes to neurons in a PopulationView will be reflected in the
+    parent Population and vice versa.
+    
+    It is possible to have views of views.
     """
 
     def __init__(self, parent, selector, label=None):
+        """
+        Create a view of a subset of neurons within a parent Population or
+        PopulationView.
+        
+        selector - a slice or numpy mask array. The mask array should either be
+                   a boolean array of the same size as the parent, or an
+                   integer array containing cell indices, i.e. if p.size == 5,
+                     PopulationView(p, array([False, False, True, False, True]))
+                     PopulationView(p, array([2,4]))
+                     PopulationView(p, slice(2,5,2))
+                   will all create the same view.
+        """
         self.parent = parent
         self.mask = selector # later we can have fancier selectors, for now we just have numpy masks              
         self.label  = label or "view of %s with mask %s" % (parent.label, self.mask)
@@ -1100,6 +1138,11 @@ class Assembly(object):
     count = 0
 
     def __init__(self, *populations, **kwargs):
+        """
+        Create an Assembly of Populations and/or PopulationViews.
+        
+        kwargs may contain a keyword argument 'label'.
+        """
         if kwargs:
             assert kwargs.keys() == ['label']
         self.populations = []
@@ -1217,6 +1260,10 @@ class Assembly(object):
         return sum(p.size for p in self.populations)
 
     def __iter__(self):
+        """
+        Iterator over cells in all populations within the Assembly, for cells
+        on the local MPI node.
+        """
         return chain(iter(p) for p in self.populations)
 
     def __len__(self):
@@ -1251,6 +1298,12 @@ class Assembly(object):
             raise TypeError("indices must be integers, slices, lists, arrays, not %s" % type(index).__name__)
 
     def __add__(self, other):
+        """
+        An Assembly may be added to a Population, PopulationView or Assembly
+        with the '+' operator, returning a new Assembly, e.g.:
+        
+            a2 = a1 + p
+        """
         if isinstance(other, BasePopulation):
             return Assembly(*(self.populations + [other]))
         elif isinstance(other, Assembly):
@@ -1259,6 +1312,12 @@ class Assembly(object):
             raise TypeError("can only add a Population or another Assembly to an Assembly")
 
     def __iadd__(self, other):
+        """
+        A Population, PopulationView or Assembly may be added to an existing
+        Assembly using the '+=' operator, e.g.:
+        
+            a += p
+        """
         if isinstance(other, BasePopulation):
             self._insert(other)
         elif isinstance(other, Assembly):
@@ -1269,6 +1328,14 @@ class Assembly(object):
         return self
         
     def initialize(self, variable, value):
+        """
+        Set the initial value of one of the state variables of the neurons in
+        this assembly.
+
+       `value` may either be a numeric value (all neurons set to the same
+        value) or a `!RandomDistribution` object (each neuron gets a
+        different value)
+        """
         for p in self.populations:
             p.initialize(variable, value)
 
@@ -1278,15 +1345,22 @@ class Assembly(object):
             p._record(variable, to_file)
 
     def record(self, to_file=True):
+        """Record spikes from all cells in the Assembly."""
         self._record('spikes', to_file)
 
     def record_v(self, to_file=True):
+        """Record the membrane potential from all cells in the Assembly."""
         self._record('v', to_file)
 
     def record_gsyn(self, to_file=True):
+        """Record synaptic conductances from all cells in the Assembly."""
         self._record('gsyn', to_file)
 
     def get_population(self, label):
+        """
+        Return the Population/PopulationView from within the Assembly that has
+        the given label. If no such Population exists, raise KeyError.
+        """
         for p in self.populations:
             if label == p.label:
                 return p
@@ -1494,7 +1568,7 @@ class Assembly(object):
 
     def inject(self, current_source):
         """
-        Connect a current source to all cells in the Population.
+        Connect a current source to all cells in the Assembly.
         """
         for p in self.populations:
             current_source.inject_into(p)
@@ -1601,6 +1675,7 @@ class Projection(object):
         return 'Projection("%s")' % self.label
 
     def __getitem__(self, i):
+        """Return the `i`th connection within the Projection."""
         return self.connection_manager[i]
 
     # --- Methods for setting connection parameters ---------------------------

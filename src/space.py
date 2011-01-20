@@ -33,6 +33,11 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
 
 
 class Space(object):
+    """
+    Class representing a space within distances can be calculated. The space
+    is Cartesian, may be 1-, 2- or 3-dimensional, and may have periodic
+    boundaries in any of the dimensions.
+    """
     
     AXES = {'x' : [0],    'y': [1],    'z': [2],
             'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': range(3), None: range(3)}
@@ -128,6 +133,9 @@ class BaseStructure(object):
 
 
 class Line(BaseStructure):
+    """
+    Represents a structure with neurons distributed evenly on a straight line.
+    """
     parameter_names = ("dx", "x0", "y0", "z0")
     
     def __init__(self, dx=1.0, x0=0.0, y0=0.0, z0=0.0):
@@ -144,6 +152,9 @@ class Line(BaseStructure):
 
 
 class Grid2D(BaseStructure):
+    """
+    Represents a structure with neurons distributed on a 2D grid.
+    """
     parameter_names = ("aspect_ratio", "dx", "dy", "x0", "y0", "fill_order")
     
     def __init__(self, aspect_ratio=1.0, dx=1.0, dy=1.0, x0=0.0, y0=0.0, z=0, fill_order="sequential"):
@@ -177,6 +188,9 @@ class Grid2D(BaseStructure):
 
 
 class Grid3D(BaseStructure):
+    """
+    Represents a structure with neurons distributed on a 3D grid.
+    """
     parameter_names = ("aspect_ratios", "dx", "dy", "dz", "x0", "y0", "z0", "fill_order")
     
     def __init__(self, aspect_ratioXY=1.0, aspect_ratioXZ=1.0, dx=1.0, dy=1.0, dz=1.0, x0=0.0, y0=0.0, z0=0,
@@ -216,6 +230,9 @@ class Shape(object):
     pass
 
 class Cuboid(Shape):
+    """
+    Represents a cuboidal volume within which neurons may be distributed.
+    """
     
     def __init__(self, width, height, depth):
         """
@@ -232,6 +249,9 @@ class Cuboid(Shape):
 
 
 class Sphere(Shape):
+    """
+    Represents a spherical volume within which neurons may be distributed.
+    """
     
     def __init__(self, radius):
         Shape.__init__(self)
@@ -251,6 +271,10 @@ class Sphere(Shape):
 
 
 class RandomStructure(BaseStructure):
+    """
+    Represents a structure with neurons distributed randomly within a given
+    volume.
+    """
     parameter_names = ('boundary', 'origin', 'rng')
     
     def __init__(self, boundary, origin=(0.0,0.0,0.0), rng=None):

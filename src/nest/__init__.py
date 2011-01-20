@@ -283,6 +283,10 @@ class Population(common.Population):
         nest.SetStatus(self.local_cells.tolist(), variable, value)
 
 
+PopulationView = common.PopulationView
+Assembly = common.Assembly
+
+
 class Projection(common.Projection):
     """
     A container for all the connections of a given type (same synapse type and
@@ -320,10 +324,10 @@ class Projection(common.Projection):
         self.synapse_type = target or 'excitatory'
         if self.synapse_dynamics:
             synapse_dynamics = self.synapse_dynamics
-            self.synapse_dynamics.set_tau_minus(self.post.local_cells) 
+            self.synapse_dynamics._set_tau_minus(self.post.local_cells) 
         else:        
             synapse_dynamics = NativeSynapseDynamics("static_synapse")
-        self.synapse_model = synapse_dynamics.get_nest_synapse_model("projection_%d" % Projection.nProj)
+        self.synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection.nProj)
         self.connection_manager = simulator.ConnectionManager(self.synapse_type,
                                                               self.synapse_model,
                                                               parent=self)

@@ -8,8 +8,9 @@ import nest
 from pyNN.standardmodels import synapses, build_translations, SynapseDynamics, STDPMechanism
 
 class SynapseDynamics(SynapseDynamics):
+    __doc__ = SynapseDynamics.__doc__
     
-    def get_nest_synapse_model(self, suffix):
+    def _get_nest_synapse_model(self, suffix):
         # We create a particular synapse context for each projection, by copying
         # the one which is desired.
         if self.fast:
@@ -48,7 +49,7 @@ class SynapseDynamics(SynapseDynamics):
         nest.CopyModel(base_model, label, synapse_defaults)
         return label
 
-    def set_tau_minus(self, cells):
+    def _set_tau_minus(self, cells):
         if len(cells) > 0 and self.slow:
             if 'tau_minus' in nest.GetStatus([cells[0]])[0]:
                 tau_minus = self.slow.timing_dependence.parameters["tau_minus"]

@@ -205,6 +205,10 @@ class Timer(object):
 
 
 class ProgressBar:
+    """
+    Create a progress bar in the shell.
+    """
+    
     def __init__(self, min_value=0, max_value=100, width=77, **kwargs):
         self.char = kwargs.get('char', '#')
         self.mode = kwargs.get('mode', 'dynamic') # fixed or dynamic

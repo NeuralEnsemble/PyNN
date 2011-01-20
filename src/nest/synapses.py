@@ -28,7 +28,7 @@ class NativeSynapseDynamics(BaseSynapseDynamics):
                    {'nest_model': model_name})
         self.mechanism = cls(parameters)
 
-    def get_nest_synapse_model(self, suffix):
+    def _get_nest_synapse_model(self, suffix):
         defaults = self.mechanism.parameters.copy()
         defaults.pop("tau_minus")
         label = "%s_%s" % (self.mechanism.nest_model, suffix) 
@@ -37,7 +37,7 @@ class NativeSynapseDynamics(BaseSynapseDynamics):
                        defaults)
         return label
 
-    def set_tau_minus(self, cells):
+    def _set_tau_minus(self, cells):
         if len(cells) > 0:
             if 'tau_minus' in nest.GetStatus([cells[0]])[0]:
                 tau_minus = self.mechanism.parameters["tau_minus"]

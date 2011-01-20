@@ -10,6 +10,7 @@ import pyNN.nest
 import pyNN.random
 import pyNN.utility
 import pyNN.recording
+from pyNN import __version__
 #import pyNN.multisim
 
 simulator = "pyNN.nest"
@@ -287,7 +288,7 @@ class AbbreviatedClass(Class):
         
         
 def build_document():
-    api_doc = Document("PyNN API version 0.6")
+    api_doc = Document("PyNN API version %s" % __version__) 
     
     setup = Section("Simulation setup and control", simulator)
     setup.add_functions("setup", "end", "run", "reset", "get_time_step",
@@ -296,19 +297,28 @@ def build_document():
     
     lowlevel = Section("Procedural interface for creating, connecting and recording networks",
                        simulator)
-    lowlevel.add_functions("create", "connect", "set", "record", "record_v",
+    lowlevel.add_functions("create", "connect", "set", "initialize", "record", "record_v",
                            "record_gsyn")
     
-    highlevel = Section("Object-oriented interface for creating, connecting and recording networks",
+    highlevel = Section("Object-oriented interface for creating and recording networks",
                         simulator)
-    highlevel.add_classes("Population", "Projection", "Space") # ID
-    highlevel.add_abbreviated_classes(["AllToAllConnector", "OneToOneConnector",
+    highlevel.add_classes("Population", "PopulationView", "Assembly")
+    space = Section("Classes for defining spatial structure", "pyNN.space")
+    space.add_classes("Space")
+    space.add_classes("Line", "Grid2D", "Grid3D", "RandomStructure",
+                       "Cuboid", "Sphere")
+    connect = Section("Object-oriented interface for connecting populations of neurons", simulator)
+    connect.add_classes("Projection")
+    connect.add_abbreviated_classes(["AllToAllConnector", "OneToOneConnector",
         "FixedProbabilityConnector", "DistanceDependentProbabilityConnector",
         "FixedNumberPreConnector", "FixedNumberPostConnector",
-        "FromListConnector", "FromFileConnector"], methods=["__init__"])
+        "FromListConnector", "FromFileConnector", "SmallWorldConnector"],
+        #"CSAConnector"],
+        methods=["__init__"])
     
     standardcells = Section("Standard neuron models", simulator)
-    standardcells.add_abbreviated_classes(["IF_curr_exp", "IF_curr_alpha", "IF_cond_exp", "IF_cond_alpha",
+    standardcells.add_abbreviated_classes(["IF_curr_exp", "IF_curr_alpha",
+        "IF_cond_exp", "IF_cond_alpha", "EIF_cond_exp_isfa_ista",
         "EIF_cond_alpha_isfa_ista", "IF_facets_hardware1", "HH_cond_exp",
         "SpikeSourcePoisson", "SpikeSourceArray"],
         methods=["__init__"],
@@ -329,7 +339,7 @@ def build_document():
     files.add_classes("BaseFile")
     files.add_abbreviated_classes(["StandardTextFile", "PickleFile", "NumpyBinaryFile", "HDF5ArrayFile"])
     
-    exceptions = Section("Exceptions", "pyNN.common")
+    exceptions = Section("Exceptions", "pyNN.errors")
     exceptions.add_abbreviated_classes([
         "InvalidParameterValueError", "NonExistentParameterError",
         "InvalidDimensionsError", "ConnectionError",
@@ -341,15 +351,17 @@ def build_document():
     
     utility = Section("The utility module", "pyNN.utility")
     utility.add_functions("colour", "notify", "get_script_args", "init_logging")
-    utility.add_classes("Timer")
+    utility.add_classes("Timer", "ProgressBar")
     
     #multisim = Section("The multisim module", "pyNN.multisim")
     #multisim.add_classes("MultiSim")
                           
     
     api_doc.add_section(setup)
-    api_doc.add_section(lowlevel)
     api_doc.add_section(highlevel)
+    api_doc.add_section(space)
+    api_doc.add_section(connect)
+    api_doc.add_section(lowlevel)
     api_doc.add_section(standardcells)
     api_doc.add_section(synapses)
     api_doc.add_section(currentsources)
