@@ -274,8 +274,9 @@ class Recorder(recording.Recorder):
             data = self._device.read_subset(variables, gather, compatible_output, always_local)
         if not self._device._gathered:
             filtered_ids = self.filter_recorded(filter)
-	    mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
-            data = data[mask]
+            mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
+            if len(data) > 0:
+                data = data[mask]
 	return data
 
     def _local_count(self, filter):

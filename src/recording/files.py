@@ -191,7 +191,10 @@ class NumpyBinaryFile(BaseFile):
         __doc__ = BaseFile.get_metadata.__doc__
         D = {}
         for name,value in numpy.load(self.fileobj)['metadata']:
-            D[name] = eval(value)
+            try:
+                D[name] = eval(value)
+            except Exception:
+                D[name] = value
         self.fileobj.seek(0)
         return D
     
