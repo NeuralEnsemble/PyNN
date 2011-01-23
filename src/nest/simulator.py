@@ -288,7 +288,7 @@ class ConnectionManager:
         assert len(targets) > 0
         
         if self.synapse_type not in targets[0].celltype.synapse_types:
-            raise errors.ConnectionError("synapse_type must be one of %s" % "', '".join(str(st for st in targets[0].celltype.synapse_types)))
+            raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: %s" % ( self.synapse_type, "'"+"', '".join(st for st in targets[0].celltype.synapse_types or ['*No connections supported*']))+"'" )
         weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
