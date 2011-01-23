@@ -15,15 +15,15 @@ LCN, EPFL - October 2009
 
 ## Import modules ##
 import numpy, pylab, math, time, nest, os, re
-import pyNN.nest as sim
+from mpi4py import MPI
+#import pyNN.nest as sim
+import pyNN.neuron as sim
 import pyNN.common as common
 import pyNN.connectors as connectors
 import pyNN.space as space
 from pyNN.utility import init_logging
 from pyNN import standardmodels
-import nest
-from pyNN.nest.synapses import NativeSynapseDynamics
-from mpi4py import MPI
+#import nest
 import logging
 
 
@@ -193,7 +193,7 @@ dt = 0.1 # simulation time step in milliseconds
 tinit = 500.0 # simtime over which the network is allowed to settle down
 tsim = 2000.0 # total simulation length in milliseconds
 globalWeight = 0.002 # Weights of all connection in uS
-latticeSize = 10 # number of neurons on one side of the cube
+latticeSize = 8 # number of neurons on one side of the cube
 propOfI = 0.2 # proportion of neurons that are inhibitory
 
 ## Connections ##
@@ -242,7 +242,7 @@ params.excitatory.tau_refrac = dt
 params.inhibitory.tau_refrac = dt
 
 ## Chose the neuron type ##
-# Works only in NEST
+# Works only in NEST and NEURON
 # Warning: don't try to use sim.cells.IF_cond_exp_gsfa_grr
 myModel = sim.IF_cond_exp_gsfa_grr
 
@@ -250,44 +250,33 @@ myModel = sim.IF_cond_exp_gsfa_grr
 # Creates a file that never closes
 sim.setup(timestep=dt, min_delay=dt, max_delay=30.0, debug=True, quit_on_end=False)
 
-# dynamic stimulus E->E, E->I
-f = numpy.array([rateE_E, rateE_E*1.5, rateE_E, rateE_E])
-tbins = numpy.array([0.0,1000.0,1200.0,2000.0])
-a = numpy.array([3.0]*4)
-b = 1.0/(f*a)
-
-## Stochastic input preparation ##
-gammaE_Eparams = {'tbins':tbins,'a': a,
-                    'b':b}
-gammaE_Iparams = {'tbins':tbins,'a': a,
-                    'b':b}
-
-gammaE_E = sim.Population((1,),cellclass=sim.SpikeSourceInhGamma,cellparams=gammaE_Eparams)
-gammaE_I = sim.Population((1,),cellclass=sim.SpikeSourceInhGamma,cellparams=gammaE_Iparams)
-
-# these generators are to be silenced after the initial 500ms
-gammaE_E_silenced = sim.Population((1,),cellclass=sim.SpikeSourceInhGamma,cellparams=gammaE_Eparams)
-gammaE_I_silenced = sim.Population((1,),cellclass=sim.SpikeSourceInhGamma,cellparams=gammaE_Iparams)
-gammaE_I_silenced.stop=tinit
-gammaE_E_silenced.stop=tinit
-
-# inhibitory is Poisson
-poissonI_Eparams = {'rate': rateI_E*connectionsI_E, 'start': 0.0,
-                    'duration': tsim}
-poissonI_Iparams = {'rate': rateI_I*connectionsI_I, 'start': 0.0,
-                    'duration': tsim}
-
-poissonI_E = sim.Population((1,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonI_Eparams,label='poissonI_E')
-poissonI_I = sim.Population((1,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonI_Iparams,label='poissonI_I')
-
 ## Define popultation ##
 myLabelE = "Simulated excitatory adapting neurons"
 myLabelI = "Simulated inhibitory adapting neurons"
 numberOfNeuronsI = int(latticeSize**3 * propOfI)
 numberOfNeuronsE = int(latticeSize**3 - numberOfNeuronsI)
-popE = sim.Population((numberOfNeuronsE),myModel,params.excitatory,label=myLabelE)
-popI = sim.Population((numberOfNeuronsI),myModel,params.inhibitory,label=myLabelI)
+popE = sim.Population((numberOfNeuronsE,),myModel,params.excitatory,label=myLabelE)
+popI = sim.Population((numberOfNeuronsI,),myModel,params.inhibitory,label=myLabelI)
 #all_cells = Assembly("All cells", popE, popI)
+
+# excitatory Poisson
+poissonE_Eparams = {'rate': rateE_E*connectionsE_E, 'start': 0.0,
+                    'duration': tsim}
+poissonE_Iparams = {'rate': rateE_I*connectionsE_I, 'start': 0.0,
+                    'duration': tsim}
+
+poissonE_E = sim.Population((numberOfNeuronsE,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonE_Eparams,label='poissonE_E')
+poissonE_I = sim.Population((numberOfNeuronsI,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonE_Iparams,label='poissonE_I')
+
+
+# inhibitory Poisson
+poissonI_Eparams = {'rate': rateI_E*connectionsI_E, 'start': 0.0,
+                    'duration': tsim}
+poissonI_Iparams = {'rate': rateI_I*connectionsI_I, 'start': 0.0,
+                    'duration': tsim}
+
+poissonI_E = sim.Population((numberOfNeuronsE,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonI_Eparams,label='poissonI_E')
+poissonI_I = sim.Population((numberOfNeuronsI,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonI_Iparams,label='poissonI_I')
 
 ## Set the position in space (lattice)##
 numpy.random.seed(0)
@@ -326,52 +315,15 @@ seeds = MPI.COMM_WORLD.bcast(seeds)
 #rng = NumpyRNG(seed=seeds[rank], parallel_safe=False, rank=rank,
 #               num_processes=numberOfNodes)
 
-nest.SetKernelStatus({'rng_seeds': list(seeds)})
+#nest.SetKernelStatus({'rng_seeds': list(seeds)})
 
-## Connections ##
-#myConnectorE = sim.AllToAllConnector(weights=globalWeight, delays=0.1)
-myConnectorI = sim.AllToAllConnector(weights=globalWeight, delays=0.1)
+myconn = sim.OneToOneConnector(weights=globalWeight, delays=dt)
 
-# Connectors which make the specified number of connections from pre to post
-# the inh_gamma_generator sends a independent realization to each post connection
-# So this is "as if" there where "num connection" independent inh_gamma_generators
-# impinging on the target
-myConnectorE_E = sim.FixedNumberPreConnector(int(connectionsE_E)-NumOfConE_E,weights=globalWeight, delays=0.1)
-myConnectorE_I = sim.FixedNumberPreConnector(int(connectionsE_I)-NumOfConE_I,weights=globalWeight, delays=0.1)
-# a sub-set of the inh_gamma_generaters are silenced after a time "tinit"
-myConnectorE_E_silenced = sim.FixedNumberPreConnector(NumOfConE_E,weights=globalWeight, delays=0.1)
-myConnectorE_I_silenced = sim.FixedNumberPreConnector(NumOfConE_I,weights=globalWeight, delays=0.1)
+prjE_E = sim.Projection(poissonE_E, popE, method=myconn, target='excitatory')
+prjE_I = sim.Projection(poissonE_I, popI, method=myconn, target='excitatory')
 
-#myConnectorI = sim.AllToAllConnector(weights=globalWeight, delays=0.1)
-
-# InhGamma Generators need "_S" (selective) type synapses
-# Passing this class to the Projection in a SynapseDynamics object
-# is how to get them:
-
-#sd = NativeSynapseDynamics('static_synapse_S')
-
-#prjE_E = sim.Projection(gammaE_E, popE, method=myConnectorE_E, target='excitatory', synapse_dynamics = sd)
-#prjE_I = sim.Projection(gammaE_I, popI, method=myConnectorE_I, target='excitatory', synapse_dynamics = sd)
-
-prjE_E = sim.Projection(gammaE_E, popE, method=myConnectorE_E, target='excitatory')
-prjE_I = sim.Projection(gammaE_I, popI, method=myConnectorE_I, target='excitatory')
-
-
-# silenced excitatory input
-prjE_E = sim.Projection(gammaE_E_silenced, popE, method=myConnectorE_E_silenced,
-                        target='excitatory', synapse_dynamics = sd)
-prjE_I = sim.Projection(gammaE_I_silenced, popI, method=myConnectorE_I_silenced,
-                        target='excitatory', synapse_dynamics = sd)
-
-# return to default synapse dynamics (non-selective)
-sd = None
-
-#prjI_E = sim.Projection(poissonI_E, popE, method=myConnectorI, target='inhibitory', synapse_dynamics = sd)
-#prjI_I = sim.Projection(poissonI_I, popI, method=myConnectorI, target='inhibitory', synapse_dynamics = sd)
-
-prjI_E = sim.Projection(poissonI_E, popE, method=myConnectorI, target='inhibitory')
-prjI_I = sim.Projection(poissonI_I, popI, method=myConnectorI, target='inhibitory')
-
+prjI_E = sim.Projection(poissonI_E, popE, method=myconn, target='inhibitory')
+prjI_I = sim.Projection(poissonI_I, popI, method=myconn, target='inhibitory')
 
 ## Record the spikes ##
 popE.record(to_file=False)
@@ -391,10 +343,8 @@ printTimer("Time for first half of run")
 # type were added.
 poissonI_E.rate = rateI_E * (connectionsI_E - NumOfConI_E)
 poissonI_I.rate = rateI_I * (connectionsI_I - NumOfConI_I)
-# E->X connections are running inh_gamma_generators, so they are handled differently
-# i.e. a subset of them have a stop time of tinit.
-#poissonE_E.cellparams["rate"] = rateE_E * (connectionsE_E - NumOfConE_E)
-#poissonE_I.cellparams["rate"] = rateE_I * (connectionsE_I - NumOfConE_I)
+poissonE_E.rate = rateE_E * (connectionsE_E - NumOfConE_E)
+poissonE_I.rate = rateE_I * (connectionsE_I - NumOfConE_I)
 
 
 # Prepare the connectors #
@@ -408,19 +358,19 @@ myConnectorI_I = LatticeConnector(weights=globalWeight, dist_factor=distanceFact
                                   noise_factor=noiseFactor, n=NumOfConI_I)
 # Execute the projections #
 printMessage("Now changing E_E connections for " + str(NumOfConE_E)+ " new connections")
-prjLatticeE_E = sim.Projection(popE, popE, method=myConnectorE_E, target='excitatory', synapse_dynamics = sd)
+prjLatticeE_E = sim.Projection(popE, popE, method=myConnectorE_E, target='excitatory')
 printTimer("Time for E_E connections")
 
 printMessage("Now changing E_I connections for " + str(NumOfConE_I)+ " new connections")
-prjLatticeE_I = sim.Projection(popE, popI, method=myConnectorE_I, target='excitatory', synapse_dynamics = sd)
+prjLatticeE_I = sim.Projection(popE, popI, method=myConnectorE_I, target='excitatory')
 printTimer("Time for E_I connections")
 
 printMessage("Now changing I_E connections for " + str(NumOfConI_E)+ " new connections")
-prjLatticeI_E = sim.Projection(popI, popE, method=myConnectorI_E, target='inhibitory', synapse_dynamics = sd)
+prjLatticeI_E = sim.Projection(popI, popE, method=myConnectorI_E, target='inhibitory')
 printTimer("Time for I_E connections")
 
 printMessage("Now changing I_I connections for " + str(NumOfConI_I)+ " new connections")
-prjLatticeI_I = sim.Projection(popI, popI, method=myConnectorI_I, target='inhibitory', synapse_dynamics = sd)
+prjLatticeI_I = sim.Projection(popI, popI, method=myConnectorI_I, target='inhibitory')
 printTimer("Time for I_I connections")
 
 ## Run the simulation once lattice is inter-connected ##
@@ -479,7 +429,7 @@ if rank==0:
     axisHeight = pylab.axis()[3]
     pylab.vlines(tinit,0.0,axisHeight/8,linewidth="4",color='k',linestyles='solid')
 
-    pylab.plot(tbins,axisHeight/8/numpy.max(f)*f,linewidth="2",color='b',linestyle='steps-post')
+    #pylab.plot(tbins,axisHeight/8/numpy.max(f)*f,linewidth="2",color='b',linestyle='steps-post')
 
     if numberOfNodes != 0:
         pylab.savefig("myFigure.pdf")

@@ -11,21 +11,21 @@
 
 excitatory:
   cm: 0.2895
+  tau_m: 10.0
+  v_reset: -70.0
+  v_rest: -70.0
+  v_thresh: -57.0
   e_rev_E: 0.0
   e_rev_I: -75.0
+  tau_syn_E: 1.5
+  tau_syn_I: 10.0
+  tau_refrac: 0.1
   e_rev_rr: -70.0
   e_rev_sfa: -70.0
   q_rr: 3214.0
   q_sfa: 14.48
-  tau_m: 10.0
-  tau_refrac: 0.1
   tau_rr: 1.97
   tau_sfa: 110.0
-  tau_syn_E: 1.5
-  tau_syn_I: 10.0
-  v_reset: -70.0
-  v_rest: -70.0
-  v_thresh: -57.0
 inhibitory:
   cm: 0.141
   e_rev_E: 0.0
