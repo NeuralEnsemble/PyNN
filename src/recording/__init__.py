@@ -127,8 +127,10 @@ class Recorder(object):
         """Return the recorded data as a Numpy array."""
         data_array = self._get(gather, compatible_output, filter)
         if self.population is not None:
-            if data_array.size > 0:
+            try:
                 data_array[:,0] = self.population.id_to_index(data_array[:, 0]) # id is always first column            
+            except Exception:
+                pass
         self._data_size = data_array.shape[0]
         return data_array
     

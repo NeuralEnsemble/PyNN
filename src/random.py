@@ -86,7 +86,7 @@ class WrappedRNG(AbstractRNG):
                 # (assuming round-robin distribution of cells between processors)
                 if mask_local is None:
                     n = n/num_processes + 1
-                else:
+                elif mask_local is not False:
                     n = mask_local.sum()
             rarr = self._next(distribution, n, parameters)
         else:

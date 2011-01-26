@@ -1247,7 +1247,11 @@ class Assembly(object):
                     else:
                         result = numpy.append(result, data)
                 return result
-                
+
+    def all(self):
+        """Iterator over cell ids on all nodes."""
+        return iter(self.all_cells)    
+            
     @property
     def positions(self):
         result = self.populations[0].positions
@@ -1338,6 +1342,14 @@ class Assembly(object):
         """
         for p in self.populations:
             p.initialize(variable, value)
+
+    def rset(self, parametername, rand_distr):
+        """
+        'Random' set. Set the value of parametername to a value taken from
+        rand_distr, which should be a RandomDistribution object.
+        """
+        for p in self.populations:
+            p.rset(parametername, rand_distr)
 
     def _record(self, variable, to_file=True):
         # need to think about record_from
