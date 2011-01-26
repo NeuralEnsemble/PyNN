@@ -51,6 +51,7 @@ class _State(object):
         self.running     = False
         self.optimize    = False
         self.spike_precision = "on_grid"
+        self.default_recording_precision = 3
         
 
     @property

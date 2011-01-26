@@ -44,7 +44,7 @@ Installing NEURON
 
 Download the sources for the latest release of NEURON, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_. Also download Interviews from the same location.
 
-Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_, except that when you run ``configure``, add the options ``--with-nrnpython`` and, optionally, ``--with-mpi`` (the latter assumes you have the MPICH library installed on your machine), i.e.::
+Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_, except that when you run ``configure``, add the options ``--with-nrnpython`` and, optionally, ``--with-mpi``, i.e.::
 
     $ ./configure --prefix=`pwd` --with-nrnpython --with-mpi
     $ make
@@ -83,6 +83,8 @@ Now test everything worked::
     See http://www.neuron.yale.edu/credits.html
 
     >>> 
+
+If you run into problems, check out the `NEURON Forum`_.
 
 
 Installing NEST and PyNEST
@@ -151,3 +153,4 @@ Instructions for downloading and installing Brian_ are available from `<http://w
 .. _`PyNN download page`: https://neuralensemble.org/trac/PyNN/wiki/Download
 .. _`distutils`: http://docs.python.org/inst/inst.html
 .. _`GNU Scientific Library`: http://www.gnu.org/software/gsl/
+.. _`NEURON Forum`: http://www.neuron.yale.edu/phpBB/index.php

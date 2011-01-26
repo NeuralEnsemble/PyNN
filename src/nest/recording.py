@@ -33,6 +33,7 @@ class RecordingDevice(object):
             device_parameters["interval"] = common.get_time_step()
         else:
             device_parameters["precise_times"] = True
+            device_parameters["precision"] = simulator.state.default_recording_precision
         if to_memory:
             device_parameters.update(to_file=False, to_memory=True)
         else:
