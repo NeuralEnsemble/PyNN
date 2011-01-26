@@ -168,8 +168,10 @@ class Recorder(object):
         if self.population is not None:
             metadata.update({
                 'size': self.population.size,
-                'first_id': 0,
-                'last_id': len(self.population),
+                'first_index': 0,
+                'last_index': len(self.population),
+                'first_id': self.population.first_id,
+                'last_id': self.population.last_id,
                 'label': self.population.label,
             })
         metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
