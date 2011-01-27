@@ -12,12 +12,10 @@ $Id$
 """
 
 import numpy
-from pyNN.random import NumpyRNG
 from pyNN.utility import get_script_args
-
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
-
+from pyNN.random import NumpyRNG
 
 setup(timestep=0.01, min_delay=2.0, max_delay=4.0)
 
