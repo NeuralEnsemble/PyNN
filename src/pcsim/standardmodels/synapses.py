@@ -38,8 +38,8 @@ class STDPMechanism(STDPMechanism):
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0):
         # not sure what the situation is with dendritic_delay_fraction in PCSIM
-        standardmodels.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
-                                      voltage_dependence, dendritic_delay_fraction)
+        super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
+                                            voltage_dependence, dendritic_delay_fraction)
 
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):

@@ -87,14 +87,14 @@ class Recorder(recording.Recorder):
             data = recording.gather(data)
         return data
 
-    def count(self, gather=False):
+    def count(self, gather=False, filter=None):
         """
         Return the number of data points for each cell, as a dict. This is mainly
         useful for spike counts or for variable-time-step integration methods.
         """
         N = {}
         if self.variable == 'spikes':
-            for id in self.recorded:
+            for id in self.filter_recorded(filter):
                 N[id] = simulator.net.object(self.recorders[id]).spikeCount()
         else:
             raise Exception("Only implemented for spikes.")

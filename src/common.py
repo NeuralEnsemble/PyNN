@@ -407,6 +407,10 @@ class BasePopulation(object):
         """Iterator over cell ids on the local node."""
         return iter(self.local_cells)
 
+    @property
+    def conductance_based(self):
+        return self.celltype.conductance_based
+
     def is_local(self, id):
         """
         Determine whether the cell with the given ID exists on the local MPI node.
@@ -1200,6 +1204,10 @@ class Assembly(object):
             if syn != is_conductance(p.all_cells[0]):
                 return False
         return True
+    
+    @property
+    def conductance_based(self):
+        return all(p.celltype.conductance_based for p in self.populations)
     
     @property
     def _mask_local(self):
