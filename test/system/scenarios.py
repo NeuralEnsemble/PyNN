@@ -266,7 +266,10 @@ def scenario3(sim):
     
     sim.run(duration*second)
     
-    assert abs(pre.meanSpikeCount()/duration - (r1+r2)/2) < 1, pre.meanSpikeCount()
+    actual_rate = pre.meanSpikeCount()/duration
+    expected_rate = (r1+r2)/2
+    errmsg = "actual rate: %g  expected rate: %g" % (actual_rate, expected_rate)
+    assert abs(actual_rate - expected_rate) < 1, errmsg
     #assert abs(pre[:50].meanSpikeCount()/duration - r1) < 1
     #assert abs(pre[50:].meanSpikeCount()/duration- r2) < 1
     final_weights = connections.getWeights(format='array')
@@ -357,7 +360,7 @@ def test_reset(sim):
         assert_arrays_almost_equal(rec, data[0], 1e-12)
 
 
-@register(exclude=['brian'])
+@register(exclude=['brian', 'pcsim'])
 def test_reset_recording(sim):
     """
     Check that _record(None) resets the list of things to record.
@@ -404,7 +407,7 @@ def test_setup(sim):
     for rec in data:
         assert_arrays_equal(rec, data[0])
 
-@register()
+@register(exclude=['pcsim'])
 def test_EIF_cond_alpha_isfa_ista(sim):
     set_simulator(sim)
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
@@ -417,7 +420,7 @@ def test_EIF_cond_alpha_isfa_ista(sim):
     assert abs(diff).max() < 0.001
     sim.end()
 
-@register()
+@register(exclude=['pcsim'])
 def test_HH_cond_exp(sim):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
@@ -444,7 +447,7 @@ def test_HH_cond_exp(sim):
     assert first_spike - 2.95 < 0.01 
     
 
-@register()
+@register(exclude=['pcsim'])
 def test_record_vm_and_gsyn_from_assembly(sim):
     from pyNN.utility import init_logging
     init_logging(logfile=None, debug=True)

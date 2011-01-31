@@ -15,6 +15,7 @@ $Id$
 """
 
 from pyNN.utility import get_script_args
+from pyNN.errors import RecordingError
 
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
@@ -36,7 +37,7 @@ connI = connect(spike_sourceI, ifcell, weight=0.02, synapse_type ='inhibitory',d
 record_v(ifcell, "Results/IF_cond_exp_%s.v" % simulator_name)
 try:
     record_gsyn(ifcell, "Results/IF_cond_exp_%s.gsyn" % simulator_name)
-except NotImplementedError:
+except (NotImplementedError, RecordingError):
     pass
 run(200.0)
 

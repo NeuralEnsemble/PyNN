@@ -400,6 +400,8 @@ class Population(common.Population):
             obj = simulator.net.object(self.pcsim_population[i])
             if obj: apply( obj, methodname, (), arguments)
         
+PopulationView = common.PopulationView
+Assembly = common.Assembly
 
 class Projection(common.Projection, WDManager):
     """
@@ -452,7 +454,12 @@ class Projection(common.Projection, WDManager):
                                    method, source, target,
                                    synapse_dynamics, label, rng)
         self.is_conductance = self.post.conductance_based
-        self.synapse_shape = ("alpha" in self.post.celltype.__class__.__name__) and "alpha" or "exp"
+        if isinstance(self.post, Assembly):
+            assert self.post._homogeneous_synapses
+            celltype = self.post.populations[0].celltype
+        else:
+            celltype = self.post.celltype
+        self.synapse_shape = ("alpha" in celltype.__class__.__name__) and "alpha" or "exp"
         
         ### Determine connection decider
         ##decider, wiring_method, weight, delay = method.connect(self)
