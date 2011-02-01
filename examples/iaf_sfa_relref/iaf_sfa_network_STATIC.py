@@ -14,7 +14,7 @@ LCN, EPFL - October 2009
 # pdb.set_trace()
 
 ## Import modules ##
-import numpy, pylab, math, time, nest, os, re
+import numpy, pylab, math, time, os, re
 from mpi4py import MPI
 #import pyNN.nest as sim
 import pyNN.neuron as sim
