@@ -486,9 +486,9 @@ class ConnectionManager(object):
                 raise errors.ConnectionError("Invalid source ID: %s" % source)
               
         assert len(sources) == len(weights) == len(delays), "%s %s %s" % (len(sources),len(weights),len(delays))
-                  
-        for source, weight, delay in zip(sources, weights, delays):
-            if source.local:
+                
+        if target.local:
+            for source, weight, delay in zip(sources, weights, delays):
                 if self.synapse_type is None:
                     self.synapse_type = weight >= 0 and 'excitatory' or 'inhibitory'
                 if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:

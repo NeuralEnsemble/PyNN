@@ -1833,6 +1833,21 @@ class Projection(object):
         file.write(weights, {})
         file.close()    
 
+    def printDelays(self, file, format='list', gather=True):
+        """
+        Print synaptic weights to file. In the array format, zeros are printed
+        for non-existent connections.
+        """
+        delays = self.getDelays(format=format, gather=gather)
+        
+        if isinstance(file, basestring):
+            file = files.StandardTextFile(file, mode='w')
+        
+        if format == 'array':
+            delays = numpy.where(numpy.isnan(delays), 0.0, delays)
+        file.write(delays, {})
+        file.close()  
+
     def weightHistogram(self, min=None, max=None, nbins=10):
         """
         Return a histogram of synaptic weights.

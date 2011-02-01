@@ -9,6 +9,7 @@ from pyNN.standardmodels import cells, build_translations
 from pyNN.models import BaseCellType
 from pyNN import errors
 from neuron import h, nrn, hclass
+from simulator import state
 from math import pi
 import logging
 
@@ -440,6 +441,7 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
         self.source = self
         self.switch = h.NetCon(None, self)
         self.source_section = None
+        self.seed(state.mpi_rank) # should allow user to set specific seeds somewhere, e.g. in setup()
 
     def _set_interval(self, value):
         self.switch.weight[0] = -1
