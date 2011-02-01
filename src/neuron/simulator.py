@@ -164,6 +164,7 @@ class _State(object):
         self.cvode = h.CVode()
         h('objref plastic_connections')
         self.clear()
+        self.default_maxstep=10.0
     
     t = h_property('t')
     def __get_dt(self):
@@ -195,9 +196,10 @@ def run(simtime):
     """Advance the simulation for a certain time."""
     if not state.running:
         state.running = True
-        local_minimum_delay = state.parallel_context.set_maxstep(10)
+        local_minimum_delay = state.parallel_context.set_maxstep(state.default_maxstep)
         h.finitialize()
         state.tstop = 0
+        logger.debug("default_maxstep on host #%d = %g" % (state.mpi_rank, state.default_maxstep ))
         logger.debug("local_minimum_delay on host #%d = %g" % (state.mpi_rank, local_minimum_delay))
         if state.num_processes > 1:
             assert local_minimum_delay >= state.min_delay, \

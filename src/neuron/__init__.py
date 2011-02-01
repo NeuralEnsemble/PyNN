@@ -63,6 +63,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
             simulator.state.cvode.rtol(float(extra_params['rtol']))
         if extra_params.has_key('atol'):
             simulator.state.cvode.atol(float(extra_params['atol']))
+    if extra_params.has_key('default_maxstep'):
+        simulator.state.default_maxstep=float(extra_params['default_maxstep'])
     return rank()
 
 def end(compatible_output=True):

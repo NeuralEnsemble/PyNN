@@ -15,8 +15,8 @@ LCN, EPFL - October 2009
 
 ## Import modules ##
 import numpy, pylab, math, time, os, re
-from mpi4py import MPI
 #import pyNN.nest as sim
+from mpi4py import MPI
 import pyNN.neuron as sim
 import pyNN.common as common
 import pyNN.connectors as connectors
@@ -54,7 +54,7 @@ class LatticeConnector(connectors.Connector):
                           distribution).
         `n`            -- Number of connections to make for each neuron.
         """
-        connectors.Connector.__init__(self, weights, dt)
+        connectors.Connector.__init__(self, weights, dist_factor*1.0)
         self.dist_factor = dist_factor
         self.noise_factor = noise_factor
         self.n = n
@@ -98,6 +98,8 @@ class LatticeConnector(connectors.Connector):
         weights[:] = self.weights
         is_conductance = common.is_conductance(projection.post[listPostIndexes[0]])
         weights = common.check_weight(weights, projection.synapse_type, is_conductance)
+
+        numpy.random.seed(12345)
         
         for i in xrange(len(listPostIDs)):
             currentPostIndex = listPostIndexes[i]
@@ -175,7 +177,7 @@ numberOfNodes = sim.num_processes()
 rank = sim.rank()
 
 # Log to stderr, only warnings, errors, critical
-init_logging(None,num_processes=numberOfNodes,rank=rank,level=logging.WARNING)
+init_logging('sim.log',num_processes=numberOfNodes,rank=rank,level=logging.DEBUG)
 
 ## Start message ##
 if rank==0:
@@ -248,7 +250,7 @@ myModel = sim.IF_cond_exp_gsfa_grr
 
 ## Simulation creation ##
 # Creates a file that never closes
-sim.setup(timestep=dt, min_delay=dt, max_delay=30.0, debug=True, quit_on_end=False)
+sim.setup(timestep=dt, min_delay=dt, max_delay=30.0, default_maxstep=distanceFactor, debug=True, quit_on_end=False)
 
 ## Define popultation ##
 myLabelE = "Simulated excitatory adapting neurons"
@@ -385,6 +387,7 @@ time.sleep(2)
 
 ## Get spikes ##
 spikesE = popE.getSpikes()
+popE.printSpikes('spikes.dat')
 spikesI = popI.getSpikes()
 
 ## Process them ##
