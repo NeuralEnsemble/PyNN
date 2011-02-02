@@ -254,42 +254,44 @@ class ID(int, common.IDMixin):
         """Return a dictionary of parameters for the Brian cell model."""
         params = {}
         assert hasattr(self.parent_group, "parameter_names"), str(self.celltype)
+        index = self.parent.id_to_index(self)
         for name in self.parent_group.parameter_names:
             if name in ['v_thresh', 'v_reset', 'tau_refrac']:
                 # parameter shared among all cells
                 params[name] = float(getattr(self.parent_group, name))
             elif name in ['rate', 'duration', 'start']:
-                params[name] = getattr(self.parent_group.rates, name)[int(self)]
+                params[name] = getattr(self.parent_group.rates, name)[index]
             elif name == 'spiketimes':
-                params[name] = getattr(self.parent_group,name)[int(self)]
+                params[name] = getattr(self.parent_group,name)[index]
             else:
                 # parameter may vary from cell to cell
                 try:
-                    params[name] = float(getattr(self.parent_group, name)[int(self)])
+                    params[name] = float(getattr(self.parent_group, name)[index])
                 except TypeError, errmsg:
                     raise TypeError("%s. celltype=%s, parameter name=%s" % (errmsg, self.celltype, name))
         return params
     
     def set_native_parameters(self, parameters):
         """Set parameters of the Brian cell model from a dictionary."""
+        index = self.parent.id_to_index(self)
         for name, value in parameters.items():
             if name in ['v_thresh', 'v_reset', 'tau_refrac']:
                 setattr(self.parent_group, name, value)
                 #logger.warning("This parameter cannot be set for individual cells within a Population. Changing the value for all cells in the Population.")
             elif name in ['rate', 'duration', 'start']:
-                getattr(self.parent_group.rates, name)[int(self)] = value
+                getattr(self.parent_group.rates, name)[index] = value
             elif name == 'spiketimes':
                 all_spiketimes = [st[st>state.t] for st in self.parent_group.spiketimes]
-                all_spiketimes[int(self)] = value
+                all_spiketimes[index] = value
                 self.parent_group.spiketimes = all_spiketimes
             else:
-                setattr(self.parent_group[int(self)], name, value)
+                setattr(self.parent_group[index], name, value)
         
     def set_initial_value(self, variable, value):
-        self.parent_group.initial_values[variable][int(self)] = value
+        self.parent_group.initial_values[variable][self.parent.id_to_index(self)] = value
     
     def get_initial_value(self, variable):
-        return self.parent_group.initial_values[variable][int(self)]
+        return self.parent_group.initial_values[variable][self.parent.id_to_index(self)]
     
 
 # --- For implementation of create() and Population.__init__() ----------------- 
@@ -393,7 +395,7 @@ class Connection(object):
         """
         # the index is the nth non-zero element
         self.bc                  = brian_connection
-        self.addr                = indices[0], indices[1]
+        self.addr                = int(indices[0]), int(indices[1])
         self.source, self.target = addr        
 
     def _set_weight(self, w):
@@ -445,8 +447,12 @@ class ConnectionManager(object):
     def __getitem__(self, i):
         """Return the `i`th connection as a Connection object."""
         cumsum_idx     = numpy.cumsum(self.n.values())
-        idx            = numpy.searchsorted(cumsum_idx, i, 'left')
-        keys           = self.keys[idx]
+        if isinstance(i, slice):
+            idx  = numpy.searchsorted(cumsum_idx, numpy.arange(*i.indices(i.stop)), 'left')
+            keys = [self.keys[j] for j in idx]
+        else:
+            idx  = numpy.searchsorted(cumsum_idx, i, 'left')
+            keys = self.keys[idx]
         global_indices = self._indices
         if isinstance(i, int):
             if i < len(self):
@@ -459,10 +465,10 @@ class ConnectionManager(object):
         elif isinstance(i, slice):
             if i.stop < len(self):
                 res = []
-                for count, j in enumerate(xrange(i.start, i.stop, i.step or 1)):
+                for count, j in enumerate(xrange(*i.indices(i.stop))):
                     key = keys[count]
                     pad = j - cumsum_idx[idx[count]]
-                    local_idx  = self.indices[keys][0][pad], self.indices[keys][1][pad]
+                    local_idx  = self.indices[key][0][pad], self.indices[key][1][pad]
                     local_addr = global_indices[0][j], global_indices[1][j]
                     res.append(Connection(self.brian_connections[key], local_idx, local_addr))
                 return res

@@ -67,7 +67,8 @@ class StepCurrentSource(CurrentSource):
         """
         if self.running and simulator.state.t >= self.times[self.i]: #*ms:   
             for cell in self.cell_list:
-                cell.parent_group.i_inj[int(cell)] = self.amplitudes[self.i]
+                index = cell.parent.id_to_index(cell)
+                cell.parent_group.i_inj[index] = self.amplitudes[self.i]
             self.i += 1
             if self.i >= len(self.times):
                 self.running = False            

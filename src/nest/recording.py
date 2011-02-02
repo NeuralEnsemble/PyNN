@@ -206,9 +206,11 @@ class RecordingDevice(object):
                 self._gathered_file = tempfile.TemporaryFile()
                 numpy.save(self._gathered_file, data)
                 self._gathered = True
-            return data
         else:
-            return self.read_local_data(compatible_output)
+            data = self.read_local_data(compatible_output)
+        if len(data.shape) == 1:
+            data = data.reshape((1, data.size))
+        return data
     
     def read_subset(self, variables, gather, compatible_output, always_local=False):
         if self.in_memory():
@@ -273,12 +275,13 @@ class Recorder(recording.Recorder):
         else:
             variables = VARIABLE_MAP.get(self.variable, [self.variable])
             data = self._device.read_subset(variables, gather, compatible_output, always_local)
+        assert len(data.shape) == 2
         if not self._device._gathered:
             filtered_ids = self.filter_recorded(filter)
             mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
             if len(data) > 0:
                 data = data[mask]
-	return data
+        return data
 
     def _local_count(self, filter):
         N = {}

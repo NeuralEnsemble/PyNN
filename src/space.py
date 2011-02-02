@@ -290,3 +290,5 @@ class RandomStructure(BaseStructure):
         
     def generate_positions(self, n):
         return (numpy.array(self.origin) + self.boundary.sample(n, self.rng)).T
+
+# what about rotations?

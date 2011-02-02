@@ -13,7 +13,7 @@ import nest
 import numpy
 from pyNN.nest.simulator import state
 from pyNN.random import NumpyRNG, NativeRNG
-from pyNN.common import Population
+from pyNN.common import Population, PopulationView, Assembly
 
 # should really use the StandardModel machinery to allow reverse translations
 
@@ -25,7 +25,7 @@ class CurrentSource(object):
         for id in cell_list:
             if id.local and not id.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
-        if isinstance(cell_list, Population):
+        if isinstance(cell_list, (Population, PopulationView, Assembly)):
             cell_list = [cell for cell in cell_list]
         nest.DivergentConnect(self._device, cell_list)
     

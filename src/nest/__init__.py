@@ -334,14 +334,16 @@ class Projection(common.Projection):
         else:        
             synapse_dynamics = NativeSynapseDynamics("static_synapse")
         self.synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection.nProj)
+        Projection.nProj += 1
         self.connection_manager = simulator.ConnectionManager(self.synapse_type,
                                                               self.synapse_model,
                                                               parent=self)
+        
         # Create connections
         method.connect(self)
         self.connection_manager._set_tsodyks_params()
         self.connections = self.connection_manager
-        Projection.nProj += 1
+        
 
     def saveConnections(self, file, gather=True, compatible_output=True):
         """

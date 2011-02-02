@@ -192,6 +192,8 @@ class Population(common.Population, common.BasePopulation):
         self.brian_cells.initialize()
         self.initial_values[variable] = core.LazyArray(self.size, value)
 
+PopulationView = common.PopulationView
+Assembly = common.Assembly
 
 class Projection(common.Projection):
     """

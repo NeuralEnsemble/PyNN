@@ -141,7 +141,8 @@ def test_metadata_property():
     r._get = Mock(return_value=numpy.random.uniform(size=(6,2)))
     assert_equal(r.metadata,
                  {'first_id': 2454, 'label': 'mock population', 'n': 6,
-                  'variable': 'v', 'dt': 0.123, 'last_id': 2465, 'size': 11})
+                  'variable': 'v', 'dt': 0.123, 'last_id': 2465, 'size': 11,
+                  'first_index': 0, 'last_index': 11})
     
 def test__make_compatible_spikes():
     r = recording.Recorder('spikes')

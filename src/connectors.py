@@ -108,8 +108,13 @@ class ConnectionAttributeGenerator(object):
                 values = self.source.next(N, mask_local=self.local_mask)[sub_mask]
             return values
         elif isinstance(self.source, numpy.ndarray):
-            source_row = self.source_iterator.next()
-            values     = source_row[self.local_mask]
+            if len(self.source.shape) == 2:
+                source_row = self.source_iterator.next()
+                values     = source_row[self.local_mask]
+            elif len(self.source.shape) == 1: # for OneToOneConnector
+                values = self.source
+            else:
+                raise Exception()
             if sub_mask is not None:
                 values = values[sub_mask]
             return values
@@ -624,7 +629,7 @@ class FixedNumberPostConnector(Connector):
             create  = create[:n].astype(int)
             targets = candidates[create]
             weights = weights_generator.get(n, distance_matrix, create)
-            delays  = delays_generator.get(n, distance_matrix, create)      
+            delays  = delays_generator.get(n, distance_matrix, create)
                
             if len(targets) > 0:
                 projection.connection_manager.connect(src, targets.tolist(), weights, delays)
@@ -865,13 +870,17 @@ class CSAConnector(Connector):
             min_delay = common.get_min_delay()
             Connector.__init__(self, None, None, safe=safe, verbose=verbose)
             self.cset = cset
-            if csa.arity (cset) == 0:
-                assert weights is not None and delays is not None, \
-                       'must specify weights and delays in addition to a CSA mask'
+            if cset.arity == 0:
+                #assert weights is not None and delays is not None, \
+                #       'must specify weights and delays in addition to a CSA mask'
                 self.weights = weights
+                if weights is None:
+                    self.weights = common.DEFAULT_WEIGHT
                 self.delays = delays
+                if delays is None:
+                    self.delays = common.get_min_delay()
             else:
-                assert csa.arity (cset) == 2, 'must specify mask or connection-set with arity 2'
+                assert cset.arity == 2, 'must specify mask or connection-set with arity 2'
                 assert weights is None and delays is None, \
                        "weights or delays specified both in connection-set and as CSAConnector argument"
     else:

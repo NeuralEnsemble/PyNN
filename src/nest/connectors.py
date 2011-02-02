@@ -8,7 +8,7 @@ from pyNN.connectors import Connector, AllToAllConnector, FixedProbabilityConnec
                             DistanceDependentProbabilityConnector, FixedNumberPreConnector, \
                             FixedNumberPostConnector, OneToOneConnector, SmallWorldConnector, \
                             FromListConnector, FromFileConnector, WeightGenerator, \
-                            DelayGenerator, ProbaGenerator, DistanceMatrix
+                            DelayGenerator, ProbaGenerator, DistanceMatrix, CSAConnector
 from pyNN.common import rank, num_processes
 import numpy
 from pyNN.space import Space

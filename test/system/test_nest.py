@@ -68,7 +68,6 @@ def test_native_stdp_model():
     init_logging(logfile=None, debug=True)
     
     nest.setup()
-    assert_equal(nest.simulator.state.spike_precision, "on_grid")
     
     p1 = nest.Population(10, nest.IF_cond_exp)
     p2 = nest.Population(10, nest.SpikeSourcePoisson)
