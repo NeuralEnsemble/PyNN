@@ -111,8 +111,8 @@ class ConnectionAttributeGenerator(object):
             if len(self.source.shape) == 2:
                 source_row = self.source_iterator.next()
                 values     = source_row[self.local_mask]
-            elif len(self.source.shape) == 1: # for OneToOneConnector
-                values = self.source
+            elif len(self.source.shape) == 1: # for OneToOneConnector or AllToAllConnector used from or to only one Neuron
+                values = self.source[self.local_mask]
             else:
                 raise Exception()
             if sub_mask is not None:

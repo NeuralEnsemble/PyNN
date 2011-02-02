@@ -234,7 +234,7 @@ class Cuboid(Shape):
     Represents a cuboidal volume within which neurons may be distributed.
     """
     
-    def __init__(self, width, height, depth):
+    def __init__(self, width, height, depth, rng):
         """
         height: extent in y direction
         width: extent in x direction
@@ -243,27 +243,32 @@ class Cuboid(Shape):
         self.height = height
         self.width = width
         self.depth = depth
+        self.rng   = rng or NumpyRNG()
         
-    def sample(self, n, rng):
-        return 0.5*rng.uniform(-1, 1, size=(n,3)) * (self.width, self.height, self.depth)
-
+    def generate_positions(self, n):
+        data = 0.5*self.rng.uniform(-1, 1, size=(3, n))
+        data[0] *= self.width
+        data[1] *= self.height
+        data[2] *= self.depth
+        return data
 
 class Sphere(Shape):
     """
     Represents a spherical volume within which neurons may be distributed.
     """
     
-    def __init__(self, radius):
+    def __init__(self, radius, rng):
         Shape.__init__(self)
         self.radius = radius
+        self.rng    = rng or NumpyRNG()
         
-    def sample(self, n, rng):
+    def generate_positions(self, n):
         # this implementation is wasteful, as it throws away a lot of numbers,
         # but simple. More efficient implementations welcome.
         positions = numpy.empty((n,3))
         i = 0
         while i < n:
-            candidate = rng.uniform(-1, 1, size=(1,3))
+            candidate = self.rng.uniform(-1, 1, size=(1,3))
             if (candidate**2).sum() < 1:
                 positions[i] = candidate
                 i += 1
