@@ -14,7 +14,7 @@ It is straightforward to port an existing model from a Python-supporting simulat
 
 PyNN is a work in progress, but is already being used for several large-scale simulation projects.
 
-[wiki:Download Download] the current stable release of the API (0.6), or get the development version from the `Subversion repository`_ .
+[wiki:Download Download] the current stable release of the API (0.7), or get the development version from the `Subversion repository`_ .
 
 Licence
 -------
@@ -45,4 +45,4 @@ If you have questions or comments about PyNN, please post a message on the `Neur
 .. _`Subversion repository`: https://neuralensemble.org/svn/PyNN/trunk
 .. _`PyNN website`: http://neuralensemble.org/PyNN/
 .. _`NeuralEnsemble Google group`: http://groups.google.com/group/neuralensemble
-.. _`(Djurfeldt, 2010)`: http://????
+.. _`(Djurfeldt, 2010)`: http://software.incf.org/software/csa/

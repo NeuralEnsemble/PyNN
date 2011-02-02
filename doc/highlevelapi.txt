@@ -26,7 +26,7 @@ Before using any other functions or classes from PyNN, the user must call the ``
     
 ``setup()`` takes various optional arguments: setting the simulation timestep (there is currently no support in the API for variable timestep methods although native simulator code can be used to select this option where the simulator supports it) and setting the minimum and maximum synaptic delays, e.g.::
 
-    >>> setup(timestep=0.1, min_delay=0.1, max_delay=0.5)
+    >>> setup(timestep=0.1, min_delay=0.1, max_delay=10.0)
     
 In previous versions, ``setup()`` took a ``debug`` argument for configuring logging. To allow more flexibility, configuration of logging must now be done separately. There is a convenience function in the ``pyNN.utility`` module to simplify this::
 
@@ -62,26 +62,36 @@ If you try to set a non-existent parameter, or pass an invalid value, PyNN will 
 
     >>> p2a = Population(20, IF_curr_alpha, cellparams={'foo': 15.0})
     Traceback (most recent call last):
-      File "/usr/lib/python2.6/doctest.py", line 1241, in __run
-        compileflags, 1) in test.globs
-      File "<doctest highlevelapi.txt[11]>", line 1, in <module>
-        p2a = Population(20, IF_curr_alpha, cellparams={'foo': 15.0})
-      File "/home/andrew/dev/pyNN/neuron/__init__.py", line 110, in __init__
-        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
-      File "/home/andrew/dev/pyNN/common.py", line 798, in __init__
-        self.celltype = cellclass(cellparams)
-      File "/home/andrew/dev/pyNN/neuron/cells.py", line 452, in __init__
-        cells.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
-      File "/home/andrew/dev/pyNN/standardmodels.py", line 62, in __init__
-        self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
-      File "/home/andrew/dev/pyNN/standardmodels.py", line 106, in checkParameters
-        raise errors.NonExistentParameterError(k, cls, cls.default_parameters.keys())
-    NonExistentParameterError: foo (valid parameters for <class 'pyNN.neuron.cells.IF_curr_alpha'> are: cm, i_offset, tau_m, tau_refrac, tau_syn_E, tau_syn_I, v_reset, v_rest, v_thresh)    
+        File "<stdin>", line 1, in <module>
+        File "/home/andrew/dev/pyNN/neuron/__init__.py", line 113, in __init__
+          common.Population.__init__(self, size, cellclass, cellparams, structure, label)
+        File "/home/andrew/dev/pyNN/common.py", line 879, in __init__
+          self.celltype = cellclass(cellparams)
+        File "/home/andrew/dev/pyNN/neuron/standardmodels/cells.py", line 35, in __init__
+          cells.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
+        File "/home/andrew/dev/pyNN/standardmodels/__init__.py", line 60, in __init__
+          models.BaseModelType.__init__(self, parameters)
+        File "/home/andrew/dev/pyNN/models.py", line 16, in __init__
+          self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
+        File "/home/andrew/dev/pyNN/models.py", line 67, in checkParameters
+          raise errors.NonExistentParameterError(k, cls, cls.default_parameters.keys())
+    NonExistentParameterError: foo (valid parameters for <class 'pyNN.neuron.standardmodels.cells.IF_curr_alpha'> are: cm, i_offset, tau_m, tau_refrac, tau_syn_E, tau_syn_I, v_reset, v_rest, v_thresh)
 
     >>> p2b = Population(20, IF_curr_alpha, cellparams={'tau_m': 'bar'})
     Traceback (most recent call last):
-      File "<stdin>", line 1, in ?
-        TRACEBACK GOES HERE
+        File "<stdin>", line 1, in <module>
+        File "/home/andrew/dev/pyNN/neuron/__init__.py", line 113, in __init__
+          common.Population.__init__(self, size, cellclass, cellparams, structure, label)
+        File "/home/andrew/dev/pyNN/common.py", line 879, in __init__
+          self.celltype = cellclass(cellparams)
+        File "/home/andrew/dev/pyNN/neuron/standardmodels/cells.py", line 35, in __init__
+          cells.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
+        File "/home/andrew/dev/pyNN/standardmodels/__init__.py", line 60, in __init__
+          models.BaseModelType.__init__(self, parameters)
+        File "/home/andrew/dev/pyNN/models.py", line 16, in __init__
+          self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
+        File "/home/andrew/dev/pyNN/models.py", line 57, in checkParameters
+          raise errors.InvalidParameterValueError(err_msg)
     InvalidParameterValueError: For tau_m in IF_curr_alpha, expected <type 'float'>, got <type 'str'> (bar)
     
 You can also give your population a label::
@@ -101,9 +111,9 @@ Since creating neurons on a grid is very common, the grid dimensions can be spec
     >>> assert p4.size == p4a.size == 60
     >>> assert p4.structure == p4a.structure, "%s != %s" % (p4.structure, p4a.structure)
     
-The above examples all use PyNN standard cell models. It is also possible to use simulator-specific models, but in this case the ``cellclass`` should be given as a string, e.g.::
+The above examples all use PyNN standard cell models. It is also possible to use simulator-specific models by defining a `NativeCellClass`, e.g. for NEST::
 
-    >>> p5 = Population(20, 'iaf_neuron', cellparams={'Tau': 15.0, 'C': 0.001}) #doctest: +SKIP
+    >>> p5 = Population(20, native_cell_type('iaf_neuron'), cellparams={'tau_m': 15.0, 'C_m': 0.001}) #doctest: +SKIP
     
 This example will work with NEST but not with NEURON, PCSIM or Brian.
 
@@ -147,11 +157,8 @@ Trying to address a non-existent neuron will raise an Exception::
 
     >>> p1[999]
     Traceback (most recent call last):
-      File "/usr/lib/python2.6/doctest.py", line 1241, in __run
-        compileflags, 1) in test.globs
-      File "<doctest highlevelapi.txt[25]>", line 1, in <module>
-        p1[999]
-      File "/home/andrew/dev/pyNN/common.py", line 385, in __getitem__
+      File "<stdin>", line 1, in <module>
+      File "/home/andrew/dev/pyNN/common.py", line 394, in __getitem__
         return self.all_cells[index]
     IndexError: index out of bounds
 
@@ -197,7 +204,6 @@ A ``PopulationView`` holds references to a subset of neurons in a ``Population``
 can be used in ``Projection``s (see below) and combined with other ``Population``s
 or ``PopulationView``s to create ``Assembly``s.
 
-MORE ON PopulationView HERE, e.g. OTHER WAYS TO CREATE THEM, etc.
 
 Setting random values
 ---------------------
@@ -290,13 +296,10 @@ Recording synaptic conductances is done with the method ``record_gsyn()``.
 All three methods have identical argument lists.
 Some examples::
 
-    >>> p1.record()                            # record from all neurons in the population
-    >>> p1.record(10)                          # record from 10 neurons chosen at random
-    >>> p1.record([p1[0], p1[1], p1[2]])       # record from specific neurons
+    >>> p1.record()                # record from all neurons in the population
+    >>> p1.sample(10).record()     # record from 10 neurons chosen at random
+    >>> p1[[0,1,2]].record()       # record from specific neurons
     
-SHOULDN'T THE LAST EXAMPLE USE INDICES NOT IDs??
-
-
 Running a simulation
 ====================
 
@@ -349,7 +352,8 @@ Again, there is a performance penalty for this, so if you wish each node to writ
 
 It is possible to save data in various different formats. The default (if you pass a filename) is a text file, but you can also save in various binary formats. To save in HDF5 format (this requires the PyTables package to be installed), for example::
 
-    >>> h5file = recording.files.HDF5ArrayFile("spikefile.h5", "w")
+    >>> from pyNN.recording.files import HDF5ArrayFile
+    >>> h5file = HDF5ArrayFile("spikefile.h5", "w")
     >>> p1.printSpikes(h5file)
     >>> h5file.close()
 
@@ -394,13 +398,14 @@ in a ``Structure`` object when creating a ``Population`` (see above). Some examp
            [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.]])
     >>> s3 = space.RandomStructure(boundary=space.Sphere(radius=100.0))
     >>> s3.generate_positions(5)
-    array(...)
-    >>> s4 = space.RandomStructure(boundary=space.Cuboid(30,40,50),
-    ...                      rotation=(30.0, 45.0))
+     array([[ 15.7103484 ,   7.56979681, -26.39920966, -81.56024563, -27.30566837],
+           [ 62.74380383, -26.29395986,  33.23787658, -16.46650874, -79.4064587 ],
+           [  5.66080048, -70.5696085 , -42.68101409, -55.20377865, -24.22675542]])
+    >>> s4 = space.RandomStructure(boundary=space.Cuboid(30,40,50))
     >>> s4.generate_positions(5)
-    array(...)
-
-WOULD BE NICE TO INCLUDE SOME FIGURES HERE. ADD A VISUALISATION TOOL TO UTILITY MODULE?
+    array([[ -2.69455996,   9.04858685,  -4.61756624,   4.53035932, -4.80972742],
+           [ 12.946409  ,  11.31629902,   5.52137332,   5.49659371, -6.80003331],
+           [ -9.36346794, -23.62104418,  -6.2160148 , -15.16040818, -9.66371093]])
 
 The positions of individual neurons in a population can be accessed using their ``position`` attribute, e.g.::
 
@@ -430,24 +435,40 @@ Getting information about a ``Population``
 A summary of the state of a ``Population`` may be obtained with the ``describe()`` method::
 
     >>> print p4.describe() #doctest: +NORMALIZE_WHITESPACE
-    ------- Population description -------
-    Population called Column 1 is made of 60 cells [60 being local]
-    -> Cells are arranged in a 3D grid of size (3, 4, 5)
-    -> Celltype is IF_cond_alpha
-    -> ID range is 220-279
-    -> Cell Parameters used for first cell on this node are: 
-        | tau_refrac  : 1.5
-        | tau_m       : 15.0
-        | e_rev_E     : 0.0
-        | i_offset    : 0.0
-        | cm          : 1.0
-        | e_rev_I     : -70.0
-        | v_thresh    : -55.0
-        | tau_syn_E   : 0.3
-        | v_rest      : -65.0
-        | tau_syn_I   : 0.5
-        | v_reset     : -65.0
-    --- End of Population description ----
+    Population "Column 1"
+        Structure   : Grid3D
+          aspect_ratios: (0.75, 0.59999999999999998)
+          fill_order: sequential
+          dz: 1.0
+          dx: 1.0
+          dy: 1.0
+          y0: 0.0
+          x0: 0.0
+          z0: 0
+        Local cells : 60
+        Cell type   : IF_cond_alpha
+        ID range    : 221-280
+        First cell on this node:
+          ID: 221
+          tau_refrac: 1.5
+          tau_m: 15.0
+          e_rev_E: 0.0
+          i_offset: 0.0
+          cm: 1.0
+          e_rev_I: -70.0
+          v_thresh: -55.0
+          tau_syn_E: 0.3
+          v_rest: -65.0
+          tau_syn_I: 0.5
+          v_reset: -65.0
+
+The output format can be customized by passing a Jinja_ or Cheetah_ template::
+
+    >>> print p4.describe(template="Population of {{size}} {{celltype.name}} cells",
+    ...                   engine='jinja2')
+    Population of 60 IF_cond_alpha cells
+
+where ``template`` can be a string or a filename.
 
 
 Connecting neurons
@@ -562,10 +583,10 @@ Using the Connection Set Algebra
 
 The Connection Set Algebra (Djurfeldt, 2010) is a sophisticated system that allows elaborate connectivity patterns to be constructed using a concise syntax. Using the CSA requires the Python ``csa`` module to be installed (see Installation).
 
-The details of constructing a connection set are beyond the scope of this manual. We give here a simple example, see http://CSA_URL for full documentation.
+The details of constructing a connection set are beyond the scope of this manual. We give here a simple example.
 
     >>> import csa
-    >>> cs = ....... EXAMPLE GOES HERE
+    >>> cs = csa.full - csa.oneToOne
     >>> prj2_1e = Projection(p2, p1, CSAConnector(cs))
 
 
@@ -616,7 +637,7 @@ To set all weights to the same value::
 To set delays to random values taken from a specific distribution::
 
     >>> delay_distr = RandomDistribution(distribution='gamma',parameters=[5,0.5])
-    >>> connector = FixedNumberPostConnector(n=20, delays=delay_distr)
+    >>> connector = FixedProbabilityConnector(p_connect=0.5, delays=delay_distr)
     >>> prj2_1e = Projection(p2, p1, connector)
 
 To set individual weights and delays to specific values::
@@ -697,14 +718,16 @@ Getting information about a ``Projection``
 As for ``Population``, a summary of the state of a ``Projection`` may be obtained with the ``describe()`` method::
 
     >>> print prj2_1.describe()
-    ------- Projection description -------
-    Projection 'population2→population1' from 'population2' [20 cells] to 'population1' [100 cells]
-        | Connector : AllToAllConnector
-        | Weights : 0.0
-        | Delays : 0.1
-        | Plasticity : None
-        | Num. connections : 2000
-    ---- End of Projection description -----
+    Projection "population1→population0" from "population1" (20 cells) to "population0" (100 cells)
+    Target     : excitatory
+    Connector  : AllToAllConnector
+        allow_self_connections : True
+        Weights : 0.0
+        Delays : 0.1
+    Plasticity :
+            None
+    Total connections : 2000
+    Local connections : 2000
 
 
 Synaptic plasticity
@@ -719,28 +742,29 @@ Higher-level structures
 
 As we noted above, the neurons in a ``Population`` all have the same type. To simplify working with many different populations, individual ``Population`` and ``PopulationView`` objects may be aggregated in an ``Assembly``, e.g.::
 
-    >>> assembly = Assembly(p1, p2, p3[10:20], p4)
+    >>> assembly = Assembly(p1, p2[10:15], p3, p4)
     
-An assembly behaves in many ways like a ``Population``, e.g. setting and retrieving parameters, specifying which neurons to record from, etc. It can also be specified as the source or target of a ``Projection``. In this case, all the neurons in the component populations are treated as identical for the purposes of the connection algorithm (note that if the synapse type is specified (with the ``target`` attribute [CONFUSING, THAT]), an Exception will be raised if not all component neuron types possess that synapse type).
+An assembly behaves in many ways like a ``Population``, e.g. setting and retrieving parameters, specifying which neurons to record from, etc. It can also be specified as the source or target of a ``Projection``. In this case, all the neurons in the component populations are treated as identical for the purposes of the connection algorithm (note that if the synapse type is specified (with the ``target`` attribute), an Exception will be raised if not all component neuron types possess that synapse type).
 
 You can also create an assembly simply by adding multiple different ``Population``s or ``PopulationView``s together::
 
-    >>> another_assembly = p3 + p4 + p5 
+    >>> another_assembly = p3 + p4
 
 Individual populations within an Assembly may be accessed via their labels, e.g.
 
-    >>> assembly["Input population"]
-    Population(...)
-    >>> assembly["Column 1"]
-    Population(...)
+    >>> assembly.get_population("Input Population")
+    <pyNN.nest.Population object at 0x4be0250>
+    >>> assembly.get_population("Column 1")
+    <pyNN.nest.Population object at 0x4be0390>
 
 Iterating over an assembly returns individual IDs, ordered by population. Similarly, the ``size`` attribute of an ``Assembly`` gives the total number of neurons it contains. To iterate over or count populations, use the ``populations`` attribute::
 
     >>> for p in assembly.populations:
     ...    print p.label, p.size, p.celltype
-    XXXXXX
-
-CAN ASSEMBLIES CONTAIN OTHER ASSEMBLIES?
+    population0 100 IF_curr_alpha
+    view of population1 with mask slice(10, 15, None) 5 IF_curr_alpha
+    Input Population 100 SpikeSourceArray
+    Column 1 60 IF_cond_alpha
 
 Finishing up
 ============
@@ -751,3 +775,5 @@ Examples
 ========
 
 There are several example scripts in the ``examples`` directory of the source distribution.
+
+.. _`CSA documentation`: http://software.incf.org/software/csa/

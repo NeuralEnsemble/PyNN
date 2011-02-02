@@ -2,15 +2,15 @@
 Installation
 ============
 
-Use of PyNN_ requires that you have Python (version 2.5 or 2.6) and a recent version of the numpy_ package installed, plus at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
+Use of PyNN_ requires that you have Python (version 2.5, 2.6or 2.7) and a recent version of the numpy_ package installed, plus at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
 
 Installing PyNN
 ===============
 
 The easiest way to get PyNN is to download the latest source distribution from the `PyNN download page`_, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.6.0.tar.gz
-    $ cd PyNN-0.6.0
+    $ tar xzf PyNN-0.7.0.tar.gz
+    $ cd PyNN-0.7.0
     $ python setup.py install
     
 This will install it to your python ``site-packages`` directory, and may require root privileges. If you wish to install it elsewhere use the ``--prefix`` or ``--home`` option, and set the ``PYTHONPATH`` environment variable accordingly (see above). We assume you have already installed the simulator(s) you wish to use it with. If this is not the case, see below for installation instructions.
@@ -27,14 +27,15 @@ With NEURON as the simulator, make sure you install NEURON *before* you install 
 The PyNN installation will then compile PyNN-specific membrane mechanisms, which are loaded when importing the ``neuron`` module::
    
     >>> from pyNN.neuron import *
-    NEURON -- Release 7.0 (281:80827e3cd201) 2009-01-16
+    NEURON -- Release 7.1 (359:7f113b76a94b) 2009-10-26
     Duke, Yale, and the BlueBrain Project -- Copyright 1984-2008
     See http://www.neuron.yale.edu/credits.html
 
-    loading membrane mechanisms from /home/andrew/dev/pyNN/hoc/i686/.libs/libnrnmech.so
+    loading membrane mechanisms from /home/andrew/dev/pyNN/neuron/nmodl/i686/.libs/libnrnmech.so
     Additional mechanisms from files
-     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod hh_traub.mod netstim2.mod refrac.mod reset.mod
-     stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod tmgsyn.mod vecstim.mod
+     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod gsfa_grr.mod hh_traub.mod netstim2.mod
+     refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod
+     tmgsyn.mod tmisyn.mod vecstim.mod
 
 If your model relies on other NMODL mechanisms, call the ``load_mechanisms()`` function with the path to the directory containing the ``.mod`` files.
 
@@ -53,7 +54,7 @@ Compile Interviews and NEURON according to the instructions given at `<http://ww
 Make sure that you add the Interviews and NEURON bin directories to your path. Test that the Python support has been enabled by running::
 
     $ nrniv -python
-    NEURON -- Release 7.0 (281:80827e3cd201) 2009-01-16
+    NEURON -- Release 7.1 (359:7f113b76a94b) 2009-10-26
     Duke, Yale, and the BlueBrain Project -- Copyright 1984-2008
     See http://www.neuron.yale.edu/credits.html
 
@@ -78,7 +79,7 @@ Now test everything worked::
 
     $ python
     >>> import neuron
-    NEURON -- Release 7.0 (281:80827e3cd201) 2009-01-16
+    NEURON -- Release 7.1 (359:7f113b76a94b) 2009-10-26
     Duke, Yale, and the BlueBrain Project -- Copyright 1984-2008
     See http://www.neuron.yale.edu/credits.html
 
@@ -113,20 +114,19 @@ Now try it out::
                -- N E S T 2 beta --
               Neural Simulation Tool
       Copyright 1995-2009 The NEST Initiative
-       Version 1.9-8558 Mar  2 2010 09:50:16
+       Version 2.0-0-rc2 Jan 27 2011 10:59:20
     ...
     >>> nest.Models()
-    ['ac_generator', 'aeif_cond_alpha', 'aeif_w_meter', 'conductancemeter',
-     'cont_delay_synapse', 'correlation_detector', 'dc_generator', 'hh_cond_exp_traub', 
-     'hh_psc_alpha', 'ht_generator', 'ht_neuron', 'ht_synapse', 'iaf_cond_alpha',
-     'iaf_cond_alpha_mc', 'iaf_cond_exp', 'iaf_cond_exp_sfa_rr', 'iaf_neuron',
-     'iaf_psc_alpha', 'iaf_psc_alpha_canon', 'iaf_psc_alpha_presc', 'iaf_psc_delta', 
-     'iaf_psc_delta_canon', 'iaf_psc_exp', 'iaf_tum_2000', 'layer', 'layer_3d', 
-     'layer_unrestricted', 'mat2_psc_exp', 'mip_generator', 'multimeter',
-     'noise_generator', 'parrot_neuron', 'parrot_neuron_ps', 'poisson_generator', 
-     'poisson_generator_ps', 'pulsepacket_generator', 'spike_detector', 'spike_generator',
-     'static_synapse', 'static_synapse_hom_wd', 'stdp_pl_synapse_hom', 'stdp_synapse', 
-     'stdp_synapse_hom', 'step_current_generator', 'subnet', 'tsodyks_synapse', 'voltmeter']
+    ['ac_generator', 'aeif_cond_alpha', 'aeif_cond_exp', 'cont_delay_synapse', 'correlation_detector',
+     'dc_generator', 'hh_cond_exp_traub', 'hh_psc_alpha', 'ht_neuron', 'ht_synapse', 'iaf_cond_alpha',
+     'iaf_cond_alpha_mc', 'iaf_cond_exp', 'iaf_cond_exp_sfa_rr', 'iaf_neuron', 'iaf_psc_alpha',
+     'iaf_psc_alpha_canon', 'iaf_psc_alpha_presc', 'iaf_psc_delta', 'iaf_psc_delta_canon',
+     'iaf_psc_exp', 'iaf_psc_exp_ps', 'iaf_tum_2000', 'mat2_psc_exp', 'mip_generator', 'multimeter',
+     'noise_generator', 'parrot_neuron', 'parrot_neuron_ps', 'poisson_generator', 'poisson_generator_ps',
+     'pulsepacket_generator', 'sli_neuron', 'smp_generator', 'spike_detector', 'spike_generator',
+     'static_synapse', 'static_synapse_hom_wd', 'stdp_dopamine_synapse', 'stdp_pl_synapse_hom',
+     'stdp_synapse', 'stdp_synapse_hom', 'step_current_generator', 'subnet', 'topology_layer_3d',
+     'topology_layer_free', 'topology_layer_grid', 'tsodyks_synapse', 'voltmeter', 'volume_transmitter']
     
 Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may need to install a newer version of the `GNU Scientific Library`_ and then recompile NEST.
 
