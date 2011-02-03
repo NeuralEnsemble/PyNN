@@ -2,6 +2,20 @@
 """
 Tools for performing spatial/topographical calculations.
 
+Classes:
+
+  Space           - representation of a Cartesian space for use in calculating
+                    distances
+    
+  Line            - represents a structure with neurons distributed evenly on a
+                    straight line.
+  Grid2D          - represents a structure with neurons distributed on a 2D grid.
+  Grid3D          - represents a structure with neurons distributed on a 3D grid.
+  RandomStructure - represents a structure with neurons distributed randomly
+                    within a given volume.
+                    
+  Cuboid          - representation of a cuboidal volume, for use with RandomStructure.
+  Sphere          - representation of a spherical volume, for use with RandomStructure.
 """
 
 # There must be some Python package out there that provides most of this stuff.
@@ -136,18 +150,18 @@ class Line(BaseStructure):
     """
     Represents a structure with neurons distributed evenly on a straight line.
     """
-    parameter_names = ("dx", "x0", "y0", "z0")
+    parameter_names = ("dx", "x0", "y", "z")
     
-    def __init__(self, dx=1.0, x0=0.0, y0=0.0, z0=0.0):
+    def __init__(self, dx=1.0, x0=0.0, y=0.0, z=0.0):
         self.dx = dx
         self.x0 = x0
-        self.y0 = y0
-        self.z0 = z0
+        self.y = y
+        self.z = z
     
     def generate_positions(self, n):
         x = self.dx*numpy.arange(n, dtype=float) + self.x0
-        y = numpy.zeros(n) + self.y0
-        z = numpy.zeros(n) + self.z0
+        y = numpy.zeros(n) + self.y
+        z = numpy.zeros(n) + self.z
         return numpy.array((x,y,z))
 
 
@@ -234,7 +248,7 @@ class Cuboid(Shape):
     Represents a cuboidal volume within which neurons may be distributed.
     """
     
-    def __init__(self, width, height, depth, rng):
+    def __init__(self, width, height, depth):
         """
         height: extent in y direction
         width: extent in x direction
@@ -243,32 +257,27 @@ class Cuboid(Shape):
         self.height = height
         self.width = width
         self.depth = depth
-        self.rng   = rng or NumpyRNG()
         
-    def generate_positions(self, n):
-        data = 0.5*self.rng.uniform(-1, 1, size=(3, n))
-        data[0] *= self.width
-        data[1] *= self.height
-        data[2] *= self.depth
-        return data
+    def sample(self, n, rng):
+        return 0.5*rng.uniform(-1, 1, size=(n,3)) * (self.width, self.height, self.depth)
+
 
 class Sphere(Shape):
     """
     Represents a spherical volume within which neurons may be distributed.
     """
     
-    def __init__(self, radius, rng):
+    def __init__(self, radius):
         Shape.__init__(self)
         self.radius = radius
-        self.rng    = rng or NumpyRNG()
         
-    def generate_positions(self, n):
+    def sample(self, n, rng):
         # this implementation is wasteful, as it throws away a lot of numbers,
         # but simple. More efficient implementations welcome.
         positions = numpy.empty((n,3))
         i = 0
         while i < n:
-            candidate = self.rng.uniform(-1, 1, size=(1,3))
+            candidate = rng.uniform(-1, 1, size=(1,3))
             if (candidate**2).sum() < 1:
                 positions[i] = candidate
                 i += 1
@@ -285,7 +294,7 @@ class RandomStructure(BaseStructure):
     def __init__(self, boundary, origin=(0.0,0.0,0.0), rng=None):
         """
         `boundary` - a subclass of Shape
-        `origin` - a coordinate tuple (x,y,z)
+        `origin` - the coordinates (x,y,z) of the centre of the volume.
         """
         assert isinstance(boundary, Shape)
         assert len(origin) == 3

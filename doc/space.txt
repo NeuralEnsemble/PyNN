@@ -1,0 +1,85 @@
+========================================================
+Representing position in space and calculating distances
+========================================================
+
+The ``space`` module contains classes for specifying the locations of neurons
+in space and for calculating the distances between them.
+
+Neuron positions can be defined either manually, using the ``positions``
+attribute of a ``Population`` or using a ``Structure`` instance which is passed
+to the ``Population`` constructor.
+
+A number of different structures are available in ``space``. It is simple to
+define your own ``Structure`` sub-class if you need something that is not
+already provided.
+
+The simplest structure is a grid, whether 1D, 2D or 3D, e.g.::
+    
+    >>> from pyNN.space import *
+    >>> line = Line(dx=100.0, x0=0.0, y=200.0, z=500.0)
+    >>> line.generate_positions(7)
+    array([[   0., 100., 200., 300., 400., 500., 600.],
+           [ 200., 200., 200., 200., 200., 200., 200.],
+           [ 500., 500., 500., 500., 500., 500., 500.]])
+    >>> grid = Grid2D(aspect_ratio=3, dx=10.0, dy=25.0, z=-3.0)
+    >>> grid.generate_positions(3)
+    array([[  0., 10., 20.],
+           [  0.,  0.,  0.],
+           [ -3., -3., -3.]])
+    >>> grid.generate_positions(12)
+    array([[  0.,  0., 10., 10., 20., 20., 30., 30., 40., 40., 50., 50.],
+           [  0., 25.,  0., 25.,  0., 25.,  0., 25.,  0., 25.,  0., 25.],
+           [ -3., -3., -3., -3., -3., -3., -3., -3., -3., -3., -3., -3.]])
+
+Here we have specified an *x*:*y* ratio of 3, so if we ask the grid to
+generate positions for 3 neurons, we get a 3x1 grid, 12 neurons a 6x2 grid,
+27 neurons 9x3, etc.
+
+BY default, grid positions are filled sequentially, iterating first over the *z*
+dimension, then *y*, then *x*, but we can also fill the grid randomly::
+
+    >>> rgrid = Grid2D(aspect_ratio=1, dx=10.0, dy=10.0, fill_order='random')
+    >>> rgrid.generate_positions(9)
+    array([[ 20., 20., 20.,  0., 10.,  0., 10.,  0., 10.],
+           [ 10.,  0., 20., 10.,  0., 20., 10.,  0., 20.],
+           [  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.]])
+
+The ``space`` module also provides the ``RandomStructure`` class, which
+distributes neurons randomly and uniformly within a given volume::
+
+    >>> glomerulus = RandomStructure(boundary=Sphere(radius=200.0))
+    >>> glomerulus.generate_positions(5)
+    array([[  4.81853231e+01, -2.49317729e+01,  1.08294461e+02,  1.72125819e-01,  -1.25552649e+02],
+           [  3.96588073e+01,  1.75426143e+02,  3.19290169e+01,  1.65050459e+02,  -1.32092198e+00],
+           [ -1.00801053e+02, -8.51701627e+01, -1.39804442e+02, -4.97765369e+01,   3.94241050e+01]])
+
+The volume classes currently available are ``Sphere`` and ``Cuboid``.
+
+Defining your own ``Structure`` classes is straightforward, just inherit from
+``BaseStructure`` and implement a ``generate_positions(n)`` method::
+
+    class MyStructure(BaseStructure):
+        parameter_names = ("spam", "eggs")
+       
+        def __init__(self, spam=3, eggs=1):
+            ...
+          
+        def generate_positions(self, n):
+            ...
+            # must return a 3xn numpy array
+            
+To definite your own ``Shape`` class for use with ``RandomStructure``, subclass
+``Shape`` and implement a ``sample(n, rng)`` method::
+
+    class Tetrahedron(Shape):
+    
+        def __init__(self, side_length):
+            ...
+            
+        def sample(self, n, rng):
+           ...
+           # return a nx3 numpy array.
+
+Note that rotation of structures is currently missing, but will be implemented
+in the next release.
+    
