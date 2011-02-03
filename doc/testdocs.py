@@ -64,6 +64,12 @@ def print_script(filename, simulator):
     script = "".join([ex.source for ex in parser.get_examples(s) if "+SKIP" not in ex.source])
     print "from pyNN.%s import *\nsetup(max_delay=10.0, debug=True)\n" % simulator + script
 
+def remove_data_files():
+    import glob
+    for pattern in ("*.dat", "*.npz", "*.h5", "*.conn", "logfile"):
+        for filename in glob.glob(pattern):
+            os.remove(filename)
+
 # ==============================================================================
 if __name__ == "__main__":
     
@@ -98,4 +104,5 @@ if __name__ == "__main__":
             create(IF_curr_alpha) # this is to use up ID 0, making the IDs agree with NEST.
         mytestfile(docfile, globs=globals(), optionflags=optionflags, strict=options.strict)
 
+    remove_data_files()
     sys.exit(0)

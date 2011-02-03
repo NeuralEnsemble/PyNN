@@ -9,7 +9,7 @@ import logging
 Set = set
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
-from pyNN import common, recording, space, standardmodels, core, __doc__
+from pyNN import common, recording, space, core, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 from pyNN.random import *
@@ -20,6 +20,7 @@ from pyNN.brian.standardmodels.synapses import *
 from pyNN.brian.electrodes import *
 from pyNN.brian import electrodes
 from pyNN.brian.recording import *
+from pyNN import standardmodels
 
 logger = logging.getLogger("PyNN")
 
@@ -32,7 +33,7 @@ def list_standard_models():
         except Exception, e:
             print "Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e)
             standard_cell_types.remove(cell_class)
-    return standard_cell_types
+    return [obj.__name__ for obj in standard_cell_types]
 
 # ==============================================================================
 #   Functions for simulation set-up and control

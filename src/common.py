@@ -350,7 +350,8 @@ def build_record(variable, simulator):
         """
         # would actually like to be able to record to an array and choose later
         # whether to write to a file.
-        assert isinstance(source, (BasePopulation, Assembly))
+        if not isinstance(source, (BasePopulation, Assembly)):
+            source = source.parent
         source._record(variable, to_file=filename)
         # recorder_list is used by end()
         if isinstance(source, BasePopulation):

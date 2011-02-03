@@ -49,7 +49,7 @@ def list_standard_models():
         except Exception, e:
             print "Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e)
             standard_cell_types.remove(cell_class)
-    return standard_cell_types
+    return [obj.__name__ for obj in standard_cell_types]
 
 def _discrepancy_due_to_rounding(parameters, output_values):
     """NEST rounds delays to the time step."""

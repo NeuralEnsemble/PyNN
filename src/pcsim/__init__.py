@@ -29,6 +29,8 @@ from pyNN.pcsim.connectors import *
 from pyNN.pcsim.standardmodels.synapses import *
 from pyNN.pcsim.electrodes import *
 from pyNN.pcsim.recording import *
+from pyNN import standardmodels
+
 
 try:
     import tables
@@ -81,7 +83,8 @@ def list_standard_models():
         except Exception, e:
             print "Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e)
             standard_cell_types.remove(cell_class)
-    return standard_cell_types
+    return [obj.__name__ for obj in standard_cell_types]
+
 
 class WDManager(object):
     

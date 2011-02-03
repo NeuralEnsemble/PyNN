@@ -8,7 +8,7 @@ __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
 from pyNN.neuron import simulator
-from pyNN import common, recording as base_recording, space, standardmodels, __doc__
+from pyNN import common, recording as base_recording, space, __doc__
 common.simulator = simulator
 base_recording.simulator = simulator
 
@@ -17,7 +17,7 @@ from pyNN.neuron.connectors import *
 from pyNN.neuron.standardmodels.synapses import *
 from pyNN.neuron.electrodes import *
 from pyNN.neuron.recording import Recorder
-
+from pyNN import standardmodels
 import numpy
 import logging
 
@@ -31,7 +31,7 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, standardmodels.StandardCellType)]
+    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, standardmodels.StandardCellType)]
 
 # ==============================================================================
 #   Functions for simulation set-up and control

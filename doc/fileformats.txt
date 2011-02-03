@@ -45,5 +45,5 @@ Defining your own file formats
 If you wish to define your own file format, it is straightforward to create
 new PyNN-compatible ``File`` class by subclassing ``recording.files.BaseFile``:
 the only requirement is that the class should implement a method
-``write(data, metadata)`` , where ``data`` will be a NumPy array and ``metadata``
+``write(data, metadata)``, where ``data`` will be a NumPy array and ``metadata``
 will be a dictionary.

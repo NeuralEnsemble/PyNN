@@ -1,5 +1,5 @@
 ========================================================
-Representing position in space and calculating distances
+Representing spatial structure and calculating distances
 ========================================================
 
 The ``space`` module contains classes for specifying the locations of neurons

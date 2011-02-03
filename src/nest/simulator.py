@@ -387,10 +387,10 @@ class ConnectionManager:
                     if component and parameter_name in component.translations:
                         translated_name = component.translations[parameter_name]["translated_name"]
                         break
-            #if translated_name:
-                #parameter_name = translated_name
-            #else:
-                #raise Exception("synapse type does not have an attribute '%s', or else this attribute is not accessible." % parameter_name)
+            if translated_name:
+                parameter_name = translated_name
+            else:
+                raise Exception("synapse type does not have an attribute '%s', or else this attribute is not accessible." % parameter_name)
         if format == 'list':
             values = nest.GetStatus(self.connections, parameter_name)
             if parameter_name == "weight":

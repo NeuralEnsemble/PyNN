@@ -2,7 +2,7 @@
 The procedural API
 ==================
 
-The procedural API (also previously known as the "low-level" API) gives a view of a model that is centred more on individual neurons and connections, rather than on populations of neurons and projections between them. This viewpoint may be more suited for small networks, or when porting a model from a simulator that has a neuron-centred viewpoint. It should be noted, however, that this API is just a wrapper around the main, object-oriented API. For example, the ``create()`` function returns a ``Population`` object, it is just that it is then treated as a list of neurons rather than a single object in its own right.
+The procedural API (also previously known as the "low-level" API) gives a view of a model that is centred more on individual neurons and connections, rather than on populations of neurons and projections between them. This viewpoint may be more suited for small networks, or when porting a model from a simulator that has a neuron-centred viewpoint. It should be noted, however, that this API is just a wrapper around the main, object-oriented API. For example, the ``create()`` function returns a ``Population`` object, it is just that it is then treated as a list of neurons rather than as a single object.
 
 
 Creating neurons
@@ -32,7 +32,7 @@ or adding two lists together::
     >>> all_cells = cells + more_cells
     >>> some_cells = cells[5:] + more_cells[2:4]
     
-(note that ``all_cells`` and ``some_cells`` here are ``Assembly objects``).
+(note that ``all_cells`` and ``some_cells`` here are ``Assembly`` objects).
 
 Connecting neurons
 ==================
@@ -40,8 +40,7 @@ Connecting neurons
 Lists of neurons (``Population``s or ``Assembly``s) can be connected using the ``connect()`` function, e.g.::
 
     >>> spike_source = create(SpikeSourceArray, cellparams={'spike_times': [10.0, 20.0, 30.0]})
-    >>> cell_list2 = create(IF_curr_exp, n=10)
-    >>> connect(spike_source, cell_list2)
+    >>> connect(spike_source, cells)
     
 In this case we connect a spike-generating mechanism (``SpikeSourceArray`` is a 'standard cell' model that emits spikes at times specified by the ``spike_times`` parameter) to each cell in the list ``cells``, i.e. we create 10 connections at once.
     
@@ -50,8 +49,8 @@ flexibility to choose the connection algorithm, or to have plastic synapses.
 
 If the source or target is a list of cells (a ``Population``, etc.), each source (presynaptic) cell is connected to every target (postsynaptic) cell with probability given by the optional argument `p`, which defaults to 1, e.g.::
 
-    >>> source_list = cell_list
-    >>> target_list = cell_list2
+    >>> source_list = cells
+    >>> target_list = more_cells
     >>> connect(source_list, target_list, p=0.5)
     
 When specifying connections as above, default values are given to the synaptic weight and delay.
@@ -66,7 +65,7 @@ For conductance-based synapses, weights should always be positive, since the eff
 
 If the neuron model has more than one synapse mechanism, or more than one synaptic location, the particular synapse to which the connection should be made is specified with the ``synapse_type`` argument, e.g.::
 
-    >>> connect(source_list, target_list, weight=-1.5, delay=0.5, synapse_type='inhibitory')
+    >>> connect(source_list, target_list, weight=1.5, delay=0.5, synapse_type='inhibitory')
 
 (the attribute ``synapse_types`` of all standard cell objects contains a list of the synapse types for that cell type).
 
@@ -122,7 +121,7 @@ To record action potentials use the ``record()`` function, to record membrane po
 The arguments for all three functions are a cell id (or a ``Population``, ``Assembly`` or ``PopulationView``), and a filename, e.g.::
 
     >>> record(cell, "spikes.dat")
-    >>> record_v(cell_list, "Vm.dat")
+    >>> record_v(cells, "Vm.dat")
     
 In some cases it is more efficient to write files in the simulator's native format, rather than the standard PyNN format.
 In this case, use the ``compatible_output=False`` argument to the ``end()`` function.
@@ -139,22 +138,10 @@ The ``run()`` function runs the simulation for a given number of milliseconds, e
 Finishing up
 ============
 
-Just as a simulation must be begun with a call to ``setup()``, it must be ended with a call to ``end()``.
+Just as a simulation must be begun with a call to ``setup()``, it must be ended with a call to ``end()``. For the procedural API, this is also the point at which data gets written to file.
 
 Examples
 ========
 
 There are several example scripts in the ``examples`` directory of the source distribution.
     
-==========================================================================
-Reasons for preferring Population and Projection to create() and connect()
-==========================================================================
-
-While it is entirely possible to create very large networks using only the ``create()``, ``connect()``, ``set()`` and ``record()`` functions, this involves writing a lot of repetitive code, which is the same or similar for every model: iterating over lists of cells and connections, creating common projection patterns, recording from all or a subset of neurons...
-This sort of 'book-keeping' code takes time to write, obscures the essential principles of the simulation script with details, and, of course, the more code that has to be written, the more bugs and errors will be introduced, and, if the code is only used for a single project, not all the bugs may be found.
-
-For these reasons, PyNN provides the ``Population`` object, representing a group of neurons all of the same type (although possibly with cell-to-cell variations in the values of parameters), and the ``Projection`` object, repesenting the set of connections between two ``Population``\s.
-All the book-keeping code is contained within the object classes, which also provide functions ('methods') to perform commonly-used tasks, such as recording from a fixed number of cells within the population, chosen at random.
-
-By using the ``Population`` and ``Projection`` classes, less code needs to be written to create a given simulation, which means fewer-bugs and easier-to-understand scripts, plus, because the code for the classes is used in many different projects, bugs will be found more reliably, and the internal implementation of the classes optimized for performance.
-Of particular importance is that iterations over large numbers of cells or connections can be done in fast compiled code (within the simulator engines) rather than in comparatively slow Python code.

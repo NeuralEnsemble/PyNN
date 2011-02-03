@@ -200,9 +200,9 @@ A ``PopulationView`` holds references to a subset of neurons in a ``Population``
     >>> p2.get('tau_m')
     [11.0, 11.0, 11.0, 11.0, 11.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0]
 
-``PopulationView``s behave in most ways as real ``Population``s, notably, they
-can be used in ``Projection``s (see below) and combined with other ``Population``s
-or ``PopulationView``s to create ``Assembly``s.
+``PopulationView`` objects behave in most ways as real ``Population`` objects, notably, they
+can be used in a ``Projection`` (see below) and combined with other ``Population``
+or ``PopulationView`` objects to create an ``Assembly``.
 
 
 Setting random values
@@ -384,7 +384,7 @@ Position in space
 =================
 
 The positions of neurons in space are usually determined by passing
-in a ``Structure`` object when creating a ``Population`` (see above). Some examples of ``Structure``s::
+in a ``Structure`` object when creating a ``Population`` (see above). Some examples::
 
     >>> s1 = space.Line()
     >>> s1.generate_positions(3)
@@ -746,7 +746,7 @@ As we noted above, the neurons in a ``Population`` all have the same type. To si
     
 An assembly behaves in many ways like a ``Population``, e.g. setting and retrieving parameters, specifying which neurons to record from, etc. It can also be specified as the source or target of a ``Projection``. In this case, all the neurons in the component populations are treated as identical for the purposes of the connection algorithm (note that if the synapse type is specified (with the ``target`` attribute), an Exception will be raised if not all component neuron types possess that synapse type).
 
-You can also create an assembly simply by adding multiple different ``Population``s or ``PopulationView``s together::
+You can also create an assembly simply by adding multiple different ``Population`` or ``PopulationView`` objects together::
 
     >>> another_assembly = p3 + p4
 
@@ -777,3 +777,5 @@ Examples
 There are several example scripts in the ``examples`` directory of the source distribution.
 
 .. _`CSA documentation`: http://software.incf.org/software/csa/
+.. _`jinja`: http://jinja.pocoo.org/
+.. _`cheetah`: http://www.cheetahtemplate.org/

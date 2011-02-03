@@ -11,14 +11,13 @@ To obtain a list of all the standard models available in a given simulator, use 
 
     >>> from pyNN import neuron
     >>> neuron.list_standard_models()
-    [<class 'pyNN.neuron.cells.HH_cond_exp'>, <class 'pyNN.neuron.cells.IF_curr_exp'>,
-     <class 'pyNN.neuron.cells.IF_facets_hardware1'>, <class 'pyNN.neuron.cells.IF_cond_alpha'>,
-     <class 'pyNN.neuron.cells.IF_cond_exp'>, <class 'pyNN.neuron.cells.SpikeSourcePoisson'>,
-     <class 'pyNN.neuron.cells.EIF_cond_exp_isfa_ista'>, <class 'pyNN.neuron.cells.SpikeSourceArray'>,
-     <class 'pyNN.neuron.cells.IF_curr_alpha'>, <class 'pyNN.neuron.cells.EIF_cond_alpha_isfa_ista'>]
+    ['IF_cond_alpha', 'IF_curr_exp', 'IF_cond_exp', 'EIF_cond_exp_isfa_ista',
+     'SpikeSourceArray', 'HH_cond_exp', 'IF_cond_exp_gsfa_grr',
+     'IF_facets_hardware1', 'SpikeSourcePoisson', 'EIF_cond_alpha_isfa_ista',
+     'IF_curr_alpha']
 
-Integrate-and-fire neurons
-==========================
+Neurons
+=======
 
 IF_curr_alpha
 -------------
@@ -118,14 +117,14 @@ HH_cond_exp
 
 Single-compartment Hodgkin-Huxley-type neuron with transient sodium and delayed-rectifier potassium currents using the ion channel models from Traub.
     
-Availability: NEST, NEURON
+Availability: NEST, NEURON, Brian
 
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
 ==============  =============  =====  =================================================== 
-``gbar_Na``     20000.0
-``gbar_K``       6000.0
-``g_leak``         10.0
+``gbar_Na``        20.0        uS
+``gbar_K``          6.0        uS
+``g_leak``         0.01        uS
 ``cm``              0.2        nF
 ``v_offset``      -63.0        mV
 ``e_rev_Na``       50.0        mV
@@ -146,7 +145,7 @@ Adaptive exponential integrate and fire neuron according to
   Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
   an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
-Availability: NEST, NEURON
+Availability: NEST, NEURON, Brian
 
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
