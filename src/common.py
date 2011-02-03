@@ -1199,7 +1199,11 @@ class Assembly(object):
         for p in self.populations[1:]:
             result = numpy.concatenate((result, p.all_cells))
         return result
-    
+
+    def all(self):
+        """Iterator over cell ids on all nodes."""
+        return iter(self.all_cells)    
+
     @property
     def _is_sorted(self):
         idx = numpy.argsort(self.all_cells)
