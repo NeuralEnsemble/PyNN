@@ -10,7 +10,7 @@ from pyNN import common, recording, errors, space, __doc__
 common.simulator = simulator
 recording.simulator = simulator
 
-if nest.Rank() != recording.mpi_comm.rank:
+if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
     raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
 
 import numpy
