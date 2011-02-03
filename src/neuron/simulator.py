@@ -407,7 +407,7 @@ class ConnectionManager(object):
                 raise IndexError("%d > %d" % (i, len(self)-1))
         elif isinstance(i, slice):
             if i.stop < len(self):
-                return [self.connections[j] for j in range(i.start, i.stop, i.step or 1)]
+                return [self.connections[j] for j in range(*i.indices(i.stop))]
             else:
                 raise IndexError("%d > %d" % (i.stop, len(self)-1))
     

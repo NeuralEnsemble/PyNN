@@ -288,10 +288,12 @@ class ID(int, common.IDMixin):
                 setattr(self.parent_group[index], name, value)
         
     def set_initial_value(self, variable, value):
-        self.parent_group.initial_values[variable][self.parent.id_to_index(self)] = value
+        if variable is 'v':
+            value *= mV
+        self.parent_group.initial_values[variable][self.parent.id_to_local_index(self)] = value
     
     def get_initial_value(self, variable):
-        return self.parent_group.initial_values[variable][self.parent.id_to_index(self)]
+        return self.parent_group.initial_values[variable][self.parent.id_to_local_index(self)]
     
 
 # --- For implementation of create() and Population.__init__() ----------------- 

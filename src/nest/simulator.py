@@ -52,7 +52,8 @@ class _State(object):
         self.optimize    = False
         self.spike_precision = "on_grid"
         self.default_recording_precision = 3
-        
+        self._cache_num_processes = nest.GetKernelStatus()['num_processes'] # avoids blocking if only some nodes call num_processes
+                                                                            # do the same for rank?
 
     @property
     def t(self):
@@ -72,7 +73,7 @@ class _State(object):
     
     @property
     def num_processes(self):
-        return nest.GetKernelStatus()['num_processes']
+        return self._cache_num_processes
     
     @property
     def mpi_rank(self):

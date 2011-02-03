@@ -6,7 +6,7 @@ from pyNN.utility import assert_arrays_equal
 from pyNN import core
     
 builtin_open = open
-id_map = {'larry': 0, 'curly': 1, 'moe': 2}
+id_map = {'larry': 0, 'curly': 1, 'moe': 2, 'joe': 3, 'william': 4, 'jack': 5, 'averell': 6}
 
 class MockStandardCell(standardmodels.StandardCellType):
     recordable = ['v', 'spikes']
@@ -24,11 +24,21 @@ class MockPopulation(common.BasePopulation):
     positions = numpy.arange(39).reshape((13,3)).T
     label = "mock_population"
     celltype = MockStandardCell({})
-    initial_values = {"foo": core.LazyArray(numpy.array((98, 99, 100)), shape=(3,))}
+    initial_values = {"foo": core.LazyArray(numpy.array((98, 100, 102)), shape=(3,))}
 
     def id_to_index(self, id):
         if id.label in id_map:
             return id_map[id.label]
+        else:
+            raise Exception("Invalid ID")
+        
+    def id_to_local_index(self, id):
+        if id.label in id_map:
+            global_index = id_map[id.label]
+            if global_index%2 == 1:
+                return global_index/2
+            else:
+                raise Exception("ID not on this node")
         else:
             raise Exception("Invalid ID")
 
@@ -120,7 +130,7 @@ def test_set_cell_position():
 
 def test_get_cell_initial_value():
     p = MockPopulation()
-    id = MockID("larry", parent=p)
+    id = MockID("curly", parent=p)
     assert_equal(p._get_cell_initial_value(id, "foo"), 98)
 
 def test_set_cell_initial_value():
@@ -285,9 +295,9 @@ def test_initialize_random_distribution():
     p._set_initial_value_array = Mock()
     class MockRandomDistribution(random.RandomDistribution):
         def next(self, n, mask_local):
-            return 42*numpy.ones(n)
+            return 42*numpy.ones(n)[mask_local]
     p.initialize('v', MockRandomDistribution())
-    assert_arrays_equal(p.initial_values['v'].value, 42*numpy.ones(p.size))
+    assert_arrays_equal(p.initial_values['v'].value, 42*numpy.ones(p.local_size))
     #p._set_initial_value_array.assert_called_with('v', 42*numpy.ones(p.size)) 
 
 def test_can_record():

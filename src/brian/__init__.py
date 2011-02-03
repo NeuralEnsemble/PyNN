@@ -173,24 +173,14 @@ class Population(common.Population, common.BasePopulation):
         self.brian_cells = brian_cells
         simulator.state.network.add(brian_cells)
 
-    def initialize(self, variable, value):
-        """
-        Set the initial value of one of the state variables of the neurons in
-        this population.
-        
-        `value` may either be a numeric value (all neurons set to the same
-                value) or a `RandomDistribution` object (each neuron gets a
-                different value)
-        """
-        if isinstance(value, RandomDistribution):
-            rarr  = value.next(n=self.all_cells.size, mask_local=self._mask_local)
-            value = numpy.array(rarr)
-        else:
-            value = value*numpy.ones((len(self),))
+    def _set_initial_value_array(self, variable, value):
         if variable is 'v':
-            self.brian_cells.initial_values[variable] = value*mV
+            value = value*mV
+        if not hasattr(value, "__len__"):
+            value = value*numpy.ones((len(self),))
+        self.brian_cells.initial_values[variable] = value
         self.brian_cells.initialize()
-        self.initial_values[variable] = core.LazyArray(self.size, value)
+
 
 PopulationView = common.PopulationView
 Assembly = common.Assembly

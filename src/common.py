@@ -403,6 +403,10 @@ class BasePopulation(object):
         """Return the total number of cells in the population (all nodes)."""
         return self.size
 
+    @property
+    def local_size(self):
+        return len(self.local_cells) # would self._mask_local.sum() be faster?
+
     def __iter__(self):
         """Iterator over cell ids on the local node."""
         return iter(self.local_cells)
@@ -441,12 +445,12 @@ class BasePopulation(object):
 
     def _get_cell_initial_value(self, id, variable):
         assert isinstance(self.initial_values[variable], core.LazyArray)
-        index = self.id_to_index(id)
+        index = self.id_to_local_index(id)
         return self.initial_values[variable][index]
 
     def _set_cell_initial_value(self, id, variable, value):
         assert isinstance(self.initial_values[variable], core.LazyArray)
-        index = self.id_to_index(id)
+        index = self.id_to_local_index(id)
         self.initial_values[variable][index] = value
 
     def nearest(self, position):
@@ -629,9 +633,10 @@ class BasePopulation(object):
         logger.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
         if isinstance(value, random.RandomDistribution):
             initial_value = value.next(n=self.all_cells.size, mask_local=self._mask_local)
+            assert len(initial_value) == self.local_size, "%d != %d" % (len(initial_value), self.local_size)
         else:
             initial_value = value
-        self.initial_values[variable] = core.LazyArray(initial_value, shape=(self.size,))
+        self.initial_values[variable] = core.LazyArray(initial_value, shape=(self.local_size,))
         if hasattr(self, "_set_initial_value_array"):
             self._set_initial_value_array(variable, initial_value)
         else:
@@ -927,7 +932,9 @@ class Population(BasePopulation):
         (order in the Population), counting only cells on the local MPI node.
         """
         if num_processes() > 1:
-            return self.local_cells.tolist().index(id)  # probably very slow
+            return self.local_cells.tolist().index(id)          # probably very slow
+            #return numpy.nonzero(self.local_cells == id)[0][0] # possibly faster?
+            # another idea - get global index, use idx-sum(mask_local[:idx])?
         else:
             return self.id_to_index(id)
 

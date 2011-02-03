@@ -151,7 +151,7 @@ class ID(long, common.IDMixin):
                 value = setattr(pcsim_cell, pcsim_name, value)
             except AttributeError, e:
                 raise AttributeError("%s. Possible attributes are: %s" % (e, dir(pcsim_cell)))
-        index = self.parent.id_to_index(self)
+        index = self.parent.id_to_local_index(self)
         self.parent.initial_values[variable][index] = value
 
 # --- For implementation of connect() and Connector classes --------------------

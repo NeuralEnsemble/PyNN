@@ -79,8 +79,7 @@ class LazyArray(object):
             assert numpy.isreal(value).all()
             if not isinstance(value, numpy.ndarray):
                 value = numpy.array(value)
-            #Should remove the following line, because in parallel, value.shape differs from the total shape
-	    #assert value.shape == shape
+            assert value.shape == shape, "Array has shape %s, value has shape %s" % (shape, value.shape) # this should be true even when using MPI
         else:
             assert numpy.isreal(value)
         self.base_value = value

@@ -128,7 +128,7 @@ class LineTest(unittest.TestCase):
         )
     
     def test_generate_positions(self):
-        line = space.Line(dx=100.0, x0=-100.0, y0=444.0, z0=987.0)
+        line = space.Line(dx=100.0, x0=-100.0, y=444.0, z=987.0)
         n = 2
         positions = line.generate_positions(n)
         assert_equal(positions.shape, (3,n))
@@ -146,7 +146,7 @@ class LineTest(unittest.TestCase):
         assert line1 != line3
         
     def test_get_parameters(self):
-        params = dict(dx=100.0, x0=-100.0, y0=444.0, z0=987.0)
+        params = dict(dx=100.0, x0=-100.0, y=444.0, z=987.0)
         line = space.Line(**params)
         assert_equal(line.get_parameters(), params)
 

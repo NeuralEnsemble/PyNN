@@ -270,24 +270,10 @@ class Population(common.Population):
         else:
             nest.SetStatus(self.local_cells.tolist(), param_dict)
 
-    def initialize(self, variable, value):
-        """
-        Set the initial value of one of the state variables of the neurons in
-        this population.
-        
-        `value` may either be a numeric value (all neurons set to the same
-                value) or a `RandomDistribution` object (each neuron gets a
-                different value)
-        """
-        if isinstance(value, RandomDistribution):
-            rarr = value.next(n=self.all_cells.size, mask_local=self._mask_local)
-            value = rarr #numpy.array(rarr)
-            assert len(rarr) == len(self.local_cells), "%d != %d" % (len(rarr), len(self.local_cells))
-        self.initial_values[variable] = core.LazyArray(value, (self.size,))
+    def _set_initial_value_array(self, variable, value):
         if variable in STATE_VARIABLE_MAP:
             variable = STATE_VARIABLE_MAP[variable]
         nest.SetStatus(self.local_cells.tolist(), variable, value)
-
 
 PopulationView = common.PopulationView
 Assembly = common.Assembly

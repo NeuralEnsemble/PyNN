@@ -109,6 +109,7 @@ class RecordingDevice(object):
         """
         Add initial values (NEST does not record the value at t=0).
         """
+        logger.debug("Prepending initial values to recorded data")
         initial_values = []
         for id in self._all_ids:
             initial = [id, 0.0]
@@ -201,6 +202,7 @@ class RecordingDevice(object):
                 if always_local:
                     data = local_data # for always_local cells, no need to gather
                 else:
+                    logger.debug("Gathering data")
                     data = recording.gather(local_data)
                 logger.debug("Caching gathered data")
                 self._gathered_file = tempfile.TemporaryFile()
