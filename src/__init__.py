@@ -1,5 +1,5 @@
 """
-PyNN (pronounced 'pine' ) is a Python package for simulator-independent
+PyNN (pronounced 'pine') is a Python package for simulator-independent
 specification of neuronal network models. 
 
 In other words, you can write the code for a model once, using the PyNN API, and
@@ -37,9 +37,11 @@ Classes for creating, connecting, modifying and recording from neurons
     Population
     Projection
     Space
+    Structures: Line, Grid2D, Grid3D, RandomStructure
     Connectors: AllToAllConnector, OneToOneConnector, FixedProbabilityConnector,
                 DistanceDependentProbabilityConnector, FixedNumberPreConnector,
-                FixedNumberPostConnector, FromListConnector, FromFileConnector
+                FixedNumberPostConnector, FromListConnector, FromFileConnector,
+                CSAConnector
     Standard cell types: IF_curr_exp, IF_curr_alpha, IF_cond_exp, IF_cond_alpha,
                 IF_cond_exp_gsfa_grr, IF_facets_hardware1, HH_cond_exp,
                 EIF_cond_alpha_isfa_ista, EIF_cond_exp_isfa_ista,
@@ -65,6 +67,5 @@ Other modules:
 
 """
 
-__version__ = '0.7pre ( $Rev$)'.replace(' $','')
+__version__ = '0.7.0 ( $Rev$)'.replace(' $','')
 __all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "recording", "errors", "space", "descriptions", "standardmodels"]
-

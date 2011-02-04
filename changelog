@@ -1,5 +1,5 @@
 ====================
-Release 0.7.0 (r???)
+Release 0.7.0 (r929)
 ====================
 
 This release sees a major extension of the API with the addition of the
@@ -51,6 +51,12 @@ Other API changes:
   well as to text files.
 - added some new connectors: `SmallWorldConnector` and `CSAConnector`
   (CSA = Connection Set Algebra)
+- native neuron and synapse models are now supported using a NativeModelType
+  subclass, rather than specified as strings. This simplifies the code internally
+  and increases the range of PyNN functionality that can be used with native
+  models (e.g. you can now record any variable from a native NEST or NEURON
+  model). For NEST, there is a class factory ``native_cell_type()``, for NEURON
+  the NativeModelType subclasses have to be written by hand.
 
 Backend changes:
 
@@ -60,6 +66,24 @@ Backend changes:
 
 
 Details:
+
+* Where `Population.initial_values` contains arrays, these arrays now consistently contain only enough values for local cells. Before, there was some inconsistency about how this was handled. Still need more tests to be sure it's really working as expected.
+
+* Allow override of default_maxstep for NEURON backend as setup paramter.  This is for the case that the user wants to add network connections across nodes after simulation start time.
+
+* Discovered that when using NEST with mpi4py, you must `import nest` first and let it do the MPI initialization. The only time this seems to be a problem with PyNN is if a user imports `pyNN.random` before `pyNN.nest`. It would be nice to handle this more gracefully, but for now I've just added a test that NEST and mpi4py agree on the rank, and a hopefully useful error message.
+
+* Added a new `setup()` option for `pyNN.nest`: `recording_precision`. By default, `recording_precision` is 3 for on-grid and 15 for off-grid.
+
+* Partially fixed the `pyNN.nest` implementation of `TsodyksMarkramMechanism` (cf ticket:172). The 'tsodyks_synapse' model has a 'tau_psc' parameter, which should be set to the same value as the decay time constant of the post-synaptic current (which is a parameter of the neuron model). I consider this only a partial fix, because if 'tau_syn_E' or 'tau_syn_I' is changed after the creation of the Projection, 'tau_psc' will not be updated to match (unlike in the `pyNN.neuron` implementation. I'm also not sure how well it will work with native neuron models.
+
+* reverted `pyNN.nest` to reading/resetting the current time from the kernel rather than keeping track of it within PyNN. NEST warns that this is dangerous, but all the tests pass, so let's wait and see.
+
+* In `HH_cond_exp`, conductances are now in µS, as for all other conductances in PyNN, instead of nS. 
+
+* NEURON now supports Tsodyks-Markram synapses for current-based exponential synapses (before it was only for conductance-based).
+
+* NEURON backend now supports the IF_cond_exp_gsfa_grr model.
 
 * Simplification of the record_X() methods. With the addition of the
   `PopulationView` class, the selection logic implemented by the `record_from`

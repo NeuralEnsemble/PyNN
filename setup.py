@@ -40,13 +40,13 @@ class build(_build):
       
 setup(
     name = "PyNN",
-    version = "0.7pre",
+    version = "0.7.0",
     package_dir={'pyNN': 'src'},
     packages = ['pyNN','pyNN.nest', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.brian',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels', 'pyNN.pcsim.standardmodels',
                 'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels'],
-    package_data = {'pyNN': ['neuron/nmodl/*.hoc', 'neuron/nmodl/*.mod', "descriptions/templates/*/*"]},
+    package_data = {'pyNN': ['neuron/nmodl/*.mod', "descriptions/templates/*/*"]},
     author = "The NeuralEnsemble Community",
     author_email = "pynn@neuralensemble.org",
     description = "A Python package for simulator-independent specification of neuronal network models",
