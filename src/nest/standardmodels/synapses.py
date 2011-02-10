@@ -40,7 +40,10 @@ class SynapseDynamics(SynapseDynamics):
         elif self.slow:
             stdp_parameters = self.slow.all_parameters
             # NEST does not support w_min != 0
-            stdp_parameters.pop("w_min_always_zero_in_NEST")
+	    try:
+            	stdp_parameters.pop("w_min_always_zero_in_NEST")
+	    except Exception:
+		pass
             # Tau_minus is a parameter of the post-synaptic cell, not of the connection
             stdp_parameters.pop("tau_minus")
             synapse_defaults.update(stdp_parameters)                

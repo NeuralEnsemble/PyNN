@@ -295,6 +295,8 @@ class Recorder(recording.Recorder):
         else:
             spikes = self._get(gather=False, compatible_output=False,
                                filter=filter)
+            for id in self.filter_recorded(filter):
+                N[id] = 0
             ids   = numpy.sort(spikes[:,0].astype(int))
             idx   = numpy.unique(ids)
             left  = numpy.searchsorted(ids, idx, 'left')
