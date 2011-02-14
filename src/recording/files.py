@@ -85,7 +85,7 @@ class BaseFile(object):
         self.name = filename
         self.mode = mode
         dir = os.path.dirname(filename)
-        if not os.path.exists(dir):
+        if dir and not os.path.exists(dir):
             os.makedirs(dir)
         try: ## Need this because in parallel, file names are changed
             self.fileobj = open(self.name, mode, DEFAULT_BUFFER_SIZE)
