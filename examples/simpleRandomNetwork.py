@@ -8,15 +8,9 @@ August 2006, November 2009
 $Id$
 """
 
-import logging
-import socket
-import os
+import socket, os
 
-del os.environ['DISPLAY']
-
-from pyNN.utility import get_script_args, init_logging
-
-logger = logging.getLogger("PyNN")
+from pyNN.utility import get_script_args
 
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)

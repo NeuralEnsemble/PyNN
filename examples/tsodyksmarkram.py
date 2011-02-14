@@ -13,7 +13,7 @@ from pyNN.utility import get_script_args
 simulator_name = get_script_args(1)[0]  
 exec("import pyNN.%s as sim" % simulator_name)
 
-sim.setup(debug=True, quit_on_end=False)
+sim.setup(quit_on_end=False)
 
 spike_source = sim.Population(1, sim.SpikeSourceArray,
                               {'spike_times': numpy.arange(10, 100, 10)})

@@ -84,13 +84,20 @@ class BaseFile(object):
         """
         self.name = filename
         self.mode = mode
+        dir = os.path.dirname(filename)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
         try: ## Need this because in parallel, file names are changed
             self.fileobj = open(self.name, mode, DEFAULT_BUFFER_SIZE)
-        except Exception:
-            pass
+        except Exception, err:
+            self.open_error = err
 
     def __del__(self):
         self.close()
+
+    def _check_open(self):
+        if not hasattr(self, 'fileobj'):
+            raise self.open_error
 
     def rename(self, filename):
         self.close()
@@ -134,6 +141,7 @@ class StandardTextFile(BaseFile):
     
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
+        self._check_open()
         # can we write to the file more than once? In this case, should use seek,tell
         # to always put the header information at the top?
         # write header
@@ -145,6 +153,7 @@ class StandardTextFile(BaseFile):
         self.fileobj.close()
 
     def read(self):
+        self._check_open()
         return numpy.loadtxt(self.fileobj)
         
 
@@ -155,16 +164,19 @@ class PickleFile(BaseFile):
     
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
+        self._check_open()
         pickle.dump((data, metadata), self.fileobj)
         
     def read(self):
         __doc__ = BaseFile.read.__doc__
+        self._check_open()
         data = pickle.load(self.fileobj)[0]
         self.fileobj.seek(0)
         return data
     
     def get_metadata(self):
         __doc__ = BaseFile.get_metadata.__doc__
+        self._check_open()
         metadata = pickle.load(self.fileobj)[1]
         self.fileobj.seek(0)
         return metadata
@@ -178,17 +190,20 @@ class NumpyBinaryFile(BaseFile):
     
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
+        self._check_open()
         metadata_array = numpy.array(metadata.items())
         savez(self.fileobj, data=data, metadata=metadata_array)
         
     def read(self):
         __doc__ = BaseFile.read.__doc__
+        self._check_open()
         data = numpy.load(self.fileobj)['data']
         self.fileobj.seek(0)
         return data
     
     def get_metadata(self):
         __doc__ = BaseFile.get_metadata.__doc__
+        self._check_open()
         D = {}
         for name,value in numpy.load(self.fileobj)['metadata']:
             try:

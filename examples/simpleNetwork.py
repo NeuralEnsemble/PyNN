@@ -27,7 +27,7 @@ spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/rate, size=nu
 assert spike_times.max() > tstop
 print spike_times.min()
 
-input_population  = Population(1, SpikeSourceArray, {'spike_times': spike_times }, label="input")
+input_population  = Population(1, SpikeSourceArray, {'spike_times': spike_times}, label="input")
 
 projection = Projection(input_population, output_population, AllToAllConnector())
 projection.setWeights(1.0)
