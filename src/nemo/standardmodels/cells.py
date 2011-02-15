@@ -22,7 +22,8 @@ class IzhikevichTemplate(StandardCellType):
     default_initial_values = {
         'v': -65.0, 
         'u': 1.0
-    }
+    }        
+
 
 
 class Izhikevich(IzhikevichTemplate):
@@ -33,6 +34,10 @@ class Izhikevich(IzhikevichTemplate):
         ('c',    'c'),
         ('d',    'd')
     )
+
+    indices = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
+
+
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     

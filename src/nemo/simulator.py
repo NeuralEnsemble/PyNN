@@ -126,7 +126,13 @@ class ID(int, common.IDMixin):
             return {'rate' : self.player.rate, 'duration' : self.player.duration, 
                     'start' : self.player.start}
         else:
-            pass
+            params = {}
+            for key, value in self.celltype.indices.items():
+                if state.simulation is None:
+                    params[key] = state.net.get_neuron_parameter(self, value) 
+                else:
+                    params[key] = state.sim.get_neuron_parameter(self, value)
+            return params
 
     def set_native_parameters(self, parameters):
         if isinstance(self.celltype, SpikeSourceArray):
@@ -136,6 +142,12 @@ class ID(int, common.IDMixin):
             parameters['precision'] = state.dt
             self.player.reset(**parameters)    
         else:
+            indices = self.celltype.indices.items()
+#            for key, value in parameters:
+#                if state.simulation is None:
+#                    params[key] = state.net.set_neuron(self, indices[key]) 
+#                else:
+#                    params[key] = state.sim.set_neuron(self, indices[key])
             pass
 
     def set_initial_value(self, variable, value):

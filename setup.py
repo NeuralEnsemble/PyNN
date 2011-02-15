@@ -45,7 +45,7 @@ setup(
     packages = ['pyNN','pyNN.nest', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.brian', 'pyNN.nemo',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels', 'pyNN.pcsim.standardmodels',
-                'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels'],
+                'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels', 'pyNN.nemo.standardmodels'],
     package_data = {'pyNN': ['neuron/nmodl/*.mod', "descriptions/templates/*/*"]},
     author = "The NeuralEnsemble Community",
     author_email = "pynn@neuralensemble.org",
