@@ -26,12 +26,9 @@ modules.
 $Id: simulator.py 926 2011-02-03 13:44:28Z apdavison $
 """
 
-import logging
-import nemo
-import numpy
+import nemo, numpy, logging, sys
 from itertools import izip
-import scipy.sparse
-from pyNN import common, errors, core
+from pyNN import common, errors, core, utility
 from pyNN.nemo.standardmodels.cells import SpikeSourceArray, SpikeSourcePoisson
 
 # Global variables
@@ -58,6 +55,10 @@ class _State(object):
         self.dt            = timestep
         self.simulation    = None
         self.stdp          = None
+        self.verbose       = True
+
+    def progressbar(self, N):
+        self.prog = utility.ProgressBar(0, N, 20, mode='fixed')        
 
     @property
     def sim(self):
@@ -82,6 +83,9 @@ class _State(object):
 
     def run(self, simtime):
         self.simulation = nemo.Simulation(self.net, self.conf)
+        if self.verbose:
+            self.progressbar(simtime)
+        
         for t in numpy.arange(0, simtime, self.dt):
             spikes   = []
             currents = [] 
@@ -89,7 +93,8 @@ class _State(object):
                 if source.player.next_spike == t:
                     source.player.update()                    
                     spikes += [source]
-
+            for currents in current_sources:
+                currents.
             fired = numpy.sort(self.sim.step(spikes, currents)) 
             if self.stdp:
                 self.simulation.apply_stdp(1.0)
@@ -97,7 +102,11 @@ class _State(object):
                 if recorder.variable is "spikes":
                     recorder._add_spike(fired, self.t)
                 if recorder.variable is "v":
-                    recorder._add_vm(self.t)                
+                    recorder._add_vm(self.t)
+            if self.verbose:                
+                self.prog.update_amount(t)
+                print self.prog, "\r",
+                sys.stdout.flush()
     
     @property
     def next_id(self):        
@@ -143,18 +152,25 @@ class ID(int, common.IDMixin):
             self.player.reset(**parameters)    
         else:
             indices = self.celltype.indices.items()
-#            for key, value in parameters:
-#                if state.simulation is None:
-#                    params[key] = state.net.set_neuron(self, indices[key]) 
-#                else:
-#                    params[key] = state.sim.set_neuron(self, indices[key])
-            pass
-
+            for key, value in parameters:
+                if state.simulation is None:
+                    state.net.set_neuron(self, indices[key], value) 
+                else:
+                    state.sim.set_neuron(self, indices[key], value)
+            
     def set_initial_value(self, variable, value):
-        pass
-    
+        indices = self.celltype.indices.items()
+        if state.simulation is None:
+            state.net.set_neuron_state(self, indices[variable], value) 
+        else:
+            state.sim.set_neuron_state(self, indices[variable], value)
+            
     def get_initial_value(self, variable):
-        pass
+        index = self.celltype.initial_indices[variable]
+        if state.simulation is None:
+            return state.net.get_neuron_state(self, index) 
+        else:
+            return state.sim.get_neuron_state(self, index)
 
 
 class Connection(object):
@@ -266,7 +282,7 @@ class ConnectionManager(object):
             
         source = int(source)
         for target, w, d in zip(targets, weights, delays):
-            syn = state.net.add_synapse(source, int(target), int(d), w, self.is_plastic)
+            syn = state.net.add_synapse(source, target, int(d), w, self.is_plastic)
             self.connections.append(Connection(source, syn))    
         
     def get(self, parameter_name, format):

@@ -109,7 +109,7 @@ class Population(common.Population, common.BasePopulation):
             for idx in self.all_cells:
                 player = SpikeSourcePoisson.spike_player(**params)
                 setattr(idx, 'player', player)
-                simulator.state.net.add_neuron(int(idx), 0.02, 0.1, -80, 2, -80., 0., 0.)
+                simulator.state.net.add_neuron(int(idx), 0., 0., -80., 0, 0., -80., 0.)
         elif isinstance(celltype, SpikeSourceArray):
             ### For the moment, we model spike_source_array and spike_source_poisson
             ### as hyperpolarized neurons that are forced to fire, but this could be
@@ -120,7 +120,7 @@ class Population(common.Population, common.BasePopulation):
             for idx in self.all_cells:
                 player = SpikeSourceArray.spike_player(**params)
                 setattr(idx, 'player', player)
-                simulator.state.net.add_neuron(int(idx), 0.02, 0.1, -80, 2., -80., 0, 0)
+                simulator.state.net.add_neuron(int(idx), 0., 0., -80., 0., -0., -80, 0)
         else:            
             ## Currently, we only have the Izhikevitch model...
             init = celltype.default_initial_values

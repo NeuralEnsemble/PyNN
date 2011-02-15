@@ -37,7 +37,7 @@ class Izhikevich(IzhikevichTemplate):
 
     indices = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
 
-
+    initial_indices = {'u' : 0, 'v' : 1}
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     
