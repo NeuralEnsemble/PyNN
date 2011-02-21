@@ -4,7 +4,8 @@ Synapse Dynamics classes for the nemo module.
 $Id: synapses.py 888 2011-01-04 15:17:54Z pierre $
 """
 
-from pyNN import standardmodels, synapses
+from pyNN import standardmodels
+from pyNN.standardmodels import synapses
 import numpy
 
 SynapseDynamics = standardmodels.SynapseDynamics

@@ -93,8 +93,8 @@ class _State(object):
                 if source.player.next_spike == t:
                     source.player.update()                    
                     spikes += [source]
-            for currents in current_sources:
-                currents.
+            #for currents in current_sources:
+            #    currents.
             fired = numpy.sort(self.sim.step(spikes, currents)) 
             if self.stdp:
                 self.simulation.apply_stdp(1.0)
@@ -144,6 +144,7 @@ class ID(int, common.IDMixin):
             return params
 
     def set_native_parameters(self, parameters):
+        print parameters
         if isinstance(self.celltype, SpikeSourceArray):
             parameters['precision'] = state.dt
             self.player.reset(**parameters)
@@ -151,12 +152,12 @@ class ID(int, common.IDMixin):
             parameters['precision'] = state.dt
             self.player.reset(**parameters)    
         else:
-            indices = self.celltype.indices.items()
-            for key, value in parameters:
+            indices = self.celltype.indices
+            for key, value in parameters.items():
                 if state.simulation is None:
-                    state.net.set_neuron(self, indices[key], value) 
+                    state.net.set_neuron_parameter(self, indices[key], value) 
                 else:
-                    state.sim.set_neuron(self, indices[key], value)
+                    state.sim.set_neuron_parameter(self, indices[key], value)
             
     def set_initial_value(self, variable, value):
         indices = self.celltype.indices.items()
@@ -279,11 +280,14 @@ class ConnectionManager(object):
                 raise errors.ConnectionError("Invalid target ID: %s" % target)
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
         synapse_type = self.synapse_type or "excitatory"
-            
-        source = int(source)
-        for target, w, d in zip(targets, weights, delays):
-            syn = state.net.add_synapse(source, target, int(d), w, self.is_plastic)
-            self.connections.append(Connection(source, syn))    
+        if isinstance(delays, numpy.ndarray):
+            delays = delays.astype(int).tolist()
+        if isinstance(weights, numpy.ndarray):
+            weights = weights.tolist()    
+        source   = int(source)
+        synapses = state.net.add_synapse(source, targets, delays, weights, self.is_plastic)
+        #for syn in synapses:            
+        #    self.connections.append(Connection(source, syn))    
         
     def get(self, parameter_name, format):
         """
