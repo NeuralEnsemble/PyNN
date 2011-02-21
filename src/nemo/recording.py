@@ -1,5 +1,4 @@
 import numpy
-import brian
 from pyNN import recording
 from pyNN.nemo import simulator
 import logging
