@@ -103,8 +103,6 @@ class Population(common.Population, common.BasePopulation):
             cell.parent = self
         if isinstance(celltype, SpikeSourcePoisson):    
             simulator.spikes_array_list += self.all_cells.tolist()
-            if params['duration'] > 1e6:
-                params['duration'] = 1000
             params['precision'] = simulator.state.dt
             for idx in self.all_cells:
                 player = SpikeSourcePoisson.spike_player(**params)

@@ -52,7 +52,8 @@ class Recorder(recording.Recorder):
         elif self.variable == 'v':
             data   = numpy.empty((0,3))
             N      = len(self.times)
-            for id, vm in zip(filtered_ids, self.data[id]):
+            for id in filtered_ids:
+                vm       = self.data[id]
                 new_data = numpy.array([numpy.ones(N)*id, self.times, vm]).T
                 data = numpy.concatenate((data, new_data))                    
         return data

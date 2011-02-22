@@ -90,9 +90,14 @@ class _State(object):
             spikes   = []
             currents = [] 
             for source in spikes_array_list:
-                if source.player.next_spike == t:
-                    source.player.update()                    
-                    spikes += [source]
+                if isinstance(source.celltype, SpikeSourcePoisson):
+                    if source.player.do_spike(t):
+                        spikes += [source]
+                elif isinstance(source.celltype, SpikeSourceArray):
+                    if source.player.next_spike == t:
+                        source.player.update()                    
+                        spikes += [source]
+
             #for currents in current_sources:
             #    currents.
             fired = numpy.sort(self.sim.step(spikes, currents)) 
@@ -285,6 +290,10 @@ class ConnectionManager(object):
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()    
         source   = int(source)
+        if len(targets) == 1:
+            targets = int(targets[0])
+            delays  = int(delays[0])
+            weights = weights[0]
         synapses = state.net.add_synapse(source, targets, delays, weights, self.is_plastic)
         #for syn in synapses:            
         #    self.connections.append(Connection(source, syn))    
