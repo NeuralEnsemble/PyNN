@@ -149,7 +149,7 @@ class StandardTextFile(BaseFile):
         self.fileobj.write("\n".join(header_lines) + '\n')
         # write data
         savetxt = getattr(numpy, 'savetxt', _savetxt)
-        savetxt(self.fileobj, data, fmt='%s', delimiter='\t')
+        savetxt(self.fileobj, data, fmt='%r', delimiter='\t')
         self.fileobj.close()
 
     def read(self):
