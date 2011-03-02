@@ -776,7 +776,7 @@ class SmallWorldConnector(Connector):
     parameter_names = ('allow_self_connections', 'degree', 'rewiring')
     
     def __init__(self, degree, rewiring, allow_self_connections=True,
-                 weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
+                 weights=0.0, delays=None, space=Space(), safe=True, verbose=False, n_connections=None):
         """
         Create a new connector.
         
@@ -787,6 +787,7 @@ class SmallWorldConnector(Connector):
             Population to itself, this flag determines whether a neuron is
             allowed to connect to itself, or only to other neurons in the
             Population.        
+        `n_connections`  -- The number of efferent synaptic connections per neuron. 
         `weights` -- may either be a float, a RandomDistribution object, a list/
                      1D array with at least as many items as connections to be
                      created, or a DistanceDependence object. Units nA.
@@ -799,8 +800,9 @@ class SmallWorldConnector(Connector):
         self.rewiring               = rewiring    
         self.d_expression           = "d < %g" %degree        
         self.allow_self_connections = allow_self_connections
+        self.n_connections          = n_connections
         
-    def _smallworld_connect(self, src, p):
+    def _smallworld_connect(self, src, p, n_connections=None):
         """
         Connect-up a Projection with connection probability p, where p may be either
         a float 0<=p<=1, or a dict containing a float array for each pre-synaptic
@@ -810,24 +812,33 @@ class SmallWorldConnector(Connector):
         rarr = self.probas_generator.get(self.N)
         if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
             rarr = numpy.array([rarr])
-        create = numpy.where(rarr < p)[0]  
+        precreate = numpy.where(rarr < p)[0]  
         self.distance_matrix.set_source(src.position)        
         
         if not self.allow_self_connections and self.projection.pre == self.projection.post:
-            i       = numpy.where(self.candidates == src)[0]
-            create  = numpy.delete(create, i)        
+            i         = numpy.where(self.candidates == src)[0]
+            precreate = numpy.delete(precreate, i)        
         
         idx = numpy.arange(0, self.size)
         if not self.allow_self_connections and self.projection.pre == self.projection.post:
             i   = numpy.where(self.candidates == src)[0]
             idx = numpy.delete(idx, i)
         
-        rarr    = self.probas_generator.get(self.N)[create]
+        rarr    = self.probas_generator.get(self.N)[precreate]
         rewired = numpy.where(rarr < self.rewiring)[0]
         N       = len(rewired)
         if N > 0:
-            new_idx         = (len(idx)-1) * self.probas_generator.get(self.N)[create]
-            create[rewired] = idx[new_idx.astype(int)]
+            new_idx            = (len(idx)-1) * self.probas_generator.get(self.N)[precreate]
+            precreate[rewired] = idx[new_idx.astype(int)]
+        
+        if (n_connections is not None) and (len(precreate) > 0):            
+            create = numpy.array([], int)
+            while len(create) < n_connections: # if the number of requested cells is larger than the size of the
+                                               ## presynaptic population, we allow multiple connections for a given cell
+                create = numpy.concatenate((create, self.projection.rng.permutation(precreate)))
+            create = create[:n_connections]
+        else:
+            create = precreate 
 
         targets = self.candidates[create]
         weights = self.weights_generator.get(self.N, self.distance_matrix, create)
@@ -856,7 +867,7 @@ class SmallWorldConnector(Connector):
         for count, src in enumerate(projection.pre.all()):     
             self.distance_matrix.set_source(src.position)
             proba = proba_generator.get(self.N, self.distance_matrix).astype(float)
-            self._smallworld_connect(src, proba)
+            self._smallworld_connect(src, proba, self.n_connections)
             self.progression(count)
 
 

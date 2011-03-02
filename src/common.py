@@ -1350,7 +1350,20 @@ class Assembly(object):
         else:
             raise TypeError("can only add a Population or another Assembly to an Assembly")
         return self
-        
+    
+    def sample(self, n, rng=None):
+        """
+        Randomly sample n cells from the Assembly, and return a Assembly
+        object.
+        """
+        assert isinstance(n, int)
+        if not rng:
+            rng = random.NumpyRNG()
+        indices = rng.permutation(numpy.arange(len(self)))[0:n]
+        logger.debug("The %d cells recorded have indices %s" % (n, indices))
+        logger.debug("%s.sample(%s)", self.label, n)
+        return self[indices]
+    
     def initialize(self, variable, value):
         """
         Set the initial value of one of the state variables of the neurons in

@@ -159,5 +159,5 @@ class FastSmallWorldConnector(SmallWorldConnector):
         for count, tgt in enumerate(projection.post.local_cells):
             connector.distance_matrix.set_source(tgt.position)
             proba  = proba_generator.get(connector.N, connector.distance_matrix).astype(float)
-            connector._probabilistic_connect(tgt, proba, None, self.rewiring)
+            connector._probabilistic_connect(tgt, proba, self.n_connections, self.rewiring)
             self.progression(count)
