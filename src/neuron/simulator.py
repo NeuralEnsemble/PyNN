@@ -33,7 +33,7 @@ import platform
 import logging
 import numpy
 import os.path
-from neuron import h
+from neuron import h, load_mechanisms
 
 # Global variables
 nrn_dll_loaded = []
@@ -43,20 +43,6 @@ gid_sources = []
 logger = logging.getLogger("PyNN")
 
 # --- Internal NEURON functionality -------------------------------------------- 
-
-def load_mechanisms(path=pyNN_path[0]):
-    # this now exists in the NEURON distribution, so could probably be removed
-    global nrn_dll_loaded
-    if path not in nrn_dll_loaded:
-        arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc']
-        # in case NEURON is assuming a different architecture to Python, we try multiple possibilities
-        for arch in arch_list:
-            lib_path = os.path.join(path, 'neuron', 'nmodl', arch, '.libs', 'libnrnmech.so')
-            if os.path.exists(lib_path):
-                h.nrn_load_dll(lib_path)
-                nrn_dll_loaded.append(path)
-                return
-        raise Exception("NEURON mechanisms not found in %s." % os.path.join(path, 'neuron', 'nmodl'))
 
 def is_point_process(obj):
     """Determine whether a particular object is a NEURON point process."""
@@ -567,7 +553,8 @@ class ConnectionManager(object):
 
 # --- Initialization, and module attributes ------------------------------------
 
-load_mechanisms() # maintains a list of mechanisms that have already been imported
+mech_path = os.path.join(pyNN_path[0], 'neuron', 'nmodl')
+load_mechanisms(mech_path) # maintains a list of mechanisms that have already been imported
 state = _State()  # a Singleton, so only a single instance ever exists
 del _State
 initializer = _Initializer()
