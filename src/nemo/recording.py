@@ -28,11 +28,12 @@ class Recorder(recording.Recorder):
 
     def _add_spike(self, fired, time):
          idx   = list(self.recorded)
-         left  = numpy.searchsorted(fired, idx, 'left')
-         right = numpy.searchsorted(fired, idx, 'right')
-         for id, l, r in zip(idx, left, right):
-            if l != r:
-                self.data[id] += [time]
+         if len(fired > 0):
+             left  = numpy.searchsorted(fired, idx, 'left')
+             right = numpy.searchsorted(fired, idx, 'right')
+             for id, l, r in zip(idx, left, right):
+                if l != r:
+                    self.data[id] += [time]
         ## To file or memory ? ###
 
     def _add_vm(self, time):

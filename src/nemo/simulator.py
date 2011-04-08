@@ -101,8 +101,10 @@ class _State(object):
             #for currents in current_sources:
             #    currents.
             fired = numpy.sort(self.sim.step(spikes, currents)) 
+
             if self.stdp:
                 self.simulation.apply_stdp(1.0)
+
             for recorder in recorder_list:
                 if recorder.variable is "spikes":
                     recorder._add_spike(fired, self.t)
@@ -149,7 +151,6 @@ class ID(int, common.IDMixin):
             return params
 
     def set_native_parameters(self, parameters):
-        print parameters
         if isinstance(self.celltype, SpikeSourceArray):
             parameters['precision'] = state.dt
             self.player.reset(**parameters)
@@ -185,30 +186,29 @@ class Connection(object):
     and other attributes.
     """
     
-    def __init__(self, source, synapse):
+    def __init__(self, synapse):
         """
         Create a new connection.
         
         """
         # the index is the nth non-zero element
-        self.source  = source
         self.synapse = synapse 
 
     @property
     def target(self):
-        return state.sim.get_targets([self.synapse])[0]
+        return state.sim.get_synapse_target([self.synapse])[0]
 
     def _set_weight(self, w):
         pass
 
     def _get_weight(self):
-        return state.sim.get_weights([self.synapse])[0]
+        return state.sim.get_synapse_weight([self.synapse])[0]
 
     def _set_delay(self, d):
         pass
 
     def _get_delay(self):
-        return state.sim.get_delays([self.synapse])[0]
+        return state.sim.get_synapse_delay([self.synapse])[0]
         
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
@@ -233,20 +233,21 @@ class ConnectionManager(object):
         self.synapse_type      = synapse_type
         self.synapse_model     = synapse_model
         self.parent            = parent
-        self.connections       = []
+        self.sources           = []
         self.is_plastic        = False
         if self.synapse_model is "stdp_synapse":
             self.is_plastic = True
+        self._connections = None
         
     def __getitem__(self, i):
         if isinstance(i, int):
             if i < len(self):
-                return self.connections[i]
+                return Connection(self.connections[i])
             else:
                 raise IndexError("%d > %d" % (i, len(self)-1))
         elif isinstance(i, slice):
             if i.stop < len(self):
-                return [self.connections[j] for j in range(i.start, i.stop, i.step or 1)]
+                return [Connection(self.connections[j]) for j in range(i.start, i.stop, i.step or 1)]
             else:
                 raise IndexError("%d > %d" % (i.stop, len(self)-1))
     
@@ -258,7 +259,15 @@ class ConnectionManager(object):
         """Return an iterator over all connections on the local MPI node."""
         for i in range(len(self)):
             yield self[i]
-        
+    
+    @property
+    def connections(self):
+        if self._connections is None:
+            self._connections = []
+            for source in numpy.unique(self.sources):
+                self._connections += list(state.net.get_synapses_from(source))
+        return self._connections
+    
     def connect(self, source, targets, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
@@ -295,8 +304,7 @@ class ConnectionManager(object):
             delays  = int(delays[0])
             weights = weights[0]
         synapses = state.net.add_synapse(source, targets, delays, weights, self.is_plastic)
-        #for syn in synapses:            
-        #    self.connections.append(Connection(source, syn))    
+        self.sources.append(source)
         
     def get(self, parameter_name, format):
         """
@@ -318,9 +326,9 @@ class ConnectionManager(object):
 
         if format == 'list':
             if parameter_name is "weight":
-                values = list(state.sim.get_weights([conn.synapse for conn in self.connections]))
+                values = list(state.sim.get_synapse_weight(self.connections))
             if parameter_name is "delay":
-                values = list(state.sim.get_delays([conn.synapse for conn in self.connections]))
+                values = list(state.sim.get_synapse_delay(self.connections))
         elif format == 'array':
             value_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
             sources  = [i.source for i in self]

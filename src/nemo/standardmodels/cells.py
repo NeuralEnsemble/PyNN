@@ -39,6 +39,8 @@ class Izhikevich(IzhikevichTemplate):
 
     initial_indices = {'u' : 0, 'v' : 1}
 
+
+
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     
     translations = build_translations(
@@ -55,11 +57,13 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
             self.duration    = duration
             self.rng         = numpy.random.RandomState()
             self.precision   = precision
-            
+            self.rate_Hz     = self.rate * self.precision/1000.
+            self.stop_time   = self.start + self.duration
+    
         def do_spike(self, t):
-            if (t > self.start + self.duration) or (t < self.start):
+            if (t > self.stop_time) or (t < self.start):
                 return False
-            return (self.rng.rand() < self.rate * self.precision/1000.)
+            return (self.rng.rand() < self.rate_Hz)
         
         def reset(self, rate=None, start=None, duration=None, precision=1):
             if rate is not None:
@@ -68,6 +72,8 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
                 self.start   = start
             if duration is not None:
                 self.duration= duration
+            self.rate_Hz     = self.rate * self.precision/1000.
+            self.stop_time   = self.start + self.duration
 
     def __init__(self, parameters):
         cells.SpikeSourcePoisson.__init__(self, parameters) 
