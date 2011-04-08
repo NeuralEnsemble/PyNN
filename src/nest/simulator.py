@@ -266,10 +266,14 @@ class ConnectionManager:
                                             # after creating the Projection, tau_psc ought to be changed as well.
             assert self.synapse_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
             logger.debug("setting tau_psc")
-            for c in self:
-                tau_psc = getattr(c.target, "tau_syn_%s" % self.synapse_type[0].upper()) # hack
-                c._tau_psc = tau_psc
-    
+            targets = nest.GetStatus(self.connections, 'target')            
+            if self.synapse_type == 'inhibitory':
+                param_name = self[0].target.celltype.translations['tau_syn_E']['translated_name']
+            if self.synapse_type == 'excitatory':
+               param_name = self[0].target.celltype.translations['tau_syn_I']['translated_name']
+            tau_syn = nest.GetStatus(targets, (param_name))[0]
+            nest.SetStatus(self.connections, {'tau_psc' : tau_syn})    
+
     def connect(self, source, targets, weights, delays):
         """
         Connect a neuron to one or more other neurons.
@@ -291,7 +295,7 @@ class ConnectionManager:
         
         if self.synapse_type not in targets[0].celltype.synapse_types:
             raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: %s" % ( self.synapse_type, "'"+"', '".join(st for st in targets[0].celltype.synapse_types or ['*No connections supported*']))+"'" )
-        weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+        weights = numpy.array(weights)*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
         if self.synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
@@ -336,7 +340,7 @@ class ConnectionManager:
         assert len(sources) > 0, sources
         if self.synapse_type not in ('excitatory', 'inhibitory', None):
             raise errors.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
-        weights = weights*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+        weights = numpy.array(weights)*1000.0# weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
         if self.synapse_type == 'inhibitory' and common.is_conductance(target):

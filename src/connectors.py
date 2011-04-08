@@ -80,7 +80,11 @@ class ConnectionAttributeGenerator(object):
             node will be smaller.
         distance_matrix - a DistanceMatrix object, used for calculating
                           distance-dependent attributes.
-        sub-mask - a list of cell ids. I don't know what this is for. Pierre?
+        sub-mask - a sublist of the ids we want compute some values with. For
+                   example in parallel, distances shoudl be computed only between a source
+                   and local targets, since only connections with those targets are established. 
+                   Avoid useless computations...                 
+                   
         """
         if isinstance(self.source, basestring):
             assert distance_matrix is not None            
@@ -105,7 +109,10 @@ class ConnectionAttributeGenerator(object):
             if sub_mask is None:
                 values = self.source.next(N, mask_local=self.local_mask)
             else:
-                values = self.source.next(N, mask_local=self.local_mask)[sub_mask]
+                data  = self.source.next(N, mask_local=self.local_mask)
+                if type(data) == numpy.float64:
+                    data = numpy.array([data])
+                values = data[sub_mask]
             return values
         elif isinstance(self.source, numpy.ndarray):
             if len(self.source.shape) == 2:
@@ -762,7 +769,7 @@ class OneToOneConnector(Connector):
                         
             for tgt, src, w, d in zip(projection.post.local_cells, sources, weights, delays):
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
-                projection.connection_manager.connect(src, [tgt], float(w), float(d))
+                projection.connection_manager.connect(src, [tgt], [float(w)], [float(d)])
                 self.progression(count)
                 count += 1
         else:
