@@ -4,7 +4,7 @@ from pyNN.neuron import simulator
 import re
 from neuron import h
 
-recordable_pattern = re.compile(r'(?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.(?P<var>\w+)')
+recordable_pattern = re.compile(r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.)?(?P<var>\w+)')
 
 # --- For implementation of record_X()/get_X()/print_X() -----------------------
 
@@ -42,11 +42,14 @@ class Recorder(recording.Recorder):
         match = recordable_pattern.match(self.variable)
         if match:
             parts = match.groupdict()
-            section = getattr(id._cell, parts['section'])
-            if parts['location']:
-                segment = section(float(parts['location']))
+            if parts['section']:
+                section = getattr(id._cell, parts['section'])
+                if parts['location']:
+                    segment = section(float(parts['location']))
+                else:
+                    segment = section
             else:
-                segment = section
+                segment = id._cell.source
             id._cell.traces[self.variable] = vec = h.Vector()
             vec.record(getattr(segment, "_ref_%s" % parts['var']))
             if not id._cell.recording_time:

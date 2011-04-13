@@ -26,15 +26,24 @@ parameters = {
 }
 
 #celltype = celltype_cls(parameters)
-
 #cell = celltype.model(**celltype.parameters)
-cells = sim.Population(1, celltype_cls, parameters)
 
-input = sim.Population(1, sim.SpikeSourcePoisson, {'rate': 50})
+cells = sim.Population(1, celltype_cls, parameters)
+cells.initialize('V', parameters['vL'])
+cells.initialize('t_spike', -1e99) # neuron not refractory at start
+
+input = sim.Population(1, sim.SpikeSourcePoisson, {'rate': 100})
 
 connector = sim.OneToOneConnector(weights=0.1, delays=0.5)
 conn = sim.Projection(input, cells, connector, target='excitatory')
 
-# for this to work, need to set nc.weight[1] to the correct value for 'excitatory' (0 in this case)
+cells._record('V')
+cells._record('g')
+cells.record()
 
-print "ok so far"
+sim.run(100.0)
+
+cells.recorders['V'].write("Results/nineml_neuron.V", filter=[cells[0]])
+cells.recorders['g'].write("Results/nineml_neuron.g", filter=[cells[0]])
+
+sim.end()

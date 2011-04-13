@@ -102,7 +102,7 @@ class _Initializer(object):
         """
         h('objref initializer')
         h.initializer = self
-        self.fih = h.FInitializeHandler(0, "initializer._initialize()")
+        self.fih = h.FInitializeHandler(1, "initializer._initialize()")
         self.clear()
     
     def register(self, *items):
@@ -405,6 +405,12 @@ class ConnectionManager(object):
         """Return an iterator over all connections on the local MPI node."""
         return iter(self.connections)
     
+    def _resolve_synapse_type(self):
+        if self.synapse_type is None:
+            self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
+        if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
+            self.synapse_type += '_TM'  
+    
     def connect(self, source, targets, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
@@ -431,12 +437,9 @@ class ConnectionManager(object):
                 raise errors.ConnectionError("Invalid target ID: %s" % target)
               
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets), len(weights), len(delays))
+        self._resolve_synapse_type()
         for target, weight, delay in zip(targets, weights, delays):
             if target.local:
-                if self.synapse_type is None:
-                    self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
-                if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
-                    self.synapse_type += '_TM'        
                 if "." in self.synapse_type: 
                     section, synapse_type = self.synapse_type.split(".") 
                     synapse_object = getattr(getattr(target._cell, section), synapse_type) 
@@ -444,6 +447,11 @@ class ConnectionManager(object):
                     synapse_object = getattr(target._cell, self.synapse_type) 
                 nc = state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
+                
+                # if we have a mechanism (e.g. from 9ML that includes multiple
+                # synaptic channels, need to set nc.weight[1] here
+                if nc.wcnt() > 1:
+                    nc.weight[1] = target._cell.type.synapse_types.index(self.synapse_type)
                 nc.delay  = delay
                 # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
                 self.connections.append(Connection(source, target, nc))
