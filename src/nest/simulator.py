@@ -268,9 +268,9 @@ class ConnectionManager:
             logger.debug("setting tau_psc")
             targets = nest.GetStatus(self.connections, 'target')            
             if self.synapse_type == 'inhibitory':
-                param_name = self[0].target.celltype.translations['tau_syn_I']['translated_name']
+                param_name = self.parent.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
             if self.synapse_type == 'excitatory':
-               param_name = self[0].target.celltype.translations['tau_syn_E']['translated_name']
+                param_name = self.parent.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
             tau_syn = nest.GetStatus(targets, (param_name))[0]
             nest.SetStatus(self.connections, {'tau_psc' : tau_syn})    
 
