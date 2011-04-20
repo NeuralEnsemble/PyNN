@@ -59,11 +59,19 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
             self.precision   = precision
             self.rate_Hz     = self.rate * self.precision/1000.
             self.stop_time   = self.start + self.duration
+            self.buffer      = 1000           
+            self.do_spikes   = self.rng.rand(self.buffer) < self.rate_Hz
+            self.idx         = 0
     
         def do_spike(self, t):
             if (t > self.stop_time) or (t < self.start):
                 return False
-            return (self.rng.rand() < self.rate_Hz)
+            else:
+                if self.idx == (self.buffer - 1):
+                    self.do_spikes = self.rng.rand(self.buffer) < self.rate_Hz
+                    self.idx       = 0
+                self.idx += 1
+                return self.do_spikes[self.idx]
         
         def reset(self, rate=None, start=None, duration=None, precision=1):
             if rate is not None:
@@ -86,8 +94,10 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     )
 
     class spike_player(object):
+
+        precision = 1
         
-        def __init__(self, spike_times=[], precision=1.):
+        def __init__(self, spike_times=[], precision=1):
             self.spike_times = precision * numpy.round(spike_times/precision)        
             self.spike_times = numpy.unique(numpy.sort(self.spike_times))
             self.cursor      = 0
@@ -103,7 +113,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
         def update(self):
             self.cursor += 1
 
-        def reset(self, spike_times):
+        def reset(self, spike_times, precision):
             self.spike_times = precision * numpy.round(spike_times/precision)
             self.spike_times = numpy.unique(numpy.sort(self.spike_times))
             self.N           = len(self.spike_times)
