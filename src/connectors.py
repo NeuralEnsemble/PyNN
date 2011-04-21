@@ -323,7 +323,7 @@ class ProbabilisticConnector(Connector):
 
         self.distance_matrix.set_source(src.position)        
         if not self.allow_self_connections and self.projection.pre == self.projection.post:
-            i         = numpy.where(self.candidates == src)
+            i         = numpy.where(precreate == src)
             if len(i) > 0:
                 precreate = numpy.delete(precreate, i[0])
                 
