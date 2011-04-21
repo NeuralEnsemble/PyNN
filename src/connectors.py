@@ -323,8 +323,9 @@ class ProbabilisticConnector(Connector):
 
         self.distance_matrix.set_source(src.position)        
         if not self.allow_self_connections and self.projection.pre == self.projection.post:
-            i         = numpy.where(self.candidates == src)[0]
-            precreate = numpy.delete(precreate, i)
+            i         = numpy.where(self.candidates == src)
+            if len(i) > 0:
+                precreate = numpy.delete(precreate, i[0])
                 
         if (n_connections is not None) and (len(precreate) > 0):            
             create = numpy.array([], int)
