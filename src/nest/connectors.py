@@ -55,9 +55,11 @@ class FastProbabilisticConnector(Connector):
         self.distance_matrix.set_source(tgt.position)
         
         if not self.allow_self_connections and self.projection.pre == self.projection.post:
-            i         = numpy.where(self.candidates == tgt)
-            if len(i) > 0:
-                precreate = numpy.delete(precreate, i[0])
+            idx_tgt   = numpy.where(self.candidates == tgt)
+            if len(idx_tgt) > 0:
+                i     = numpy.where(precreate == idx_tgt[0])
+                if len(i) > 0:
+                    precreate = numpy.delete(precreate, i[0])
                 
         if (rewiring is not None) and (rewiring > 0):
             if not self.allow_self_connections and self.projection.pre == self.projection.post:
