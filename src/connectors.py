@@ -441,7 +441,7 @@ class DistanceDependentProbabilityConnector(Connector):
         `space` -- a Space object.
         `weights` -- may either be a float, a RandomDistribution object, a list/
                      1D array with at least as many items as connections to be
-                     created, or a DistanceDependence object. Units nA.
+                     created, or a distance expression as for `d_expression`. Units nA.
         `delays`  -- as `weights`. If `None`, all synaptic delays will be set
                      to the global minimum delay.
         """

@@ -187,14 +187,18 @@ class Network(object):
         projections -- a dict containing PyNN Projection objects
     """
     
-    def __init__(self, sim, nineml_file):
+    def __init__(self, sim, nineml_model):
         """
         Instantiate a network from a 9ML file, in the specified simulator.
         """
         global random_distributions
-        assert isinstance(nineml_file, basestring)
         self.sim = sim
-        self.nineml_model = nineml.parse(nineml_file)
+        if isinstance(nineml_model, basestring):
+            self.nineml_model = nineml.parse(nineml_model)
+        elif isinstance(nineml_model, nineml.Model):
+            self.nineml_model = nineml_model
+        else:
+            raise TypeError("nineml_model must be a nineml.Model instance or the path to a NineML XML file.")
         self.random_distributions = {}
         self.assemblies = {}
         self.projections = {}
@@ -206,7 +210,7 @@ class Network(object):
             
     def _handle_group(self, group):
         # create an Assembly
-        self.assemblies[group.name] = self.sim.Assembly(group.name)
+        self.assemblies[group.name] = self.sim.Assembly(label=group.name)
         
         # extract post-synaptic response definitions from projections
         self.psr_map = {}
