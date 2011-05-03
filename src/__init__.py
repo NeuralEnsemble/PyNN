@@ -69,5 +69,5 @@ Other modules:
 :license: CeCILL, see LICENSE for details.
 """
 
-__version__ = '0.7.1 ( $Rev$)'.replace(' $','')
-__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "recording", "errors", "space", "descriptions", "standardmodels"]
+__version__ = '0.8.0dev ( $Rev$)'.replace(' $','')
+__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "nemo", "moose", "nineml", "recording", "errors", "space", "descriptions", "standardmodels"]
