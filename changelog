@@ -1,4 +1,12 @@
 ====================
+Release 0.7.1 (r958)
+====================
+
+The main reason for this release is to add copyright statements, without which
+the validity of the CeCILL licence could be questioned. There are also some
+minor bug fixes.
+
+====================
 Release 0.7.0 (r929)
 ====================
 

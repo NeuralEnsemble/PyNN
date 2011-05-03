@@ -70,4 +70,4 @@ Other modules:
 """
 
 __version__ = '0.7.1 ( $Rev$)'.replace(' $','')
-__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "nemo", "recording", "errors", "space", "descriptions", "standardmodels"]
+__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "recording", "errors", "space", "descriptions", "standardmodels"]

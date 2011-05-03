@@ -5,6 +5,7 @@ include test/system/*.py
 include test/unittests/*.py
 include examples/*.py
 include doc/*.txt
-include COPYING
+include LICENSE
+include AUTHORS
 include changelog
 
