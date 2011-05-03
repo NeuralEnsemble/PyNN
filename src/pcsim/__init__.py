@@ -7,6 +7,10 @@ pypcsim implementation of the PyNN API.
     Andrew Davison   davison@unic.cnrs-gif.fr
         
     December 2006-
+
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+
 $Id$
 """
 __version__ = "$Revision$"

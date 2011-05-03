@@ -1,6 +1,10 @@
 """
 Synapse Dynamics classes for the nemo module.
 
+
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+
 $Id: synapses.py 888 2011-01-04 15:17:54Z pierre $
 """
 

@@ -5,6 +5,9 @@ Classes:
     DCSource           -- a single pulse of current of constant amplitude.
     StepCurrentSource  -- a step-wise time-varying current.
 
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+
 $Id: electrodes.py 922 2011-02-02 16:41:12Z pierre $
 """
 

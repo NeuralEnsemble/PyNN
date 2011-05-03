@@ -9,7 +9,9 @@ will actually parse them rather than using name mapping.
 
 Classes:
     Network -- container for a network model.
-    
+
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 import nineml.user_layer as nineml

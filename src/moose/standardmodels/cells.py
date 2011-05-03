@@ -1,3 +1,10 @@
+"""
+
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+"""
+
+
 from pyNN.standardmodels import build_translations, cells
 from pyNN.moose.cells import StandardIF, SingleCompHH, RandomSpikeSource, VectorSpikeSource
 from pyNN.moose.cells import mV, ms, nA, uS, nF

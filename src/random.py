@@ -12,6 +12,10 @@ Classes:
                          built-in RNG
     RandomDistribution - produces random numbers from a specific distribution
 
+
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+
 $Id:random.py 188 2008-01-29 10:03:59Z apdavison $
 """
 

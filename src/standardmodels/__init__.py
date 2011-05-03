@@ -15,7 +15,10 @@ Classes:
     STDPMechanism
     STDPWeightDependence
     STDPTimingDependence
-    
+   
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+
 """
 
 from pyNN import descriptions, errors, models

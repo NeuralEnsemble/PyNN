@@ -1,6 +1,9 @@
 """
 Synapse Dynamics classes for the neuron module.
 
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+
 $Id$
 """
 

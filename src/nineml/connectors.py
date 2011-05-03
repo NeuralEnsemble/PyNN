@@ -1,3 +1,8 @@
+"""
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+"""
+
 from pyNN import connectors
 from utility import build_parameter_set, catalog_url
 import nineml.user_layer as nineml

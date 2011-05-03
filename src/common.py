@@ -41,6 +41,9 @@ Common API implementation/base classes:
     Assembly
     Projection
 
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+
 $Id$
 """
 
@@ -1887,7 +1890,7 @@ class Projection(object):
         if max is None:
             max = weights.max()
         bins = numpy.linspace(min, max, nbins+1)
-        return numpy.histogram(weights, bins, new=True)  # returns n, bins
+        return numpy.histogram(weights, bins)  # returns n, bins
 
     def describe(self, template='projection_default.txt', engine='default'):
         """

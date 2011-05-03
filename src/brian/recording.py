@@ -1,3 +1,9 @@
+"""
+
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+"""
+
 import numpy
 import brian
 from pyNN import recording

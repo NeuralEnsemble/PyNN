@@ -11,9 +11,10 @@ sys.path.append(join(root, "lib9ml/python/examples/AL"))
 sys.path.append(join(root, "code_generation/nmodl"))                
 leaky_iaf = __import__("leaky_iaf")
 coba_synapse = __import__("coba_synapse")
+import pyNN.neuron as sim
 from pyNN.neuron.nineml import nineml_cell_type
 from pyNN.utility import init_logging
-import pyNN.neuron as sim
+
 from copy import deepcopy
 
 init_logging(None, debug=True)

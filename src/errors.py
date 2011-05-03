@@ -12,6 +12,9 @@ Defines exceptions for the PyNN API
     InvalidWeightError
     NotLocalError
     RecordingError
+    
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 class InvalidParameterValueError(ValueError):

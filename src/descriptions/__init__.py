@@ -16,6 +16,10 @@ DEFAULT_TEMPLATE_ENGINE module attribute, e.g.::
 
 from pyNN import descriptions
 descriptions.DEFAULT_TEMPLATE_ENGINE = 'jinja2'
+
+
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 import string

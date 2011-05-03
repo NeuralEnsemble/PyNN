@@ -1,6 +1,9 @@
 """
 Connection method classes for the brian module
 
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+
 $Id$
 """
 from pyNN.space import Space

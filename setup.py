@@ -14,14 +14,14 @@ class build(_build):
             print "nrnivmodl found at", nrnivmodl
             import subprocess
             p = subprocess.Popen(nrnivmodl, shell=True, stdin=subprocess.PIPE,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          close_fds=True, cwd=os.path.join(os.getcwd(), self.build_lib, 'pyNN/neuron/nmodl'))
+            stdout = p.stdout.readlines()
             result = p.wait()
             # test if nrnivmodl was successful
             if result != 0:
-                errorMsg = p.stderr.readlines()
-                print "Unable to compile NEURON extensions. Error message was:"
-                print errorMsg
+                print "Unable to compile NEURON extensions. Output was:"
+                print '  '.join([''] + stdout) # indent error msg for easy comprehension
             else:
                 print "Successfully compiled NEURON extensions."
         else:
@@ -40,14 +40,14 @@ class build(_build):
       
 setup(
     name = "PyNN",
-    version = "0.7.0",
+    version = "0.7.1",
     package_dir={'pyNN': 'src'},
-    packages = ['pyNN','pyNN.nest', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.brian', 'pyNN.nemo',
+    packages = ['pyNN','pyNN.nest', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.brian',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels', 'pyNN.pcsim.standardmodels',
-                'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels', 'pyNN.nemo.standardmodels'],
+                'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels'],
     package_data = {'pyNN': ['neuron/nmodl/*.mod', "descriptions/templates/*/*"]},
-    author = "The NeuralEnsemble Community",
+    author = "The PyNN team",
     author_email = "pynn@neuralensemble.org",
     description = "A Python package for simulator-independent specification of neuronal network models",
         long_description = """In other words, you can write the code for a model once, using the PyNN API and the Python_ programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON, NEST, PCSIM and Brian).

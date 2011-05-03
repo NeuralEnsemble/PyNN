@@ -1,6 +1,9 @@
 """
 A small framework to make it easier to run the same model on multiple
 simulators.
+
+:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 from multiprocessing import Process, Queue
