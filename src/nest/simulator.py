@@ -271,8 +271,8 @@ class ConnectionManager:
                 param_name = self.parent.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
             if self.synapse_type == 'excitatory':
                 param_name = self.parent.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
-            tau_syn = nest.GetStatus(targets, (param_name))[0]
-            nest.SetStatus(self.connections, {'tau_psc' : tau_syn})    
+            tau_syn = nest.GetStatus(targets, (param_name))
+            nest.SetStatus(self.connections, 'tau_psc', tau_syn)    
 
     def connect(self, source, targets, weights, delays):
         """
