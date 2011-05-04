@@ -1,9 +1,3 @@
-"""
-
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
-:license: CeCILL, see LICENSE for details.
-"""
-
 import tempfile
 import os
 import numpy
@@ -31,9 +25,9 @@ class RecordingDevice(object):
     
     def __init__(self, device_type, to_memory=False):
         assert device_type in ("multimeter", "spike_detector")
-        self.type = device_type
-        self.device = nest.Create(device_type)
-        
+        self.type      = device_type
+        self.device    = nest.Create(device_type)
+        self.to_memory = to_memory
         device_parameters = {"withgid": True, "withtime": True}
         if self.type is 'multimeter':
             device_parameters["interval"] = common.get_time_step()
@@ -169,8 +163,7 @@ class RecordingDevice(object):
             logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
             non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
             if len(non_empty_nest_files) > 0:
-                data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files]
-                data = numpy.concatenate(data_list)
+                data = numpy.concatenate([numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files])
             if len(non_empty_nest_files) == 0 or data.size == 0:
                 if self.type is "spike_detector":
                     ncol = 2
@@ -198,27 +191,30 @@ class RecordingDevice(object):
         """
         # what if the method is called with different values of
         # `compatible_output`? Need to cache these separately.
-        if gather and simulator.state.num_processes > 1:
-            if self._gathered:
-                logger.debug("Loading previously gathered data from cache")
-                self._gathered_file.seek(0)
-                data = numpy.load(self._gathered_file)
-            else:
-                local_data = self.read_local_data(compatible_output)
-                if always_local:
-                    data = local_data # for always_local cells, no need to gather
+        if not self.to_memory:
+            if gather and simulator.state.num_processes > 1:
+                if self._gathered:
+                    logger.debug("Loading previously gathered data from cache")
+                    self._gathered_file.seek(0)
+                    data = numpy.load(self._gathered_file)
                 else:
-                    logger.debug("Gathering data")
-                    data = recording.gather(local_data)
-                logger.debug("Caching gathered data")
-                self._gathered_file = tempfile.TemporaryFile()
-                numpy.save(self._gathered_file, data)
-                self._gathered = True
+                    local_data = self.read_local_data(compatible_output)
+                    if always_local:
+                        data = local_data # for always_local cells, no need to gather
+                    else:
+                        logger.debug("Gathering data")
+                        data = recording.gather(local_data)
+                    logger.debug("Caching gathered data")
+                    self._gathered_file = tempfile.TemporaryFile()
+                    numpy.save(self._gathered_file, data)
+                    self._gathered = True
+            else:
+                data = self.read_local_data(compatible_output)
+            if len(data.shape) == 1:
+                data = data.reshape((1, data.size))
+            return data
         else:
-            data = self.read_local_data(compatible_output)
-        if len(data.shape) == 1:
-            data = data.reshape((1, data.size))
-        return data
+            return self.read_data_from_memory(gather, compatible_output)
     
     def read_subset(self, variables, gather, compatible_output, always_local=False):
         if self.in_memory():
@@ -295,14 +291,14 @@ class Recorder(recording.Recorder):
         N = {}
         if self._device.in_memory():
             events = nest.GetStatus(self._device.device, 'events')[0]
-            for id in filtered_ids:
+            for id in self.filter_recorded(filter):
                 mask = events['senders'] == int(id)
-                N[id] = len(events['times'][mask])
+                N[int(id)] = len(events['times'][mask])
         else:
             spikes = self._get(gather=False, compatible_output=False,
                                filter=filter)
             for id in self.filter_recorded(filter):
-                N[id] = 0
+                N[int(id)] = 0
             ids   = numpy.sort(spikes[:,0].astype(int))
             idx   = numpy.unique(ids)
             left  = numpy.searchsorted(ids, idx, 'left')

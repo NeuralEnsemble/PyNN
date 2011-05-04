@@ -655,7 +655,7 @@ class BasePopulation(object):
         """Determine whether `variable` can be recorded from this population."""
         return (variable in self.celltype.recordable)
 
-    def _add_recorder(self, variable):
+    def _add_recorder(self, variable, to_file):
         """Create a new Recorder for the supplied variable."""
         assert variable not in self.recorders
         if hasattr(self, "parent"):
@@ -664,7 +664,7 @@ class BasePopulation(object):
             population = self
         logger.debug("Adding recorder for %s to %s" % (variable, self.label))
         population.recorders[variable] = population.recorder_class(variable,
-                                                                   population=population)
+                                                                   population=population, file=to_file)
 
     def _record(self, variable, to_file=True):
         """
@@ -681,13 +681,13 @@ class BasePopulation(object):
                 raise errors.RecordingError(variable, self.celltype)        
             logger.debug("%s.record('%s')", self.label, variable)
             if variable not in self.recorders:
-                self._add_recorder(variable)
+                self._add_recorder(variable, to_file)
             if self.record_filter is not None:
                 self.recorders[variable].record(self.record_filter)
             else:
                 self.recorders[variable].record(self.all_cells)
-            if isinstance(to_file, basestring):
-                self.recorders[variable].file = to_file
+            #if isinstance(to_file, basestring):
+            #    self.recorders[variable].file = to_file
 
     def record(self, to_file=True):
         """
