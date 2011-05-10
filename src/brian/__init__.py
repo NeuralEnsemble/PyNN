@@ -243,7 +243,7 @@ class Projection(common.Projection):
         method.connect(self)
         self.connection_manager._finalize()
         if self._plasticity_model != "static_synapse":
-            for key in self.connections.key():
+            for key in self.connections.keys:
                 synapses = self.connections.brian_connections[key]
                 if self._plasticity_model is "stdp_synapse": 
                     parameters   = self.synapse_dynamics.slow.all_parameters

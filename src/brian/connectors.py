@@ -48,8 +48,11 @@ class FastProbabilisticConnector(ProbabilisticConnector):
 
         self.distance_matrix.set_source(src.position)        
         if not self.allow_self_connections and self.projection.pre == self.projection.post:
-            i         = numpy.where(self.candidates == src)[0]
-            precreate = numpy.delete(precreate, i)
+            idx_src   = numpy.where(self.candidates == src)
+            if len(idx_src) > 0:
+                i     = numpy.where(precreate == idx_src[0])
+                if len(i) > 0:
+                    precreate = numpy.delete(precreate, i[0])
                 
         if (n_connections is not None) and (len(precreate) > 0):            
             create = numpy.array([], int)
