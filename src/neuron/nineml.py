@@ -26,6 +26,10 @@ from pyNN.nineml.cells import _build_nineml_celltype
 import logging
 import os
 from itertools import chain
+from pyNN.neuron import simulator
+from pyNN import common, recording
+common.simulator = simulator
+recording.simulator = simulator
 
 h = neuron.h
 logger = logging.getLogger("PyNN")

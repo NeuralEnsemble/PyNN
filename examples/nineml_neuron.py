@@ -15,10 +15,6 @@ import pyNN.neuron as sim
 from pyNN.neuron.nineml import nineml_cell_type
 from pyNN.utility import init_logging
 
-import pyNN.common, pyNN.recording
-pyNN.common.simulator = sim.simulator
-pyNN.recording.simulator = sim.simulator
-
 from copy import deepcopy
 
 init_logging(None, debug=True)
