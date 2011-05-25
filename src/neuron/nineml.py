@@ -94,7 +94,15 @@ def _compile_nmodl(nineml_component, weight_variables): # weight variables shoul
     xml_file = "%s.xml" % nineml_component.name
     logger.debug("Writing NineML component to %s" % xml_file)
     nineml_component.write(xml_file)
+
+    # TODO: This way of importing is a cludge.
+    # To fix it, where should general nmodl code-generation live? Under nineml.code_generation ?
+    from os.path import abspath, realpath, join
+    import nineml, sys
+    root = abspath(join(realpath(nineml.__path__[0]), "../../.."))
+    sys.path.append(join(root, "code_generation/nmodl"))                
     nineml2nmodl = __import__("9ml2nmodl")
+
     nineml2nmodl.write_nmodl(xml_file, weight_variables) # weight variables should really come from xml file
     p = subprocess.check_call(["nrnivmodl"])
     os.chdir(cwd)
