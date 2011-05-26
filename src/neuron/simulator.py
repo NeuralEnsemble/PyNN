@@ -451,9 +451,9 @@ class ConnectionManager(object):
                 nc = state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
                 
-                # if we have a mechanism (e.g. from 9ML that includes multiple
+                # if we have a mechanism (e.g. from 9ML) that includes multiple
                 # synaptic channels, need to set nc.weight[1] here
-                if nc.wcnt() > 1:
+                if nc.wcnt() > 1 and hasattr(target._cell, "type"):
                     nc.weight[1] = target._cell.type.synapse_types.index(self.synapse_type)
                 nc.delay  = delay
                 # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
