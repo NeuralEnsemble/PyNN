@@ -135,9 +135,12 @@ class RecordingDevice(object):
         data = nest.GetStatus(self.device,'events')[0]
         if compatible_output:
             data = self.events_to_array(data)
-            data = self.scale_data(data)
+            data = self.scale_data(data)  
         if gather and simulator.state.num_processes > 1:
-            data = recording.gather(data)
+            data = recording.gather(data)     
+            self._gathered_file = tempfile.TemporaryFile()
+            numpy.save(self._gathered_file, data)
+            self._gathered = True
         return data
     
     def read_local_data(self, compatible_output):
@@ -163,7 +166,7 @@ class RecordingDevice(object):
             logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
             non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
             if len(non_empty_nest_files) > 0:
-                data = numpy.concatenate([numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files])
+                data = numpy.concatenate([numpy.loadtxt(nest_file, dtype=float) for nest_file in non_empty_nest_files])
             if len(non_empty_nest_files) == 0 or data.size == 0:
                 if self.type is "spike_detector":
                     ncol = 2
@@ -280,9 +283,9 @@ class Recorder(recording.Recorder):
             variables = VARIABLE_MAP.get(self.variable, [self.variable])
             data = self._device.read_subset(variables, gather, compatible_output, always_local)
         assert len(data.shape) == 2
-        if not self._device._gathered:
-            filtered_ids = self.filter_recorded(filter)
-            mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
+        if not self._device._gathered:            
+            filtered_ids = self.filter_recorded(filter)            
+            mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))                
             if len(data) > 0:
                 data = data[mask]
         return data

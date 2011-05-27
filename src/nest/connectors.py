@@ -65,9 +65,10 @@ class FastProbabilisticConnector(Connector):
                     precreate = numpy.delete(precreate, i[0])
                 
         if (rewiring is not None) and (rewiring > 0):
+            idx = numpy.arange(0, self.N)          
             if not self.allow_self_connections and self.projection.pre == self.projection.post:
                 i   = numpy.where(self.candidates == tgt)[0]
-                idx = numpy.delete(self.candidates, i)
+                idx = numpy.delete(idx, i)
             
             rarr    = self.probas_generator.get(self.M)[precreate]
             rewired = numpy.where(rarr < rewiring)[0]
