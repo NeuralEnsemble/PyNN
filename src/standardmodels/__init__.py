@@ -174,8 +174,8 @@ class SynapseDynamics(models.BaseSynapseDynamics):
         If template is None, then a dictionary containing the template context
         will be returned.
         """
-        context = {'fast': self.fast and self.fast.describe(template=None) or 'None',
-                   'slow': self.slow and self.slow.describe(template=None) or 'None'}
+        context = {'fast': self.fast and self.fast.describe(template=None) or None,
+                   'slow': self.slow and self.slow.describe(template=None) or None}
         return descriptions.render(engine, template, context)
 
 
