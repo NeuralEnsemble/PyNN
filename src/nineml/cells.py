@@ -223,14 +223,14 @@ class _build_nineml_celltype(type):
                                       for name in combined_model.parameters)
         dct["default_initial_values"] = dict((name, 0.0)
                                           for name in combined_model.state_variables)
-        dct["synapse_types"] = dct["synapse_models"].keys() #really need an ordered dict
+        dct["synapse_types"] = sorted(dct["synapse_models"]) # using alphabetical order may make things easier code generators
         dct["injectable"] = True # need to determine this. How??
         dct["recordable"] = [port.name for port in combined_model.analog_ports] + ['spikes', 'regime']
         dct["standard_receptor_type"] = (dct["synapse_types"] == ('excitatory', 'inhibitory'))
         dct["conductance_based"] = True # how to determine this??
         dct["model_name"] = name
         logger.debug("Creating class '%s' with bases %s and dictionary %s" % (name, bases, dct))
-        # generate and compile NMODL code, then load the mechanism into NEUORN
+        # generate and compile code, then load the mechanism into the simulator
         dct["builder"](combined_model, dct["weight_variables"]) # weight variables should really be stored within combined_model
         return type.__new__(cls, name, bases, dct)
     

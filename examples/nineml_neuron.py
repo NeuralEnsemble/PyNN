@@ -21,8 +21,8 @@ from nineml.examples.AL import coba_synapse
 
 celltype_cls = nineml_cell_type("if_cond_exp",
                                 leaky_iaf.c1,
-                                excitatory=coba_synapse.c1,
-                                inhibitory=deepcopy(coba_synapse.c1),
+                                inhibitory=coba_synapse.c1,
+                                excitatory=deepcopy(coba_synapse.c1),
                                 port_map={
                                     'excitatory': [('V', 'V'), ('Isyn', 'Isyn')],
                                     'inhibitory': [('V', 'V'), ('Isyn', 'Isyn')]
