@@ -22,7 +22,8 @@ from __future__ import absolute_import # Not compatible with Python 2.4
 import subprocess
 import neuron
 from pyNN.models import BaseCellType
-from pyNN.nineml.cells import _build_nineml_celltype
+from pyNN.nineml.cells import _build_nineml_celltype, _mh_build_nineml_celltype
+from pyNN.nineml.cells import CoBaSyn 
 import logging
 import os
 from itertools import chain
@@ -82,7 +83,7 @@ class NineMLCellType(BaseCellType):
         self.parameters["type"] = self
 
 
-def _compile_nmodl(nineml_component, weight_variables): # weight variables should really be within component
+def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): # weight variables should really be within component
     """
     Generate NMODL code for the 9ML component, run "nrnivmodl" and then load
     the mechanisms into NEURON.
@@ -113,4 +114,19 @@ def nineml_cell_type(name, neuron_model, port_map={}, weight_variables={}, **syn
                                    'weight_variables': weight_variables,
                                    'builder': _compile_nmodl})
 
+
+
+
+
+
+
+def nineml_celltype_from_model(name, nineml_model, synapse_components):
+    """
+    Return a new NineMLCellType subclass from a NineML model.
+    """
+    
+    dct = {'nineml_model':nineml_model,
+           'synapse_components':synapse_components,
+           'builder': _compile_nmodl} 
+    return _mh_build_nineml_celltype(name, (NineMLCellType,), dct)
 
