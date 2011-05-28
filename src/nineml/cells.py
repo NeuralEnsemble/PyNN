@@ -393,7 +393,9 @@ class _mh_build_nineml_celltype(type):
         dct["model_name"] = name
         
         
-        dct["recordable"] = [port.name for port in reduced_component.analog_ports] + ['spikes', 'regime']
+        # Recording from bindings:
+        dct["recordable"] = [port.name for port in reduced_component.analog_ports] + ['spikes', 'regime'] + [binding.name for binding in reduced_component.bindings]
+        
         dct["weight_variables"] = dict([ (syn.namespace,syn.namespace+'_'+syn.weight_connector )
                                          for syn in synapse_components ])
         #{'cobaInhib':'cobaInhib_q', 'cobaExcit':'cobaExcit_q',}
