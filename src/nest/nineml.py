@@ -32,6 +32,8 @@ from pyNN.nest.cells import NativeCellType
 #common.simulator = simulator
 #recording.simulator = simulator
 
+
+
 logger = logging.getLogger("PyNN")
 
 # TODO: This should go to a evironment variable, like PYNN_9ML_DIR
@@ -45,19 +47,13 @@ class NineMLCellType(NativeCellType):
         NativeCellType.__init__(self, parameters)
 
 
-
-
-
-
-
 def nineml_celltype_from_model(name, nineml_model, synapse_components):
     """
     Return a new NineMLCellType subclass from a NineML model.
     """
     
     dct = {'nineml_model':nineml_model,
-           'synapse_components':synapse_components,
-           'builder': _compile_nmodl} 
+           'synapse_components':synapse_components}
     return _nest_build_nineml_celltype(name, (NineMLCellType,), dct)
 
 
@@ -69,27 +65,39 @@ class _nest_build_nineml_celltype(type):
     """
     def __new__(cls, name, bases, dct):
         
+        import nineml.abstraction_layer as nineml
+        from nineml.abstraction_layer import models               
+        import nest
         
         #Extract Parameters Back out from Dict:
         nineml_model = dct['nineml_model']
         synapse_components = dct['synapse_components']
 
         # Reduce the model:                    
-        from nineml.abstraction_layer import models               
-        #reduction_process = models.ModelToSingleComponentReducer(nineml_model, componentname=name)
-        #reduced_component = reduction_process.reducedcomponent
-        reduced_component = models.reduce_to_single_component( nineml_model, componentname=name )
+        reduced_component = models.reduce_to_single_component( nineml_model,
+                                                               componentname=name )
+
+        reduced_component.short_description = "Auto-generated 9ML neuron model for PyNN.nest"
+        reduced_component.long_description = "Auto-generated 9ML neuron model for PyNN.nest"
 
         # synapse ports:
         synapse_ports = []
-        for syn in in synapse_components:
-            pass
-        # TODO: need to be able to get inferred event ports from model Component, i.e.
-        # access to the true component below!
-    
+        for syn in synapse_components:
+            # get recv event ports
+            # TODO: model namespace look
+            #syn_component = nineml_model[syn.namespace]
+            syn_component = nineml_model.subnodes[syn.namespace]
+            recv_event_ports = list(syn_component.filter_ports(cls=nineml.EventPort, mode='recv'))
+            # check there's only one
+            if len(recv_event_ports)!=1:
+                raise ValueError, "A synapse component has multiple recv ports.  Cannot dis-ambiguate"
+            synapse_ports.append(syn.namespace+'_'+recv_event_ports[0].symbol)
+
         
         # New:
-        dct["combined_model"] = reduction_process.reducedcomponent
+        dct["combined_model"] = reduced_component
+        # TODO: Override this with user layer
+        #default_values = ModelToSingleComponentReducer.flatten_namespace_dict( parameters )
         dct["default_parameters"] = dict( (name, 1.0) for name in reduced_component.parameters )
         dct["default_initial_values"] = dict((name, 0.0) for name in reduced_component.state_variables)
         dct["synapse_types"] = [syn.namespace for syn in synapse_components] 
@@ -97,20 +105,32 @@ class _nest_build_nineml_celltype(type):
         dct["injectable"] = True # need to determine this. How??
         dct["conductance_based"] = True # how to determine this??
         dct["model_name"] = name
-        
+        dct["nest_model"] = name
+
         
         # Recording from bindings:
-        dct["recordable"] = [port.name for port in reduced_component.analog_ports] + ['spikes', 'regime'] + [binding.name for binding in reduced_component.bindings]
+        dct["recordable"] = [port.name for port in reduced_component.analog_ports] + ['spikes', 'regime']
+        # TODO bindings -> alias and support recording of them in nest template
+        #+ [binding.name for binding in reduced_component.bindings]
         
         dct["weight_variables"] = dict([ (syn.namespace,syn.namespace+'_'+syn.weight_connector )
                                          for syn in synapse_components ])
-        #{'cobaInhib':'cobaInhib_q', 'cobaExcit':'cobaExcit_q',}
-        
         
         logger.debug("Creating class '%s' with bases %s and dictionary %s" % (name, bases, dct))
-        # generate and compile NMODL code, then load the mechanism into NEUORN
-        dct["builder"](reduced_component, dct["weight_variables"], hierarchical_mode=True)
-        # TODO: weight variables should really be stored within combined_model
+
+        # TODO: UL configuration of initial regime.
+        initial_regime = reduced_component.regime_map.keys()[0]
+
+        from nestbuilder import NestFileBuilder
+        nfb = NestFileBuilder(  nest_classname = name, 
+                                component = reduced_component, 
+                                synapse_ports = synapse_ports,
+                                initial_regime =  initial_regime,
+                                initial_values = dct["default_initial_values"],
+                                default_values = dct["default_parameters"],
+                                )
+        #nfb.compile_files()
+        nest.Install('mymodule')
         
         return type.__new__(cls, name, bases, dct)
         
