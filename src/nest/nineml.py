@@ -129,7 +129,7 @@ class _nest_build_nineml_celltype(type):
                                 initial_values = dct["default_initial_values"],
                                 default_values = dct["default_parameters"],
                                 )
-        #nfb.compile_files()
+        nfb.compile_files()
         nest.Install('mymodule')
         
         return type.__new__(cls, name, bases, dct)
