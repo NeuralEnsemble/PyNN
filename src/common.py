@@ -1214,10 +1214,16 @@ class Assembly(object):
     
     @property
     def _homogeneous_synapses(self):
-        syn = is_conductance(self.populations[0].all_cells[0])
-        for p in self.populations[1:]:
-            if syn != is_conductance(p.all_cells[0]):
-                return False
+        syn   = None
+        for count, p in enumerate(self.populations):
+             if len(p.all_cells) > 0:
+                syn = is_conductance(p.all_cells[0])
+                
+        if syn is not None:
+            for p in self.populations[count:]:
+                if len(p.all_cells) > 0:
+                    if syn != is_conductance(p.all_cells[0]):
+                        return False
         return True
     
     @property

@@ -306,15 +306,10 @@ class ConnectionManager(object):
                 raise errors.ConnectionError("Invalid target ID: %s" % target)
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
         synapse_type = self.synapse_type or "excitatory"
-        if isinstance(delays, numpy.ndarray):
-            delays = delays.astype(int).tolist()
+        delays = numpy.array(delays).astype(int).tolist()
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()    
-        source   = int(source)
-        if len(targets) == 1:
-            targets = int(targets[0])
-            delays  = int(delays[0])
-            weights = weights[0]
+        source   = int(source)        
         synapses = state.net.add_synapse(source, targets, delays, weights, self.is_plastic)
         self.sources.append(source)
         
