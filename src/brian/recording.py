@@ -30,7 +30,7 @@ class Recorder(recording.Recorder):
         """Create a Brian recording device."""
         clock = simulator.state.simclock
         if self.variable == 'spikes':
-            devices = [brian.SpikeMonitor(group, record=True)]
+            devices = [brian.SpikeMonitor(group, record=self.recorded)]
         elif self.variable == 'v':
             devices = [brian.StateMonitor(group, 'v', record=True, clock=clock)]
         elif self.variable == 'gsyn':
@@ -41,7 +41,7 @@ class Recorder(recording.Recorder):
             device2 = brian.StateMonitor(group, varname, record=True, clock=clock)
             devices = [device1, device2]
         else:
-            devices = [brian.StateMonitor(group, self.variable, record=True, clock=clock)]
+            devices = [brian.StateMonitor(group, self.variable, record=self.recorded, clock=clock)]
         for device in devices:
             simulator.state.add(device)
         return devices
