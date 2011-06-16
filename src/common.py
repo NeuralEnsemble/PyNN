@@ -637,6 +637,8 @@ class BasePopulation(object):
         logger.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
         if isinstance(value, random.RandomDistribution):
             initial_value = value.next(n=self.all_cells.size, mask_local=self._mask_local)
+            if not hasattr(initial_value, "__len__"):
+                initial_value = [initial_value]
             assert len(initial_value) == self.local_size, "%d != %d" % (len(initial_value), self.local_size)
         else:
             initial_value = value
