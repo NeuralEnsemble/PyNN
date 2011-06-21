@@ -22,7 +22,8 @@ from __future__ import absolute_import # Not compatible with Python 2.4
 import subprocess
 import neuron
 from pyNN.models import BaseCellType
-from pyNN.nineml.cells import _build_nineml_celltype, _mh_build_nineml_celltype
+from pyNN.nineml.cells import _mh_build_nineml_celltype
+#from pyNN.nineml.cells import _build_nineml_celltype, _mh_build_nineml_celltype
 from pyNN.nineml.cells import CoBaSyn 
 import logging
 import os
@@ -92,12 +93,15 @@ def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): 
         os.makedirs(NMODL_DIR)
     cwd = os.getcwd()
     os.chdir(NMODL_DIR)
+
     xml_file = "%s.xml" % nineml_component.name
     logger.debug("Writing NineML component to %s" % xml_file)
     nineml_component.write(xml_file)
     
-    from nineml2nmodl import write_nmodl
-    write_nmodl(xml_file, weight_variables) # weight variables should really come from xml file
+    from nineml2nmodl import write_nmodl, write_nmodldirect
+    mod_filename = nineml_component.name + ".mod"
+    write_nmodldirect(component=nineml_component, mod_filename=mod_filename, weight_variables=weight_variables) 
+    #write_nmodl(xml_file, weight_variables) # weight variables should really come from xml file
 
     print "Running 'nrnivmodl' from %s"%NMODL_DIR
     p = subprocess.check_call(["nrnivmodl"])
@@ -126,7 +130,7 @@ def nineml_celltype_from_model(name, nineml_model, synapse_components):
     """
     Return a new NineMLCellType subclass from a NineML model.
     """
-    
+    assert nineml_model 
     dct = {'nineml_model':nineml_model,
            'synapse_components':synapse_components,
            'builder': _compile_nmodl} 
