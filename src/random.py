@@ -213,7 +213,7 @@ class RandomDistribution(object):
         else: # use numpy.random.RandomState() by default
             self.rng = NumpyRNG()
         
-    def next(self, n=1, mask_local=None):
+    def next(self, n=1, mask_local=None):        
         """Return n random numbers from the distribution."""
         res = self.rng.next(n=n,
                             distribution=self.name,
@@ -227,12 +227,12 @@ class RandomDistribution(object):
             elif self.constrain == "redraw": # not sure how well this works with parallel_safe, mask_local
                 if len(res) == 1:
                     while not ((res > self.min_bound) and (res < self.max_bound)):
-                        res = self.rng.next(n=n, distribution=self.name, parameters=self.parameters)
+                        res = self.rng.next(n=n, distribution=self.name, parameters=self.parameters, mask_local=mask_local)
                     return res
                 else:
                     idx = numpy.where((res > self.max_bound) | (res < self.min_bound))[0]
                     while len(idx) > 0:
-                        res[idx] = self.rng.next(len(idx), distribution=self.name, parameters=self.parameters)
+                        res[idx] = self.rng.next(n=n, distribution=self.name, parameters=self.parameters, mask_local=mask_local)[idx]
                         idx = numpy.where((res > self.max_bound) | (res < self.min_bound))[0]
                     return res
             else:
