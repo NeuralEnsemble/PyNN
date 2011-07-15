@@ -108,7 +108,7 @@ def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): 
 
 
     import nineml
-    if nineml.utility.settings.enable_nmodl_gsl:
+    if nineml.utility.Settings.enable_nmodl_gsl:
         flgs = ["-L%s"% nineml.utility.LocationMgr().getNRNIVMODLNINEMLDir(),
                 "-lninemlnrn -lgsl -lgslcblas"]
         subprocess.check_call(['nrnivmodl','-loadflags','"%s"'%(' '.join(flgs) ) ] )
