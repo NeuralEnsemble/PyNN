@@ -76,8 +76,9 @@ class _nest_build_nineml_celltype(type):
         # Reduce the model:                    
         reduced_component = models.reduce_to_single_component( nineml_model,
                                                                componentname=name )
-        reduced_component.backsub_aliases()
-        reduced_component.backsub_equations()
+        reduced_component.backsub_all()
+        #reduced_component.backsub_aliases()
+        #reduced_component.backsub_equations()
 
         reduced_component.short_description = "Auto-generated 9ML neuron model for PyNN.nest"
         reduced_component.long_description = "Auto-generated 9ML neuron model for PyNN.nest"
