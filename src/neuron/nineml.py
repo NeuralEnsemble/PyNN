@@ -103,8 +103,20 @@ def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): 
     write_nmodldirect(component=nineml_component, mod_filename=mod_filename, weight_variables=weight_variables) 
     #write_nmodl(xml_file, weight_variables) # weight variables should really come from xml file
 
+
     print "Running 'nrnivmodl' from %s"%NMODL_DIR
-    p = subprocess.check_call(["nrnivmodl"])
+
+
+    import nineml
+    if nineml.utility.settings.enable_nmodl_gsl:
+        flgs = ["-L%s"% nineml.utility.LocationMgr().getNRNIVMODLNINEMLDir(),
+                "-lninemlnrn -lgsl -lgslcblas"]
+        subprocess.check_call(['nrnivmodl','-loadflags','"%s"'%(' '.join(flgs) ) ] )
+    else:
+        subprocess.check_call(['nrnivmodl',] )
+
+
+
     os.chdir(cwd)
     neuron.load_mechanisms(NMODL_DIR)
 
