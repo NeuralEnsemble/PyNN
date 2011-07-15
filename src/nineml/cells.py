@@ -228,8 +228,9 @@ class _mh_build_nineml_celltype(type):
             flat_component = flattening.flatten( nineml_model,name )
         
         # Make the substitutions:
-        flat_component.backsub_aliases()
-        flat_component.backsub_equations()
+        flat_component.backsub_all()
+        #flat_component.backsub_aliases()
+        #flat_component.backsub_equations()
 
         # Close any open reduce ports:
         component_modifiers.ComponentModifier.close_all_reduce_ports(component = flat_component)
