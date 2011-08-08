@@ -14,7 +14,7 @@ It is straightforward to port an existing model from a Python-supporting simulat
 
 PyNN is a work in progress, but is already being used for several large-scale simulation projects.
 
-[wiki:Download Download] the current stable release of the API (0.7), or get the development version from the `Subversion repository`_ .
+:doc:`Download<download>` the current stable release of the API (0.7), or get the development version from the `Subversion repository`_ .
 
 Licence
 -------
@@ -26,7 +26,7 @@ Citing PyNN
 
 If you publish work using or mentioning PyNN, we would appreciate it if you would cite the following paper:
 
-Davison AP, Brüderle D, Eppler JM, Kremkow J, Muller E, Pecevski DA, Perrinet L and Yger P (2009) PyNN: a common interface for neuronal network simulators. Front. Neuroinform. 2:11 `<http://www.frontiersin.org/neuroinformatics/paper/10.3389/neuro.11/011.2008/> doi:10.3389/neuro.11.011.2008`.
+Davison AP, Brüderle D, Eppler JM, Kremkow J, Muller E, Pecevski DA, Perrinet L and Yger P (2009) PyNN: a common interface for neuronal network simulators. Front. Neuroinform. 2:11 `doi:10.3389/neuro.11.011.2008 <http://www.frontiersin.org/neuroinformatics/paper/10.3389/neuro.11/011.2008/>`_.
 
 
 Questions/Bugs/Enhancements

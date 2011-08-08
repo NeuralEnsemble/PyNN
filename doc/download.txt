@@ -1,0 +1,22 @@
+=========
+Downloads
+=========
+
+Source distributions
+--------------------
+
+PyNN may be downloaded from the Python Package Index: http://pypi.python.org/pypi/PyNN/ or from the INCF Software Centre http://software.incf.org/software/pynn/download
+
+Older versions: .....
+
+
+Subversion access
+-----------------
+
+Latest stable version (0.7.1)::
+
+    svn co https://neuralensemble.org/svn/PyNN/tags/0.7.1 pyNN
+
+Latest development version::
+
+    svn co https://neuralensemble.org/svn/PyNN/trunk pyNN

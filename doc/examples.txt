@@ -1,0 +1,13 @@
+========
+Examples
+========
+
+ * [wiki:Examples/IF_cond_exp A single IF neuron with exponential, conductance-based synapses, fed by two spike sources.] 
+ * [wiki:Examples/StepCurrentSource Injecting time-varying current into  a cell.]
+ * [wiki:Examples/HH_cond_exp A single-compartment Hodgkin-Huxley neuron with exponential, conductance-based synapses, fed by two spike sources.]
+ * [wiki:Examples/simpleNetwork Simple network with a Poisson spike source projecting to a pair of IF_curr_alpha neurons.]
+ * [wiki:Examples/simpleNetworkL Simple network with a 1D population of Poisson spike sources projecting to a 2D population of IF_curr_alpha neurons (alternative implementation).]
+ * [wiki:Examples/simpleRandomNetwork Simple random network with a 1D population of Poisson spike sources projecting to a 2D population of IF_curr_alpha neurons.]
+ * [wiki:Examples/TsodyksMarkram Example of depressing and facilitating synapses]
+ * [wiki:Examples/Brunel Balanced random network based on Brunel N (2000) Dynamics of sparsely connected networks of excitatory and inhibitory spiking neurons. J Comput Neurosci 8:183-208.] [[http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=PubMed&list_uids=10809012&dopt=Abstract PubMed]]
+ * [wiki:Examples/VogelsAbbott  IF network based on the CUBA and COBA models of Vogels & Abbott (2005)  J Neurosci 25:10786-95] [[http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=PubMed&list_uids=16291952&dopt=Abstract PubMed]]
