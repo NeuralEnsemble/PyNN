@@ -1,0 +1,19 @@
+=============
+API reference
+=============
+
+.. py:currentmodule:: pyNN.common
+
+Simulation setup and control
+----------------------------
+
+.. autofunction:: setup
+.. autofunction:: end
+.. autofunction:: run
+.. autofunction:: reset
+.. autofunction:: get_time_step
+.. autofunction:: get_current_time
+.. autofunction:: get_min_delay
+.. autofunction:: get_max_delay
+.. autofunction:: rank
+.. autofunction:: num_processes

@@ -20,20 +20,20 @@ if you are in the process of porting simulator-specific code to pure PyNN code).
 Initialising the simulator
 ==========================
 
-Before using any other functions or classes from PyNN, the user must call the ``setup()`` function::
+Before using any other functions or classes from PyNN, the user must call the :func:`setup()` function::
 
     >>> setup()
     
-``setup()`` takes various optional arguments: setting the simulation timestep (there is currently no support in the API for variable timestep methods although native simulator code can be used to select this option where the simulator supports it) and setting the minimum and maximum synaptic delays, e.g.::
+:func:`setup()` takes various optional arguments: setting the simulation timestep (there is currently no support in the API for variable timestep methods although native simulator code can be used to select this option where the simulator supports it) and setting the minimum and maximum synaptic delays, e.g.::
 
     >>> setup(timestep=0.1, min_delay=0.1, max_delay=10.0)
     
-In previous versions, ``setup()`` took a ``debug`` argument for configuring logging. To allow more flexibility, configuration of logging must now be done separately. There is a convenience function in the ``pyNN.utility`` module to simplify this::
+In previous versions, :func:`setup()` took a :attr:`debug` argument for configuring logging. To allow more flexibility, configuration of logging must now be done separately. There is a convenience function in the :mod:`pyNN.utility` module to simplify this::
 
     >>> from pyNN.utility import init_logging
     >>> init_logging("logfile", debug=True)
     
-or you can configure the Python ``logging`` module directly.
+or you can configure the Python :mod:`logging` module directly.
 
 
 Creating neurons

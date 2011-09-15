@@ -18,6 +18,8 @@ Welcome to PyNN's documentation!
    examples
    simulatorspecificoptions
    developers_guide
+   roadmap
+   api_reference
 
 Indices and tables
 ==================

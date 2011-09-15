@@ -1,0 +1,54 @@
+=======
+Roadmap
+=======
+
+
+NineML/NeuroML model definitions
+--------------------------------
+
+
+Multi-compartmental models
+--------------------------
+
+
+NineML/NeuroML export
+---------------------
+
+
+API simplification
+------------------
+
+
+Multi-simulator models with MUSIC
+---------------------------------
+
+.. code-block:: python
+
+    from pyNN import music
+    music.setup({“neuron”: 10, “nest”: 20})
+    sim1, sim2 = music.get_simulators()
+    sim1.setup(timestep=0.025)
+    sim2.setup(timestep=0.1)
+    cell_parameters = {”tau_m”: 12.0, ”cm”: 0.8, ”v_thresh”: -50.0,
+                       ”v_reset”: -65.0}
+    pE = sim1.Population((100,100), sim.IF_cond_exp, cell_parameters,
+                         label=”excitatory neurons”)
+    pI = sim2.Population((50,50), sim.IF_cond_exp, cell_parameters,
+                         label=”inhibitory neurons”)
+    all = pE + pI
+    DDPC = sim.DistanceDependentProbabilityConnector
+    connector = DDPC(”exp(-d**2/400.0)”, weights=0.05,
+                     delays=”0.5+0.01d”)
+    e2e = sim1.Projection(pE, pE, connector, target=”excitatory”)
+    e2i = music.Projection(pE, pI, connector, target=”excitatory”)
+    i2i = sim2.Projection(pI, pI, connector, target=”inhibitory”)
+    
+    music.run(1000.0)
+
+The concept here is that PyNN takes over the rôle of the *music* executable,
+`music.setup()` launches the requested number of MPI processes for each simulator,
+and then the same script runs on each of these processes. On the processes running
+`sim1`, `sim1` is the real backend module, as in a normal, non-MUSIC PyNN script,
+while `sim2` is a no-op proxy object. Vice versa on processes running `sim2`.
+For connections between different simulators, a `music.Projection` instance is
+needed, which takes care of defining the MUSIC ports.
