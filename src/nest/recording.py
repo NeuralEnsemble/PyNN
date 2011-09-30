@@ -270,6 +270,14 @@ class Recorder(recording.Recorder):
             simulator.recording_devices.remove(self._device)
         except ValueError:
             pass
+        
+        if self._device != None:
+              recorders_to_reset=[]
+              for recorder in self.population.recorders.values():
+                  if hasattr(recorder, "_device") and recorder._device == self._device:
+                     recorders_to_reset.append(recorder)
+              for recorder in recorders_to_reset:
+                  recorder._device = None 
         self._create_device()
 
     def _get(self, gather=False, compatible_output=True, filter=None):

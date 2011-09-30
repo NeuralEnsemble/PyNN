@@ -192,6 +192,8 @@ class Population(common.Population):
         # this method should never be called more than once
         # perhaps should check for that
         assert n > 0, 'n must be a positive integer'
+        n = int(n)
+        
         celltype = cellclass(cellparams)
         nest_model = celltype.nest_name[simulator.state.spike_precision]
         try:
@@ -324,6 +326,7 @@ class Projection(common.Projection):
             synapse_dynamics = NativeSynapseDynamics("static_synapse")
         self.synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection.nProj)
         Projection.nProj += 1
+        
         self.connection_manager = simulator.ConnectionManager(self.synapse_type,
                                                               self.synapse_model,
                                                               parent=self)

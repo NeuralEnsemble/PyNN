@@ -570,7 +570,7 @@ class BasePopulation(object):
             logger.debug("%s.tset('%s', array(shape=%s, min=%s, max=%s))",
                          self.label, parametername, value_array.shape,
                          value_array.min(), value_array.max())
-        except TypeError:  # min() and max() won't work for non-numeric values
+        except (TypeError,ValueError):  # min() and max() won't work for non-numeric values
             logger.debug("%s.tset('%s', non_numeric_array(shape=%s))",
                          self.label, parametername, value_array.shape)
 
@@ -884,7 +884,7 @@ class Population(BasePopulation):
                 structure = space.Grid3D(nx/float(ny), nx/float(nz))
             else:
                 raise Exception("A maximum of 3 dimensions is allowed. What do you think this is, string theory?")
-            size = reduce(operator.mul, size)
+            size = int(reduce(operator.mul, size)) # NEST doesn't like numpy.int, so to be safe we cast to Python int
         self.size = size
         self.label = label or 'population%d' % Population.nPop
         self.celltype = cellclass(cellparams)

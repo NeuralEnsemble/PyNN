@@ -99,6 +99,21 @@ class StepCurrentSource(CurrentSource):
         of the simulation.
         """
         self._device = nest.Create('step_current_generator')
+        
+        self._set(times,amplitudes)
+
+
+    def _set(self, times, amplitudes):
+        """Set currents in existing current source.
+        Arguments:
+            times      -- list/array of times at which the injected current changes.
+            amplitudes -- list/array of current amplitudes to be injected at the
+                          times specified in `times`.
+                          
+        The injected current will be zero up until the first time in `times`. The
+        current will continue at the final value in `amplitudes` until the end
+        of the simulation.
+        """
         assert len(times) == len(amplitudes), "times and amplitudes must be the same size (len(times)=%d, len(amplitudes)=%d" % (len(times), len(amplitudes))
         try:
             times.append(1e12)                 # work around for
@@ -108,10 +123,9 @@ class StepCurrentSource(CurrentSource):
             amplitudes.append(amplitudes[-1])  # bug in NEST
         except AttributeError:
             numpy.append(amplitudes, amplitudes[-1])
-        nest.SetStatus(self._device, {'amplitude_times': numpy.array(times, 'float'),
-                                      'amplitude_values': 1000.0*numpy.array(amplitudes, 'float')})
-        
-        
+        nest.SetStatus(self._device, {'amplitude_times': list(numpy.array(times, 'float')),
+                                      'amplitude_values':list(1000.0*numpy.array(amplitudes, 'float'))})
+
 class NoisyCurrentSource(CurrentSource):
     """A Gaussian "white" noise current source. The current amplitude changes at fixed
     intervals, with the new value drawn from a Gaussian distribution."""
@@ -145,6 +159,10 @@ class NoisyCurrentSource(CurrentSource):
                      across simulators, use one of the other RNG types. If not
                      specified, a NumpyRNG is used.
         """
+        self._device = nest.Create('noise_generator')
+        self._set(mean, stdev, dt, start, stop, rng)
+
+    def _set(self, mean, stdev, dt=None, start=0.0, stop=None, rng=None):
         self.rng = rng or NumpyRNG()
         self.dt = dt or state.dt
         if dt:
@@ -154,7 +172,6 @@ class NoisyCurrentSource(CurrentSource):
         self.mean = mean
         self.stdev = stdev
         if isinstance(rng, NativeRNG):
-            self._device = nest.Create('noise_generator')
             nest.SetStatus(self._device, {'mean': mean*1000.0,
                                            'std': stdev*1000.0,
                                            'start': float(start),
