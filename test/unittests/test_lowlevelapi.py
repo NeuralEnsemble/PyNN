@@ -23,11 +23,11 @@ def test_build_connect():
     projection_class.assert_called_with("source", "target", "connector", target="synapse_type", rng="rng")
     
     class MockID(common.IDMixin):
-        def __init__(self):
-            self.parent = "parent"
-        
+       def as_view(self):
+            return "view"
+ 
     prj = connect_function(MockID(), MockID(), "weight", "delay", "synapse_type", "p", "rng")
-    projection_class.assert_called_with("parent", "parent", "connector", target="synapse_type", rng="rng")
+    projection_class.assert_called_with("view", "view", "connector", target="synapse_type", rng="rng")
     
 def test_set():
     cells = common.BasePopulation()

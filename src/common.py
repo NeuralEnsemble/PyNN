@@ -233,6 +233,11 @@ class IDMixin(object):
         """Set the initial value of a state variable of the cell."""
         self.parent._set_cell_initial_value(self, variable, value)
 
+    def as_view(self):
+        """Return a PopulationView containing just this cell."""
+        index = self.parent.id_to_index(self)
+        return self.parent[index:index+1]
+
 
 # =============================================================================
 #   Functions for simulation set-up and control
@@ -328,9 +333,9 @@ def build_connect(projection_class, connector_class):
         otherwise. Weights should be in nA or µS.
         """
         if isinstance(source, IDMixin):
-            source = source.parent
+            source = source.as_view()
         if isinstance(target, IDMixin):
-            target = target.parent
+            target = target.as_view()
         connector = connector_class(p_connect=p, weights=weight, delays=delay)
         return projection_class(source, target, connector, target=synapse_type, rng=rng)
     return connect

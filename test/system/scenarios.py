@@ -491,3 +491,18 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     assert_arrays_equal(vm_p1[vm_p1[:,0]==3][:,2], vm_all[vm_all[:,0]==8][:,2])
 
     sim.end()
+
+@register()
+def ticket195(sim):
+    """
+    Check that the `connect()` function works correctly with single IDs (see
+    http://neuralensemble.org/trac/PyNN/ticket/195)
+    """
+    sim.setup(timestep=0.01)
+    pre = sim.Population(10, sim.SpikeSourceArray, cellparams={'spike_times':range(1,10)})
+    post = sim.Population(10, sim.IF_cond_exp)
+    sim.connect(pre[0], post[0], weight=0.01, delay=0.1, p=1)
+    post.record()
+    sim.run(100.0)
+    assert_arrays_almost_equal(post.getSpikes(), numpy.array([[0.0, 13.4]]), 0.5)
+
