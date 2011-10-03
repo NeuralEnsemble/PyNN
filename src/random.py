@@ -41,7 +41,7 @@ except ImportError:
 
 logger = logging.getLogger("PyNN")
  
-class AbstractRNG:
+class AbstractRNG(object):
     """Abstract class for wrapping random number generators. The idea is to be
     able to use either simulator-native rngs, which may be more efficient, or a
     standard python rng, e.g. a numpy.random.RandomState object, which would

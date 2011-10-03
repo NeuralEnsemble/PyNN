@@ -167,17 +167,17 @@ class RandomDistributionTests(unittest.TestCase):
         rd = random.RandomDistribution(distribution='uniform', parameters=[-1.0, 1.0],
                                        rng=self.rnglist[0], boundaries=[0.0, 1.0],
                                        constrain="clip")
-        vals = rd.next(100)
+        vals = rd.next(1000)
         assert vals.min() == 0
         assert vals.max() < 1.0
         assert abs(vals.mean() - 0.25) < 0.05
         rd = random.RandomDistribution(distribution='uniform', parameters=[-1.0, 1.0],
                                        rng=self.rnglist[0], boundaries=[0.0, 1.0],
                                        constrain="redraw")
-        vals = rd.next(100)
+        vals = rd.next(1000)
         assert vals.min() >= 0
         assert vals.max() < 1.0
-        assert abs(vals.mean() - 0.5) < 0.05
+        assert abs(vals.mean() - 0.5) < 0.05, vals.mean()
         val = rd.next()
         rd = random.RandomDistribution(distribution='uniform', parameters=[-1.0, 1.0],
                                        rng=self.rnglist[0], boundaries=[0.0, 1.0],
