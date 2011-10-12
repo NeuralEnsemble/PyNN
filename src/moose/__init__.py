@@ -16,7 +16,7 @@ import shutil
 import os.path
 from pyNN.moose import simulator
 from pyNN import common, recording, core
-common.simulator = simulator
+common.control.simulator = simulator
 recording.simulator = simulator
 
 from pyNN.connectors import FixedProbabilityConnector, AllToAllConnector, OneToOneConnector

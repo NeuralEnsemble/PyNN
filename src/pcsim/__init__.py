@@ -21,7 +21,7 @@ import pyNN.random
 from pyNN.random import *
 from pyNN import common, recording, errors, space, core, __doc__
 from pyNN.pcsim import simulator
-common.simulator = simulator
+common.control.simulator = simulator
 recording.simulator = simulator
 import os.path
 import types

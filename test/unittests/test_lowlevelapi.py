@@ -1,4 +1,5 @@
 from pyNN import common
+from pyNN.common.populations import BasePopulation
 from mock import Mock
 from inspect import isfunction
 from nose.tools import assert_equal
@@ -30,7 +31,7 @@ def test_build_connect():
     projection_class.assert_called_with("view", "view", "connector", target="synapse_type", rng="rng")
     
 def test_set():
-    cells = common.BasePopulation()
+    cells = BasePopulation()
     cells.set = Mock()
     common.set(cells, "param", "val")
     cells.set.assert_called_with("param", "val")
@@ -41,7 +42,7 @@ def test_build_record():
     record_function = common.build_record("foo", simulator)
     assert isfunction(record_function)
     
-    source = common.BasePopulation()
+    source = BasePopulation()
     source._record = Mock()
     source.recorders = {'foo': Mock()}
     record_function(source, "filename")
@@ -54,8 +55,8 @@ def test_build_record_with_assembly():
     record_function = common.build_record("foo", simulator)
     assert isfunction(record_function)
     
-    p1 = common.BasePopulation()
-    p2 = common.BasePopulation()
+    p1 = BasePopulation()
+    p2 = BasePopulation()
     source = common.Assembly(p1, p2)
     source._record = Mock()
     for p in p1, p2:

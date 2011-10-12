@@ -1,76 +1,24 @@
 # encoding: utf-8
 """
-Defines a common implementation of the PyNN API.
-
-Simulator modules are not required to use any of the code herein, provided they
-provide the correct interface, but it is suggested that they use as much as is
-consistent with good performance (optimisations may require overriding some of
-the default definitions given here).
-
-Utility functions and classes:
-    is_conductance()
-    check_weight()
-    check_delay()
-
-Accessing individual neurons:
-    IDMixin
-
-Common API implementation/base classes:
-  1. Simulation set-up and control:
-    setup()
-    end()
-    run()
-    reset()
-    get_time_step()
-    get_current_time()
-    get_min_delay()
-    get_max_delay()
-    rank()
-    num_processes()
-
-  2. Creating, connecting and recording from individual neurons:
-    create()
-    connect()
-    set()
-    initialize()
-    build_record()
-
-  3. Creating, connecting and recording from populations of neurons:
-    Population
-    PopulationView
-    Assembly
-    Projection
+Common implementation of ID, Population, PopulationView and Assembly classes.
 
 :copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
-$Id$
 """
 
-import numpy, os
+import numpy
+import os
 import logging
 from warnings import warn
 import operator
 import tempfile
-from pyNN import random, recording, errors, models, standardmodels, core, space, descriptions
+from pyNN import random, recording, errors, standardmodels, core, space, descriptions
 from pyNN.recording import files
+import control
 from itertools import chain
-if not 'simulator' in locals():
-    simulator = None  # should be set by simulator-specific modules
-
-DEFAULT_WEIGHT = 0.0
-DEFAULT_BUFFER_SIZE = 10000
-DEFAULT_MAX_DELAY = 10.0
-DEFAULT_TIMESTEP = 0.1
-DEFAULT_MIN_DELAY = DEFAULT_TIMESTEP
 
 deprecated = core.deprecated
-
 logger = logging.getLogger("PyNN")
-
-# =============================================================================
-#   Utility functions and classes
-# =============================================================================
 
 
 def is_conductance(target_cell):
@@ -85,47 +33,6 @@ def is_conductance(target_cell):
         is_conductance = None
     return is_conductance
 
-
-def check_weight(weight, synapse_type, is_conductance):
-    if weight is None:
-        weight = DEFAULT_WEIGHT
-    if core.is_listlike(weight):
-        weight = numpy.array(weight)
-        nan_filter = (1 - numpy.isnan(weight)).astype(bool)  # weight arrays may contain NaN, which should be ignored
-        filtered_weight = weight[nan_filter]
-        all_negative = (filtered_weight <= 0).all()
-        all_positive = (filtered_weight >= 0).all()
-        if not (all_negative or all_positive):
-            raise errors.InvalidWeightError("Weights must be either all positive or all negative")
-    elif numpy.isreal(weight):
-        all_positive = weight >= 0
-        all_negative = weight < 0
-    else:
-        raise errors.InvalidWeightError("Weight must be a number or a list/array of numbers.")
-    if is_conductance or synapse_type == 'excitatory':
-        if not all_positive:
-            raise errors.InvalidWeightError("Weights must be positive for conductance-based and/or excitatory synapses")
-    elif is_conductance == False and synapse_type == 'inhibitory':
-        if not all_negative:
-            raise errors.InvalidWeightError("Weights must be negative for current-based, inhibitory synapses")
-    else:  # is_conductance is None. This happens if the cell does not exist on the current node.
-        logger.debug("Can't check weight, conductance status unknown.")
-    return weight
-
-
-def check_delay(delay):
-    if delay is None:
-        delay = get_min_delay()
-    # If the delay is too small , we have to throw an error
-    if delay < get_min_delay() or delay > get_max_delay():
-        raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % \
-                                     (delay, get_min_delay(), get_max_delay()))
-    return delay
-
-
-# =============================================================================
-#   Accessing individual neurons
-# =============================================================================
 
 class IDMixin(object):
     """
@@ -241,152 +148,6 @@ class IDMixin(object):
         return self.parent[index:index+1]
 
 
-# =============================================================================
-#   Functions for simulation set-up and control
-# =============================================================================
-
-
-def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
-          max_delay=DEFAULT_MAX_DELAY, **extra_params):
-    """
-    Initialises/reinitialises the simulator. Any existing network structure is
-    destroyed.
-    
-    extra_params contains any keyword arguments that are required by a given
-    simulator but not by others.
-    """
-    invalid_extra_params = ('mindelay', 'maxdelay', 'dt')
-    for param in invalid_extra_params:
-        if param in extra_params:
-            raise Exception("%s is not a valid argument for setup()" % param)
-    if min_delay > max_delay:
-        raise Exception("min_delay has to be less than or equal to max_delay.")
-    if min_delay < timestep:
-        raise Exception("min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep))
-
-def end(compatible_output=True):
-    """Do any necessary cleaning up before exiting."""
-    raise NotImplementedError
-
-def run(simtime):
-    """Run the simulation for simtime ms."""
-    raise NotImplementedError
-
-def reset():
-    """
-    Reset the time to zero, neuron membrane potentials and synaptic weights to
-    their initial values, and delete any recorded data. The network structure
-    is not changed, nor is the specification of which neurons to record from.
-    """
-    simulator.reset()
-
-def initialize(cells, variable, value):
-    assert isinstance(cells, (BasePopulation, Assembly)), type(cells)
-    cells.initialize(variable, value)
-
-def get_current_time():
-    """Return the current time in the simulation."""
-    return simulator.state.t
-
-def get_time_step():
-    """Return the integration time step."""
-    return simulator.state.dt
-
-def get_min_delay():
-    """Return the minimum allowed synaptic delay."""
-    return simulator.state.min_delay
-
-def get_max_delay():
-    """Return the maximum allowed synaptic delay."""
-    return simulator.state.max_delay
-
-def num_processes():
-    """Return the number of MPI processes."""
-    return simulator.state.num_processes
-
-def rank():
-    """Return the MPI rank of the current node."""
-    return simulator.state.mpi_rank
-
-# =============================================================================
-#  Low-level API for creating, connecting and recording from individual neurons
-# =============================================================================
-
-def build_create(population_class):
-    def create(cellclass, cellparams=None, n=1):
-        """
-        Create n cells all of the same type.
-
-        If n > 1, return a list of cell ids/references.
-        If n==1, return just the single id.
-        """
-        return population_class(n, cellclass, cellparams)  # return the Population or Population.all_cells?
-    return create
-
-def build_connect(projection_class, connector_class):
-    def connect(source, target, weight=0.0, delay=None, synapse_type=None,
-                p=1, rng=None):
-        """
-        Connect a source of spikes to a synaptic target.
-
-        source and target can both be individual cells or populations/assemblies
-        of cells, in which case all possible connections are made with
-        probability p, using either the random number generator supplied, or the
-        default rng otherwise. Weights should be in nA or µS.
-        """
-        if isinstance(source, IDMixin):
-            source = source.as_view()
-        if isinstance(target, IDMixin):
-            target = target.as_view()
-        connector = connector_class(p_connect=p, weights=weight, delays=delay)
-        return projection_class(source, target, connector, target=synapse_type, rng=rng)
-    return connect
-
-def set(cells, param, val=None):
-    """
-    Set one or more parameters of an individual cell or list of cells.
-
-    param can be a dict, in which case val should not be supplied, or a string
-    giving the parameter name, in which case val is the parameter value.
-    """
-    assert isinstance(cells, (BasePopulation, Assembly))
-    cells.set(param, val)
-
-def build_record(variable, simulator):
-    def record(source, filename):
-        """
-        Record spikes to a file. source can be an individual cell, a Population,
-        PopulationView or Assembly.
-        """
-        # would actually like to be able to record to an array and choose later
-        # whether to write to a file.
-        if not isinstance(source, (BasePopulation, Assembly)):
-            source = source.parent
-        source._record(variable, to_file=filename)
-        # recorder_list is used by end()
-        if isinstance(source, BasePopulation):
-            simulator.recorder_list.append(source.recorders[variable])  # this is a bit hackish - better to add to Population.__del__?
-        if isinstance(source, Assembly):
-            for population in source.populations:
-                simulator.recorder_list.append(population.recorders[variable])
-    if variable == 'v':
-        record.__name__ = "record_v"
-        record.__doc__ = """
-            Record membrane potential to a file. source can be an individual
-            cell, a Population, PopulationView or Assembly."""
-    elif variable == 'gsyn':
-        record.__name__ = "record_gsyn"
-        record.__doc__ = """
-            Record synaptic conductances to a file. source can be an individual
-            cell, a Population, PopulationView or Assembly."""
-    return record
-
-
-# =============================================================================
-#   High-level API for creating, connecting and recording from populations of
-#   neurons.
-# =============================================================================
-
 class BasePopulation(object):
     record_filter = None
 
@@ -500,12 +261,12 @@ class BasePopulation(object):
         else:
             values = [getattr(cell, parameter_name) for cell in self]  # list or array?
         
-        if gather == True and num_processes() > 1:
-            all_values  = { rank(): values }
-            all_indices = { rank(): self.local_cells.tolist()}
+        if gather == True and control.num_processes() > 1:
+            all_values  = { control.rank(): values }
+            all_indices = { control.rank(): self.local_cells.tolist()}
             all_values  = recording.gather_dict(all_values)
             all_indices = recording.gather_dict(all_indices)
-            if rank() == 0:
+            if control.rank() == 0:
                 values  = reduce(operator.add, all_values.values())
                 indices = reduce(operator.add, all_indices.values())
             idx    = numpy.argsort(indices)
@@ -625,6 +386,7 @@ class BasePopulation(object):
         """
         raise NotImplementedError()
 
+    #@deprecated("initialize('v', rand_distr)")
     def randomInit(self, rand_distr):
         """
         Set initial membrane potentials for all the cells in the population to
@@ -819,7 +581,7 @@ class BasePopulation(object):
         """
         spike_counts = self.recorders['spikes'].count(gather, self.record_filter)
         total_spikes = sum(spike_counts.values())
-        if rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
+        if control.rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
             if len(spike_counts) > 0:
                 return float(total_spikes)/len(spike_counts)
             else:
@@ -847,7 +609,7 @@ class BasePopulation(object):
         result = numpy.empty((len(cells), 4))
         result[:,0]   = cells
         result[:,1:4] = self.positions.T 
-        if rank() == 0:
+        if control.rank() == 0:
             file.write(result, {'population' : self.label})
             file.close()
 
@@ -944,7 +706,7 @@ class Population(BasePopulation):
         Given the ID(s) of cell(s) in the Population, return its (their) index
         (order in the Population), counting only cells on the local MPI node.
         """
-        if num_processes() > 1:
+        if control.num_processes() > 1:
             return self.local_cells.tolist().index(id)          # probably very slow
             #return numpy.nonzero(self.local_cells == id)[0][0] # possibly faster?
             # another idea - get global index, use idx-sum(mask_local[:idx])?
@@ -1440,7 +1202,7 @@ class Assembly(object):
         result = numpy.empty((len(cells), 4))
         result[:,0]   = cells
         result[:,1:4] = self.positions.T 
-        if rank() == 0:
+        if control.rank() == 0:
             file.write(result, {'assembly' : self.label})
             file.close()
 
@@ -1486,7 +1248,7 @@ class Assembly(object):
         """
         spike_counts = self.get_spike_counts()
         total_spikes = sum(spike_counts.values())
-        if rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
+        if control.rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
             return float(total_spikes)/len(spike_counts)
         else:
             return numpy.nan
@@ -1538,13 +1300,13 @@ class Assembly(object):
                     'first_id'    : self.first_id,
                     'last_id'     : self.last_id}
         
-        metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        metadata['dt'] = control.simulator.state.dt # note that this has to run on all nodes (at least for NEST)
         data = numpy.zeros(format)
         for pop in filenames.keys():
             if filenames[pop][1] is True:
                 name     = filenames[pop][0]
-                if gather==False and simulator.state.num_processes > 1:
-                    name += '.%d' % simulator.state.mpi_rank            
+                if gather==False and control.simulator.state.num_processes > 1:
+                    name += '.%d' % control.simulator.state.mpi_rank            
                 p_file   = files.NumpyBinaryFile(name, mode='r') 
                 tmp_data = p_file.read()                    
                 if compatible_output:
@@ -1555,11 +1317,11 @@ class Assembly(object):
         os.rmdir(tempdir)
         
         if isinstance(file, basestring):
-            if gather==False and simulator.state.num_processes > 1:
-                file += '.%d' % simulator.state.mpi_rank
+            if gather==False and control.simulator.state.num_processes > 1:
+                file += '.%d' % control.simulator.state.mpi_rank
             file = files.StandardTextFile(file, mode='w')
         
-        if simulator.state.mpi_rank == 0 or gather == False:
+        if control.simulator.state.mpi_rank == 0 or gather == False:
             file.write(data, metadata)
             file.close()
 
@@ -1649,339 +1411,3 @@ class Assembly(object):
         context = {"label": self.label,
                    "populations": [p.describe(template=None) for p in self.populations]}
         return descriptions.render(engine, template, context)
-
-# =============================================================================
-
-
-class Projection(object):
-    """
-    A container for all the connections of a given type (same synapse type and
-    plasticity mechanisms) between two populations, together with methods to
-    set parameters of those connections, including of plasticity mechanisms.
-    """
-
-    def __init__(self, presynaptic_neurons, postsynaptic_neurons, method,
-                 source=None, target=None, synapse_dynamics=None,
-                 label=None, rng=None):
-        """
-        presynaptic_neurons and postsynaptic_neurons - Population, PopulationView
-                                                       or Assembly objects.
-
-        source - string specifying which attribute of the presynaptic cell
-                 signals action potentials. This is only needed for
-                 multicompartmental cells with branching axons or
-                 dendrodendriticsynapses. All standard cells have a single
-                 source, and this is the default.
-
-        target - string specifying which synapse on the postsynaptic cell to
-                 connect to. For standard cells, this can be 'excitatory' or
-                 'inhibitory'. For non-standard cells, it could be 'NMDA', etc.
-                 If target is not given, the default values of 'excitatory' is
-                 used.
-
-        method - a Connector object, encapsulating the algorithm to use for
-                 connecting the neurons.
-
-        synapse_dynamics - a `standardmodels.SynapseDynamics` object specifying
-                 which synaptic plasticity mechanisms to use.
-
-        rng - specify an RNG object to be used by the Connector.
-        """
-        for prefix, pop in zip(("pre", "post"),
-                               (presynaptic_neurons, postsynaptic_neurons)):
-            if not isinstance(pop, (BasePopulation, Assembly)):
-                raise errors.ConnectionError("%ssynaptic_neurons must be a Population, PopulationView or Assembly, not a %s" % (prefix, type(pop)))
-        
-        if isinstance(postsynaptic_neurons, Assembly):
-            if not postsynaptic_neurons._homogeneous_synapses:
-                raise Exception('Projection to an Assembly object can be made only with homogeneous synapses types')
-            
-        self.pre    = presynaptic_neurons  #  } these really
-        self.source = source               #  } should be
-        self.post   = postsynaptic_neurons #  } read-only
-        self.target = target               #  }
-        self.label  = label
-        if isinstance(rng, random.AbstractRNG):
-            self.rng = rng
-        elif rng is None:
-            self.rng = random.NumpyRNG(seed=151985012)
-        else:
-            raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
-        self._method = method
-        self.synapse_dynamics = synapse_dynamics
-        #self.connection = None # access individual connections. To be defined by child, simulator-specific classes
-        self.weights = []
-        if label is None:
-            if self.pre.label and self.post.label:
-                self.label = "%s→%s" % (self.pre.label, self.post.label)
-        if self.synapse_dynamics:
-            assert isinstance(self.synapse_dynamics, models.BaseSynapseDynamics), \
-              "The synapse_dynamics argument, if specified, must be a models.BaseSynapseDynamics object, not a %s" % type(synapse_dynamics)
-
-    def __len__(self):
-        """Return the total number of local connections."""
-        raise NotImplementedError
-
-    def size(self, gather=True):
-        """
-        Return the total number of connections.
-            - only local connections, if gather is False,
-            - all connections, if gather is True (default)
-        """
-        if gather:
-            n = len(self)
-            return recording.mpi_sum(n)
-        else:
-            return len(self)
-
-    def __repr__(self):
-        return 'Projection("%s")' % self.label
-
-    def __getitem__(self, i):
-        """Return the `i`th connection within the Projection."""
-        raise NotImplementedError
-
-    def __iter__(self):
-        """Return an iterator over all connections on the local MPI node."""
-        for i in range(len(self)):
-            yield self[i]
-
-    # --- Methods for setting connection parameters ---------------------------
-
-    def set(self, name, value):
-        """
-        Set connection attributes for all connections on the local MPI node.
-        
-        `name`  -- attribute name
-        
-        `value` -- the attribute numeric value, or a list/1D array of such
-                   values of the same length as the number of local connections,
-                   or a 2D array with the same dimensions as the connectivity
-                   matrix (as returned by `get(format='array')`).
-        """
-        raise NotImplementedError
-
-    @deprecated("set('weight', w)")
-    def setWeights(self, w):
-        """
-        w can be a single number, in which case all weights are set to this
-        value, or a list/1D array of length equal to the number of connections
-        in the projection, or a 2D array with the same dimensions as the
-        connectivity matrix (as returned by `getWeights(format='array')`).
-        Weights should be in nA for current-based and µS for conductance-based
-        synapses.
-        """
-        # should perhaps add a "distribute" argument, for symmetry with "gather" in getWeights()
-        # if post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
-        w = check_weight(w, self.synapse_type, is_conductance(self.post.local_cells[0]))
-        self.set('weight', w)
-
-    @deprecated("set('weight', rand_distr)")
-    def randomizeWeights(self, rand_distr):
-        """
-        Set weights to random values taken from rand_distr.
-        """
-        # Arguably, we could merge this with set_weights just by detecting the
-        # argument type. It could make for easier-to-read simulation code to
-        # give it a separate name, though. Comments?
-        self.set('weight', rand_distr.next(len(self)))
-
-    @deprecated("set('delay', d)")
-    def setDelays(self, d):
-        """
-        d can be a single number, in which case all delays are set to this
-        value, or a list/1D array of length equal to the number of connections
-        in the projection, or a 2D array with the same dimensions as the
-        connectivity matrix (as returned by `getDelays(format='array')`).
-        """
-        self.set('delay', d)
-
-    @deprecated("set('delay', rand_distr)")
-    def randomizeDelays(self, rand_distr):
-        """
-        Set delays to random values taken from rand_distr.
-        """
-        self.set('delay', rand_distr.next(len(self)))
-
-    @deprecated("set(param, value)")
-    def setSynapseDynamics(self, param, value):
-        """
-        Set parameters of the dynamic synapses for all connections in this
-        projection.
-        """
-        self.set(param, value)
-
-    @deprecated("set(param, value)")
-    def randomizeSynapseDynamics(self, param, rand_distr):
-        """
-        Set parameters of the synapse dynamics to values taken from rand_distr
-        """
-        self.set(param, rand_distr.next(len(self)))
-
-    # --- Methods for writing/reading information to/from file. ---------------
-
-    def get(self, parameter_name, format, gather=True):
-        """
-        Get the values of a given attribute (weight or delay) for all
-        connections in this Projection.
-        
-        `parameter_name` -- name of the attribute whose values are wanted.
-        
-        `format` -- "list" or "array". Array format implicitly assumes that all
-                    connections belong to a single Projection.
-        
-        Return a list or a 2D Numpy array. The array element X_ij contains the
-        attribute value for the connection from the ith neuron in the pre-
-        synaptic Population to the jth neuron in the post-synaptic Population,
-        if a single such connection exists. If there are no such connections,
-        X_ij will be NaN. If there are multiple such connections, the summed
-        value will be given, which makes some sense for weights, but is
-        pretty meaningless for delays. 
-        """
-        raise NotImplementedError
-
-    @deprecated("get('weight', format, gather)")
-    def getWeights(self, format='list', gather=True):
-        """
-        Get synaptic weights for all connections in this Projection.
-
-        Possible formats are: a list of length equal to the number of connections
-        in the projection, a 2D weight array (with NaN for non-existent
-        connections). Note that for the array format, if there is more than
-        one connection between two cells, the summed weight will be given.
-        """
-        if gather:
-            logger.error("getWeights() with gather=True not yet implemented")
-        return self.get('weight', format)
-
-    @deprecated("get('weight', format, gather)")
-    def getDelays(self, format='list', gather=True):
-        """
-        Get synaptic delays for all connections in this Projection.
-
-        Possible formats are: a list of length equal to the number of connections
-        in the projection, a 2D delay array (with NaN for non-existent
-        connections).
-        """
-        if gather:
-            logger.error("getDelays() with gather=True not yet implemented")
-        return self.get('delay', format)
-
-    @deprecated("get(parameter_name, format, gather)")
-    def getSynapseDynamics(self, parameter_name, format='list', gather=True):
-        """
-        Get parameters of the dynamic synapses for all connections in this
-        Projection.
-        """
-        if gather:
-            logger.error("getstandardmodels.SynapseDynamics() with gather=True not yet implemented")
-        return self.get(parameter_name, format)
-
-    @deprecated("save('all', file, format, gather)")
-    def saveConnections(self, file, gather=True, compatible_output=True):
-        """
-        Save connections to file in a format suitable for reading in with a
-        FromFileConnector.
-        """
-        
-        if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
-        
-        lines = []
-        if not compatible_output:
-            for c in self.connections:
-                lines.append([c.source, c.target, c.weight, c.delay])
-        else:
-            for c in self.connections: 
-                lines.append([self.pre.id_to_index(c.source), self.post.id_to_index(c.target), c.weight, c.delay])
-        
-        if gather == True and num_processes() > 1:
-            all_lines = { rank(): lines }
-            all_lines = recording.gather_dict(all_lines)
-            if rank() == 0:
-                lines = reduce(operator.add, all_lines.values())
-        elif num_processes() > 1:
-            file.rename('%s.%d' % (file.name, rank()))
-        
-        logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
-        
-        if gather == False or rank() == 0:
-            file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
-            file.close()
-
-    @deprecated("save('weight', file, format, gather)")
-    def printWeights(self, file, format='list', gather=True):
-        """
-        Print synaptic weights to file. In the array format, zeros are printed
-        for non-existent connections.
-        """
-        weights = self.get('weight', format=format, gather=gather)
-        
-        if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
-        
-        if format == 'array':
-            weights = numpy.where(numpy.isnan(weights), 0.0, weights)
-        file.write(weights, {})
-        file.close()    
-
-    @deprecated("save('delay', file, format, gather)")
-    def printDelays(self, file, format='list', gather=True):
-        """
-        Print synaptic weights to file. In the array format, zeros are printed
-        for non-existent connections.
-        """
-        delays = self.getDelays(format=format, gather=gather)
-        
-        if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
-        
-        if format == 'array':
-            delays = numpy.where(numpy.isnan(delays), 0.0, delays)
-        file.write(delays, {})
-        file.close()  
-
-    @deprecated("numpy.histogram()")
-    def weightHistogram(self, min=None, max=None, nbins=10):
-        """
-        Return a histogram of synaptic weights.
-        If min and max are not given, the minimum and maximum weights are
-        calculated automatically.
-        """
-        # it is arguable whether functions operating on the set of weights
-        # should be put here or in an external module.
-        weights = self.getWeights(format='list', gather=True)
-        if min is None:
-            min = weights.min()
-        if max is None:
-            max = weights.max()
-        bins = numpy.linspace(min, max, nbins+1)
-        return numpy.histogram(weights, bins)  # returns n, bins
-
-    def describe(self, template='projection_default.txt', engine='default'):
-        """
-        Returns a human-readable description of the projection.
-
-        The output may be customized by specifying a different template
-        togther with an associated template engine (see ``pyNN.descriptions``).
-
-        If template is None, then a dictionary containing the template context
-        will be returned.
-        """
-        context = {
-            "label": self.label,
-            "pre": self.pre.describe(template=None),
-            "post": self.post.describe(template=None),
-            "source": self.source,
-            "target": self.target,
-            "size_local": len(self),
-            "size": self.size(gather=True),
-            "connector": self._method.describe(template=None),
-            "plasticity": None,
-        }
-        if self.synapse_dynamics:
-            context.update(plasticity=self.synapse_dynamics.describe(template=None))
-        return descriptions.render(engine, template, context)
-
-
-# =============================================================================

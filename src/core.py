@@ -276,6 +276,7 @@ class forgetful_memoize(object):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
 
+
 class deprecated(object):
     """
     Decorator to mark functions/methods as deprecated. Emits a warning when
@@ -296,3 +297,5 @@ class deprecated(object):
         new_func.__doc__ = func.__doc__
         new_func.__dict__.update(func.__dict__)
         return new_func
+
+        

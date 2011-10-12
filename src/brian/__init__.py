@@ -13,7 +13,7 @@ Set = set
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
 from pyNN import common, recording, space, core, __doc__
-common.simulator = simulator
+common.control.simulator = simulator
 recording.simulator = simulator
 from pyNN.random import *
 from pyNN.recording import files

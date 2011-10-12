@@ -12,7 +12,7 @@ __version__ = "$Rev: 191 $"
 from pyNN.random import *
 from pyNN.neuron import simulator
 from pyNN import common, core, recording as base_recording, space, __doc__
-common.simulator = simulator
+common.control.simulator = simulator
 base_recording.simulator = simulator
 
 from pyNN.neuron.standardmodels.cells import *

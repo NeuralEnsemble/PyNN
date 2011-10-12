@@ -79,7 +79,7 @@ class DummySimulator(object):
         num_processes = 1
     state = State()
 simulator = DummySimulator()
-common.simulator = simulator
+common.control.simulator = simulator
 recording.simulator = simulator
 
 

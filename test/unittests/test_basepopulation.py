@@ -1,4 +1,5 @@
-from pyNN import common, errors, random, standardmodels
+from pyNN import common, errors, random, standardmodels, recording
+from pyNN.common import populations, control
 from nose.tools import assert_equal, assert_raises
 import numpy
 from mock import Mock, patch
@@ -16,7 +17,7 @@ class MockStandardCell(standardmodels.StandardCellType):
     def translate(cls, parameters):
         return parameters
 
-class MockPopulation(common.BasePopulation):
+class MockPopulation(populations.BasePopulation):
     size = 13
     all_cells = numpy.arange(100, 113)
     _mask_local = numpy.array([0,1,0,1,0,1,0,1,0,1,0,1,0], bool)
@@ -55,28 +56,28 @@ def test__getitem__int():
     assert_equal(p[-1], 112)
     
 def test__getitem__slice():
-    orig_PV = common.PopulationView
-    common.PopulationView = Mock()
+    orig_PV = populations.PopulationView
+    populations.PopulationView = Mock()
     p = MockPopulation()
     pv = p[3:9]
-    common.PopulationView.assert_called_with(p, slice(3,9,None))
-    common.PopulationView = orig_PV
+    populations.PopulationView.assert_called_with(p, slice(3,9,None))
+    populations.PopulationView = orig_PV
 
 def test__getitem__list():
-    orig_PV = common.PopulationView
-    common.PopulationView = Mock()
+    orig_PV = populations.PopulationView
+    populations.PopulationView = Mock()
     p = MockPopulation()
     pv = p[range(3,9)]
-    common.PopulationView.assert_called_with(p, range(3,9))
-    common.PopulationView = orig_PV
+    populations.PopulationView.assert_called_with(p, range(3,9))
+    populations.PopulationView = orig_PV
 
 def test__getitem__tuple():
-    orig_PV = common.PopulationView
-    common.PopulationView = Mock()
+    orig_PV = populations.PopulationView
+    populations.PopulationView = Mock()
     p = MockPopulation()
     pv = p[(3,5,7)]
-    common.PopulationView.assert_called_with(p, [3,5,7])
-    common.PopulationView = orig_PV
+    populations.PopulationView.assert_called_with(p, [3,5,7])
+    populations.PopulationView = orig_PV
 
 def test__getitem__invalid():
     p = MockPopulation()
@@ -111,7 +112,7 @@ def test_add():
     p1 = MockPopulation()
     p2 = MockPopulation()
     assembly = p1 + p2
-    assert isinstance(assembly, common.Assembly)
+    assert isinstance(assembly, populations.Assembly)
     assert_equal(assembly.populations, [p1, p2])
     
 def test_get_cell_position():
@@ -149,14 +150,14 @@ def test_nearest():
     assert_equal(p.nearest((1.51, 2.51, 3.51)), p[1])
 
 def test_sample():
-    orig_pv = common.PopulationView
-    common.PopulationView = Mock()
+    orig_pv = populations.PopulationView
+    populations.PopulationView = Mock()
     p = MockPopulation()
     rng = Mock()
     rng.permutation = Mock(return_value=numpy.array([7,4,8,12,0,3,9,1,2,11,5,10,6]))
     pv = p.sample(5, rng=rng)
-    assert_arrays_equal(common.PopulationView.call_args[0][1], numpy.array([7,4,8,12,0]))
-    common.PopulationView = orig_pv
+    assert_arrays_equal(populations.PopulationView.call_args[0][1], numpy.array([7,4,8,12,0]))
+    populations.PopulationView = orig_pv
 
 def test_get_should_call_get_array_if_it_exists():
     p = MockPopulation()
@@ -173,25 +174,25 @@ def test_get_with_no_get_array():
     MockPopulation.__iter__ = orig_iter
 
 def test_get_with_gather():
-    np_orig = common.num_processes
-    rank_orig = common.rank
-    gd_orig = common.recording.gather_dict
-    common.num_processes = lambda: 2
-    common.rank = lambda: 0
+    np_orig = control.num_processes
+    rank_orig = control.rank
+    gd_orig = recording.gather_dict
+    control.num_processes = lambda: 2
+    control.rank = lambda: 0
     def mock_gather_dict(D): # really hacky
         assert isinstance(D[0], list)
         D[1] = [i-1 for i in D[0]] + [D[0][-1] + 1]
         return D
-    common.recording.gather_dict = mock_gather_dict
+    recording.gather_dict = mock_gather_dict
     
     p = MockPopulation()
     p._get_array = Mock(return_value=numpy.arange(11.0, 23.0, 2.0))
     assert_arrays_equal(p.get("tau_m", gather=True),
                         numpy.arange(10.0, 23.0))
     
-    common.num_processes = np_orig
-    common.rank = rank_orig
-    common.recording.gather_dict = gd_orig
+    control.num_processes = np_orig
+    control.rank = rank_orig
+    recording.gather_dict = gd_orig
 
 def test_set_from_dict():
     p = MockPopulation()
@@ -435,22 +436,22 @@ def test_get_spike_counts():
     assert_equal(args, ("arg1", None))
     
 def test_meanSpikeCount():
-    orig_rank = common.rank
-    common.rank = lambda: 0
+    orig_rank = control.rank
+    control.rank = lambda: 0
     p = MockPopulation()
     p.recorders = {'spikes': Mock()}
     p.recorders['spikes'].count = Mock(return_value={0: 2, 1: 5})
     assert_equal(p.meanSpikeCount(), 3.5)
-    common.rank = orig_rank
+    control.rank = orig_rank
 
 def test_meanSpikeCount_on_slave_node():
-    orig_rank = common.rank
-    common.rank = lambda: 1
+    orig_rank = control.rank
+    control.rank = lambda: 1
     p = MockPopulation()
     p.recorders = {'spikes': Mock()}
     p.recorders['spikes'].count = Mock(return_value={0: 2, 1: 5})
     assert p.meanSpikeCount() is numpy.NaN
-    common.rank = orig_rank
+    control.rank = orig_rank
     
 def test_inject():
     p = MockPopulation()
@@ -467,8 +468,8 @@ def test_inject_into_invalid_celltype():
 
 def test_save_positions():
     import os
-    orig_rank = common.rank
-    common.rank = lambda: 0
+    orig_rank = control.rank
+    control.rank = lambda: 0
     p = MockPopulation()
     p.all_cells = numpy.array([34, 45, 56, 67])
     p.positions = numpy.arange(12).reshape((4,3)).T
@@ -478,4 +479,4 @@ def test_save_positions():
                         numpy.array([[34, 0, 1, 2], [45, 3, 4, 5], [56, 6, 7, 8], [67, 9, 10, 11]]))
     assert_equal(output_file.write.call_args[0][1], {'population': p.label})
     # arguably, the first column should contain indices, not ids.
-    common.rank = orig_rank
+    control.rank = orig_rank

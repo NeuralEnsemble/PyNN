@@ -16,7 +16,7 @@ def run_simulation(network_model, sim, parameters, input_queue, output_queue):
     command 'STOP'.
     """
     print "Running simulation with %s" % sim.__name__
-    common.simulator = sim.simulator
+    common.control.simulator = sim.simulator
     recording.simulator = sim.simulator
     network = network_model(sim, parameters)
     print "Network constructed with %s." % sim.__name__

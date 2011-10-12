@@ -1,6 +1,6 @@
 from neuron import h
 from pyNN.neuron import electrodes, recording, simulator
-from pyNN import common
+from pyNN.common import populations
 from mock import Mock
 from nose.tools import assert_equal, assert_raises, assert_almost_equal
 import numpy
@@ -36,7 +36,7 @@ class MockID(int):
         self.celltype = MockCellClass()
         self._cell = MockCell()
 
-class MockPopulation(common.BasePopulation):
+class MockPopulation(populations.BasePopulation):
     celltype = MockCellClass()
     local_cells = [MockID(44), MockID(33)]
 

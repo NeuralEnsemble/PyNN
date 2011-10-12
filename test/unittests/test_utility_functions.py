@@ -24,7 +24,7 @@ class MockSimulator(object):
     state = MockState()
     
 def setup():
-    common.simulator = MockSimulator
+    common.control.simulator = MockSimulator
 
 def test_is_conductance():
     for cb in (True, False):

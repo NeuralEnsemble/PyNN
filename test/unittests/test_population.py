@@ -1,18 +1,19 @@
-from pyNN import common, errors, random, standardmodels, space
+from pyNN import errors, random, standardmodels, space
+from pyNN.common import control, populations
 from nose.tools import assert_equal, assert_raises
 import numpy
 from mock import Mock, patch
 from pyNN.utility import assert_arrays_equal
 
 
-class MockID(int, common.IDMixin):
+class MockID(int, populations.IDMixin):
     def __init__(self, n):
         int.__init__(n)
-        common.IDMixin.__init__(self)
+        populations.IDMixin.__init__(self)
     def get_parameters(self):
         return {}
 
-class MockPopulation(common.Population):
+class MockPopulation(populations.Population):
     recorder_class = Mock()
     initialize = Mock()
     
@@ -78,25 +79,25 @@ def test_cell_property():
 
 def test_id_to_index():
     p = MockPopulation(11, MockStandardCell)
-    assert isinstance(p[0], common.IDMixin)
+    assert isinstance(p[0], populations.IDMixin)
     assert_equal(p.id_to_index(p[0]), 0)
     assert_equal(p.id_to_index(p[10]), 10)
 
 def test_id_to_index_with_array():
     p = MockPopulation(11, MockStandardCell)
-    assert isinstance(p[0], common.IDMixin)
+    assert isinstance(p[0], populations.IDMixin)
     assert_arrays_equal(p.id_to_index(p.all_cells[3:9:2]), numpy.arange(3,9,2))
 
 def test_id_to_index_with_populationview():
     p = MockPopulation(11, MockStandardCell)
-    assert isinstance(p[0], common.IDMixin)
+    assert isinstance(p[0], populations.IDMixin)
     view = p[3:7]
-    assert isinstance(view, common.PopulationView)
+    assert isinstance(view, populations.PopulationView)
     assert_arrays_equal(p.id_to_index(view), numpy.arange(3,7))
 
 def test_id_to_index_with_invalid_id():
     p = MockPopulation(11, MockStandardCell)
-    assert isinstance(p[0], common.IDMixin)
+    assert isinstance(p[0], populations.IDMixin)
     assert_raises(ValueError, p.id_to_index, MockID(p.last_id+1))
     assert_raises(ValueError, p.id_to_index, MockID(p.first_id-1))
     
@@ -105,26 +106,26 @@ def test_id_to_index_with_invalid_ids():
     assert_raises(ValueError, p.id_to_index, [MockID(p.first_id-1)] + p.all_cells[0:3].tolist())
 
 def test_id_to_local_index():
-    orig_np = common.num_processes
-    common.num_processes = lambda: 5
+    orig_np = control.num_processes
+    control.num_processes = lambda: 5
     p = MockPopulation(11, MockStandardCell)
     # every 5th cell, starting with the 4th, is on this node.
     assert_equal(p.id_to_local_index(p[3]), 0)
     assert_equal(p.id_to_local_index(p[8]), 1)
     
-    common.num_processes = lambda: 1
+    control.num_processes = lambda: 1
     # only one node
     assert_equal(p.id_to_local_index(p[3]), 3)
     assert_equal(p.id_to_local_index(p[8]), 8)
-    common.num_processes = orig_np
+    control.num_processes = orig_np
 
 def test_id_to_local_index_with_invalid_id():
-    orig_np = common.num_processes
-    common.num_processes = lambda: 5
+    orig_np = control.num_processes
+    control.num_processes = lambda: 5
     p = MockPopulation(11, MockStandardCell)
     # every 5th cell, starting with the 4th, is on this node.
     assert_raises(ValueError, p.id_to_local_index, p[0])
-    common.num_processes = orig_np
+    control.num_processes = orig_np
 
 # test structure property
 def test_set_structure():

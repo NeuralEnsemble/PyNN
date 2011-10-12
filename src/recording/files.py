@@ -20,7 +20,6 @@ $Id$
 
 import numpy, sys, os, shutil
 import cPickle as pickle
-from numpy.lib import format
 
 try:
     import tables
@@ -46,7 +45,8 @@ def savez(file, *args, **kwds):
     
     __doc__ = numpy.savez.__doc__    
     import zipfile
-   
+    from numpy.lib import format
+    
     if isinstance(file, basestring):
         if not file.endswith('.npz'):
             file = file + '.npz'

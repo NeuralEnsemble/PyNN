@@ -1,5 +1,5 @@
 from pyNN import common
-from pyNN.common import Assembly, BasePopulation
+from pyNN.common.populations import Assembly, BasePopulation
 from nose.tools import assert_equal, assert_raises
 import numpy
 from pyNN.utility import assert_arrays_equal

@@ -30,7 +30,7 @@ import os
 from itertools import chain
 from pyNN.neuron import simulator
 from pyNN import common, recording
-common.simulator = simulator
+common.control.simulator = simulator
 recording.simulator = simulator
 
 h = neuron.h

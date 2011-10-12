@@ -24,6 +24,7 @@ except ImportError:
 
 logger = logging.getLogger("PyNN")
 
+DEFAULT_WEIGHT = 0.0
 
 def expand_distances(d_expression):
     """
@@ -148,7 +149,7 @@ class WeightGenerator(ConnectionAttributeGenerator):
       
     def check(self, weight):
         if weight is None:
-            weight = common.DEFAULT_WEIGHT
+            weight = DEFAULT_WEIGHT
         if core.is_listlike(weight):
             weight     = numpy.array(weight)
             nan_filter = (1-numpy.isnan(weight)).astype(bool) # weight arrays may contain NaN, which should be ignored
@@ -899,7 +900,7 @@ class CSAConnector(Connector):
                 #       'must specify weights and delays in addition to a CSA mask'
                 self.weights = weights
                 if weights is None:
-                    self.weights = common.DEFAULT_WEIGHT
+                    self.weights = DEFAULT_WEIGHT
                 self.delays = delays
                 if delays is None:
                     self.delays = common.get_min_delay()

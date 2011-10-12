@@ -37,9 +37,9 @@ def test_run():
     assert_raises(NotImplementedError, common.run, 10.0)
                
 def test_reset():
-    common.simulator = MockSimulator()
+    common.control.simulator = MockSimulator()
     common.reset()
-    assert common.simulator.reset_called
+    assert common.control.simulator.reset_called
     
 def test_initialize():
     p = MockPopulation()
@@ -47,31 +47,31 @@ def test_initialize():
     assert p.initializations == [('v', -65.0)]
     
 def test_current_time():
-    common.simulator = MockSimulator()
+    common.control.simulator = MockSimulator()
     common.get_current_time()
-    assert_equal(common.simulator.state.accesses, ['t'])
+    assert_equal(common.control.simulator.state.accesses, ['t'])
     
 def test_time_step():
-    common.simulator = MockSimulator()
+    common.control.simulator = MockSimulator()
     common.get_time_step()
-    assert_equal(common.simulator.state.accesses, ['dt'])
+    assert_equal(common.control.simulator.state.accesses, ['dt'])
     
 def test_min_delay():
-    common.simulator = MockSimulator()
+    common.control.simulator = MockSimulator()
     common.get_min_delay()
-    assert_equal(common.simulator.state.accesses, ['min_delay'])
+    assert_equal(common.control.simulator.state.accesses, ['min_delay'])
 
 def test_max_delay():
-    common.simulator = MockSimulator()
+    common.control.simulator = MockSimulator()
     common.get_max_delay()
-    assert_equal(common.simulator.state.accesses, ['max_delay'])
+    assert_equal(common.control.simulator.state.accesses, ['max_delay'])
     
 def test_num_processes():
-    common.simulator = MockSimulator()
+    common.control.simulator = MockSimulator()
     common.num_processes()
-    assert_equal(common.simulator.state.accesses, ['num_processes'])
+    assert_equal(common.control.simulator.state.accesses, ['num_processes'])
     
 def test_rank():
-    common.simulator = MockSimulator()
+    common.control.simulator = MockSimulator()
     common.rank()
-    assert_equal(common.simulator.state.accesses, ['mpi_rank'])
+    assert_equal(common.control.simulator.state.accesses, ['mpi_rank'])

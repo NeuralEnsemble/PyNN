@@ -10,7 +10,7 @@ $Id$
 import nest
 from pyNN.nest import simulator
 from pyNN import common, recording, errors, space, __doc__
-common.simulator = simulator
+common.control.simulator = simulator
 recording.simulator = simulator
 
 if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):

@@ -1,4 +1,5 @@
-from pyNN import common, standardmodels
+from pyNN import common, standardmodels, recording
+from pyNN.common.populations import BasePopulation
 from nose.tools import assert_equal, assert_raises
 from mock import Mock
 import numpy
@@ -19,7 +20,7 @@ def teardown():
 class MockStandardCell(standardmodels.StandardCellType):
     recordable = ['v', 'spikes']
 
-class MockPopulation(common.BasePopulation):
+class MockPopulation(BasePopulation):
     label = "mock_population"
     first_id = 555
 
@@ -58,16 +59,16 @@ def test_size_no_gather():
     common.Projection.__len__ = orig_len
     
 def test_size_with_gather():
-    orig_mpi_sum = common.recording.mpi_sum
+    orig_mpi_sum = recording.mpi_sum
     orig_len = common.Projection.__len__
-    common.recording.mpi_sum = Mock()
+    recording.mpi_sum = Mock()
     common.Projection.__len__ = Mock(return_value=42)
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
     prj.size(gather=True)
-    common.recording.mpi_sum.assert_called_with(len(prj))
-    common.recording.mpi_sum = orig_mpi_sum
+    recording.mpi_sum.assert_called_with(len(prj))
+    recording.mpi_sum = orig_mpi_sum
     common.Projection.__len__ = orig_len
     
 def test_set_weights():
