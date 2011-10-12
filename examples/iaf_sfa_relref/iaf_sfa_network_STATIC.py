@@ -141,7 +141,7 @@ class LatticeConnector(connectors.Connector):
                 
             # Connect everything up
             yTimer = time.time()
-            projection.connection_manager.convergent_connect(chosenPresIDs, currentPostID, weights, delaysClipped)
+            projection._convergent_connect(chosenPresIDs, currentPostID, weights, delaysClipped)
             timer4 += time.time() - myTimer
             
         

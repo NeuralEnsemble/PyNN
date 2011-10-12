@@ -23,7 +23,6 @@ class MockPopulation(common.BasePopulation):
     label = "mock_population"
     first_id = 555
 
-class MockConnectionManager(object):
     def __len__(self):
         return 999
     def __getitem__(self, i):
@@ -48,37 +47,28 @@ def test_create_with_synapse_dynamics():
     prj = common.Projection(p1, p2, method=Mock(),
                             synapse_dynamics=standardmodels.SynapseDynamics())
     
-def test_len():
-    p1 = MockPopulation()
-    p2 = MockPopulation()
-    prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
-    assert_equal(len(prj), len(prj.connection_manager))
-    
 def test_size_no_gather():
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
-    assert_equal(prj.size(gather=False), len(prj))
+    orig_len = common.Projection.__len__
+    common.Projection.__len__ = Mock(return_value=42)
+    n = prj.size(gather=False)
+    prj.__len__.assert_called()
+    common.Projection.__len__ = orig_len
     
 def test_size_with_gather():
     orig_mpi_sum = common.recording.mpi_sum
+    orig_len = common.Projection.__len__
     common.recording.mpi_sum = Mock()
+    common.Projection.__len__ = Mock(return_value=42)
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
     prj.size(gather=True)
     common.recording.mpi_sum.assert_called_with(len(prj))
     common.recording.mpi_sum = orig_mpi_sum
-    
-def test__getitem():
-    p1 = MockPopulation()
-    p2 = MockPopulation()
-    prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
-    assert_equal(prj[0], 888)
+    common.Projection.__len__ = orig_len
     
 def test_set_weights():
     p1 = MockPopulation()
@@ -86,70 +76,69 @@ def test_set_weights():
     prj = common.Projection(p1, p2, method=Mock())
     prj.synapse_type = "foo"
     prj.post.local_cells = [0]
-    prj.connection_manager = MockConnectionManager()
-    prj.connection_manager.set = Mock()
+    prj.set = Mock()
     prj.setWeights(0.5)
-    prj.connection_manager.set.assert_called_with('weight', 0.5)
+    prj.set.assert_called_with('weight', 0.5)
     
 def test_randomize_weights():
+    orig_len = common.Projection.__len__
+    common.Projection.__len__ = Mock(return_value=42)
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
-    prj.setWeights = Mock()
+    prj.set = Mock()
     rd = Mock()
     rd.next = Mock(return_value=777)
     prj.randomizeWeights(rd)
     rd.next.assert_called_with(len(prj))
-    prj.setWeights.assert_called_with(777)
+    prj.set.assert_called_with('weight', 777)
+    common.Projection.__len__ = orig_len
     
 def test_set_delays():
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
-    prj.connection_manager.set = Mock()
+    prj.set = Mock()
     prj.setDelays(0.5)
-    prj.connection_manager.set.assert_called_with('delay', 0.5)
+    prj.set.assert_called_with('delay', 0.5)
     
 def test_randomize_delays():
+    orig_len = common.Projection.__len__
+    common.Projection.__len__ = Mock(return_value=42)
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
-    prj.setDelays = Mock()
+    prj.set = Mock()
     rd = Mock()
     rd.next = Mock(return_value=777)
     prj.randomizeDelays(rd)
     rd.next.assert_called_with(len(prj))
-    prj.setDelays.assert_called_with(777)
+    prj.set.assert_called_with('delay', 777)
+    common.Projection.__len__ = orig_len
     
 def test_set_synapse_dynamics_param():
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
-    prj.connection_manager.set = Mock()
+    prj.set = Mock()
     prj.setSynapseDynamics('U', 0.5)
-    prj.connection_manager.set.assert_called_with('U', 0.5)
+    prj.set.assert_called_with('U', 0.5)
     
 def test_get_weights():
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
-    prj.connection_manager.get = Mock()
+    prj.get = Mock()
     prj.getWeights(format='list', gather=False)
-    prj.connection_manager.get.assert_called_with('weight', 'list')
+    prj.get.assert_called_with('weight', 'list')
     
 def test_get_delays():
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
-    prj.connection_manager.get = Mock()
+    prj.get = Mock()
     prj.getDelays(format='list', gather=False)
-    prj.connection_manager.get.assert_called_with('delay', 'list')
+    prj.get.assert_called_with('delay', 'list')
 
 def test_save_connections():
     filename = "test.connections"
@@ -158,7 +147,6 @@ def test_save_connections():
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
     prj.connections = [MockConnection(), MockConnection(), MockConnection()]
     prj.saveConnections(filename, gather=False, compatible_output=False)
     assert os.path.exists(filename + ".1")
@@ -171,8 +159,9 @@ def test_print_weights_as_list():
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
+    prj.get = Mock(return_value=range(5))
     prj.printWeights(filename, format='list', gather=False)
+    prj.get.assert_called_with('weight', format='list', gather=False)
     assert os.path.exists(filename)
     os.remove(filename)
     
@@ -183,8 +172,9 @@ def test_print_weights_as_array():
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock())
-    prj.connection_manager = MockConnectionManager()
+    prj.get = Mock(return_value=numpy.arange(5.0))
     prj.printWeights(filename, format='array', gather=False)
+    prj.get.assert_called_with('weight', format='array', gather=False)
     assert os.path.exists(filename)
     os.remove(filename)
 
@@ -213,11 +203,13 @@ def test_weight_histogram_no_args():
     assert_arrays_equal(bins, numpy.arange(0.0, 9.1, 0.9))
 
 def test_describe():
+    orig_len = common.Projection.__len__
+    common.Projection.__len__ = Mock(return_value=42)
     p1 = MockPopulation()
     p2 = MockPopulation()
     prj = common.Projection(p1, p2, method=Mock(), synapse_dynamics=standardmodels.SynapseDynamics())
-    prj.connection_manager = MockConnectionManager()
     prj.pre.describe = Mock()
     prj.post.describe = Mock()
     assert isinstance(prj.describe(engine='string'), basestring)
     assert isinstance(prj.describe(template=None), dict)
+    common.Projection.__len__ = orig_len

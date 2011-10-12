@@ -407,7 +407,7 @@ def test_setup(sim):
     for rec in data:
         assert_arrays_equal(rec, data[0])
 
-@register(exclude=['pcsim'])
+@register(exclude=['pcsim', 'moose'])
 def test_EIF_cond_alpha_isfa_ista(sim):
     set_simulator(sim)
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
@@ -447,7 +447,7 @@ def test_HH_cond_exp(sim):
     assert first_spike - 2.95 < 0.01 
     
 
-@register(exclude=['pcsim'])
+@register(exclude=['pcsim', 'moose'])
 def test_record_vm_and_gsyn_from_assembly(sim):
     from pyNN.utility import init_logging
     init_logging(logfile=None, debug=True)

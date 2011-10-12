@@ -345,7 +345,7 @@ class ProbabilisticConnector(Connector):
         delays  = self.delays_generator.get(self.N, self.distance_matrix, create)        
         
         if len(targets) > 0:
-            self.projection.connection_manager.connect(src, targets.tolist(), weights, delays)
+            self.projection._divergent_connect(src, targets.tolist(), weights, delays)
 
     
     
@@ -525,8 +525,8 @@ class FromListConnector(Connector):
             ## We need to exclude the non local cells. Fastidious, need maybe
             ## to use a convergent_connect method, instead of a divergent_connect one
             #idx     = eval(tests)
-            #projection.connection_manager.connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
-            projection.connection_manager.connect(src, tgts.tolist(), weights, delays)
+            #projection._divergent_connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
+            projection._divergent_connect(src, tgts.tolist(), weights, delays)
             self.progression(count)
             count += 1
 
@@ -645,7 +645,7 @@ class FixedNumberPostConnector(Connector):
             delays  = delays_generator.get(n, distance_matrix, create)
                
             if len(targets) > 0:
-                projection.connection_manager.connect(src, targets.tolist(), weights, delays)
+                projection._divergent_connect(src, targets.tolist(), weights, delays)
             
             self.progression(count)
 
@@ -730,7 +730,7 @@ class FixedNumberPreConnector(Connector):
             delays  = delays_generator.get(n, distance_matrix, create)            
                                             
             for src, w, d in zip(sources, weights, delays):
-                projection.connection_manager.connect(src, tgt, w, d)
+                projection._divergent_connect(src, tgt, w, d)
             
             self.progression(count)
             
@@ -775,7 +775,7 @@ class OneToOneConnector(Connector):
                         
             for tgt, src, w, d in zip(projection.post.local_cells, sources, weights, delays):
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
-                projection.connection_manager.connect(src, [tgt], [float(w)], [float(d)])
+                projection._divergent_connect(src, [tgt], [float(w)], [float(d)])
                 self.progression(count)
                 count += 1
         else:
@@ -858,7 +858,7 @@ class SmallWorldConnector(Connector):
         delays  = self.delays_generator.get(self.N, self.distance_matrix, create)      
                     
         if len(targets) > 0:
-            self.projection.connection_manager.connect(src, targets.tolist(), weights, delays)
+            self.projection._divergent_connect(src, targets.tolist(), weights, delays)
     
     def connect(self, projection):
         """Connect-up a Projection."""
@@ -933,12 +933,12 @@ class CSAConnector(Connector):
         if csa.arity (self.cset) == 2:
             # Connection-set with arity 2
             for (i, j, weight, delay) in c:
-                projection.connection_manager.connect (i, [j], weight, delay)
+                projection._divergent_connect (i, [j], weight, delay)
         elif CSAConnector.isConstant (self.weights) \
              and CSAConnector.isConstant (self.delays):
             # Mask with constant weights and delays
             for (i, j) in c:
-                projection.connection_manager.connect (i, [j], self.weights, self.delays)
+                projection._divergent_connect (i, [j], self.weights, self.delays)
         else:
             # Mask with weights and/or delays iterable
             weights = self.weights
@@ -948,4 +948,4 @@ class CSAConnector(Connector):
             if CSAConnector.isConstant (delays):
                 delays = CSAConnector.constantIterator (delays)
             for (i, j), weight, delay in zip (c, weights, delays):
-                projection.connection_manager.connect (i, [j], weight, delay)
+                projection._divergent_connect (i, [j], weight, delay)

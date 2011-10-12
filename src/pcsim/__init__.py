@@ -253,7 +253,6 @@ class Population(common.Population):
             - the ID of the first cell created
             - the ID of the last cell created
         """
-        global net
         assert n > 0, 'n must be a positive integer'
         
 #        if isinstance(cellclass, str):
@@ -418,6 +417,7 @@ class Projection(common.Projection, WDManager):
     """
     
     nProj = 0
+    synapse_target_ids = { 'excitatory': 1, 'inhibitory': 2 }
     
     def __init__(self, presynaptic_population, postsynaptic_population,
                  method, source=None,
@@ -613,24 +613,161 @@ class Projection(common.Projection, WDManager):
 
         ##self.synapse_type = self.syn_factory #target or 'excitatory'
         self.synapse_type = target or 'excitatory'
-        self.connection_manager = simulator.ConnectionManager(self.syn_factory, parent=self)
-        self.connections = self.connection_manager
+        self.connections = []
         method.connect(self)
         Projection.nProj += 1        
         
     # The commented-out code in this class has been left there as it may be
     # useful when we start (re-)optimizing the implementation
 
-    ##def __len__(self):
-    ##    """Return the total number of connections."""
-    ##    return self.pcsim_projection.size()
+    def __len__(self):
+        """Return the total number of connections."""
+        ###return self.pcsim_projection.size()
+        return len(self.connections)
     
     #def __getitem__(self, n):
     #    return self.pcsim_projection[n]
-
-     
-    # --- Methods for setting connection parameters ----------------------------
+    def __getitem__(self, i):
+        """Return the `i`th connection on the local MPI node."""
+        #if self.parent:
+        #    if self.parent.is_conductance:
+        #        A = 1e6 # S --> uS
+        #    else:
+        #        A = 1e9 # A --> nA
+        #    return Connection(self.parent.pcsim_projection.object(i), A)
+        #else:
+        return self.connections[i]
     
+    def _divergent_connect(self, source, targets, weights, delays):
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `source`  -- the ID of the pre-synaptic cell.
+        `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        if not isinstance(source, (int, long)) or source < 0:
+            errmsg = "Invalid source ID: %s" % source
+            raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(targets):
+            targets = [targets]
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(targets) > 0
+        for target in targets:
+            if not isinstance(target, common.IDMixin):
+                raise errors.ConnectionError("Invalid target ID: %s" % target)
+        assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
+        if common.is_conductance(targets[0]):
+            weight_scale_factor = 1e-6 # Convert from µS to S  
+        else:
+            weight_scale_factor = 1e-9 # Convert from nA to A
+        
+        synapse_type = self.syn_factory or "excitatory"
+        if isinstance(synapse_type, basestring):
+            syn_target_id = Projection.synapse_target_ids[synapse_type]
+            syn_factory = pypcsim.SimpleScalingSpikingSynapse(
+                              syn_target_id, weights[0], delays[0])
+        elif isinstance(synapse_type, pypcsim.SimObject):
+            syn_factory = synapse_type
+        else:
+            raise errors.ConnectionError("synapse_type must be a string or a PCSIM synapse factory. Actual type is %s" % type(synapse_type))
+        for target, weight, delay in zip(targets, weights, delays):
+            syn_factory.W = weight*weight_scale_factor
+            syn_factory.delay = delay*0.001 # ms --> s
+            try:
+                c = simulator.net.connect(source, target, syn_factory)
+            except RuntimeError, e:
+                raise errors.ConnectionError(e)
+            if target.local:
+                self.connections.append(simulator.Connection(source, target, simulator.net.object(c), 1.0/weight_scale_factor))
+    
+    def _convergent_connect(self, sources, target, weights, delays):
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `sources`  -- a list/1D array of pre-synaptic cell IDs, or a single ID.
+        `target` -- the ID of the post-synaptic cell.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        if not isinstance(target, (int, long)) or target < 0:
+            errmsg = "Invalid target ID: %s" % target
+            raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(sources):
+            sources = [sources]
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(sources) > 0
+        for source in sources:
+            if not isinstance(source, common.IDMixin):
+                raise errors.ConnectionError("Invalid source ID: %s" % source)
+        assert len(sources) == len(weights) == len(delays), "%s %s %s" % (len(sources),len(weights),len(delays))
+        if common.is_conductance(target):
+            weight_scale_factor = 1e-6 # Convert from µS to S  
+        else:
+            weight_scale_factor = 1e-9 # Convert from nA to A
+        
+        synapse_type = self.syn_factory or "excitatory"
+        if isinstance(synapse_type, basestring):
+            syn_target_id = Projection.synapse_target_ids[synapse_type]
+            syn_factory = pypcsim.SimpleScalingSpikingSynapse(
+                              syn_target_id, weights[0], delays[0])
+        elif isinstance(synapse_type, pypcsim.SimObject):
+            syn_factory = synapse_type
+        else:
+            raise errors.ConnectionError("synapse_type must be a string or a PCSIM synapse factory. Actual type is %s" % type(synapse_type))
+        for source, weight, delay in zip(sources, weights, delays):
+            syn_factory.W = weight*weight_scale_factor
+            syn_factory.delay = delay*0.001 # ms --> s
+            try:
+                c = simulator.net.connect(source, target, syn_factory)
+            except RuntimeError, e:
+                raise errors.ConnectionError(e)
+            if target.local:
+                self.connections.append(simulator.Connection(source, target, simulator.net.object(c), 1.0/weight_scale_factor))  
+    
+    # --- Methods for setting connection parameters ----------------------------
+
+    def set(self, name, value):
+        """
+        Set connection attributes for all connections on the local MPI node.
+        
+        `name`  -- attribute name
+        `value` -- the attribute numeric value, or a list/1D array of such
+                   values of the same length as the number of local connections,
+                   or a 2D array with the same dimensions as the connectivity
+                   matrix (as returned by `get(format='array')`)
+        """
+        if numpy.isscalar(value):
+            for c in self:
+                setattr(c, name, value)
+        elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
+            for c in self.connections:
+                addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
+                try:
+                    val = value[addr]
+                except IndexError, e:
+                    raise IndexError("%s. addr=%s" % (e, addr))
+                if numpy.isnan(val):
+                    raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
+                else:
+                    setattr(c, name, val)
+        elif core.is_listlike(value):
+            for c,val in zip(self.connections, value):
+                setattr(c, name, val)
+        else:
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+
     ##def setWeights(self, w):
     ##    """
     ##    w can be a single number, in which case all weights are set to this
@@ -683,7 +820,34 @@ class Projection(common.Projection, WDManager):
     ##    delays = rand_distr.next(len(self))
     ##    for i in range(len(self)):
     ##        simulator.net.object(self.pcsim_projection[i]).delay = delays[i]
-    ##
+    
+    def get(self, parameter_name, format, gather=True):
+        """
+        Get the values of a given attribute (weight, delay, etc) for all
+        connections on the local MPI node.
+        
+        `parameter_name` -- name of the attribute whose values are wanted.
+        `format` -- "list" or "array". Array format implicitly assumes that all
+                    connections belong to a single Projection.
+        
+        Return a list or a 2D Numpy array. The array element X_ij contains the
+        attribute value for the connection from the ith neuron in the pre-
+        synaptic Population to the jth neuron in the post-synaptic Population,
+        if such a connection exists. If there are no such connections, X_ij will
+        be NaN.
+        """
+        if format == 'list':
+            values = [getattr(c, parameter_name) for c in self]
+        elif format == 'array':
+            values = numpy.nan * numpy.ones((self.pre.size, self.post.size))
+            for c in self:
+                addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
+                values[addr] = getattr(c, parameter_name)
+        else:
+            raise Exception("format must be 'list' or 'array'")
+        return values        
+    
+    
     ##def getWeights(self, format='list', gather=True):
     ##    """
     ##    Possible formats are: a list of length equal to the number of connections

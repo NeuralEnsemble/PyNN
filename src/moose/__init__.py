@@ -15,7 +15,7 @@ import numpy
 import shutil
 import os.path
 from pyNN.moose import simulator
-from pyNN import common, recording
+from pyNN import common, recording, core
 common.simulator = simulator
 recording.simulator = simulator
 
@@ -148,15 +148,53 @@ class Projection(common.Projection):
         self.synapse_type = target or 'excitatory'
         assert synapse_dynamics is None, "don't yet handle synapse dynamics"
         self.synapse_model = None
-        self.connection_manager = simulator.ConnectionManager(self.synapse_type,
-                                                              self.synapse_model,
-                                                              parent=self)
+        self.connections = []        
+        
         # Create connections
         method.connect(self)
-        self.connections = self.connection_manager
         Projection.nProj += 1
         
+    def _divergent_connect(self, source, targets, weights, delays):
+        """
+        Connect a neuron to one or more other neurons with a static connection.
         
+        `source`  -- the ID of the pre-synaptic cell.
+        `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        if not isinstance(source, int) or source > simulator.state.gid_counter or source < 0:
+            errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, simulator.state.gid_counter)
+            raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(targets):
+            targets = [targets]
+            
+        weights = weights*1000.0 # scale units
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(targets) > 0
+        # need to scale weights for appropriate units
+        for target, weight, delay in zip(targets, weights, delays):
+            if target.local:
+                if not isinstance(target, common.IDMixin):
+                    raise errors.ConnectionError("Invalid target ID: %s" % target)
+                if self.synapse_type == "excitatory":
+                    synapse_object = target._cell.esyn
+                elif self.synapse_type == "inhibitory":
+                    synapse_object = target._cell.isyn
+                else:
+                    synapse_object = getattr(target._cell, self.synapse_type)
+                source._cell.source.connect('event', synapse_object, 'synapse')
+                synapse_object.n_incoming_connections += 1
+                index = synapse_object.n_incoming_connections - 1
+                synapse_object.setWeight(index, weight)
+                synapse_object.setDelay(index, delay)
+                self.connections.append((source, target, index))
+                
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
 # ==============================================================================

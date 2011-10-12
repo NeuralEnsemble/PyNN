@@ -10,6 +10,7 @@ from pyNN import random
 import operator
 from copy import copy, deepcopy
 import functools
+import warnings
 
 def is_listlike(obj):
     """
@@ -274,3 +275,24 @@ class forgetful_memoize(object):
     def __get__(self, obj, objtype):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
+
+class deprecated(object):
+    """
+    Decorator to mark functions/methods as deprecated. Emits a warning when
+    function is called and suggests a replacement.
+    """
+    
+    def __init__(self, replacement=''):
+        self.replacement = replacement
+        
+    def __call__(self, func):
+        def new_func(*args, **kwargs):
+            msg = "%s() is deprecated, and will be removed in a future release." % func.__name__
+            if self.replacement:
+                msg += " Use %s instead." % self.replacement
+            warnings.warn(msg, category=DeprecationWarning)
+            return func(*args, **kwargs)
+        new_func.__name__ = func.__name__
+        new_func.__doc__ = func.__doc__
+        new_func.__dict__.update(func.__dict__)
+        return new_func

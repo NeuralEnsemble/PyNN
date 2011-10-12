@@ -52,36 +52,6 @@ class MockPost(object):
         return self.size
 
 
-class MockConnectionManager(object):
-    
-    def __init__(self):
-        self.connections = []
-    
-    def connect(self, src, targets, weights, delays):
-        #if src in self.connections:
-        #    raise Exception("connect already called with source %s" % src) # no reason why this shouldn't happen, but it doesn't in the current implementation, so I'm being lazy
-        #else:
-        #    self.connections[src] = {"targets": targets,
-        #                               "weights": weights,
-        #                               "delays": delays}
-        if isinstance(weights, float):
-            weights = repeat(weights)
-        if isinstance(delays, float):
-            delays = repeat(delays)
-        if not hasattr(targets, "__len__"):
-            targets = [targets]
-        for tgt, w, d in zip(targets, weights, delays):
-            self.connections.append((src, tgt, w, d))
-
-    def convergent_connect(self, sources, tgt, weights, delays):
-        if isinstance(weights, float):
-            weights = repeat(weights)
-        if isinstance(delays, float):
-            delays = repeat(delays)
-        for src, w, d in zip(sources, weights, delays):
-            self.connections.append((src, tgt, w, d))
-        
-
 class MockRNG(random.WrappedRNG):
     rng = None
     
@@ -102,9 +72,33 @@ class MockProjection(object):
     def __init__(self, pre, post):
         self.pre = pre
         self.post = post
-        self.connection_manager = MockConnectionManager()
+        self.connections = []
         self.rng = MockRNG(num_processes=2, delta=0.1)
         self.synapse_type = 'inhibitory'
+
+    def _divergent_connect(self, src, targets, weights, delays):
+        #if src in self.connections:
+        #    raise Exception("connect already called with source %s" % src) # no reason why this shouldn't happen, but it doesn't in the current implementation, so I'm being lazy
+        #else:
+        #    self.connections[src] = {"targets": targets,
+        #                               "weights": weights,
+        #                               "delays": delays}
+        if isinstance(weights, float):
+            weights = repeat(weights)
+        if isinstance(delays, float):
+            delays = repeat(delays)
+        if not hasattr(targets, "__len__"):
+            targets = [targets]
+        for tgt, w, d in zip(targets, weights, delays):
+            self.connections.append((src, tgt, w, d))
+
+    def _convergent_connect(self, sources, tgt, weights, delays):
+        if isinstance(weights, float):
+            weights = repeat(weights)
+        if isinstance(delays, float):
+            delays = repeat(delays)
+        for src, w, d in zip(sources, weights, delays):
+            self.connections.append((src, tgt, w, d))
 
 
 class TestOneToOneConnector(object):
@@ -118,7 +112,7 @@ class TestOneToOneConnector(object):
         C.progressbar = Mock()
         C.progression = Mock()
         C.connect(self.prj)
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(18, 80, 5.0, 0.5), (20, 82, 5, 0.5)])
 
     def test_connect_with_random_weights(self):
@@ -127,7 +121,7 @@ class TestOneToOneConnector(object):
         C.progressbar = Mock()
         C.progression = Mock()
         C.connect(self.prj)
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(18, 80, 1.0, 0.5), (20, 82, 3.0, 0.5)])
 
 
@@ -142,7 +136,7 @@ class TestAllToAllConnector(object):
         C.progressbar = Mock()
         C.progression = Mock()
         C.connect(self.prj)
-        assert_equal(set(self.prj.connection_manager.connections),
+        assert_equal(set(self.prj.connections),
                      set([(17, 80, 5.0, 0.5),
                           (17, 82, 5.0, 0.5),
                           (18, 80, 5.0, 0.5),
@@ -158,7 +152,7 @@ class TestAllToAllConnector(object):
         C.progressbar = Mock()
         C.progression = Mock()
         C.connect(self.prj)
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(17, 80, 1.0, 0.5),
                       (17, 82, 3.0, 0.5),
                       (18, 80, 6.0, 0.5),
@@ -174,7 +168,7 @@ class TestAllToAllConnector(object):
         C.progressbar = Mock()
         C.progression = Mock()
         C.connect(self.prj)
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(17, 80, 163.0, 0.5),   # 100+|17-80|
                       (17, 82, 165.0, 0.5),   # 100+|17-82|
                       (18, 80, 162.0, 0.5),   # etc.
@@ -219,7 +213,7 @@ class TestFixedProbabilityConnector(object):
         # 20 possible connections. Due to the mock RNG, only the
         # first 8 are created (17, 79), (17, 80), (17,81), (17,82), (17,83), (18,79), (18,80), (18,81)
         # of these, (17,80), (17,82), (18,80) are created on this node
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(17, 80, 0.0, MIN_DELAY),
                       (17, 82, 0.0, MIN_DELAY),
                       (18, 80, 0.0, MIN_DELAY)])
@@ -239,7 +233,7 @@ class TestDistanceDependentProbabilityConnector(object):
         C.connect(self.prj)
         # 20 possible connections. Only those with a sufficiently small distance
         # are created
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(18, 80, 0.0, MIN_DELAY),
                       (19, 80, 0.0, MIN_DELAY),
                       (20, 80, 0.0, MIN_DELAY),
@@ -265,7 +259,7 @@ class TestFromListConnector(object):
         C.progression = Mock()
         C.connect(self.prj)
         # note that ListConnector does not filter out non-local connections
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(17, 79, 0.1, 0.1),
                       (17, 80, 0.5, 0.14),
                       (19, 82, 0.3, 0.12),
@@ -306,7 +300,7 @@ class TestFromFileConnector(object):
         numpy.savetxt("test.connections", self.connection_list)
         C = connectors.FromFileConnector("test.connections", distributed=False)
         C.connect(self.prj)
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(17, 79, 0.1, 0.1),
                       (17, 80, 0.5, 0.14),
                       (19, 82, 0.3, 0.12),
@@ -318,7 +312,7 @@ class TestFromFileConnector(object):
         numpy.savetxt("test.connections.1", local_connection_list)
         C = connectors.FromFileConnector("test.connections", distributed=True)
         C.connect(self.prj)
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(17, 80, 0.5, 0.14),
                       (19, 82, 0.3, 0.12)])
 
@@ -339,7 +333,7 @@ class TestFixedNumberPostConnector(object):
         assert self.prj.rng is not None
         C.connect(self.prj)
         # FixedNumberPost does not currently filter out only local connections
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(17, 79, 0.0, MIN_DELAY),
                       (17, 80, 0.0, MIN_DELAY),
                       (17, 81, 0.0, MIN_DELAY),
@@ -370,7 +364,7 @@ class TestFixedNumberPreConnector(object):
         assert self.prj.rng is not None
         self.prj.post.local_cells = [MockCell(n) for n in self.prj.post.local_cells]
         C.connect(self.prj)
-        assert_equal(self.prj.connection_manager.connections,
+        assert_equal(self.prj.connections,
                      [(17, 80, 0.0, MIN_DELAY),
                       (18, 80, 0.0, MIN_DELAY),
                       (19, 80, 0.0, MIN_DELAY),

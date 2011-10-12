@@ -91,7 +91,7 @@ class FastProbabilisticConnector(Connector):
         delays  = self.delays_generator.get(self.M, self.distance_matrix, create)        
         
         if len(sources) > 0:
-            self.projection.connection_manager.convergent_connect(sources.tolist(), tgt, weights, delays)
+            self.projection._convergent_connect(sources.tolist(), tgt, weights, delays)
     
     
 class FastAllToAllConnector(AllToAllConnector):

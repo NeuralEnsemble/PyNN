@@ -68,7 +68,7 @@ class FastProbabilisticConnector(ProbabilisticConnector):
         
         homogeneous = numpy.isscalar(self.delays_generator.source)
         if len(targets) > 0:
-            self.projection.connection_manager.connect(src, targets.tolist(), weights, delays, homogeneous)
+            self.projection._divergent_connect(src, targets.tolist(), weights, delays, homogeneous)
 
 
 class FastAllToAllConnector(AllToAllConnector):
@@ -135,7 +135,7 @@ class FastOneToOneConnector(OneToOneConnector):
             
             for tgt, src, w, d in zip(projection.post.local_cells, sources, weights, delays):
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
-                projection.connection_manager.connect(src, [tgt], float(w), float(d), homogeneous)
+                projection._divergent_connect(src, [tgt], float(w), float(d), homogeneous)
                 self.progression(count)
                 count += 1
         else:

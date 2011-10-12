@@ -216,7 +216,7 @@ class ProbabilisticConnector(Connector):
         delays  = self.delays_generator.get(self.N, self.distance_matrix, create)        
         
         if len(sources) > 0:
-            self.projection.connection_manager.convergent_connect(sources.tolist(), tgt, weights, delays)
+            self.projection._convergent_connect(sources.tolist(), tgt, weights, delays)
     
     
 class AllToAllConnector(Connector):
@@ -363,7 +363,7 @@ class FromListConnector(Connector):
             src, tgt, weight, delay = self.conn_list[i][:]
             src = projection.pre[tuple(src)]           
             tgt = projection.post[tuple(tgt)]
-            projection.connection_manager.connect(src, [tgt], weight, delay)
+            projection._divergent_connect(src, [tgt], weight, delay)
             self.progression(count)
             
 
@@ -486,7 +486,7 @@ class FixedNumberPostConnector(Connector):
             delays  = delays_generator.get(n, distance_matrix, create)      
                
             if len(targets) > 0:
-                projection.connection_manager.connect(src, targets.tolist(), weights, delays)
+                projection._divergent_connect(src, targets.tolist(), weights, delays)
             
             self.progression(count)
             
@@ -567,7 +567,7 @@ class FixedNumberPreConnector(Connector):
             weights = weights_generator.get(n, distance_matrix, create)
             delays  = delays_generator.get(n, distance_matrix, create)                                            
             if len(sources) > 0:
-                projection.connection_manager.convergent_connect(sources, tgt, weights, delays)
+                projection._convergent_connect(sources, tgt, weights, delays)
             self.progression(count)
             
 
@@ -615,7 +615,7 @@ class OneToOneConnector(Connector):
                 src = projection.pre.index(projection.post.id_to_index(tgt))
                 
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
-                projection.connection_manager.connect(src, [tgt], float(w), float(d))
+                projection._divergent_connect(src, [tgt], float(w), float(d))
                 self.progression(count)
                 count += 1
         else:
@@ -681,7 +681,7 @@ class SmallWorldConnector(Connector):
         delays          = self.delays_generator.get(self.N, self.distance_matrix, create)      
                     
         if len(targets) > 0:
-            self.projection.connection_manager.connect(src, targets.tolist(), weights, delays)
+            self.projection._divergent_connect(src, targets.tolist(), weights, delays)
     
     def connect(self, projection):
         """Connect-up a Projection."""

@@ -132,7 +132,6 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
         nest.SetDefaults(synapse_model, {'delay' : min_delay,
                                          'min_delay': min_delay,
                                          'max_delay': max_delay})
-    simulator.connection_managers = []
     simulator.reset()
     
     return rank()
@@ -324,18 +323,208 @@ class Projection(common.Projection):
             self.synapse_dynamics._set_tau_minus(self.post.local_cells) 
         else:        
             synapse_dynamics = NativeSynapseDynamics("static_synapse")
-        self.synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection.nProj)
+        synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection.nProj)
+        if synapse_model is None:
+            self.synapse_model = 'static_synapse_%s' % id(self)
+            nest.CopyModel('static_synapse', self.synapse_model)
+        else:
+            self.synapse_model = synapse_model
+        self._sources = []
+        self._connections = None
         Projection.nProj += 1
-        
-        self.connection_manager = simulator.ConnectionManager(self.synapse_type,
-                                                              self.synapse_model,
-                                                              parent=self)
-        
+               
         # Create connections
         method.connect(self)
-        self.connection_manager._set_tsodyks_params()
-        self.connections = self.connection_manager
+    
+    def __getitem__(self, i):
+        """Return the `i`th connection on the local MPI node."""
+        if isinstance(i, int):
+            if i < len(self):
+                return simulator.Connection(self, i)
+            else:
+                raise IndexError("%d > %d" % (i, len(self)-1))
+        elif isinstance(i, slice):
+            if i.stop < len(self):
+                return [simulator.Connection(self, j) for j in range(i.start, i.stop, i.step or 1)]
+            else:
+                raise IndexError("%d > %d" % (i.stop, len(self)-1))
+
+    def __len__(self):
+        """Return the number of connections on the local MPI node."""
+        return nest.GetDefaults(self.synapse_model)['num_connections']
+
+    @property
+    def connections(self):
+        if self._connections is None:
+            self._sources = numpy.unique(self._sources)
+            self._connections = nest.FindConnections(self._sources, synapse_type=self.synapse_model)
+        return self._connections
+
+    def _set_tsodyks_params(self):
+        if 'tsodyks' in self.synapse_model: # there should be a better way to do this. In particular, if the synaptic time constant is changed
+                                            # after creating the Projection, tau_psc ought to be changed as well.
+            assert self.synapse_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
+            logger.debug("setting tau_psc")
+            targets = nest.GetStatus(self.connections, 'target')            
+            if self.synapse_type == 'inhibitory':
+                param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
+            if self.synapse_type == 'excitatory':
+                param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
+            tau_syn = nest.GetStatus(targets, (param_name))
+            nest.SetStatus(self.connections, 'tau_psc', tau_syn) 
+
+    def _divergent_connect(self, source, targets, weights, delays):
+        """
+        Connect a neuron to one or more other neurons.
         
+        `source`  -- the ID of the pre-synaptic cell.
+        `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        # are we sure the targets are all on the current node?
+        if core.is_listlike(source):
+            assert len(source) == 1
+            source = source[0]
+        if not core.is_listlike(targets):
+            targets = [targets]
+        assert len(targets) > 0
+        
+        if self.synapse_type not in targets[0].celltype.synapse_types:
+            raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: %s" % ( self.synapse_type, "'"+"', '".join(st for st in targets[0].celltype.synapse_types or ['*No connections supported*']))+"'" )
+        weights = numpy.array(weights)*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+                                 # Using convention in this way is not ideal. We should
+                                 # be able to look up the units used by each model somewhere.
+        if self.synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
+            weights = -1*weights # NEST wants negative values for inhibitory weights, even if these are conductances
+        if isinstance(weights, numpy.ndarray):
+            weights = weights.tolist()
+        elif isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, numpy.ndarray):
+            delays = delays.tolist()
+        elif isinstance(delays, float):
+            delays = [delays]
+        
+        if targets[0].celltype.standard_receptor_type:
+            try:
+                nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)            
+            except nest.NESTError, e:
+                raise errors.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                                             e, source, targets, weights, delays, self.synapse_model))
+        else:
+            for target, w, d in zip(targets, weights, delays):
+                nest.Connect([source], [target], {'weight': w, 'delay': d, 'receptor_type': target.celltype.get_receptor_type(self.synapse_type)})
+        self._connections = None # reset the caching of the connection list, since this will have to be recalculated
+        self._sources.append(source)  
+
+    def _convergent_connect(self, sources, target, weights, delays):
+        """
+        Connect one or more neurons to a single post-synaptic neuron.
+        `sources` -- a list/1D array of pre-synaptic cell IDs, or a single ID.
+        `target`  -- the ID of the post-synaptic cell.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        # are we sure the targets are all on the current node?
+        if core.is_listlike(target):
+            assert len(target) == 1
+            target = target[0]
+        if not core.is_listlike(sources):
+            sources = [sources]
+        assert len(sources) > 0, sources
+        if self.synapse_type not in ('excitatory', 'inhibitory', None):
+            raise errors.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
+        weights = numpy.array(weights)*1000.0# weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+                                 # Using convention in this way is not ideal. We should
+                                 # be able to look up the units used by each model somewhere.
+        if self.synapse_type == 'inhibitory' and common.is_conductance(target):
+            weights = -1*weights # NEST wants negative values for inhibitory weights, even if these are conductances
+        if isinstance(weights, numpy.ndarray):
+            weights = weights.tolist()
+        elif isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, numpy.ndarray):
+            delays = delays.tolist()
+        elif isinstance(delays, float):
+            delays = [delays]
+               
+        try:
+            nest.ConvergentConnect(sources, [target], weights, delays, self.synapse_model)            
+        except nest.NESTError, e:
+            raise errors.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                                         e, sources, target, weights, delays, self.synapse_model))
+        self._connections = None # reset the caching of the connection list, since this will have to be recalculated
+        self._sources.extend(sources)
+
+    def set(self, name, value):
+        """
+        Set connection attributes for all connections on the local MPI node.
+        
+        `name`  -- attribute name
+        
+        `value` -- the attribute numeric value, or a list/1D array of such
+                   values of the same length as the number of local connections,
+                   or a 2D array with the same dimensions as the connectivity
+                   matrix (as returned by `get(format='array')`).
+        """
+        if not (numpy.isscalar(value) or core.is_listlike(value)):
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")   
+        
+        if isinstance(value, numpy.ndarray) and len(value.shape) == 2:
+            value_list = []
+            connection_parameters = nest.GetStatus(self.connections, ('source', 'target'))
+            for conn in connection_parameters: 
+                addr = self.pre.id_to_index(conn['source']), self.post.id_to_index(conn['target'])
+                try:
+                    val = value[addr]
+                except IndexError, e:
+                    raise IndexError("%s. addr=%s" % (e, addr))
+                if numpy.isnan(val):
+                    raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
+                else:
+                    value_list.append(val)
+            value = value_list
+        if core.is_listlike(value):
+            value = numpy.array(value)
+        else:
+            value = float(value)
+
+        if name == 'weight':
+            value *= 1000.0
+            if self.synapse_type == 'inhibitory' and common.is_conductance(self[0].target):
+                value *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
+        elif name == 'delay':
+            pass
+        else:
+            #translation = self.synapse_dynamics.reverse_translate({name: value})
+            #name, value = translation.items()[0]
+            translated_name = None
+            if self.synapse_dynamics.fast:
+                if name in self.synapse_dynamics.fast.translations:
+                    translated_name = self.synapse_dynamics.fast.translations[name]["translated_name"] # a hack
+            if translated_name is None:
+                if self.synapse_dynamics.slow:
+                    for component_name in "timing_dependence", "weight_dependence", "voltage_dependence":
+                        component = getattr(self.synapse_dynamics.slow, component_name)
+                        if component and name in component.translations:
+                            translated_name = component.translations[name]["translated_name"]
+                            break
+            if translated_name:
+                name = translated_name
+        
+        i = 0
+        try:
+            nest.SetStatus(self.connections, name, value)
+        except nest.NESTError, e:
+            n = 1
+            if hasattr(value, '__len__'):
+                n = len(value)
+            raise Exception("%s. Trying to set %d values." % (e, n))
 
     def saveConnections(self, file, gather=True, compatible_output=True):
         """
@@ -347,7 +536,7 @@ class Projection(common.Projection):
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
         
-        lines   = nest.GetStatus(self.connection_manager.connections, ('source', 'target', 'weight', 'delay'))  
+        lines   = nest.GetStatus(self.connections, ('source', 'target', 'weight', 'delay'))  
         
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
@@ -384,6 +573,63 @@ class Projection(common.Projection):
         # argument type. It could make for easier-to-read simulation code to
         # give it a separate name, though. Comments?
         self.setDelays(rand_distr.next(len(self), mask_local=False))
+
+    def get(self, parameter_name, format, gather=True):
+        """
+        Get the values of a given attribute (weight or delay) for all
+        connections in this Projection.
+        
+        `parameter_name` -- name of the attribute whose values are wanted.
+        
+        `format` -- "list" or "array". Array format implicitly assumes that all
+                    connections belong to a single Projection.
+        
+        Return a list or a 2D Numpy array. The array element X_ij contains the
+        attribute value for the connection from the ith neuron in the pre-
+        synaptic Population to the jth neuron in the post-synaptic Population,
+        if a single such connection exists. If there are no such connections,
+        X_ij will be NaN. If there are multiple such connections, the summed
+        value will be given, which makes some sense for weights, but is
+        pretty meaningless for delays. 
+        """
+        
+        if parameter_name not in ('weight', 'delay'):
+            translated_name = None
+            if self.synapse_dynamics.fast and parameter_name in self.synapse_dynamics.fast.translations:
+                translated_name = self.synapse_dynamics.fast.translations[parameter_name]["translated_name"] # this is a hack that works because there are no units conversions
+            elif self.synapse_dynamics.slow:
+                for component_name in "timing_dependence", "weight_dependence", "voltage_dependence":
+                    component = getattr(self.synapse_dynamics.slow, component_name)
+                    if component and parameter_name in component.translations:
+                        translated_name = component.translations[parameter_name]["translated_name"]
+                        break
+            if translated_name:
+                parameter_name = translated_name
+            else:
+                raise Exception("synapse type does not have an attribute '%s', or else this attribute is not accessible." % parameter_name)
+        if format == 'list':
+            values = nest.GetStatus(self.connections, parameter_name)
+            if parameter_name == "weight":
+                values = [0.001*val for val in values]
+        elif format == 'array':
+            value_arr = numpy.nan * numpy.ones((self.pre.size, self.post.size))
+            connection_parameters = nest.GetStatus(self.connections, ('source', 'target', parameter_name))
+            for conn in connection_parameters: 
+                # (offset is always 0,0 for connections created with connect())
+                src, tgt, value = conn
+                addr = self.pre.id_to_index(src), self.post.id_to_index(tgt)
+                if numpy.isnan(value_arr[addr]):
+                    value_arr[addr] = value
+                else:
+                    value_arr[addr] += value
+            if parameter_name == 'weight':
+                value_arr *= 0.001
+                if self.synapse_type == 'inhibitory' and common.is_conductance(self[0].target):
+                    value_arr *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
+            values = value_arr
+        else:
+            raise Exception("format must be 'list' or 'array', actually '%s'" % format)
+        return values
 
 Space = space.Space
 

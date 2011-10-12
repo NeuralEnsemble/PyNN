@@ -190,10 +190,116 @@ class Projection(common.Projection):
                     raise Exception("Only one STDP model can be handle by Nemo. Two detected !") 
         else:        
             self._plasticity_model = "static_synapse"
-                                        
-        self.connection_manager = simulator.ConnectionManager(self.synapse_type, self._plasticity_model, parent=self)
-        self.connections = self.connection_manager        
+     
+        self.synapse_model = self._plasticity_model
+        self._sources      = []
+        self._is_plastic   = False
+        if self.synapse_model is "stdp_synapse":
+            self._is_plastic = True
+        self._connections = None
+        
         method.connect(self)
+        
+    def __getitem__(self, i):
+        if isinstance(i, int):
+            if i < len(self):
+                return simulator.Connection(self.connections[i])
+            else:
+                raise IndexError("%d > %d" % (i, len(self)-1))
+        elif isinstance(i, slice):
+            if i.stop < len(self):
+                return [simulator.Connection(self.connections[j]) for j in range(i.start, i.stop, i.step or 1)]
+            else:
+                raise IndexError("%d > %d" % (i.stop, len(self)-1))
+    
+    def __len__(self):
+        """Return the number of connections on the local MPI node."""
+        return len(self.connections)
+
+    @property
+    def connections(self):
+        if self._connections is None:
+            self._connections = []
+            for source in numpy.unique(self.sources):
+                self._connections += list(simulator.state.net.get_synapses_from(source))
+        return self._connections
+
+    def _divergent_connect(self, source, targets, weights, delays):
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `source`  -- the ID of the pre-synaptic cell.
+        `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        #print "connecting", source, "to", targets, "with weights", weights, "and delays", delays
+        if not core.is_listlike(targets):
+            targets = [targets]
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(targets) > 0
+        if not isinstance(source, common.IDMixin):
+            raise errors.ConnectionError("source should be an ID object, actually %s" % type(source))
+        for target in targets:
+            if not isinstance(target, common.IDMixin):
+                raise errors.ConnectionError("Invalid target ID: %s" % target)
+        assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
+        synapse_type = self.synapse_type or "excitatory"
+        delays = numpy.array(delays).astype(int).tolist()
+        if isinstance(weights, numpy.ndarray):
+            weights = weights.tolist()    
+        source   = int(source)        
+        synapses = simulator.state.net.add_synapse(source, targets, delays, weights, self.is_plastic)
+        self._sources.append(source)
+
+    def get(self, parameter_name, format, gather=True):
+        """
+        Get the values of a given attribute (weight or delay) for all
+        connections in this Projection.
+        
+        `parameter_name` -- name of the attribute whose values are wanted.
+        `format` -- "list" or "array". Array format implicitly assumes that all
+                    connections belong to a single Projection.
+        
+        Return a list or a 2D Numpy array. The array element X_ij contains the
+        attribute value for the connection from the ith neuron in the pre-
+        synaptic Population to the jth neuron in the post-synaptic Population,
+        if such a connection exists. If there are no such connections, X_ij will
+        be NaN.
+        """
+        if parameter_name not in ('weight', 'delay'):
+            raise Exception("Only weights and delays can be accessed by Nemo")
+
+        if format == 'list':
+            if parameter_name is "weight":
+                values = list(simulator.state.sim.get_synapse_weight(self.connections))
+            if parameter_name is "delay":
+                values = list(simulator.state.sim.get_synapse_delay(self.connections))
+        elif format == 'array':
+            value_arr = numpy.nan * numpy.ones((self.pre.size, self.post.size))
+            sources  = [i.source for i in self]
+            synapses = [i.synapse for i in self]
+            targets  = list(simulator.state.sim.get_targets(synapses))
+            addr     = self.pre.id_to_index(sources), self.post.id_to_index(targets)      
+            if parameter_name is "weight":
+                data = list(simulator.state.sim.get_weights(synapses))
+            if parameter_name is "delay":
+                data = list(simulator.state.sim.get_delays(synapses))          
+            for idx in xrange(len(data)):
+                address = addr[0][idx], addr[1][idx]
+                if numpy.isnan(value_arr[address]):
+                    value_arr[address] = data[idx]
+                else:
+                    value_arr[address] += data[idx]
+            values = value_arr
+        else:
+            raise Exception("format must be 'list' or 'array', actually '%s'" % format)
+        return values
 
     def saveConnections(self, file, gather=True, compatible_output=True):
         """
@@ -204,13 +310,13 @@ class Projection(common.Projection):
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
         
-        lines = numpy.empty((len(self.connection_manager), 4))        
-        lines[:,0] = [i.source for i in self.connection_manager]
-        lines[:,1] = [i.target for i in self.connection_manager]            
+        lines = numpy.empty((len(self), 4))        
+        lines[:,0] = [i.source for i in self]
+        lines[:,1] = [i.target for i in self]            
         if compatible_output:
             lines[:,0] = self.pre.id_to_index(lines[:, 0]) 
             lines[:,1] = self.post.id_to_index(lines[:, 1])    
-        synapses   = [i.synapse for i in self.connection_manager]  
+        synapses   = [i.synapse for i in self]  
         lines[:,2] = list(simulator.state.sim.get_weights(synapses))
         lines[:,3] = list(simulator.state.sim.get_delays(synapses))         
         file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})

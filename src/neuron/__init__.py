@@ -11,7 +11,7 @@ __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
 from pyNN.neuron import simulator
-from pyNN import common, recording as base_recording, space, __doc__
+from pyNN import common, core, recording as base_recording, space, __doc__
 common.simulator = simulator
 base_recording.simulator = simulator
 
@@ -204,14 +204,11 @@ class Projection(common.Projection):
             u0 = self.synapse_dynamics.fast.parameters['u0']
             for cell in self.post:
                 cell._cell.set_Tsodyks_Markram_synapses(self.synapse_type, U, tau_rec, tau_facil, u0)
-            synapse_model = 'Tsodyks-Markram'
+            self.synapse_model = 'Tsodyks-Markram'
         else:
-            synapse_model = None
-                
-        self.connection_manager = simulator.ConnectionManager(self.synapse_type,
-                                                              synapse_model=synapse_model,
-                                                              parent=self)
-        self.connections = self.connection_manager        
+            self.synapse_model = None
+        self.connections = []
+        
         ## Create connections
         method.connect(self)
             
@@ -242,8 +239,147 @@ class Projection(common.Projection):
         
         Projection.nProj += 1           
     
+    def __getitem__(self, i):
+        """Return the `i`th connection on the local MPI node."""
+        if isinstance(i, int):
+            if i < len(self):
+                return self.connections[i]
+            else:
+                raise IndexError("%d > %d" % (i, len(self)-1))
+        elif isinstance(i, slice):
+            if i.stop < len(self):
+                return [self.connections[j] for j in range(*i.indices(i.stop))]
+            else:
+                raise IndexError("%d > %d" % (i.stop, len(self)-1))
+    
+    def __len__(self):
+        """Return the number of connections on the local MPI node."""
+        return len(self.connections)
+    
+    def _resolve_synapse_type(self):
+        if self.synapse_type is None:
+            self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
+        if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
+            self.synapse_type += '_TM' 
+    
+    def _divergent_connect(self, source, targets, weights, delays):
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `source`  -- the ID of the pre-synaptic cell.
+        `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        if not isinstance(source, int) or source > simulator.state.gid_counter or source < 0:
+            errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, simulator.state.gid_counter)
+            raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(targets):
+            targets = [targets]
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(targets) > 0
+        for target in targets:
+            if not isinstance(target, common.IDMixin):
+                raise errors.ConnectionError("Invalid target ID: %s" % target)
+              
+        assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets), len(weights), len(delays))
+        self._resolve_synapse_type()
+        for target, weight, delay in zip(targets, weights, delays):
+            if target.local:
+                if "." in self.synapse_type: 
+                    section, synapse_type = self.synapse_type.split(".") 
+                    synapse_object = getattr(getattr(target._cell, section), synapse_type) 
+                else: 
+                    synapse_object = getattr(target._cell, self.synapse_type) 
+                nc = simulator.state.parallel_context.gid_connect(int(source), synapse_object)
+                nc.weight[0] = weight
+                
+                # if we have a mechanism (e.g. from 9ML) that includes multiple
+                # synaptic channels, need to set nc.weight[1] here
+                if nc.wcnt() > 1 and hasattr(target._cell, "type"):
+                    nc.weight[1] = target._cell.type.synapse_types.index(self.synapse_type)
+                nc.delay  = delay
+                # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
+                self.connections.append(simulator.Connection(source, target, nc))
+
+    def _convergent_connect(self, sources, target, weights, delays):
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `sources`  -- a list/1D array of pre-synaptic cell IDs, or a single ID.
+        `target` -- the ID of the post-synaptic cell.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        if not isinstance(target, int) or target > simulator.state.gid_counter or target < 0:
+            errmsg = "Invalid target ID: %s (gid_counter=%d)" % (target, simulator.state.gid_counter)
+            raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(sources):
+            sources = [sources]
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(sources) > 0
+        for source in sources:
+            if not isinstance(source, common.IDMixin):
+                raise errors.ConnectionError("Invalid source ID: %s" % source)
+              
+        assert len(sources) == len(weights) == len(delays), "%s %s %s" % (len(sources),len(weights),len(delays))
+                
+        if target.local:
+            for source, weight, delay in zip(sources, weights, delays):
+                if self.synapse_type is None:
+                    self.synapse_type = weight >= 0 and 'excitatory' or 'inhibitory'
+                if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
+                    self.synapse_type += '_TM'
+                synapse_object = getattr(target._cell, self.synapse_type)  
+                nc = simulator.state.parallel_context.gid_connect(int(source), synapse_object)
+                nc.weight[0] = weight
+                nc.delay  = delay
+                # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
+                self.connections.append(Connection(source, target, nc))
+
+    
     # --- Methods for setting connection parameters ----------------------------
     
+    def set(self, name, value):
+        """
+        Set connection attributes for all connections on the local MPI node.
+        
+        `name`  -- attribute name
+        `value` -- the attribute numeric value, or a list/1D array of such
+                   values of the same length as the number of local connections,
+                   or a 2D array with the same dimensions as the connectivity
+                   matrix (as returned by `get(format='array')`).
+        """
+        if numpy.isscalar(value):
+            for c in self:
+                setattr(c, name, value)
+        elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
+            for c in self.connections:
+                addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
+                try:
+                    val = value[addr]
+                except IndexError, e:
+                    raise IndexError("%s. addr=%s" % (e, addr))
+                if numpy.isnan(val):
+                    raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
+                else:
+                    setattr(c, name, val)
+        elif core.is_listlike(value):
+            for c,val in zip(self.connections, value):
+                setattr(c, name, val)
+        else:
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+
     def randomizeWeights(self, rand_distr):
         """
         Set weights to random values taken from rand_distr.
@@ -276,6 +412,38 @@ class Projection(common.Projection):
         logger.info("--- Projection[%s].__randomizeDelays__() ---" % self.label)
         self.setDelays(rarr)
 
+    def get(self, parameter_name, format, gather=True):
+        """
+        Get the values of a given attribute (weight, delay, etc) for all
+        connections on the local MPI node.
+        
+        `parameter_name` -- name of the attribute whose values are wanted.
+        `format` -- "list" or "array". Array format implicitly assumes that all
+                    connections belong to a single Projection.
+        
+        Return a list or a 2D Numpy array. The array element X_ij contains the
+        attribute value for the connection from the ith neuron in the pre-
+        synaptic Population to the jth neuron in the post-synaptic Population,
+        if a single such connection exists. If there are no such connections,
+        X_ij will be NaN. If there are multiple such connections, the summed
+        value will be given, which makes some sense for weights, but is
+        pretty meaningless for delays. 
+        """
+        if format == 'list':
+            values = [getattr(c, parameter_name) for c in self.connections]
+        elif format == 'array':
+            values = numpy.nan * numpy.ones((self.pre.size, self.post.size))
+            for c in self.connections:
+                value = getattr(c, parameter_name)
+                addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
+                if numpy.isnan(values[addr]):
+                    values[addr] = value
+                else:
+                    values[addr] += value
+        else:
+            raise Exception("format must be 'list' or 'array'")
+        return values
+    
 
 Space = space.Space
 
