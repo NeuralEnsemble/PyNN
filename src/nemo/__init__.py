@@ -13,8 +13,6 @@ Set = set
 import nemo
 from pyNN.nemo import simulator
 from pyNN import common, recording, space, core, __doc__
-common.control.simulator = simulator
-recording.simulator = simulator
 from pyNN.random import *
 from pyNN.recording import files
 from pyNN.nemo.standardmodels.cells import *
@@ -52,7 +50,7 @@ def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
     simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.spikes_array_list = []
     simulator.recorder_lise     = []
-    return rank()
+    return simulator.state.mpi_rank
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
@@ -63,14 +61,11 @@ def end(compatible_output=True):
     simulator.recorder_list    = []
     electrodes.current_sources = []
 
-def get_current_time():
-    """Return the current time in the simulation."""
-    return simulator.state.t
     
 def run(simtime):    
     """Run the simulation for simtime ms."""
     simulator.state.run(simtime)
-    return get_current_time()
+    return simulator.state.t
 
 reset      = simulator.reset
 initialize = common.initialize
@@ -79,23 +74,37 @@ initialize = common.initialize
 #   Functions returning information about the simulation state
 # ==============================================================================
 
-get_time_step = common.get_time_step
-get_min_delay = common.get_min_delay
-get_max_delay = common.get_max_delay
-num_processes = common.num_processes
-rank = common.rank
+get_current_time, get_time_step, get_min_delay, get_max_delay, \
+            num_processes, rank = common.control.build_state_queries(simulator)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
 # ==============================================================================
 
+class Assembly(common.Assembly):
+    _simulator = simulator
+
+
+class PopulationView(common.PopulationView):
+    _simulator = simulator
+    assembly_class = Assembly
+    
+    def _get_view(self, selector, label=None):
+        return PopulationView(self, selector, label)
+
+
 class Population(common.Population, common.BasePopulation):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
+    _simulator = simulator
     recorder_class = Recorder
+    assembly_class = Assembly
+
+    def _get_view(self, selector, label=None):
+        return PopulationView(self, selector, label)
 
     def _create_cells(self, cellclass, cellparams=None, n=1):
         assert n > 0, 'n must be a positive integer'
@@ -134,10 +143,8 @@ class Population(common.Population, common.BasePopulation):
 
     def _set_initial_value_array(self, variable, value):
         if not hasattr(value, "__len__"):
-            value = value*numpy.ones((len(self),))        
-       
-PopulationView = common.PopulationView
-Assembly = common.Assembly
+            value = value*numpy.ones((len(self),))
+
 
 class Projection(common.Projection):
     """
@@ -145,6 +152,7 @@ class Projection(common.Projection):
     plasticity mechanisms) between two populations, together with methods to set
     parameters of those connections, including of plasticity mechanisms.
     """
+    _simulator = simulator
     
     def __init__(self, presynaptic_population, postsynaptic_population, method,
                  source=None, target=None, synapse_dynamics=None, label=None, rng=None):

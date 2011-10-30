@@ -9,6 +9,12 @@ MPI = recording.MPI
 if MPI:
     mpi_comm = recording.mpi_comm
 
+def setup():
+    recording.Recorder._simulator = MockSimulator(mpi_rank=0)
+    
+def teardown():
+    del recording.Recorder._simulator
+
 #def test_rename_existing():
     
 #def test_gather():
@@ -115,7 +121,6 @@ class MockSimulator(object):
         self.state = MockState(mpi_rank)
 
 def test_write__with_filename__compatible_output__gather__onroot():
-    recording.simulator = MockSimulator(mpi_rank=0)
     orig_metadata = recording.Recorder.metadata
     recording.Recorder.metadata = {'a': 2, 'b':3}
     r = recording.Recorder('spikes')

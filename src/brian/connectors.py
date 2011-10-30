@@ -9,7 +9,7 @@ $Id$
 from pyNN.space import Space
 from pyNN.random import RandomDistribution
 import numpy
-from pyNN import random, common, core
+from pyNN import core
 from pyNN.connectors import AllToAllConnector, \
                             ProbabilisticConnector, \
                             OneToOneConnector, \
@@ -23,7 +23,11 @@ from pyNN.connectors import AllToAllConnector, \
                             CSAConnector, \
                             WeightGenerator, \
                             DelayGenerator, \
-                            ProbaGenerator
+                            ProbaGenerator, Connector
+from pyNN.brian import simulator
+
+Connector._simulator = simulator
+
 
 class FastProbabilisticConnector(ProbabilisticConnector):
     
@@ -124,7 +128,7 @@ class FastOneToOneConnector(OneToOneConnector):
             if isinstance(self.weights, basestring) or isinstance(self.delays, basestring):
                 raise Exception('Expression for weights or delays is not supported for OneToOneConnector !')
             weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
-            delays_generator  = DelayGenerator(self.delays, local, self.safe)                
+            delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)                
             weights           = weights_generator.get(N)
             delays            = delays_generator.get(N)
             self.progressbar(len(projection.post.local_cells))                        

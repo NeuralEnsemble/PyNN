@@ -6,16 +6,21 @@ import numpy
 import os
 from pyNN.utility import assert_arrays_equal
 
-orig_rank = common.rank
-orig_np = common.num_processes
+
+class MockSimulator(object):
+    class MockState(object):
+        mpi_rank = 1
+        num_processes = 3
+    state = MockState()
+
 
 def setup():
-    common.rank = lambda: 1
-    common.num_processes = lambda: 3
+    common.Projection._simulator = MockSimulator
+
 
 def teardown():
-    common.rank = orig_rank
-    common.num_processes = orig_np
+    del common.Projection._simulator
+    
 
 class MockStandardCell(standardmodels.StandardCellType):
     recordable = ['v', 'spikes']

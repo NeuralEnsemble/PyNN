@@ -16,7 +16,8 @@ recordable_pattern = re.compile(r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.
 
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
-        
+    _simulator = simulator
+    
     def _record(self, new_ids):
         """Add the cells in `new_ids` to the set of recorded cells."""
         if self.variable == 'spikes':

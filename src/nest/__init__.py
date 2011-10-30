@@ -10,8 +10,6 @@ $Id$
 import nest
 from pyNN.nest import simulator
 from pyNN import common, recording, errors, space, __doc__
-common.control.simulator = simulator
-recording.simulator = simulator
 
 if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
     raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
@@ -153,7 +151,7 @@ def run(simtime):
     simulator.run(simtime)
     return get_current_time()
 
-reset = common.reset
+reset = common.control.build_reset(simulator)
 
 initialize = common.initialize
 
@@ -161,24 +159,38 @@ initialize = common.initialize
 #   Functions returning information about the simulation state
 # ==============================================================================
 
-get_current_time = common.get_current_time
-get_time_step = common.get_time_step
-get_min_delay = common.get_min_delay
-get_max_delay = common.get_max_delay
-num_processes = common.num_processes
-rank = common.rank
+get_current_time, get_time_step, get_min_delay, get_max_delay, \
+            num_processes, rank = common.control.build_state_queries(simulator)
+
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
 # ==============================================================================
 
+class Assembly(common.Assembly):
+    _simulator = simulator
+
+
+class PopulationView(common.PopulationView):
+    _simulator = simulator
+    assembly_class = Assembly
+
+    def _get_view(self, selector, label=None):
+        return PopulationView(self, selector, label)
+
+
 class Population(common.Population):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
+    _simulator = simulator
     recorder_class = Recorder
+    assembly_class = Assembly
+
+    def _get_view(self, selector, label=None):
+        return PopulationView(self, selector, label)
 
     def _create_cells(self, cellclass, cellparams, n):
         """
@@ -279,9 +291,6 @@ class Population(common.Population):
             variable = STATE_VARIABLE_MAP[variable]
         nest.SetStatus(self.local_cells.tolist(), variable, value)
 
-PopulationView = common.PopulationView
-Assembly = common.Assembly
-
 
 class Projection(common.Projection):
     """
@@ -289,7 +298,7 @@ class Projection(common.Projection):
     plasticity mechanisms) between two populations, together with methods to set
     parameters of those connections, including of plasticity mechanisms.
     """
-
+    _simulator = simulator
     nProj = 0
 
     def __init__(self, presynaptic_population, postsynaptic_population,

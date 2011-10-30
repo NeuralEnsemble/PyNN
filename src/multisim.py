@@ -7,7 +7,6 @@ simulators.
 """
 
 from multiprocessing import Process, Queue
-from pyNN import common, recording
 
 def run_simulation(network_model, sim, parameters, input_queue, output_queue):
     """
@@ -16,8 +15,6 @@ def run_simulation(network_model, sim, parameters, input_queue, output_queue):
     command 'STOP'.
     """
     print "Running simulation with %s" % sim.__name__
-    common.control.simulator = sim.simulator
-    recording.simulator = sim.simulator
     network = network_model(sim, parameters)
     print "Network constructed with %s." % sim.__name__
     for obj_name, attr, args, kwargs in iter(input_queue.get, 'STOP'):

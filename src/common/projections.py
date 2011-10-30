@@ -12,7 +12,6 @@ import operator
 from pyNN import random, recording, errors, models, core, descriptions
 from pyNN.recording import files
 from populations import BasePopulation, Assembly, is_conductance
-from control import get_min_delay, get_max_delay, rank, num_processes
 
 logger = logging.getLogger("PyNN")
 deprecated = core.deprecated
@@ -43,16 +42,6 @@ def check_weight(weight, synapse_type, is_conductance):
     else:  # is_conductance is None. This happens if the cell does not exist on the current node.
         logger.debug("Can't check weight, conductance status unknown.")
     return weight
-
-
-def check_delay(delay):
-    if delay is None:
-        delay = get_min_delay()
-    # If the delay is too small , we have to throw an error
-    if delay < get_min_delay() or delay > get_max_delay():
-        raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % \
-                                     (delay, get_min_delay(), get_max_delay()))
-    return delay
 
 
 class Projection(object):
@@ -300,10 +289,10 @@ class Projection(object):
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
             all_lines = recording.gather_dict(all_lines)
-            if rank() == 0:
+            if self._simulator.state.mpi_rank == 0:
                 lines = reduce(operator.add, all_lines.values())
-        elif num_processes() > 1:
-            file.rename('%s.%d' % (file.name, rank()))
+        elif self._simulator.state.num_processes > 1:
+            file.rename('%s.%d' % (file.name, self._simulator.state.mpi_rank))
         
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
         

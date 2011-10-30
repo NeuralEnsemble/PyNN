@@ -13,8 +13,6 @@ Set = set
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
 from pyNN import common, recording, space, core, __doc__
-common.control.simulator = simulator
-recording.simulator = simulator
 from pyNN.random import *
 from pyNN.recording import files
 from pyNN.brian.standardmodels.cells import *
@@ -88,23 +86,37 @@ initialize = common.initialize
 #   Functions returning information about the simulation state
 # ==============================================================================
 
-get_time_step = common.get_time_step
-get_min_delay = common.get_min_delay
-get_max_delay = common.get_max_delay
-num_processes = common.num_processes
-rank = common.rank
+get_current_time, get_time_step, get_min_delay, get_max_delay, \
+            num_processes, rank = common.control.build_state_queries(simulator)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
 # ==============================================================================
 
+class Assembly(common.Assembly):
+    _simulator = simulator
+
+
+class PopulationView(common.PopulationView):
+    _simulator = simulator
+    assembly_class = Assembly
+
+    def _get_view(self, selector, label=None):
+        return PopulationView(self, selector, label)
+
+
 class Population(common.Population, common.BasePopulation):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
+    _simulator = simulator
     recorder_class = Recorder
+    assembly_class = Assembly
+
+    def _get_view(self, selector, label=None):
+        return PopulationView(self, selector, label)
 
     def _create_cells(self, cellclass, cellparams=None, n=1):
         """
@@ -186,15 +198,13 @@ class Population(common.Population, common.BasePopulation):
         self.brian_cells.initialize()
 
 
-PopulationView = common.PopulationView
-Assembly = common.Assembly
-
 class Projection(common.Projection):
     """
     A container for all the connections of a given type (same synapse type and
     plasticity mechanisms) between two populations, together with methods to set
     parameters of those connections, including of plasticity mechanisms.
     """
+    _simulator = simulator
     
     def __init__(self, presynaptic_population, postsynaptic_population, method,
                  source=None, target=None, synapse_dynamics=None, label=None, rng=None):

@@ -23,4 +23,8 @@ from pyNN.connectors import AllToAllConnector, \
                             CSAConnector, \
                             WeightGenerator, \
                             DelayGenerator, \
-                            ProbaGenerator
+                            ProbaGenerator, \
+                            Connector
+from pyNN.nemo import simulator
+
+Connector._simulator = simulator

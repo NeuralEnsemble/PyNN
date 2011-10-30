@@ -12,6 +12,7 @@ from pyNN.pcsim import simulator
 
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
+    _simulator = simulator
     
     fieldnames = {'v': 'Vm',
                   'gsyn': 'psr'}

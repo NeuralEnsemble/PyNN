@@ -1,10 +1,16 @@
 from pyNN import errors, random, standardmodels, space
-from pyNN.common import control, populations
+from pyNN.common import populations
 from nose.tools import assert_equal, assert_raises
 import numpy
 from mock import Mock, patch
 from pyNN.utility import assert_arrays_equal
 
+
+class MockSimulator(object):
+    class MockState(object):
+        mpi_rank = 1
+        num_processes = 3
+    state = MockState()
 
 class MockID(int, populations.IDMixin):
     def __init__(self, n):
@@ -14,8 +20,12 @@ class MockID(int, populations.IDMixin):
         return {}
 
 class MockPopulation(populations.Population):
+    _simulator = MockSimulator
     recorder_class = Mock()
     initialize = Mock()
+    
+    def _get_view(self, selector, label=None):
+        return populations.PopulationView(self, selector, label)
     
     def _create_cells(self, cellclass, cellparams, size):
         self.all_cells = numpy.array([MockID(i) for i in range(999, 999+size)], MockID)
@@ -106,26 +116,26 @@ def test_id_to_index_with_invalid_ids():
     assert_raises(ValueError, p.id_to_index, [MockID(p.first_id-1)] + p.all_cells[0:3].tolist())
 
 def test_id_to_local_index():
-    orig_np = control.num_processes
-    control.num_processes = lambda: 5
+    orig_np = MockPopulation._simulator.state.num_processes
+    MockPopulation._simulator.state.num_processes = 5
     p = MockPopulation(11, MockStandardCell)
     # every 5th cell, starting with the 4th, is on this node.
     assert_equal(p.id_to_local_index(p[3]), 0)
     assert_equal(p.id_to_local_index(p[8]), 1)
     
-    control.num_processes = lambda: 1
+    MockPopulation._simulator.state.num_processes = 1
     # only one node
     assert_equal(p.id_to_local_index(p[3]), 3)
     assert_equal(p.id_to_local_index(p[8]), 8)
-    control.num_processes = orig_np
+    MockPopulation._simulator.state.num_processes = orig_np
 
 def test_id_to_local_index_with_invalid_id():
-    orig_np = control.num_processes
-    control.num_processes = lambda: 5
+    orig_np = MockPopulation._simulator.state.num_processes
+    MockPopulation._simulator.state.num_processes = 5
     p = MockPopulation(11, MockStandardCell)
     # every 5th cell, starting with the 4th, is on this node.
     assert_raises(ValueError, p.id_to_local_index, p[0])
-    control.num_processes = orig_np
+    MockPopulation._simulator.state.num_processes = orig_np
 
 # test structure property
 def test_set_structure():

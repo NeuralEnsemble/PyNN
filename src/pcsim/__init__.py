@@ -21,8 +21,6 @@ import pyNN.random
 from pyNN.random import *
 from pyNN import common, recording, errors, space, core, __doc__
 from pyNN.pcsim import simulator
-common.control.simulator = simulator
-recording.simulator = simulator
 import os.path
 import types
 import sys
@@ -205,16 +203,12 @@ def run(simtime):
     simulator.net.advance(int(simtime / simulator.state.dt ))
     return simulator.state.t
 
-reset = common.reset
+reset = common.control.build_reset(simulator)
 
 initialize = common.initialize
 
-get_current_time = common.get_current_time
-get_time_step = common.get_time_step
-get_min_delay = common.get_min_delay
-get_max_delay = common.get_max_delay
-num_processes = common.num_processes
-rank = common.rank
+get_current_time, get_time_step, get_min_delay, get_max_delay, \
+            num_processes, rank = common.control.build_state_queries(simulator)
 
 
 # ==============================================================================
@@ -222,17 +216,34 @@ rank = common.rank
 #   neurons.
 # ==============================================================================
 
+class Assembly(common.Assembly):
+    _simulator = simulator
+    
+    
+class PopulationView(common.PopulationView):
+    _simulator = simulator
+    assembly_class = Assembly
+    
+    def _get_view(self, selector, label=None):
+        return PopulationView(self, selector, label)
+
+
 class Population(common.Population):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
     """
+    _simulator = simulator
     recorder_class = Recorder
+    assembly_class = Assembly
     
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  label=None, parent=None):
         __doc__ = common.Population.__doc__
         common.Population.__init__(self, size, cellclass, cellparams, structure, label)
+    
+    def _get_view(self, selector, label=None):
+        return PopulationView(self, selector, label)
     
     def _create_cells(self, cellclass, cellparams, n):
         """
@@ -405,9 +416,7 @@ class Population(common.Population):
         for i in xrange(0, len(self)):
             obj = simulator.net.object(self.pcsim_population[i])
             if obj: apply( obj, methodname, (), arguments)
-        
-PopulationView = common.PopulationView
-Assembly = common.Assembly
+
 
 class Projection(common.Projection, WDManager):
     """
@@ -415,7 +424,7 @@ class Projection(common.Projection, WDManager):
     plasticity mechanisms) between two populations, together with methods to set
     parameters of those connections, including of plasticity mechanisms.
     """
-    
+    _simulator = simulator
     nProj = 0
     synapse_target_ids = { 'excitatory': 1, 'inhibitory': 2 }
     

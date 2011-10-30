@@ -48,7 +48,6 @@ $Id: $
 """
 
 from populations import IDMixin, BasePopulation, Population, PopulationView, Assembly, is_conductance
-from projections import Projection, check_weight, check_delay, DEFAULT_WEIGHT
+from projections import Projection, check_weight, DEFAULT_WEIGHT
 from procedural_api import build_create, build_connect, set, build_record, initialize
-from control import setup, end, run, reset, get_current_time, get_time_step, \
-                    get_min_delay, get_max_delay, num_processes, rank
+from control import setup

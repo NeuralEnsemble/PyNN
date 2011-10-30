@@ -15,8 +15,9 @@ from pyNN.connectors import AllToAllConnector, \
                             FromFileConnector, \
                             FixedNumberPreConnector, \
                             FixedNumberPostConnector, \
-                            SmallWorldConnector
+                            SmallWorldConnector, \
+                            Connector
+from pyNN.pcsim import simulator
 
 
-
-
+Connector._simulator = simulator

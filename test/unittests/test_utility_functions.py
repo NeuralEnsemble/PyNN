@@ -74,9 +74,3 @@ def test_check_weight_with_invalid_value():
 def test_check_weight_is_conductance_is_None():
     # need to check that a log message was created
     assert_equal(4.3, common.check_weight(4.3, 'excitatory', is_conductance=None))
-    
-def test_check_delay():
-    assert_equal(common.check_delay(None), MIN_DELAY)
-    assert_equal(common.check_delay(2*MIN_DELAY), 2*MIN_DELAY)
-    assert_raises(errors.ConnectionError, common.check_delay, 0.5*MIN_DELAY)
-    assert_raises(errors.ConnectionError, common.check_delay, 2.0*MAX_DELAY)

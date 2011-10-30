@@ -39,34 +39,39 @@ def run(simtime):
     """Run the simulation for simtime ms."""
     raise NotImplementedError
 
-def reset():
-    """
-    Reset the time to zero, neuron membrane potentials and synaptic weights to
-    their initial values, and delete any recorded data. The network structure
-    is not changed, nor is the specification of which neurons to record from.
-    """
-    simulator.reset()
+def build_reset(simulator):
+    def reset():
+        """
+        Reset the time to zero, neuron membrane potentials and synaptic weights to
+        their initial values, and delete any recorded data. The network structure
+        is not changed, nor is the specification of which neurons to record from.
+        """
+        simulator.reset()
+    return reset
 
-def get_current_time():
-    """Return the current time in the simulation."""
-    return simulator.state.t
-
-def get_time_step():
-    """Return the integration time step."""
-    return simulator.state.dt
-
-def get_min_delay():
-    """Return the minimum allowed synaptic delay."""
-    return simulator.state.min_delay
-
-def get_max_delay():
-    """Return the maximum allowed synaptic delay."""
-    return simulator.state.max_delay
-
-def num_processes():
-    """Return the number of MPI processes."""
-    return simulator.state.num_processes
-
-def rank():
-    """Return the MPI rank of the current node."""
-    return simulator.state.mpi_rank
+def build_state_queries(simulator):
+    def get_current_time():
+        """Return the current time in the simulation."""
+        return simulator.state.t
+    
+    def get_time_step():
+        """Return the integration time step."""
+        return simulator.state.dt
+    
+    def get_min_delay():
+        """Return the minimum allowed synaptic delay."""
+        return simulator.state.min_delay
+    
+    def get_max_delay():
+        """Return the maximum allowed synaptic delay."""
+        return simulator.state.max_delay
+    
+    def num_processes():
+        """Return the number of MPI processes."""
+        return simulator.state.num_processes
+    
+    def rank():
+        """Return the MPI rank of the current node."""
+        return simulator.state.mpi_rank
+    
+    return get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank

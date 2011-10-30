@@ -1,5 +1,5 @@
 from pyNN import common, errors, random, standardmodels, recording
-from pyNN.common import populations, control
+from pyNN.common import populations
 from nose.tools import assert_equal, assert_raises
 import numpy
 from mock import Mock, patch
@@ -8,6 +8,13 @@ from pyNN import core
     
 builtin_open = open
 id_map = {'larry': 0, 'curly': 1, 'moe': 2, 'joe': 3, 'william': 4, 'jack': 5, 'averell': 6}
+
+
+class MockSimulator(object):
+    class MockState(object):
+        mpi_rank = 1
+        num_processes = 3
+    state = MockState()
 
 class MockStandardCell(standardmodels.StandardCellType):
     recordable = ['v', 'spikes']
@@ -18,6 +25,7 @@ class MockStandardCell(standardmodels.StandardCellType):
         return parameters
 
 class MockPopulation(populations.BasePopulation):
+    _simulator = MockSimulator
     size = 13
     all_cells = numpy.arange(100, 113)
     _mask_local = numpy.array([0,1,0,1,0,1,0,1,0,1,0,1,0], bool)
@@ -26,6 +34,10 @@ class MockPopulation(populations.BasePopulation):
     label = "mock_population"
     celltype = MockStandardCell({})
     initial_values = {"foo": core.LazyArray(numpy.array((98, 100, 102)), shape=(3,))}
+    assembly_class = populations.Assembly
+
+    def _get_view(self, selector, label=None):
+        return populations.PopulationView(self, selector, label)
 
     def id_to_index(self, id):
         if id.label in id_map:
@@ -60,7 +72,7 @@ def test__getitem__slice():
     populations.PopulationView = Mock()
     p = MockPopulation()
     pv = p[3:9]
-    populations.PopulationView.assert_called_with(p, slice(3,9,None))
+    populations.PopulationView.assert_called_with(p, slice(3,9,None), None)
     populations.PopulationView = orig_PV
 
 def test__getitem__list():
@@ -68,7 +80,7 @@ def test__getitem__list():
     populations.PopulationView = Mock()
     p = MockPopulation()
     pv = p[range(3,9)]
-    populations.PopulationView.assert_called_with(p, range(3,9))
+    populations.PopulationView.assert_called_with(p, range(3,9), None)
     populations.PopulationView = orig_PV
 
 def test__getitem__tuple():
@@ -76,7 +88,7 @@ def test__getitem__tuple():
     populations.PopulationView = Mock()
     p = MockPopulation()
     pv = p[(3,5,7)]
-    populations.PopulationView.assert_called_with(p, [3,5,7])
+    populations.PopulationView.assert_called_with(p, [3,5,7], None)
     populations.PopulationView = orig_PV
 
 def test__getitem__invalid():
@@ -174,11 +186,11 @@ def test_get_with_no_get_array():
     MockPopulation.__iter__ = orig_iter
 
 def test_get_with_gather():
-    np_orig = control.num_processes
-    rank_orig = control.rank
+    np_orig = MockPopulation._simulator.state.num_processes
+    rank_orig = MockPopulation._simulator.state.mpi_rank
     gd_orig = recording.gather_dict
-    control.num_processes = lambda: 2
-    control.rank = lambda: 0
+    MockPopulation._simulator.state.num_processes = 2
+    MockPopulation._simulator.state.mpi_rank =  0
     def mock_gather_dict(D): # really hacky
         assert isinstance(D[0], list)
         D[1] = [i-1 for i in D[0]] + [D[0][-1] + 1]
@@ -190,8 +202,8 @@ def test_get_with_gather():
     assert_arrays_equal(p.get("tau_m", gather=True),
                         numpy.arange(10.0, 23.0))
     
-    control.num_processes = np_orig
-    control.rank = rank_orig
+    MockPopulation._simulator.state.num_processes = np_orig
+    MockPopulation._simulator.state.mpi_rank = rank_orig
     recording.gather_dict = gd_orig
 
 def test_set_from_dict():
@@ -436,22 +448,22 @@ def test_get_spike_counts():
     assert_equal(args, ("arg1", None))
     
 def test_meanSpikeCount():
-    orig_rank = control.rank
-    control.rank = lambda: 0
+    orig_rank = MockPopulation._simulator.state.mpi_rank
+    MockPopulation._simulator.state.mpi_rank = 0
     p = MockPopulation()
     p.recorders = {'spikes': Mock()}
     p.recorders['spikes'].count = Mock(return_value={0: 2, 1: 5})
     assert_equal(p.meanSpikeCount(), 3.5)
-    control.rank = orig_rank
+    MockPopulation._simulator.state.mpi_rank = orig_rank
 
 def test_meanSpikeCount_on_slave_node():
-    orig_rank = control.rank
-    control.rank = lambda: 1
+    orig_rank = MockPopulation._simulator.state.mpi_rank
+    MockPopulation._simulator.state.mpi_rank = 1
     p = MockPopulation()
     p.recorders = {'spikes': Mock()}
     p.recorders['spikes'].count = Mock(return_value={0: 2, 1: 5})
     assert p.meanSpikeCount() is numpy.NaN
-    control.rank = orig_rank
+    MockPopulation._simulator.state.mpi_rank = orig_rank
     
 def test_inject():
     p = MockPopulation()
@@ -468,8 +480,8 @@ def test_inject_into_invalid_celltype():
 
 def test_save_positions():
     import os
-    orig_rank = control.rank
-    control.rank = lambda: 0
+    orig_rank = MockPopulation._simulator.state.mpi_rank
+    MockPopulation._simulator.state.mpi_rank = 0
     p = MockPopulation()
     p.all_cells = numpy.array([34, 45, 56, 67])
     p.positions = numpy.arange(12).reshape((4,3)).T
@@ -479,4 +491,4 @@ def test_save_positions():
                         numpy.array([[34, 0, 1, 2], [45, 3, 4, 5], [56, 6, 7, 8], [67, 9, 10, 11]]))
     assert_equal(output_file.write.call_args[0][1], {'population': p.label})
     # arguably, the first column should contain indices, not ids.
-    control.rank = orig_rank
+    MockPopulation._simulator.state.mpi_rank = orig_rank

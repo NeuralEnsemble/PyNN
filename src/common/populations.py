@@ -165,9 +165,9 @@ class BasePopulation(object):
         if isinstance(index, int):
             return self.all_cells[index]
         elif isinstance(index, (slice, list, numpy.ndarray)):
-            return PopulationView(self, index)
+            return self._get_view(index)
         elif isinstance(index, tuple):
-            return PopulationView(self, list(index))
+            return self._get_view(list(index))
         else:
             raise TypeError("indices must be integers, slices, lists, arrays or tuples, not %s" % type(index).__name__)
 
@@ -205,7 +205,7 @@ class BasePopulation(object):
         PopulationView or Assembly, returning an Assembly.
         """
         assert isinstance(other, BasePopulation)
-        return Assembly(self, other)
+        return self.assembly_class(self, other)
 
     def _get_cell_position(self, id):
         index = self.id_to_index(id)
@@ -247,7 +247,7 @@ class BasePopulation(object):
         indices = rng.permutation(numpy.arange(len(self)))[0:n]
         logger.debug("The %d cells recorded have indices %s" % (n, indices))
         logger.debug("%s.sample(%s)", self.label, n)
-        return PopulationView(self, indices)
+        return self._get_view(indices)
 
     def get(self, parameter_name, gather=False):
         """
@@ -261,12 +261,12 @@ class BasePopulation(object):
         else:
             values = [getattr(cell, parameter_name) for cell in self]  # list or array?
         
-        if gather == True and control.num_processes() > 1:
-            all_values  = { control.rank(): values }
-            all_indices = { control.rank(): self.local_cells.tolist()}
+        if gather == True and self._simulator.state.num_processes > 1:
+            all_values  = { self._simulator.state.mpi_rank: values }
+            all_indices = { self._simulator.state.mpi_rank: self.local_cells.tolist()}
             all_values  = recording.gather_dict(all_values)
             all_indices = recording.gather_dict(all_indices)
-            if control.rank() == 0:
+            if self._simulator.state.mpi_rank == 0:
                 values  = reduce(operator.add, all_values.values())
                 indices = reduce(operator.add, all_indices.values())
             idx    = numpy.argsort(indices)
@@ -581,7 +581,7 @@ class BasePopulation(object):
         """
         spike_counts = self.recorders['spikes'].count(gather, self.record_filter)
         total_spikes = sum(spike_counts.values())
-        if control.rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
+        if self._simulator.state.mpi_rank == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
             if len(spike_counts) > 0:
                 return float(total_spikes)/len(spike_counts)
             else:
@@ -609,7 +609,7 @@ class BasePopulation(object):
         result = numpy.empty((len(cells), 4))
         result[:,0]   = cells
         result[:,1:4] = self.positions.T 
-        if control.rank() == 0:
+        if self._simulator.state.mpi_rank == 0:
             file.write(result, {'population' : self.label})
             file.close()
 
@@ -706,7 +706,7 @@ class Population(BasePopulation):
         Given the ID(s) of cell(s) in the Population, return its (their) index
         (order in the Population), counting only cells on the local MPI node.
         """
-        if control.num_processes() > 1:
+        if self._simulator.state.num_processes > 1:
             return self.local_cells.tolist().index(id)          # probably very slow
             #return numpy.nonzero(self.local_cells == id)[0][0] # possibly faster?
             # another idea - get global index, use idx-sum(mask_local[:idx])?
@@ -1097,7 +1097,7 @@ class Assembly(object):
                 indices = index
             pindices = boundaries[1:].searchsorted(indices, side='right')
             views = (self.populations[i][indices[pindices==i] - boundaries[i]] for i in numpy.unique(pindices))
-            return Assembly(*views)
+            return self.__class__(*views)
         else:
             raise TypeError("indices must be integers, slices, lists, arrays, not %s" % type(index).__name__)
 
@@ -1109,9 +1109,9 @@ class Assembly(object):
             a2 = a1 + p
         """
         if isinstance(other, BasePopulation):
-            return Assembly(*(self.populations + [other]))
+            return self.__class__(*(self.populations + [other]))
         elif isinstance(other, Assembly):
-            return Assembly(*(self.populations + other.populations))
+            return self.__class__(*(self.populations + other.populations))
         else:
             raise TypeError("can only add a Population or another Assembly to an Assembly")
 
@@ -1202,7 +1202,7 @@ class Assembly(object):
         result = numpy.empty((len(cells), 4))
         result[:,0]   = cells
         result[:,1:4] = self.positions.T 
-        if control.rank() == 0:
+        if self._simulator.state.mpi_rank == 0:
             file.write(result, {'assembly' : self.label})
             file.close()
 
@@ -1248,7 +1248,7 @@ class Assembly(object):
         """
         spike_counts = self.get_spike_counts()
         total_spikes = sum(spike_counts.values())
-        if control.rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
+        if self._simulator.state.mpi_rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
             return float(total_spikes)/len(spike_counts)
         else:
             return numpy.nan
@@ -1300,13 +1300,13 @@ class Assembly(object):
                     'first_id'    : self.first_id,
                     'last_id'     : self.last_id}
         
-        metadata['dt'] = control.simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
         data = numpy.zeros(format)
         for pop in filenames.keys():
             if filenames[pop][1] is True:
                 name     = filenames[pop][0]
-                if gather==False and control.simulator.state.num_processes > 1:
-                    name += '.%d' % control.simulator.state.mpi_rank            
+                if gather==False and self._simulator.state.num_processes > 1:
+                    name += '.%d' % self._simulator.state.mpi_rank            
                 p_file   = files.NumpyBinaryFile(name, mode='r') 
                 tmp_data = p_file.read()                    
                 if compatible_output:
@@ -1317,11 +1317,11 @@ class Assembly(object):
         os.rmdir(tempdir)
         
         if isinstance(file, basestring):
-            if gather==False and control.simulator.state.num_processes > 1:
-                file += '.%d' % control.simulator.state.mpi_rank
+            if gather==False and self._simulator.state.num_processes > 1:
+                file += '.%d' % self._simulator.state.mpi_rank
             file = files.StandardTextFile(file, mode='w')
         
-        if control.simulator.state.mpi_rank == 0 or gather == False:
+        if self._simulator.state.mpi_rank == 0 or gather == False:
             file.write(data, metadata)
             file.close()
 

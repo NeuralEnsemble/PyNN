@@ -143,8 +143,8 @@ class Recorder(object):
         if isinstance(file, basestring):
             filename = file
             #rename_existing(filename)
-            if gather==False and simulator.state.num_processes > 1:
-                filename += '.%d' % simulator.state.mpi_rank
+            if gather==False and self._simulator.state.num_processes > 1:
+                filename += '.%d' % self._simulator.state.mpi_rank
         else:
             filename = file.name
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s and compatible_output=%s" % (self.variable,
@@ -154,7 +154,7 @@ class Recorder(object):
         data = self.get(gather, compatible_output, filter)
         metadata = self.metadata
         logger.debug("data has size %s" % str(data.size))
-        if simulator.state.mpi_rank == 0 or gather == False:
+        if self._simulator.state.mpi_rank == 0 or gather == False:
             if compatible_output:
                 data = self._make_compatible(data)
             # Open the output file, if necessary and write the data
@@ -177,7 +177,7 @@ class Recorder(object):
                 'last_id': self.population.last_id,
                 'label': self.population.label,
             })
-        metadata['dt'] = simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
         if not hasattr(self, '_data_size'):
             self.get()
         metadata['n'] = self._data_size
@@ -228,7 +228,7 @@ class Recorder(object):
             N = self._local_count(filter)
         else:
             raise Exception("Only implemented for spikes.")
-        if gather and simulator.state.num_processes > 1:
+        if gather and self._simulator.state.num_processes > 1:
             N = gather_dict(N)
         return N
     

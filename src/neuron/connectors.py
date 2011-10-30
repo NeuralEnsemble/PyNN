@@ -7,6 +7,7 @@ Connection method classes for the neuron module
 $Id$
 """
 
+from pyNN.neuron import simulator
 from pyNN.connectors import AllToAllConnector, \
                             OneToOneConnector, \
                             FixedProbabilityConnector, \
@@ -16,8 +17,7 @@ from pyNN.connectors import AllToAllConnector, \
                             FixedNumberPreConnector, \
                             FixedNumberPostConnector, \
                             SmallWorldConnector, \
-                            CSAConnector
+                            CSAConnector, \
+                            Connector
 
-
-
-
+Connector._simulator = simulator

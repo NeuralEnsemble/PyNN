@@ -15,6 +15,7 @@ logger = logging.getLogger("PyNN")
 
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
+    _simulator = simulator
   
     def __init__(self, variable, population=None, file=None):
         __doc__ = recording.Recorder.__doc__

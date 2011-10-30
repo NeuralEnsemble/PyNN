@@ -68,6 +68,7 @@ class MockRNG(random.WrappedRNG):
 
 
 class MockProjection(object):
+    _simulator = MockSimulator
     
     def __init__(self, pre, post):
         self.pre = pre
@@ -101,10 +102,17 @@ class MockProjection(object):
             self.connections.append((src, tgt, w, d))
 
 
+def setup():
+    connectors.Connector._simulator = MockSimulator
+    connectors.ConnectionAttributeGenerator._simulator = MockSimulator
+
+def teardown():
+    del connectors.Connector._simulator
+    del connectors.ConnectionAttributeGenerator._simulator
+
 class TestOneToOneConnector(object):
 
     def setup(self):
-        common.control.simulator = MockSimulator
         self.prj = MockProjection(MockPre(5), MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
 
     def test_connect_with_scalar_weights_and_delays(self):
@@ -128,7 +136,6 @@ class TestOneToOneConnector(object):
 class TestAllToAllConnector(object):
 
     def setup(self):
-        common.control.simulator = MockSimulator
         self.prj = MockProjection(MockPre(4), MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
 
     def test_connect_with_scalar_weights_and_delays(self):
@@ -181,7 +188,7 @@ class TestAllToAllConnector(object):
     def test_create_with_delays_None(self):
         C = connectors.AllToAllConnector(weights=0.1, delays=None)
         assert_equal(C.weights, 0.1)
-        assert_equal(C.delays, common.get_min_delay())
+        assert_equal(C.delays, C._simulator.state.min_delay)
         assert C.safe
         assert C.allow_self_connections
         
@@ -201,7 +208,6 @@ class TestAllToAllConnector(object):
 class TestFixedProbabilityConnector(object):
 
     def setup(self):
-        common.control.simulator = MockSimulator
         self.prj = MockProjection(MockPre(4),
                                   MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
 
@@ -221,7 +227,6 @@ class TestFixedProbabilityConnector(object):
 class TestDistanceDependentProbabilityConnector(object):
 
     def setup(self):
-        common.control.simulator = MockSimulator
         self.prj = MockProjection(MockPre(4),
                                   MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
         self.prj.rng = MockRNG(num_processes=2, delta=0.01)
@@ -242,7 +247,6 @@ class TestDistanceDependentProbabilityConnector(object):
 class TestFromListConnector(object):
     
     def setup(self):
-        common.control.simulator = MockSimulator
         self.prj = MockProjection(MockPre(4),
                                   MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
         
@@ -281,7 +285,6 @@ class TestFromListConnector(object):
 class TestFromFileConnector(object):
     
     def setup(self):
-        common.control.simulator = MockSimulator
         self.prj = MockProjection(MockPre(4),
                                   MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
         self.connection_list = [
@@ -320,7 +323,6 @@ class TestFromFileConnector(object):
 class TestFixedNumberPostConnector(object):
     
     def setup(self):
-        common.control.simulator = MockSimulator
         self.prj = MockProjection(MockPre(4),
                                   MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
         self.prj.rng.rng = Mock()
@@ -351,7 +353,6 @@ class TestFixedNumberPostConnector(object):
 class TestFixedNumberPreConnector(object):
     
     def setup(self):
-        common.control.simulator = MockSimulator
         self.prj = MockProjection(MockPre(4),
                                   MockPost(numpy.array([0,1,0,1,0], dtype=bool)))
         self.prj.rng.rng = Mock()

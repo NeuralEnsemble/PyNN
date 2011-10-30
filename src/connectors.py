@@ -177,16 +177,18 @@ class WeightGenerator(ConnectionAttributeGenerator):
 class DelayGenerator(ConnectionAttributeGenerator):
     """Generator for synaptic delays. %s""" % ConnectionAttributeGenerator.__doc__
 
-    def __init__(self, source, local_mask, safe=True):
+    def __init__(self, source, local_mask, kernel, safe=True):
         ConnectionAttributeGenerator.__init__(self, source, local_mask, safe)
-        self.min_delay = common.get_min_delay()
-        self.max_delay = common.get_max_delay()
+        assert hasattr(kernel, "min_delay")
+        self.kernel = kernel
         
     def check(self, delay):
-        all_negative = (delay<=self.max_delay).all()
-        all_positive = (delay>=self.min_delay).all()# If the delay is too small , we have to throw an error
+        min_delay = self.kernel.min_delay
+        max_delay = self.kernel.max_delay
+        all_negative = (delay<=max_delay).all()
+        all_positive = (delay>=min_delay).all()# If the delay is too small , we have to throw an error
         if not (all_negative and all_positive):
-            raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, common.get_min_delay(), common.get_max_delay()))
+            raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, min_delay, max_delay))
         return delay    
 
 
@@ -231,7 +233,7 @@ class Connector(object):
         self.space   = space
         self.safe    = safe
         self.verbose = verbose
-        min_delay    = common.get_min_delay()
+        min_delay    = self._simulator.state.min_delay
         if delays is None:
             self.delays = min_delay
         else:
@@ -251,7 +253,7 @@ class Connector(object):
     
     def progression(self, count):
         self.prog.update_amount(count)
-        if self.verbose and common.rank() == 0:           
+        if self.verbose and self._simulator.state.mpi_rank == 0:           
             print self.prog, "\r",
             sys.stdout.flush()
     
@@ -292,7 +294,7 @@ class ProbabilisticConnector(Connector):
         self.local             = projection.post._mask_local
         self.N                 = projection.post.size
         self.weights_generator = WeightGenerator(weights, self.local, projection, safe)
-        self.delays_generator  = DelayGenerator(delays, self.local, safe)
+        self.delays_generator  = DelayGenerator(delays, self.local, kernel=projection._simulator.state, safe=safe)
         self.probas_generator  = ProbaGenerator(RandomDistribution('uniform', (0,1), rng=self.rng), self.local)
         self._distance_matrix  = None
         self.projection        = projection
@@ -467,7 +469,7 @@ class DistanceDependentProbabilityConnector(Connector):
         connector       = ProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
         proba_generator = ProbaGenerator(self.d_expression, connector.local)
         self.progressbar(len(projection.pre))
-        if (common.num_processes() > 1) and (self.n_connections is not None):
+        if (projection._simulator.state.num_processes > 1) and (self.n_connections is not None):
             raise Exception("n_connections not implemented yet for this connector in parallel !")
 
         for count, src in enumerate(projection.pre.all()):     
@@ -497,7 +499,7 @@ class FromListConnector(Connector):
                        the index of the postsynaptic neuron.
         """
         # needs extending for dynamic synapses.
-        Connector.__init__(self, 0., common.get_min_delay(), safe=safe, verbose=verbose)
+        Connector.__init__(self, 0.0, self._simulator.state.min_delay, safe=safe, verbose=verbose)
         self.conn_list  = numpy.array(conn_list)               
         
     def connect(self, projection):
@@ -549,7 +551,7 @@ class FromFileConnector(FromListConnector):
                          rank. This speeds up loading connections for
                          distributed simulations.
         """
-        Connector.__init__(self, 0., common.get_min_delay(), safe=safe, verbose=verbose)
+        Connector.__init__(self, 0.0, self._simulator.state.min_delay, safe=safe, verbose=verbose)
         
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='r')        
@@ -559,7 +561,7 @@ class FromFileConnector(FromListConnector):
     def connect(self, projection):
         """Connect-up a Projection."""
         if self.distributed:
-            self.file.rename("%s.%d" % (self.file.name, common.rank()))        
+            self.file.rename("%s.%d" % (self.file.name, projection._simulator.state.mpi_rank))        
         self.conn_list = self.file.read()
         FromListConnector.connect(self, projection)
 
@@ -613,7 +615,7 @@ class FixedNumberPostConnector(Connector):
         """Connect-up a Projection."""        
         local             = numpy.ones(len(projection.post), bool)
         weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
-        delays_generator  = DelayGenerator(self.delays, local, self.safe)
+        delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)
         distance_matrix   = DistanceMatrix(projection.post.positions, self.space)
         candidates        = projection.post.all_cells
         size              = len(projection.post)    
@@ -699,7 +701,7 @@ class FixedNumberPreConnector(Connector):
         """Connect-up a Projection."""
         local             = numpy.ones(len(projection.pre), bool)
         weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
-        delays_generator  = DelayGenerator(self.delays, local, self.safe)
+        delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)
         distance_matrix   = DistanceMatrix(projection.pre.positions, self.space)              
         candidates        = projection.pre.all_cells 
         size              = len(projection.pre)
@@ -766,7 +768,7 @@ class OneToOneConnector(Connector):
             if isinstance(self.weights, basestring) or isinstance(self.delays, basestring):
                 raise Exception('Expression for weights or delays is not supported for OneToOneConnector !')
             weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
-            delays_generator  = DelayGenerator(self.delays, local, self.safe)                
+            delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)                
             weights           = weights_generator.get(N)
             delays            = delays_generator.get(N)
             self.progressbar(len(projection.post.local_cells))                        
@@ -870,7 +872,7 @@ class SmallWorldConnector(Connector):
         else:
             self.rng = projection.rng
         self.weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
-        self.delays_generator  = DelayGenerator(self.delays, local, self.safe)
+        self.delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)
         self.probas_generator  = ProbaGenerator(RandomDistribution('uniform',(0,1), rng=self.rng), local)
         self.distance_matrix   = DistanceMatrix(projection.post.positions, self.space, local)
         self.projection        = projection
@@ -892,7 +894,7 @@ class CSAConnector(Connector):
         def __init__ (self, cset, weights=None, delays=None, safe=True, verbose=False):
             """
             """
-            min_delay = common.get_min_delay()
+            min_delay = self._simulator.state.min_delay
             Connector.__init__(self, None, None, safe=safe, verbose=verbose)
             self.cset = cset
             if cset.arity == 0:
@@ -903,7 +905,7 @@ class CSAConnector(Connector):
                     self.weights = DEFAULT_WEIGHT
                 self.delays = delays
                 if delays is None:
-                    self.delays = common.get_min_delay()
+                    self.delays = self._simulator.state.min_delay
             else:
                 assert cset.arity == 2, 'must specify mask or connection-set with arity 2'
                 assert weights is None and delays is None, \

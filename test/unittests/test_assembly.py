@@ -6,16 +6,23 @@ from pyNN.utility import assert_arrays_equal
 from mock import Mock
     
 
+class MockSimulator(object):
+    class MockState(object):
+        mpi_rank = 1
+        num_processes = 2
+    state = MockState()
+
 def test_create_with_zero_populations():
     a = Assembly()
     assert_equal(a.populations, [])
     assert isinstance(a.label, basestring)
 
 class MockPopulation(BasePopulation):
+    _simulator = MockSimulator
     size = 10
-    local_cells = numpy.arange(1,10,2)
-    all_cells = numpy.arange(10)
-    _mask_local = numpy.arange(10)%2 == 1
+    local_cells = numpy.arange(_simulator.state.mpi_rank,10,_simulator.state.num_processes)
+    all_cells = numpy.arange(size)
+    _mask_local = numpy.arange(size)%_simulator.state.num_processes == _simulator.state.mpi_rank
     initialize = Mock()
     positions = numpy.arange(3*size).reshape(3,size)
     def describe(self, template='abcd', engine=None):
@@ -178,8 +185,8 @@ def test_mask_local():
 
 def test_save_positions():
     import os
-    orig_rank = common.rank
-    common.rank = lambda: 0
+    Assembly._simulator = MockSimulator
+    Assembly._simulator.state.mpi_rank = 0
     p1 = MockPopulation()
     p2 = MockPopulation()
     p1.all_cells = numpy.array([34, 45])
@@ -193,4 +200,4 @@ def test_save_positions():
                         numpy.array([[34, 0, 1, 2], [45, 3, 4, 5], [56, 6, 7, 8], [67, 9, 10, 11]]))
     assert_equal(output_file.write.call_args[0][1], {'assembly': a.label})
     # arguably, the first column should contain indices, not ids.
-    common.rank = orig_rank
+    del Assembly._simulator

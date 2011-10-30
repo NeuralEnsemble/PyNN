@@ -4,7 +4,7 @@ import numpy
 import logging
 import warnings
 import nest
-from pyNN import recording, common, errors
+from pyNN import recording, errors
 from pyNN.nest import simulator
 
 VARIABLE_MAP = {'v': ['V_m'], 'gsyn': ['g_ex', 'g_in']}
@@ -30,7 +30,7 @@ class RecordingDevice(object):
         self.to_memory = to_memory
         device_parameters = {"withgid": True, "withtime": True}
         if self.type is 'multimeter':
-            device_parameters["interval"] = common.get_time_step()
+            device_parameters["interval"] = simulator.state.dt
         else:
             device_parameters["precise_times"] = True
             device_parameters["precision"] = simulator.state.default_recording_precision
@@ -236,7 +236,7 @@ class RecordingDevice(object):
 
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
-    
+    _simulator = simulator
     scale_factors = {'spikes': 1,
                      'v': 1,
                      'gsyn': 0.001} # units conversion
