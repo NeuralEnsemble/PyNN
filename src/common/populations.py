@@ -14,7 +14,6 @@ import operator
 import tempfile
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions
 from pyNN.recording import files
-import control
 from itertools import chain
 
 deprecated = core.deprecated

@@ -79,8 +79,6 @@ class DummySimulator(object):
         num_processes = 1
     state = State()
 simulator = DummySimulator()
-common.control.simulator = simulator
-recording.simulator = simulator
 
 
 def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):

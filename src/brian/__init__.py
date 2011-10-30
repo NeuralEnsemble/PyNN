@@ -87,7 +87,7 @@ initialize = common.initialize
 # ==============================================================================
 
 get_current_time, get_time_step, get_min_delay, get_max_delay, \
-            num_processes, rank = common.control.build_state_queries(simulator)
+            num_processes, rank = common.build_state_queries(simulator)
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
