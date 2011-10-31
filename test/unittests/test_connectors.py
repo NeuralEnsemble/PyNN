@@ -185,25 +185,23 @@ class TestAllToAllConnector(object):
                       (20, 80, 160.0, 0.5),
                       (20, 82, 162.0, 0.5)])
 
-    def test_create_with_delays_None(self):
+    def test_connect_with_delays_None(self):
         C = connectors.AllToAllConnector(weights=0.1, delays=None)
         assert_equal(C.weights, 0.1)
-        assert_equal(C.delays, C._simulator.state.min_delay)
+        assert_equal(C.delays, None)
         assert C.safe
         assert C.allow_self_connections
+        C.connect(self.prj)
+        assert_equal(self.prj.connections[0][3], self.prj._simulator.state.min_delay)
         
-    def test_create_with_delays_too_small(self):
-        assert_raises(errors.ConnectionError,
-                      connectors.AllToAllConnector,
-                      allow_self_connections=True,
-                      delays=0.0)
+    def test_connect_with_delays_too_small(self):
+        C = connectors.AllToAllConnector(weights=0.1, delays=0.0)
+        assert_raises(errors.ConnectionError, C.connect, self.prj)
 
-    def test_create_with_list_delays_too_small(self):
-        assert_raises(errors.ConnectionError,
-                      connectors.AllToAllConnector,
-                      allow_self_connections=True,
-                      delays=[1.0, 1.0, 0.0])
-    
+    def test_connect_with_list_delays_too_small(self):
+        C = connectors.AllToAllConnector(weights=0.1, delays=[1.0, 1.0, 0.0, 0.0, 3.0, 1.5, 2.3, 0.9])
+        assert_raises(errors.ConnectionError, C.connect, self.prj)
+
 
 class TestFixedProbabilityConnector(object):
 

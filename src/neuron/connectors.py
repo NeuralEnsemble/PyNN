@@ -17,7 +17,4 @@ from pyNN.connectors import AllToAllConnector, \
                             FixedNumberPreConnector, \
                             FixedNumberPostConnector, \
                             SmallWorldConnector, \
-                            CSAConnector, \
-                            Connector
-
-Connector._simulator = simulator
+                            CSAConnector

@@ -23,10 +23,7 @@ from pyNN.connectors import AllToAllConnector, \
                             CSAConnector, \
                             WeightGenerator, \
                             DelayGenerator, \
-                            ProbaGenerator, Connector
-from pyNN.brian import simulator
-
-Connector._simulator = simulator
+                            ProbaGenerator
 
 
 class FastProbabilisticConnector(ProbabilisticConnector):
@@ -121,7 +118,9 @@ class FastOneToOneConnector(OneToOneConnector):
     __doc__ = OneToOneConnector.__doc__
     
     def connect(self, projection):
-        """Connect-up a Projection."""        
+        """Connect-up a Projection."""
+        if self.delays is None:
+            self.delays = projection._simulator.state.min_delay
         if projection.pre.size == projection.post.size:
             N                 = projection.post.size
             local             = projection.post._mask_local

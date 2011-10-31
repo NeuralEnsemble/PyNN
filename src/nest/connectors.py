@@ -12,11 +12,11 @@ from pyNN.connectors import Connector, AllToAllConnector, FixedProbabilityConnec
                             FixedNumberPostConnector, OneToOneConnector, SmallWorldConnector, \
                             FromListConnector, FromFileConnector, WeightGenerator, \
                             DelayGenerator, ProbaGenerator, DistanceMatrix, CSAConnector
-from pyNN.nest import simulator
+
 import numpy
 from pyNN.space import Space
 
-Connector._simulator = simulator
+
 
 
 class FastProbabilisticConnector(Connector):
@@ -28,7 +28,8 @@ class FastProbabilisticConnector(Connector):
             raise Exception("Use of NativeRNG not implemented.")
         else:
             self.rng = projection.rng
-        
+        if self.delays is None:
+            self.delays = projection._simulator.state.min_delay
         self.N                 = projection.pre.size   
         idx                    = numpy.arange(self.N*rank(), self.N*(rank()+1))        
         self.M                 = num_processes()*self.N

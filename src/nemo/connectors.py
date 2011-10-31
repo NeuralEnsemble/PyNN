@@ -20,11 +20,4 @@ from pyNN.connectors import AllToAllConnector, \
                             FixedNumberPreConnector, \
                             FixedNumberPostConnector, \
                             SmallWorldConnector, \
-                            CSAConnector, \
-                            WeightGenerator, \
-                            DelayGenerator, \
-                            ProbaGenerator, \
-                            Connector
-from pyNN.nemo import simulator
-
-Connector._simulator = simulator
+                            CSAConnector

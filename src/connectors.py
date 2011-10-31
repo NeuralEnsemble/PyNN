@@ -65,7 +65,9 @@ class ConnectionAttributeGenerator(object):
         self.local_mask = local_mask
         self.safe       = safe
         if self.safe:
-            self.get = self.get_safe    
+            self.get = self.get_safe
+        if isinstance(self.source, list):
+            self.source = numpy.array(self.source)
         if isinstance(self.source, numpy.ndarray):
             self.source_iterator = iter(self.source)
     
@@ -130,7 +132,7 @@ class ConnectionAttributeGenerator(object):
                 values = values[sub_mask]
             return values
         else:
-            raise Exception("Invalid source")
+            raise Exception("Invalid source (%s)" % type(self.source))
 
     def get_safe(self, N, distance_matrix=None, sub_mask=None):
         return self.check(self.extract(N, distance_matrix, sub_mask))
@@ -189,7 +191,7 @@ class DelayGenerator(ConnectionAttributeGenerator):
         all_positive = (delay>=min_delay).all()# If the delay is too small , we have to throw an error
         if not (all_negative and all_positive):
             raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, min_delay, max_delay))
-        return delay    
+        return delay
 
 
 class ProbaGenerator(ConnectionAttributeGenerator):
@@ -233,27 +235,17 @@ class Connector(object):
         self.space   = space
         self.safe    = safe
         self.verbose = verbose
-        min_delay    = self._simulator.state.min_delay
-        if delays is None:
-            self.delays = min_delay
-        else:
-            if core.is_listlike(delays):
-                if min(delays) < min_delay:
-                    raise errors.ConnectionError("smallest delay (%g) is smaller than minimum delay (%g)" % (min(delays), min_delay))
-            elif not (isinstance(delays, basestring) or isinstance(delays, RandomDistribution)):
-                if delays < min_delay:
-                    raise errors.ConnectionError("delay (%g) is smaller than minimum delay (%g)" % (delays, min_delay))
-            self.delays = delays        
-        
+        self.delays = delays
+    
     def connect(self, projection):
         raise NotImplementedError()
     
     def progressbar(self, N):
         self.prog = utility.ProgressBar(0, N, 20, mode='fixed')        
     
-    def progression(self, count):
+    def progression(self, count, mpi_rank):
         self.prog.update_amount(count)
-        if self.verbose and self._simulator.state.mpi_rank == 0:           
+        if self.verbose and mpi_rank == 0:           
             print self.prog, "\r",
             sys.stdout.flush()
     
@@ -290,11 +282,12 @@ class ProbabilisticConnector(Connector):
             raise Exception("Use of NativeRNG not implemented.")
         else:
             self.rng = projection.rng
-        
+        if self.delays is None:
+            self.delays = projection._simulator.state.min_delay
         self.local             = projection.post._mask_local
         self.N                 = projection.post.size
         self.weights_generator = WeightGenerator(weights, self.local, projection, safe)
-        self.delays_generator  = DelayGenerator(delays, self.local, kernel=projection._simulator.state, safe=safe)
+        self.delays_generator  = DelayGenerator(self.delays, self.local, kernel=projection._simulator.state, safe=safe)
         self.probas_generator  = ProbaGenerator(RandomDistribution('uniform', (0,1), rng=self.rng), self.local)
         self._distance_matrix  = None
         self.projection        = projection
@@ -384,7 +377,7 @@ class AllToAllConnector(Connector):
         self.progressbar(len(projection.pre))
         for count, src in enumerate(projection.pre.all()):
             connector._probabilistic_connect(src, 1)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
             
     
 
@@ -427,7 +420,7 @@ class FixedProbabilityConnector(Connector):
         self.progressbar(len(projection.pre))
         for count, src in enumerate(projection.pre.all()):
             connector._probabilistic_connect(src, self.p_connect)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
             
 
 class DistanceDependentProbabilityConnector(Connector):
@@ -478,7 +471,7 @@ class DistanceDependentProbabilityConnector(Connector):
             if proba.dtype == 'bool':
                 proba = proba.astype(float)
             connector._probabilistic_connect(src, proba, self.n_connections)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
     
 
 class FromListConnector(Connector):
@@ -499,7 +492,7 @@ class FromListConnector(Connector):
                        the index of the postsynaptic neuron.
         """
         # needs extending for dynamic synapses.
-        Connector.__init__(self, 0.0, self._simulator.state.min_delay, safe=safe, verbose=verbose)
+        Connector.__init__(self, 0.0, None, safe=safe, verbose=verbose)
         self.conn_list  = numpy.array(conn_list)               
         
     def connect(self, projection):
@@ -530,7 +523,7 @@ class FromListConnector(Connector):
             #idx     = eval(tests)
             #projection._divergent_connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
             projection._divergent_connect(src, tgts.tolist(), weights, delays)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
             count += 1
 
 
@@ -551,7 +544,7 @@ class FromFileConnector(FromListConnector):
                          rank. This speeds up loading connections for
                          distributed simulations.
         """
-        Connector.__init__(self, 0.0, self._simulator.state.min_delay, safe=safe, verbose=verbose)
+        Connector.__init__(self, 0.0, None, safe=safe, verbose=verbose)
         
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='r')        
@@ -612,7 +605,9 @@ class FixedNumberPostConnector(Connector):
             raise Exception("n must be an integer or a RandomDistribution object")
         
     def connect(self, projection):
-        """Connect-up a Projection."""        
+        """Connect-up a Projection."""
+        if self.delays is None:
+            self.delays = projection._simulator.state.min_delay
         local             = numpy.ones(len(projection.post), bool)
         weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
         delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)
@@ -650,7 +645,7 @@ class FixedNumberPostConnector(Connector):
             if len(targets) > 0:
                 projection._divergent_connect(src, targets.tolist(), weights, delays)
             
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
 
 
 class FixedNumberPreConnector(Connector):
@@ -699,6 +694,8 @@ class FixedNumberPreConnector(Connector):
 
     def connect(self, projection):
         """Connect-up a Projection."""
+        if self.delays is None:
+            self.delays = projection._simulator.state.min_delay
         local             = numpy.ones(len(projection.pre), bool)
         weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
         delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)
@@ -735,7 +732,7 @@ class FixedNumberPreConnector(Connector):
             for src, w, d in zip(sources, weights, delays):
                 projection._divergent_connect(src, tgt, w, d)
             
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
             
 
 class OneToOneConnector(Connector):
@@ -761,7 +758,9 @@ class OneToOneConnector(Connector):
         self.safe  = safe
     
     def connect(self, projection):
-        """Connect-up a Projection."""        
+        """Connect-up a Projection."""
+        if self.delays is None:
+            self.delays = projection._simulator.state.min_delay
         if projection.pre.size == projection.post.size:
             N                 = projection.post.size
             local             = projection.post._mask_local
@@ -779,7 +778,7 @@ class OneToOneConnector(Connector):
             for tgt, src, w, d in zip(projection.post.local_cells, sources, weights, delays):
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
                 projection._divergent_connect(src, [tgt], [float(w)], [float(d)])
-                self.progression(count)
+                self.progression(count, projection._simulator.state.mpi_rank)
                 count += 1
         else:
             raise errors.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
@@ -865,6 +864,8 @@ class SmallWorldConnector(Connector):
     
     def connect(self, projection):
         """Connect-up a Projection."""
+        if self.delays is None:
+            self.delays = projection._simulator.state.min_delay
         local                  = numpy.ones(len(projection.post), bool)
         self.N                 = projection.post.size        
         if isinstance(projection.rng, random.NativeRNG):
@@ -884,7 +885,7 @@ class SmallWorldConnector(Connector):
             self.distance_matrix.set_source(src.position)
             proba = proba_generator.get(self.N, self.distance_matrix).astype(float)
             self._smallworld_connect(src, proba, self.n_connections)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
 
 
 class CSAConnector(Connector):
@@ -894,7 +895,6 @@ class CSAConnector(Connector):
         def __init__ (self, cset, weights=None, delays=None, safe=True, verbose=False):
             """
             """
-            min_delay = self._simulator.state.min_delay
             Connector.__init__(self, None, None, safe=safe, verbose=verbose)
             self.cset = cset
             if cset.arity == 0:
@@ -904,8 +904,6 @@ class CSAConnector(Connector):
                 if weights is None:
                     self.weights = DEFAULT_WEIGHT
                 self.delays = delays
-                if delays is None:
-                    self.delays = self._simulator.state.min_delay
             else:
                 assert cset.arity == 2, 'must specify mask or connection-set with arity 2'
                 assert weights is None and delays is None, \
@@ -925,6 +923,8 @@ class CSAConnector(Connector):
 
     def connect(self, projection):
         """Connect-up a Projection."""
+        if self.delays is None:
+            self.delays = projection._simulator.state.min_delay
         i0 = projection.pre.first_id
         size1 = projection.pre.last_id - i0
         j0 = projection.post.first_id

@@ -38,7 +38,7 @@ def test_run():
                
 def test_reset():
     simulator = MockSimulator()
-    reset = common.control.build_reset(simulator)
+    reset = common.build_reset(simulator)
     reset()
     assert simulator.reset_called
     
@@ -50,36 +50,36 @@ def test_initialize():
 
 def test_current_time():
     simulator = MockSimulator()
-    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.control.build_state_queries(simulator)
+    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.build_state_queries(simulator)
     get_current_time()
     assert_equal(simulator.state.accesses, ['t'])
     
 def test_time_step():
     simulator = MockSimulator()
-    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.control.build_state_queries(simulator)
+    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.build_state_queries(simulator)
     get_time_step()
     assert_equal(simulator.state.accesses, ['dt'])
     
 def test_min_delay():
     simulator = MockSimulator()
-    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.control.build_state_queries(simulator)
+    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.build_state_queries(simulator)
     get_min_delay()
     assert_equal(simulator.state.accesses, ['min_delay'])
 
 def test_max_delay():
     simulator = MockSimulator()
-    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.control.build_state_queries(simulator)
+    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.build_state_queries(simulator)
     get_max_delay()
     assert_equal(simulator.state.accesses, ['max_delay'])
     
 def test_num_processes():
     simulator = MockSimulator()
-    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.control.build_state_queries(simulator)
+    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.build_state_queries(simulator)
     num_processes()
     assert_equal(simulator.state.accesses, ['num_processes'])
     
 def test_rank():
     simulator = MockSimulator()
-    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.control.build_state_queries(simulator)
+    get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank = common.build_state_queries(simulator)
     rank()
     assert_equal(simulator.state.accesses, ['mpi_rank'])
