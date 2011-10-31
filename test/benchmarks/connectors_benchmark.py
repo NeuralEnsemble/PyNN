@@ -1,12 +1,13 @@
 from pylab import *
 from pyNN.utility import get_script_args, Timer
-from pyNN.common import rank
-from pyNN.space import *
-from pyNN.recording import files
 import os
 
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
+
+from pyNN.recording import files
+from pyNN.space import *
+
 timer = Timer()
 def draw_rf(cell, positions, connections, color='k'):
     idx     = numpy.where(connections[:,1] == cell)[0]
@@ -110,6 +111,7 @@ def test(cases=[2, 7]):
             print "Saving Positions...."
             x.save_positions('Results/positions.dat')          
         end()
+        
         if node_id == 0 and render and to_file:
             figure()
             print "Generating and saving %s" %fig_name

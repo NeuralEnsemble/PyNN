@@ -30,9 +30,11 @@ class FastProbabilisticConnector(Connector):
             self.rng = projection.rng
         if self.delays is None:
             self.delays = projection._simulator.state.min_delay
-        self.N                 = projection.pre.size   
-        idx                    = numpy.arange(self.N*rank(), self.N*(rank()+1))        
-        self.M                 = num_processes()*self.N
+        self.N                 = projection.pre.size
+        mpi_rank               = projection._simulator.state.mpi_rank
+        num_processes          = projection._simulator.state.num_processes
+        idx                    = numpy.arange(self.N*mpi_rank, self.N*(mpi_rank+1))        
+        self.M                 = num_processes*self.N
         self.local             = numpy.ones(self.N, bool)        
         self.local_long        = numpy.zeros(self.M, bool)
         self.local_long[idx]   = True
@@ -118,7 +120,7 @@ class FastFixedProbabilityConnector(FixedProbabilityConnector):
         self.progressbar(len(projection.post.local_cells))
         for count, tgt in enumerate(projection.post.local_cells):
             connector._probabilistic_connect(tgt, self.p_connect)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
             
 
 class FastDistanceDependentProbabilityConnector(DistanceDependentProbabilityConnector):
