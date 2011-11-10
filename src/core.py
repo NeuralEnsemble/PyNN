@@ -282,6 +282,7 @@ class deprecated(object):
     Decorator to mark functions/methods as deprecated. Emits a warning when
     function is called and suggests a replacement.
     """
+    # can we also control what is returned by dir(obj), so that deprecated methods do not appear?
     
     def __init__(self, replacement=''):
         self.replacement = replacement
@@ -294,7 +295,7 @@ class deprecated(object):
             warnings.warn(msg, category=DeprecationWarning)
             return func(*args, **kwargs)
         new_func.__name__ = func.__name__
-        new_func.__doc__ = func.__doc__
+        new_func.__doc__ = func.__doc__ # should modify docstring to explain the deprecation
         new_func.__dict__.update(func.__dict__)
         return new_func
 

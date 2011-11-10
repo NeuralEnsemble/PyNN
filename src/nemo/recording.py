@@ -74,6 +74,3 @@ class Recorder(recording.Recorder):
         for id in filtered_ids:
             N[id] = len(self.data[id])
         return N
-        
-
-simulator.Recorder = Recorder

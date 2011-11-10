@@ -16,6 +16,8 @@ import logging
 import os.path
 import numpy
 import os
+from collections import defaultdict
+from pyNN import errors
 from pyNN.recording import files
 try:
     from mpi4py import MPI
@@ -34,6 +36,13 @@ numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support diffe
 if MPI:
     mpi_comm = MPI.COMM_WORLD
 MPI_ROOT = 0
+
+UNITS_MAP = {
+    'spikes': 'ms',
+    'v': 'mV',
+    'gsyn_exc': 'uS',
+    'gsyn_inh': 'uS'
+}
 
 def rename_existing(filename):
     if os.path.exists(filename):
@@ -78,96 +87,82 @@ def mpi_sum(x):
         return x
 
 
+def normalize_variables_arg(variables):
+    """If variables is a single string, encapsulate it in a list."""
+    if isinstance(variables, basestring):
+        return [variables]
+    else:
+        return variables
+
+
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
     
-
-    formats = {'spikes': 'id t',
-               'v': 'id t v',
-               'gsyn': 'id t ge gi',
-               'generic': 'id t variable'}
-    
-    def __init__(self, variable, population=None, file=None):
+    def __init__(self, population, file=None):
         """
         Create a recorder.
         
-        `variable` -- "spikes", "v" or "gsyn"
         `population` -- the Population instance which is being recorded by the
-                        recorder (optional)
+                        recorder
         `file` -- one of:
             - a file-name,
             - `None` (write to a temporary file)
             - `False` (write to memory).
         """
-        self.variable = variable
         self.file = file
         self.population = population # needed for writing header information
-        if population:
-            assert population.can_record(variable)
-        self.recorded = set([])
+        self.recorded = defaultdict(set)
         
-    def record(self, ids):
-        """Add the cells in `ids` to the set of recorded cells."""
+    def record(self, variables, ids):
+        """
+        Add the cells in `ids` to the sets of recorded cells for the given variables.
+        """
         logger.debug('Recorder.record(<%d cells>)' % len(ids))
         ids = set([id for id in ids if id.local])
-        new_ids = ids.difference(self.recorded)
-        self.recorded = self.recorded.union(ids)
-        logger.debug('Recorder.recorded contains %d ids' % len(self.recorded))
-        self._record(new_ids)
+        for variable in normalize_variables_arg(variables):
+            if not self.population.can_record(variable):
+                raise errors.RecordingError(variable, self.population.celltype)     
+            new_ids = ids.difference(self.recorded[variable])
+            self.recorded[variable] = self.recorded[variable].union(ids)
+            self._record(variable, new_ids)
     
     def reset(self):
         """Reset the list of things to be recorded."""
         self._reset()
-        self.recorded = set([])
+        self.recorded = defaultdict(set)
     
-    def filter_recorded(self, filter):
-        if filter is not None:
-            return set(filter).intersection(self.recorded)
+    def filter_recorded(self, variable, filter_ids):
+        if filter_ids is not None:
+            return set(filter_ids).intersection(self.recorded[variable])
         else:
-            return self.recorded
+            return self.recorded[variable]
     
-    def get(self, gather=False, compatible_output=True, filter=None):
-        """Return the recorded data as a Numpy array."""
-        data_array = self._get(gather, compatible_output, filter)
-        if self.population is not None:
-            try:
-                data_array[:,0] = self.population.id_to_index(data_array[:, 0]) # id is always first column            
-            except Exception:
-                pass
-        self._data_size = data_array.shape[0]
-        return data_array
+    def get(self, variables, gather=False, filter_ids=None):
+        """Return the recorded data as a Neo `Block`."""
+        variables = normalize_variables_arg(variables)
+        data = self._get(variables, gather, filter_ids)
+        data.name = self.population.label
+        data.description = self.population.describe()
+        data.rec_datetime = data.segments[0].rec_datetime
+        data.annotate(**self.metadata)
+        return data
     
-    def write(self, file=None, gather=False, compatible_output=True, filter=None):
+    def write(self, variables, file=None, gather=False, filter_ids=None):
         """Write recorded data to file."""
         file = file or self.file
-        if isinstance(file, basestring):
-            filename = file
-            #rename_existing(filename)
-            if gather==False and self._simulator.state.num_processes > 1:
-                filename += '.%d' % self._simulator.state.mpi_rank
-        else:
-            filename = file.name
-        logger.debug("Recorder is writing '%s' to file '%s' with gather=%s and compatible_output=%s" % (self.variable,
-                                                                                                        filename,
-                                                                                                        gather,
-                                                                                                        compatible_output))
-        data = self.get(gather, compatible_output, filter)
-        metadata = self.metadata
-        logger.debug("data has size %s" % str(data.size))
+        if gather==False and self._simulator.state.num_processes > 1:
+            file.name += '.%d' % self._simulator.state.mpi_rank
+        logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
+                                               variables, file.name, gather))
+        data = self.get(variables, gather, filter_ids)
         if self._simulator.state.mpi_rank == 0 or gather == False:
-            if compatible_output:
-                data = self._make_compatible(data)
             # Open the output file, if necessary and write the data
             logger.debug("Writing data to file %s" % file)
-            if isinstance(file, basestring):
-                file = files.StandardTextFile(filename, mode='w')
-            file.write(data, metadata)
-            file.close()
+            file.write(data)
     
     @property
     def metadata(self):
         metadata = {}
-        metadata['variable'] = self.variable
         if self.population is not None:
             metadata.update({
                 'size': self.population.size,
@@ -178,54 +173,15 @@ class Recorder(object):
                 'label': self.population.label,
             })
         metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
-        if not hasattr(self, '_data_size'):
-            self.get()
-        metadata['n'] = self._data_size
         return metadata
     
-    def _make_compatible(self, data_source):
-        """
-        Rewrite simulation data in a standard format:
-            spiketime (in ms) cell_id-min(cell_id)
-        """
-        assert isinstance(data_source, numpy.ndarray)
-        logger.debug("Converting data from memory into compatible format")
-        N = len(data_source)
-        
-        logger.debug("Number of data elements = %d" % N)
-        if N > 0:
-            # Shuffle columns if necessary
-            input_format = self.formats.get(self.variable,
-                                            self.formats["generic"]).split()
-            time_column = input_format.index('t')
-            id_column = input_format.index('id')
-            
-            if self.variable == 'gsyn':
-                ge_column = input_format.index('ge')
-                gi_column = input_format.index('gi')
-                column_map = [ge_column, gi_column, id_column]
-            elif self.variable == 'v': # voltage files
-                v_column = input_format.index('v')
-                column_map = [v_column, id_column]
-            elif self.variable == 'spikes': # spike files
-                column_map = [time_column, id_column]
-            else:
-                variable_column = input_format.index('variable')
-                column_map = [variable_column, id_column]
-            
-            data_array = data_source[:, column_map]
-        else:
-            logger.warning("%s is empty or does not exist" % data_source)
-            data_array = numpy.array([])
-        return data_array
-    
-    def count(self, gather=True, filter=None):
+    def count(self, variable, gather=True, filter_ids=None):
         """
         Return the number of data points for each cell, as a dict. This is mainly
         useful for spike counts or for variable-time-step integration methods.
         """
-        if self.variable == 'spikes':
-            N = self._local_count(filter)
+        if variable == 'spikes':
+            N = self._local_count(variable, filter_ids)
         else:
             raise Exception("Only implemented for spikes.")
         if gather and self._simulator.state.num_processes > 1:

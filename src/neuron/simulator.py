@@ -12,7 +12,6 @@ Functions:
 
 Classes:
     ID
-    Recorder
     Connection
     
 Attributes:
@@ -151,6 +150,7 @@ class _State(object):
         h('objref plastic_connections')
         self.clear()
         self.default_maxstep=10.0
+        self.t_start = 0.0
     
     t = h_property('t')
     def __get_dt(self):
@@ -175,6 +175,7 @@ def reset():
     state.running = False
     state.t = 0
     state.tstop = 0
+    state.t_start = 0
     h.finitialize()
 
 def run(simtime):
@@ -189,6 +190,7 @@ def run(simtime):
         if state.num_processes > 1:
             assert local_minimum_delay >= state.min_delay, \
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, state.min_delay)
+    state.t_start = state.t
     state.tstop += simtime
     logger.info("Running the simulation for %g ms" % simtime)
     state.parallel_context.psolve(state.tstop)

@@ -119,6 +119,3 @@ class Recorder(recording.Recorder):
         for id in filtered_ids:
             N[id + padding] = len(self._devices[0].spiketimes[id])
         return N
-        
-
-simulator.Recorder = Recorder
