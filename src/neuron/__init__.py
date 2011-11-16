@@ -353,7 +353,7 @@ class Projection(common.Projection):
                 nc.weight[0] = weight
                 nc.delay  = delay
                 # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
-                self.connections.append(Connection(source, target, nc))
+                self.connections.append(simulator.Connection(source, target, nc))
 
     
     # --- Methods for setting connection parameters ----------------------------
