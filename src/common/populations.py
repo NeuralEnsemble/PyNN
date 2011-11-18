@@ -516,7 +516,7 @@ class BasePopulation(object):
 
     @deprecated("get_data('v')")
     def get_v(self, gather=True, compatible_output=True):
-        return self.recorders['v'].get(gather, compatible_output, self.record_filter)
+        return self.get_data('v', gather)
 
     @deprecated("write_data(file, ['gsyn_exc', 'gsyn_inh'])")
     def print_gsyn(self, file, gather=True, compatible_output=True):
@@ -524,7 +524,7 @@ class BasePopulation(object):
 
     @deprecated("get_data(['gsyn_exc', 'gsyn_inh'])")
     def get_gsyn(self, gather=True, compatible_output=True):
-        return self.get_data(['gsyn_exc', 'gsyn_inh']), gather
+        return self.get_data(['gsyn_exc', 'gsyn_inh'], gather)
 
     def get_spike_counts(self, gather=True):
         """

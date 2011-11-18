@@ -148,12 +148,12 @@ class Recorder(object):
         return data
     
     def write(self, variables, file=None, gather=False, filter_ids=None):
-        """Write recorded data to file."""
-        file = file or self.file
+        """Write recorded data to a Neo IO"""
+        io = file or self.file
         if gather==False and self._simulator.state.num_processes > 1:
-            file.name += '.%d' % self._simulator.state.mpi_rank
+            io.filename += '.%d' % self._simulator.state.mpi_rank
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
-                                               variables, file.name, gather))
+                                               variables, io.filename, gather))
         data = self.get(variables, gather, filter_ids)
         if self._simulator.state.mpi_rank == 0 or gather == False:
             # Open the output file, if necessary and write the data
@@ -162,16 +162,14 @@ class Recorder(object):
     
     @property
     def metadata(self):
-        metadata = {}
-        if self.population is not None:
-            metadata.update({
+        metadata = {
                 'size': self.population.size,
                 'first_index': 0,
                 'last_index': len(self.population),
                 'first_id': self.population.first_id,
                 'last_id': self.population.last_id,
                 'label': self.population.label,
-            })
+            }
         metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
         return metadata
     

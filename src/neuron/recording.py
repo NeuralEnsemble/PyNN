@@ -87,7 +87,7 @@ class Recorder(recording.Recorder):
                 id._cell.record_gsyn(syn_name, active=False)
     
     def _native_record(self, variable, id):
-        match = recordable_pattern.match(self.variable)
+        match = recordable_pattern.match(variable)
         if match:
             parts = match.groupdict()
             if parts['section']:
@@ -125,6 +125,7 @@ class Recorder(recording.Recorder):
             variables_to_include = variables_to_include.intersection(set(variables))
         def trim_spikes(spikes):
             return spikes[spikes<=simulator.state.t+1e-9]
+        #import pdb; pdb.set_trace()
         for variable in variables_to_include:
             if variable == 'spikes':
                 segment.spiketrains = [

@@ -1,19 +1,15 @@
-from pyNN import recording
+from pyNN import recording, errors
 from nose.tools import assert_equal, assert_raises
 from mock import Mock
 import numpy
 import os
+from collections import defaultdict
 from pyNN.utility import assert_arrays_equal
 
 MPI = recording.MPI
 if MPI:
     mpi_comm = recording.mpi_comm
 
-def setup():
-    recording.Recorder._simulator = MockSimulator(mpi_rank=0)
-    
-def teardown():
-    del recording.Recorder._simulator
 
 #def test_rename_existing():
     
@@ -43,27 +39,40 @@ class MockPopulation(object):
     first_id = 2454
     last_id = first_id + size
     label = "mock population"
+    celltype = Mock()
     def __len__(self):
         return self.size
     def can_record(self, variable):
-        if variable in ["spikes", "v", "gsyn"]:
+        if variable in ["spikes", "v", "gsyn_exc", "gsyn_inh", "spam"]:
             return True
         else:
             return False
     def id_to_index(self, id):
         return id
+    def describe(self):
+        return "mock population"
 
+class MockNeoBlock(object):
+    def __init__(self):
+        self.name = None
+        self.description = None
+        self.segments = [Mock()]
+    def annotate(self, **annotations):
+        pass
 
 def test_Recorder_create():
-    r = recording.Recorder('spikes')
-    assert_equal(r.variable, 'spikes')
-    assert_equal(r.population, None)
+    p = MockPopulation()
+    r = recording.Recorder(p)
+    assert_equal(r.population, p)
     assert_equal(r.file, None)
-    assert_equal(r.recorded, set([]))
+    assert_equal(r.recorded, defaultdict(set))
     
 def test_Recorder_invalid_variable():
-    assert_raises(AssertionError,
-                  recording.Recorder, 'foo', population=MockPopulation())
+    p = MockPopulation()
+    r = recording.Recorder(p)
+    all_ids = (MockID(0, True), MockID(1, False), MockID(2, True), MockID(3, True), MockID(4, False))
+    assert_raises(errors.RecordingError,
+                  r.record, 'foo', all_ids)
 
 class MockID(object):
     def __init__(self, id, local):
@@ -71,45 +80,48 @@ class MockID(object):
         self.local = local
 
 def test_record():
-    r = recording.Recorder('spikes')
+    p = MockPopulation()
+    r = recording.Recorder(p)
     r._record = Mock()
-    assert_equal(r.recorded, set([]))
+    assert_equal(r.recorded, defaultdict(set))
     
     all_ids = (MockID(0, True), MockID(1, False), MockID(2, True), MockID(3, True), MockID(4, False))
     first_ids = all_ids[0:3]
-    r.record(first_ids)
-    assert_equal(r.recorded, set(id for id in first_ids if id.local))
-    assert_equal(len(r.recorded), 2)
-    r._record.assert_called_with(r.recorded)
+    r.record('spam', first_ids)
+    assert_equal(r.recorded['spam'], set(id for id in first_ids if id.local))
+    assert_equal(len(r.recorded['spam']), 2)
+    r._record.assert_called_with('spam', r.recorded['spam'])
     
     more_ids = all_ids[2:5]
-    r.record(more_ids)
-    assert_equal(r.recorded, set(id for id in all_ids if id.local))
-    assert_equal(len(r.recorded), 3)
-    r._record.assert_called_with(set(all_ids[3:4]))
+    r.record('spam', more_ids)
+    assert_equal(r.recorded['spam'], set(id for id in all_ids if id.local))
+    assert_equal(len(r.recorded['spam']), 3)
+    r._record.assert_called_with('spam', set(all_ids[3:4]))
 
 def test_filter_recorded():
-    r = recording.Recorder('spikes')
+    p = MockPopulation()
+    r = recording.Recorder(p)
     r._record = Mock()
     all_ids = (MockID(0, True), MockID(1, False), MockID(2, True), MockID(3, True), MockID(4, False))
-    r.record(all_ids)
-    assert_equal(r.recorded, set(id for id in all_ids if id.local))
+    r.record(['spikes', 'spam'], all_ids)
+    assert_equal(r.recorded['spikes'], set(id for id in all_ids if id.local))
+    assert_equal(r.recorded['spam'], set(id for id in all_ids if id.local))
 
     filter = all_ids[::2]
-    filtered_ids = r.filter_recorded(filter)
+    filtered_ids = r.filter_recorded('spam', filter)
     assert_equal(filtered_ids, set(id for id in filter if id.local))
     
-    assert_equal(r.filter_recorded(None), r.recorded)
+    assert_equal(r.filter_recorded('spikes', None), r.recorded['spikes'])
 
-def test_get__zero_offset():
-    r = recording.Recorder('spikes')
-    fake_data = numpy.array([
-                    (3, 12.3),
-                    (4, 14.5),
-                    (7, 19.8)
-                ])
+def test_get():
+    p = MockPopulation()
+    r = recording.Recorder(p)
+    r._simulator = MockSimulator(mpi_rank=0)
+    fake_data = MockNeoBlock()
     r._get = Mock(return_value=fake_data)
-    assert_arrays_equal(r.get(), fake_data)
+    r.get('spikes')
+    assert_equal(fake_data.name, p.label)
+    assert_equal(fake_data.description, p.describe())
 
 
 class MockState(object):
@@ -120,49 +132,32 @@ class MockSimulator(object):
     def __init__(self, mpi_rank):
         self.state = MockState(mpi_rank)
 
+class MockNeoIO(object):
+    filename = "fake_file"
+    write = Mock()
+
 def test_write__with_filename__compatible_output__gather__onroot():
     orig_metadata = recording.Recorder.metadata
     recording.Recorder.metadata = {'a': 2, 'b':3}
-    r = recording.Recorder('spikes')
-    fake_data = numpy.array([
-                    (3, 12.3),
-                    (4, 14.5),
-                    (7, 19.8)
-                ])
+    p = MockPopulation()
+    r = recording.Recorder(p)
+    r._simulator = MockSimulator(mpi_rank=0)
+    fake_data = MockNeoBlock()
     r._get = Mock(return_value=fake_data)
-    r._make_compatible = Mock(return_value=fake_data)
-    r.write(file="tmp.spikes", gather=True, compatible_output=True)
-
-    os.remove("tmp.spikes")
+    output_io = MockNeoIO()
+    r.write("spikes", file=output_io, gather=True)
     recording.Recorder.metadata = orig_metadata
+    output_io.write.assert_called_with(fake_data)
 
 def test_metadata_property():
-    r = recording.Recorder('spikes', population=None)
-    r._get = Mock(return_value=numpy.random.uniform(size=(6,2)))
+    p = MockPopulation()
+    r = recording.Recorder(population=p)
+    r._simulator = MockSimulator(mpi_rank=0)
     assert_equal(r.metadata,
-                 {'variable': 'spikes', 'dt': 0.123, 'n': 6})
-    
-    r = recording.Recorder('v', population=MockPopulation())
-    r._get = Mock(return_value=numpy.random.uniform(size=(6,2)))
-    assert_equal(r.metadata,
-                 {'first_id': 2454, 'label': 'mock population', 'n': 6,
-                  'variable': 'v', 'dt': 0.123, 'last_id': 2465, 'size': 11,
+                 {'first_id': 2454, 'label': 'mock population',
+                  'dt': 0.123, 'last_id': 2465, 'size': 11,
                   'first_index': 0, 'last_index': 11})
-    
-def test__make_compatible_spikes():
-    r = recording.Recorder('spikes')
-    input_data = numpy.array([[0, 12.3], [1, 45.2], [0, 46.3],
-                              [4, 49.4], [0, 78.3]])
-    output_data = r._make_compatible(input_data) # time id
-    assert_arrays_equal(input_data[:,(1,0)], output_data)
 
-def test__make_compatible_v():
-    r = recording.Recorder('v')
-    input_data = numpy.array([[0, 0.0, -65.0], [3, 0.0, -65.0],
-                              [0, 0.1, -64.3], [3, 0.1, -65.1],
-                              [0, 0.2, -63.7], [3, 0.2, -65.5]])
-    output_data = r._make_compatible(input_data) # voltage id
-    assert_arrays_equal(input_data[:,(2,0)], output_data) 
 
 #def test_count__spikes_gather():
 

@@ -319,140 +319,106 @@ def test_can_record():
     assert p.can_record('v')
     assert not p.can_record('foo')
     
-def test__record():
+def test_record_with_single_variable():
     p = MockPopulation()
-    p.recorders = {'v': Mock()}
-    p._record('v')
-    meth, args, kwargs = p.recorders['v'].method_calls[0]
-    id_arr, = args
+    p.recorder = Mock()
+    p.record('v')
+    meth, args, kwargs = p.recorder.method_calls[0]
+    variables, id_arr = args
     assert_equal(meth, 'record')
+    assert_equal(variables, 'v')
     assert_arrays_equal(id_arr, p.all_cells)
 
-def test__record_invalid_variable():
+def test_record_with_multiple_variables():
     p = MockPopulation()
-    assert_raises(errors.RecordingError, p._record, 'foo')
-
-#def test__record_int():
-    #p = MockPopulation()
-    #p.recorders = {'spikes': Mock()}
-    #p._record('spikes', 5)
-    #meth, args, kwargs = p.recorders['spikes'].method_calls[0]
-    #id_arr, = args
-    #assert_equal(meth, 'record')
-    #assert_equal(id_arr.size, 5)
-
-#def test__record_with_RNG():
-    #p = MockPopulation()
-    #p.recorders = {'v': Mock()}
-    #rng = Mock()
-    #rng.permutation = Mock(return_value=numpy.arange(p.size))
-    #p._record('v', 5, rng)
-    #meth, args, kwargs = p.recorders['v'].method_calls[0]
-    #id_arr, = args
-    #assert_equal(meth, 'record')
-    #assert_equal(id_arr.size, 5)
-    #rng.permutation.assert_called_with(p.all_cells)
-
-#def test__record_list():
-    #record_list = ['curly', 'larry', 'moe'] # should really check that record_list contains IDs
-    #p = MockPopulation()
-    #p.recorders = {'v': Mock()}
-    #p._record('v', record_list)
-    #meth, args, kwargs = p.recorders['v'].method_calls[0]
-    #id_list, = args
-    #assert_equal(meth, 'record')
-    #assert_equal(id_list, record_list)
-    
-def test_invalid_record_from():
-    p = MockPopulation()
-    assert_raises(Exception, p._record, 'v', 4.2)
-    
-def test_spike_recording():
-    p = MockPopulation()
-    p._record = Mock()
-    p.record("arg1")
-    p._record.assert_called_with('spikes', "arg1")
+    p.recorder = Mock()
+    p.record(['v', 'gsyn_exc', 'spikes'])
+    meth, args, kwargs = p.recorder.method_calls[0]
+    variables, id_arr = args
+    assert_equal(meth, 'record')
+    assert_equal(variables, ['v', 'gsyn_exc', 'spikes'])
+    assert_arrays_equal(id_arr, p.all_cells)
     
 def test_record_v():
     p = MockPopulation()
-    p._record = Mock()
+    p.record = Mock()
     p.record_v("arg1")
-    p._record.assert_called_with('v', "arg1")
+    p.record.assert_called_with('v', "arg1")
 
 def test_record_gsyn():
     p = MockPopulation()
-    p._record = Mock()
+    p.record = Mock()
     p.record_gsyn("arg1")
-    p._record.assert_called_with('gsyn', "arg1")
+    p.record.assert_called_with(['gsyn_exc', 'gsyn_inh'], "arg1")
 
 def test_printSpikes():
     p = MockPopulation()
-    p.recorders = {'spikes': Mock()}
-    p.record_filter = "arg4"
-    p.printSpikes("arg1", "arg2", "arg3")
-    meth, args, kwargs = p.recorders['spikes'].method_calls[0]
+    p.recorder = Mock()
+    p.record_filter = "filter"
+    p.printSpikes("file", "gather", "compatible_output")
+    meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'write')
-    assert_equal(args, ("arg1", "arg2", "arg3", "arg4"))
+    assert_equal(args, ("spikes", "file", "gather", "filter"))
     
 def test_getSpikes():
     p = MockPopulation()
-    p.recorders = {'spikes': Mock()}
-    p.record_filter = "arg3"
-    p.getSpikes("arg1", "arg2")
-    meth, args, kwargs = p.recorders['spikes'].method_calls[0]
+    p.recorder = Mock()
+    p.record_filter = "filter"
+    p.getSpikes("gather", "compatible_output")
+    meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'get')
-    assert_equal(args, ("arg1", "arg2", "arg3"))
+    assert_equal(args, ("spikes", "gather", "filter"))
 
 def test_print_v():
     p = MockPopulation()
-    p.recorders = {'v': Mock()}
-    p.record_filter = "arg4"
-    p.print_v("arg1", "arg2", "arg3")
-    meth, args, kwargs = p.recorders['v'].method_calls[0]
+    p.recorder = Mock()
+    p.record_filter = "filter"
+    p.print_v("file", "gather", "compatible_output")
+    meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'write')
-    assert_equal(args, ("arg1", "arg2", "arg3", "arg4"))
+    assert_equal(args, ("v", "file", "gather", "filter"))
     
 def test_get_v():
     p = MockPopulation()
-    p.recorders = {'v': Mock()}
-    p.record_filter = "arg3"
-    p.get_v("arg1", "arg2")
-    meth, args, kwargs = p.recorders['v'].method_calls[0]
+    p.recorder = Mock()
+    p.record_filter = "filter"
+    p.get_v("gather", "compatible_output")
+    meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'get')
-    assert_equal(args, ("arg1", "arg2", "arg3"))
+    assert_equal(args, ("v", "gather", "filter"))
     
 def test_print_gsyn():
     p = MockPopulation()
-    p.recorders = {'gsyn': Mock()}
-    p.record_filter = "arg4"
-    p.print_gsyn("arg1", "arg2", "arg3")
-    meth, args, kwargs = p.recorders['gsyn'].method_calls[0]
+    p.recorder = Mock()
+    p.record_filter = "filter"
+    p.print_gsyn("file", "gather", "compatible_output")
+    meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'write')
-    assert_equal(args, ("arg1", "arg2", "arg3", "arg4"))
+    assert_equal(args, (["gsyn_exc", "gsyn_inh"], "file", "gather", "filter"))
     
 def test_get_gsyn():
     p = MockPopulation()
-    p.recorders = {'gsyn': Mock()}
-    p.record_filter = "arg3"
-    p.get_gsyn("arg1", "arg2")
-    meth, args, kwargs = p.recorders['gsyn'].method_calls[0]
+    p.recorder = Mock()
+    p.record_filter = "filter"
+    p.get_gsyn("gather", "compatible_output")
+    meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'get')
-    assert_equal(args, ("arg1", "arg2", "arg3"))
+    assert_equal(args, (["gsyn_exc", "gsyn_inh"], "gather", "filter"))
     
 def test_get_spike_counts():
     p = MockPopulation()
-    p.recorders = {'spikes': Mock()}
-    p.get_spike_counts("arg1")
-    meth, args, kwargs = p.recorders['spikes'].method_calls[0]
+    p.recorder = Mock()
+    p.get_spike_counts("gather")
+    meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'count')
-    assert_equal(args, ("arg1", None))
+    assert_equal(args, ("spikes", "gather", None))
     
 def test_meanSpikeCount():
     orig_rank = MockPopulation._simulator.state.mpi_rank
     MockPopulation._simulator.state.mpi_rank = 0
     p = MockPopulation()
-    p.recorders = {'spikes': Mock()}
-    p.recorders['spikes'].count = Mock(return_value={0: 2, 1: 5})
+    p.recorder = Mock()
+    p.recorder.count = Mock(return_value={0: 2, 1: 5})
     assert_equal(p.meanSpikeCount(), 3.5)
     MockPopulation._simulator.state.mpi_rank = orig_rank
 
@@ -460,8 +426,8 @@ def test_meanSpikeCount_on_slave_node():
     orig_rank = MockPopulation._simulator.state.mpi_rank
     MockPopulation._simulator.state.mpi_rank = 1
     p = MockPopulation()
-    p.recorders = {'spikes': Mock()}
-    p.recorders['spikes'].count = Mock(return_value={0: 2, 1: 5})
+    p.recorder = Mock()
+    p.recorder.count = Mock(return_value={0: 2, 1: 5})
     assert p.meanSpikeCount() is numpy.NaN
     MockPopulation._simulator.state.mpi_rank = orig_rank
     

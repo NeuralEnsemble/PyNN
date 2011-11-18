@@ -4,9 +4,10 @@ from pyNN.common import populations
 from mock import Mock
 from nose.tools import assert_equal, assert_raises, assert_almost_equal
 import numpy
+from pyNN.utility import assert_arrays_equal
 
 class MockCellClass(object):
-    recordable = ['v']
+    recordable = ['v', 'spikes', 'gsyn_exc', 'gsyn_inh', 'spam']
     parameters = ['romans', 'judeans']
     injectable = True
     @classmethod
@@ -28,6 +29,7 @@ class MockCell(object):
         self.romans = romans
         self.judeans = judeans
         self.foo_init = -99.9
+        self.traces = {}
 
 class MockID(int):
     def __init__(self, n):
@@ -39,6 +41,9 @@ class MockID(int):
 class MockPopulation(populations.BasePopulation):
     celltype = MockCellClass()
     local_cells = [MockID(44), MockID(33)]
+    label = "mock population"
+    def describe(self):
+        return "mock population"
 
 # simulator
 def test_load_mechanisms():
@@ -237,21 +242,20 @@ class TestCurrentSources(object):
 class TestRecorder(object):
     
     def setup(self):
-        if "foo" not in recording.Recorder.formats:
-            recording.Recorder.formats['foo'] = "bar"
-        self.rv = recording.Recorder('v')
-        self.rg = recording.Recorder('gsyn')
-        self.rs = recording.Recorder('spikes')
-        self.rf = recording.Recorder('foo')
+        p = MockPopulation()
+        self.rv = recording.Recorder(p)
+        self.rg = recording.Recorder(p)
+        self.rs = recording.Recorder(p)
+        self.rf = recording.Recorder(p)
         self.cells = [MockID(22), MockID(29)]
     
     def teardown(self):
-        recording.Recorder.formats.pop("foo")
+        pass
     
     def test__record(self):
-        self.rv._record(self.cells)
-        self.rg._record(self.cells)
-        self.rs._record(self.cells)
+        self.rv._record('v', self.cells)
+        self.rg._record('gsyn_inh', self.cells)
+        self.rs._record('spikes', self.cells)
         for cell in self.cells:
             cell._cell.record.assert_called_with(1)
             cell._cell.record_v.assert_called_with(1)
@@ -259,23 +263,25 @@ class TestRecorder(object):
         assert_raises(Exception, self.rf._record, self.cells)
         
     def test__get_v(self):
-        self.rv.recorded = self.cells
+        self.rv.recorded['v'] = self.cells
         self.cells[0]._cell.vtrace = numpy.arange(-65.0, -64.0, 0.1)
         self.cells[1]._cell.vtrace = numpy.arange(-64.0, -65.0, -0.1)
         self.cells[0]._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
-        vdata = self.rv._get(gather=False, compatible_output=True, filter=None)
-        assert_equal(vdata.shape, (20,3))
+        vdata = self.rv._get(['v'], gather=False, filter_ids=None)
+        assert_equal(len(vdata.segments[0].analogsignals), 2)
+        assert_arrays_equal(numpy.array(vdata.segments[0].analogsignals[0]), self.cells[0]._cell.vtrace)
         
     def test__get_spikes(self):
-        self.rs.recorded = self.cells
+        self.rs.recorded['spikes'] = self.cells
         self.cells[0]._cell.spike_times = numpy.arange(101.0, 111.0)
         self.cells[1]._cell.spike_times = numpy.arange(13.0, 23.0)
         simulator.state.t = 111.0
-        sdata = self.rs._get(gather=False, compatible_output=True, filter=None)
-        assert_equal(sdata.shape, (20,2))
+        sdata = self.rs._get(['spikes'], gather=False, filter_ids=None)
+        assert_equal(len(sdata.segments[0].spiketrains), 2)
+        assert_arrays_equal(numpy.array(sdata.segments[0].spiketrains[0]), self.cells[0]._cell.spike_times)
         
     def test__get_gsyn(self):
-        self.rg.recorded = self.cells
+        self.rg.recorded['gsyn_inh'] = self.cells
         for cell in self.cells:
             cell._cell.gsyn_trace = {}
             cell._cell.gsyn_trace['excitatory'] = numpy.arange(0.01, 0.0199, 0.001)
@@ -283,12 +289,12 @@ class TestRecorder(object):
             cell._cell.gsyn_trace['excitatory_TM'] = numpy.arange(2.01, 2.0199, 0.001)
             cell._cell.gsyn_trace['inhibitory_TM'] = numpy.arange(4.01, 4.0199, 0.001)
             cell._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
-        gdata = self.rg._get(gather=False, compatible_output=True, filter=None)
+        gdata = self.rg._get(['gsyn_inh'], gather=False, filter_ids=None)
         assert_equal(gdata.shape, (20,4))
     
     def test__local_count(self):
-        self.rs.recorded = self.cells
+        self.rs.recorded['spikes'] = self.cells
         self.cells[0]._cell.spike_times = h.Vector(numpy.arange(101.0, 111.0))
         self.cells[1]._cell.spike_times = h.Vector(numpy.arange(13.0, 33.0))
-        assert_equal(self.rs._local_count(filter=None), {22: 10, 29: 20})
+        assert_equal(self.rs._local_count('spikes', filter_ids=None), {22: 10, 29: 20})
     
