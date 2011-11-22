@@ -107,8 +107,9 @@ def end(compatible_output=True):
     global net
     net.to_nineml().write(output_filename)
     
-get_min_delay = common.get_min_delay
-num_processes = common.num_processes
+
+get_current_time, get_time_step, get_min_delay, get_max_delay, \
+            num_processes, rank = common.build_state_queries(simulator)
 
 def run(tstop):
     pass

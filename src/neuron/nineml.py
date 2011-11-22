@@ -112,22 +112,14 @@ def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): 
     neuron.load_mechanisms(NMODL_DIR)
 
 
-def nineml_cell_type(name, neuron_model, port_map={}, weight_variables={}, **synapse_models):
+def nineml_cell_type(name, neuron_model, synapse_models):
     """
     Return a new NineMLCellType subclass.
     """
-    return _build_nineml_celltype(name, (NineMLCellType,),
-                                  {'neuron_model': neuron_model,
-                                   'synapse_models': synapse_models,
-                                   'port_map': port_map,
-                                   'weight_variables': weight_variables,
-                                   'builder': _compile_nmodl})
-
-
-
-
-
-
+    return _mh_build_nineml_celltype(name, (NineMLCellType,),
+                                     {'neuron_model': neuron_model,
+                                      'synapse_models': synapse_models,
+                                      'builder': _compile_nmodl})
 
 def nineml_celltype_from_model(name, nineml_model, synapse_components):
     """

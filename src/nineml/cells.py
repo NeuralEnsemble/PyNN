@@ -217,15 +217,15 @@ class _mh_build_nineml_celltype(type):
         from nineml.abstraction_layer import flattening, writers, component_modifiers
 
         #Extract Parameters Back out from Dict:
-        nineml_model = dct['nineml_model']
+        combined_model = dct['nineml_model']
         synapse_components = dct['synapse_components']
 
         # Flatten the model:
-        assert isinstance(nineml_model, al.ComponentClass)
-        if nineml_model.is_flat():
-            flat_component = nineml_model
+        assert isinstance(combined_model, al.ComponentClass)
+        if combined_model.is_flat():
+            flat_component = combined_model
         else:
-            flat_component = flattening.flatten( nineml_model,name )
+            flat_component = flattening.flatten( combined_model,name )
         
         # Make the substitutions:
         flat_component.backsub_all()
