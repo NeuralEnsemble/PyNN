@@ -6,7 +6,7 @@ Connection method classes for nest
 
 $Id$
 """
-from pyNN import random, core
+from pyNN import random, core, errors
 from pyNN.connectors import Connector, AllToAllConnector, FixedProbabilityConnector, \
                             DistanceDependentProbabilityConnector, FixedNumberPreConnector, \
                             FixedNumberPostConnector, OneToOneConnector, SmallWorldConnector, \
@@ -108,7 +108,7 @@ class FastAllToAllConnector(AllToAllConnector):
         self.progressbar(len(projection.post.local_cells))
         for count, tgt in enumerate(projection.post.local_cells):
             connector._probabilistic_connect(tgt, 1)
-            self.progression(count)        
+            self.progression(count, projection._simulator.state.mpi_rank)
     
 
 class FastFixedProbabilityConnector(FixedProbabilityConnector):
@@ -138,7 +138,7 @@ class FastDistanceDependentProbabilityConnector(DistanceDependentProbabilityConn
             if proba.dtype == 'bool':
                 proba = proba.astype(float)           
             connector._probabilistic_connect(tgt, proba, self.n_connections)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
 
 
 
@@ -155,8 +155,44 @@ class FixedNumberPreConnector(FixedNumberPreConnector):
             else:
                 n = self.n
             connector._probabilistic_connect(tgt, 1, n)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
 
+
+class FastFromListConnector(FromListConnector):
+    
+    __doc__ = FromListConnector.__doc__
+    
+    def connect(self, projection):
+        """Connect-up a Projection."""
+        idx     = numpy.argsort(self.conn_list[:, 1])
+        self.targets    = numpy.unique(self.conn_list[:, 1]).astype(int)
+        self.candidates = projection.pre.all_cells
+        self.conn_list  = self.conn_list[idx]
+        self.progressbar(len(self.targets))        
+        count = 0
+        left  = numpy.searchsorted(self.conn_list[:, 1], self.targets, 'left')
+        right = numpy.searchsorted(self.conn_list[:, 1], self.targets, 'right')
+        for tgt, l, r in zip(self.targets, left, right):
+            sources = self.conn_list[l:r, 0].astype(int)
+            weights = self.conn_list[l:r, 2]
+            delays  = self.conn_list[l:r, 3]
+        
+            srcs     = projection.pre.all_cells[sources]
+            try:
+                srcs     = projection.pre.all_cells[sources]
+            except IndexError:
+                raise errors.ConnectionError("invalid sources index or indices")
+            try:
+                tgt    = projection.post.all_cells[tgt]
+            except IndexError:
+                raise errors.ConnectionError("invalid target index %d" %tgt)
+            ## We need to exclude the non local cells. Fastidious, need maybe
+            ## to use a convergent_connect method, instead of a divergent_connect one
+            #idx     = eval(tests)
+            #projection.connection_manager.connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
+            projection.connection_manager.convergent_connect(srcs.tolist(), tgt, weights, delays)
+            self.progression(count, projection._simulator.state.mpi_rank)
+            count += 1
 
 class FastSmallWorldConnector(SmallWorldConnector):
     
@@ -171,4 +207,4 @@ class FastSmallWorldConnector(SmallWorldConnector):
             connector.distance_matrix.set_source(tgt.position)
             proba  = proba_generator.get(connector.N, connector.distance_matrix).astype(float)
             connector._probabilistic_connect(tgt, proba, self.n_connections, self.rewiring)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)

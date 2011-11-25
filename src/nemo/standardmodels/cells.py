@@ -133,8 +133,35 @@ class IF_cond_exp_gsfa_grr(ModelNotAvailable):
 class IF_curr_alpha(ModelNotAvailable):
     pass
 
-class IF_curr_exp(ModelNotAvailable):
-    pass
+class IF_curr_exp(cells.IF_curr_exp):
+    """Leaky integrate and fire model with fixed threshold and
+    decaying-exponential post-synaptic current. (Separate synaptic currents for
+    excitatory and inhibitory synapses."""
+    translations = build_translations(
+        ('v_rest',     'v_rest'),
+        ('v_reset',    'v_reset'),
+        ('cm',         'cm'), 
+        ('tau_m',      'tau_m'),
+        ('tau_refrac', 't_refrac'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+        ('v_thresh',   'v_thresh'),
+        ('i_offset',   'i_offset'), 
+    )
+
+    indices = {
+            'v_rest' : 0,
+            'cm' : 1,
+            'tau_m' : 2,
+            't_refrac' : 3,
+            'tau_syn_E' : 4,
+            'tau_syn_I' : 5,
+            'i_offset' : 6,
+            'v_reset' : 7,
+            'v_thresh' : 8
+        }
+    initial_indices = {'v' : 0}
+
 
 class IF_cond_alpha(ModelNotAvailable):
     pass

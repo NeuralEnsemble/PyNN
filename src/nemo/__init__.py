@@ -119,7 +119,8 @@ class Population(common.Population, common.BasePopulation):
             for idx in self.all_cells:
                 player = SpikeSourcePoisson.spike_player(**params)
                 setattr(idx, 'player', player)
-                simulator.state.net.add_neuron(int(idx), 0., 0., -80., 0, 0., -80., 0.)
+                ntype = simulator.state.net.add_neuron_type('Input')
+                simulator.state.net.add_neuron(ntype, int(idx))
         elif isinstance(celltype, SpikeSourceArray):
             ### For the moment, we model spike_source_array and spike_source_poisson
             ### as hyperpolarized neurons that are forced to fire, but this could be
@@ -130,12 +131,29 @@ class Population(common.Population, common.BasePopulation):
             for idx in self.all_cells:
                 player = SpikeSourceArray.spike_player(**params)
                 setattr(idx, 'player', player)
-                simulator.state.net.add_neuron(int(idx), 0., 0., -80., 0., -0., -80, 0)
-        else:            
-            ## Currently, we only have the Izhikevitch model...
+                ntype = simulator.state.net.add_neuron_type('Input')
+                simulator.state.net.add_neuron(ntype, int(idx))
+        elif isinstance(celltype, cells.IF_curr_exp):
             init = celltype.default_initial_values
+            print params
             for idx in self.all_cells:
-                simulator.state.net.add_neuron(int(idx), params['a'], params['b'], params['c'], params['d'], init['u'], init['v'], 0.)
+                ntype = simulator.state.net.add_neuron_type('IF_curr_exp')
+                simulator.state.net.add_neuron(ntype, int(idx),
+                        params['v_rest'],
+                        params['cm'],
+                        params['tau_m'],
+                        params['t_refrac'],
+                        params['tau_syn_E'],
+                        params['tau_syn_I'],
+                        params['i_offset'],
+                        params['v_reset'],
+                        params['v_thresh'],
+                        init['v'], 0., 0., 1000.)
+        else:            
+            init = celltype.default_initial_values
+            ntype = simulator.state.net.add_neuron_type('Izhikevich')
+            for idx in self.all_cells:
+                simulator.state.net.add_neuron(ntype, int(idx), params['a'], params['b'], params['c'], params['d'], init['u'], init['v'], 0.)
        
         self._mask_local = numpy.ones((n,), bool) # all cells are local
         self.first_id    = self.all_cells[0]
