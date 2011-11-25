@@ -15,9 +15,13 @@ from pyNN.connectors import Connector, AllToAllConnector, FixedProbabilityConnec
 
 import numpy
 from pyNN.space import Space
-
-
-
+from pyNN.common.populations import Population
+try:
+    import csa
+    have_csa = True
+except ImportError:
+    have_csa = False
+import nest
 
 class FastProbabilisticConnector(Connector):
     
@@ -208,3 +212,43 @@ class FastSmallWorldConnector(SmallWorldConnector):
             proba  = proba_generator.get(connector.N, connector.distance_matrix).astype(float)
             connector._probabilistic_connect(tgt, proba, self.n_connections, self.rewiring)
             self.progression(count, projection._simulator.state.mpi_rank)
+
+
+class CSAConnector(CSAConnector):
+    
+    def connect(self, projection):
+        """Connect-up a Projection."""
+        if self.delays is None:
+            self.delays = projection._simulator.state.min_delay
+
+        def connect_csa(cset, pre, post, syn_type):
+            print "connecting using cset"
+            if isinstance(pre, Population) and isinstance(post, Population):
+                # contiguous IDs, so just pass first_id and size
+                nest.sli_func("Connect_cg_i_i_i_i_D_l",
+                              self.cset,
+                              pre.first_id, pre.size,
+                              post.first_id, post.size,
+                              {'weight': 0, 'delay': 1}, # ignored if arity==0
+                              syn_type)
+            else: # PopulationViews or Assemblies
+                # IDs may be non-contiguous, so need to pass entire arrays
+                nest.sli_func("Connect_cg_a_a_D_l",
+                              self.cset,
+                              pre.all_cells,
+                              post.all_cells,
+                              {'weight': 0, 'delay': 1}, # ignored if arity==0
+                              syn_type)
+        # TODO: fix weights units
+        if csa.arity(self.cset) == 2:
+            # Connection-set with arity 2
+            connect_csa(self.cset, projection.pre,
+                        projection.post, projection.synapse_model)
+        elif CSAConnector.isConstant(self.weights) \
+            and CSAConnector.isConstant(self.delays):
+            # Mask with constant weights and delays
+            assert csa.arity(self.cset) == 0
+            nest.SetDefaults(projection.synapse_model, {'weight': self.weights, 'delay': self.delays})
+            connect_csa(self.cset, projection.pre,
+                        projection.post, projection.synapse_model)
+        projection._sources = projection.pre.all_cells

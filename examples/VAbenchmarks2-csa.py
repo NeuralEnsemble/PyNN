@@ -125,12 +125,12 @@ all_cells = Population(n_exc+n_inh, celltype, cell_params, label="All_Cells")
 exc_cells = all_cells[:n_exc]
 inh_cells = all_cells[n_exc:]
 if benchmark == "COBA":
-    ext_stim = Population(20, SpikeSourcePoisson,{'rate' : rate, 'duration' : stim_dur},"expoisson")
+    ext_stim = Population(20, SpikeSourcePoisson, {'rate' : rate, 'duration' : stim_dur}, label="expoisson")
     rconn = 0.01
     ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
 
 print "%s Initialising membrane potential to random values..." % node_id
-rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safes)
+rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
 uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
 all_cells.initialize('v', uniformDistr)
 

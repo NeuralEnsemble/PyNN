@@ -897,7 +897,7 @@ class CSAConnector(Connector):
             """
             Connector.__init__(self, None, None, safe=safe, verbose=verbose)
             self.cset = cset
-            if cset.arity == 0:
+            if csa.arity(cset) == 0:
                 #assert weights is not None and delays is not None, \
                 #       'must specify weights and delays in addition to a CSA mask'
                 self.weights = weights
@@ -905,7 +905,7 @@ class CSAConnector(Connector):
                     self.weights = DEFAULT_WEIGHT
                 self.delays = delays
             else:
-                assert cset.arity == 2, 'must specify mask or connection-set with arity 2'
+                assert csa.arity(cset) == 2, 'must specify mask or connection-set with arity 2'
                 assert weights is None and delays is None, \
                        "weights or delays specified both in connection-set and as CSAConnector argument"
     else:
@@ -925,23 +925,18 @@ class CSAConnector(Connector):
         """Connect-up a Projection."""
         if self.delays is None:
             self.delays = projection._simulator.state.min_delay
-        i0 = projection.pre.first_id
-        size1 = projection.pre.last_id - i0
-        j0 = projection.post.first_id
-        targets = [j - j0 for j in projection.post]
-
-        # Cut out finite part and shift to global ids
-        c = csa.shift (i0, j0) * csa.cross ((0, size1), targets) * self.cset
+        # Cut out finite part
+        c = csa.cross((0, projection.pre.size-1), (0, projection.post.size-1)) * self.cset
         
-        if csa.arity (self.cset) == 2:
+        if csa.arity(self.cset) == 2:
             # Connection-set with arity 2
             for (i, j, weight, delay) in c:
-                projection._divergent_connect (i, [j], weight, delay)
+                projection._divergent_connect(projection.pre[i], [projection.post[j]], weight, delay)
         elif CSAConnector.isConstant (self.weights) \
              and CSAConnector.isConstant (self.delays):
             # Mask with constant weights and delays
             for (i, j) in c:
-                projection._divergent_connect (i, [j], self.weights, self.delays)
+                projection._divergent_connect (projection.pre[i], [projection.post[j]], self.weights, self.delays)
         else:
             # Mask with weights and/or delays iterable
             weights = self.weights
@@ -951,4 +946,4 @@ class CSAConnector(Connector):
             if CSAConnector.isConstant (delays):
                 delays = CSAConnector.constantIterator (delays)
             for (i, j), weight, delay in zip (c, weights, delays):
-                projection._divergent_connect (i, [j], weight, delay)
+                projection._divergent_connect (projection.pre[i], [projection.post[j]], weight, delay)
