@@ -135,7 +135,6 @@ class Population(common.Population, common.BasePopulation):
                 simulator.state.net.add_neuron(ntype, int(idx))
         elif isinstance(celltype, cells.IF_curr_exp):
             init = celltype.default_initial_values
-            print params
             for idx in self.all_cells:
                 ntype = simulator.state.net.add_neuron_type('IF_curr_exp')
                 simulator.state.net.add_neuron(ntype, int(idx),
@@ -280,7 +279,7 @@ class Projection(common.Projection):
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()    
         source   = int(source)        
-        synapses = simulator.state.net.add_synapse(source, targets, delays, weights, self.is_plastic)
+        synapses = simulator.state.net.add_synapse(source, targets, delays, weights, self._is_plastic)
         self._sources.append(source)
 
     def get(self, parameter_name, format, gather=True):
