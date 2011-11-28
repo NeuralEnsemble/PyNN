@@ -246,8 +246,8 @@ class Projection(common.Projection):
     def connections(self):
         if self._connections is None:
             self._connections = []
-            for source in numpy.unique(self.sources):
-                self._connections += list(simulator.state.net.get_synapses_from(source))
+            for source in numpy.unique(self._sources):
+                self._connections += list(simulator.state.sim.get_synapses_from(int(source)))
         return self._connections
 
     def _divergent_connect(self, source, targets, weights, delays):

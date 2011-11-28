@@ -116,7 +116,7 @@ class _State(object):
             if self.stdp:
                 self.simulation.apply_stdp(1.0)
 
-            for recorder in recorder_list[1:]:
+            for recorder in recorder_list:
                 if recorder.variable is "spikes":
                     recorder._add_spike(fired, self.t)
                 if recorder.variable is "v":

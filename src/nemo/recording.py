@@ -24,6 +24,10 @@ class Recorder(recording.Recorder):
         self.data  = {}    
         self.times = []
 
+    def write(self, file=None, gather=False, compatible_output=True, filter=None):
+        recording.Recorder.write(self, file, gather, compatible_output, filter)
+        self._simulator.recorder_list.remove(self)
+
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
         self.recorded = self.recorded.union(ids)
