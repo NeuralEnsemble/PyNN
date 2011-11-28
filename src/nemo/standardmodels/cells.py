@@ -40,7 +40,6 @@ class Izhikevich(IzhikevichTemplate):
     )
 
     indices = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
-
     initial_indices = {'u' : 0, 'v' : 1}
 
 
@@ -151,15 +150,16 @@ class IF_curr_exp(cells.IF_curr_exp):
 
     indices = {
             'v_rest' : 0,
-            'cm' : 1,
-            'tau_m' : 2,
-            't_refrac' : 3,
-            'tau_syn_E' : 4,
-            'tau_syn_I' : 5,
-            'i_offset' : 6,
-            'v_reset' : 7,
-            'v_thresh' : 8
+            'cm' : 2,
+            'tau_m' : 3,
+            't_refrac' : 4,
+            'tau_syn_E' : 5,
+            'tau_syn_I' : 6,
+            'i_offset' : 8,
+            'v_reset' : 1,
+            'v_thresh' : 7
         }
+
     initial_indices = {'v' : 0}
 
 

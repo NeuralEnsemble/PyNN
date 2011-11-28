@@ -59,7 +59,7 @@ class _State(object):
         self.dt            = timestep
         self.simulation    = None
         self.stdp          = None
-        self.verbose       = True
+        self.verbose       = False
 
     def progressbar(self, N):
         self.prog = utility.ProgressBar(0, N, 20, mode='fixed')        
@@ -86,6 +86,7 @@ class _State(object):
         self.conf.set_stdp_function(pre.tolist(), post.tolist(), float(w_min), float(w_max))
 
     def run(self, simtime):
+        
         self.simulation = nemo.Simulation(self.net, self.conf)
         if self.verbose:
             self.progressbar(simtime)
@@ -110,14 +111,12 @@ class _State(object):
                     source.player.update()                    
                     spikes += [source]
             
-            #for currents in current_sources:
-            #    currents.
             fired = numpy.sort(self.sim.step(spikes, currents)) 
 
             if self.stdp:
                 self.simulation.apply_stdp(1.0)
 
-            for recorder in recorder_list:
+            for recorder in recorder_list[1:]:
                 if recorder.variable is "spikes":
                     recorder._add_spike(fired, self.t)
                 if recorder.variable is "v":
@@ -178,7 +177,7 @@ class ID(int, common.IDMixin):
                     state.sim.set_neuron_parameter(self, indices[key], value)
             
     def set_initial_value(self, variable, value):
-        indices = self.celltype.indices.items()
+        indices = self.celltype.initial_indices
         if state.simulation is None:
             state.net.set_neuron_state(self, indices[variable], value) 
         else:

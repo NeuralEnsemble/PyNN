@@ -135,19 +135,19 @@ class Population(common.Population, common.BasePopulation):
                 simulator.state.net.add_neuron(ntype, int(idx))
         elif isinstance(celltype, cells.IF_curr_exp):
             init = celltype.default_initial_values
-            for idx in self.all_cells:
-                ntype = simulator.state.net.add_neuron_type('IF_curr_exp')
+            for idx in self.all_cells:                
+                ntype = simulator.state.net.add_neuron_type('IF_curr_exp')               
                 simulator.state.net.add_neuron(ntype, int(idx),
                         params['v_rest'],
+                        params['v_reset'],
                         params['cm'],
-                        params['tau_m'],
+                        params['tau_m'],                    
                         params['t_refrac'],
                         params['tau_syn_E'],
                         params['tau_syn_I'],
-                        params['i_offset'],
-                        params['v_reset'],
                         params['v_thresh'],
-                        init['v'], 0., 0., 1000.)
+                        params['i_offset'],                        
+                        init['v'], 0., 0., -1.)
         else:            
             init = celltype.default_initial_values
             ntype = simulator.state.net.add_neuron_type('Izhikevich')
@@ -161,7 +161,8 @@ class Population(common.Population, common.BasePopulation):
     def _set_initial_value_array(self, variable, value):
         if not hasattr(value, "__len__"):
             value = value*numpy.ones((len(self),))
-
+        for cell, val in zip(self, value):
+            cell.set_initial_value(variable, val)
 
 class Projection(common.Projection):
     """

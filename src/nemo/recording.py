@@ -20,10 +20,10 @@ class Recorder(recording.Recorder):
     def __init__(self, variable, population=None, file=None):
         __doc__ = recording.Recorder.__doc__
         recording.Recorder.__init__(self, variable, population, file)
-        simulator.recorder_list.append(self)
+        self._simulator.recorder_list.append(self)
         self.data  = {}    
-        self.times = []    
-    
+        self.times = []
+
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
         self.recorded = self.recorded.union(ids)
@@ -45,7 +45,7 @@ class Recorder(recording.Recorder):
 
     def _add_vm(self, time):
         for id in list(self.recorded):
-            self.data[id] += [simulator.state.sim.get_membrane_potential(int(id))]
+            self.data[id] += [self._simulator.state.sim.get_membrane_potential(int(id))]
         self.times += [time]
 
     def _get(self, gather=False, compatible_output=True, filter=None):
