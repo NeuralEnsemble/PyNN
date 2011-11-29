@@ -46,6 +46,11 @@ def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
+    if (timestep < 1):
+        raise Exception("It is not currently possible to have a timestep less than 1ms with this simulator")
+    if (min_delay < 1):
+        raise Exception("It is not currently possible to have a min_delay less than 1ms with this simulator")
+    
     common.setup(timestep, min_delay, max_delay, **extra_params)
     simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.spikes_array_list = []

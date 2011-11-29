@@ -14,12 +14,12 @@ class STDPMechanism(STDPMechanism):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
-                 voltage_dependence=None, dendritic_delay_fraction=0.0):
+                 voltage_dependence=None, dendritic_delay_fraction=1.0):
         assert dendritic_delay_fraction == 0, """Brian does not currently support dendritic delays:
                                                  for the purpose of STDP calculations all delays
                                                  are assumed to be axonal."""
-        standardmodels.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
-                                      voltage_dependence, dendritic_delay_fraction)
+        super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
+                                            voltage_dependence, dendritic_delay_fraction)
 
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):

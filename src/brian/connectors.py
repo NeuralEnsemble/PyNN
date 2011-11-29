@@ -81,7 +81,7 @@ class FastAllToAllConnector(AllToAllConnector):
         self.progressbar(len(projection.pre.local_cells))
         for count, tgt in enumerate(projection.pre.local_cells):
             connector._probabilistic_connect(tgt, 1)
-            self.progression(count)        
+            self.progression(count, projection._simulator.state.mpi_rank)      
     
 
 class FastFixedProbabilityConnector(FixedProbabilityConnector):
@@ -93,7 +93,7 @@ class FastFixedProbabilityConnector(FixedProbabilityConnector):
         self.progressbar(len(projection.pre.local_cells))
         for count, tgt in enumerate(projection.pre.local_cells):
             connector._probabilistic_connect(tgt, self.p_connect)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
             
 
 class FastDistanceDependentProbabilityConnector(DistanceDependentProbabilityConnector):
@@ -111,7 +111,7 @@ class FastDistanceDependentProbabilityConnector(DistanceDependentProbabilityConn
             if proba.dtype == 'bool':
                 proba = proba.astype(float)           
             connector._probabilistic_connect(tgt, proba, self.n_connections)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
 
 class FastOneToOneConnector(OneToOneConnector):
     
@@ -139,7 +139,7 @@ class FastOneToOneConnector(OneToOneConnector):
             for tgt, src, w, d in zip(projection.post.local_cells, sources, weights, delays):
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
                 projection._divergent_connect(src, [tgt], float(w), float(d), homogeneous)
-                self.progression(count)
+                self.progression(count, projection._simulator.state.mpi_rank)
                 count += 1
         else:
             raise errors.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
