@@ -505,7 +505,7 @@ class Projection(common.Projection):
 
         if name == 'weight':
             value *= 1000.0
-            if self.synapse_type == 'inhibitory' and common.is_conductance(self[0].target):
+            if self.synapse_type == 'inhibitory' and common.is_conductance(self.post[0]):
                 value *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
         elif name == 'delay':
             pass
