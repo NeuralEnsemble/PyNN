@@ -62,10 +62,12 @@ def build_record(variable, simulator):
         source._record(variable, to_file=filename)
         # recorder_list is used by end()
         if isinstance(source, BasePopulation):
-            simulator.recorder_list.append(source.recorders[variable])  # this is a bit hackish - better to add to Population.__del__?
+            if source.recorders[variable] not in simulator.recorder_list:
+                simulator.recorder_list.append(source.recorders[variable])  # this is a bit hackish - better to add to Population.__del__?
         if isinstance(source, Assembly):
             for population in source.populations:
-                simulator.recorder_list.append(population.recorders[variable])
+                if population.recorders[variable] not in simulator.recorder_list:
+                    simulator.recorder_list.append(population.recorders[variable])
     if variable == 'v':
         record.__name__ = "record_v"
         record.__doc__ = """

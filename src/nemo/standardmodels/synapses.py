@@ -22,8 +22,8 @@ class STDPMechanism(standardmodels.STDPMechanism):
         assert dendritic_delay_fraction == 0, """Nemo does not currently support dendritic delays:
                                                  for the purpose of STDP calculations all delays
                                                  are assumed to be axonal."""
-        standardmodels.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
-                                      voltage_dependence, dendritic_delay_fraction)
+        super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
+                                            voltage_dependence, dendritic_delay_fraction)
 
 
 class TsodyksMarkramMechanism(standardmodels.ModelNotAvailable):
@@ -69,6 +69,6 @@ class SpikePairRule(synapses.SpikePairRule):
     def pre_fire(self, precision=1.):
         return numpy.exp(-numpy.arange(0., 30, precision)/self.parameters['tau_plus'])
 
-    def post_fire(self, precision=1):
+    def post_fire(self, precision=1.):
         return numpy.exp(-numpy.arange(0., 30, precision)/self.parameters['tau_minus'])
 
