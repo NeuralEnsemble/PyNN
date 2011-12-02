@@ -121,11 +121,15 @@ class ConnectionAttributeGenerator(object):
                 values = data[sub_mask]
             return values
         elif isinstance(self.source, numpy.ndarray):
+            if len(self.source.shape) == 1: # for OneToOneConnector or AllToAllConnector used from or to only one Neuron   
+                ## First we reshape the data, and reinit the source_iterator. This is a patch since data are selected according
+                ## to the post_synaptic index with local_mask. So therefore, the weights should be in the form of a matrix of size
+                ## n_pre lines and n_post columns. If this is a vector, we need to transpose it. 
+                self.source = self.source.reshape((len(self.source), 1)) 
+                self.source_iterator = iter(self.source)
             if len(self.source.shape) == 2:
                 source_row = self.source_iterator.next()
                 values     = source_row[self.local_mask]
-            elif len(self.source.shape) == 1: # for OneToOneConnector or AllToAllConnector used from or to only one Neuron
-                values = self.source[self.local_mask]
             else:
                 raise Exception()
             if sub_mask is not None:
