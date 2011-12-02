@@ -93,6 +93,7 @@ class _State(object):
 
         poissons_sources = []
         arrays_sources   = []
+        fired            = []
 
         for source in spikes_array_list:
             if isinstance(source.celltype, SpikeSourcePoisson):        
@@ -111,16 +112,17 @@ class _State(object):
                     source.player.update()                    
                     spikes += [source]
             
-            fired = numpy.sort(self.sim.step(spikes, currents)) 
-
-            if self.stdp:
-                self.simulation.apply_stdp(1.0)
-
             for recorder in recorder_list:
                 if recorder.variable is "spikes":
                     recorder._add_spike(fired, self.t)
                 if recorder.variable is "v":
                     recorder._add_vm(self.t)
+
+            fired = self.sim.step(spikes, currents)
+
+            if self.stdp:
+                self.simulation.apply_stdp(1.0)
+           
             if self.verbose:                
                 self.prog.update_amount(t)
                 print self.prog, "\r",
