@@ -152,7 +152,7 @@ class Population(common.Population, common.BasePopulation):
                         params['tau_syn_I'],
                         params['v_thresh'],
                         params['i_offset'],                        
-                        init['v'], 0., 0., -1.)
+                        init['v'], 0., 0., 1000.)
         else:            
             init = celltype.default_initial_values
             ntype = simulator.state.net.add_neuron_type('Izhikevich')
@@ -227,7 +227,7 @@ class Projection(common.Projection):
         self._is_plastic   = False
         if self.synapse_model is "stdp_synapse":
             self._is_plastic = True
-        self._connections = None
+        self._connections = []
         
         method.connect(self)
         
@@ -248,11 +248,7 @@ class Projection(common.Projection):
         return len(self.connections)
 
     @property
-    def connections(self):
-        if self._connections is None:
-            self._connections = []
-            for source in numpy.unique(self._sources):
-                self._connections += list(simulator.state.sim.get_synapses_from(int(source)))
+    def connections(self):        
         return self._connections
 
     def _divergent_connect(self, source, targets, weights, delays):
@@ -287,6 +283,7 @@ class Projection(common.Projection):
         source   = int(source)        
         synapses = simulator.state.net.add_synapse(source, targets, delays, weights, self._is_plastic)
         self._sources.append(source)
+        self._connections += synapses
 
     def get(self, parameter_name, format, gather=True):
         """
