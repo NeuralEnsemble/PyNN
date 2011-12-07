@@ -50,6 +50,10 @@ def set(cells, param, val=None):
     cells.set(param, val)
 
 def build_record(variable, simulator):
+    if variable == "gsyn": # will be removed in PyNN 0.9
+        variable_list = ['gsyn_exc', 'gsyn_inh']
+    else:
+        variable_list = [variable]
     def record(source, filename):
         """
         Record spikes to a file. source can be an individual cell, a Population,
@@ -59,13 +63,15 @@ def build_record(variable, simulator):
         # whether to write to a file.
         if not isinstance(source, (BasePopulation, Assembly)):
             source = source.parent
-        source._record(variable, to_file=filename)
-        # recorder_list is used by end()
+        source.record(variable_list) #, to_file=filename)
+        # recorders_autowrite is used by end()
         if isinstance(source, BasePopulation):
-            simulator.recorder_list.append(source.recorders[variable])  # this is a bit hackish - better to add to Population.__del__?
-        if isinstance(source, Assembly):
-            for population in source.populations:
-                simulator.recorder_list.append(population.recorders[variable])
+            populations = [source]
+        elif isinstance(source, Assembly):
+            populations = source.populations
+        for population in populations:
+            simulator.write_on_end.append((population, variable_list, filename))
+# NEED TO HANDLE DEPRECATION OF record_v() and record_gsyn()
     if variable == 'v':
         record.__name__ = "record_v"
         record.__doc__ = """

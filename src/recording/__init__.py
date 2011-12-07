@@ -18,7 +18,7 @@ import numpy
 import os
 from collections import defaultdict
 from pyNN import errors
-from pyNN.recording import files
+import neo.io
 try:
     from mpi4py import MPI
 except ImportError:
@@ -93,6 +93,15 @@ def normalize_variables_arg(variables):
         return [variables]
     else:
         return variables
+
+def get_io(filename):
+    """
+    Return a Neo IO instance, guessing the type based on the filename suffix.
+    """
+    if os.path.splitext(filename)[0] in ('.txt', '.ras', '.v', '.gsyn'):
+        return neo.io.PyNNTextIO(filename)
+    else: # function to be improved later
+        return neo.io.PyNNTextIO(filename)
 
 
 class Recorder(object):

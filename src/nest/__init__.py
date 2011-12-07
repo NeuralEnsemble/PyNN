@@ -19,7 +19,6 @@ import os
 import shutil
 import logging
 import tempfile
-from pyNN.recording import files
 from pyNN.nest.cells import NativeCellType, native_cell_type
 from pyNN.nest.synapses import NativeSynapseDynamics, NativeSynapseMechanism
 from pyNN.nest.standardmodels.cells import *
@@ -134,17 +133,16 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     
     return rank()
  
-def end(compatible_output=True):
+def end():
     """Do any necessary cleaning up before exiting."""
     global tempdirs
-    # And we postprocess the low level files opened by record()
-    # and record_v() method
-    for recorder in simulator.recorder_list:
-        recorder.write(gather=True, compatible_output=compatible_output)
+    for (population, variables, filename) in simulator.write_on_end:
+        io = recording.get_io(filename)
+        population.write_data(io, variables)
     for tempdir in tempdirs:
         shutil.rmtree(tempdir)
     tempdirs = []
-    simulator.recorder_list = []
+    simulator.write_on_end = []
 
 def run(simtime):
     """Run the simulation for simtime ms."""

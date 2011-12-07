@@ -16,7 +16,6 @@ Classes:
     
 Attributes:
     state -- a singleton instance of the _State class.
-    recorder_list
 
 All other functions and classes are private, and should not be used by other
 modules.
@@ -37,7 +36,7 @@ from neuron import h, load_mechanisms
 
 # Global variables
 nrn_dll_loaded = []
-recorder_list = []
+write_on_end = []
 gid_sources = []
 logger = logging.getLogger("PyNN")
 
@@ -190,7 +189,6 @@ def run(simtime):
         if state.num_processes > 1:
             assert local_minimum_delay >= state.min_delay, \
                    "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, state.min_delay)
-    state.t_start = state.t
     state.tstop += simtime
     logger.info("Running the simulation for %g ms" % simtime)
     state.parallel_context.psolve(state.tstop)

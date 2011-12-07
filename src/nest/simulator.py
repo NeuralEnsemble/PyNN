@@ -15,7 +15,6 @@ Classes:
     
 Attributes:
     state -- a singleton instance of the _State class.
-    recorder_list
 
 All other functions and classes are private, and should not be used by other
 modules.
@@ -34,7 +33,7 @@ import numpy
 import sys
 
 CHECK_CONNECTIONS = False
-recorder_list = []
+write_on_end = [] # a list of (population, variable, filename) combinations that should be written to file on end()
 recording_devices = []
 
 global net
@@ -55,6 +54,7 @@ class _State(object):
         self.default_recording_precision = 3
         self._cache_num_processes = nest.GetKernelStatus()['num_processes'] # avoids blocking if only some nodes call num_processes
                                                                             # do the same for rank?
+        self.t_start = 0.0
 
     @property
     def t(self):
@@ -98,6 +98,7 @@ def reset():
     nest.ResetNetwork()
     nest.SetKernelStatus({'time': 0.0})
     state.running = False
+    state.t_start = 0.0
 
 # --- For implementation of access to individual neurons' parameters ----------- 
 
