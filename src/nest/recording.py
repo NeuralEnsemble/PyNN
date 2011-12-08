@@ -18,6 +18,7 @@ import quantities as pq
 
 VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in'}
 REVERSE_VARIABLE_MAP = dict((v,k) for k,v in VARIABLE_MAP.items())
+SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001}
 
 logger = logging.getLogger("PyNN")
 
@@ -54,14 +55,19 @@ class RecordingDevice(object):
         Return recorded data as a dictionary containing one numpy array for
         each neuron, ids as keys.
         """
+        scale_factor = SCALE_FACTORS.get(variable, 1)
+        nest_variable = VARIABLE_MAP.get(variable, variable)
         events = nest.GetStatus(self.device,'events')[0]
         ids = events['senders']
-        values = events[variable]
+        values = events[nest_variable] * scale_factor # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
         data = {}
         for id in desired_ids:
             data[id] = values[ids==id]
+            if variable != 'spikes':
+                initial_value = id.get_initial_value(variable)
+                data[id] = numpy.concatenate(([initial_value], data[id]))
         return data
-    
+
 
 class SpikeDetector(RecordingDevice):
     """A wrapper around the NEST spike_detector device"""
@@ -114,8 +120,6 @@ class Multimeter(RecordingDevice):
         current_variables = self.variables
         current_variables.add(VARIABLE_MAP.get(variable, variable))
         _set_status(self.device, {'record_from': list(current_variables)})
-    
-
 
 
 #class RecordingDevice(object):
@@ -415,9 +419,9 @@ class Recorder(recording.Recorder):
                                    source_id=int(id)) # index?
                     for id in self.filter_recorded('spikes', filter_ids)]
             else:
-                data = self._multimeter.get_data(VARIABLE_MAP.get(variable, variable),
+                data = self._multimeter.get_data(variable,
                                                  self.filter_recorded(variable, filter_ids))
-                segment.analogsignals = [
+                segment.analogsignals.extend(
                     neo.AnalogSignal(data[id],
                                      units=recording.UNITS_MAP.get(variable, 'dimensionless'),
                                      t_start=simulator.state.t_start*pq.ms,
@@ -425,7 +429,7 @@ class Recorder(recording.Recorder):
                                      name=variable,
                                      source_population=self.population.label,
                                      source_id=int(id))
-                    for id in self.filter_recorded(variable, filter_ids)]
+                    for id in self.filter_recorded(variable, filter_ids))
         return segment
 
     def _local_count(self, filter):

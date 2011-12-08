@@ -33,7 +33,8 @@ Set = set
 tempdirs       = []
 NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')
 
-STATE_VARIABLE_MAP = {"v": "V_m", "w": "w"}
+STATE_VARIABLE_MAP = {"v": "V_m", "w": "w", "gsyn_exc": "g_ex",
+                      "gsyn_inh": "g_in"}
 logger = logging.getLogger("PyNN")
 
 # ==============================================================================
@@ -285,9 +286,11 @@ class Population(common.Population):
             nest.SetStatus(self.local_cells.tolist(), param_dict)
 
     def _set_initial_value_array(self, variable, value):
-        if variable in STATE_VARIABLE_MAP:
-            variable = STATE_VARIABLE_MAP[variable]
-        nest.SetStatus(self.local_cells.tolist(), variable, value)
+        variable = STATE_VARIABLE_MAP.get(variable, variable)
+        try:
+            nest.SetStatus(self.local_cells.tolist(), variable, value)
+        except nest.NESTError, e:
+            logger.warning("NEST does not allow setting an initial value for %s" % variable) # assuming this is an "Unused dictionary items" error - should really check
 
 
 class Projection(common.Projection):

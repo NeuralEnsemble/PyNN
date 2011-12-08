@@ -125,10 +125,11 @@ class ID(int, common.IDMixin):
         else:
             gid = self
         try:
-    	    #nest does not like numpy array and so we will convert them to lists whenever we encounter one
-    	    for key in parameters:
-		if type(parameters[key]) == numpy.ndarray:
-		   parameters[key] = parameters[key].tolist()
+            #nest does not like numpy array if numpy was not available when it was compiled, and so we will convert them to lists whenever we encounter one
+            # to avoid this inefficiency, would be better to check at import time that NEST has been built with numpy support and raise an Exception if it hasn't
+            for key in parameters:
+                if type(parameters[key]) == numpy.ndarray:
+                   parameters[key] = parameters[key].tolist()
             nest.SetStatus([gid], [parameters])
         except: # I can't seem to catch the NESTError that is raised, hence this roundabout way of doing it.
             exc_type, exc_value, traceback = sys.exc_info()
