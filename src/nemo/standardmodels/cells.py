@@ -60,7 +60,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
             self.duration    = duration
             self.rng         = numpy.random.RandomState()
             self.precision   = precision
-            self.rate_Hz     = self.rate * self.precision/1000.
+            self.rate_Hz     = self.rate * self.precision / 1000.
             self.stop_time   = self.start + self.duration
             self.buffer      = 1000           
             self.do_spikes   = self.rng.rand(self.buffer) < self.rate_Hz
@@ -71,7 +71,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
                 return False
             else:
                 if self.idx == (self.buffer - 1):
-                    self.do_spikes = self.rng.rand(self.buffer) < self.rate_Hz
+                    self.do_spikes = self.rng.rand(self.buffer) <= self.rate_Hz
                     self.idx       = 0
                 self.idx += 1
                 return self.do_spikes[self.idx]

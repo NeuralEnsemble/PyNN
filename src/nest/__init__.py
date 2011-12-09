@@ -123,13 +123,13 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
                           'rng_seeds'        : rng_seeds})
 
     # set resolution
-    nest.SetKernelStatus({'resolution': timestep})
+    nest.SetKernelStatus({'resolution': float(timestep)})
 
     # Set min_delay and max_delay for all synapse models
     for synapse_model in NEST_SYNAPSE_TYPES:
-        nest.SetDefaults(synapse_model, {'delay' : min_delay,
-                                         'min_delay': min_delay,
-                                         'max_delay': max_delay})
+        nest.SetDefaults(synapse_model, {'delay'    : float(min_delay),
+                                         'min_delay': float(min_delay),
+                                         'max_delay': float(max_delay)})
     simulator.reset()
     
     return rank()
