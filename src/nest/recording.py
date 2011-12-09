@@ -293,8 +293,8 @@ class Recorder(recording.Recorder):
         assert len(data.shape) == 2
         if not self._device._gathered:            
             filtered_ids = self.filter_recorded(filter)            
-            mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))                
             if len(data) > 0:
+                mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))                            
                 data = data[mask]
         return data
 

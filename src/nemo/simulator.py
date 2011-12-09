@@ -114,7 +114,7 @@ class _State(object):
                     recorder._add_vm(self.t)
 
             self._fired = self.sim.step(spikes, currents)
-            self.time  += self.sim.elapsed_simulation()
+            self.time  += self.dt
         
             if self.stdp:
                 self.simulation.apply_stdp(1.0)
