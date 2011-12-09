@@ -54,7 +54,9 @@ class Recorder(recording.Recorder):
         if len(self.data) > 0:
             mask = reduce(numpy.add, (self.data[:,0]==id for id in filtered_ids))                            
             data = self.data[mask]
-        return data
+            return data
+        else:
+            return self.data
 
     def _local_count(self, filter=None):
         N = {}
