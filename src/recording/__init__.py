@@ -89,7 +89,7 @@ def mpi_sum(x):
 
 def normalize_variables_arg(variables):
     """If variables is a single string, encapsulate it in a list."""
-    if isinstance(variables, basestring):
+    if isinstance(variables, basestring) and variables != 'all':
         return [variables]
     else:
         return variables
@@ -98,10 +98,13 @@ def get_io(filename):
     """
     Return a Neo IO instance, guessing the type based on the filename suffix.
     """
-    if os.path.splitext(filename)[0] in ('.txt', '.ras', '.v', '.gsyn'):
-        return neo.io.PyNNTextIO(filename)
+    extension = os.path.splitext(filename)[1]
+    if extension in ('.txt', '.ras', '.v', '.gsyn'):
+        return neo.io.PyNNTextIO(filename=filename)
+    elif extension in ('.h5',):
+        return neo.io.NeoHdf5IO(filename=filename)
     else: # function to be improved later
-        return neo.io.PyNNTextIO(filename)
+        raise Exception("file extension %s not supported" % extension)
 
 
 class Recorder(object):
@@ -166,8 +169,8 @@ class Recorder(object):
         data = self.get(variables, gather, filter_ids)
         if self._simulator.state.mpi_rank == 0 or gather == False:
             # Open the output file, if necessary and write the data
-            logger.debug("Writing data to file %s" % file)
-            file.write(data)
+            logger.debug("Writing data to file %s" % io)
+            io.write(data)
     
     @property
     def metadata(self):

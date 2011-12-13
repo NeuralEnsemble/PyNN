@@ -10,7 +10,6 @@ import numpy
 import logging
 import operator
 from pyNN import random, recording, errors, models, core, descriptions
-from pyNN.recording import files
 from populations import BasePopulation, Assembly, is_conductance
 
 logger = logging.getLogger("PyNN")

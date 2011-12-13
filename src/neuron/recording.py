@@ -143,7 +143,7 @@ class Recorder(recording.Recorder):
                 elif variable == 'gsyn_inh':
                     get_signal = lambda id: id._cell.gsyn_trace['inhibitory']
                 else:
-                    signal = lambda id: id._cell.traces[variable]
+                    get_signal = lambda id: id._cell.traces[variable]
                 segment.analogsignals.extend(
                     neo.AnalogSignal(get_signal(id), # assuming not using cvode, otherwise need to use IrregularlySampledAnalogSignal
                                      units=recording.UNITS_MAP.get(variable, 'dimensionless'),
@@ -153,7 +153,7 @@ class Recorder(recording.Recorder):
                                      source_population=self.population.label,
                                      source_id=int(id))
                     for id in self.filter_recorded(variable, filter_ids))
-                assert segment.analogsignals[0].t_stop - simulator.state.t*pq.ms < simulator.state.dt*pq.ms
+                assert segment.analogsignals[0].t_stop - simulator.state.t*pq.ms < 2*simulator.state.dt*pq.ms
                 # need to add `Unit` and `RecordingChannel` objects
         return segment
         

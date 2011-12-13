@@ -167,8 +167,8 @@ run(tstop)
 
 simCPUTime = timer.diff()
 
-E_count = exc_cells.meanSpikeCount()
-I_count = inh_cells.meanSpikeCount()
+E_count = exc_cells.mean_spike_count()
+I_count = inh_cells.mean_spike_count()
 
 # === Print results to file ====================================================
 
@@ -177,9 +177,8 @@ print "%d Writing data to file..." % node_id
 if not(os.path.isdir('Results')):
     os.mkdir('Results')
 
-exc_cells.write_data(PyNNTextIO("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator_name, np)), 'spikes')
-inh_cells.write_data(PyNNTextIO("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator_name, np)), 'spikes')
-exc_cells[[0, 1]].write_data(PyNNTextIO("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator_name, np)), 'v')
+exc_cells.write_data("Results/VAbenchmark_%s_exc_%s_np%d.txt" % (benchmark, simulator_name, np))
+inh_cells.write_data("Results/VAbenchmark_%s_inh_%s_np%d.txt" % (benchmark, simulator_name, np))
 writeCPUTime = timer.diff()
 
 connections = "%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].size(),

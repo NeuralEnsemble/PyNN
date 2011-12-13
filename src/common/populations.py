@@ -13,7 +13,6 @@ from warnings import warn
 import operator
 import tempfile
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions
-from pyNN.recording import files
 from itertools import chain
 
 deprecated = core.deprecated
@@ -500,7 +499,7 @@ class BasePopulation(object):
         Otherwise, the Neo `Block` will contain only data from the cells
         simulated on the local node.
         """
-        self.recorder.get(variables, gather, self.record_filter)
+        return self.recorder.get(variables, gather, self.record_filter)
 
     @deprecated("write_data(file, 'spikes')")
     def printSpikes(self, file, gather=True, compatible_output=True):
