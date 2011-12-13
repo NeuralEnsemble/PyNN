@@ -419,17 +419,18 @@ class Recorder(recording.Recorder):
                                    source_id=int(id)) # index?
                     for id in self.filter_recorded('spikes', filter_ids)]
             else:
-                data = self._multimeter.get_data(variable,
-                                                 self.filter_recorded(variable, filter_ids))
-                segment.analogsignals.extend(
-                    neo.AnalogSignal(data[id],
-                                     units=recording.UNITS_MAP.get(variable, 'dimensionless'),
-                                     t_start=simulator.state.t_start*pq.ms,
-                                     sampling_period=simulator.state.dt*pq.ms,
-                                     name=variable,
-                                     source_population=self.population.label,
-                                     source_id=int(id))
-                    for id in self.filter_recorded(variable, filter_ids))
+                ids = self.filter_recorded(variable, filter_ids)
+                data = self._multimeter.get_data(variable, ids)
+                segment.analogsignalarrays.append(
+                    neo.AnalogSignalArray(
+                        data.T,
+                        units=recording.UNITS_MAP.get(variable, 'dimensionless'),
+                        t_start=simulator.state.t_start*pq.ms,
+                        sampling_period=simulator.state.dt*pq.ms,
+                        name=variable,
+                        source_population=self.population.label,
+                        source_ids=numpy.fromiter(ids, dtype=int))
+                )
         return segment
 
     def _local_count(self, filter):
