@@ -36,6 +36,7 @@ CHECK_CONNECTIONS = False
 write_on_end = [] # a list of (population, variable, filename) combinations that should be written to file on end()
 recording_devices = []
 recorders = set([])
+populations = [] # needed for reset
 
 global net
 net    = None
@@ -89,15 +90,20 @@ class _State(object):
 def run(simtime):
     """Advance the simulation for a certain time."""
     for device in recording_devices:
-        device.connect_to_cells()
+        if not device._connected:
+            device.connect_to_cells()
     if not state.running:
         simtime += state.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
         state.running = True
     nest.Simulate(simtime)
     
 def reset():
+    global populations
     nest.ResetNetwork()
     nest.SetKernelStatus({'time': 0.0})
+    for p in populations:
+        for variable, initial_value in p.initial_values.items():
+            p._set_initial_value_array(variable, initial_value)
     state.running = False
     state.t_start = 0.0
 

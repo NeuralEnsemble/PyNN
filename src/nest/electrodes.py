@@ -45,12 +45,30 @@ class DCSource(CurrentSource):
             stop      -- end of pulse in ms
             amplitude -- pulse amplitude in nA
         """
-        self.amplitude = amplitude
+        self._amplitude = amplitude
+        self._start = start
+        self._stop = stop
         self._device = nest.Create('dc_generator')
         nest.SetStatus(self._device, {'amplitude': 1000.0*self.amplitude,
                                       'start': float(start)}) # conversion from nA to pA
         if stop:
             nest.SetStatus(self._device, {'stop': float(stop)})
+
+    def _set_amplitude(self, value):
+        self._amplitude = value
+        nest.SetStatus(self._device, {'amplitude': 1000.0*value})
+    amplitude = property(fget=lambda self: self._amplitude, fset=_set_amplitude)
+    
+    def _set_start(self, value):
+        self._start = value
+        nest.SetStatus(self._device, {'start': float(value)})
+    start = property(fget=lambda self: self._start, fset=_set_start)
+    
+    def _set_stop(self, value):
+        self._stop = value
+        if value is not None:
+            nest.SetStatus(self._device, {'stop': float(value)})
+    stop = property(fget=lambda self: self._stop, fset=_set_stop)
 
 
 class ACSource(CurrentSource):

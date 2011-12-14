@@ -188,6 +188,12 @@ class Population(common.Population):
     recorder_class = Recorder
     assembly_class = Assembly
 
+    def __init__(self, size, cellclass, cellparams=None, structure=None,
+                 label=None):
+        __doc__ = common.Population.__doc__
+        super(Population, self).__init__(size, cellclass, cellparams, structure, label)
+        self._simulator.populations.append(self)
+    
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 

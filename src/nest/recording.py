@@ -413,15 +413,16 @@ class Recorder(recording.Recorder):
             else:
                 ids = self.filter_recorded(variable, filter_ids)
                 data = self._multimeter.get_data(variable, ids)
+                signal_array = numpy.vstack(data.values())
                 segment.analogsignalarrays.append(
                     neo.AnalogSignalArray(
-                        data.T,
+                        signal_array.T,
                         units=recording.UNITS_MAP.get(variable, 'dimensionless'),
                         t_start=simulator.state.t_start*pq.ms,
                         sampling_period=simulator.state.dt*pq.ms,
                         name=variable,
                         source_population=self.population.label,
-                        source_ids=numpy.fromiter(ids, dtype=int))
+                        source_ids=numpy.array(data.keys()))
                 )
         return segment
 

@@ -2,7 +2,10 @@
 Example of using PyNN with Neo output and the reset() function
 """
 
-import pyNN.neuron as sim  # can of course replace `neuron` with `nest`, `brian`, etc.
+from pyNN.utility import get_script_args
+#import pyNN.neuron as sim  # can of course replace `neuron` with `nest`, `brian`, etc.
+simulator_name = get_script_args(1)[0]  
+exec("import pyNN.%s as sim" % simulator_name)
 import matplotlib.pyplot as plt
 from quantities import nA
 
@@ -30,4 +33,4 @@ for segment in data.segments:
 plt.legend(loc="upper left")
 plt.xlabel("Time (%s)" % vm.times.units._dimensionality)
 plt.ylabel("Membrane potential (%s)" % vm.units._dimensionality)
-plt.savefig("reset_example.png")
+plt.savefig("reset_example_%s.png" % simulator_name)
