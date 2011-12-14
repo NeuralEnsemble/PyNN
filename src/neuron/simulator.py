@@ -38,6 +38,7 @@ from neuron import h, load_mechanisms
 nrn_dll_loaded = []
 write_on_end = []
 gid_sources = []
+recorders = set([])
 logger = logging.getLogger("PyNN")
 
 # --- Internal NEURON functionality -------------------------------------------- 

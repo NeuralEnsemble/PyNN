@@ -40,12 +40,14 @@ def run(simtime):
     raise NotImplementedError
 
 def build_reset(simulator):
-    def reset():
+    def reset(annotations={}):
         """
         Reset the time to zero, neuron membrane potentials and synaptic weights to
         their initial values, and delete any recorded data. The network structure
         is not changed, nor is the specification of which neurons to record from.
         """
+        for recorder in simulator.recorders:
+            recorder.store_to_cache(annotations)
         simulator.reset()
     return reset
 

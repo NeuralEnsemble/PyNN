@@ -35,6 +35,7 @@ import sys
 CHECK_CONNECTIONS = False
 write_on_end = [] # a list of (population, variable, filename) combinations that should be written to file on end()
 recording_devices = []
+recorders = set([])
 
 global net
 net    = None

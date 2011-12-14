@@ -621,6 +621,7 @@ class Population(BasePopulation):
         self._structure = structure or space.Line()
         self._positions = None
         self._is_sorted = True
+        self.annotations = {}
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
@@ -712,6 +713,9 @@ class Population(BasePopulation):
                          giving the x,y,z coordinates of all the neurons (soma, in the
                          case of non-point models).""")
 
+    def annotate(self, **annotations):
+        self.annotations.update(annotations)
+
     def describe(self, template='population_default.txt', engine='default'):
         """
         Returns a human-readable description of the population.
@@ -731,6 +735,7 @@ class Population(BasePopulation):
             "first_id": self.first_id,
             "last_id": self.last_id,
         }
+        context.update(self.annotations)
         if len(self.local_cells) > 0:
             first_id = self.local_cells[0]
             context.update({

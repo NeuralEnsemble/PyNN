@@ -393,14 +393,6 @@ class Recorder(recording.Recorder):
     #              recorder._device = None 
     #    self._create_device()
 
-    def _get(self, variables, gather=False, filter_ids=None):
-        """Return the recorded data as a Neo `Block`."""
-        always_local = (hasattr(self.population.celltype, 'always_local') and self.population.celltype.always_local)
-        data = neo.Block()
-        # TODO: add cached data from previous runs
-        data.segments.append(self._get_current_segment(filter_ids=filter_ids, variables=variables))
-        return data
-        
     def _get_current_segment(self, filter_ids=None, variables='all'):
         segment = neo.Segment(name=self.population.label,
                               description=self.population.describe(),

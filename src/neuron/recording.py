@@ -18,43 +18,10 @@ recordable_pattern = re.compile(r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.
 
 # --- For implementation of record_X()/get_X()/print_X() -----------------------
 
-def filter_variables(segment, variables):
-    """
-    Return a new `Segment` containing only recordings of the variables given in
-    the list `variables`
-    """
-    if variables == 'all':
-        return segment
-    else:
-        new_segment = copy(segment) # shallow copy
-        if 'spikes' not in variables:
-            new_segment.spiketrains = []
-        new_segment.analogsignals = [sig for sig in segment.analogsignals if sig.name in variables]
-        # also need to handle Units, RecordingChannels
-        return new_segment
-
-
-class DataCache(object):
-    # primitive implementation for now, storing in memory - later can consider caching to disk
-    def __init__(self):
-        self._data = []
-
-    def __iter__(self):
-        return iter(self._data)
-    
-    def store(self, obj):
-        self._data.append(obj)
-        
-
 
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
-    _simulator = simulator
-    
-    def __init__(self, population, file=None):
-        __doc__ = super(Recorder, self).__init__.__doc__
-        super(Recorder, self).__init__(population, file)
-        self.cache = DataCache()
+    _simulator = simulator 
     
     def _record(self, variable, new_ids):
         """Add the cells in `new_ids` to the set of recorded cells."""
@@ -106,15 +73,6 @@ class Recorder(recording.Recorder):
                 id._cell.recording_time += 1
         else:
             raise Exception("Recording of %s not implemented." % variable)
-    
-    def _get(self, variables, gather=False, filter_ids=None):
-        """Return the recorded data as a Neo `Block`."""
-        data = neo.Block()
-        data.segments = [filter_variables(segment, variables) for segment in self.cache]
-        data.segments.append(self._get_current_segment(filter_ids=filter_ids, variables=variables))
-        if gather and simulator.state.num_processes > 1:
-            data = recording.gather(data)
-        return data
     
     def _get_current_segment(self, filter_ids=None, variables='all'):
         segment = neo.Segment(name=self.population.label,

@@ -106,6 +106,34 @@ def get_io(filename):
     else: # function to be improved later
         raise Exception("file extension %s not supported" % extension)
 
+def filter_by_variables(segment, variables):
+    """
+    Return a new `Segment` containing only recordings of the variables given in
+    the list `variables`
+    """
+    if variables == 'all':
+        return segment
+    else:
+        new_segment = copy(segment) # shallow copy
+        if 'spikes' not in variables:
+            new_segment.spiketrains = []
+        new_segment.analogsignals = [sig for sig in segment.analogsignals if sig.name in variables]
+        # also need to handle Units, RecordingChannels
+        return new_segment
+
+
+class DataCache(object):
+    # primitive implementation for now, storing in memory - later can consider caching to disk
+    def __init__(self):
+        self._data = []
+
+    def __iter__(self):
+        return iter(self._data)
+    
+    def store(self, obj):
+        if obj not in self._data:
+            self._data.append(obj)
+
 
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
@@ -124,6 +152,8 @@ class Recorder(object):
         self.file = file
         self.population = population # needed for writing header information
         self.recorded = defaultdict(set)
+        self.cache = DataCache()
+        self._simulator.recorders.add(self)
         
     def record(self, variables, ids):
         """
@@ -152,11 +182,17 @@ class Recorder(object):
     def get(self, variables, gather=False, filter_ids=None):
         """Return the recorded data as a Neo `Block`."""
         variables = normalize_variables_arg(variables)
-        data = self._get(variables, gather, filter_ids)
+        data = neo.Block()
+        data.segments = [filter_by_variables(segment, variables)
+                         for segment in self.cache]
+        if self._simulator.state.running: # reset() has not been called, so current segment is not in cache
+            data.segments.append(self._get_current_segment(filter_ids=filter_ids, variables=variables))
         data.name = self.population.label
         data.description = self.population.describe()
         data.rec_datetime = data.segments[0].rec_datetime
         data.annotate(**self.metadata)
+        if gather and self._simulator.state.num_processes > 1:
+            data = recording.gather(data)
         return data
     
     def write(self, variables, file=None, gather=False, filter_ids=None):
@@ -182,6 +218,7 @@ class Recorder(object):
                 'last_id': self.population.last_id,
                 'label': self.population.label,
             }
+        metadata.update(self.population.annotations)
         metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
         return metadata
     
@@ -198,3 +235,7 @@ class Recorder(object):
             N = gather_dict(N)
         return N
     
+    def store_to_cache(self, annotations={}):
+        segment = self._get_current_segment()
+        segment.annotate(**annotations)
+        self.cache.store(segment)
