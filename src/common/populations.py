@@ -1067,7 +1067,8 @@ class Assembly(object):
         Iterator over cells in all populations within the Assembly, for cells
         on the local MPI node.
         """
-        return chain(iter(p) for p in self.populations)
+        iterators = [iter(p) for p in self.populations]
+        return chain(*iterators)
 
     def __len__(self):
         """Return the total number of cells in the population (all nodes)."""
@@ -1154,6 +1155,20 @@ class Assembly(object):
         """
         for p in self.populations:
             p.initialize(variable, value)
+
+    def set(self, param, val=None):
+        """
+        Set one or more parameters for every cell in the Assembly. param
+        can be a dict, in which case val should not be supplied, or a string
+        giving the parameter name, in which case val is the parameter value.
+        val can be a numeric value, or list of such (e.g. for setting spike
+        times).
+        e.g. p.set("tau_m",20.0).
+             p.set({'tau_m':20,'v_rest':-65})
+        """
+        for p in self.populations:
+            p.set(param, val)
+
 
     def rset(self, parametername, rand_distr):
         """
