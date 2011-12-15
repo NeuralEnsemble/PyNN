@@ -49,7 +49,7 @@ def rename_existing(filename):
         os.system('mv %s %s_old' % (filename, filename))
         logger.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
 
-def gather(data):
+def gather_array(data):
     # gather 1D or 2D numpy arrays
     if MPI is None:
         raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
@@ -192,7 +192,7 @@ class Recorder(object):
         data.rec_datetime = data.segments[0].rec_datetime
         data.annotate(**self.metadata)
         if gather and self._simulator.state.num_processes > 1:
-            data = recording.gather(data)
+            data = gather_array(data)
         return data
     
     def write(self, variables, file=None, gather=False, filter_ids=None):

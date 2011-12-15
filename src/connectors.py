@@ -11,7 +11,7 @@ for improved performance.
 import numpy, logging, sys, re
 from pyNN import errors, common, core, random, utility, recording, descriptions
 from pyNN.space import Space
-#from pyNN.recording import files
+from pyNN.recording import files
 from pyNN.random import RandomDistribution
 from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
                     fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \

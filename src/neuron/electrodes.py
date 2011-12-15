@@ -71,7 +71,7 @@ class DCSource(CurrentSource):
         self._stop = value
         for iclamp in self._devices:
             iclamp.dur = value - self._start
-    stop = property(fget=lambda self: self._start,
+    stop = property(fget=lambda self: self._stop,
                     fset=_set_stop)
 
 

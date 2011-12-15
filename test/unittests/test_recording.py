@@ -3,6 +3,7 @@ from nose.tools import assert_equal, assert_raises
 from mock import Mock
 import numpy
 import os
+from datetime import datetime
 from collections import defaultdict
 from pyNN.utility import assert_arrays_equal
 
@@ -34,12 +35,31 @@ if MPI:
 
 #def test_mpi_sum():
 
+class MockState(object):
+    def __init__(self, mpi_rank):
+        self.mpi_rank = mpi_rank
+        self.num_processes = 9
+        self.dt = 0.123
+        self.running = True
+class MockSimulator(object):
+    def __init__(self, mpi_rank):
+        self.state = MockState(mpi_rank)
+        self.recorders = set([])
+
+class MockNeoIO(object):
+    filename = "fake_file"
+    write = Mock()
+
+class MockRecorder(recording.Recorder):
+    _simulator = MockSimulator(mpi_rank=0)
+
 class MockPopulation(object):
     size = 11
     first_id = 2454
     last_id = first_id + size
     label = "mock population"
     celltype = Mock()
+    annotations = {'knights_say': 'Ni!'}
     def __len__(self):
         return self.size
     def can_record(self, variable):
@@ -57,19 +77,20 @@ class MockNeoBlock(object):
         self.name = None
         self.description = None
         self.segments = [Mock()]
+        self.rec_datetime = datetime.now()
     def annotate(self, **annotations):
         pass
 
 def test_Recorder_create():
     p = MockPopulation()
-    r = recording.Recorder(p)
+    r = MockRecorder(p)
     assert_equal(r.population, p)
     assert_equal(r.file, None)
     assert_equal(r.recorded, defaultdict(set))
     
 def test_Recorder_invalid_variable():
     p = MockPopulation()
-    r = recording.Recorder(p)
+    r = MockRecorder(p)
     all_ids = (MockID(0, True), MockID(1, False), MockID(2, True), MockID(3, True), MockID(4, False))
     assert_raises(errors.RecordingError,
                   r.record, 'foo', all_ids)
@@ -81,7 +102,7 @@ class MockID(object):
 
 def test_record():
     p = MockPopulation()
-    r = recording.Recorder(p)
+    r = MockRecorder(p)
     r._record = Mock()
     assert_equal(r.recorded, defaultdict(set))
     
@@ -100,7 +121,7 @@ def test_record():
 
 def test_filter_recorded():
     p = MockPopulation()
-    r = recording.Recorder(p)
+    r = MockRecorder(p)
     r._record = Mock()
     all_ids = (MockID(0, True), MockID(1, False), MockID(2, True), MockID(3, True), MockID(4, False))
     r.record(['spikes', 'spam'], all_ids)
@@ -115,48 +136,31 @@ def test_filter_recorded():
 
 def test_get():
     p = MockPopulation()
-    r = recording.Recorder(p)
-    r._simulator = MockSimulator(mpi_rank=0)
-    fake_data = MockNeoBlock()
-    r._get = Mock(return_value=fake_data)
-    r.get('spikes')
-    assert_equal(fake_data.name, p.label)
-    assert_equal(fake_data.description, p.describe())
-
-
-class MockState(object):
-    def __init__(self, mpi_rank):
-        self.mpi_rank = mpi_rank
-        self.dt = 0.123
-class MockSimulator(object):
-    def __init__(self, mpi_rank):
-        self.state = MockState(mpi_rank)
-
-class MockNeoIO(object):
-    filename = "fake_file"
-    write = Mock()
+    r = MockRecorder(p)
+    r._get_current_segment = Mock()
+    data = r.get('spikes')
+    assert_equal(data.name, p.label)
+    assert_equal(data.description, p.describe())
 
 def test_write__with_filename__compatible_output__gather__onroot():
     orig_metadata = recording.Recorder.metadata
-    recording.Recorder.metadata = {'a': 2, 'b':3}
+    #recording.Recorder.metadata = {'a': 2, 'b':3}
     p = MockPopulation()
-    r = recording.Recorder(p)
-    r._simulator = MockSimulator(mpi_rank=0)
-    fake_data = MockNeoBlock()
-    r._get = Mock(return_value=fake_data)
+    r = MockRecorder(p)
+    #fake_data = MockNeoBlock()
+    r._get_current_segment = Mock() #return_value=fake_data)
     output_io = MockNeoIO()
     r.write("spikes", file=output_io, gather=True)
-    recording.Recorder.metadata = orig_metadata
+    #recording.Recorder.metadata = orig_metadata
     output_io.write.assert_called_with(fake_data)
 
 def test_metadata_property():
     p = MockPopulation()
-    r = recording.Recorder(population=p)
-    r._simulator = MockSimulator(mpi_rank=0)
+    r = MockRecorder(p)
     assert_equal(r.metadata,
                  {'first_id': 2454, 'label': 'mock population',
                   'dt': 0.123, 'last_id': 2465, 'size': 11,
-                  'first_index': 0, 'last_index': 11})
+                  'first_index': 0, 'last_index': 11, 'knights_say': 'Ni!'})
 
 
 #def test_count__spikes_gather():

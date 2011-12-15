@@ -267,20 +267,23 @@ class TestRecorder(object):
         self.cells[0]._cell.vtrace = numpy.arange(-65.0, -64.0, 0.1)
         self.cells[1]._cell.vtrace = numpy.arange(-64.0, -65.0, -0.1)
         self.cells[0]._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
-        vdata = self.rv._get(['v'], gather=False, filter_ids=None)
-        assert_equal(len(vdata.segments[0].analogsignals), 2)
-        assert_arrays_equal(numpy.array(vdata.segments[0].analogsignals[0]), self.cells[0]._cell.vtrace)
+        simulator.state.t = simulator.state.dt * len(self.cells[0]._cell.vtrace)
+        vdata = self.rv._get_current_segment(variables=['v'], filter_ids=None)
+        assert_equal(len(vdata.analogsignalarrays), 1)
+        assert_arrays_equal(numpy.array(vdata.analogsignalarrays[0]),
+                            numpy.vstack((self.cells[0]._cell.vtrace, self.cells[1]._cell.vtrace)).T)
         
     def test__get_spikes(self):
         self.rs.recorded['spikes'] = self.cells
         self.cells[0]._cell.spike_times = numpy.arange(101.0, 111.0)
         self.cells[1]._cell.spike_times = numpy.arange(13.0, 23.0)
         simulator.state.t = 111.0
-        sdata = self.rs._get(['spikes'], gather=False, filter_ids=None)
-        assert_equal(len(sdata.segments[0].spiketrains), 2)
-        assert_arrays_equal(numpy.array(sdata.segments[0].spiketrains[0]), self.cells[0]._cell.spike_times)
+        sdata = self.rs._get_current_segment(variables=['spikes'], filter_ids=None)
+        assert_equal(len(sdata.spiketrains), 2)
+        assert_arrays_equal(numpy.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times)
         
     def test__get_gsyn(self):
+        self.rg.recorded['gsyn_exc'] = self.cells
         self.rg.recorded['gsyn_inh'] = self.cells
         for cell in self.cells:
             cell._cell.gsyn_trace = {}
@@ -289,8 +292,13 @@ class TestRecorder(object):
             cell._cell.gsyn_trace['excitatory_TM'] = numpy.arange(2.01, 2.0199, 0.001)
             cell._cell.gsyn_trace['inhibitory_TM'] = numpy.arange(4.01, 4.0199, 0.001)
             cell._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
-        gdata = self.rg._get(['gsyn_inh'], gather=False, filter_ids=None)
-        assert_equal(gdata.shape, (20,4))
+        simulator.state.t = simulator.state.dt * len(cell._cell.gsyn_trace['excitatory'])
+        gdata = self.rg._get_current_segment(variables=['gsyn_exc', 'gsyn_inh'], filter_ids=None)
+        assert_equal(len(gdata.analogsignalarrays), 2)
+        assert_arrays_equal(numpy.array(gdata.analogsignalarrays[0][:,0]),
+                            cell._cell.gsyn_trace['excitatory'])
+        assert_arrays_equal(numpy.array(gdata.analogsignalarrays[1][:,0]),
+                            cell._cell.gsyn_trace['inhibitory'])
     
     def test__local_count(self):
         self.rs.recorded['spikes'] = self.cells
