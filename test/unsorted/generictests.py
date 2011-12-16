@@ -528,7 +528,7 @@ class PopulationPositionsTest(unittest.TestCase):
 # ==============================================================================
 class PopulationRecordTest(unittest.TestCase):
     """Tests of the record(), record_v(), printSpikes(), print_v() and
-       meanSpikeCount() methods of the Population class."""
+       mean_spike_count() methods of the Population class."""
     
     def setUp(self):
         sim.setup()
@@ -576,12 +576,12 @@ class PopulationRecordTest(unittest.TestCase):
         #self.pop3.record()
         simtime = 1000.0
         sim.run(simtime)
-        msc = self.pop1.meanSpikeCount()
+        msc = self.pop1.mean_spike_count()
         if sim.rank() == 0: # only on master node
             rate = msc*1000/simtime
             ##print self.pop1.recorders['spikes'].recorders
             assert (20*0.8 < rate) and (rate < 20*1.2), "rate is %s" % rate
-        #rate = self.pop3.meanSpikeCount()*1000/simtime
+        #rate = self.pop3.mean_spike_count()*1000/simtime
         #self.assertEqual(rate, 0.0)
     
     def testPotentialRecording(self):

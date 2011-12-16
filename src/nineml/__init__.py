@@ -165,7 +165,7 @@ class BasePopulation(common.BasePopulation):
     def _record(self, variable, record_from, rng, to_file):
         pass
 
-    def meanSpikeCount(self, gather=True):
+    def mean_spike_count(self, gather=True):
         return 0
 
     def printSpikes(self, file, gather=True, compatible_output=True):

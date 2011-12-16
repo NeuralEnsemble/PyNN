@@ -546,11 +546,15 @@ class BasePopulation(object):
         """
         return self.recorders['spikes'].count(gather, self.record_filter)
 
+    @deprecated("mean_spike_count()")
     def meanSpikeCount(self, gather=True):
+        return self.mean_spike_count(gather)
+
+    def mean_spike_count(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """
-        spike_counts = self.recorders['spikes'].count(gather, self.record_filter)
+        spike_counts = self.get_spike_counts(gather)
         total_spikes = sum(spike_counts.values())
         if self._simulator.state.mpi_rank == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
             if len(spike_counts) > 0:
@@ -645,13 +649,6 @@ class Population(BasePopulation):
     @property
     def local_cells(self):
         return self.all_cells[self._mask_local]
-
-    @property
-    def cell(self):
-        warn("The `Population.cell` attribute is not an official part of the \
-              API, and its use is deprecated. It will be removed in a future \
-              release. All uses of `cell` may be replaced by `all_cells`")
-        return self.all_cells
 
     def id_to_index(self, id):
         """
@@ -1228,7 +1225,7 @@ class Assembly(object):
         """
         return self._get_recorded_variable('gsyn', gather, compatible_output, size=2)
 
-    def meanSpikeCount(self, gather=True):
+    def mean_spike_count(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """

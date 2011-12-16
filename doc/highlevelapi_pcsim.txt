@@ -302,7 +302,7 @@ Statistics
 Often, the exact spike times and exact membrane potential traces are not required, only statistical measures.
 PyNN currently only provides one such measure, the mean number of spikes per neuron, e.g.::
 
-    >>> p1.meanSpikeCount()
+    >>> p1.mean_spike_count()
     0.0
     
 More such statistical measures are planned for future releases.

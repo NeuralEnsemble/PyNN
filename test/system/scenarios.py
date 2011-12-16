@@ -75,8 +75,8 @@ def scenario1(sim):
     
     sim.run(tstop)
     
-    E_count = cells['excitatory'].meanSpikeCount()
-    I_count = cells['inhibitory'].meanSpikeCount()
+    E_count = cells['excitatory'].mean_spike_count()
+    I_count = cells['inhibitory'].mean_spike_count()
     print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
     print "Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,)
     sim.end()
@@ -126,8 +126,8 @@ def scenario1a(sim):
     
     sim.run(tstop)
     
-    E_count = excitatory_cells.meanSpikeCount()
-    I_count = inhibitory_cells.meanSpikeCount()
+    E_count = excitatory_cells.mean_spike_count()
+    I_count = inhibitory_cells.mean_spike_count()
     print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
     print "Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,)
     sim.end()
@@ -257,12 +257,12 @@ def scenario3(sim):
     
     sim.run(duration*second)
     
-    actual_rate = pre.meanSpikeCount()/duration
+    actual_rate = pre.mean_spike_count()/duration
     expected_rate = (r1+r2)/2
     errmsg = "actual rate: %g  expected rate: %g" % (actual_rate, expected_rate)
     assert abs(actual_rate - expected_rate) < 1, errmsg
-    #assert abs(pre[:50].meanSpikeCount()/duration - r1) < 1
-    #assert abs(pre[50:].meanSpikeCount()/duration- r2) < 1
+    #assert abs(pre[:50].mean_spike_count()/duration - r1) < 1
+    #assert abs(pre[50:].mean_spike_count()/duration- r2) < 1
     final_weights = connections.getWeights(format='array')
     assert initial_weights[0,0] != final_weights[0,0]
     

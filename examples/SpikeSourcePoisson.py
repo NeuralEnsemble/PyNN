@@ -20,7 +20,7 @@ poissonsource.record()
 
 run(300.0)
   
-print "Mean spike count:", poissonsource.meanSpikeCount()
+print "Mean spike count:", poissonsource.mean_spike_count()
 print "First few spikes:"
 all_spikes = poissonsource.getSpikes()
 first_id = all_spikes[0,0]

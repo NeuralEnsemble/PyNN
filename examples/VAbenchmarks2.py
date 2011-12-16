@@ -166,8 +166,8 @@ run(tstop)
 
 simCPUTime = timer.diff()
 
-E_count = exc_cells.meanSpikeCount()
-I_count = inh_cells.meanSpikeCount()
+E_count = exc_cells.mean_spike_count()
+I_count = inh_cells.mean_spike_count()
 
 # === Print results to file ====================================================
 

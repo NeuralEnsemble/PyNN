@@ -60,7 +60,7 @@ run(simtime)
 cells.printSpikes("Results/small_network_%s.ras" % simulator_name)
 cells.print_v("Results/small_network_%s.v" % simulator_name)
 
-print "Mean firing rate: ", cells.meanSpikeCount()*1000.0/simtime, "Hz"
+print "Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz"
 
 # === Clean up and quit ========================================================
 
