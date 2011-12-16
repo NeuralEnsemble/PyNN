@@ -187,7 +187,7 @@ class Grid2D(BaseStructure):
     def calculate_size(self, n):
         nx = math.sqrt(n*self.aspect_ratio)
         if n%nx != 0:
-            raise Exception("Invalid size")
+            raise Exception("Invalid size: n=%g, nx=%d" % (n, nx))
         ny = n/nx
         return nx, ny
     

@@ -366,34 +366,6 @@ class BasePopulation(object):
             assert rarr.size == self.size, "%s != %s" % (rarr.size, self.size)
             self.tset(parametername, rarr)
 
-    def _call(self, methodname, arguments):
-        """
-        Call the method methodname(arguments) for every cell in the population.
-        e.g. p.call("set_background","0.1") if the cell class has a method
-        set_background().
-        """
-        raise NotImplementedError()
-
-    def _tcall(self, methodname, objarr):
-        """
-        `Topographic' call. Call the method methodname() for every cell in the
-        population. The argument to the method depends on the coordinates of
-        the cell. objarr is an array with the same dimensions as the
-        Population.
-        e.g. p.tcall("memb_init", vinitArray) calls
-        p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
-        """
-        raise NotImplementedError()
-
-    #@deprecated("initialize('v', rand_distr)")
-    def randomInit(self, rand_distr):
-        """
-        Set initial membrane potentials for all the cells in the population to
-        random values.
-        """
-        warn("The randomInit() method is deprecated, and will be removed in a future release. Use initialize('v', rand_distr) instead.")
-        self.initialize('v', rand_distr)
-
     def initialize(self, variable, value):
         """
         Set initial values of state variables, e.g. the membrane potential.
