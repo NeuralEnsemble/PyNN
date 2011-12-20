@@ -29,8 +29,9 @@ class STDPMechanism(standardmodels.STDPMechanism):
 class TsodyksMarkramMechanism(standardmodels.ModelNotAvailable):
     pass
 
-
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
+    
+    __doc__ = synapses.AdditiveWeightDependence.__doc__
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         parameters = dict(locals())
@@ -42,6 +43,8 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
 
 class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     
+    __doc__ = synapses.MultiplicativeWeightDependence.__doc__
+
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         parameters = dict(locals())
         parameters.pop('self')
@@ -51,6 +54,8 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
 
 class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
     
+    __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
+
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         parameters = dict(locals())
         parameters.pop('self')
@@ -59,8 +64,19 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         self.parameters['mu_minus'] = 1.0
 
 
-class SpikePairRule(synapses.SpikePairRule):
+class GutigWeightDependence(standardmodels.ModelNotAvailable):
     
+    __doc__ = synapses.AdditiveWeightDependence.__doc__
+    
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01, mu_plus=0.5, mu_minus=0.5): # units?
+        parameters = dict(locals())
+        parameters.pop('self')
+        self.parameters = parameters
+
+class SpikePairRule(synapses.SpikePairRule):
+
+    __doc__ = synapses.SpikePairRule.__doc__    
+
     def __init__(self, tau_plus=20.0, tau_minus=20.0):
         parameters = dict(locals())
         parameters.pop('self')

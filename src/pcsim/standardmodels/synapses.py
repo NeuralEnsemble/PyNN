@@ -47,6 +47,8 @@ class STDPMechanism(STDPMechanism):
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     
+    __doc__ = synapses.TsodyksMarkramMechanism.__doc__
+
     translations = build_translations(
         ('U', 'U'),
         ('tau_rec', 'D', 1e-3),
@@ -67,12 +69,8 @@ class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
         
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
-    """
-    The amplitude of the weight change is fixed for depression (`A_minus`)
-    and for potentiation (`A_plus`).
-    If the new weight would be less than `w_min` it is set to `w_min`. If it would
-    be greater than `w_max` it is set to `w_max`.
-    """
+    
+    __doc__ = synapses.AdditiveWeightDependence.__doc__
     
     translations = build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion. This exposes a limitation of the current
@@ -101,11 +99,9 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     
     
 class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
-    """
-    The amplitude of the weight change depends on the current weight.
-    For depression, Dw propto w-w_min
-    For potentiation, Dw propto w_max-w
-    """
+    
+    __doc__ = synapses.MultiplicativeWeightDependence.__doc__
+
     translations = build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion
         ('w_min',     'w_min_always_zero_in_PCSIM'),
@@ -129,10 +125,9 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
 
 
 class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
-    """
-    The amplitude of the weight change depends on the current weight for
-    depression (Dw propto w-w_min) and is fixed for potentiation.
-    """
+    
+    __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
+
     translations = build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion
         ('w_min',     'w_min_always_zero_in_PCSIM'),
@@ -155,11 +150,9 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         self.parameters.pop('w_min_always_zero_in_PCSIM')
 
 class GutigWeightDependence(synapses.GutigWeightDependence):
-    """
-    The amplitude of the weight change depends on the current weight.
-    For depression, Dw propto w-w_min
-    For potentiation, Dw propto w_max-w
-    """
+    
+    __doc__ = synapses.GutigWeightDependence.__doc__
+
     translations = build_translations(
         ('w_max',     'Wex',  1e-9), # unit conversion
         ('w_min',     'w_min_always_zero_in_PCSIM'),
@@ -182,7 +175,9 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         
 
 class SpikePairRule(synapses.SpikePairRule):
-    
+
+    __doc__ = synapses.SpikePairRule.__doc__    
+
     translations = build_translations(
         ('tau_plus',  'taupos', 1e-3),
         ('tau_minus', 'tauneg', 1e-3), 

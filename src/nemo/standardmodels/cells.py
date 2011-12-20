@@ -46,6 +46,8 @@ class Izhikevich(IzhikevichTemplate):
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     
+    __doc__ = cells.SpikeSourcePoisson.__doc__ 
+
     translations = build_translations(
         ('rate', 'rate'),
         ('start', 'start'),
@@ -92,6 +94,8 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
 class SpikeSourceArray(cells.SpikeSourceArray):
 
+    __doc__ = cells.SpikeSourceArray.__doc__    
+
     translations = build_translations(
         ('spike_times', 'spike_times'),
     )
@@ -133,9 +137,9 @@ class IF_curr_alpha(ModelNotAvailable):
     pass
 
 class IF_curr_exp(cells.IF_curr_exp):
-    """Leaky integrate and fire model with fixed threshold and
-    decaying-exponential post-synaptic current. (Separate synaptic currents for
-    excitatory and inhibitory synapses."""
+    
+    __doc__ = cells.IF_curr_exp.__doc__    
+
     translations = build_translations(
         ('v_rest',     'v_rest'),
         ('v_reset',    'v_reset'),
