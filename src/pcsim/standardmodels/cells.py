@@ -16,8 +16,8 @@ import logging
 logger = logging.getLogger("PyNN")
 
 class IF_curr_alpha(cells.IF_curr_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
+    
+    __doc__ = cells.IF_curr_alpha.__doc__   
     
     translations = build_translations(
         ('tau_m',      'taum',      1e-3),
@@ -41,9 +41,8 @@ class IF_curr_alpha(cells.IF_curr_alpha):
 
 
 class IF_curr_exp(cells.IF_curr_exp):
-    """Leaky integrate and fire model with fixed threshold and
-       decaying-exponential post-synaptic current. (Separate synaptic currents for
-       excitatory and inhibitory synapses."""
+    
+    __doc__ = cells.IF_curr_exp.__doc__    
     
     translations = build_translations(
         ('tau_m',      'taum',      1e-3),
@@ -67,8 +66,8 @@ class IF_curr_exp(cells.IF_curr_exp):
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic conductance."""
+    
+    __doc__ = cells.IF_cond_alpha.__doc__    
     
     translations = build_translations(
         ('tau_m',      'taum',      1e-3),
@@ -95,8 +94,8 @@ class IF_cond_alpha(cells.IF_cond_alpha):
 
 
 class IF_cond_exp(cells.IF_cond_exp):
-    """Leaky integrate and fire model with fixed threshold and 
-    exponentially-decaying post-synaptic conductance."""
+    
+    __doc__ = cells.IF_cond_exp.__doc__    
     
     translations = build_translations(
         ('tau_m',      'taum',      1e-3),
@@ -124,7 +123,8 @@ class IF_cond_exp(cells.IF_cond_exp):
 
 """ Implemented not tested """
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
-    """Spike source, generating spikes according to a Poisson process."""
+    
+    __doc__ = cells.SpikeSourcePoisson.__doc__     
 
     translations = build_translations(
         ('start',    'Tstart',   1e-3), 
@@ -163,7 +163,9 @@ def sanitize_spike_times(spike_times):
         return spike_times
 
 class SpikeSourceArray(cells.SpikeSourceArray):
-    """Spike source generating spikes at the times given in the spike_times array."""
+
+    __doc__ = cells.SpikeSourceArray.__doc__    
+
     translations = build_translations(
         ('spike_times', 'spikeTimes'), # 1e-3), 
     )

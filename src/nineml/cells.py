@@ -58,9 +58,8 @@ class CellTypeMixin(object):
 
 
 class IF_curr_exp(cells.IF_curr_exp, CellTypeMixin):
-    """Leaky integrate and fire model with fixed threshold and
-    decaying-exponential post-synaptic current. (Separate synaptic currents for
-    excitatory and inhibitory synapses."""
+    
+    __doc__ = cells.IF_curr_exp.__doc__      
     
     translations = standardmodels.build_translations(
         ('tau_m',      'membraneTimeConstant'),
@@ -89,6 +88,8 @@ class IF_curr_exp(cells.IF_curr_exp, CellTypeMixin):
 
 class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
    
+    __doc__ = cells.IF_cond_exp.__doc__    
+
     translations = standardmodels.build_translations(
         ('tau_m',      'membraneTimeConstant'),
         ('cm',         'membraneCapacitance'),
@@ -117,6 +118,8 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
 
 
 class IF_cond_alpha(cells.IF_cond_exp, CellTypeMixin):
+
+    __doc__ = cells.IF_cond_alpha.__doc__    
    
     translations = standardmodels.build_translations(
         ('tau_m',      'membraneTimeConstant'),
@@ -146,6 +149,8 @@ class IF_cond_alpha(cells.IF_cond_exp, CellTypeMixin):
     
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson, CellTypeMixin):
+
+    __doc__ = cells.SpikeSourcePoisson.__doc__     
     
     translations = standardmodels.build_translations(
         ('start',    'onset'),

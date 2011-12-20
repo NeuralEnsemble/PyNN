@@ -13,8 +13,8 @@ from pyNN.moose.cells import mV, ms, nA, uS, nF
 
 
 class IF_cond_exp(cells.IF_cond_exp):
-    """Leaky integrate and fire model with fixed threshold and 
-    exponentially-decaying post-synaptic conductance."""
+    
+    __doc__ = cells.IF_cond_exp.__doc__    
     
     translations = build_translations(
         ('tau_m',      'Rm',        '1e6*tau_m/cm',     '1e3*Rm*Cm'),
@@ -40,7 +40,9 @@ class IF_cond_exp(cells.IF_cond_exp):
 class IF_cond_alpha(cells.IF_cond_alpha):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
-    
+
+    __doc__ = cells.IF_cond_alpha.__doc__        
+
     translations = IF_cond_exp.translations
     model = StandardIF
     
@@ -50,7 +52,9 @@ class IF_cond_alpha(cells.IF_cond_alpha):
 
 
 class HH_cond_exp(cells.HH_cond_exp):
-    """Single compartment cell with an Na channel and a K channel"""
+    
+    __doc__ = cells.HH_cond_exp.__doc__    
+
     translations = build_translations(
         ('gbar_Na',    'GbarNa', 1e-9),   
         ('gbar_K',     'GbarK', 1e-9),    
@@ -71,7 +75,8 @@ class HH_cond_exp(cells.HH_cond_exp):
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
-    """Spike source, generating spikes according to a Poisson process."""
+    
+    __doc__ = cells.SpikeSourcePoisson.__doc__     
 
     translations = build_translations(
         ('start',    'start'),
@@ -82,7 +87,8 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
-    """Spike source generating spikes at the times given in the spike_times array."""
+    
+    __doc__ = cells.SpikeSourceArray.__doc__    
 
     translations = build_translations(
         ('spike_times', 'spike_times'),

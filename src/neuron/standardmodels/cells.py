@@ -18,8 +18,8 @@ logger = logging.getLogger("PyNN")
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
+    
+    __doc__ = cells.IF_curr_alpha.__doc__      
     
     translations = build_translations(
         ('tau_m',      'tau_m'),
@@ -41,9 +41,8 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         self.parameters['syn_shape'] = 'alpha'
 
 class IF_curr_exp(cells.IF_curr_exp):
-    """Leaky integrate and fire model with fixed threshold and
-    decaying-exponential post-synaptic current. (Separate synaptic currents for
-    excitatory and inhibitory synapses."""
+    
+    __doc__ = cells.IF_curr_exp.__doc__    
     
     translations = build_translations(
         ('tau_m',      'tau_m'),
@@ -65,8 +64,8 @@ class IF_curr_exp(cells.IF_curr_exp):
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic conductance."""
+    
+    __doc__ = cells.IF_cond_alpha.__doc__    
     
     translations = build_translations(
         ('tau_m',      'tau_m'),
@@ -91,8 +90,8 @@ class IF_cond_alpha(cells.IF_cond_alpha):
 
 
 class IF_cond_exp(cells.IF_cond_exp):
-    """Leaky integrate and fire model with fixed threshold and 
-    exponentially-decaying post-synaptic conductance."""
+    
+    __doc__ = cells.IF_cond_exp.__doc__    
     
     translations = build_translations(
         ('tau_m',      'tau_m'),
@@ -117,11 +116,8 @@ class IF_cond_exp(cells.IF_cond_exp):
 
 
 class IF_facets_hardware1(cells.IF_facets_hardware1):
-    """Leaky integrate and fire model with conductance-based synapses and fixed
-    threshold as it is resembled by the FACETS Hardware Stage 1. For further
-    details regarding the hardware model see the FACETS-internal Wiki:
-    https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
-    """
+    
+    __doc__ = cells.IF_facets_hardware1.__doc__        
 
     translations = build_translations(
         ('v_rest',     'v_rest'),
@@ -146,6 +142,8 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
        
 class HH_cond_exp(cells.HH_cond_exp):
     
+    __doc__ = cells.HH_cond_exp.__doc__    
+
     translations = build_translations(
         ('gbar_Na',    'gbar_Na',   1e-3),   # uS -> mS
         ('gbar_K',     'gbar_K',    1e-3),    
@@ -171,17 +169,9 @@ class HH_cond_exp(cells.HH_cond_exp):
 
 
 class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
-    """
-    Linear leaky integrate and fire model with fixed threshold,
-    decaying-exponential post-synaptic conductance, conductance based
-    spike-frequency adaptation, and a conductance-based relative refractory
-    mechanism.
 
-    See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond
-    mean-adaptation and renewal theories. Neural Computation 19: 2958-3010.
+    __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__        
 
-    See also: EIF_cond_alpha_isfa_ista
-    """
     translations = build_translations(
         ('v_rest',     'v_reset'),
         ('v_reset',    'v_reset'),
@@ -212,7 +202,8 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
-    """Spike source, generating spikes according to a Poisson process."""
+
+    __doc__ = cells.SpikeSourcePoisson.__doc__     
 
     translations = build_translations(
         ('start',    'start'),
@@ -223,7 +214,8 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
-    """Spike source generating spikes at the times given in the spike_times array."""
+    
+    __doc__ = cells.SpikeSourceArray.__doc__    
 
     translations = build_translations(
         ('spike_times', 'spike_times'),
@@ -232,15 +224,8 @@ class SpikeSourceArray(cells.SpikeSourceArray):
        
         
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
-    """
-    Exponential integrate and fire neuron with spike triggered and sub-threshold
-    adaptation currents (isfa, ista reps.) according to:
     
-    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
-    an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
-
-    See also: IF_cond_exp_gsfa_grr
-    """
+    __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__ 
     
     translations = build_translations(
         ('cm',         'c_m'),
@@ -268,7 +253,8 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         self.parameters['syn_shape'] = 'alpha'
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
-    """Like EIF_cond_alpha_isfa_ista, but with single-exponential synapses."""
+    
+    __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__    
     
     translations = EIF_cond_alpha_isfa_ista.translations
     model = BretteGerstnerIF
