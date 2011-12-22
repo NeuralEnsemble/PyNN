@@ -129,7 +129,19 @@ class FastFixedProbabilityConnector(FixedProbabilityConnector):
 
 class FastDistanceDependentProbabilityConnector(DistanceDependentProbabilityConnector):
     
-    __doc__ = DistanceDependentProbabilityConnector.__doc__
+    """
+        Create a new connector.
+        
+        `d_expression` -- the right-hand side of a valid python expression for
+            probability, involving 'd', e.g. "exp(-abs(d))", or "d<3"
+        `n_connections`  -- The number of afferent synaptic connections per neuron.                 
+        `space` -- a Space object.
+        `weights` -- may either be a float, a RandomDistribution object, a list/
+                     1D array with at least as many items as connections to be
+                     created, or a distance expression as for `d_expression`. Units nA.
+        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
+                     to the global minimum delay.
+        """
     
     def connect(self, projection):
         """Connect-up a Projection."""
@@ -200,7 +212,23 @@ class FastFromListConnector(FromListConnector):
 
 class FastSmallWorldConnector(SmallWorldConnector):
     
-    __doc__ = SmallWorldConnector.__doc__
+    """
+        Create a new connector.
+        
+        `degree` -- the region lenght where nodes will be connected locally
+        `rewiring` -- the probability of rewiring each eadges 
+        `space` -- a Space object.
+        `allow_self_connections` -- if the connector is used to connect a
+            Population to itself, this flag determines whether a neuron is
+            allowed to connect to itself, or only to other neurons in the
+            Population.        
+        `n_connections`  -- The number of afferent synaptic connections per neuron. 
+        `weights` -- may either be a float, a RandomDistribution object, a list/
+                     1D array with at least as many items as connections to be
+                     created, or a DistanceDependence object. Units nA.
+        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
+                     to the global minimum delay.
+        """
     
     def connect(self, projection):
         """Connect-up a Projection."""

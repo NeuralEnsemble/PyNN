@@ -143,3 +143,19 @@ class FastOneToOneConnector(OneToOneConnector):
                 count += 1
         else:
             raise errors.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
+
+
+class FastSmallWorldConnector(SmallWorldConnector):
+    
+    __doc__ = SmallWorldConnector.__doc__
+    
+    def connect(self, projection):
+        """Connect-up a Projection."""
+        connector       = FastProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
+        proba_generator = ProbaGenerator(self.d_expression, connector.local)
+        self.progressbar(len(projection.pre.local_cells))
+        for count, tgt in enumerate(projection.pre.local_cells):
+            connector.distance_matrix.set_source(tgt.position)
+            proba  = proba_generator.get(connector.N, connector.distance_matrix)
+            connector._probabilistic_connect(tgt, proba, self.n_connections, self.rewiring)
+            self.progression(count, projection._simulator.state.mpi_rank)
