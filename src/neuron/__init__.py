@@ -16,7 +16,7 @@ from pyNN import common, core, space, __doc__
 from pyNN.neuron.standardmodels.cells import *
 from pyNN.neuron.connectors import *
 from pyNN.neuron.standardmodels.synapses import *
-from pyNN.neuron.electrodes import *
+from pyNN.neuron.standardmodels.electrodes import *
 from pyNN.neuron.recording import Recorder
 from pyNN import standardmodels
 import numpy

@@ -16,9 +16,9 @@ from pyNN import common, recording, space, core, __doc__
 from pyNN.random import *
 from pyNN.recording import files
 from pyNN.brian.standardmodels.cells import *
+from pyNN.brian.standardmodels.electrodes import *
 from pyNN.brian.connectors import *
 from pyNN.brian.standardmodels.synapses import *
-from pyNN.brian.electrodes import *
 from pyNN.brian import electrodes
 from pyNN.brian.recording import *
 from pyNN import standardmodels

@@ -94,6 +94,8 @@ class BaseCellType(BaseModelType):
     conductance_based = True # override for cells with current-based synapses
     injectable = True # override for spike sources
 
+class BaseCurrentSource(BaseModelType):
+    """Base class for current source model classes."""
 
 class BaseSynapseDynamics(object):
     pass

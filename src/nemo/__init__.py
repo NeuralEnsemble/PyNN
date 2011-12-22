@@ -18,7 +18,7 @@ from pyNN.recording import files
 from pyNN.nemo.standardmodels.cells import *
 from pyNN.nemo.connectors import *
 from pyNN.nemo.standardmodels.synapses import *
-from pyNN.nemo.electrodes import *
+from pyNN.nemo.standardmodels.electrodes import *
 from pyNN.nemo import electrodes
 from pyNN.nemo.recording import *
 from pyNN import standardmodels

@@ -15,8 +15,8 @@ exec("from pyNN.%s import *" % simulator_name)
 setup()
 
 cell = create(IF_curr_exp, {'v_thresh': -55.0, 'tau_refrac': 5.0})
-current_source = StepCurrentSource([50.0, 110.0, 150.0, 210.0],
-                                   [0.4, 0.6, -0.2, 0.2])
+current_source = StepCurrentSource({'times' : [50.0, 110.0, 150.0, 210.0],
+                                    'amplitudes' : [0.4, 0.6, -0.2, 0.2]})
 cell.inject(current_source)
 
 record_v(cell, "Results/StepCurrentSource_%s.v" % simulator_name)

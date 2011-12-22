@@ -128,9 +128,8 @@ class _State(object):
 
 def reset():
     """Reset the state of the current network to time t = 0."""
-    state.net.reset_timer()    
-    self.time   = 0
-    self._fired = []
+    state.time   = 0
+    state._fired = []
     
 # --- For implementation of access to individual neurons' parameters -----------
     

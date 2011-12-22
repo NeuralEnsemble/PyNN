@@ -26,6 +26,7 @@ from pyNN.nest.standardmodels.cells import *
 from pyNN.nest.connectors import *
 from pyNN.nest.standardmodels.synapses import *
 from pyNN.nest.electrodes import *
+from pyNN.nest.standardmodels.electrodes import *
 from pyNN.nest.recording import *
 from pyNN.random import RandomDistribution
 from pyNN import standardmodels

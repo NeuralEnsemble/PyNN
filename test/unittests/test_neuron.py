@@ -29,6 +29,28 @@ class MockCell(object):
         self.judeans = judeans
         self.foo_init = -99.9
 
+class MockStepCurrentSource(object):
+    parameter_names = ['amplitudes', 'times']
+    def __init__(self, parameters):
+        self._devices = []
+
+    def inject_into(self, cell_list):
+        for cell in cell_list:
+            if cell.local:
+               self._devices += [cell]
+
+class MockDCSource(object):
+    parameter_names = ['amplitude', 'start', 'stop']
+    parameters      = {'amplitude' : 0, 'start' : 0, 'stop' : 1e12}
+    def __init__(self, parameters):
+        self._devices = []
+
+    def inject_into(self, cell_list):
+        for cell in cell_list:
+            if cell.local:
+               self._devices += [cell]
+
+
 class MockID(int):
     def __init__(self, n):
         int.__init__(n)
@@ -221,13 +243,13 @@ class TestCurrentSources(object):
         self.cells = [MockID(n) for n in range(5)]
 
     def test_inject_dc(self):
-        cs = electrodes.DCSource()
+        cs = electrodes.DCSource({})
         cs.inject_into(self.cells)
         assert_equal(cs.stop, 1e12)
         assert_equal(len(cs._devices), 2) 
 
     def test_inject_step_current(self):
-        cs = electrodes.StepCurrentSource([1,2,3], [0.5, 1.5, 2.5])
+        cs = MockStepCurrentSource({'amplitudes' : [1,2,3], 'times' : [0.5, 1.5, 2.5]})
         cs.inject_into(self.cells)
         assert_equal(len(cs._devices), 2)# 2 local cells
         # need more assertions about iclamps, vectors
