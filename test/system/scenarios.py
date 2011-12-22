@@ -17,7 +17,7 @@ def register(exclude=[]):
     return inner_register
 
 
-@register()
+@register(exclude=["nemo"])
 def scenario1(sim):
     """
     Balanced network of integrate-and-fire neurons.
@@ -38,13 +38,14 @@ def scenario1(sim):
     pconn_input = 0.01
     tstop = 1000.0
     delay = 0.2
+    dt    = 0.1
     weights = {
         'excitatory': 4.0e-3,
         'inhibitory': 51.0e-3,
         'input': 0.1,
     }
        
-    sim.setup(timestep=0.1, threads=n_threads)
+    sim.setup(timestep=dt, min_delay=dt, threads=n_threads)
     all_cells = sim.Population(n_exc+n_inh, sim.IF_cond_exp, cell_params, label="All cells")
     cells = {
         'excitatory': all_cells[:n_exc],
@@ -82,7 +83,7 @@ def scenario1(sim):
     sim.end()
 
 
-@register()
+@register(exclude=["nemo"])
 def scenario1a(sim):
     """
     Balanced network of integrate-and-fire neurons, built with the "low-level"
@@ -103,12 +104,13 @@ def scenario1a(sim):
     pconn_recurr = 0.03
     pconn_input = 0.01
     tstop = 1000.0
-    delay = 0.3
+    delay = 1
     w_exc = 3.0e-3
     w_inh = 45.0e-3
     w_input = 0.12
+    dt      = 0.1
        
-    sim.setup(timestep=0.1, threads=n_threads)
+    sim.setup(timestep=dt, min_delay=dt, threads=n_threads)
     excitatory_cells = sim.create(sim.IF_cond_alpha, cell_params, n=n_exc)
     inhibitory_cells = sim.create(sim.IF_cond_alpha, cell_params, n=n_inh)
     inputs = sim.create(sim.SpikeSourcePoisson, stimulation_params, n=n_input)
@@ -133,7 +135,7 @@ def scenario1a(sim):
     sim.end()
 
 
-@register(exclude=["moose"])
+@register(exclude=["moose", "nemo"])
 def scenario2(sim):
     """
     Array of neurons, each injected with a different current.
@@ -161,7 +163,7 @@ def scenario2(sim):
     neurons = sim.Population(n, sim.IF_curr_exp, cell_params)
     neurons.initialize('v', 0.0)
     I = numpy.arange(I0, I0+1.0, 1.0/n)
-    currents = [sim.DCSource(start=t_start, stop=t_start+duration, amplitude=amp)
+    currents = [sim.DCSource({"start" : t_start, "stop" : t_start+duration, "amplitude" :amp})
                 for amp in I]
     for j, (neuron, current) in enumerate(zip(neurons, currents)):
         if j%2 == 0:                      # these should
@@ -187,7 +189,7 @@ def scenario2(sim):
     return a,b, spikes
 
 
-@register(exclude=["moose", "brian"])
+@register(exclude=["moose", "nemo", "brian"])
 def scenario3(sim):
     """
     Simple feed-forward network network with additive STDP. The second half of
@@ -276,7 +278,7 @@ def scenario3(sim):
     return initial_weights, final_weights, pre, post, connections
     
 
-@register()
+@register(exclude=["nemo"])
 def ticket166(sim):
     """
     Check that changing the spike_times of a SpikeSourceArray mid-simulation
@@ -291,7 +293,7 @@ def ticket166(sim):
         import pylab
         pylab.rcParams['interactive'] = interactive
     
-    sim.setup(timestep=dt)
+    sim.setup(timestep=dt, min_delay=dt)
     
     spikesources = sim.Population(2, sim.SpikeSourceArray)
     cells = sim.Population(2, sim.IF_cond_exp)
@@ -334,8 +336,9 @@ def test_reset(sim):
     and check the results are the same each time.
     """
     repeats = 3
-    sim.setup()
-    p = sim.Population(1, sim.IF_cond_exp, {"i_offset": 0.1})
+    dt      = 1
+    sim.setup(timestep=dt, min_delay=dt)
+    p = sim.Population(1, sim.IF_curr_exp, {"i_offset": 0.1})
     p.record_v()
     
     data = []
@@ -350,7 +353,7 @@ def test_reset(sim):
         assert_arrays_almost_equal(rec, data[0], 1e-12)
 
 
-@register(exclude=['brian', 'pcsim'])
+@register(exclude=['brian', 'pcsim', 'nemo'])
 def test_reset_recording(sim):
     """
     Check that _record(None) resets the list of things to record.
@@ -383,10 +386,11 @@ def test_setup(sim):
     """
     n = 3
     data = []
+    dt   = 1
 
     for i in range(n):
-        sim.setup()
-        p = sim.Population(1, sim.IF_cond_exp, {"i_offset": 0.1})
+        sim.setup(timestep=dt, min_delay=dt)
+        p = sim.Population(1, sim.IF_curr_exp, {"i_offset": 0.1})
         p.record_v()
         sim.run(10.0)
         data.append(p.get_v())
@@ -397,7 +401,7 @@ def test_setup(sim):
     for rec in data:
         assert_arrays_equal(rec, data[0])
 
-@register(exclude=['pcsim', 'moose'])
+@register(exclude=['pcsim', 'moose', 'nemo'])
 def test_EIF_cond_alpha_isfa_ista(sim):
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
     ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista,
@@ -409,7 +413,7 @@ def test_EIF_cond_alpha_isfa_ista(sim):
     assert abs(diff).max() < 0.001
     sim.end()
 
-@register(exclude=['pcsim'])
+@register(exclude=['pcsim', 'nemo'])
 def test_HH_cond_exp(sim):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
@@ -436,13 +440,13 @@ def test_HH_cond_exp(sim):
     assert first_spike - 2.95 < 0.01 
     
 
-@register(exclude=['pcsim', 'moose'])
+@register(exclude=['pcsim', 'moose', 'nemo'])
 def test_record_vm_and_gsyn_from_assembly(sim):
     from pyNN.utility import init_logging
     init_logging(logfile=None, debug=True)
-    dt = 0.1
+    dt    = 0.1
     tstop = 100.0
-    sim.setup(timestep=dt)
+    sim.setup(timestep=dt, min_delay=dt)
     cells = sim.Population(5, sim.IF_cond_exp) + sim.Population(6, sim.EIF_cond_exp_isfa_ista)
     inputs = sim.Population(5, sim.SpikeSourcePoisson, {'rate': 50.0})
     sim.connect(inputs, cells, weight=0.1, delay=0.5, synapse_type='inhibitory')
@@ -480,7 +484,33 @@ def test_record_vm_and_gsyn_from_assembly(sim):
 
     sim.end()
 
-@register()
+@register(exclude=["pcsim", "nemo"])
+def test_changing_electrode(sim):
+    """
+    Check that changing the values of the electrodes on the fly is taken into account
+    """
+    repeats = 2
+    dt      = 0.1
+    simtime = 100
+    sim.setup(timestep=dt, min_delay=dt)
+    p = sim.Population(1, sim.IF_curr_exp)
+    c = sim.DCSource({'amplitude' : 0})
+    c.inject_into(p)    
+    p.record_v()
+    
+    data = []
+    for i in range(repeats):
+        sim.run(100.0)
+        c.amplitude += 0.1
+    data.append(p.get_v())
+        
+    sim.end()
+
+    assert data[0][:, 2][simtime/dt] < data[0][:, 2][-1]
+
+
+
+@register(exclude=['nemo'])
 def ticket195(sim):
     """
     Check that the `connect()` function works correctly with single IDs (see

@@ -41,7 +41,6 @@ class MockStepCurrentSource(object):
 
 class MockDCSource(object):
     parameter_names = ['amplitude', 'start', 'stop']
-    parameters      = {'amplitude' : 0, 'start' : 0, 'stop' : 1e12}
     def __init__(self, parameters):
         self._devices = []
 
