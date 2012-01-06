@@ -81,7 +81,7 @@ class NeuronCurrentSource(StandardCurrentSource):
                     self._h_iclamps[id] = h.IClamp(0.5, sec=id._cell.source_section)
                     self._devices.append(self._h_iclamps[id])
                 self._update_iclamp(self._h_iclamps[id])
-                
+
 
 class DCSource(NeuronCurrentSource, electrodes.DCSource):
 
@@ -95,6 +95,7 @@ class DCSource(NeuronCurrentSource, electrodes.DCSource):
 
     _is_playable = False
     _is_computed = False
+
 
 class StepCurrentSource(NeuronCurrentSource, electrodes.StepCurrentSource):
 

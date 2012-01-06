@@ -117,8 +117,8 @@ def test_record_native_model():
     print p1.get('gnabar')
     p1.initialize('v', -63.0)
 
-    current_source = nrn.StepCurrentSource([50.0, 110.0, 150.0, 210.0],
-                                           [0.4, 0.6, -0.2, 0.2])
+    current_source = nrn.StepCurrentSource({'times': [50.0, 110.0, 150.0, 210.0],
+                                            'amplitudes': [0.4, 0.6, -0.2, 0.2]})
     p1.inject(current_source)
 
     p2 = nrn.Population(1, nrn.SpikeSourcePoisson, {'rate': 100.0})

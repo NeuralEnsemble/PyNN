@@ -1,6 +1,7 @@
 from neuron import h
-from pyNN.neuron import electrodes, recording, simulator
 from pyNN.common import populations
+from pyNN.neuron.standardmodels import electrodes
+from pyNN.neuron import recording, simulator
 from mock import Mock
 from nose.tools import assert_equal, assert_raises, assert_almost_equal
 import numpy

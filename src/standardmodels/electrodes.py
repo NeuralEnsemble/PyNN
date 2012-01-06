@@ -21,7 +21,7 @@ class DCSource(StandardCurrentSource):
     default_parameters = {
         'amplitude'     : 1.0,       #  
         'start'         : 0.0,      # 
-        'stop'          : 100000.0,  # 
+        'stop'          : 1e12,  # 
     }
 
 
@@ -40,7 +40,7 @@ class ACSource(StandardCurrentSource):
     default_parameters = {
         'amplitude'     : 1.0,      #  
         'start'         : 0.0,     # 
-        'stop'          : 100000.0, # 
+        'stop'          : 1e12, # 
         'frequency'     : 10.,
         'offset'        : 0.,
         'phase'         : 0.
@@ -91,6 +91,6 @@ class NoisyCurrentSource(StandardCurrentSource):
         'mean'           : 0.,
         'stdev'          : 1.,
         'start'          : 0.,
-        'stop'           : 100000.0,
+        'stop'           : 1e12,
         'dt'             : 0.1
     }

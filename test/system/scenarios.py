@@ -350,7 +350,7 @@ def test_reset(sim):
     sim.end()
 
     for rec in data:
-        assert_arrays_almost_equal(rec, data[0], 1e-12)
+        assert_arrays_almost_equal(rec, data[0], 1e-11)
 
 
 @register(exclude=['brian', 'pcsim', 'nemo'])

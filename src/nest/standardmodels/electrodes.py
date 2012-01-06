@@ -39,6 +39,8 @@ class NestCurrentSource(StandardCurrentSource):
                 raise TypeError("Can't inject current into a spike source.")
         if isinstance(cell_list, (Population, PopulationView, Assembly)):
             self.cell_list = [cell for cell in cell_list]
+        else:
+            self.cell_list = cell_list
         nest.DivergentConnect(self._device, self.cell_list)
 
     def set_native_parameters(self, parameters): 
