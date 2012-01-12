@@ -30,7 +30,7 @@ class NestCurrentSource(StandardCurrentSource):
         super(StandardCurrentSource, self).__init__(parameters)
         self._device   = nest.Create(self.nest_name)
         self.cell_list = []
-        self.set_native_parameters(parameters)
+        self.set_native_parameters(self.parameters)
 
     def inject_into(self, cell_list):
         """Inject this current source into some cells."""
@@ -44,7 +44,7 @@ class NestCurrentSource(StandardCurrentSource):
         nest.DivergentConnect(self._device, self.cell_list)
 
     def set_native_parameters(self, parameters): 
-        parameters = self.translate(parameters)
+        #parameters = self.translate(parameters)
         for key, value in parameters.items():
             self.parameters[key] = value
             if key == "amplitude_values": 

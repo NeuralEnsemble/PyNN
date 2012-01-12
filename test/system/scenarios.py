@@ -2,6 +2,7 @@
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN import common, recording
 from nose.tools import assert_equal
+import glob, os
 import numpy
 from pyNN.utility import init_logging, assert_arrays_equal, assert_arrays_almost_equal, sort_by_column
 
@@ -133,6 +134,8 @@ def scenario1a(sim):
     print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
     print "Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,)
     sim.end()
+    for filename in glob.glob("scenario1a_*"):
+        os.remove(filename)
 
 
 @register(exclude=["moose", "nemo"])

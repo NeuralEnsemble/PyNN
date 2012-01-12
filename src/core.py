@@ -19,7 +19,7 @@ def is_listlike(obj):
     
     Maybe need to split into different functions, as don't always need length.
     """
-    return type(obj) in [list, numpy.ndarray, tuple, set]
+    return isinstance(obj, (list, numpy.ndarray, tuple, set))
 
 
 def check_shape(meth):
@@ -232,6 +232,7 @@ class LazyArray(object):
     __mul__  = lazy_operation('mul')
     __rmul__ = __mul__
     __div__  = lazy_operation('div')
+    __rdiv__ = __div__
     __pow__  = lazy_operation('pow')
     
     __lt__   = lazy_operation('lt')

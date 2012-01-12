@@ -28,7 +28,7 @@ class NeuronCurrentSource(StandardCurrentSource):
         self._amplitudes = None
         self._times      = None
         self._h_iclamps  = {}
-        self.set_native_parameters(parameters)
+        self.set_native_parameters(self.parameters)
 
     @property
     def _h_amplitudes(self):
