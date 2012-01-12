@@ -34,6 +34,7 @@ def check_shape(meth):
         return meth(self, val)
     return wrapped_meth
 
+
 def lazy_operation(name):
     def op(self, val):
         new_map = deepcopy(self)

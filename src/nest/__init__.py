@@ -251,7 +251,7 @@ class Population(common.Population):
             param_dict = param
         else:
             raise errors.InvalidParameterValueError
-        param_dict = self.celltype.checkParameters(param_dict, with_defaults=False)
+        param_dict = self.celltype.check_parameters(param_dict, with_defaults=False)
         # The default implementation in common is is not very efficient for
         # simple and scaled parameters.
         # Should call nest.SetStatus(self.local_cells,...) for the parameters in

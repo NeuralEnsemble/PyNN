@@ -68,7 +68,7 @@ class StandardModelType(models.BaseModelType):
     @classmethod
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
-        parameters = cls.checkParameters(parameters, with_defaults=False)
+        parameters = cls.check_parameters(parameters, with_defaults=False)
         native_parameters = {}
         for name in parameters:
             D = cls.translations[name]

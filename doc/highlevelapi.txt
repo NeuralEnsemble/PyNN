@@ -72,8 +72,8 @@ If you try to set a non-existent parameter, or pass an invalid value, PyNN will 
         File "/home/andrew/dev/pyNN/standardmodels/__init__.py", line 60, in __init__
           models.BaseModelType.__init__(self, parameters)
         File "/home/andrew/dev/pyNN/models.py", line 16, in __init__
-          self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
-        File "/home/andrew/dev/pyNN/models.py", line 67, in checkParameters
+          self.parameters = self.__class__.check_parameters(parameters, with_defaults=True)
+        File "/home/andrew/dev/pyNN/models.py", line 67, in check_parameters
           raise errors.NonExistentParameterError(k, cls, cls.default_parameters.keys())
     NonExistentParameterError: foo (valid parameters for <class 'pyNN.neuron.standardmodels.cells.IF_curr_alpha'> are: cm, i_offset, tau_m, tau_refrac, tau_syn_E, tau_syn_I, v_reset, v_rest, v_thresh)
 
@@ -89,8 +89,8 @@ If you try to set a non-existent parameter, or pass an invalid value, PyNN will 
         File "/home/andrew/dev/pyNN/standardmodels/__init__.py", line 60, in __init__
           models.BaseModelType.__init__(self, parameters)
         File "/home/andrew/dev/pyNN/models.py", line 16, in __init__
-          self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
-        File "/home/andrew/dev/pyNN/models.py", line 57, in checkParameters
+          self.parameters = self.__class__.check_parameters(parameters, with_defaults=True)
+        File "/home/andrew/dev/pyNN/models.py", line 57, in check_parameters
           raise errors.InvalidParameterValueError(err_msg)
     InvalidParameterValueError: For tau_m in IF_curr_alpha, expected <type 'float'>, got <type 'str'> (bar)
     

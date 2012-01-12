@@ -2,7 +2,7 @@
 API reference
 =============
 
-.. py:currentmodule:: pyNN.common
+.. py:currentmodule:: pyNN.proxy
 
 Simulation setup and control
 ----------------------------

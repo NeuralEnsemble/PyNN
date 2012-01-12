@@ -300,7 +300,7 @@ class BasePopulation(object):
             param_dict = param
         else:
             raise errors.InvalidParameterValueError
-        param_dict = self.celltype.checkParameters(param_dict, with_defaults=False)
+        param_dict = self.celltype.check_parameters(param_dict, with_defaults=False)
         logger.debug("%s.set(%s)", self.label, param_dict)
         if hasattr(self, "_set_array"):
             self._set_array(**param_dict)

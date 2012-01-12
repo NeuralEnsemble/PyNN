@@ -16,7 +16,7 @@ class BaseModelType(object):
     default_initial_values = {}
 
     def __init__(self, parameters):
-        self.parameters = self.__class__.checkParameters(parameters, with_defaults=True)
+        self.parameters = self.__class__.check_parameters(parameters, with_defaults=True)
 
     @classmethod
     def has_parameter(cls, name):
@@ -27,7 +27,7 @@ class BaseModelType(object):
         return cls.default_parameters.keys()
     
     @classmethod
-    def checkParameters(cls, supplied_parameters, with_defaults=False):
+    def check_parameters(cls, supplied_parameters, with_defaults=False):
         """
         Returns a parameter dictionary, checking that each
         supplied_parameter is in the default_parameters and

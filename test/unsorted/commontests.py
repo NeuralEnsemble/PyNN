@@ -50,7 +50,7 @@ class ExceptionsTest(unittest.TestCase):
     
 class StandardModelTest(unittest.TestCase):
     
-    def testCheckParameters(self):
+    def testcheck_parameters(self):
         self.assertRaises(errors.InvalidParameterValueError, cells.SpikeSourceArray, {'spike_times': 0.0})
         self.assertRaises(errors.InvalidParameterValueError, cells.SpikeSourceInhGamma, {'a': 'foo'})
         self.assertRaises(ValueError, cells.SpikeSourceArray, {'spike_times': 'foo'})
