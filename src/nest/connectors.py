@@ -206,7 +206,7 @@ class FastFromListConnector(FromListConnector):
             ## to use a convergent_connect method, instead of a divergent_connect one
             #idx     = eval(tests)
             #projection.connection_manager.connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
-            projection.connection_manager.convergent_connect(srcs.tolist(), tgt, weights, delays)
+            projection._convergent_connect(srcs.tolist(), tgt, weights, delays)
             self.progression(count, projection._simulator.state.mpi_rank)
             count += 1
 
