@@ -134,6 +134,9 @@ class DataCache(object):
         if obj not in self._data:
             self._data.append(obj)
 
+    def clear(self):
+        self._data = []
+
 
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
@@ -179,7 +182,7 @@ class Recorder(object):
         else:
             return self.recorded[variable]
     
-    def get(self, variables, gather=False, filter_ids=None):
+    def get(self, variables, gather=False, filter_ids=None, clear=False):
         """Return the recorded data as a Neo `Block`."""
         variables = normalize_variables_arg(variables)
         data = neo.Block()
@@ -193,16 +196,18 @@ class Recorder(object):
         data.annotate(**self.metadata)
         if gather and self._simulator.state.num_processes > 1:
             data = gather_array(data)
+        if clear:
+            self.cache.clear()
         return data
     
-    def write(self, variables, file=None, gather=False, filter_ids=None):
+    def write(self, variables, file=None, gather=False, filter_ids=None, clear=False):
         """Write recorded data to a Neo IO"""
         io = file or self.file
         if gather==False and self._simulator.state.num_processes > 1:
             io.filename += '.%d' % self._simulator.state.mpi_rank
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
                                                variables, io.filename, gather))
-        data = self.get(variables, gather, filter_ids)
+        data = self.get(variables, gather, filter_ids, clear)
         if self._simulator.state.mpi_rank == 0 or gather == False:
             # Open the output file, if necessary and write the data
             logger.debug("Writing data to file %s" % io)

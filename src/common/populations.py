@@ -468,7 +468,7 @@ class BasePopulation(object):
         """
         self.record(['gsyn_exc', 'gsyn_inh'], to_file)
 
-    def write_data(self, io, variables='all', gather=True):
+    def write_data(self, io, variables='all', gather=True, clear=False):
         """
         Write recorded data to file, using one of the file formats supported by
         Neo.
@@ -482,10 +482,12 @@ class BasePopulation(object):
         to the master node and a single output file created there. Otherwise, a
         file will be written on each node, containing only data from the cells
         simulated on that node.
+        
+        If `clear` is True, recorded data will be deleted from the `Population`.
         """
         self.recorder.write(variables, io, gather, self.record_filter)
 
-    def get_data(self, variables='all', gather=True):
+    def get_data(self, variables='all', gather=True, clear=False):
         """
         Return a Neo `Block` containing the data (spikes, state variables)
         recorded from the Population.
@@ -498,8 +500,10 @@ class BasePopulation(object):
         to all nodes and the Neo `Block` will contain data from all nodes.
         Otherwise, the Neo `Block` will contain only data from the cells
         simulated on the local node.
+        
+        If `clear` is True, recorded data will be deleted from the `Population`.
         """
-        return self.recorder.get(variables, gather, self.record_filter)
+        return self.recorder.get(variables, gather, self.record_filter, clear)
 
     @deprecated("write_data(file, 'spikes')")
     def printSpikes(self, file, gather=True, compatible_output=True):

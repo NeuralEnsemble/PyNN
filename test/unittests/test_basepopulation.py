@@ -367,7 +367,7 @@ def test_getSpikes():
     p.getSpikes("gather", "compatible_output")
     meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'get')
-    assert_equal(args, ("spikes", "gather", "filter"))
+    assert_equal(args, ("spikes", "gather", "filter", False))
 
 def test_print_v():
     p = MockPopulation()
@@ -385,7 +385,7 @@ def test_get_v():
     p.get_v("gather", "compatible_output")
     meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'get')
-    assert_equal(args, ("v", "gather", "filter"))
+    assert_equal(args, ("v", "gather", "filter", False))
     
 def test_print_gsyn():
     p = MockPopulation()
@@ -403,7 +403,7 @@ def test_get_gsyn():
     p.get_gsyn("gather", "compatible_output")
     meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'get')
-    assert_equal(args, (["gsyn_exc", "gsyn_inh"], "gather", "filter"))
+    assert_equal(args, (["gsyn_exc", "gsyn_inh"], "gather", "filter", False))
     
 def test_get_spike_counts():
     p = MockPopulation()
