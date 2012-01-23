@@ -24,8 +24,6 @@ for amp in (-0.2, -0.1, 0.0, 0.1, 0.2):
     
 data = cell.get_data()
 
-sim.end()
-
 for segment in data.segments:
     vm = segment.analogsignalarrays[0]
     plt.plot(vm.times, vm,
@@ -34,3 +32,5 @@ plt.legend(loc="upper left")
 plt.xlabel("Time (%s)" % vm.times.units._dimensionality)
 plt.ylabel("Membrane potential (%s)" % vm.units._dimensionality)
 plt.savefig("reset_example_%s.png" % simulator_name)
+
+sim.end()
