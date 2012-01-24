@@ -16,6 +16,7 @@ import logging
 import os.path
 import numpy
 import os
+from copy import copy
 from collections import defaultdict
 from pyNN import errors
 import neo.io

@@ -63,7 +63,7 @@ class RecordingDevice(object):
         data = {}
         for id in desired_ids:
             data[id] = values[ids==id]
-            if variable != 'spikes':
+            if variable != 'times':
                 initial_value = id.get_initial_value(variable)
                 data[id] = numpy.concatenate(([initial_value], data[id]))
         return data
