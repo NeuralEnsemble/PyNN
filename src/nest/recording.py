@@ -82,15 +82,22 @@ class RecordingDevice(object):
         Transform the NEST events dictionary (when recording to memory) to a
         Numpy array.
         """
-        ids = events['senders']
+        if events.has_key('senders'):
+            ids = events['senders']
+        else:
+            ## That mean that we are using the accumulator mode of NEST ##
+            ids = list(self._all_ids)[0] * numpy.ones(len(events['times']))
         times = events['times']
         if self.type == 'spike_detector':
             data = numpy.array((ids, times)).T
         else:
             data = [ids, times]
             for var in self.record_from:
-                data.append(events[var])
-            data = numpy.array(data).T
+                if events.has_key('senders'):
+                    data.append(events[var])
+                else:
+                    data.append(events[var]/len(self._all_ids))
+            data = numpy.array(data).T  
         return data
 
     def scale_data(self, data):
