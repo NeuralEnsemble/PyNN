@@ -324,5 +324,5 @@ class Recorder(recording.Recorder):
             for id, l, r in zip(idx, left, right):
                 N[id] = r-l
         return N
-    
+   
 simulator.Recorder = Recorder # very inelegant. Need to rethink the module structure
