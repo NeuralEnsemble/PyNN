@@ -158,6 +158,7 @@ class Recorder(object):
         self.recorded = defaultdict(set)
         self.cache = DataCache()
         self._simulator.recorders.add(self)
+        self.clear_flag = False
         
     def record(self, variables, ids):
         """
@@ -197,8 +198,12 @@ class Recorder(object):
         data.annotate(**self.metadata)
         if gather and self._simulator.state.num_processes > 1:
             data = gather_array(data)
+
         if clear:
             self.cache.clear()
+        
+        self.clear_flag = True
+          
         return data
     
     def write(self, variables, file=None, gather=False, filter_ids=None, clear=False):
@@ -242,6 +247,10 @@ class Recorder(object):
         return N
     
     def store_to_cache(self, annotations={}):
-        segment = self._get_current_segment()
-        segment.annotate(**annotations)
-        self.cache.store(segment)
+        #make sure we haven't called get with clear=True since last reset
+        #and that we did not do two resets in a row
+        if (self._simulator.state.t != 0) and (not self.clear_flag):
+            segment = self._get_current_segment()
+            segment.annotate(**annotations)
+            self.cache.store(segment)
+        self.clear_flag = False
