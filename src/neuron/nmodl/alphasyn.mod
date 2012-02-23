@@ -33,6 +33,7 @@ ASSIGNED {
 	i (nA)
 	g (uS)
 	q
+	quiet
 	onset_times[MAX_SPIKES] (ms)
 	weight_list[MAX_SPIKES] (uS)
 }
@@ -40,6 +41,7 @@ ASSIGNED {
 INITIAL {
 	i  = 0
 	q  = 0 : queue index
+	quiet = 0
 }
 
 BREAKPOINT {
@@ -82,8 +84,12 @@ NET_RECEIVE(weight (uS)) {
 	onset_times[q] = t
 	weight_list[q] = weight
 	if (q >= MAX_SPIKES-1) {
-		printf("Error in AlphaSyn. Spike queue is full\n")
+		if (!quiet) {
+			printf("Error in AlphaSyn. Spike queue is full\n")
+			quiet = 1
+		}
 	} else {
 		q = q + 1
 	}
 }
+s

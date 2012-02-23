@@ -38,8 +38,8 @@ def test_record_native_model():
     p1.rset('Tau_m', RandomDistribution('uniform', [15.0, 20.0]))
     print p1.get('Tau_m')
     
-    current_source = nest.StepCurrentSource([50.0, 110.0, 150.0, 210.0],
-                                            [0.01, 0.02, -0.02, 0.01])
+    current_source = nest.StepCurrentSource({'times' : [50.0, 110.0, 150.0, 210.0],
+                                            'amplitudes' : [0.01, 0.02, -0.02, 0.01]})
     p1.inject(current_source)
     
     p2 = nest.Population(1, nest.native_cell_type("poisson_generator"), {'rate': 200.0})

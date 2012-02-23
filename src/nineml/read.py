@@ -1,12 +1,6 @@
 """
 Enables creating neuronal network models in PyNN from a 9ML description.
 
-For now, there is no support for the 9ML abstraction layer. Instead we use a
-mapping between URIs and PyNN classes. The URIs may point to an abstraction layer
-file which is asserted to represent the same model as the PyNN class. In time,
-the plan is to implement all these abstraction layer files, and then this module
-will actually parse them rather than using name mapping.
-
 Classes:
     Network -- container for a network model.
 
@@ -15,47 +9,48 @@ Classes:
 """
 
 import nineml.user_layer as nineml
+import nineml.abstraction_layer as al
 import pyNN.nineml
 import pyNN.random
 import pyNN.space
 import re
 
-def generate_spiking_node_description_map():
-    """
-    Return a mapping between URIs and StandardCellType classes.
-    """
-    map = {}
-    for m in pyNN.nineml.list_standard_models():
-        definition_url = m.spiking_mechanism_definition_url
-        if definition_url in map:
-            map[definition_url].add(m)
-        else:
-            map[definition_url] = set([m])
-    return map
+#def generate_spiking_node_description_map():
+#    """
+#    Return a mapping between URIs and StandardCellType classes.
+#    """
+#    map = {}
+#    for m in pyNN.nineml.list_standard_models():
+#        definition_url = m.spiking_mechanism_definition_url
+#        if definition_url in map:
+#            map[definition_url].add(m)
+#        else:
+#            map[definition_url] = set([m])
+#    return map
 
-def generate_post_synaptic_response_description_map():
-    """
-    Return a mapping between URIs and StandardCellType classes.
-    """
-    map = {}
-    for m in pyNN.nineml.list_standard_models():
-        if m.synapse_types: # exclude spike sources
-            definition_url = m.synaptic_mechanism_definition_urls['excitatory']
-            assert definition_url == m.synaptic_mechanism_definition_urls['inhibitory']
-            if definition_url in map:
-                map[definition_url].add(m)
-            else:
-                map[definition_url] = set([m])
-    return map
+#def generate_post_synaptic_response_description_map():
+#    """
+#    Return a mapping between URIs and StandardCellType classes.
+#    """
+#    map = {}
+#    for m in pyNN.nineml.list_standard_models():
+#        if m.synapse_types: # exclude spike sources
+#            definition_url = m.synaptic_mechanism_definition_urls['excitatory']
+#            assert definition_url == m.synaptic_mechanism_definition_urls['inhibitory']
+#            if definition_url in map:
+#                map[definition_url].add(m)
+#            else:
+#                map[definition_url] = set([m])
+#    return map
 
-def generate_connector_map():
-    """
-    Return a mapping between URIs and Connector classes.
-    """
-    map = {}
-    for c in pyNN.nineml.connectors.list_connectors():
-        map[c.definition_url] = c
-    return map
+#def generate_connector_map():
+#    """
+#    Return a mapping between URIs and Connector classes.
+#    """
+#    map = {}
+#    for c in pyNN.nineml.connectors.list_connectors():
+#        map[c.definition_url] = c
+#    return map
 
 def reverse_map(D):
     """
@@ -69,7 +64,7 @@ def reverse_map(D):
     return E
 
 def scale(parameter_name, unit):
-    """Primitive unit handling. Should probably use Piquant, or similar."""
+    """Primitive unit handling. Should probably use Piquant, quantities, or similar."""
     ms = 1
     mV = 1
     s = 1000
@@ -172,6 +167,10 @@ def _build_structure(nineml_structure):
     return pyNN_structure
 
 
+def _generate_variable_name(name):
+    return name.replace(" ", "_").replace("-", "")
+        
+
 class Network(object):
     """
     Container for a neuronal network model, created from a 9ML user-layer file.
@@ -204,6 +203,8 @@ class Network(object):
         self.random_distributions = {}
         self.assemblies = {}
         self.projections = {}
+        _tmp = __import__(sim.__name__, globals(), locals(), ["nineml"])
+        self._nineml_module = _tmp.nineml
         self._build()
         
     def _build(self):
@@ -232,56 +233,78 @@ class Network(object):
         for projection in group.projections.values():
             self._build_projection(projection, self.assemblies[group.name])
     
-    def _determine_cell_type(self, nineml_population):
-        """Determine cell class from standardcell--catalog mapping"""
-        cellclass_map = generate_spiking_node_description_map()
-        possible_cell_classes_from_spiking_node = cellclass_map[nineml_population.prototype.definition.url]
-        if nineml_population.name in self.psr_map:
-            synapse_definition_urls = set(psr.definition.url for psr in self.psr_map[nineml_population.name])
-            assert len(synapse_definition_urls) == 1 # exc and inh always same model at present
-            synapse_definition_url = list(synapse_definition_urls)[0]
-            synapsetype_map = generate_post_synaptic_response_description_map()
-            possible_cell_classes_from_psr = synapsetype_map[synapse_definition_url]
-            possible_cell_classes = possible_cell_classes_from_spiking_node.intersection(possible_cell_classes_from_psr)
-            assert len(possible_cell_classes) == 1
-            cell_class = list(possible_cell_classes)[0]
-        else:
-            print "Population '%s' is not the target of any Projections, so we can choose any synapse model." % nineml_population.name
-            cell_class = list(possible_cell_classes_from_spiking_node)[0]
-        return cell_class
+    #def _determine_cell_type(self, nineml_population):
+    #    """Determine cell class from standardcell--catalog mapping"""
+    #   cellclass_map = generate_spiking_node_description_map()
+    #    possible_cell_classes_from_spiking_node = cellclass_map[nineml_population.prototype.definition.url]
+    #    if nineml_population.name in self.psr_map:
+    #        synapse_definition_urls = set(psr.definition.url for psr in self.psr_map[nineml_population.name])
+    #        assert len(synapse_definition_urls) == 1 # exc and inh always same model at present
+    #        synapse_definition_url = list(synapse_definition_urls)[0]
+    #        synapsetype_map = generate_post_synaptic_response_description_map()
+    #        possible_cell_classes_from_psr = synapsetype_map[synapse_definition_url]
+    #        possible_cell_classes = possible_cell_classes_from_spiking_node.intersection(possible_cell_classes_from_psr)
+    #        assert len(possible_cell_classes) == 1
+    #        cell_class = list(possible_cell_classes)[0]
+    #    else:
+    #        print "Population '%s' is not the target of any Projections, so we do not have a synapse model." % nineml_population.name
+    #    return cell_class
     
-    def _determine_cell_type_and_parameters(self, nineml_population):
+
+    
+    def _generate_cell_type_and_parameters(self, nineml_population):
         """
         Determine cell class from standardcell--catalog mapping and cellparams
         from nineml_population.prototype.parameters and standardcell.translations
         """
-        cell_class = self._determine_cell_type(nineml_population)
-        
-        nineml_params = nineml_population.prototype.parameters
-        if "i_offset" in cell_class.default_parameters:
-            nineml_params["offsetCurrent"] = nineml.Parameter("offsetCurrent", 0.0, "nA")
-        
+        neuron_model = nineml_population.prototype.definition.component
+        neuron_namespace = _generate_variable_name(nineml_population.prototype.name)
+        synapse_models = {}
+        cell_params = {} # to be implemented
         if nineml_population.name in self.psr_map:
-            synapse_params = list(self.psr_map[nineml_population.name])[0].parameters
-            for target in "excitatory", "inhibitory":
-                for name, value in synapse_params.items():
-                    nineml_params["%s_%s" % (target, name)] = value
-        else: # take default values, since the synapses won't be used in any case.
-            synapse_params = {"excitatory_decayTimeConstant": nineml.Parameter("decayTimeConstant", 5.0, "ms"),
-                              "inhibitory_decayTimeConstant": nineml.Parameter("decayTimeConstant", 5.0, "ms"),
-                              "excitatory_reversalPotential": nineml.Parameter("reversalPotential", 0.0, "mV"),
-                              "inhibitory_reversalPotential": nineml.Parameter("reversalPotential", -70.0, "mV")}
-            nineml_params.update(synapse_params)
-        
-        cell_params = cell_class.reverse_translate(nineml_params)
+            for psr_component in self.psr_map[nineml_population.name]:
+                synapse_models[_generate_variable_name(psr_component.name)] = psr_component.definition.component
+        subnodes = {neuron_namespace: neuron_model}
+        subnodes.update(synapse_models)
+        combined_model = al.ComponentClass(name=_generate_variable_name(nineml_population.name),
+                                           subnodes=subnodes)
+        # now connect ports
+        connections = []
+        for source in [port for port in neuron_model.analog_ports if port.mode == 'send']:
+            for synapse_name, syn_model in synapse_models.items():
+                for target in [port for port in syn_model.analog_ports if port.mode == 'recv']:
+                    connections.append(("%s.%s" % (neuron_namespace, source.name), "%s.%s" % (synapse_name, target.name)))
+        for synapse_name, syn_model in synapse_models.items():
+            for source in [port for port in syn_model.analog_ports if port.mode == 'send']:
+                for target in [port for port in neuron_model.analog_ports if port.mode in ('recv, reduce')]:
+                    connections.append(("%s.%s" % (synapse_name, source.name), "%s.%s" % (neuron_namespace, target.name)))
+        #import pdb; pdb.set_trace()
+        for connection in connections:
+            combined_model.connect_ports(*connection)
+        synapse_components = [self._nineml_module.CoBaSyn(namespace=name,  weight_connector='q') for name in synapse_models.keys()]
+        celltype_cls = self._nineml_module.nineml_cell_type(
+            combined_model.name, combined_model, synapse_components)
         cell_params, random_params = resolve_parameters(cell_params, self.random_distributions)
-        return cell_class, cell_params, random_params
+        return celltype_cls, cell_params, random_params
+    
+    
+    #    iaf_2coba_model = al.ComponentClass( 
+    #        name="iaf_2coba", 
+    #        subnodes = {"iaf" : iaf.get_component(), 
+    #                    "cobaExcit" : coba_synapse.get_component(), 
+    #                    "cobaInhib" : coba_synapse.get_component()} )
+    #
+    ## Connections have to be setup as strings, because we are deep-copying objects.
+    #iaf_2coba_model.connect_ports( "iaf.V", "cobaExcit.V" )
+    #iaf_2coba_model.connect_ports( "iaf.V", "cobaInhib.V" )
+    #iaf_2coba_model.connect_ports( "cobaExcit.I", "iaf.ISyn" )
+    #iaf_2coba_model.connect_ports( "cobaInhib.I", "iaf.ISyn" )
     
     def _build_population(self, nineml_population, assembly):
             if isinstance(nineml_population.prototype, nineml.SpikingNodeType):
                 n = nineml_population.number
                 pyNN_structure = _build_structure(nineml_population.positions.structure)
-                cell_class, cell_params, random_parameters = self._determine_cell_type_and_parameters(nineml_population)
+                cell_class, cell_params, random_parameters = self._generate_cell_type_and_parameters(nineml_population)
                 
                 p_obj = self.sim.Population(n, getattr(self.sim, cell_class.__name__),
                                             cell_params,

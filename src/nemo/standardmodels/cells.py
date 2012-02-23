@@ -40,13 +40,14 @@ class Izhikevich(IzhikevichTemplate):
     )
 
     indices = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
-
     initial_indices = {'u' : 0, 'v' : 1}
 
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     
+    __doc__ = cells.SpikeSourcePoisson.__doc__ 
+
     translations = build_translations(
         ('rate', 'rate'),
         ('start', 'start'),
@@ -61,7 +62,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
             self.duration    = duration
             self.rng         = numpy.random.RandomState()
             self.precision   = precision
-            self.rate_Hz     = self.rate * self.precision/1000.
+            self.rate_Hz     = self.rate * self.precision / 1000.
             self.stop_time   = self.start + self.duration
             self.buffer      = 1000           
             self.do_spikes   = self.rng.rand(self.buffer) < self.rate_Hz
@@ -72,7 +73,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
                 return False
             else:
                 if self.idx == (self.buffer - 1):
-                    self.do_spikes = self.rng.rand(self.buffer) < self.rate_Hz
+                    self.do_spikes = self.rng.rand(self.buffer) <= self.rate_Hz
                     self.idx       = 0
                 self.idx += 1
                 return self.do_spikes[self.idx]
@@ -92,6 +93,8 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
+
+    __doc__ = cells.SpikeSourceArray.__doc__    
 
     translations = build_translations(
         ('spike_times', 'spike_times'),
@@ -133,8 +136,36 @@ class IF_cond_exp_gsfa_grr(ModelNotAvailable):
 class IF_curr_alpha(ModelNotAvailable):
     pass
 
-class IF_curr_exp(ModelNotAvailable):
-    pass
+class IF_curr_exp(cells.IF_curr_exp):
+    
+    __doc__ = cells.IF_curr_exp.__doc__    
+
+    translations = build_translations(
+        ('v_rest',     'v_rest'),
+        ('v_reset',    'v_reset'),
+        ('cm',         'cm'), 
+        ('tau_m',      'tau_m'),
+        ('tau_refrac', 't_refrac'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+        ('v_thresh',   'v_thresh'),
+        ('i_offset',   'i_offset'), 
+    )
+
+    indices = {
+            'v_rest' : 0,
+            'cm' : 2,
+            'tau_m' : 3,
+            't_refrac' : 4,
+            'tau_syn_E' : 5,
+            'tau_syn_I' : 6,
+            'i_offset' : 8,
+            'v_reset' : 1,
+            'v_thresh' : 7
+        }
+
+    initial_indices = {'v' : 0}
+
 
 class IF_cond_alpha(ModelNotAvailable):
     pass

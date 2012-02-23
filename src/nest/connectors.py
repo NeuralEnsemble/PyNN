@@ -6,7 +6,7 @@ Connection method classes for nest
 
 $Id$
 """
-from pyNN import random, core
+from pyNN import random, core, errors
 from pyNN.connectors import Connector, AllToAllConnector, FixedProbabilityConnector, \
                             DistanceDependentProbabilityConnector, FixedNumberPreConnector, \
                             FixedNumberPostConnector, OneToOneConnector, SmallWorldConnector, \
@@ -15,9 +15,13 @@ from pyNN.connectors import Connector, AllToAllConnector, FixedProbabilityConnec
 
 import numpy
 from pyNN.space import Space
-
-
-
+from pyNN.common.populations import Population
+try:
+    import csa
+    have_csa = True
+except ImportError:
+    have_csa = False
+import nest
 
 class FastProbabilisticConnector(Connector):
     
@@ -108,7 +112,7 @@ class FastAllToAllConnector(AllToAllConnector):
         self.progressbar(len(projection.post.local_cells))
         for count, tgt in enumerate(projection.post.local_cells):
             connector._probabilistic_connect(tgt, 1)
-            self.progression(count)        
+            self.progression(count, projection._simulator.state.mpi_rank)
     
 
 class FastFixedProbabilityConnector(FixedProbabilityConnector):
@@ -125,7 +129,19 @@ class FastFixedProbabilityConnector(FixedProbabilityConnector):
 
 class FastDistanceDependentProbabilityConnector(DistanceDependentProbabilityConnector):
     
-    __doc__ = DistanceDependentProbabilityConnector.__doc__
+    """
+        Create a new connector.
+        
+        `d_expression` -- the right-hand side of a valid python expression for
+            probability, involving 'd', e.g. "exp(-abs(d))", or "d<3"
+        `n_connections`  -- The number of afferent synaptic connections per neuron.                 
+        `space` -- a Space object.
+        `weights` -- may either be a float, a RandomDistribution object, a list/
+                     1D array with at least as many items as connections to be
+                     created, or a distance expression as for `d_expression`. Units nA.
+        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
+                     to the global minimum delay.
+        """
     
     def connect(self, projection):
         """Connect-up a Projection."""
@@ -138,7 +154,7 @@ class FastDistanceDependentProbabilityConnector(DistanceDependentProbabilityConn
             if proba.dtype == 'bool':
                 proba = proba.astype(float)           
             connector._probabilistic_connect(tgt, proba, self.n_connections)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
 
 
 
@@ -155,12 +171,64 @@ class FixedNumberPreConnector(FixedNumberPreConnector):
             else:
                 n = self.n
             connector._probabilistic_connect(tgt, 1, n)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
 
+
+class FastFromListConnector(FromListConnector):
+    
+    __doc__ = FromListConnector.__doc__
+    
+    def connect(self, projection):
+        """Connect-up a Projection."""
+        idx     = numpy.argsort(self.conn_list[:, 1])
+        self.targets    = numpy.unique(self.conn_list[:, 1]).astype(int)
+        self.candidates = projection.pre.all_cells
+        self.conn_list  = self.conn_list[idx]
+        self.progressbar(len(self.targets))        
+        count = 0
+        left  = numpy.searchsorted(self.conn_list[:, 1], self.targets, 'left')
+        right = numpy.searchsorted(self.conn_list[:, 1], self.targets, 'right')
+        for tgt, l, r in zip(self.targets, left, right):
+            sources = self.conn_list[l:r, 0].astype(int)
+            weights = self.conn_list[l:r, 2]
+            delays  = self.conn_list[l:r, 3]
+        
+            srcs     = projection.pre.all_cells[sources]
+            try:
+                srcs     = projection.pre.all_cells[sources]
+            except IndexError:
+                raise errors.ConnectionError("invalid sources index or indices")
+            try:
+                tgt    = projection.post.all_cells[tgt]
+            except IndexError:
+                raise errors.ConnectionError("invalid target index %d" %tgt)
+            ## We need to exclude the non local cells. Fastidious, need maybe
+            ## to use a convergent_connect method, instead of a divergent_connect one
+            #idx     = eval(tests)
+            #projection.connection_manager.connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
+            projection._convergent_connect(srcs.tolist(), tgt, weights, delays)
+            self.progression(count, projection._simulator.state.mpi_rank)
+            count += 1
 
 class FastSmallWorldConnector(SmallWorldConnector):
     
-    __doc__ = SmallWorldConnector.__doc__
+    """
+        Create a new connector.
+        
+        `degree` -- the region lenght where nodes will be connected locally
+        `rewiring` -- the probability of rewiring each eadges 
+        `space` -- a Space object.
+        `allow_self_connections` -- if the connector is used to connect a
+            Population to itself, this flag determines whether a neuron is
+            allowed to connect to itself, or only to other neurons in the
+            Population.        
+        `n_connections`  -- The number of afferent synaptic connections per neuron. 
+        `weights` -- may either be a float, a RandomDistribution object, a list/
+                     1D array with at least as many items as connections to be
+                     created, or a DistanceDependence object. Units nA.
+        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
+                     to the global minimum delay.
+        """
     
     def connect(self, projection):
         """Connect-up a Projection."""
@@ -171,4 +239,44 @@ class FastSmallWorldConnector(SmallWorldConnector):
             connector.distance_matrix.set_source(tgt.position)
             proba  = proba_generator.get(connector.N, connector.distance_matrix).astype(float)
             connector._probabilistic_connect(tgt, proba, self.n_connections, self.rewiring)
-            self.progression(count)
+            self.progression(count, projection._simulator.state.mpi_rank)
+
+
+class CSAConnector(CSAConnector):
+    
+    def connect(self, projection):
+        """Connect-up a Projection."""
+        if self.delays is None:
+            self.delays = projection._simulator.state.min_delay
+
+        def connect_csa(cset, pre, post, syn_type):
+            print "connecting using cset"
+            if isinstance(pre, Population) and isinstance(post, Population):
+                # contiguous IDs, so just pass first_id and size
+                nest.sli_func("Connect_cg_i_i_i_i_D_l",
+                              self.cset,
+                              pre.first_id, pre.size,
+                              post.first_id, post.size,
+                              {'weight': 0, 'delay': 1}, # ignored if arity==0
+                              syn_type)
+            else: # PopulationViews or Assemblies
+                # IDs may be non-contiguous, so need to pass entire arrays
+                nest.sli_func("Connect_cg_a_a_D_l",
+                              self.cset,
+                              pre.all_cells,
+                              post.all_cells,
+                              {'weight': 0, 'delay': 1}, # ignored if arity==0
+                              syn_type)
+        # TODO: fix weights units
+        if csa.arity(self.cset) == 2:
+            # Connection-set with arity 2
+            connect_csa(self.cset, projection.pre,
+                        projection.post, projection.synapse_model)
+        elif CSAConnector.isConstant(self.weights) \
+            and CSAConnector.isConstant(self.delays):
+            # Mask with constant weights and delays
+            assert csa.arity(self.cset) == 0
+            nest.SetDefaults(projection.synapse_model, {'weight': self.weights, 'delay': self.delays})
+            connect_csa(self.cset, projection.pre,
+                        projection.post, projection.synapse_model)
+        projection._sources = projection.pre.all_cells

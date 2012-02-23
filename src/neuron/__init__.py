@@ -16,7 +16,7 @@ from pyNN.neuron import simulator
 from pyNN.neuron.standardmodels.cells import *
 from pyNN.neuron.connectors import *
 from pyNN.neuron.standardmodels.synapses import *
-from pyNN.neuron.electrodes import *
+from pyNN.neuron.standardmodels.electrodes import *
 from pyNN.neuron.recording import Recorder
 
 import numpy
@@ -356,7 +356,7 @@ class Projection(common.Projection):
                 nc.weight[0] = weight
                 nc.delay  = delay
                 # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
-                self.connections.append(Connection(source, target, nc))
+                self.connections.append(simulator.Connection(source, target, nc))
 
     
     # --- Methods for setting connection parameters ----------------------------

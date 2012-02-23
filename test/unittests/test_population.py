@@ -29,6 +29,7 @@ class MockPopulation(populations.Population):
     
     def _create_cells(self, cellclass, cellparams, size):
         self.all_cells = numpy.array([MockID(i) for i in range(999, 999+size)], MockID)
+        self.cell      = self.all_cells
         self._mask_local = numpy.arange(size)%5==3 # every 5th cell, starting with the 4th, is on this node
         self.first_id = self.all_cells[0]
         self.last_id = self.all_cells[-1]

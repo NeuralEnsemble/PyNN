@@ -18,8 +18,9 @@ from brian import mV, ms, nF, nA, uS, second, Hz, amp
 import numpy
 
 class IF_curr_alpha(cells.IF_curr_alpha):
-    """Leaky integrate and fire model with fixed threshold and alpha-function-
-    shaped post-synaptic current."""
+
+    __doc__ = cells.IF_curr_alpha.__doc__        
+    
     translations = build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
@@ -57,9 +58,8 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         return self.parameters['v_reset'] * mV    
 
 class IF_curr_exp(cells.IF_curr_exp):
-    """Leaky integrate and fire model with fixed threshold and
-    decaying-exponential post-synaptic current. (Separate synaptic currents for
-    excitatory and inhibitory synapses."""
+    
+    __doc__ = cells.IF_curr_exp.__doc__    
     
     translations = build_translations(
         ('v_rest',     'v_rest',     mV),
@@ -98,6 +98,9 @@ class IF_curr_exp(cells.IF_curr_exp):
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):
+
+    __doc__ = cells.IF_cond_alpha.__doc__    
+
     translations = build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
@@ -140,8 +143,9 @@ class IF_cond_alpha(cells.IF_cond_alpha):
 
 
 class IF_cond_exp(cells.IF_cond_exp):
-    """Leaky integrate and fire model with fixed threshold and 
-    exponentially-decaying post-synaptic conductance."""
+    
+    __doc__ = cells.IF_cond_exp.__doc__    
+
     translations = build_translations(
         ('v_rest',     'v_rest',     mV),
         ('v_reset',    'v_reset'),
@@ -191,7 +195,9 @@ class IF_facets_hardware1(ModelNotAvailable):
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
-    """Spike source, generating spikes according to a Poisson process."""
+
+    __doc__ = cells.SpikeSourcePoisson.__doc__     
+
     translations = build_translations(
         ('rate',     'rate'),
         ('start',    'start'),
@@ -219,7 +225,9 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         rate     = self.parameters['rate']    
     
 class SpikeSourceArray(cells.SpikeSourceArray):
-    """Spike source generating spikes at the times given in the spike_times array."""
+
+    __doc__ = cells.SpikeSourceArray.__doc__    
+
     translations = build_translations(
         ('spike_times', 'spiketimes', ms),
     )
@@ -235,15 +243,8 @@ class SpikeSourceArray(cells.SpikeSourceArray):
 
 
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
-    """
-    Exponential integrate and fire neuron with spike triggered and
-    sub-threshold adaptation currents (isfa, ista reps.) according to:
-    
-    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model
-    as an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
-    See also: IF_cond_exp_gsfa_grr, EIF_cond_exp_isfa_ista
-    """
+    __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__ 
     
     translations = build_translations(
         ('cm',         'c_m',        nF),  
@@ -301,15 +302,8 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         return SimpleCustomRefractoriness(reset, period = self.parameters['tau_refrac'] * ms)
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
-    """
-    Exponential integrate and fire neuron with spike triggered and
-    sub-threshold adaptation currents (isfa, ista reps.) according to:
-    
-    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model
-    as an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
-    See also: IF_cond_exp_gsfa_grr, EIF_cond_exp_isfa_ista
-    """
+    __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__    
     
     translations = build_translations(
         ('cm',         'c_m',        nF),  
@@ -366,6 +360,8 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         
 
 class HH_cond_exp(cells.HH_cond_exp):
+
+   __doc__ = cells.HH_cond_exp.__doc__    
    
    translations = build_translations(
        ('gbar_Na',    'gbar_Na',    uS),   

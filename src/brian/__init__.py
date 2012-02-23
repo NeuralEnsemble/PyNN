@@ -16,9 +16,9 @@ from pyNN import common, recording, space, core, __doc__
 from pyNN.random import *
 from pyNN.recording import files
 from pyNN.brian.standardmodels.cells import *
+from pyNN.brian.standardmodels.electrodes import *
 from pyNN.brian.connectors import *
 from pyNN.brian.standardmodels.synapses import *
-from pyNN.brian.electrodes import *
 from pyNN.brian import electrodes
 from pyNN.brian.recording import *
 from pyNN import standardmodels
@@ -257,7 +257,7 @@ class Projection(common.Projection):
         self._finalize()
         
         if self._plasticity_model != "static_synapse":
-            for key in self._brian_connections.keys:
+            for key in self._brian_connections.keys():
                 synapses = self._brian_connections[key]
                 if self._plasticity_model is "stdp_synapse": 
                     parameters   = self.synapse_dynamics.slow.all_parameters

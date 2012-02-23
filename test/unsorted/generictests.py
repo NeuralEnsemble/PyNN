@@ -457,11 +457,11 @@ class PopulationSetTest(unittest.TestCase):
            There is no guarantee that the existing parameters will be set."""
         self.assertRaises(errors.NonExistentParameterError, self.p1.set, {'tau_foo': 10.0, 'tau_m': 21.0})
             
-    def testRandomInit(self):        
+    def test_initialize_v(self):        
         rd = random.RandomDistribution(rng=random.NumpyRNG(seed=98765, num_processes=sim.num_processes()),
                                        distribution='uniform',
                                        parameters=[-75,-55])
-        self.p1.randomInit(rd)
+        self.p1.initialize('v', rd)
         #self.assertNotEqual(self.p1[0,0,0].v_init, self.p1[0,0,1].v_init)
         self.assertNotEqual(self.p1.local_cells[0].get_initial_value('v'), self.p1.local_cells[1].get_initial_value('v'))
                 
@@ -528,7 +528,7 @@ class PopulationPositionsTest(unittest.TestCase):
 # ==============================================================================
 class PopulationRecordTest(unittest.TestCase):
     """Tests of the record(), record_v(), printSpikes(), print_v() and
-       meanSpikeCount() methods of the Population class."""
+       mean_spike_count() methods of the Population class."""
     
     def setUp(self):
         sim.setup()
@@ -576,12 +576,12 @@ class PopulationRecordTest(unittest.TestCase):
         #self.pop3.record()
         simtime = 1000.0
         sim.run(simtime)
-        msc = self.pop1.meanSpikeCount()
+        msc = self.pop1.mean_spike_count()
         if sim.rank() == 0: # only on master node
             rate = msc*1000/simtime
             ##print self.pop1.recorders['spikes'].recorders
             assert (20*0.8 < rate) and (rate < 20*1.2), "rate is %s" % rate
-        #rate = self.pop3.meanSpikeCount()*1000/simtime
+        #rate = self.pop3.mean_spike_count()*1000/simtime
         #self.assertEqual(rate, 0.0)
     
     def testPotentialRecording(self):
@@ -591,7 +591,7 @@ class PopulationRecordTest(unittest.TestCase):
         v_reset  = -65.0
         v_thresh = -50.0
         uniformDistr = random.RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])
-        self.pop2.randomInit(uniformDistr)
+        self.pop2.initialize('v', uniformDistr)
         cells_to_record = [self.pop2[0], self.pop2[4]]
         self.pop2.record_v(cells_to_record)
         simtime = 10.0
@@ -1076,7 +1076,7 @@ class FileTest(unittest.TestCase):
         v_reset  = -65.0
         v_thresh = -50.0
         uniformDistr = random.RandomDistribution(rng=rng, distribution='uniform', parameters=[v_reset, v_thresh])
-        self.pop.randomInit(uniformDistr)
+        self.pop.initialize('v', uniformDistr)
         self.cells_to_record = [self.pop[0], self.pop[4]]
         self.pop.record_v(self.cells_to_record)
         simtime = 10.0

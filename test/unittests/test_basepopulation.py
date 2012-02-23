@@ -413,22 +413,22 @@ def test_get_spike_counts():
     assert_equal(meth, 'count')
     assert_equal(args, ("spikes", "gather", None))
     
-def test_meanSpikeCount():
+def test_mean_spike_count():
     orig_rank = MockPopulation._simulator.state.mpi_rank
     MockPopulation._simulator.state.mpi_rank = 0
     p = MockPopulation()
     p.recorder = Mock()
     p.recorder.count = Mock(return_value={0: 2, 1: 5})
-    assert_equal(p.meanSpikeCount(), 3.5)
+    assert_equal(p.mean_spike_count(), 3.5)
     MockPopulation._simulator.state.mpi_rank = orig_rank
 
-def test_meanSpikeCount_on_slave_node():
+def test_mean_spike_count_on_slave_node():
     orig_rank = MockPopulation._simulator.state.mpi_rank
     MockPopulation._simulator.state.mpi_rank = 1
     p = MockPopulation()
     p.recorder = Mock()
     p.recorder.count = Mock(return_value={0: 2, 1: 5})
-    assert p.meanSpikeCount() is numpy.NaN
+    assert p.mean_spike_count() is numpy.NaN
     MockPopulation._simulator.state.mpi_rank = orig_rank
     
 def test_inject():

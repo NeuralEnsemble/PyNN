@@ -457,7 +457,7 @@ class Population(common.Population):
         """
         pass
     
-    def meanSpikeCount(self):
+    def mean_spike_count(self):
         return -1
     
     def printSpikes(self, file, gather=True, compatible_output=True):

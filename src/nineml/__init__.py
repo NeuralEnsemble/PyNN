@@ -107,8 +107,9 @@ def end(compatible_output=True):
     global net
     net.to_nineml().write(output_filename)
     
-get_min_delay = common.get_min_delay
-num_processes = common.num_processes
+
+get_current_time, get_time_step, get_min_delay, get_max_delay, \
+            num_processes, rank = common.build_state_queries(simulator)
 
 def run(tstop):
     pass
@@ -164,7 +165,7 @@ class BasePopulation(common.BasePopulation):
     def _record(self, variable, record_from, rng, to_file):
         pass
 
-    def meanSpikeCount(self, gather=True):
+    def mean_spike_count(self, gather=True):
         return 0
 
     def printSpikes(self, file, gather=True, compatible_output=True):

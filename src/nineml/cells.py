@@ -58,9 +58,8 @@ class CellTypeMixin(object):
 
 
 class IF_curr_exp(cells.IF_curr_exp, CellTypeMixin):
-    """Leaky integrate and fire model with fixed threshold and
-    decaying-exponential post-synaptic current. (Separate synaptic currents for
-    excitatory and inhibitory synapses."""
+    
+    __doc__ = cells.IF_curr_exp.__doc__      
     
     translations = standardmodels.build_translations(
         ('tau_m',      'membraneTimeConstant'),
@@ -89,6 +88,8 @@ class IF_curr_exp(cells.IF_curr_exp, CellTypeMixin):
 
 class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
    
+    __doc__ = cells.IF_cond_exp.__doc__    
+
     translations = standardmodels.build_translations(
         ('tau_m',      'membraneTimeConstant'),
         ('cm',         'membraneCapacitance'),
@@ -117,6 +118,8 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
 
 
 class IF_cond_alpha(cells.IF_cond_exp, CellTypeMixin):
+
+    __doc__ = cells.IF_cond_alpha.__doc__    
    
     translations = standardmodels.build_translations(
         ('tau_m',      'membraneTimeConstant'),
@@ -146,6 +149,8 @@ class IF_cond_alpha(cells.IF_cond_exp, CellTypeMixin):
     
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson, CellTypeMixin):
+
+    __doc__ = cells.SpikeSourcePoisson.__doc__     
     
     translations = standardmodels.build_translations(
         ('start',    'onset'),
@@ -217,15 +222,15 @@ class _mh_build_nineml_celltype(type):
         from nineml.abstraction_layer import flattening, writers, component_modifiers
 
         #Extract Parameters Back out from Dict:
-        nineml_model = dct['nineml_model']
+        combined_model = dct['nineml_model']
         synapse_components = dct['synapse_components']
 
         # Flatten the model:
-        assert isinstance(nineml_model, al.ComponentClass)
-        if nineml_model.is_flat():
-            flat_component = nineml_model
+        assert isinstance(combined_model, al.ComponentClass)
+        if combined_model.is_flat():
+            flat_component = combined_model
         else:
-            flat_component = flattening.flatten( nineml_model,name )
+            flat_component = flattening.flatten( combined_model,name )
         
         # Make the substitutions:
         flat_component.backsub_all()

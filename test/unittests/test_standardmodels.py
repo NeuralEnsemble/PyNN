@@ -44,52 +44,52 @@ def test_get_parameter_names():
 def test_instantiate():
     """
     Instantiating a StandardModelType should set self.parameters to the value
-    of translate(checkParameters(parameters)).
+    of translate(check_parameters(parameters)).
     """
     M = StandardModelType
     M.default_parameters = {'a': 0.0, 'b': 0.0}
     M.translations = {'a': None, 'b': None}
     P1 = {'a': 22.2, 'b': 33.3}
     P2 = {'A': 22.2, 'B': 333}
-    orig_checkParameters = M.checkParameters
+    orig_check_parameters = M.check_parameters
     orig_translate = M.translate
-    M.checkParameters = Mock(return_value=P2)
+    M.check_parameters = Mock(return_value=P2)
     M.translate = Mock()
     m = M(P1)
     assert isinstance(m.parameters, Mock)
-    M.checkParameters.assert_called_with(P1, with_defaults=True)
+    M.check_parameters.assert_called_with(P1, with_defaults=True)
     M.translate.assert_called_with(P2)
     
-    M.checkParameters = orig_checkParameters
+    M.check_parameters = orig_check_parameters
     M.translate = orig_translate
 
-def test_checkParameters_without_defaults():
+def test_check_parameters_without_defaults():
     M = StandardModelType
     M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': [1, 2, 3], 'd': 'hello'}
-    assert_equal(M.checkParameters({'a': 11, 'c': [4, 5, 6], 'd': 'goodbye'}),
+    assert_equal(M.check_parameters({'a': 11, 'c': [4, 5, 6], 'd': 'goodbye'}),
                  {'a': 11.0,'c': [4, 5, 6], 'd': 'goodbye'})
 
-def test_checkParameters_with_defaults():
+def test_check_parameters_with_defaults():
     M = StandardModelType
     M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': [1, 2, 3]}
-    assert_equal(M.checkParameters({'a': 11, 'c': [4, 5, 6]}, with_defaults=True),
+    assert_equal(M.check_parameters({'a': 11, 'c': [4, 5, 6]}, with_defaults=True),
                  {'a': 11.0, 'b': 33.3, 'c': [4, 5, 6]})
 
-def test_checkParameters_with_nonexistent_parameter():
+def test_check_parameters_with_nonexistent_parameter():
     M = StandardModelType
     M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': [1, 2, 3]}
     assert_raises(errors.NonExistentParameterError,
-                  M.checkParameters, {'a': 11.1, 'z': 99.9})
+                  M.check_parameters, {'a': 11.1, 'z': 99.9})
 
-def test_checkParameters_with_invalid_value():
+def test_check_parameters_with_invalid_value():
     M = StandardModelType
     M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': [1, 2, 3], 'd': 'hello'}
     assert_raises(errors.InvalidParameterValueError,
-                  M.checkParameters, {'a': 11.1, 'b': [4,3,2]})
+                  M.check_parameters, {'a': 11.1, 'b': [4,3,2]})
     assert_raises(errors.InvalidParameterValueError,
-                  M.checkParameters, {'a': 11.1, 'c': 12.3})
+                  M.check_parameters, {'a': 11.1, 'c': 12.3})
     assert_raises(errors.InvalidParameterValueError,
-                  M.checkParameters, {'a': 11.1, 'd': 12.3})
+                  M.check_parameters, {'a': 11.1, 'd': 12.3})
 
 def test_translate():
     M = StandardModelType
@@ -183,16 +183,16 @@ def test_update_parameters():
     translate(P)
     """
     M = StandardModelType
-    orig_checkParameters = M.checkParameters
+    orig_check_parameters = M.check_parameters
     orig_translate = M.translate
-    M.checkParameters = Mock()
+    M.check_parameters = Mock()
     P = {'a': 3}
     M.translate = Mock(return_value=P)
     m = M({})
     m.parameters = Mock()
     m.update_parameters({})
     m.parameters.update.assert_called_with(P)
-    M.checkParameters = orig_checkParameters
+    M.check_parameters = orig_check_parameters
     M.translate = orig_translate
 
 def test_describe():

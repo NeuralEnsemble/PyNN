@@ -20,6 +20,7 @@ $Id:random.py 188 2008-01-29 10:03:59Z apdavison $
 """
 
 import sys
+from copy import deepcopy
 import logging
 import numpy.random
 
@@ -134,6 +135,13 @@ class NumpyRNG(WrappedRNG):
     def describe(self):
         return "NumpyRNG() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
             self.seed, mpi_rank, z, self.parallel_safe and "Is" or "Not")
+
+    def __deepcopy__(self, memo):
+        obj = NumpyRNG.__new__(NumpyRNG)
+        WrappedRNG.__init__(obj, seed=deepcopy(self.seed, memo),
+                             parallel_safe=deepcopy(self.parallel_safe, memo))
+        obj.rng = deepcopy(self.rng)
+        return obj
 
 
 class GSLRNG(WrappedRNG):

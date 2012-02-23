@@ -59,21 +59,19 @@ class _State(object):
         self.dt            = timestep
         self.simulation    = None
         self.stdp          = None
-        self.verbose       = True
-
-    def progressbar(self, N):
-        self.prog = utility.ProgressBar(0, N, 20, mode='fixed')        
+        self.time          = 0
+        self._fired        = []
 
     @property
     def sim(self):
-        if self.simulation is False:
+        if self.simulation is None:
             raise Exception("Simulation object is empty, run() needs to be called first")
         else: 
             return self.simulation
         
     @property
     def t(self):
-        return self.sim.elapsed_simulation()
+        return self.time
 
     def set_stdp(self, stdp):
         self.stdp = stdp
@@ -86,9 +84,9 @@ class _State(object):
         self.conf.set_stdp_function(pre.tolist(), post.tolist(), float(w_min), float(w_max))
 
     def run(self, simtime):
-        self.simulation = nemo.Simulation(self.net, self.conf)
-        if self.verbose:
-            self.progressbar(simtime)
+        
+        if self.simulation is None:
+            self.simulation = nemo.Simulation(self.net, self.conf)
 
         poissons_sources = []
         arrays_sources   = []
@@ -101,32 +99,26 @@ class _State(object):
         
         for t in numpy.arange(0, simtime, self.dt):
             spikes   = []
-            currents = [] 
-            for source in poissons_sources:
+            currents = []
+            for source in poissons_sources:                
                 if source.player.do_spike(t):
                     spikes += [source]
             for source in arrays_sources:
                 if source.player.next_spike == t:
                     source.player.update()                    
                     spikes += [source]
-            
-            #for currents in current_sources:
-            #    currents.
-            fired = numpy.sort(self.sim.step(spikes, currents)) 
-
-            if self.stdp:
-                self.simulation.apply_stdp(1.0)
-
             for recorder in recorder_list:
                 if recorder.variable is "spikes":
-                    recorder._add_spike(fired, self.t)
+                    recorder._add_spike(self._fired, self.t)
                 if recorder.variable is "v":
                     recorder._add_vm(self.t)
-            if self.verbose:                
-                self.prog.update_amount(t)
-                print self.prog, "\r",
-                sys.stdout.flush()
-    
+
+            self._fired = self.sim.step(spikes, currents)
+            self.time  += self.dt
+        
+            if self.stdp:
+                self.simulation.apply_stdp(1.0)
+               
     @property
     def next_id(self):        
         res = self.gid
@@ -136,7 +128,8 @@ class _State(object):
 
 def reset():
     """Reset the state of the current network to time t = 0."""
-    state.net.reset_timer()    
+    state.time   = 0
+    state._fired = []
     
 # --- For implementation of access to individual neurons' parameters -----------
     
@@ -178,7 +171,7 @@ class ID(int, common.IDMixin):
                     state.sim.set_neuron_parameter(self, indices[key], value)
             
     def set_initial_value(self, variable, value):
-        indices = self.celltype.indices.items()
+        indices = self.celltype.initial_indices
         if state.simulation is None:
             state.net.set_neuron_state(self, indices[variable], value) 
         else:

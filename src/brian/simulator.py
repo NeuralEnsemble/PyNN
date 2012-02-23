@@ -318,10 +318,10 @@ class STDP(brian.STDP):
             dA_pre/dt  = -A_pre/taup  : 1
             dA_post/dt = -A_post/taum : 1''', taup=taup, taum=taum, wmax=wmax, mu_m=mu_m, mu_p=mu_p)
         pre   = 'A_pre += Ap'
-        pre  += '\nw += A_post*pow(w/wmax, mu_m)'
+        pre  += '\nw += A_post*(w/wmax)**mu_m'
         
-        post  = 'A_post += Am'        
-        post += '\nw += A_pre*pow(1-w/wmax, mu_p)'
+        post  = 'A_post += Am'       
+        post += '\nw += A_pre*(1-w/wmax)**mu_p'
         brian.STDP.__init__(self, C, eqs=eqs, pre=pre, post=post, wmin=wmin, wmax=wmax, delay_pre=None, delay_post=None, clock=None)
 
     

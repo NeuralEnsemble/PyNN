@@ -299,7 +299,7 @@ class BasePopulation(object):
             param_dict = param
         else:
             raise errors.InvalidParameterValueError
-        param_dict = self.celltype.checkParameters(param_dict, with_defaults=False)
+        param_dict = self.celltype.check_parameters(param_dict, with_defaults=False)
         logger.debug("%s.set(%s)", self.label, param_dict)
         if hasattr(self, "_set_array"):
             self._set_array(**param_dict)
@@ -364,33 +364,6 @@ class BasePopulation(object):
             rarr = numpy.array(rarr)  # isn't rarr already an array?
             assert rarr.size == self.size, "%s != %s" % (rarr.size, self.size)
             self.tset(parametername, rarr)
-
-    def _call(self, methodname, arguments):
-        """
-        Call the method methodname(arguments) for every cell in the population.
-        e.g. p.call("set_background","0.1") if the cell class has a method
-        set_background().
-        """
-        raise NotImplementedError()
-
-    def _tcall(self, methodname, objarr):
-        """
-        `Topographic' call. Call the method methodname() for every cell in the
-        population. The argument to the method depends on the coordinates of
-        the cell. objarr is an array with the same dimensions as the
-        Population.
-        e.g. p.tcall("memb_init", vinitArray) calls
-        p.cell[i][j].memb_init(vInitArray[i][j]) for all i,j.
-        """
-        raise NotImplementedError()
-
-    @deprecated("initialize('v', rand_distr)")
-    def randomInit(self, rand_distr):
-        """
-        Set initial membrane potentials for all the cells in the population to
-        random values.
-        """
-        self.initialize('v', rand_distr)
 
     def initialize(self, variable, value):
         """
@@ -640,13 +613,6 @@ class Population(BasePopulation):
     @property
     def local_cells(self):
         return self.all_cells[self._mask_local]
-
-    @property
-    def cell(self):
-        warn("The `Population.cell` attribute is not an official part of the \
-              API, and its use is deprecated. It will be removed in a future \
-              release. All uses of `cell` may be replaced by `all_cells`")
-        return self.all_cells
 
     def id_to_index(self, id):
         """
@@ -1038,7 +1004,8 @@ class Assembly(object):
         Iterator over cells in all populations within the Assembly, for cells
         on the local MPI node.
         """
-        return chain(iter(p) for p in self.populations)
+        iterators = [iter(p) for p in self.populations]
+        return chain(*iterators)
 
     def __len__(self):
         """Return the total number of cells in the population (all nodes)."""
@@ -1126,6 +1093,20 @@ class Assembly(object):
         for p in self.populations:
             p.initialize(variable, value)
 
+    def set(self, param, val=None):
+        """
+        Set one or more parameters for every cell in the Assembly. param
+        can be a dict, in which case val should not be supplied, or a string
+        giving the parameter name, in which case val is the parameter value.
+        val can be a numeric value, or list of such (e.g. for setting spike
+        times).
+        e.g. p.set("tau_m",20.0).
+             p.set({'tau_m':20,'v_rest':-65})
+        """
+        for p in self.populations:
+            p.set(param, val)
+
+
     def rset(self, parametername, rand_distr):
         """
         'Random' set. Set the value of parametername to a value taken from
@@ -1212,7 +1193,7 @@ class Assembly(object):
         """
         return self._get_recorded_variable('gsyn', gather, compatible_output, size=2)
 
-    def meanSpikeCount(self, gather=True):
+    def mean_spike_count(self, gather=True):
         """
         Returns the mean number of spikes per neuron.
         """

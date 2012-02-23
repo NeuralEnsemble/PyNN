@@ -285,8 +285,8 @@ class Projection(object):
             for c in self.connections: 
                 lines.append([self.pre.id_to_index(c.source), self.post.id_to_index(c.target), c.weight, c.delay])
         
-        if gather == True and num_processes() > 1:
-            all_lines = { rank(): lines }
+        if gather == True and self._simulator.state.num_processes > 1:
+            all_lines = { self._simulator.state.mpi_rank: lines }
             all_lines = recording.gather_dict(all_lines)
             if self._simulator.state.mpi_rank == 0:
                 lines = reduce(operator.add, all_lines.values())
@@ -295,7 +295,7 @@ class Projection(object):
         
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
         
-        if gather == False or rank() == 0:
+        if gather == False or self._simulator.state.mpi_rank == 0:
             file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
             file.close()
 

@@ -198,8 +198,8 @@ I_net.printSpikes(infilename)
 E_net[[0, 1]].print_v(vexfilename)
 I_net[[0, 1]].print_v(vinfilename)
 
-E_rate = E_net.meanSpikeCount()*1000.0/simtime
-I_rate = I_net.meanSpikeCount()*1000.0/simtime
+E_rate = E_net.mean_spike_count()*1000.0/simtime
+I_rate = I_net.mean_spike_count()*1000.0/simtime
 
 # write a short report
 nprint("\n--- Brunel Network Simulation ---")

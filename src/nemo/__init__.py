@@ -18,7 +18,7 @@ from pyNN.recording import files
 from pyNN.nemo.standardmodels.cells import *
 from pyNN.nemo.connectors import *
 from pyNN.nemo.standardmodels.synapses import *
-from pyNN.nemo.electrodes import *
+from pyNN.nemo.standardmodels.electrodes import *
 from pyNN.nemo import electrodes
 from pyNN.nemo.recording import *
 from pyNN import standardmodels
@@ -46,6 +46,11 @@ def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
+    if (timestep < 1):
+        raise Exception("It is not currently possible to have a timestep less than 1ms with this simulator")
+    if (min_delay < 1):
+        raise Exception("It is not currently possible to have a min_delay less than 1ms with this simulator")
+    
     common.setup(timestep, min_delay, max_delay, **extra_params)
     simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.spikes_array_list = []
@@ -119,7 +124,8 @@ class Population(common.Population, common.BasePopulation):
             for idx in self.all_cells:
                 player = SpikeSourcePoisson.spike_player(**params)
                 setattr(idx, 'player', player)
-                simulator.state.net.add_neuron(int(idx), 0., 0., -80., 0, 0., -80., 0.)
+                ntype = simulator.state.net.add_neuron_type('Input')
+                simulator.state.net.add_neuron(ntype, int(idx))
         elif isinstance(celltype, SpikeSourceArray):
             ### For the moment, we model spike_source_array and spike_source_poisson
             ### as hyperpolarized neurons that are forced to fire, but this could be
@@ -130,12 +136,28 @@ class Population(common.Population, common.BasePopulation):
             for idx in self.all_cells:
                 player = SpikeSourceArray.spike_player(**params)
                 setattr(idx, 'player', player)
-                simulator.state.net.add_neuron(int(idx), 0., 0., -80., 0., -0., -80, 0)
-        else:            
-            ## Currently, we only have the Izhikevitch model...
+                ntype = simulator.state.net.add_neuron_type('Input')
+                simulator.state.net.add_neuron(ntype, int(idx))
+        elif isinstance(celltype, cells.IF_curr_exp):
             init = celltype.default_initial_values
+            for idx in self.all_cells:                
+                ntype = simulator.state.net.add_neuron_type('IF_curr_exp')               
+                simulator.state.net.add_neuron(ntype, int(idx),
+                        params['v_rest'],
+                        params['v_reset'],
+                        params['cm'],
+                        params['tau_m'],                    
+                        params['t_refrac'],
+                        params['tau_syn_E'],
+                        params['tau_syn_I'],
+                        params['v_thresh'],
+                        params['i_offset'],                        
+                        init['v'], 0., 0., 1000.)
+        else:            
+            init = celltype.default_initial_values
+            ntype = simulator.state.net.add_neuron_type('Izhikevich')
             for idx in self.all_cells:
-                simulator.state.net.add_neuron(int(idx), params['a'], params['b'], params['c'], params['d'], init['u'], init['v'], 0.)
+                simulator.state.net.add_neuron(ntype, int(idx), params['a'], params['b'], params['c'], params['d'], init['u'], init['v'], 0.)
        
         self._mask_local = numpy.ones((n,), bool) # all cells are local
         self.first_id    = self.all_cells[0]
@@ -144,7 +166,8 @@ class Population(common.Population, common.BasePopulation):
     def _set_initial_value_array(self, variable, value):
         if not hasattr(value, "__len__"):
             value = value*numpy.ones((len(self),))
-
+        for cell, val in zip(self, value):
+            cell.set_initial_value(variable, val)
 
 class Projection(common.Projection):
     """
@@ -204,7 +227,7 @@ class Projection(common.Projection):
         self._is_plastic   = False
         if self.synapse_model is "stdp_synapse":
             self._is_plastic = True
-        self._connections = None
+        self._connections = []
         
         method.connect(self)
         
@@ -225,11 +248,7 @@ class Projection(common.Projection):
         return len(self.connections)
 
     @property
-    def connections(self):
-        if self._connections is None:
-            self._connections = []
-            for source in numpy.unique(self.sources):
-                self._connections += list(simulator.state.net.get_synapses_from(source))
+    def connections(self):        
         return self._connections
 
     def _divergent_connect(self, source, targets, weights, delays):
@@ -262,8 +281,9 @@ class Projection(common.Projection):
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()    
         source   = int(source)        
-        synapses = simulator.state.net.add_synapse(source, targets, delays, weights, self.is_plastic)
+        synapses = simulator.state.net.add_synapse(source, targets, delays, weights, self._is_plastic)
         self._sources.append(source)
+        self._connections += synapses
 
     def get(self, parameter_name, format, gather=True):
         """

@@ -68,7 +68,7 @@ class StandardModelType(models.BaseModelType):
     @classmethod
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
-        parameters = cls.checkParameters(parameters, with_defaults=False)
+        parameters = cls.check_parameters(parameters, with_defaults=False)
         native_parameters = {}
         for name in parameters:
             D = cls.translations[name]
@@ -128,10 +128,62 @@ class StandardModelType(models.BaseModelType):
 
 class StandardCellType(StandardModelType, models.BaseCellType):
     """Base class for standardized cell model classes."""
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable    = ['spikes', 'v', 'gsyn']
     synapse_types = ('excitatory', 'inhibitory')
-    always_local = False # override for NEST spike sources
+    always_local  = False # override for NEST spike sources
 
+
+class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
+    """Base class for standardized current source model classes."""             
+    
+    def inject_into(self, cells):
+        raise Exception("Should be redefined in the local simulator electrodes")
+
+    def __getattr__(self, name):
+        try:
+            val = self.__getattribute__(name)
+        except AttributeError:
+            try:
+                val = self.get_parameters()[name]
+            except KeyError:
+                raise errors.NonExistentParameterError(name,
+                                                       self.__class__.__name__,
+                                                       self.get_parameter_names())
+        return val
+
+    def __setattr__(self, name, value):
+        if self.has_parameter(name):
+            self.set_parameters(**{name: value})
+        else:
+            object.__setattr__(self, name, value)
+
+    def set_parameters(self, **parameters):
+        """
+        Set current source parameters, given as a sequence of parameter=value arguments.
+        """
+        # if some of the parameters are computed from the values of other
+        # parameters, need to get and translate all parameters
+        computed_parameters = self.computed_parameters()
+        have_computed_parameters = numpy.any([p_name in computed_parameters
+                                              for p_name in parameters])
+        if have_computed_parameters:
+            all_parameters = self.get_parameters()
+            all_parameters.update(parameters)
+            parameters = all_parameters
+            parameters = self.translate(parameters)
+        self.set_native_parameters(parameters)
+
+    def get_parameters(self):
+        """Return a dict of all current source parameters."""
+        parameters = self.get_native_parameters()
+        parameters = self.reverse_translate(parameters)
+        return parameters
+
+    def set_native_parameters(self, parameters):
+        pass
+
+    def get_native_parameters(self):    
+        pass
 
 class ModelNotAvailable(object):
     """Not available for this simulator."""
