@@ -596,7 +596,7 @@ class Population(BasePopulation):
     nPop = 0
 
     def __init__(self, size, cellclass, cellparams=None, structure=None,
-                 label=None):
+                 initial_values={}, label=None):
         """
         Create a population of neurons all of the same type.
 
@@ -609,6 +609,7 @@ class Population(BasePopulation):
         cellparams should be a dict which is passed to the neuron model
           constructor
         structure should be a Structure instance.
+        initial_values should be a dict
         label is an optional name for the population.
         """
         if not isinstance(size, int):  # also allow a single integer, for a 1D population
@@ -641,8 +642,8 @@ class Population(BasePopulation):
         # The local cells are also stored in a list, for easy iteration
         self._create_cells(cellclass, cellparams, size)
         self.initial_values = {}
-        for variable, value in self.celltype.default_initial_values.items():
-            self.initialize(variable, value)
+        for variable, default in self.celltype.default_initial_values.items():
+            self.initialize(variable, initial_values.get(variable, default))
         self.recorders = {}
         Population.nPop += 1
 

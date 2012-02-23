@@ -82,6 +82,10 @@ def test_create_population_with_implicit_grid():
     assert isinstance(p.structure, space.Grid3D)
     assert_raises(Exception, MockPopulation, (2,3,4,5), MockStandardCell)
 
+def test_create_with_initial_values():
+    p = MockPopulation(11, MockStandardCell, initial_values={'m': -67.8})
+    p.initialize.assert_called_with('m', -67.8)
+
 # test local_cells property
 
 def test_cell_property():
