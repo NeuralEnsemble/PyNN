@@ -385,40 +385,18 @@ class Projection(common.Projection):
         elif core.is_listlike(value):
             for c,val in zip(self.connections, value):
                 setattr(c, name, val)
+        elif isinstance(value, RandomDistribution):
+            if isinstance(value.rng, NativeRNG):
+                rarr = simulator.nativeRNG_pick(len(self),
+                                                value.rng,
+                                                value.name,
+                                                value.parameters)
+            else:       
+                rarr = value.next(len(self))
+            for c,val in zip(self.connections, rarr):
+                setattr(c, name, val)   
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-
-    def randomizeWeights(self, rand_distr):
-        """
-        Set weights to random values taken from rand_distr.
-        """
-        # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
-        # Python
-        if isinstance(rand_distr.rng, NativeRNG):
-            rarr = simulator.nativeRNG_pick(len(self),
-                                            rand_distr.rng,
-                                            rand_distr.name,
-                                            rand_distr.parameters)
-        else:       
-            rarr = rand_distr.next(len(self))  
-        logger.info("--- Projection[%s].__randomizeWeights__() ---" % self.label)
-        self.setWeights(rarr)
-    
-    def randomizeDelays(self, rand_distr):
-        """
-        Set delays to random values taken from rand_distr.
-        """
-        # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
-        # Python
-        if isinstance(rand_distr.rng, NativeRNG):
-            rarr = simulator.nativeRNG_pick(len(self),
-                                            rand_distr.rng,
-                                            rand_distr.name,
-                                            rand_distr.parameters)
-        else:       
-            rarr = rand_distr.next(len(self))  
-        logger.info("--- Projection[%s].__randomizeDelays__() ---" % self.label)
-        self.setDelays(rarr)
 
     def get(self, parameter_name, format, gather=True):
         """
