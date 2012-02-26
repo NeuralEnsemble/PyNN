@@ -92,4 +92,3 @@ NET_RECEIVE(weight (uS)) {
 		q = q + 1
 	}
 }
-s
