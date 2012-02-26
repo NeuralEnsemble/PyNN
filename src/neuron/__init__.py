@@ -119,9 +119,9 @@ class Population(common.Population):
     assembly_class = Assembly
     
     def __init__(self, size, cellclass, cellparams=None, structure=None,
-                 label=None):
+                 initial_values={}, label=None):
         __doc__ = common.Population.__doc__
-        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
+        common.Population.__init__(self, size, cellclass, cellparams, structure, initial_values, label)
         simulator.initializer.register(self)
 
     def _get_view(self, selector, label=None):
