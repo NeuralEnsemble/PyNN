@@ -8,13 +8,18 @@ PyNN-->NeuroML
 $Id$
 """
 
-from pyNN import common, connectors, cells, standardmodels
+from pyNN import common, connectors, standardmodels
+from pyNN.standardmodels import cells
+
 import math
 import numpy
 import sys
+
 sys.path.append('/usr/lib/python%s/site-packages/oldxml' % sys.version[:3]) # needed for Ubuntu
-import xml.dom.ext
 import xml.dom.minidom
+
+import logging
+logger = logging.getLogger("neuroml")
 
 neuroml_url = 'http://morphml.org'
 namespace = {'xsi': "http://www.w3.org/2001/XMLSchema-instance",
@@ -23,8 +28,8 @@ namespace = {'xsi': "http://www.w3.org/2001/XMLSchema-instance",
              'meta': neuroml_url+"/metadata/schema",
              'bio':  neuroml_url+"/biophysics/schema",  
              'cml':  neuroml_url+"/channelml/schema",}
-             
-neuroml_ver="1.7.3"
+
+neuroml_ver="1.8.1"
 neuroml_xsd="http://www.neuroml.org/NeuroMLValidator/NeuroMLFiles/Schemata/v"+neuroml_ver+"/Level3/NeuroML_Level3_v"+neuroml_ver+".xsd"
 
 strict = False
@@ -92,7 +97,7 @@ class IF_base(object):
         biophys_node  = build_node(':biophysics', units="Physiological Units")
         ifnode        = build_node('bio:mechanism', name="IandF_"+self.label, type='Channel Mechanism')
         passive_node  = build_node('bio:mechanism', name="pas_"+self.label, type='Channel Mechanism', passive_conductance="true")
-        # g_max = 10â?»Â³cm/tau_m  // cm(nF)/tau_m(ms) = G(ÂµS) = 10â?»â?¶G(S). Divide by area (10Â³) to get factor of 10â?»Â³
+        # g_max = 10ï¿½?ï¿½Â³cm/tau_m  // cm(nF)/tau_m(ms) = G(ÂµS) = 10ï¿½?ï¿½ï¿½?ï¿½G(S). Divide by area (10Â³) to get factor of 10ï¿½?ï¿½Â³
         gmax = str(1e-3*self.parameters['cm']/self.parameters['tau_m'])
         passive_node.appendChild(build_parameter_node('gmax', gmax))
         cm_node       = build_node('bio:specificCapacitance')
@@ -216,6 +221,7 @@ class IF_curr_exp(cells.IF_curr_exp, NotImplementedModel):
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.synapse_type = "doub_exp_syn"
         self.__class__.n += 1
+        logger.debug("IF_curr_exp created")
 
 class IF_curr_alpha(cells.IF_curr_alpha, NotImplementedModel):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
@@ -231,6 +237,7 @@ class IF_curr_alpha(cells.IF_curr_alpha, NotImplementedModel):
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.synapse_type = "doub_exp_syn"
         self.__class__.n += 1
+        logger.debug("IF_curr_alpha created")
 
 class IF_cond_exp(cells.IF_cond_exp, IF_base):
     """Leaky integrate and fire model with fixed threshold and 
@@ -245,6 +252,7 @@ class IF_cond_exp(cells.IF_cond_exp, IF_base):
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.synapse_type = "doub_exp_syn"
         self.__class__.n += 1
+        logger.debug("IF_cond_exp created")
         
 class IF_cond_alpha(cells.IF_cond_alpha, IF_base):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
@@ -259,6 +267,7 @@ class IF_cond_alpha(cells.IF_cond_alpha, IF_base):
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.synapse_type = "alpha_syn"
         self.__class__.n += 1
+        logger.debug("IF_cond_alpha created")
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson, NotImplementedModel):
     """Spike source, generating spikes according to a Poisson process."""
@@ -294,13 +303,20 @@ class SpikeSourceArray(cells.SpikeSourceArray, NotImplementedModel):
 # ==============================================================================
 
 def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params):
+
+    logger.debug("setup() called, extra_params = "+str(extra_params))
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
     global xmldoc, xmlfile, populations_node, projections_node, inputs_node, cells_node, channels_node, neuromlNode, strict
-    xmlfile = extra_params['file']
+
+    if not extra_params.has_key('file'):
+        xmlfile = "PyNN2NeuroML.xml"
+    else:
+        xmlfile = extra_params['file']
+
     if isinstance(xmlfile, basestring):
         xmlfile = open(xmlfile, 'w')
     if 'strict' in extra_params:
@@ -310,7 +326,16 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params
     neuromlNode = xmldoc.createElementNS(neuroml_url+'/neuroml/schema','neuroml')
     neuromlNode.setAttributeNS(namespace['xsi'],'xsi:schemaLocation',"http://morphml.org/neuroml/schema "+neuroml_xsd)
     neuromlNode.setAttribute('lengthUnits',"micron")
+
+    neuromlNode.setAttribute("xmlns","http://morphml.org/neuroml/schema")
+
+    for ns in namespace.keys():
+        neuromlNode.setAttribute("xmlns:"+ns,namespace[ns])
+
     xmldoc.appendChild(neuromlNode)
+
+    neuromlNode.appendChild(xmldoc.createComment("NOTE: the support for abstract cell models in NeuroML v1.x is limited, so the mapping PyNN -> NeuroML v1.x is quite incomplete."))
+    neuromlNode.appendChild(xmldoc.createComment("Try the PyNN -> NeuroML v2.0 mapping instead."))
     
     populations_node = build_node('net:populations')
     projections_node = build_node('net:projections', units="Physiological Units")
@@ -330,7 +355,7 @@ def end(compatible_output=True):
         if not node.hasChildNodes():
             neuromlNode.removeChild(node)
     # Write the file
-    xml.dom.ext.PrettyPrint(xmldoc, xmlfile)
+    xmlfile.write(xmldoc.toprettyxml())
     xmlfile.close()
 
 def run(simtime):
@@ -399,26 +424,26 @@ class Population(common.Population):
     """
     
     n = 0
-    
+
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  label=None):
+        __doc__ = common.Population.__doc__
+        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
+        ###simulator.initializer.register(self)
+
+    def _create_cells(self, cellclass, cellparams, n):
         """
         Create a population of neurons all of the same type.
         
-        size - number of cells in the Population. For backwards-compatibility, n
-               may also be a tuple giving the dimensions of a grid, e.g. n=(10,10)
-               is equivalent to n=100 with structure=Grid2D()
-        cellclass should either be a standardized cell class (a class inheriting
-        from common.standardmodels.StandardCellType) or a string giving the name of the
-        simulator-specific model that makes up the population.
-        cellparams should be a dict which is passed to the neuron model
-          constructor
-        structure should be a Structure instance.
-        label is an optional name for the population.
+
+        `cellclass`  -- a PyNN standard cell
+        `cellparams` -- a dictionary of cell parameters.
+        `n`          -- the number of cells to create
         """
         global populations_node, cells_node, channels_node
-        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
-        self.label = self.label or 'Population%d' % Population.n
+
+        assert n > 0, 'n must be a positive integer'
+
         self.celltype = cellclass(cellparams)
         Population.n += 1
         
@@ -449,7 +474,15 @@ class Population(common.Population):
         self.last_id = self.size-1
         self.all_cells = numpy.array([ID(id) for id in range(self.first_id, self.last_id+1)], dtype=ID)
         self._mask_local = numpy.ones_like(self.all_cells).astype(bool)
-        self.local_cells = self.all_cells[self._mask_local]
+        #self.local_cells = self.all_cells
+
+
+    def _set_initial_value_array(self, variable, value):
+        """
+            Nothing yet...
+        """
+        pass
+
 
     def _record(self, variable, record_from=None, rng=None, to_file=True):
         """
