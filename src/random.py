@@ -23,7 +23,6 @@ import sys
 from copy import deepcopy
 import logging
 import numpy.random
-from lazyarray import VectorizedIterable
 
 try:
     import pygsl.rng
@@ -182,7 +181,7 @@ class NativeRNG(AbstractRNG):
         return "AbstractRNG(seed=%s)" % self.seed
 
 
-class RandomDistribution(VectorizedIterable):
+class RandomDistribution(object):
     """
     Class which defines a next(n) method which returns an array of n random
     numbers from a given distribution.

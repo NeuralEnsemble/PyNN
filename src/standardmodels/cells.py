@@ -28,8 +28,8 @@ Spike sources (input neurons)
 :license: CeCILL, see LICENSE for details.
 """
 
+import numpy
 from pyNN.standardmodels import StandardCellType
-from pyNN.parameters import Sequence
 
 class IF_curr_alpha(StandardCellType):
     """
@@ -308,9 +308,9 @@ class SpikeSourceInhGamma(StandardCellType):
     """
 
     default_parameters = {
-        'a'        : Sequence([1.0]), # time histogram of parameter a of a gamma distribution (dimensionless)
-        'b'        : Sequence([1.0]), # time histogram of parameter b of a gamma distribution (seconds)
-        'tbins'    : Sequence([0.0]),   # time bins of the time histogram of a,b in units of ms
+        'a'        : numpy.array([1.0]), # time histogram of parameter a of a gamma distribution (dimensionless)
+        'b'        : numpy.array([1.0]), # time histogram of parameter b of a gamma distribution (seconds)
+        'tbins'    : numpy.array([0.0]),   # time bins of the time histogram of a,b in units of ms
         'start'    : 0.0,                # Start time (ms)
         'duration' : 1e10                 # Duration of spike sequence (ms)
     }
@@ -322,7 +322,13 @@ class SpikeSourceInhGamma(StandardCellType):
 class SpikeSourceArray(StandardCellType):
     """Spike source generating spikes at the times given in the spike_times array."""
     
-    default_parameters = { 'spike_times' : Sequence([]) } # list or numpy array containing spike times in milliseconds.
+    default_parameters = { 'spike_times' : [] } # list or numpy array containing spike times in milliseconds.
     recordable = ['spikes']
     injectable = False
     synapse_types = ()    
+           
+    def __init__(self, parameters):
+        if parameters and 'spike_times' in parameters:
+            parameters['spike_times'] = numpy.array(parameters['spike_times'], 'float')
+        StandardCellType.__init__(self, parameters)
+        

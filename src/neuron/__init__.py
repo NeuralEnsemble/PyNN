@@ -121,35 +121,37 @@ class Population(common.Population):
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  initial_values={}, label=None):
         __doc__ = common.Population.__doc__
-        common.Population.__init__(self, size, cellclass, cellparams,
-                                   structure, initial_values, label)
+        common.Population.__init__(self, size, cellclass, cellparams, structure, initial_values, label)
         simulator.initializer.register(self)
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
-    def _create_cells(self, cell_parameters, n):
+    def _create_cells(self, cellclass, cellparams, n):
         """
         Create cells in NEURON.
         
-        `cell_parameters` -- a ParameterSpace containing native parameters.
-        `n`               -- the number of cells to create
+        `cellclass`  -- a PyNN standard cell or a native NEURON cell class that
+                       implements an as-yet-undescribed interface.
+        `cellparams` -- a dictionary of cell parameters.
+        `n`          -- the number of cells to create
         """
         # this method should never be called more than once
         # perhaps should check for that
         assert n > 0, 'n must be a positive integer'
+        celltype = cellclass(cellparams)
+        cell_model = celltype.model
+        cell_parameters = celltype.parameters
         self.first_id = simulator.state.gid_counter
         self.last_id = simulator.state.gid_counter + n - 1
         self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id+1)], simulator.ID)
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
         self._mask_local = self.all_cells%simulator.state.num_processes==simulator.state.mpi_rank # round-robin distribution of cells between nodes
-        cell_parameters.evaluate() #self._mask_local)
-        for i, (id, is_local, params) in enumerate(zip(self.all_cells, self._mask_local, cell_parameters)):
+        for i,(id,is_local) in enumerate(zip(self.all_cells, self._mask_local)):
             self.all_cells[i] = simulator.ID(id)
             self.all_cells[i].parent = self
             if is_local:
-                params.update(self.celltype.extra_parameters)
-                self.all_cells[i]._build_cell(self.celltype.model, params)
+                self.all_cells[i]._build_cell(cell_model, cell_parameters)
         simulator.initializer.register(*self.all_cells[self._mask_local])
         simulator.state.gid_counter += n
 

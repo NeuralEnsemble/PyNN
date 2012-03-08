@@ -10,7 +10,6 @@ $Id$
 
 import numpy
 from pyNN.utility import get_script_args
-from pyNN.parameters import Sequence
 
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
@@ -18,7 +17,7 @@ exec("from pyNN.%s import *" % simulator_name)
 # === Define parameters ========================================================
 
 n = 5    # Number of cells
-w = 0.3   # synaptic weight (nA)
+w = 0.2   # synaptic weight (nA)
 cell_params = {
     'tau_m'      : 20.0, # (ms)
     'tau_syn_E'  : 2.0,  # (ms)
@@ -41,15 +40,13 @@ cells = Population(n, IF_curr_alpha, cell_params, initial_values={'v': 0.0}, lab
 
 number = int(2*simtime*input_rate/1000.0)
 numpy.random.seed(26278342)
-def generate_spike_times(i):
-    return Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number)))
-assert generate_spike_times(0).max() > simtime
+spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number))
+assert spike_times.max() > simtime
 
-spike_source = Population(n, SpikeSourceArray, {'spike_times': generate_spike_times})
+spike_source = Population(n, SpikeSourceArray, {'spike_times': spike_times})
 
-spike_source.record()
 cells.record()
-cells[0:1].record_v()
+cells.record_v()
 
 input_conns = Projection(spike_source, cells, AllToAllConnector())
 input_conns.setWeights(w)
@@ -59,7 +56,6 @@ input_conns.setDelays(syn_delay)
 
 run(simtime)
 
-spike_source.printSpikes("Results/small_network_input_%s.ras" % simulator_name)
 cells.printSpikes("Results/small_network_%s.ras" % simulator_name)
 cells.print_v("Results/small_network_%s.v" % simulator_name)
 
