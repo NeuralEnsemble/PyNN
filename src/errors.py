@@ -81,4 +81,4 @@ class RecordingError(Exception): # subclass AttributeError?
         msg = "Cannot record %s from cell type %s. Available variables are %s"
         return msg % (self.variable,
                       self.cell_type.__class__.__name__,
-                      ",".join(self.celltype.recordable)
+                      ",".join(self.celltype.recordable))

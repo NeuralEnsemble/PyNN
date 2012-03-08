@@ -170,7 +170,8 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
             all_parameters = self.get_parameters()
             all_parameters.update(parameters)
             parameters = all_parameters
-            parameters = self.translate(parameters)
+        
+        parameters = self.translate(parameters)
         self.set_native_parameters(parameters)
 
     def get_parameters(self):
