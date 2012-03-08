@@ -15,22 +15,25 @@ from pyNN.utility import get_script_args
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
 
-from pyNN.random import NumpyRNG
+from pyNN.random import NumpyRNG, RandomDistribution
 
 seed = 764756387
+rng = NumpyRNG(seed=seed, parallel_safe=True)
 tstop = 1000.0 # ms
 input_rate = 100.0 # Hz
 cell_params = {'tau_refrac': 2.0,  # ms
                'v_thresh':  -50.0, # mV
                'tau_syn_E':  2.0,  # ms
-               'tau_syn_I':  2.0}  # ms
+               'tau_syn_I':  2.0,  # ms
+               'tau_m': RandomDistribution('uniform', [18.0, 22.0], rng=rng)
+}
 n_record = 5
 
 node = setup(timestep=0.025, min_delay=1.0, max_delay=1.0, debug=True, quit_on_end=False)
 print "Process with rank %d running on %s" % (node, socket.gethostname())
 
 
-rng = NumpyRNG(seed=seed, parallel_safe=True)
+
 
 print "[%d] Creating populations" % node
 n_spikes = int(2*tstop*input_rate/1000.0)

@@ -8,6 +8,7 @@ standard current source models.
 
 import numpy
 from pyNN.standardmodels import StandardCurrentSource
+from pyNN.parameters import Sequence
 
 class DCSource(StandardCurrentSource):
     """Source producing a single pulse of current of constant amplitude.
@@ -60,8 +61,8 @@ class StepCurrentSource(StandardCurrentSource):
     """
     
     default_parameters = {
-        'amplitudes'    : [], # 
-        'times'         : []  #
+        'amplitudes': Sequence([]), 
+        'times'     : Sequence([])
     }
 
 class NoisyCurrentSource(StandardCurrentSource):

@@ -112,7 +112,7 @@ class _Initializer(object):
         """
         for item in items:
             if isinstance(item, (common.BasePopulation, common.Assembly)):
-                if "Source" not in item.celltype.__class__.__name__: # don't do memb_init() on spike sources
+                if "Source" not in item.celltype.__name__: # don't do memb_init() on spike sources
                     self.population_list.append(item)
             else:
                 if hasattr(item._cell, "memb_init"):
@@ -220,7 +220,7 @@ class ID(int, common.IDMixin):
                         `neuron.cells` module (more generally, any class that
                         implements a certain interface, but I haven't
                         explicitly described that yet).
-        `cell_parameters` -- a dictionary containing the parameters used to
+        `cell_parameters` -- a ParameterSpace containing the parameters used to
                              initialise the cell model.
         """
         gid = int(self)

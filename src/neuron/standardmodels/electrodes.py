@@ -16,30 +16,38 @@ $Id: electrodes.py 957 2011-05-03 13:44:15Z apdavison $
 from neuron import h
 import numpy
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
+from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.neuron import simulator
 
 class NeuronCurrentSource(StandardCurrentSource):
     """Base class for a source of current to be injected into a neuron."""  
 
-    def __init__(self, parameters):        
-        super(StandardCurrentSource, self).__init__(parameters)
+    def __init__(self, parameters):
         self._devices    = []
         self.cell_list   = []
         self._amplitudes = None
         self._times      = None
         self._h_iclamps  = {}
-        self.set_native_parameters(self.parameters)
+        parameter_space = ParameterSpace(self.default_parameters,
+                                         self.get_schema(),
+                                         size=1)
+        parameter_space.update(**parameters)
+        parameter_space = self.translate(parameter_space)
+        parameter_space.evaluate(simplify=True)
+        self.set_native_parameters(parameter_space.as_dict())
 
     @property
     def _h_amplitudes(self):
         if self._amplitudes == None:
-            self._amplitudes = h.Vector(self.amplitudes)
+            assert isinstance(self.amplitudes, Sequence)
+            self._amplitudes = h.Vector(self.amplitudes.value)
         return self._amplitudes        
 
     @property
     def _h_times(self):
         if self._times == None:
-            self._times = h.Vector(self.times)
+            assert isinstance(self.times, Sequence)
+            self._times = h.Vector(self.times.value)
         return self._times
 
     def _reset(self):
@@ -63,13 +71,12 @@ class NeuronCurrentSource(StandardCurrentSource):
             self._h_amplitudes.play(iclamp._ref_amp, self._h_times)
 
     def set_native_parameters(self, parameters):
-        parameters = self.translate(parameters)
-        for key, value in parameters.items():
-            self.parameters[key] = value
+        for name, value in parameters.items():
+            object.__setattr__(self, name, value)
         self._reset()
 
     def get_native_parameters(self):    
-        return self.parameters
+        raise NotImplementedError
 
     def inject_into(self, cell_list):   
         for id in cell_list:

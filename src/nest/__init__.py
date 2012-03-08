@@ -29,6 +29,7 @@ from pyNN.nest.standardmodels.electrodes import *
 from pyNN.nest.recording import *
 from pyNN.random import RandomDistribution
 from pyNN import standardmodels
+from pyNN.parameters import Sequence
 
 Set = set
 tempdirs       = []
@@ -168,19 +169,46 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 #   neurons.
 # ==============================================================================
 
+class PopulationMixin(object):
+    
+    def _set_parameters(self, parameter_space):
+        param_dict = _build_params(parameter_space)
+        nest.SetStatus(self.local_cells.tolist(), param_dict)
+
+
 class Assembly(common.Assembly):
     _simulator = simulator
 
 
-class PopulationView(common.PopulationView):
+class PopulationView(common.PopulationView, PopulationMixin):
     _simulator = simulator
     assembly_class = Assembly
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
+def _build_params(parameter_space):
+    """
+    Return either a single parameter dict or a list of dicts, suitable for use
+    in Create or SetStatus.
+    """
+    if parameter_space.is_homogeneous:
+        parameter_space.evaluate(simplify=True) # use _mask_local
+        cell_parameters = parameter_space.as_dict()
+        for name, val in cell_parameters.items():
+            if isinstance(val, Sequence):
+                cell_parameters[name] = val.value
+    else:
+        parameter_space.evaluate() 
+        cell_parameters = list(parameter_space) # may not be the most efficient way. Might be best to set homogeneous parameters on creation, then inhomogeneous ones using SetStatus. Need some timings.
+        for D in cell_parameters:
+            for name, val in D.items():
+                if isinstance(val, Sequence):
+                    D[name] = val.value
+    return cell_parameters 
 
-class Population(common.Population):
+
+class Population(common.Population, PopulationMixin):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
@@ -192,29 +220,27 @@ class Population(common.Population):
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
-    def _create_cells(self, cellclass, cellparams, n):
+    def _create_cells(self, cell_parameters, n):
         """
         Create cells in NEST.
         
-        `cellclass`  -- a PyNN standard cell or the name of a native NEST model.
-        `cellparams` -- a dictionary of cell parameters.
-        `n`          -- the number of cells to create
+        `cell_parameters` -- a ParameterSpace containing native parameters.
+        `n`               -- the number of cells to create
         """
         # this method should never be called more than once
         # perhaps should check for that
         assert n > 0, 'n must be a positive integer'
         n = int(n)
-        
-        celltype = cellclass(cellparams)
-        nest_model = celltype.nest_name[simulator.state.spike_precision]
+        nest_model = self.celltype.nest_name[simulator.state.spike_precision]
+        params = _build_params(cell_parameters)
         try:
-            self.all_cells = nest.Create(nest_model, n, params=celltype.parameters)
+            self.all_cells = nest.Create(nest_model, n, params=params)
         except nest.NESTError, err:
             if "UnknownModelName" in err.message and "cond" in err.message:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
             raise errors.InvalidModelError(err)
         # create parrot neurons if necessary
-        if hasattr(celltype, "uses_parrot") and celltype.uses_parrot:
+        if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             self.all_cells_source = numpy.array(self.all_cells)  # we put the parrots into all_cells, since this will
             self.all_cells = nest.Create("parrot_neuron", n)     # be used for connections and recording. all_cells_source
             nest.Connect(self.all_cells_source, self.all_cells)  # should be used for setting parameters
@@ -224,67 +250,9 @@ class Population(common.Population):
         self.all_cells = numpy.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
         for gid in self.all_cells:
             gid.parent = self
-        if hasattr(celltype, "uses_parrot") and celltype.uses_parrot:
+        if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             for gid, source in zip(self.all_cells, self.all_cells_source):
                 gid.source = source
-        
-
-    def set(self, param, val=None):
-        """
-        Set one or more parameters for every cell in the population.
-        
-        param can be a dict, in which case val should not be supplied, or a string
-        giving the parameter name, in which case val is the parameter value.
-        val can be a numeric value, or list of such (e.g. for setting spike times).
-        e.g. p.set("tau_m",20.0).
-             p.set({'tau_m':20,'v_rest':-65})
-        """
-        if isinstance(param, str):
-            if isinstance(val, (str, float, int)):
-                param_dict = {param: float(val)}
-            elif isinstance(val, (list, numpy.ndarray)):
-                param_dict = {param: [val]*len(self)}
-            else:
-                raise errors.InvalidParameterValueError
-        elif isinstance(param, dict):
-            param_dict = param
-        else:
-            raise errors.InvalidParameterValueError
-        param_dict = self.celltype.check_parameters(param_dict, with_defaults=False)
-        # The default implementation in common is is not very efficient for
-        # simple and scaled parameters.
-        # Should call nest.SetStatus(self.local_cells,...) for the parameters in
-        # self.celltype.__class__.simple_parameters() and .scaled_parameters()
-        # and keep the loop below just for the computed parameters. Even in this
-        # case, it may be quicker to test whether the parameters participating
-        # in the computation vary between cells, since if this is not the case
-        # we can do the computation here and use nest.SetStatus.
-        
-        if isinstance(self.celltype, standardmodels.StandardCellType):
-            to_be_set = {}
-            if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
-                gids = self.all_cells_source[self._mask_local]
-            else:
-                gids = self.local_cells
-            for key, value in param_dict.items():
-                if key in self.celltype.scaled_parameters():
-                    translation = self.celltype.translations[key]
-                    value = eval(translation['forward_transform'], globals(), {key:value})
-                    to_be_set[translation['translated_name']] = value                
-                elif key in self.celltype.simple_parameters():
-                    translation = self.celltype.translations[key]
-                    to_be_set[translation['translated_name']] = value                    
-                else:
-                    assert key in self.celltype.computed_parameters()
-            logger.debug("Setting the following parameters: %s" % to_be_set)
-            nest.SetStatus(gids.tolist(), to_be_set)
-            for key, value in param_dict.items():
-                if key in self.celltype.computed_parameters():
-                    logger.debug("Setting %s = %s" % (key, value))
-                    for cell in self:
-                        cell.set_parameters(**{key:value})
-        else:
-            nest.SetStatus(self.local_cells.tolist(), param_dict)
 
     def _set_initial_value_array(self, variable, value):
         if variable in STATE_VARIABLE_MAP:

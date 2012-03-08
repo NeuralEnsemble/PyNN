@@ -13,6 +13,7 @@ from warnings import warn
 import operator
 import tempfile
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions
+from pyNN.parameters import ParameterSpace
 from pyNN.recording import files
 from itertools import chain
 
@@ -272,82 +273,42 @@ class BasePopulation(object):
             values = numpy.array(values)[idx]
         return values
 
-    def set(self, param, val=None):
+    def set(self, **parameters):
         """
-        Set one or more parameters for every cell in the population. param
-        can be a dict, in which case val should not be supplied, or a string
-        giving the parameter name, in which case val is the parameter value.
-        val can be a numeric value, or list of such (e.g. for setting spike
-        times).
-        e.g. p.set("tau_m",20.0).
-             p.set({'tau_m':20,'v_rest':-65})
+        Set one or more parameters for every cell in the population.
+        
+        Values passed to set() may be:
+            (1) single values
+            (2) RandomDistribution objects
+            (3) lists/arrays of values of the same size as the population
+            (4) mapping functions, where a mapping function accepts a single
+                argument (the cell index) and returns a single value.
+        
+        Here, a "value" may be either a single number or a list/array of numbers
+        (e.g. for spike times).
+        
+        Examples:
+            p.set(tau_m=20.0, v_rest=-65).
+            p.set(spike_times=[0.3, 0.7, 0.9, 1.4])
+            p.set(cm=rand_distr, tau_m=lambda i: 10 + i/10.0)
         """
-        #"""
-        # -- Proposed change to arguments --
-        #Set one or more parameters for every cell in the population.
-        #
-        #Each value may be a single number or a list/array of numbers of the same
-        #size as the population. If the parameter itself takes lists/arrays as
-        #values (e.g. spike times), then the value provided may be either a
-        #single lists/1D array, a list of lists/1D arrays, or a 2D array.
-        #
-        #e.g. p.set(tau_m=20.0).
-        #     p.set(tau_m=20, v_rest=[-65.0, -65.3, ... , -67.2])
-        #"""
-        if isinstance(param, str):
-            param_dict = {param: val}
-        elif isinstance(param, dict):
-            param_dict = param
-        else:
-            raise errors.InvalidParameterValueError
-        param_dict = self.celltype.check_parameters(param_dict, with_defaults=False)
-        logger.debug("%s.set(%s)", self.label, param_dict)
-        if hasattr(self, "_set_array"):
-            self._set_array(**param_dict)
-        else:
-            for cell in self:
-                cell.set_parameters(**param_dict)
+        # add example using of function of (x,y,z) and Population.position_generator
+        parameter_space = ParameterSpace(parameters, # TODO: for some translations, need to get existing parameter space of models
+                                         self.celltype.get_schema(),
+                                         self.size)
+        if issubclass(self.celltype, standardmodels.StandardCellType):
+            parameter_space = self.celltype.translate(parameter_space)
+        self._set_parameters(parameter_space)
 
+    @deprecated("set(parametername=value_array)")
     def tset(self, parametername, value_array):
         """
         'Topographic' set. Set the value of parametername to the values in
         value_array, which must have the same dimensions as the Population.
         """
-        #"""
-        # -- Proposed change to arguments --
-        #'Topographic' set. Each value in parameters should be a function that
-        #accepts arguments x,y,z and returns a single value.
-        #"""
-        if parametername not in self.celltype.get_parameter_names():
-            raise errors.NonExistentParameterError(parametername, self.celltype, self.celltype.get_parameter_names())
-        if (self.size,) == value_array.shape:  # the values are numbers or non-array objects
-            local_values = value_array[self._mask_local]
-            assert local_values.size == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
-        elif len(value_array.shape) == 2:  # the values are themselves 1D arrays
-            if value_array.shape[0] != self.size:
-                raise errors.InvalidDimensionsError("Population: %d, value_array first dimension: %s" % (self.size,
-                                                                                                         value_array.shape[0]))
-            local_values = value_array[self._mask_local]  # not sure this works
-        else:
-            raise errors.InvalidDimensionsError("Population: %d, value_array: %s" % (self.size,
-                                                                                     str(value_array.shape)))
-        assert local_values.shape[0] == self.local_cells.size, "%d != %d" % (local_values.size, self.local_cells.size)
+        self.set(**{parametername: value_array})
 
-        try:
-            logger.debug("%s.tset('%s', array(shape=%s, min=%s, max=%s))",
-                         self.label, parametername, value_array.shape,
-                         value_array.min(), value_array.max())
-        except (TypeError,ValueError):  # min() and max() won't work for non-numeric values
-            logger.debug("%s.tset('%s', non_numeric_array(shape=%s))",
-                         self.label, parametername, value_array.shape)
-
-        # Set the values for each cell
-        if hasattr(self, "_set_array"):
-            self._set_array(**{parametername: local_values})
-        else:
-            for cell, val in zip(self, local_values):
-                setattr(cell, parametername, val)
-
+    @deprecated("set(parametername=rand_distr)")
     def rset(self, parametername, rand_distr):
         """
         'Random' set. Set the value of parametername to a value taken from
@@ -357,14 +318,7 @@ class BasePopulation(object):
         # but use only those relevant to this node. This ensures that the
         # sequence of random numbers does not depend on the number of nodes,
         # provided that the same rng with the same seed is used on each node.
-        logger.debug("%s.rset('%s', %s)", self.label, parametername, rand_distr)
-        if isinstance(rand_distr.rng, random.NativeRNG):
-            self._native_rset(parametername, rand_distr)
-        else:
-            rarr = rand_distr.next(n=self.all_cells.size, mask_local=False)
-            rarr = numpy.array(rarr)  # isn't rarr already an array?
-            assert rarr.size == self.size, "%s != %s" % (rarr.size, self.size)
-            self.tset(parametername, rarr)
+        self.set(**{parametername: rand_distr})
 
     def initialize(self, variable, value):
         """
@@ -632,15 +586,21 @@ class Population(BasePopulation):
             size = int(reduce(operator.mul, size)) # NEST doesn't like numpy.int, so to be safe we cast to Python int
         self.size = size
         self.label = label or 'population%d' % Population.nPop
-        self.celltype = cellclass(cellparams)
         self._structure = structure or space.Line()
         self._positions = None
         self._is_sorted = True
+        self.celltype = cellclass
+        parameter_space = ParameterSpace(self.celltype.default_parameters,
+                                         self.celltype.get_schema(),
+                                         self.size)
+        parameter_space.update(**cellparams)
+        if issubclass(self.celltype, standardmodels.StandardCellType):
+            parameter_space = self.celltype.translate(parameter_space)
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
         # The local cells are also stored in a list, for easy iteration
-        self._create_cells(cellclass, cellparams, size)
+        self._create_cells(parameter_space, size)
         self.initial_values = {}
         for variable, default in self.celltype.default_initial_values.items():
             self.initialize(variable, initial_values.get(variable, default))

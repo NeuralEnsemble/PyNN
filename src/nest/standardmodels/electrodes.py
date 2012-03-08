@@ -20,17 +20,22 @@ from pyNN.nest.simulator import state
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.random import NumpyRNG, NativeRNG
 from pyNN.common import Population, PopulationView, Assembly
+from pyNN.parameters import ParameterSpace, Sequence
 
-# should really use the StandardModel machinery to allow reverse translations
 
 class NestCurrentSource(StandardCurrentSource):
     """Base class for a nest source of current to be injected into a neuron."""
 
-    def __init__(self, parameters):    
-        super(StandardCurrentSource, self).__init__(parameters)
+    def __init__(self, parameters):
         self._device   = nest.Create(self.nest_name)
         self.cell_list = []
-        self.set_native_parameters(self.parameters)
+        parameter_space = ParameterSpace(self.default_parameters,
+                                         self.get_schema(),
+                                         size=1)
+        parameter_space.update(**parameters)
+        parameter_space = self.translate(parameter_space)
+        parameter_space.evaluate(simplify=True)
+        self.set_native_parameters(parameter_space.as_dict())
 
     def inject_into(self, cell_list):
         """Inject this current source into some cells."""
@@ -44,11 +49,10 @@ class NestCurrentSource(StandardCurrentSource):
         nest.DivergentConnect(self._device, self.cell_list)
 
     def set_native_parameters(self, parameters): 
-        #parameters = self.translate(parameters)
         for key, value in parameters.items():
-            self.parameters[key] = value
-            if key == "amplitude_values": 
-                nest.SetStatus([self._device], {key : list(parameters[key]), 'amplitude_times' : list(parameters["amplitude_times"])})
+            if key == "amplitude_values":
+                assert isinstance(value, Sequence)
+                nest.SetStatus([self._device], {key : value.value, 'amplitude_times' : parameters["amplitude_times"].value})
             elif not key == "amplitude_times":
                 nest.SetStatus([self._device], {key : float(value)})
 
@@ -57,7 +61,6 @@ class NestCurrentSource(StandardCurrentSource):
     
 
 class DCSource(NestCurrentSource, electrodes.DCSource):
-    
     __doc__ = electrodes.DCSource.__doc__    
     
     translations = build_translations(
@@ -65,12 +68,10 @@ class DCSource(NestCurrentSource, electrodes.DCSource):
         ('start',      'start'),
         ('stop',       'stop')
     )
-
     nest_name = 'dc_generator'
 
 
 class ACSource(NestCurrentSource, electrodes.ACSource):
-    
     __doc__ = electrodes.ACSource.__doc__    
     
     translations = build_translations(
@@ -81,23 +82,20 @@ class ACSource(NestCurrentSource, electrodes.ACSource):
         ('offset',     'offset',    1000.),
         ('phase',      'phase')
     )
-
     nest_name = 'ac_generator'
 
+
 class StepCurrentSource(NestCurrentSource, electrodes.StepCurrentSource):
-    
     __doc__ = electrodes.StepCurrentSource.__doc__ 
     
     translations = build_translations(
         ('amplitudes',  'amplitude_values', 1000.),
         ('times',       'amplitude_times')
     )
-
     nest_name = 'step_current_generator'
 
 
 class NoisyCurrentSource(NestCurrentSource, electrodes.NoisyCurrentSource):
-    
     __doc__ = electrodes.NoisyCurrentSource.__doc__
     
     translations = build_translations(
@@ -107,7 +105,4 @@ class NoisyCurrentSource(NestCurrentSource, electrodes.NoisyCurrentSource):
         ('stdev', 'std', 1000.),
         ('dt',    'dt')
     )
-
     nest_name = 'noise_generator'
-
-

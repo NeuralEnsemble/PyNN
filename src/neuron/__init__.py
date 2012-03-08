@@ -97,11 +97,19 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 #   neurons.
 # ==============================================================================
 
+class PopulationMixin(object):
+    
+    def _set_parameters(self, parameter_space):
+        parameter_space.evaluate() #self._mask_local)
+        for cell, param_dict in zip(self, parameter_space):
+            cell.set_parameters(**param_dict)
+
+
 class Assembly(common.Assembly):
     _simulator = simulator
 
 
-class PopulationView(common.PopulationView):
+class PopulationView(common.PopulationView, PopulationMixin):
     _simulator = simulator
     assembly_class = Assembly
     
@@ -109,7 +117,7 @@ class PopulationView(common.PopulationView):
         return PopulationView(self, selector, label)
     
 
-class Population(common.Population):
+class Population(common.Population, PopulationMixin):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
@@ -121,37 +129,35 @@ class Population(common.Population):
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  initial_values={}, label=None):
         __doc__ = common.Population.__doc__
-        common.Population.__init__(self, size, cellclass, cellparams, structure, initial_values, label)
+        common.Population.__init__(self, size, cellclass, cellparams,
+                                   structure, initial_values, label)
         simulator.initializer.register(self)
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
-    def _create_cells(self, cellclass, cellparams, n):
+    def _create_cells(self, cell_parameters, n):
         """
         Create cells in NEURON.
         
-        `cellclass`  -- a PyNN standard cell or a native NEURON cell class that
-                       implements an as-yet-undescribed interface.
-        `cellparams` -- a dictionary of cell parameters.
-        `n`          -- the number of cells to create
+        `cell_parameters` -- a ParameterSpace containing native parameters.
+        `n`               -- the number of cells to create
         """
         # this method should never be called more than once
         # perhaps should check for that
         assert n > 0, 'n must be a positive integer'
-        celltype = cellclass(cellparams)
-        cell_model = celltype.model
-        cell_parameters = celltype.parameters
         self.first_id = simulator.state.gid_counter
         self.last_id = simulator.state.gid_counter + n - 1
         self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id+1)], simulator.ID)
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
         self._mask_local = self.all_cells%simulator.state.num_processes==simulator.state.mpi_rank # round-robin distribution of cells between nodes
-        for i,(id,is_local) in enumerate(zip(self.all_cells, self._mask_local)):
+        cell_parameters.evaluate() #self._mask_local)
+        for i, (id, is_local, params) in enumerate(zip(self.all_cells, self._mask_local, cell_parameters)):
             self.all_cells[i] = simulator.ID(id)
             self.all_cells[i].parent = self
             if is_local:
-                self.all_cells[i]._build_cell(cell_model, cell_parameters)
+                params.update(self.celltype.extra_parameters)
+                self.all_cells[i]._build_cell(self.celltype.model, params)
         simulator.initializer.register(*self.all_cells[self._mask_local])
         simulator.state.gid_counter += n
 

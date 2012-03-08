@@ -33,12 +33,9 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         ('tau_syn_I',  'tau_i'),
     )
     model = StandardIF
-    
-    def __init__(self, parameters):
-        cells.IF_curr_alpha.__init__(self, parameters) # checks supplied parameters and adds default
-                                                        # values for not-specified parameters.
-        self.parameters['syn_type']  = 'current'
-        self.parameters['syn_shape'] = 'alpha'
+    extra_parameters = {'syn_type': 'current',
+                        'syn_shape': 'alpha'}
+
 
 class IF_curr_exp(cells.IF_curr_exp):
     
@@ -56,11 +53,8 @@ class IF_curr_exp(cells.IF_curr_exp):
         ('tau_syn_I',  'tau_i'),
     )
     model = StandardIF
-    
-    def __init__(self, parameters):
-        cells.IF_curr_exp.__init__(self, parameters)
-        self.parameters['syn_type']  = 'current'
-        self.parameters['syn_shape'] = 'exp'
+    extra_parameters = {'syn_type': 'current',
+                        'syn_shape': 'exp'}
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):
@@ -81,12 +75,8 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         ('e_rev_I',    'e_i')
     )
     model = StandardIF
-    
-    def __init__(self, parameters):
-        cells.IF_cond_alpha.__init__(self, parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters['syn_type']  = 'conductance'
-        self.parameters['syn_shape'] = 'alpha'
+    extra_parameters = {'syn_type': 'conductance',
+                        'syn_shape': 'alpha'}
 
 
 class IF_cond_exp(cells.IF_cond_exp):
@@ -107,12 +97,8 @@ class IF_cond_exp(cells.IF_cond_exp):
         ('e_rev_I',    'e_i')
     )
     model = StandardIF
-    
-    def __init__(self, parameters):
-        cells.IF_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
-                                                       # values for not-specified parameters.
-        self.parameters['syn_type']  = 'conductance'
-        self.parameters['syn_shape'] = 'exp'
+    extra_parameters = {'syn_type': 'conductance',
+                        'syn_shape': 'exp'}
 
 
 class IF_facets_hardware1(cells.IF_facets_hardware1):
@@ -129,17 +115,14 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
         ('e_rev_I',    'e_i')
     )
     model = StandardIF
+    extra_parameters = {'syn_type':  'conductance',
+                        'syn_shape': 'exp',
+                        'i_offset':  0.0,
+                        'c_m':       0.2,
+                        't_refrac':  1.0,
+                        'e_e':       0.0}
 
-    def __init__(self, parameters):
-        cells.IF_facets_hardware1.__init__(self, parameters)
-        self.parameters['syn_type']  = 'conductance'
-        self.parameters['syn_shape'] = 'exp'
-        self.parameters['i_offset']  = 0.0
-        self.parameters['c_m']       = 0.2
-        self.parameters['t_refrac']  = 1.0
-        self.parameters['e_e']       = 0.0
-    
-       
+
 class HH_cond_exp(cells.HH_cond_exp):
     
     __doc__ = cells.HH_cond_exp.__doc__    
@@ -160,12 +143,8 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('i_offset',   'i_offset'),
     )
     model = SingleCompartmentTraub
-
-    def __init__(self, parameters):
-        cells.HH_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
-                                                     # values for not-specified parameters.
-        self.parameters['syn_type']  = 'conductance'
-        self.parameters['syn_shape'] = 'exp'
+    extra_parameters = {'syn_type': 'conductance',
+                        'syn_shape': 'exp'}
 
 
 class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
@@ -192,13 +171,8 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
         ('q_rr',       'q_rr')
     )
     model = GsfaGrrIF
-    
-    def __init__(self, parameters):
-        cells.IF_cond_exp_gsfa_grr.__init__(self, parameters) # checks supplied parameters and adds default
-                                                              # values for not-specified parameters.
-        self.parameters['syn_type']  = 'conductance'
-        self.parameters['syn_shape'] = 'exp'
-
+    extra_parameters = {'syn_type': 'conductance',
+                        'syn_shape': 'exp'}
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
@@ -221,8 +195,8 @@ class SpikeSourceArray(cells.SpikeSourceArray):
         ('spike_times', 'spike_times'),
     )
     model = VectorSpikeSource
-       
-        
+
+
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     
     __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__ 
@@ -246,11 +220,9 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         ('tau_syn_I',  'tau_i'),
     )
     model = BretteGerstnerIF
-    
-    def __init__(self, parameters):
-        cells.EIF_cond_alpha_isfa_ista.__init__(self, parameters)
-        self.parameters['syn_type']  = 'conductance'
-        self.parameters['syn_shape'] = 'alpha'
+    extra_parameters = {'syn_type': 'conductance',
+                        'syn_shape': 'alpha'}
+
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     
@@ -258,8 +230,6 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     
     translations = EIF_cond_alpha_isfa_ista.translations
     model = BretteGerstnerIF
-    
-    def __init__(self, parameters):
-        cells.EIF_cond_exp_isfa_ista.__init__(self, parameters)
-        self.parameters['syn_type']  = 'conductance'
-        self.parameters['syn_shape'] = 'exp'
+    extra_parameters = {'syn_type': 'conductance',
+                        'syn_shape': 'exp'}
+

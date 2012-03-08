@@ -22,6 +22,7 @@ Classes:
 """
 
 from pyNN import descriptions, errors, models
+from pyNN.parameters import ParameterSpace
 import numpy
 from pyNN.core import is_listlike
 
@@ -58,23 +59,18 @@ class StandardModelType(models.BaseModelType):
     """Base class for standardized cell model and synapse model classes."""
     
     translations = {}
-    
-    def __init__(self, parameters):
-        models.BaseModelType.__init__(self, parameters)
-        assert set(self.translations.keys()) == set(self.default_parameters.keys()), \
-               "%s != %s" % (self.translations.keys(), self.default_parameters.keys())
-        self.parameters = self.__class__.translate(self.parameters)
+    extra_parameters = {}
     
     @classmethod
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
-        parameters = cls.check_parameters(parameters, with_defaults=False)
+        if parameters.schema != cls.get_schema():
+            raise Exception("") # should replace this with a PyNN-specific exception type
         native_parameters = {}
-        for name in parameters:
+        #for name in parameters.schema:
+        for name in parameters.keys():
             D = cls.translations[name]
             pname = D['translated_name']
-            if is_listlike(cls.default_parameters[name]):
-                parameters[name] = numpy.array(parameters[name])
             try:
                 pval = eval(D['forward_transform'], globals(), parameters)
             except NameError, errmsg:
@@ -84,7 +80,7 @@ class StandardModelType(models.BaseModelType):
                 raise
                 #pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
-        return native_parameters
+        return ParameterSpace(native_parameters, schema=None, size=parameters.size)
     
     @classmethod
     def reverse_translate(cls, native_parameters):
@@ -185,12 +181,14 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
     def get_native_parameters(self):    
         pass
 
+
 class ModelNotAvailable(object):
     """Not available for this simulator."""
     
     def __init__(self, *args, **kwargs):
         raise NotImplementedError("The %s model is not available for this simulator." % self.__class__.__name__)
-        
+
+
 # ==============================================================================
 #   Synapse Dynamics classes
 # ==============================================================================
