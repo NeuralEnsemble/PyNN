@@ -22,6 +22,7 @@ Classes:
 """
 
 from pyNN import descriptions, errors, models
+from pyNN.parameters import ParameterSpace
 import numpy
 from pyNN.core import is_listlike
 
@@ -58,6 +59,7 @@ class StandardModelType(models.BaseModelType):
     """Base class for standardized cell model and synapse model classes."""
     
     translations = {}
+    extra_parameters = {}
     
     def __init__(self, parameters):
         models.BaseModelType.__init__(self, parameters)
@@ -68,13 +70,12 @@ class StandardModelType(models.BaseModelType):
     @classmethod
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
-        parameters = cls.check_parameters(parameters, with_defaults=False)
+        if parameters.schema != cls.get_schema():
+            raise Exception("") # should replace this with a PyNN-specific exception type
         native_parameters = {}
-        for name in parameters:
+        for name in parameters.schema:
             D = cls.translations[name]
             pname = D['translated_name']
-            if is_listlike(cls.default_parameters[name]):
-                parameters[name] = numpy.array(parameters[name])
             try:
                 pval = eval(D['forward_transform'], globals(), parameters)
             except NameError, errmsg:
@@ -84,7 +85,7 @@ class StandardModelType(models.BaseModelType):
                 raise
                 #pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
-        return native_parameters
+        return ParameterSpace(native_parameters, schema=None, size=parameters.size)
     
     @classmethod
     def reverse_translate(cls, native_parameters):

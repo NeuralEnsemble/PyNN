@@ -10,6 +10,7 @@ from pyNN.models import BaseModelType, BaseSynapseDynamics
 
 DEFAULT_TAU_MINUS = 20.0
 
+
 def get_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
     ignore = ['delay', 'max_delay', 'min_delay', 'num_connections',
@@ -22,17 +23,17 @@ def get_defaults(model_name):
     return default_params
 
 
-
-
 class NativeSynapseDynamics(BaseSynapseDynamics):
     
     def __init__(self, model_name, parameters={}):
         cls = type(model_name, (NativeSynapseMechanism,),
                    {'nest_model': model_name})
         self.mechanism = cls(parameters)
+        self.parameters = self.mechanism.default_parameters
+        self.parameters.update(**parameters)
 
     def _get_nest_synapse_model(self, suffix):
-        defaults = self.mechanism.parameters.copy()
+        defaults = self.parameters.copy()
         defaults.pop("tau_minus")
         label = "%s_%s" % (self.mechanism.nest_model, suffix) 
         nest.CopyModel(self.mechanism.nest_model,

@@ -472,9 +472,10 @@ class VectorSpikeSource(hclass(h.VecStim)):
         self.source_section = None
             
     def _set_spike_times(self, spike_times):
+        # spike_times should be a Sequence object
         try:
-            self._spike_times = h.Vector(spike_times)
-        except RuntimeError:
+            self._spike_times = h.Vector(spike_times.value)
+        except (RuntimeError, AttributeError):
             raise errors.InvalidParameterValueError("spike_times must be an array of floats")
         self.play(self._spike_times)
             

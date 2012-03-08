@@ -29,6 +29,7 @@ from pyNN.nest.standardmodels.electrodes import *
 from pyNN.nest.recording import *
 from pyNN.random import RandomDistribution
 from pyNN import standardmodels
+from pyNN.parameters import Sequence
 
 Set = set
 tempdirs       = []
@@ -179,6 +180,26 @@ class PopulationView(common.PopulationView):
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
+def _build_params(parameter_space):
+    """
+    Return either a single parameter dict or a list of dicts, suitable for use
+    in Create or SetStatus.
+    """
+    if parameter_space.is_homogeneous:
+        parameter_space.evaluate(simplify=True) # use _mask_local
+        cell_parameters = parameter_space.as_dict()
+        for name, val in cell_parameters.items():
+            if isinstance(val, Sequence):
+                cell_parameters[name] = val.value
+    else:
+        parameter_space.evaluate() 
+        cell_parameters = list(parameter_space) # may not be the most efficient way. Might be best to set homogeneous parameters on creation, then inhomogeneous ones using SetStatus. Need some timings.
+        for D in cell_parameters:
+            for name, val in D.items():
+                if isinstance(val, Sequence):
+                    D[name] = val.value
+    return cell_parameters 
+
 
 class Population(common.Population):
     """
@@ -192,29 +213,27 @@ class Population(common.Population):
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
-    def _create_cells(self, cellclass, cellparams, n):
+    def _create_cells(self, cell_parameters, n):
         """
         Create cells in NEST.
         
-        `cellclass`  -- a PyNN standard cell or the name of a native NEST model.
-        `cellparams` -- a dictionary of cell parameters.
-        `n`          -- the number of cells to create
+        `cell_parameters` -- a ParameterSpace containing native parameters.
+        `n`               -- the number of cells to create
         """
         # this method should never be called more than once
         # perhaps should check for that
         assert n > 0, 'n must be a positive integer'
         n = int(n)
-        
-        celltype = cellclass(cellparams)
-        nest_model = celltype.nest_name[simulator.state.spike_precision]
+        nest_model = self.celltype.nest_name[simulator.state.spike_precision]
+        params = _build_params(cell_parameters)
         try:
-            self.all_cells = nest.Create(nest_model, n, params=celltype.parameters)
+            self.all_cells = nest.Create(nest_model, n, params=params)
         except nest.NESTError, err:
             if "UnknownModelName" in err.message and "cond" in err.message:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
             raise errors.InvalidModelError(err)
         # create parrot neurons if necessary
-        if hasattr(celltype, "uses_parrot") and celltype.uses_parrot:
+        if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             self.all_cells_source = numpy.array(self.all_cells)  # we put the parrots into all_cells, since this will
             self.all_cells = nest.Create("parrot_neuron", n)     # be used for connections and recording. all_cells_source
             nest.Connect(self.all_cells_source, self.all_cells)  # should be used for setting parameters
@@ -224,7 +243,7 @@ class Population(common.Population):
         self.all_cells = numpy.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
         for gid in self.all_cells:
             gid.parent = self
-        if hasattr(celltype, "uses_parrot") and celltype.uses_parrot:
+        if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             for gid, source in zip(self.all_cells, self.all_cells_source):
                 gid.source = source
         
