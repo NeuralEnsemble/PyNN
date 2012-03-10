@@ -444,7 +444,7 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
         self.source = self
         self.switch = h.NetCon(None, self)
         self.source_section = None
-        self.seed(state.mpi_rank) # should allow user to set specific seeds somewhere, e.g. in setup()
+        self.seed(state.mpi_rank+state.native_rng_baseseed) # should allow user to set specific seeds somewhere, e.g. in setup()
 
     def _set_interval(self, value):
         self.switch.weight[0] = -1

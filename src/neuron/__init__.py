@@ -47,6 +47,12 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     NEURON specific extra_params:
 
     use_cvode - use the NEURON cvode solver. Defaults to False.
+      Optional cvode Parameters:
+      -> rtol - specify relative error tolerance
+      -> atol - specify absolute error tolerance
+
+    native_rng_baseseed - added to MPI.rank to form seed for SpikeSourcePoisson, etc.
+    default_maxstep - TODO
 
     returns: MPI rank
 
@@ -64,6 +70,12 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
             simulator.state.cvode.rtol(float(extra_params['rtol']))
         if extra_params.has_key('atol'):
             simulator.state.cvode.atol(float(extra_params['atol']))
+
+    if extra_params.has_key('native_rng_baseseed'):
+        simulator.state.native_rng_baseseed=int(extra_params['native_rng_baseseed'])
+    else: 
+        simulator.state.native_rng_baseseed=0
+        
     if extra_params.has_key('default_maxstep'):
         simulator.state.default_maxstep=float(extra_params['default_maxstep'])
     return rank()
