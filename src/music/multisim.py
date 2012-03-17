@@ -8,7 +8,6 @@ at once, provided those simulators support the MUSIC communication interface.
 """
 
 import music
-print music
 
 # This is the map between simulator(proxies) and music Application instances
 application_map = {}
@@ -33,7 +32,7 @@ def getBackend(name):
 class Config(object):
     """Store configuration information for a MUSIC-capable application."""
     
-    def __init__(self, name=None, np=1, binary=None, args=None):
+    def __init__(self, np=1, binary=None, args=None, name=None):
         self.name = name
         self.num_nodes = np
         self.executable_path = binary
@@ -48,6 +47,8 @@ def setup(*configurations):
     that simulator is running on the current MPI node) or a `ProxySimulator`
     object (if the requested simulator is not running on the current node).
     """
+    global this_simulator, this_music_app
+    
     # Parameter checking
     for config in configurations:
         assert isinstance(config, Config)
@@ -75,9 +76,10 @@ def setup(*configurations):
             # This seems to be an external application
             simulator = ExternalApplication (config)
 
+        application_map[simulator] = application
         if application.this:
-            thisSimulator = simulator
-            thisMUSICApp = application
+            this_simulator = simulator
+            this_music_app = application
 
         simulators.append(simulator)
 
@@ -179,3 +181,5 @@ class ExternalApplication(object):
     """
     Represents an application external to PyNN
     """
+    def __init__ (self, config):
+        pass
