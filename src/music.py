@@ -7,13 +7,33 @@ at once, provided those simulators support the MUSIC communication interface.
 :license: CeCILL, see LICENSE for details.
 """
 
-simulator_configurations = {}
+import music
+print music
+
+# This is the map between simulator(proxies) and music Application instances
+application_map = {}
+
+# Simulator/proxy for this rank
+this_simulator = None
+
+# Application object for this rank
+this_music_app = None
+
+# This is the map between simulator name and the name of the
+# corresponding PyNN backend.
+backends = { 'nest' : 'nest',
+             'neuron' : 'neuron' }
+
+
+def getBackend(name):
+    exec('import PyNN.%s' % backends[name])
+    return eval('PyNN.%s' % backends[name])
 
 
 class Config(object):
     """Store configuration information for a MUSIC-capable application."""
     
-    def __init__(self, name, np, binary=None, args=None):
+    def __init__(self, name=None, np=1, binary=None, args=None):
         self.name = name
         self.num_nodes = np
         self.executable_path = binary
@@ -23,33 +43,65 @@ class Config(object):
 def setup(*configurations):
     """
     Specify PyNN module ranks and external MUSIC programs to be launched.
-    """
-    # Need Ctypes wrapper to libmusic pre-MPI-init rank assigner
-    for config in configurations:
-        assert isinstance(config, Config)
-    simulator_configurations[config.name] = config
-    # now do MUSIC launch phase with delayed port setup
-    # this should set the "simulator" attribute of each Config to either the
-    # real simulator backend module (e.g. pyNN.nest) or a ProxySimulator
-    # instance
-    raise NotImplementedError
 
-
-def get_simulators(*simulator_names):
-    """
     Return either the real PyNN module for each requested backend simulator (if
     that simulator is running on the current MPI node) or a `ProxySimulator`
     object (if the requested simulator is not running on the current node).
     """
-    return (simulator_configurations[name].simulator for name in simulator_names)
+    # Parameter checking
+    for config in configurations:
+        assert isinstance(config, Config)
+
+    # Tell the MUSIC library to postpone setup until first port creation
+    music.postponeSetup()
+    
+    # now do MUSIC launch phase with delayed port setup
+    # this should set the "simulator" attribute of each Config to either the
+    # real simulator backend module (e.g. pyNN.nest) or a ProxySimulator
+    # instance
+    simulators = []
+    
+    for config in configurations:
+        application = music.Application(name = config.name, 
+                                        np = config.num_nodes,
+                                        binary = config.executable_path,
+                                        args = config.args)
+        if config.name in backends:
+            if application.this:
+                simulator = getBackend(config.name)
+            else:
+                simulator = ProxySimulator()
+        else:
+            # This seems to be an external application
+            simulator = ExternalApplication (config)
+
+        if application.this:
+            thisSimulator = simulator
+            thisMUSICApp = application
+
+        simulators.append(simulator)
+
+    return simulators
 
 
+# List of MUSIC projections
+projections = []
+            
 def run(simtime):
     """Run the simulation for simtime ms."""
     #  finally setup delayed MUSIC port setup,
     # work through back-end specific eventport setup,
     # call run for backend assigned to this rank.
-    raise NotImplementedError
+    music.configure()
+    
+    for projection in projections:
+        projection.pending_action()
+        
+    if isinstance(this_simulator, ExternalApplication):
+        # Let MUSIC launch the application
+        music.launch()
+
+    this_simulator.run(simtime)
 
 
 class Projection(object): # may wish to inherit from common.projections.Projection
@@ -61,6 +113,14 @@ class Projection(object): # may wish to inherit from common.projections.Projecti
     def __init__(self, presynaptic_neurons, postsynaptic_neurons, method,
                  source=None, target=None, synapse_dynamics=None,
                  label=None, rng=None):
+        # Queue this projection
+        projections.append (this)
+
+    def pending_action ():
+        """
+        Execute queued action
+        """
+        # Call backends here
         raise NotImplementedError
 
     def _divergent_connect(self, source, targets, weights, delays):
@@ -81,6 +141,12 @@ class Port(object): # aka Pipe aka DataLink # other name suggestions welcome
 
     def __init__(self, population, variable, external_tool):
         raise NotImplementedError
+
+
+def connectPorts(fromSim, fromPortName, toSim, toPortName, width = None):
+    fromApp = application_map[fromSim]
+    toApp = application_map[toSim]
+    music.connect(fromApp, fromPortName, toApp, toPortName, width)
 
 
 from pyNN.common.control import DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY, DEFAULT_MAX_DELAY
@@ -108,3 +174,8 @@ class ProxySimulator(object):
     def Assembly(self, *populations, **kwargs):
         pass
     
+
+class ExternalApplication(object):
+    """
+    Represents an application external to PyNN
+    """
