@@ -26,8 +26,8 @@ backends = { 'nest' : 'nest',
 
 
 def getBackend(name):
-    exec('import PyNN.%s' % backends[name])
-    return eval('PyNN.%s' % backends[name])
+    exec('import pyNN.%s' % backends[name])
+    return eval('pyNN.%s' % backends[name])
 
 
 class Config(object):
