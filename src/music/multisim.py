@@ -9,6 +9,7 @@ at once, provided those simulators support the MUSIC communication interface.
 
 import music
 
+
 # This is the map between simulator(proxies) and music Application instances
 application_map = {}
 
@@ -94,6 +95,7 @@ def run(simtime):
     #  finally setup delayed MUSIC port setup,
     # work through back-end specific eventport setup,
     # call run for backend assigned to this rank.
+    music.define ('stoptime', simtime / 1000.0) # convert to s
     music.configure()
     
     for projection in projections:
