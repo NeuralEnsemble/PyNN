@@ -33,7 +33,7 @@ def getBackend(name):
 class Config(object):
     """Store configuration information for a MUSIC-capable application."""
     
-    def __init__(self, np=1, binary=None, args=None, name=None):
+    def __init__(self, name=None, np=1, binary=None, args=None):
         self.name = name
         self.num_nodes = np
         self.executable_path = binary
