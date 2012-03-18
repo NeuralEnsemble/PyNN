@@ -147,11 +147,13 @@ class Projection(object): # may wish to inherit from common.projections.Projecti
         projection_number += 1
 
         # inform MUSIC library
-        connectPorts (sim_from_pop (presynaptic_neurons),
+        self.port = sim_from_pop (presynaptic_neurons)
+        self.width = len (presynaptic_neurons)
+        connectPorts (self.port,
                       output_port_name (presynaptic_neurons, self.number),
                       sim_from_pop (postsynaptic_neurons),
                       input_port_name (presynaptic_neurons, self.number),
-                      width=len (presynaptic_neurons))
+                      width=self.width)
 
         # Do we have to care at all?
         if isinstance(presynaptic_neurons, ProxyPopulation) \
@@ -176,7 +178,7 @@ class Projection(object): # may wish to inherit from common.projections.Projecti
             this_simulator.musicExport (presynaptic_neurons, port_name)
         else:
             self.projection = this_simulator.MusicProjection \
-                        (presynaptic_neurons, postsynaptic_neurons, method,
+                        (self.port, self.width, postsynaptic_neurons, method,
                          source=source, target=target,
                          synapse_dynamics=synapse_dynamics,
                          label=label, rng=rng)
