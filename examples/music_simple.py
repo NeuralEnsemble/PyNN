@@ -27,13 +27,11 @@ output_population = sim1.Population(2, sim1.IF_curr_alpha, cell_params, label="o
 number = int(2*tstop*rate/1000.0)
 numpy.random.seed(26278342)
 spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/rate, size=number))
-assert spike_times.max() > tstop
-print spike_times.min()
 
 input_population  = sim1.Population(1, sim1.SpikeSourceArray, {'spike_times': spike_times}, label="input")
 
 projection = sim1.Projection(input_population, output_population, sim1.AllToAllConnector())
-projection.setWeights(1.0)
+projection.set('weight', 1.0)
 
 input_population.record()
 output_population.record()
