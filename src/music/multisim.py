@@ -8,7 +8,7 @@ at once, provided those simulators support the MUSIC communication interface.
 """
 
 import music
-import warnings
+#import warnings
 
 
 # This is the map between simulator(proxies) and music Application instances
@@ -82,8 +82,14 @@ def setup(*configurations):
 
         application_map[simulator] = application
         if application.this:
+            simulator.local = True
+            if config.name in backends:
+                simulator.local_backend = config.name
             this_simulator = simulator
             this_music_app = application
+        else:
+            simulator.local = False
+            simulator.local_backend = None
 
         simulators.append(simulator)
 
@@ -172,8 +178,8 @@ class ProxySimulator(object):
     def __getattr__ (self, name):
         # Return None if we don't know what the remote simulator would
         # have returned.  For now, warn about it:
-        warnings.warn ("returning None for " + name)
-        return None
+        #warnings.warn ("returning ProxyMethod for " + name)
+        return ProxyMethod()
     
     # this may be of use outside of pyNN.music, but for simplicity I suggest
     # we develop it here for now and then think about moving/generalizing it
@@ -207,31 +213,38 @@ class ProxySimulator(object):
         pass
 
 
+# Remove?
 class ProxyPopulation(object):
     """
     """
     def __getattr__ (self, name):
         # Return None if we don't know what the remote simulator would
         # have returned.  For now, warn about it:
-        warnings.warn ("returning ProxyMethod for " + name)
+        #warnings.warn ("returning ProxyMethod for " + name)
         return ProxyMethod()
 
-
+# Remove?
 class ProxyProjection(object):
     """
     """
     def __getattr__ (self, name):
         # Return None if we don't know what the remote simulator would
         # have returned.  For now, warn about it:
-        warnings.warn ("returning ProxyMethod for " + name)
+        #warnings.warn ("returning ProxyMethod for " + name)
         return ProxyMethod()
 
 
 class ProxyMethod(object):
     """
     """
+    def __getattr__ (self, name):
+        # Return None if we don't know what the remote simulator would
+        # have returned.  For now, warn about it:
+        #warnings.warn ("returning ProxyMethod for " + name)
+        return ProxyMethod()
+
     def __call__ (self, *args):
-        return None
+        return ProxyMethod()
 
 
 class ExternalApplication(object):
