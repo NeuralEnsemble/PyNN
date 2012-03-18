@@ -167,7 +167,7 @@ class ProxySimulator(object):
     # this may be of use outside of pyNN.music, but for simplicity I suggest
     # we develop it here for now and then think about moving/generalizing it
     # later    
-    def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
+    def setup(self, timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
               max_delay=DEFAULT_MAX_DELAY, **extra_params):
         pass
     
