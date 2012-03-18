@@ -180,6 +180,9 @@ class ProxySimulator(object):
     
     def Assembly(self, *populations, **kwargs):
         pass
+
+    def run(self, simtime):
+        pass
     
 
 class ExternalApplication(object):
