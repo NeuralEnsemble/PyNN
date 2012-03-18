@@ -16,8 +16,8 @@ sim1, sim2 = music.setup(music.Config("neuron", 10),
 sim1.setup(timestep=0.025)
 sim2.setup(timestep=0.1)
 cell_parameters = {"tau_m": 12.0, "cm": 0.8, "v_thresh": -50.0, "v_reset": -65.0}
-pE = sim1.Population((100,100), sim.IF_cond_exp, cell_parameters, label="excitatory neurons")
-pI = sim2.Population((50,50), sim.IF_cond_exp, cell_parameters, label="inhibitory neurons")
+pE = sim1.Population((100,100), sim1.IF_cond_exp, cell_parameters, label="excitatory neurons")
+pI = sim2.Population((50,50), sim2.IF_cond_exp, cell_parameters, label="inhibitory neurons")
 all = pE + pI
 def connector(sim):
     DDPC = getattr(sim, "DistanceDependentProbabilityConnector")
