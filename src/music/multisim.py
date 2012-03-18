@@ -20,6 +20,9 @@ this_simulator = None
 # Application object for this rank
 this_music_app = None
 
+# The name of the backend in use on this rank, if applicable
+this_backend = None
+
 # This is the map between simulator name and the name of the
 # corresponding PyNN backend.
 backends = { 'nest' : 'nest',
@@ -29,6 +32,10 @@ backends = { 'nest' : 'nest',
 def getBackend(name):
     exec('import pyNN.%s' % backends[name])
     return eval('pyNN.%s' % backends[name])
+
+
+def local_backend ():
+    return this_backend
 
 
 class Config(object):
@@ -49,7 +56,7 @@ def setup(*configurations):
     that simulator is running on the current MPI node) or a `ProxySimulator`
     object (if the requested simulator is not running on the current node).
     """
-    global this_simulator, this_music_app
+    global this_backend, this_simulator, this_music_app
     
     # Parameter checking
     for config in configurations:
@@ -74,6 +81,7 @@ def setup(*configurations):
                 # specifications of Applications.
                 music.postponeSetup()
                 simulator = getBackend(config.name)
+                this_backend = config.name
             else:
                 simulator = ProxySimulator()
         else:
@@ -83,13 +91,10 @@ def setup(*configurations):
         application_map[simulator] = application
         if application.this:
             simulator.local = True
-            if config.name in backends:
-                simulator.local_backend = config.name
             this_simulator = simulator
             this_music_app = application
         else:
             simulator.local = False
-            simulator.local_backend = None
 
         simulators.append(simulator)
 

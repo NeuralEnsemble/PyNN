@@ -1,1 +1,1 @@
-from multisim import Config, setup, run, Projection, Port, connectPorts, end
+from multisim import Config, local_backend, setup, run, Projection, Port, connectPorts, end
