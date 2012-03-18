@@ -8,6 +8,7 @@ at once, provided those simulators support the MUSIC communication interface.
 """
 
 import music
+import os
 
 
 # This is the map between simulator(proxies) and music Application instances
@@ -54,8 +55,6 @@ def setup(*configurations):
     for config in configurations:
         assert isinstance(config, Config)
 
-    # Tell the MUSIC library to postpone setup until first port creation
-    music.postponeSetup()
     
     # now do MUSIC launch phase with delayed port setup
     # this should set the "simulator" attribute of each Config to either the
@@ -70,6 +69,10 @@ def setup(*configurations):
                                         args = config.args)
         if config.name in backends:
             if application.this:
+                # Tell the MUSIC library to postpone setup until first
+                # port creation. Must make this call after
+                # specifications of Applications.
+                music.postponeSetup()
                 simulator = getBackend(config.name)
             else:
                 simulator = ProxySimulator()
