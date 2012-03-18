@@ -8,7 +8,7 @@ at once, provided those simulators support the MUSIC communication interface.
 """
 
 import music
-import os
+import warnings
 
 
 # This is the map between simulator(proxies) and music Application instances
@@ -107,8 +107,13 @@ def run(simtime):
     if isinstance(this_simulator, ExternalApplication):
         # Let MUSIC launch the application
         music.launch()
+        # Will never get here
 
     this_simulator.run(simtime)
+
+
+def end():
+    this_simulator.end()
 
 
 class Projection(object): # may wish to inherit from common.projections.Projection
@@ -164,6 +169,12 @@ class ProxySimulator(object):
     A proxy for a real simulator backend, which has the same API but doesn't
     actually run simulations.
     """
+    def __getattr__ (self, name):
+        # Return None if we don't know what the remote simulator would
+        # have returned.  For now, warn about it:
+        warnings.warn ("returning None for " + name)
+        return None
+    
     # this may be of use outside of pyNN.music, but for simplicity I suggest
     # we develop it here for now and then think about moving/generalizing it
     # later    
@@ -172,8 +183,16 @@ class ProxySimulator(object):
         pass
     
     def Population(self, size, cellclass, cellparams=None, structure=None, label=None):
-        pass
+        return ProxyPopulation()
     
+    def Projection(self, presynaptic_neurons, postsynaptic_neurons, method,
+                   source=None, target=None, synapse_dynamics=None,
+                   label=None, rng=None):
+        return ProxyProjection()
+
+    def AllToAllConnector (self):
+        return None
+        
     def DistanceDependentProbabilityConnector(self, d_expression,
         allow_self_connections=True, weights=0.0, delays=None, space=Space()):
         pass
@@ -183,7 +202,37 @@ class ProxySimulator(object):
 
     def run(self, simtime):
         pass
-    
+
+    def end(self):
+        pass
+
+
+class ProxyPopulation(object):
+    """
+    """
+    def __getattr__ (self, name):
+        # Return None if we don't know what the remote simulator would
+        # have returned.  For now, warn about it:
+        warnings.warn ("returning ProxyMethod for " + name)
+        return ProxyMethod()
+
+
+class ProxyProjection(object):
+    """
+    """
+    def __getattr__ (self, name):
+        # Return None if we don't know what the remote simulator would
+        # have returned.  For now, warn about it:
+        warnings.warn ("returning ProxyMethod for " + name)
+        return ProxyMethod()
+
+
+class ProxyMethod(object):
+    """
+    """
+    def __call__ (self, *args):
+        return None
+
 
 class ExternalApplication(object):
     """
