@@ -86,7 +86,7 @@ def setup(*configurations):
                 simulator = ProxySimulator()
         else:
             # This seems to be an external application
-            simulator = ExternalApplication (config)
+            simulator = ExternalApplication ()
 
         application_map[simulator] = application
         if application.this:
@@ -127,15 +127,42 @@ def end():
     this_simulator.end()
 
 
+projection_number = 0
+
 class Projection(object): # may wish to inherit from common.projections.Projection
     """
-    docstring goes here
+    music.Projection objects must be created in the same order on ALL ranks
     """
     #queues projections and port configs to be evaluated in music.run
     
     def __init__(self, presynaptic_neurons, postsynaptic_neurons, method,
                  source=None, target=None, synapse_dynamics=None,
                  label=None, rng=None):
+        global projection_number
+
+        # number unique within local process and consistent with
+        # corresponding projection in all other ranks (even those not
+        # affected by this projection)
+        self.number = projection_number
+        projection_number += 1
+
+        # inform MUSIC library
+        connectPorts (sim_from_pop (presynaptic_neurons),
+                      output_port_name (presynaptic_neurons, self.number),
+                      sim_from_pop (postsynaptic_neurons),
+                      input_port_name (presynaptic_neurons, self.number),
+                      width=len (presynaptic_neurons))
+
+        # Do we have to care at all?
+        if isinstance(presynaptic_neurons, ProxyPopulation) \
+           and isinstance(postsynaptic_neurons, ProxyPopulaton):
+                # Do nothing further
+                return
+            
+        # Check that this_simulator supports music
+        if not this_simulator.music_support:
+            raise RuntimeError, 'pyNN.' + this_backend + ' doesn\'t yet support MUSIC'
+            
         # Queue this projection
         projections.append (this)
 
@@ -143,8 +170,17 @@ class Projection(object): # may wish to inherit from common.projections.Projecti
         """
         Execute queued action
         """
-        # Call backends here
-        raise NotImplementedError
+        if isinstance(postsynaptic_neurons, ProxyPopulation):
+            # Make backend create an EventOutputPort and map
+            # presynaptic_neurons to that port.
+            this_simulator.musicExport (presynaptic_neurons, port_name)
+        else:
+            self.projection = this_simulator.MusicProjection \
+                        (presynaptic_neurons, postsynaptic_neurons, method,
+                         source=source, target=target,
+                         synapse_dynamics=synapse_dynamics,
+                         label=label, rng=rng)
+
 
     def _divergent_connect(self, source, targets, weights, delays):
         raise NotImplementedError
@@ -172,6 +208,21 @@ def connectPorts(fromSim, fromPortName, toSim, toPortName, width = None):
     music.connect(fromApp, fromPortName, toApp, toPortName, width)
 
 
+output_ports = {}
+
+def output_port_name(population, unique_number):
+    if population in output_ports:
+        return output_ports[population]
+    else:
+        name = 'out' + str (unique_number)
+        output_ports[population] = name
+        return name
+
+
+def input_port_name(population, unique_number):
+    return 'in' + str (unique_number)
+
+
 from pyNN.common.control import DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY, DEFAULT_MAX_DELAY
 from pyNN.space import Space
 
@@ -194,7 +245,7 @@ class ProxySimulator(object):
         pass
     
     def Population(self, size, cellclass, cellparams=None, structure=None, label=None):
-        return ProxyPopulation()
+        return ProxyPopulation(self)
     
     def Projection(self, presynaptic_neurons, postsynaptic_neurons, method,
                    source=None, target=None, synapse_dynamics=None,
@@ -218,15 +269,24 @@ class ProxySimulator(object):
         pass
 
 
-# Remove?
 class ProxyPopulation(object):
     """
     """
+    def __init__ (self, simulator):
+        self.simulator = simulator
+        
     def __getattr__ (self, name):
         # Return None if we don't know what the remote simulator would
         # have returned.  For now, warn about it:
         #warnings.warn ("returning ProxyMethod for " + name)
         return ProxyMethod()
+
+def sim_from_pop(population):
+    if isinstance(population, ProxyPopulation):
+        return population.simulator
+    else:
+        return this_simulator
+    
 
 # Remove?
 class ProxyProjection(object):
@@ -256,5 +316,4 @@ class ExternalApplication(object):
     """
     Represents an application external to PyNN
     """
-    def __init__ (self, config):
-        pass
+    pass
