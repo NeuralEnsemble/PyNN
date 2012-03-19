@@ -101,8 +101,8 @@ def setup(*configurations):
     return simulators
 
 
-# List of MUSIC projections
-projections = []
+# List of pending actions
+pending_actions = []
             
 def run(simtime):
     """Run the simulation for simtime ms."""
@@ -112,8 +112,8 @@ def run(simtime):
     music.define ('stoptime', simtime / 1000.0) # convert to s
     music.configure()
     
-    for projection in projections:
-        projection.pending_action()
+    for actor in pending_actions:
+        actor.pending_action()
         
     if isinstance(this_simulator, ExternalApplication):
         # Let MUSIC launch the application
@@ -140,6 +140,16 @@ class Projection(object): # may wish to inherit from common.projections.Projecti
                  label=None, rng=None):
         global projection_number
 
+        # record parameters
+        self.presynaptic_neurons=presynaptic_neurons
+        self.postsynaptic_neurons=postsynaptic_neurons
+        self.method=method
+        self.source=source
+        self.target=target
+        self.synapse_dynamics=synapse_dynamics
+        self.label=label
+        self.rng=rng
+        
         # number unique within local process and consistent with
         # corresponding projection in all other ranks (even those not
         # affected by this projection)
@@ -147,17 +157,18 @@ class Projection(object): # may wish to inherit from common.projections.Projecti
         projection_number += 1
 
         # inform MUSIC library
-        self.port = sim_from_pop (presynaptic_neurons)
+        self.output_port = output_port_name (presynaptic_neurons, self.number)
+        self.input_port = input_port_name (presynaptic_neurons, self.number)
         self.width = len (presynaptic_neurons)
-        connectPorts (self.port,
-                      output_port_name (presynaptic_neurons, self.number),
+        connectPorts (sim_from_pop (presynaptic_neurons),
+                      self.output_port,
                       sim_from_pop (postsynaptic_neurons),
-                      input_port_name (presynaptic_neurons, self.number),
+                      self.input_port,
                       width=self.width)
 
         # Do we have to care at all?
         if isinstance(presynaptic_neurons, ProxyPopulation) \
-           and isinstance(postsynaptic_neurons, ProxyPopulaton):
+           and isinstance(postsynaptic_neurons, ProxyPopulation):
                 # Do nothing further
                 return
             
@@ -166,26 +177,35 @@ class Projection(object): # may wish to inherit from common.projections.Projecti
             raise RuntimeError, 'pyNN.' + this_backend + ' doesn\'t yet support MUSIC'
             
         # Queue this projection
-        projections.append (this)
+        pending_actions.append (self)
 
-    def pending_action ():
+    def pending_action (self):
         """
         Execute queued action
         """
-        if isinstance(postsynaptic_neurons, ProxyPopulation):
+        if isinstance(self.postsynaptic_neurons, ProxyPopulation):
             # Make backend create an EventOutputPort and map
             # presynaptic_neurons to that port.
-            this_simulator.musicExport (presynaptic_neurons, port_name)
+            this_simulator.music_export (self.presynaptic_neurons,
+                                         self.output_port)
+            self.projection = ProxyProjection()
         else:
             self.projection = this_simulator.MusicProjection \
-                        (self.port, self.width, postsynaptic_neurons, method,
-                         source=source, target=target,
-                         synapse_dynamics=synapse_dynamics,
-                         label=label, rng=rng)
+                        (self.input_port, self.width,
+                         self.postsynaptic_neurons, self.method,
+                         source=self.source, target=self.target,
+                         synapse_dynamics=self.synapse_dynamics,
+                         label=self.label, rng=self.rng)
 
 
-    def _divergent_connect(self, source, targets, weights, delays):
-        raise NotImplementedError
+    def __getattr__ (self, name):
+        # Queued dispatch to self.projection
+        # (Maybe this is actually just confusing to the user.)
+        return QueuingCallable (lambda: self.projection.__getattribute__(name))
+
+    
+    #def _divergent_connect(self, source, targets, weights, delays):
+        #raise NotImplementedError
         #meop = pynest.Create("music_event_out_proxy")
         #meip = pynest.Create("music_event_in_proxy")
         #nest.SetStatus (meop, {'port_name' : 'spikes_out'})
@@ -247,7 +267,7 @@ class ProxySimulator(object):
         pass
     
     def Population(self, size, cellclass, cellparams=None, structure=None, label=None):
-        return ProxyPopulation(self)
+        return ProxyPopulation(self, size)
     
     def Projection(self, presynaptic_neurons, postsynaptic_neurons, method,
                    source=None, target=None, synapse_dynamics=None,
@@ -274,8 +294,12 @@ class ProxySimulator(object):
 class ProxyPopulation(object):
     """
     """
-    def __init__ (self, simulator):
+    def __init__(self, simulator, size):
         self.simulator = simulator
+        self.size = size
+
+    def __len__(self):
+        return self.size
         
     def __getattr__ (self, name):
         # Return None if we don't know what the remote simulator would
@@ -290,7 +314,6 @@ def sim_from_pop(population):
         return this_simulator
     
 
-# Remove?
 class ProxyProjection(object):
     """
     """
@@ -298,6 +321,9 @@ class ProxyProjection(object):
         # Return None if we don't know what the remote simulator would
         # have returned.  For now, warn about it:
         #warnings.warn ("returning ProxyMethod for " + name)
+        return ProxyMethod()
+
+    def __getattribute__ (self, name):
         return ProxyMethod()
 
 
@@ -312,6 +338,27 @@ class ProxyMethod(object):
 
     def __call__ (self, *args):
         return ProxyMethod()
+
+
+class QueuingCallable(object):
+    """
+    """
+    def __init__ (self, callable):
+        self.callable = callable
+
+    def __call__ (self, *args):
+        pending_actions.append (QueuedCall (self.callable, args))
+
+
+class QueuedCall(object):
+    """
+    """
+    def __init__ (self, callable, args):
+        self.callable = callable
+        self.args = args
+
+    def pending_action (self):
+        (self.callable)()(*self.args)
 
 
 class ExternalApplication(object):
