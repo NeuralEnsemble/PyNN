@@ -1,10 +1,10 @@
 """
-Simple network with a Poisson spike source projecting to a pair of IF_curr_alpha neurons
+Simple network with a Poisson spike source projecting to a pair of
+IF_curr_alpha neurons.  Based on simpleNetwork.py.
 
-Andrew Davison, UNIC, CNRS
-August 2006
+Mikael Djurfeldt, PDC, KTH
+March 2012
 
-$Id: simpleNetwork.py 933 2011-02-14 18:41:49Z apdavison $
 """
 
 import numpy
