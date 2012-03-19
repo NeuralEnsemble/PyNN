@@ -30,6 +30,7 @@ spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/rate, size=nu
 
 input_population  = sim1.Population(1, sim1.SpikeSourceArray, {'spike_times': spike_times}, label="input")
 
+# The connector is used on the receiving side (sim2)
 projection = music.Projection(input_population, output_population, sim2.AllToAllConnector())
 projection.set('weight', 1.0)
 
