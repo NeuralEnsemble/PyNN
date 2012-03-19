@@ -204,11 +204,17 @@ class Population(common.Population):
         # perhaps should check for that
         assert n > 0, 'n must be a positive integer'
         n = int(n)
-        
-        celltype = cellclass(cellparams)
-        nest_model = celltype.nest_name[simulator.state.spike_precision]
+
+        if isinstance(cellclass, str):
+            celltype = None
+            nest_model = cellclass
+            params = cellparams
+        else:
+            celltype = cellclass(cellparams)
+            nest_model = celltype.nest_name[simulator.state.spike_precision]
+            params = celltype.parameters
         try:
-            self.all_cells = nest.Create(nest_model, n, params=celltype.parameters)
+            self.all_cells = nest.Create(nest_model, n, params=params)
         except nest.NESTError, err:
             if "UnknownModelName" in err.message and "cond" in err.message:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
@@ -641,6 +647,66 @@ class Projection(common.Projection):
         return values
 
 Space = space.Space
+
+# ==============================================================================
+#   MUSIC support
+# ==============================================================================
+
+music_support = True
+
+def music_export(population, port_name):
+    """
+    """
+    music_proxy = nest.Create("music_event_out_proxy",
+                              params={"port_name": port_name})
+
+    # We can't use PyNEST's ConvergentConnect here, as it does not
+    # support a params dict for the connections at the moment. Once
+    # that variant exists, we don't have to iterate here ourselves
+    # anymore
+    channel = 0
+    for pre in population:
+        conn_params = {"music_channel": channel}
+        nest.Connect([pre], music_proxy, conn_params)
+        channel += 1
+
+
+class MusicProjection(Projection):
+    """
+    A container for all the connections of a given type (same synapse type and
+    plasticity mechanisms) between two populations, together with methods to set
+    parameters of those connections, including of plasticity mechanisms.
+    """
+    def __init__(self, port, width, postsynaptic_population,
+                 method, source=None,
+                 target=None, synapse_dynamics=None, label=None, rng=None):
+        """
+        port - MUSIC event input port name
+        width - port width (= size of remote population)
+        postsynaptic_population - Population object.
+
+        source - string specifying which attribute of the presynaptic cell
+                 signals action potentials
+
+        target - string specifying which synapse on the postsynaptic cell to
+                 connect to
+
+        If source and/or target are not given, default values are used.
+
+        method - a Connector object, encapsulating the algorithm to use for
+                 connecting the neurons.
+
+        synapse_dynamics - a `SynapseDynamics` object specifying which
+        synaptic plasticity mechanisms to use.
+
+        rng - specify an RNG object to be used by the Connector.
+        """
+        params = [{"port_name": port, "music_channel": c} for c in xrange(width)]
+        pre_pop = Population(width, "music_event_in_proxy", cellparams=params)
+        Projection.__init__ (self, pre_pop, postsynaptic_population,
+                             method, source=source,
+                             target=target, synapse_dynamics=synapse_dynamics,
+                             label=label, rng=rng)
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons
