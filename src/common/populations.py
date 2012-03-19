@@ -655,7 +655,7 @@ class Population(BasePopulation):
             size = int(reduce(operator.mul, size)) # NEST doesn't like numpy.int, so to be safe we cast to Python int
         self.size = size
         self.label = label or 'population%d' % Population.nPop
-        self.celltype = cellclass(cellparams)
+        self.celltype = not isinstance(cellclass, str) and cellclass(cellparams)
         self._structure = structure or space.Line()
         self._positions = None
         self._is_sorted = True
@@ -665,8 +665,9 @@ class Population(BasePopulation):
         # The local cells are also stored in a list, for easy iteration
         self._create_cells(cellclass, cellparams, size)
         self.initial_values = {}
-        for variable, value in self.celltype.default_initial_values.items():
-            self.initialize(variable, value)
+        if self.celltype:
+          for variable, value in self.celltype.default_initial_values.items():
+              self.initialize(variable, value)
         self.recorders = {}
         Population.nPop += 1
 
