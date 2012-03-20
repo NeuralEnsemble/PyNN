@@ -55,9 +55,11 @@ def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
     simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.spikes_array_list = []
     simulator.recorder_lise     = []
-    if "cpu_mode" in extra_params:
+    if "cpu_backend" in extra_params:
 	simulator.state.conf.set_cpu_backend()
-    print "Backend used by nemo is", simulator.state.conf.backend_description()
+    if "cuda_backend" in extra_params:
+	simulator.state.conf.set_cuda_backend(extra_params["cuda_backend"])
+    print "The backend used by nemo is: ", simulator.state.conf.backend_description()
     return simulator.state.mpi_rank
 
 def end(compatible_output=True):
