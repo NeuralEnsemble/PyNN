@@ -101,8 +101,6 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     )
 
     class spike_player(object):
-
-        precision = 1
         
         def __init__(self, spike_times=[], precision=1):
             self.spike_times = precision * numpy.round(spike_times/precision)        

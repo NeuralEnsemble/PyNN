@@ -49,7 +49,7 @@ class _State(object):
     def __init__(self, timestep, min_delay, max_delay):
         """Initialize the simulator."""
         self.net           = nemo.Network()
-        self.conf          = nemo.Configuration()
+        self.conf          = nemo.Configuration()	
         self.initialized   = True
         self.num_processes = 1
         self.mpi_rank      = 0

@@ -55,6 +55,9 @@ def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
     simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.spikes_array_list = []
     simulator.recorder_lise     = []
+    if "cpu_mode" in extra_params:
+	simulator.state.conf.set_cpu_backend()
+    print "Backend used by nemo is", simulator.state.conf.backend_description()
     return simulator.state.mpi_rank
 
 def end(compatible_output=True):
@@ -121,11 +124,11 @@ class Population(common.Population, common.BasePopulation):
         if isinstance(celltype, SpikeSourcePoisson):    
             simulator.spikes_array_list += self.all_cells.tolist()
             params['precision'] = simulator.state.dt
+	    ntype = simulator.state.net.add_neuron_type('Input')
             for idx in self.all_cells:
                 player = SpikeSourcePoisson.spike_player(**params)
-                setattr(idx, 'player', player)
-                ntype = simulator.state.net.add_neuron_type('Input')
-                simulator.state.net.add_neuron(ntype, int(idx))
+                setattr(idx, 'player', player)                
+            simulator.state.net.add_neuron(ntype, list(self.all_cells))
         elif isinstance(celltype, SpikeSourceArray):
             ### For the moment, we model spike_source_array and spike_source_poisson
             ### as hyperpolarized neurons that are forced to fire, but this could be
@@ -133,31 +136,29 @@ class Population(common.Population, common.BasePopulation):
             ### spikes
             simulator.spikes_array_list += self.all_cells.tolist()
             params['precision'] = simulator.state.dt
+	    ntype = simulator.state.net.add_neuron_type('Input')
             for idx in self.all_cells:
                 player = SpikeSourceArray.spike_player(**params)
-                setattr(idx, 'player', player)
-                ntype = simulator.state.net.add_neuron_type('Input')
-                simulator.state.net.add_neuron(ntype, int(idx))
+                setattr(idx, 'player', player)                
+            simulator.state.net.add_neuron(ntype, list(self.all_cells))
         elif isinstance(celltype, cells.IF_curr_exp):
             init = celltype.default_initial_values
-            for idx in self.all_cells:                
-                ntype = simulator.state.net.add_neuron_type('IF_curr_exp')               
-                simulator.state.net.add_neuron(ntype, int(idx),
-                        params['v_rest'],
-                        params['v_reset'],
-                        params['cm'],
-                        params['tau_m'],                    
-                        params['t_refrac'],
-                        params['tau_syn_E'],
-                        params['tau_syn_I'],
-                        params['v_thresh'],
-                        params['i_offset'],                        
-                        init['v'], 0., 0., 1000.)
+	    ntype = simulator.state.net.add_neuron_type('IF_curr_exp')   
+            simulator.state.net.add_neuron(ntype, list(self.all_cells),
+                        [params['v_rest']]*n,
+                        [params['v_reset']]*n,
+                        [params['cm']]*n,
+                        [params['tau_m']]*n,                    
+                        [params['t_refrac']]*n,
+                        [params['tau_syn_E']]*n,
+                        [params['tau_syn_I']]*n,
+                        [params['v_thresh']]*n,
+                        [params['i_offset']]*n,                        
+                        [init['v']]*n, [0.]*n, [0.]*n, [1000.]*n)
         else:            
-            init = celltype.default_initial_values
+            init  = celltype.default_initial_values
             ntype = simulator.state.net.add_neuron_type('Izhikevich')
-            for idx in self.all_cells:
-                simulator.state.net.add_neuron(ntype, int(idx), params['a'], params['b'], params['c'], params['d'], init['u'], init['v'], 0.)
+	    simulator.state.net.add_neuron(ntype, list(self.all_cells), [params['a']]*n, [params['b']]*n, [params['c']]*n, [params['d']]*n, [init['u']]*n, [init['v']]*n, [0.]*n)
        
         self._mask_local = numpy.ones((n,), bool) # all cells are local
         self.first_id    = self.all_cells[0]
