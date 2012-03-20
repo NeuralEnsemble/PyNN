@@ -9,6 +9,12 @@ $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 """
 __version__ = "$Rev: 191 $"
 
+import music, sys, os, ctypes
+if music.predictRank () >= 0:
+    # launched by MPI
+    os.environ['NEURON_INIT_MPI'] = '1'
+    music.supersedeArgv (['music'] + sys.argv)
+
 from pyNN.random import *
 from pyNN.neuron import simulator
 from pyNN import common, core, space, __doc__
@@ -24,7 +30,14 @@ import logging
 
 from neuron import h
 
-logger = logging.getLogger("PyNN")
+#logger = logging.getLogger("PyNN")
+
+import neuronmusic as nmusic
+try:
+    import neuronmusic as nmusic
+    music_support = True
+except ImportError:
+    music_support = False
 
 # ==============================================================================
 #   Utility functions
@@ -74,6 +87,7 @@ def end(compatible_output=True):
         recorder.write(gather=True, compatible_output=compatible_output)
     simulator.recorder_list = []
     #simulator.finalize()
+    music_end() # not necessary once simulator.finalize is implemented
         
 def run(simtime):
     """Run the simulation for simtime ms."""
@@ -220,7 +234,7 @@ class Projection(common.Projection):
         ## Create connections
         method.connect(self)
             
-        logger.info("--- Projection[%s].__init__() ---" %self.label)
+        #logger.info("--- Projection[%s].__init__() ---" %self.label)
                
         ## Deal with long-term synaptic plasticity
         if self.synapse_dynamics and self.synapse_dynamics.slow:
@@ -401,7 +415,7 @@ class Projection(common.Projection):
                                             rand_distr.parameters)
         else:       
             rarr = rand_distr.next(len(self))  
-        logger.info("--- Projection[%s].__randomizeWeights__() ---" % self.label)
+        #logger.info("--- Projection[%s].__randomizeWeights__() ---" % self.label)
         self.setWeights(rarr)
     
     def randomizeDelays(self, rand_distr):
@@ -417,7 +431,7 @@ class Projection(common.Projection):
                                             rand_distr.parameters)
         else:       
             rarr = rand_distr.next(len(self))  
-        logger.info("--- Projection[%s].__randomizeDelays__() ---" % self.label)
+        #logger.info("--- Projection[%s].__randomizeDelays__() ---" % self.label)
         self.setDelays(rarr)
 
     def get(self, parameter_name, format, gather=True):
@@ -454,6 +468,223 @@ class Projection(common.Projection):
     
 
 Space = space.Space
+
+# ==============================================================================
+#   MUSIC support
+# ==============================================================================
+
+# Need to preserve ports so that they don't get deallocated
+ports = []
+
+def music_export(population, port_name):
+    """
+    """
+    port = nmusic.publishEventOutput (port_name)
+    ports.append (port)
+
+    channel = 0
+    for pre in population:
+        port.gid2index (pre, channel)
+        channel += 1
+
+
+from pyNN.neuron.cells import NativeCellType
+
+
+class PortIndex(NativeCellType):
+    """
+    """
+    always_local = True
+
+
+class MusicID(int, common.IDMixin):
+    def __init__(self, n):
+        """Create an ID object with numerical value `n`."""
+        int.__init__(n)
+        common.IDMixin.__init__(self)
+
+
+class IndexPopulation(Population):
+    """
+    An array of neurons all of the same type. `Population' is used as a generic
+    term intended to include layers, columns, nuclei, etc., of cells.
+    """
+    _simulator = simulator
+    recorder_class = Recorder
+    assembly_class = Assembly
+    
+    def __init__(self, size, cellclass, cellparams=None, structure=None,
+                 label=None):
+        __doc__ = common.Population.__doc__
+        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
+        #simulator.initializer.register(self)
+
+    def _create_cells(self, cellclass, cellparams, n):
+        """
+        Create cells in NEURON.
+        
+        `cellclass`  -- a PyNN standard cell or a native NEURON cell class that
+                       implements an as-yet-undescribed interface.
+        `cellparams` -- a dictionary of cell parameters.
+        `n`          -- the number of cells to create
+        """
+        # this method should never be called more than once
+        # perhaps should check for that
+        assert n > 0, 'n must be a positive integer'
+        celltype = cellclass(cellparams)
+        #cell_model = celltype.model
+        #cell_parameters = celltype.parameters
+        #self.first_id = simulator.state.gid_counter
+        self.first_id = 0
+        #self.last_id = simulator.state.gid_counter + n - 1
+        self.last_id = n - 1
+        self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id+1)], MusicID)
+        # mask_local is used to extract those elements from arrays that apply to the cells on the current node
+        #self._mask_local = self.all_cells%simulator.state.num_processes==simulator.state.mpi_rank # round-robin distribution of cells between nodes
+        for i in self.all_cells:
+            self.all_cells[i] = MusicID (i)
+            self.all_cells[i].parent = self
+
+
+class MusicConnection(simulator.Connection):
+    """
+    """
+    def useSTDP(self, mechanism, parameters, ddf):
+        raise NotImplementedError
+
+
+class MusicProjection(Projection):
+    """
+    A container for all the connections of a given type (same synapse type and
+    plasticity mechanisms) between two populations, together with methods to set
+    parameters of those connections, including of plasticity mechanisms.
+    """
+    def __init__(self, port, width, postsynaptic_population,
+                 method, source=None,
+                 target=None, synapse_dynamics=None, label=None, rng=None):
+        """
+        port - MUSIC event input port name
+        width - port width (= size of remote population)
+        postsynaptic_population - Population object.
+
+        source - string specifying which attribute of the presynaptic cell
+                 signals action potentials
+
+        target - string specifying which synapse on the postsynaptic cell to
+                 connect to
+
+        If source and/or target are not given, default values are used.
+
+        method - a Connector object, encapsulating the algorithm to use for
+                 connecting the neurons.
+
+        synapse_dynamics - a `SynapseDynamics` object specifying which
+        synaptic plasticity mechanisms to use.
+
+        rng - specify an RNG object to be used by the Connector.
+        """
+        params = [{"port_name": port, "music_channel": c} for c in xrange(width)]
+        self.port = nmusic.publishEventInput (port)
+        ports.append (self.port)
+        pre_pop = IndexPopulation(width, PortIndex)
+        Projection.__init__ (self, pre_pop, postsynaptic_population,
+                             method, source=source,
+                             target=target, synapse_dynamics=synapse_dynamics,
+                             label=label, rng=rng)
+
+    def _divergent_connect(self, source, targets, weights, delays):
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `source`  -- the ID of the pre-synaptic cell.
+        `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        #if not isinstance(source, int) or source > simulator.state.gid_counter or source < 0:
+            #errmsg = "Invalid source ID: %s (gid_counter=%d)" % (source, simulator.state.gid_counter)
+            #raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(targets):
+            targets = [targets]
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(targets) > 0
+        for target in targets:
+            if not isinstance(target, common.IDMixin):
+                raise errors.ConnectionError("Invalid target ID: %s" % target)
+              
+        assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets), len(weights), len(delays))
+        self._resolve_synapse_type()
+        for target, weight, delay in zip(targets, weights, delays):
+            if target.local:
+                if "." in self.synapse_type: 
+                    section, synapse_type = self.synapse_type.split(".") 
+                    synapse_object = getattr(getattr(target._cell, section), synapse_type) 
+                else: 
+                    synapse_object = getattr(target._cell, self.synapse_type) 
+                #nc = simulator.state.parallel_context.gid_connect(int(source), synapse_object)
+                nc = self.port.index2target(source, synapse_object)
+                nc.weight[0] = weight
+                
+                # if we have a mechanism (e.g. from 9ML) that includes multiple
+                # synaptic channels, need to set nc.weight[1] here
+                if nc.wcnt() > 1 and hasattr(target._cell, "type"):
+                    nc.weight[1] = target._cell.type.synapse_types.index(self.synapse_type)
+                nc.delay  = delay
+                # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
+                self.connections.append(MusicConnection(source, target, nc))
+
+    def _convergent_connect(self, sources, target, weights, delays):
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `sources`  -- a list/1D array of pre-synaptic cell IDs, or a single ID.
+        `target` -- the ID of the post-synaptic cell.
+        `weight`  -- a list/1D array of connection weights, or a single weight.
+                     Must have the same length as `targets`.
+        `delays`  -- a list/1D array of connection delays, or a single delay.
+                     Must have the same length as `targets`.
+        """
+        if not isinstance(target, int) or target > simulator.state.gid_counter or target < 0:
+            errmsg = "Invalid target ID: %s (gid_counter=%d)" % (target, simulator.state.gid_counter)
+            raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(sources):
+            sources = [sources]
+        if isinstance(weights, float):
+            weights = [weights]
+        if isinstance(delays, float):
+            delays = [delays]
+        assert len(sources) > 0
+        for source in sources:
+            if not isinstance(source, common.IDMixin):
+                raise errors.ConnectionError("Invalid source ID: %s" % source)
+              
+        assert len(sources) == len(weights) == len(delays), "%s %s %s" % (len(sources),len(weights),len(delays))
+                
+        if target.local:
+            for source, weight, delay in zip(sources, weights, delays):
+                if self.synapse_type is None:
+                    self.synapse_type = weight >= 0 and 'excitatory' or 'inhibitory'
+                if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
+                    self.synapse_type += '_TM'
+                synapse_object = getattr(target._cell, self.synapse_type)  
+                #nc = simulator.state.parallel_context.gid_connect(int(source), synapse_object)
+                nc = self.port.index2target(source, synapse_object)
+                nc.weight[0] = weight
+                nc.delay  = delay
+                # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
+                self.connections.append(MusicConnection(source, target, nc))
+
+if music_support:
+    libnrnmpi = ctypes.CDLL ("/usr/local/nrn/x86_64/lib/libnrnmpi.so")
+
+def music_end ():
+    if music_support:
+        libnrnmpi.nrnmpi_terminate ()
 
 # ==============================================================================
 #   Low-level API for creating, connecting and recording from individual neurons

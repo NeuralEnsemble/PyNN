@@ -34,7 +34,15 @@ import platform
 import logging
 import numpy
 import os.path
+# Temporary kludge:
+# Do some magic (hoc.so needs to be loaded into global name space
+# since OpenMPI internally uses plugins which calls backt to the
+# main library)
+import sys, ctypes
+dlflags = sys.getdlopenflags ()
+sys.setdlopenflags(dlflags|ctypes.RTLD_GLOBAL)
 from neuron import h, load_mechanisms
+sys.setdlopenflags(dlflags)
 
 # Global variables
 nrn_dll_loaded = []

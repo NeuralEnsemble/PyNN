@@ -11,13 +11,11 @@ import numpy
 from pyNN import music
 from pyNN.utility import get_script_args
 
-sim1,sim2 = music.setup(music.Config("nest", 1), music.Config("nest", 1))
+sim1,sim2 = music.setup(music.Config("nest", 1), music.Config("neuron", 1))
 
 tstop = 1000.0
 rate = 100.0
 
-test=music.multisim.ProxySimulator()
-test.setup(timestep=0.1)
 sim1.setup(timestep=0.1, min_delay=0.2, max_delay=1.0)
 sim2.setup(timestep=0.1, min_delay=0.2, max_delay=1.0)
 
@@ -40,8 +38,8 @@ output_population.record_v()
 
 music.run(tstop)
 
-output_population.printSpikes("Results/simpleNetwork_output_%s.ras" % 'nest')
-input_population.printSpikes("Results/simpleNetwork_input_%s.ras" % 'nest')
-output_population.print_v("Results/simpleNetwork_%s.v" % 'nest')
+output_population.printSpikes("Results/simpleNetwork_output_%s.ras" % sim2.name)
+input_population.printSpikes("Results/simpleNetwork_input_%s.ras" % sim1.name)
+output_population.print_v("Results/simpleNetwork_%s.v" % sim2.name)
 
 music.end()
