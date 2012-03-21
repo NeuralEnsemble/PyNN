@@ -40,42 +40,8 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         ('duration', 'duration')
     )
 
-    class spike_player(object):
-        
-        def __init__(self, rate, start, duration, precision=1.):
-            self.rate        = rate
-            self.start       = start
-            self.duration    = duration
-            self.rng         = numpy.random.RandomState()
-            self.precision   = precision
-            self.rate_Hz     = self.rate * self.precision / 1000.
-            self.stop_time   = self.start + self.duration
-            self.buffer      = 1000           
-            self.do_spikes   = self.rng.rand(self.buffer) < self.rate_Hz
-            self.idx         = 0
-    
-        def do_spike(self, t):
-            if (t > self.stop_time) or (t < self.start):
-                return False
-            else:
-                if self.idx == (self.buffer - 1):
-                    self.do_spikes = self.rng.rand(self.buffer) <= self.rate_Hz
-                    self.idx       = 0
-                self.idx += 1
-                return self.do_spikes[self.idx]
-        
-        def reset(self, rate=None, start=None, duration=None, precision=1):
-            if rate is not None:
-                self.rate    = rate
-            if start is not None:            
-                self.start   = start
-            if duration is not None:
-                self.duration= duration
-            self.rate_Hz     = self.rate * self.precision/1000.
-            self.stop_time   = self.start + self.duration
+    indices = {'rate' : 0}
 
-    def __init__(self, parameters):
-        cells.SpikeSourcePoisson.__init__(self, parameters) 
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
