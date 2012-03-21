@@ -12,31 +12,17 @@ from pyNN.standardmodels import cells, build_translations, ModelNotAvailable, St
 from pyNN import errors
 import numpy
 
-class IzhikevichTemplate(StandardCellType):
 
-    default_parameters = {
-        'a'        : 0.02,     
-        'b'        : 0.2,     
-        'c'        : -65.0,   
-        'd'        :   2       
-    }
-    recordable = ['spikes', 'v']
-    conductance_based = False
-
-    default_initial_values = {
-        'v': -65.0, 
-        'u': 1.0
-    }        
-
-
-
-class Izhikevich(IzhikevichTemplate):
+class Izikevich(cells.Izikevich):
     
+    __doc__ = cells.Izikevich.__doc__ 
+
     translations = build_translations(
         ('a',    'a'),
         ('b',    'b'),
-        ('c',    'c'),
-        ('d',    'd')
+        ('v_reset', 'c'),
+        ('d',    'd'),
+        ('tau_refrac', 'tau_refrac')
     )
 
     indices = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}

@@ -376,6 +376,17 @@ class AdaptiveReset(object):
         P.w[spikes] += self.b
 
 
+class IzikevichReset(object):
+
+    def __init__(self, Vr= -65 * mV, d=0.2 * mV/ms):
+        self.Vr = Vr
+        self.d  = d
+
+    def __call__(self, P, spikes):
+        P.v[spikes]  = self.Vr
+        P.u[spikes] += self.d
+
+
 # --- For implementation of connect() and Connector classes --------------------
 
 class Connection(object):

@@ -160,7 +160,7 @@ class Population(common.Population, common.BasePopulation):
         else:            
             init  = celltype.default_initial_values
             ntype = simulator.state.net.add_neuron_type('Izhikevich')
-	    simulator.state.net.add_neuron(ntype, list(self.all_cells), [params['a']]*n, [params['b']]*n, [params['c']]*n, [params['d']]*n, [init['u']]*n, [init['v']]*n, [0.]*n)
+	    simulator.state.net.add_neuron(ntype, list(self.all_cells), [params['a']]*n, [params['b']]*n, [params['c']]*n, [params['d']]*n, [0.]*n, [init['u']]*n, [init['v']]*n)
        
         self._mask_local = numpy.ones((n,), bool) # all cells are local
         self.first_id    = self.all_cells[0]
