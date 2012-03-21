@@ -143,9 +143,6 @@ class ID(int, common.IDMixin):
     def get_native_parameters(self):
         if isinstance(self.celltype, SpikeSourceArray):
             return {'spike_times' : self.player.spike_times}
-        elif isinstance(self.celltype, SpikeSourcePoisson):
-            return {'rate' : self.player.rate, 'duration' : self.player.duration, 
-                    'start' : self.player.start}
         else:
             params = {}
             for key, value in self.celltype.indices.items():
@@ -159,9 +156,6 @@ class ID(int, common.IDMixin):
         if isinstance(self.celltype, SpikeSourceArray):
             parameters['precision'] = state.dt
             self.player.reset(**parameters)
-        elif isinstance(self.celltype, SpikeSourcePoisson):
-            parameters['precision'] = state.dt
-            self.player.reset(**parameters)    
         else:
             indices = self.celltype.indices
             for key, value in parameters.items():

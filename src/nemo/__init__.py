@@ -124,28 +124,22 @@ class Population(common.Population, common.BasePopulation):
         for cell in self.all_cells:
             cell.parent = self
         if isinstance(celltype, SpikeSourcePoisson):    
-            simulator.spikes_array_list += self.all_cells.tolist()
-            params['precision'] = simulator.state.dt
-	    ntype = simulator.state.net.add_neuron_type('Input')
-            for idx in self.all_cells:
-                player = SpikeSourcePoisson.spike_player(**params)
-                setattr(idx, 'player', player)                
-            simulator.state.net.add_neuron(ntype, list(self.all_cells))
+            ntype = simulator.state.net.add_neuron_type('PoissonSource')
+            simulator.state.net.add_neuron(ntype, list(self.all_cells), [params['rate']]*n)
         elif isinstance(celltype, SpikeSourceArray):
-            ### For the moment, we model spike_source_array and spike_source_poisson
-            ### as hyperpolarized neurons that are forced to fire, but this could be
-            ### enhanced. A local copy of these devices is kept on the CPU, to send the
+            ### For the moment, we model spike_source_array as neurons that are forced to fire, 
+            ### but this could be enhanced. A local copy of these devices is kept on the CPU, to send the
             ### spikes
             simulator.spikes_array_list += self.all_cells.tolist()
             params['precision'] = simulator.state.dt
-	    ntype = simulator.state.net.add_neuron_type('Input')
+            ntype = simulator.state.net.add_neuron_type('Input')
             for idx in self.all_cells:
                 player = SpikeSourceArray.spike_player(**params)
                 setattr(idx, 'player', player)                
             simulator.state.net.add_neuron(ntype, list(self.all_cells))
         elif isinstance(celltype, cells.IF_curr_exp):
             init = celltype.default_initial_values
-	    ntype = simulator.state.net.add_neuron_type('IF_curr_exp')   
+            ntype = simulator.state.net.add_neuron_type('IF_curr_exp')   
             simulator.state.net.add_neuron(ntype, list(self.all_cells),
                         [params['v_rest']]*n,
                         [params['v_reset']]*n,
@@ -157,7 +151,7 @@ class Population(common.Population, common.BasePopulation):
                         [params['v_thresh']]*n,
                         [params['i_offset']]*n,                        
                         [init['v']]*n, [0.]*n, [0.]*n, [1000.]*n)
-        else:            
+        elif isinstance(celltype, cells.Izikevich):            
             init  = celltype.default_initial_values
             ntype = simulator.state.net.add_neuron_type('Izhikevich')
 	    simulator.state.net.add_neuron(ntype, list(self.all_cells), [params['a']]*n, [params['b']]*n, [params['c']]*n, [params['d']]*n, [0.]*n, [init['u']]*n, [init['v']]*n)
