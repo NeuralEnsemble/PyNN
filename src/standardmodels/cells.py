@@ -298,7 +298,7 @@ class Izikevich(StandardCellType):
         'a'        : 0.02,     
         'b'        : 0.2,     
         'v_reset'  : -65.0,   
-        'd'        :   2,
+        'd'        :   2.,
         'tau_refrac' : 0.1       
     }
     recordable        = ['spikes', 'v', 'u']

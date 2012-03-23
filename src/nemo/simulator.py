@@ -88,21 +88,15 @@ class _State(object):
         if self.simulation is None:
             self.simulation = nemo.Simulation(self.net, self.conf)
 
-        poissons_sources = []
         arrays_sources   = []
 
         for source in spikes_array_list:
-            if isinstance(source.celltype, SpikeSourcePoisson):        
-                poissons_sources.append(source)
             if isinstance(source.celltype, SpikeSourceArray):
                 arrays_sources.append(source)
         
         for t in numpy.arange(0, simtime, self.dt):
             spikes   = []
             currents = []
-            for source in poissons_sources:                
-                if source.player.do_spike(t):
-                    spikes += [source]
             for source in arrays_sources:
                 if source.player.next_spike == t:
                     source.player.update()                    
