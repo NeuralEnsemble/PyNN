@@ -100,9 +100,10 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 class PopulationMixin(object):
     
     def _set_parameters(self, parameter_space):
+        """parameter_space should contain native parameters"""
         parameter_space.evaluate() #self._mask_local)
         for cell, param_dict in zip(self, parameter_space):
-            cell.set_parameters(**param_dict)
+            cell.set_native_parameters(param_dict)
 
 
 class Assembly(common.Assembly):
@@ -136,30 +137,28 @@ class Population(common.Population, PopulationMixin):
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
-    def _create_cells(self, cell_parameters, n):
+    def _create_cells(self):
         """
-        Create cells in NEURON.
-        
-        `cell_parameters` -- a ParameterSpace containing native parameters.
-        `n`               -- the number of cells to create
+        Create cells in NEURON using the celltype of the current Population.
         """
         # this method should never be called more than once
         # perhaps should check for that
-        assert n > 0, 'n must be a positive integer'
         self.first_id = simulator.state.gid_counter
-        self.last_id = simulator.state.gid_counter + n - 1
+        self.last_id = simulator.state.gid_counter + self.size - 1
         self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id+1)], simulator.ID)
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
         self._mask_local = self.all_cells%simulator.state.num_processes==simulator.state.mpi_rank # round-robin distribution of cells between nodes
-        cell_parameters.evaluate() #self._mask_local)
-        for i, (id, is_local, params) in enumerate(zip(self.all_cells, self._mask_local, cell_parameters)):
+        parameter_space = self.celltype.translated_parameters
+        parameter_space.size = self.size
+        parameter_space.evaluate() #self._mask_local)
+        for i, (id, is_local, params) in enumerate(zip(self.all_cells, self._mask_local, parameter_space)):
             self.all_cells[i] = simulator.ID(id)
             self.all_cells[i].parent = self
             if is_local:
                 params.update(self.celltype.extra_parameters)
                 self.all_cells[i]._build_cell(self.celltype.model, params)
         simulator.initializer.register(*self.all_cells[self._mask_local])
-        simulator.state.gid_counter += n
+        simulator.state.gid_counter += self.size
 
     def _native_rset(self, parametername, rand_distr):
         """

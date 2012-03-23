@@ -296,7 +296,7 @@ class BasePopulation(object):
         parameter_space = ParameterSpace(parameters, # TODO: for some translations, need to get existing parameter space of models
                                          self.celltype.get_schema(),
                                          self.size)
-        if issubclass(self.celltype, standardmodels.StandardCellType):
+        if isinstance(self.celltype, standardmodels.StandardCellType):
             parameter_space = self.celltype.translate(parameter_space)
         self._set_parameters(parameter_space)
 
@@ -589,18 +589,12 @@ class Population(BasePopulation):
         self._structure = structure or space.Line()
         self._positions = None
         self._is_sorted = True
-        self.celltype = cellclass
-        parameter_space = ParameterSpace(self.celltype.default_parameters,
-                                         self.celltype.get_schema(),
-                                         self.size)
-        parameter_space.update(**cellparams)
-        if issubclass(self.celltype, standardmodels.StandardCellType):
-            parameter_space = self.celltype.translate(parameter_space)
+        self.celltype = cellclass(cellparams)
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
         # The local cells are also stored in a list, for easy iteration
-        self._create_cells(parameter_space, size)
+        self._create_cells()
         self.initial_values = {}
         for variable, default in self.celltype.default_initial_values.items():
             self.initialize(variable, initial_values.get(variable, default))

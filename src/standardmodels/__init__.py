@@ -61,6 +61,10 @@ class StandardModelType(models.BaseModelType):
     translations = {}
     extra_parameters = {}
     
+    @property
+    def translated_parameters(self):
+        return self.translate(self.parameter_space)
+    
     @classmethod
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
@@ -115,11 +119,11 @@ class StandardModelType(models.BaseModelType):
         more than one other parameter."""
         return [name for name in cls.translations if name not in cls.simple_parameters()+cls.scaled_parameters()]
         
-    def update_parameters(self, parameters):
-        """
-        update self.parameters with those in parameters 
-        """
-        self.parameters.update(self.translate(parameters))
+#    def update_parameters(self, parameters):
+#        """
+#        update self.parameters with those in parameters 
+#        """
+#        self.parameters.update(self.translate(parameters))
 
 
 class StandardCellType(StandardModelType, models.BaseCellType):

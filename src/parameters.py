@@ -60,9 +60,15 @@ class ParameterSpace(object):
         """
         self._parameters = {}
         self.schema = schema
-        self.size = size
+        self._size = size
         self.update(**parameters)
         self._evaluated = False
+
+    def _set_size(self, n):
+        for value in self._parameters.itervalues():
+            value.shape = (n,)
+        self._size = n
+    size = property(fget=lambda self: self._size, fset=_set_size)
 
     def keys(self):
         return self._parameters.keys()
@@ -73,11 +79,11 @@ class ParameterSpace(object):
                 expected_dtype = self.schema[name]
                 if expected_dtype == Sequence and isinstance(value, collections.Sized): # may be a more generic way to do it, but for now this special-casing seems like the most robust approach
                     value = Sequence(value)
-                self._parameters[name] = LazyArray(value, shape=(self.size,),
+                self._parameters[name] = LazyArray(value, shape=(self._size,),
                                                    dtype=expected_dtype)
         else:
             for name, value in parameters.items():
-                self._parameters[name] = LazyArray(value, shape=(self.size,))
+                self._parameters[name] = LazyArray(value, shape=(self._size,))
     
     def __getitem__(self, name):
         return self._parameters[name]
@@ -91,6 +97,8 @@ class ParameterSpace(object):
         Evaluate all lazy arrays contained in the parameter space, using the
         given mask.
         """
+        if self._size is None:
+            raise Exception("Must set size of parameter space before evaluating")
         if mask:
             for name, value in self._parameters:
                 self._parameters[name] = value[mask]
@@ -113,7 +121,7 @@ class ParameterSpace(object):
     def __iter__(self):
         if not self._evaluated:
             raise Exception("Must call evaluate() method before iterating over a ParameterSpace")
-        for i in range(self.size):
+        for i in range(self._size):
             D = {}
             for name, value in self._parameters.items():
                 if is_listlike(value):

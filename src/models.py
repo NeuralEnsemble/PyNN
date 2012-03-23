@@ -8,11 +8,18 @@ or "native" (restricted to an individual simulator).
 
 import copy
 from pyNN import errors, descriptions
+from pyNN.parameters import ParameterSpace
 
 class BaseModelType(object):
     """Base class for standard and native cell and synapse model classes."""
     default_parameters = {}
     default_initial_values = {}
+
+    def __init__(self, parameters):
+        self.parameter_space = ParameterSpace(self.default_parameters,
+                                              self.get_schema(),
+                                              size=None)
+        self.parameter_space.update(**parameters)
 
     @classmethod
     def has_parameter(cls, name):

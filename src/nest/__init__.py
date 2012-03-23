@@ -187,11 +187,13 @@ class PopulationView(common.PopulationView, PopulationMixin):
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
-def _build_params(parameter_space):
+def _build_params(parameter_space, size=None):
     """
     Return either a single parameter dict or a list of dicts, suitable for use
     in Create or SetStatus.
     """
+    if size:
+        parameter_space.size = size
     if parameter_space.is_homogeneous:
         parameter_space.evaluate(simplify=True) # use _mask_local
         cell_parameters = parameter_space.as_dict()
@@ -220,21 +222,17 @@ class Population(common.Population, PopulationMixin):
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
-    def _create_cells(self, cell_parameters, n):
+    def _create_cells(self):
         """
-        Create cells in NEST.
-        
-        `cell_parameters` -- a ParameterSpace containing native parameters.
-        `n`               -- the number of cells to create
+        Create cells in NEST using the celltype the current Population.
         """
         # this method should never be called more than once
         # perhaps should check for that
-        assert n > 0, 'n must be a positive integer'
-        n = int(n)
         nest_model = self.celltype.nest_name[simulator.state.spike_precision]
-        params = _build_params(cell_parameters)
+        # TODO - set size of parameter_space
+        params = _build_params(self.celltype.translated_parameters, self.size)
         try:
-            self.all_cells = nest.Create(nest_model, n, params=params)
+            self.all_cells = nest.Create(nest_model, self.size, params=params)
         except nest.NESTError, err:
             if "UnknownModelName" in err.message and "cond" in err.message:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
@@ -242,7 +240,7 @@ class Population(common.Population, PopulationMixin):
         # create parrot neurons if necessary
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             self.all_cells_source = numpy.array(self.all_cells)  # we put the parrots into all_cells, since this will
-            self.all_cells = nest.Create("parrot_neuron", n)     # be used for connections and recording. all_cells_source
+            self.all_cells = nest.Create("parrot_neuron", self.size)     # be used for connections and recording. all_cells_source
             nest.Connect(self.all_cells_source, self.all_cells)  # should be used for setting parameters
         self.first_id = self.all_cells[0]
         self.last_id = self.all_cells[-1]

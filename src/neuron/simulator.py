@@ -112,7 +112,7 @@ class _Initializer(object):
         """
         for item in items:
             if isinstance(item, (common.BasePopulation, common.Assembly)):
-                if "Source" not in item.celltype.__name__: # don't do memb_init() on spike sources
+                if item.celltype.injectable: # don't do memb_init() on spike sources
                     self.population_list.append(item)
             else:
                 if hasattr(item._cell, "memb_init"):
