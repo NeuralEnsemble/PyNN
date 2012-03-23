@@ -35,7 +35,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     __doc__ = cells.SpikeSourcePoisson.__doc__ 
 
     translations = build_translations(
-        ('rate', 'rate'),
+        ('rate', 'rate', 0.001),
         ('start', 'start'),
         ('duration', 'duration')
     )
