@@ -61,10 +61,10 @@ def test_create_with_array():
     assert_arrays_equal(A.evaluate(simplify=True), numpy.array([1,2,3]))
 
 def test_create_inconsistent():
-    assert_raises(AssertionError, LazyArray, [1,2,3], shape=4)
+    assert_raises(ValueError, LazyArray, [1,2,3], shape=4)
 
 def test_create_with_string():
-    assert_raises(AssertionError, LazyArray, "123", shape=3)
+    assert_raises(TypeError, LazyArray, "123", shape=3)
     
 def test_setitem_nonexpanded_same_value():
     A = LazyArray(3, shape=(5,))

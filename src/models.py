@@ -19,7 +19,8 @@ class BaseModelType(object):
         self.parameter_space = ParameterSpace(self.default_parameters,
                                               self.get_schema(),
                                               size=None)
-        self.parameter_space.update(**parameters)
+        if parameters:
+            self.parameter_space.update(**parameters)
 
     @classmethod
     def has_parameter(cls, name):

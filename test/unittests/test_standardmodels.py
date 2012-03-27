@@ -2,6 +2,7 @@ from pyNN.standardmodels import build_translations, StandardModelType, \
                                 SynapseDynamics, STDPMechanism, \
                                 STDPWeightDependence, STDPTimingDependence
 from pyNN import errors
+from pyNN.parameters import ParameterSpace
 from nose.tools import assert_equal, assert_raises
 from mock import Mock
 import numpy
@@ -43,53 +44,20 @@ def test_get_parameter_names():
 
 def test_instantiate():
     """
-    Instantiating a StandardModelType should set self.parameters to the value
-    of translate(check_parameters(parameters)).
+    Instantiating a StandardModelType should set self.parameter_space to a
+    ParameterSpace object containing the provided parameters.
     """
     M = StandardModelType
     M.default_parameters = {'a': 0.0, 'b': 0.0}
-    M.translations = {'a': None, 'b': None}
     P1 = {'a': 22.2, 'b': 33.3}
-    P2 = {'A': 22.2, 'B': 333}
-    orig_check_parameters = M.check_parameters
-    orig_translate = M.translate
-    M.check_parameters = Mock(return_value=P2)
-    M.translate = Mock()
     m = M(P1)
-    assert isinstance(m.parameters, Mock)
-    M.check_parameters.assert_called_with(P1, with_defaults=True)
-    M.translate.assert_called_with(P2)
-    
-    M.check_parameters = orig_check_parameters
-    M.translate = orig_translate
+    assert_equal(m.parameter_space._parameters, ParameterSpace(P1, None, None)._parameters)
 
-def test_check_parameters_without_defaults():
-    M = StandardModelType
-    M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': [1, 2, 3], 'd': 'hello'}
-    assert_equal(M.check_parameters({'a': 11, 'c': [4, 5, 6], 'd': 'goodbye'}),
-                 {'a': 11.0,'c': [4, 5, 6], 'd': 'goodbye'})
 
-def test_check_parameters_with_defaults():
-    M = StandardModelType
-    M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': [1, 2, 3]}
-    assert_equal(M.check_parameters({'a': 11, 'c': [4, 5, 6]}, with_defaults=True),
-                 {'a': 11.0, 'b': 33.3, 'c': [4, 5, 6]})
-
-def test_check_parameters_with_nonexistent_parameter():
-    M = StandardModelType
-    M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': [1, 2, 3]}
-    assert_raises(errors.NonExistentParameterError,
-                  M.check_parameters, {'a': 11.1, 'z': 99.9})
-
-def test_check_parameters_with_invalid_value():
-    M = StandardModelType
-    M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': [1, 2, 3], 'd': 'hello'}
-    assert_raises(errors.InvalidParameterValueError,
-                  M.check_parameters, {'a': 11.1, 'b': [4,3,2]})
-    assert_raises(errors.InvalidParameterValueError,
-                  M.check_parameters, {'a': 11.1, 'c': 12.3})
-    assert_raises(errors.InvalidParameterValueError,
-                  M.check_parameters, {'a': 11.1, 'd': 12.3})
+def _parameter_space_to_dict(parameter_space, size):
+    parameter_space.size = size
+    parameter_space.evaluate(simplify=True)
+    return parameter_space.as_dict()
 
 def test_translate():
     M = StandardModelType
@@ -99,7 +67,8 @@ def test_translate():
             ('b', 'B', 1000.0),
             ('c', 'C', 'c + a', 'C - A'),
         )
-    assert_equal(M.translate({'a': 23.4, 'b': 34.5, 'c': 45.6}),
+    native_parameters = M.translate(ParameterSpace({'a': 23.4, 'b': 34.5, 'c': 45.6}, M.get_schema(), None))
+    assert_equal(_parameter_space_to_dict(native_parameters, 77),
                  {'A': 23.4, 'B': 34500.0, 'C': 69.0})
 
 def test_translate_with_invalid_transformation():
@@ -112,7 +81,7 @@ def test_translate_with_invalid_transformation():
     #really we should trap such errors in build_translations(), not in translate()
     assert_raises(NameError,
                   M.translate,
-                  {'a': 23.4, 'b': 34.5})
+                  ParameterSpace({'a': 23.4, 'b': 34.5}, M.get_schema(), None))
 
 def test_translate_with_divide_by_zero_error():
     M = StandardModelType
@@ -121,8 +90,10 @@ def test_translate_with_divide_by_zero_error():
             ('a', 'A'),
             ('b', 'B', 'b/0', 'B*0'),
     )
+    native_parameters = M.translate(ParameterSpace({'a': 23.4, 'b': 34.5}, M.get_schema(), 77))
     assert_raises(ZeroDivisionError,
-                  M.translate, {'a': 23.4, 'b': 34.5})
+                  native_parameters.evaluate,
+                  simplify=True)
 
 def test_reverse_translate():
     M = StandardModelType
@@ -177,23 +148,6 @@ def test_computed_parameters():
         )
     assert_equal(M.computed_parameters(), ['c'])
 
-def test_update_parameters():
-    """
-    update_parameters(P) should update self.parameters with the value of
-    translate(P)
-    """
-    M = StandardModelType
-    orig_check_parameters = M.check_parameters
-    orig_translate = M.translate
-    M.check_parameters = Mock()
-    P = {'a': 3}
-    M.translate = Mock(return_value=P)
-    m = M({})
-    m.parameters = Mock()
-    m.update_parameters({})
-    m.parameters.update.assert_called_with(P)
-    M.check_parameters = orig_check_parameters
-    M.translate = orig_translate
 
 def test_describe():
     M = StandardModelType

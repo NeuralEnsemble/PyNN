@@ -23,14 +23,15 @@ class MockPopulation(populations.Population):
     _simulator = MockSimulator
     recorder_class = Mock()
     initialize = Mock()
+    size = 11
     
     def _get_view(self, selector, label=None):
         return populations.PopulationView(self, selector, label)
     
-    def _create_cells(self, cellclass, cellparams, size):
-        self.all_cells = numpy.array([MockID(i) for i in range(999, 999+size)], MockID)
+    def _create_cells(self):
+        self.all_cells = numpy.array([MockID(i) for i in range(999, 999+self.size)], MockID)
         self.cell      = self.all_cells
-        self._mask_local = numpy.arange(size)%5==3 # every 5th cell, starting with the 4th, is on this node
+        self._mask_local = numpy.arange(self.size)%5==3 # every 5th cell, starting with the 4th, is on this node
         self.first_id = self.all_cells[0]
         self.last_id = self.all_cells[-1]
 
@@ -48,6 +49,11 @@ class MockStructure(space.BaseStructure):
     p1 = 2
 
 
+def _parameter_space_to_dict(parameter_space, size):
+    parameter_space.size = size
+    parameter_space.evaluate(simplify=True)
+    return parameter_space.as_dict()
+
 def test_create_population_standard_cell_simple():
     p = MockPopulation(11, MockStandardCell)
     assert_equal(p.size, 11)
@@ -55,7 +61,8 @@ def test_create_population_standard_cell_simple():
     assert isinstance(p.celltype, MockStandardCell)
     assert isinstance(p._structure, space.Line)
     assert_equal(p._positions, None)
-    assert_equal(p.celltype.parameters, {'A': 20.0, 'B': -34.9})
+    params = _parameter_space_to_dict(p.celltype.translated_parameters, p.size)
+    assert_equal(params, {'A': 20.0, 'B': -34.9})
     assert_equal(p.initial_values, {})
     assert isinstance(p.recorders, dict)
     p.initialize.assert_called_with('m', -1.23)
@@ -63,7 +70,8 @@ def test_create_population_standard_cell_simple():
 def test_create_population_standard_cell_with_params():
     p = MockPopulation(11, MockStandardCell, {'a': 17.0, 'b': 0.987})
     assert isinstance(p.celltype, MockStandardCell)
-    assert_equal(p.celltype.parameters, {'A': 17.0, 'B': 0.987})
+    params = _parameter_space_to_dict(p.celltype.translated_parameters, p.size)
+    assert_equal(params, {'A': 17.0, 'B': 0.987})
 
 # test create native cell
 

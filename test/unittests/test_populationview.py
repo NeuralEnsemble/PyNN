@@ -14,10 +14,11 @@ class MockID(object):
 class MockPopulation(common.Population):
     recorder_class = Mock()
     initialize = Mock()
+    size = 11
     
-    def _create_cells(self, cellclass, cellparams, size):
-        self.all_cells = numpy.array([MockID(i, self) for i in range(size)], MockID)
-        self._mask_local = numpy.arange(size)%5==3
+    def _create_cells(self):
+        self.all_cells = numpy.array([MockID(i, self) for i in range(self.size)], MockID)
+        self._mask_local = numpy.arange(self.size)%5==3
 
 class MockStandardCell(standardmodels.StandardCellType):
     default_parameters = {

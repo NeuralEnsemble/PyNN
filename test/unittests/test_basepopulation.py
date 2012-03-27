@@ -1,10 +1,12 @@
 from pyNN import common, errors, random, standardmodels, recording
 from pyNN.common import populations
+from pyNN.parameters import Sequence, ParameterSpace
 from nose.tools import assert_equal, assert_raises
 import numpy
 from mock import Mock, patch
 from pyNN.utility import assert_arrays_equal
 from pyNN import core
+from lazyarray import VectorizedIterable
     
 builtin_open = open
 id_map = {'larry': 0, 'curly': 1, 'moe': 2, 'joe': 3, 'william': 4, 'jack': 5, 'averell': 6}
@@ -18,7 +20,7 @@ class MockSimulator(object):
 
 class MockStandardCell(standardmodels.StandardCellType):
     recordable = ['v', 'spikes']
-    default_parameters = {'tau_m': 999.9, 'i_offset': 321.0, 'spike_times': [0,1,2], 'foo': 33.3}
+    default_parameters = {'tau_m': 999.9, 'i_offset': 321.0, 'spike_times': Sequence([0,1,2]), 'foo': 33.3}
     translations = {'tau_m': None, 'i_offset': None, 'spike_times': None, 'foo': None}
     @classmethod
     def translate(cls, parameters):
@@ -177,14 +179,6 @@ def test_get_should_call_get_array_if_it_exists():
     p.get("tau_m")
     p._get_array.assert_called_with("tau_m")
 
-def test_get_with_no_get_array():
-    orig_iter = MockPopulation.__iter__
-    MockPopulation.__iter__ = Mock(return_value=iter([Mock()]))
-    p = MockPopulation()
-    values = p.get("i_offset")
-    assert_equal(values[0]._name, "i_offset")
-    MockPopulation.__iter__ = orig_iter
-
 def test_get_with_gather():
     np_orig = MockPopulation._simulator.state.num_processes
     rank_orig = MockPopulation._simulator.state.mpi_rank
@@ -206,61 +200,41 @@ def test_get_with_gather():
     MockPopulation._simulator.state.mpi_rank = rank_orig
     recording.gather_dict = gd_orig
 
-def test_set_from_dict():
+def test_set():
     p = MockPopulation()
-    p._set_array = Mock()
-    p.set({'tau_m': 43.21})
-    p._set_array.assert_called_with(**{'tau_m': 43.21})
+    p._set_parameters = Mock()
+    p.set(tau_m=43.21)
+    p._set_parameters.assert_called_with(
+        ParameterSpace({'tau_m': 43.21}, p.celltype.get_schema(), size=p.size))
 
-def test_set_from_pair():
-    p = MockPopulation()
-    p._set_array = Mock()
-    p.set('tau_m', 12.34)
-    p._set_array.assert_called_with(**{'tau_m': 12.34})
-         
 def test_set_invalid_type():
     p = MockPopulation()
-    assert_raises(errors.InvalidParameterValueError, p.set, 'foo', {})
-    assert_raises(errors.InvalidParameterValueError, p.set, [1,2,3])
-    assert_raises(errors.InvalidParameterValueError, p.set, 'foo', 'bar')
-    assert_raises(errors.InvalidParameterValueError, p.set, {'foo': 'bar'})
-
-def test_set_inconsistent_type():
-    p = MockPopulation()
-    p._set_array = Mock()
-    assert_raises(errors.InvalidParameterValueError, p.set, 'tau_m', [12.34, 56.78])
-
-def test_set_with_no_get_array():
-    mock_cell = Mock()
-    orig_iter = MockPopulation.__iter__
-    MockPopulation.__iter__ = Mock(return_value=iter([mock_cell]))
-    p = MockPopulation()
-    values = p.set("i_offset", 0.1)
-    mock_cell.set_parameters.assert_called_with(**{"i_offset": 0.1})
-    MockPopulation.__iter__ = orig_iter
+    assert_raises(errors.InvalidParameterValueError, p.set, foo={})
+    assert_raises(errors.InvalidParameterValueError, p.set, foo='bar')
 
 def test_set_with_list():
     p = MockPopulation()
-    p._set_array = Mock()
-    p.set('spike_times', range(10))
-    p._set_array.assert_called_with(**{'spike_times': range(10)})
+    p._set_parameters = Mock()
+    p.set(spike_times=range(10))
+    p._set_parameters.assert_called_with(
+        ParameterSpace({'spike_times': range(10)}, p.celltype.get_schema(), size=p.size))
     
 def test_tset_with_numeric_values():
     p = MockPopulation()
-    p._set_array = Mock()
+    p._set_parameters = Mock()
     tau_m = numpy.linspace(10.0, 20.0, num=p.size)
     p.tset("tau_m", tau_m)
-    assert_arrays_equal(p._set_array.call_args[1]['tau_m'], tau_m[p._mask_local])
+    assert_arrays_equal(p._set_parameters.call_args[0][0]['tau_m'].evaluate(), tau_m[p._mask_local])
 
 def test_tset_with_array_values():
     p = MockPopulation()
-    p._set_array = Mock()
-    spike_times = numpy.linspace(0.0, 1000.0, num=10*p.size).reshape((p.size,10))
+    p._set_parameters = Mock()
+    spike_times = [Sequence(numpy.linspace(i, 100.0+i, 10)) for i in range(p.size)]
     p.tset("spike_times", spike_times)
-    call_args = p._set_array.call_args[1]['spike_times']
-    assert_equal(call_args.shape, spike_times[p._mask_local].shape)
-    assert_arrays_equal(call_args.flatten(),
-                        spike_times[p._mask_local].flatten())
+    param = p._set_parameters.call_args[0][0]['spike_times']
+    assert_equal(param.shape[0], len(spike_times))
+    assert_arrays_equal(param.evaluate(),
+                        numpy.array(spike_times)[p._mask_local])
     
 def test_tset_invalid_dimensions_2D():
     """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
@@ -273,18 +247,21 @@ def test_tset_invalid_dimensions_1D():
     tau_m = numpy.linspace(10.0, 20.0, num=p.size+1)
     assert_raises(errors.InvalidDimensionsError, p.tset, "tau_m", tau_m)
 
+
+class MockRandDistr(VectorizedIterable):
+    def next(self, n):
+        return numpy.arange(n)
+
 def test_rset():
     """Population.rset()"""
+    # test should assume MPI with use of mask_local
     p = MockPopulation()
-    rd = Mock()
+    p._set_parameters = Mock()
+    rd = MockRandDistr()
     rnums = numpy.arange(p.size)
-    rd.next = Mock(return_value=rnums)
-    p.tset = Mock()
-    p.rset("cm", rd)
-    rd.next.assert_called_with(**{'mask_local': False, 'n': p.size})
-    call_args = p.tset.call_args
-    assert_equal(call_args[0][0], 'cm')
-    assert_arrays_equal(call_args[0][1], rnums)
+    p.rset("foo", rd)
+    call_args = p._set_parameters.call_args
+    assert_arrays_equal(call_args[0][0]['foo'].evaluate(), rnums)
 
 def test_rset_with_native_rng():
     p = MockPopulation()

@@ -39,6 +39,9 @@ class Sequence(object):
         else:
             return Sequence(self.value * val)
 
+    def __eq__(self, other):
+        return (self.value == other.value).all()
+
 
 class ParameterSpace(object):
     """
@@ -49,7 +52,7 @@ class ParameterSpace(object):
     values.
     """
     
-    def __init__(self, parameters, schema, size):
+    def __init__(self, parameters, schema=None, size=None):
         """
         `parameters` - a dict containing values of any type that may be used to
                        construct a lazy array, i.e. int, float, NumPy array,
@@ -73,14 +76,24 @@ class ParameterSpace(object):
     def keys(self):
         return self._parameters.keys()
 
+    def __repr__(self):
+        return "<ParameterSpace %s, size=%s>" % (", ".join(self.keys()), self.size)
+
     def update(self, **parameters):
         if self.schema:
             for name, value in parameters.items():
                 expected_dtype = self.schema[name]
-                if expected_dtype == Sequence and isinstance(value, collections.Sized): # may be a more generic way to do it, but for now this special-casing seems like the most robust approach
+                if (expected_dtype == Sequence
+                    and isinstance(value, collections.Sized)
+                    and not isinstance(value[0], Sequence)): # may be a more generic way to do it, but for now this special-casing seems like the most robust approach
                     value = Sequence(value)
-                self._parameters[name] = LazyArray(value, shape=(self._size,),
-                                                   dtype=expected_dtype)
+                try:
+                    self._parameters[name] = LazyArray(value, shape=(self._size,),
+                                                       dtype=expected_dtype)
+                except TypeError:
+                    raise errors.InvalidParameterValueError("For parameter %s expected %s, got %s" % (name, type(value), expected_dtype))
+                except ValueError as err:
+                    raise errors.InvalidDimensionsError(err) # maybe put the more specific error classes into lazyarray
         else:
             for name, value in parameters.items():
                 self._parameters[name] = LazyArray(value, shape=(self._size,))
@@ -115,7 +128,7 @@ class ParameterSpace(object):
         for name, value in self._parameters.items():
             assert not is_listlike(value)
             D[name] = value
-            assert not isinstance(D[name], LazyArray) # should all have been evaluated by no
+            assert not isinstance(D[name], LazyArray) # should all have been evaluated by now
         return D
 
     def __iter__(self):
@@ -130,3 +143,8 @@ class ParameterSpace(object):
                     D[name] = value
                 assert not isinstance(D[name], LazyArray) # should all have been evaluated by now
             yield D
+
+    def __eq__(self, other):
+        return (all(a==b for a,b in zip(self._parameters.items(), other._parameters.items()))
+                and self.schema == other.schema
+                and self._size == other._size)
