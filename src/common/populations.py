@@ -255,14 +255,9 @@ class BasePopulation(object):
         """
         # if all the cells have the same value for this parameter, should
         # we return just the number, rather than an array?
-        
-        if hasattr(self, "_get_array"):
-            values = self._get_array(parameter_name).tolist()
-        else:
-            values = [getattr(cell, parameter_name) for cell in self]  # list or array?
-        
+        values = self._get_parameters(parameter_name)[parameter_name].evaluate() # simplify=True?
         if gather == True and self._simulator.state.num_processes > 1:
-            all_values  = { self._simulator.state.mpi_rank: values }
+            all_values  = { self._simulator.state.mpi_rank: values.tolist() }
             all_indices = { self._simulator.state.mpi_rank: self.local_cells.tolist()}
             all_values  = recording.gather_dict(all_values)
             all_indices = recording.gather_dict(all_indices)
@@ -271,7 +266,7 @@ class BasePopulation(object):
                 indices = reduce(operator.add, all_indices.values())
             idx    = numpy.argsort(indices)
             values = numpy.array(values)[idx]
-        return values
+        return values 
 
     def set(self, **parameters):
         """
@@ -292,10 +287,17 @@ class BasePopulation(object):
             p.set(spike_times=[0.3, 0.7, 0.9, 1.4])
             p.set(cm=rand_distr, tau_m=lambda i: 10 + i/10.0)
         """
-        # add example using of function of (x,y,z) and Population.position_generator
-        parameter_space = ParameterSpace(parameters, # TODO: for some translations, need to get existing parameter space of models
-                                         self.celltype.get_schema(),
-                                         self.size)
+        # TODO: add example using of function of (x,y,z) and Population.position_generator
+        if (isinstance(self.celltype, standardmodels.StandardCellType)
+            and any(name in self.celltype.computed_parameters() for name in parameters)):
+            # need to get existing parameter space of models so we can perform calculations
+            native_names = self.celltype.get_translated_names()
+            parameter_space = self.celltype.reverse_translate(self._get_parameters(*native_names))
+            parameter_space.update(**parameters)
+        else:
+            parameter_space = ParameterSpace(parameters, 
+                                             self.celltype.get_schema(),
+                                             self.size)
         if isinstance(self.celltype, standardmodels.StandardCellType):
             parameter_space = self.celltype.translate(parameter_space)
         self._set_parameters(parameter_space)

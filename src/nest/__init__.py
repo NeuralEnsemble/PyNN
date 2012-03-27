@@ -172,8 +172,20 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 class PopulationMixin(object):
     
     def _set_parameters(self, parameter_space):
+        """
+        parameter_space should contain native parameters
+        """
         param_dict = _build_params(parameter_space)
         nest.SetStatus(self.local_cells.tolist(), param_dict)
+
+    def _get_parameters(self, *names):
+        """
+        return a ParameterSpace containing native parameters
+        """
+        parameter_array = nest.GetStatus(self.local_cells.tolist(), names)
+        parameter_dict = dict((name, parameter_array[:, col])
+                              for col, name in enumerate(names))
+        return ParameterSpace(parameter_dict, size=self.size) # or local size?
 
 
 class Assembly(common.Assembly):
@@ -186,6 +198,7 @@ class PopulationView(common.PopulationView, PopulationMixin):
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
+
 
 def _build_params(parameter_space, size=None):
     """

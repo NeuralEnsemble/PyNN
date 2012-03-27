@@ -25,6 +25,9 @@ class MockStandardCell(standardmodels.StandardCellType):
     @classmethod
     def translate(cls, parameters):
         return parameters
+    @classmethod
+    def computed_parameters(cls):
+        return []
 
 class MockPopulation(populations.BasePopulation):
     _simulator = MockSimulator
@@ -173,11 +176,11 @@ def test_sample():
     assert_arrays_equal(populations.PopulationView.call_args[0][1], numpy.array([7,4,8,12,0]))
     populations.PopulationView = orig_pv
 
-def test_get_should_call_get_array_if_it_exists():
+def test_get_should_call_get_parameters():
     p = MockPopulation()
-    p._get_array = Mock()
+    p._get_parameters = Mock(return_value={'tau_m': Mock()})
     p.get("tau_m")
-    p._get_array.assert_called_with("tau_m")
+    p._get_parameters.assert_called_with("tau_m")
 
 def test_get_with_gather():
     np_orig = MockPopulation._simulator.state.num_processes
@@ -186,16 +189,17 @@ def test_get_with_gather():
     MockPopulation._simulator.state.num_processes = 2
     MockPopulation._simulator.state.mpi_rank =  0
     def mock_gather_dict(D): # really hacky
-        assert isinstance(D[0], list)
+        assert isinstance(D[0], (list, numpy.ndarray))
         D[1] = [i-1 for i in D[0]] + [D[0][-1] + 1]
         return D
     recording.gather_dict = mock_gather_dict
     
     p = MockPopulation()
-    p._get_array = Mock(return_value=numpy.arange(11.0, 23.0, 2.0))
+    ps = Mock()
+    ps.evaluate = Mock(return_value=numpy.arange(11.0, 23.0, 2.0))
+    p._get_parameters = Mock(return_value={'tau_m': ps})
     assert_arrays_equal(p.get("tau_m", gather=True),
                         numpy.arange(10.0, 23.0))
-    
     MockPopulation._simulator.state.num_processes = np_orig
     MockPopulation._simulator.state.mpi_rank = rank_orig
     recording.gather_dict = gd_orig

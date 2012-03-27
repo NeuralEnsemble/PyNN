@@ -105,6 +105,15 @@ class PopulationMixin(object):
         for cell, param_dict in zip(self, parameter_space):
             cell.set_native_parameters(param_dict)
 
+    def _get_parameters(self, *names):
+        """
+        return a ParameterSpace containing native parameters
+        """
+        parameter_dict = {}
+        for name in names:
+            parameter_dict[name] = [getattr(id._cell, name) for id in self]
+        return ParameterSpace(parameter_dict, size=self.size) # or local size?
+
 
 class Assembly(common.Assembly):
     _simulator = simulator

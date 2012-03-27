@@ -55,6 +55,10 @@ class TestPopulation(object):
         nest.SetStatus = self.orig_ss
 
     def test_set_with_standard_celltype(self):
+        orig_getstatus = nest.GetStatus
+        native_names = MockStandardCellType.get_translated_names()
+        mock_data = {'FOO': 99.0, 'HOO': 300.0, 'WOO': 110.0}
+        nest.GetStatus = Mock(return_value=numpy.array([[mock_data[name] for name in native_names] for i in range(10)]))
         p = Population(10, MockStandardCellType)
         p.all_cells = numpy.array([MockID()]*10, dtype=object) #numpy.arange(10)
         p._mask_local = numpy.ones((10,), bool)
@@ -63,8 +67,8 @@ class TestPopulation(object):
         p.set(hoo=33.0)
         assert_equal(nest.SetStatus.call_args[0][1], {"HOO": 99.0})
         p.set(woo=6.0)
-        assert_equal(nest.SetStatus.call_args[0][1], {})
-        p.all_cells[0].set_parameters.assert_called_with(woo=6.0)
+        assert_equal(nest.SetStatus.call_args[0][1], [{'FOO': 99.0, 'HOO': 300.0, 'WOO': 112.0} for i in range(10)])
+        nest.GetStatus = orig_getstatus
         
     def test_set_with_native_celltype(self):
         gd_orig = nest.GetDefaults

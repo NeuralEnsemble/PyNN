@@ -103,7 +103,7 @@ def test_reverse_translate():
             ('b', 'B', 1000.0),
             ('c', 'C', 'c + a', 'C - A'),
         )
-    assert_equal(M.reverse_translate({'A': 23.4, 'B': 34500.0, 'C': 69.0}),
+    assert_equal(_parameter_space_to_dict(M.reverse_translate(ParameterSpace({'A': 23.4, 'B': 34500.0, 'C': 69.0})), 88),
                  {'a': 23.4, 'b': 34.5, 'c': 45.6})
 
 def test_reverse_translate_with_invalid_transformation():

@@ -69,7 +69,7 @@ class StandardModelType(models.BaseModelType):
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
         if parameters.schema != cls.get_schema():
-            raise Exception("") # should replace this with a PyNN-specific exception type
+            raise Exception("Schemas do not match: %s != %s" % (parameters.schema, cls.get_schema())) # should replace this with a PyNN-specific exception type
         native_parameters = {}
         #for name in parameters.schema:
         for name in parameters.keys():
@@ -99,7 +99,7 @@ class StandardModelType(models.BaseModelType):
             except NameError, errmsg:
                 raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
                                 % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
-        return standard_parameters
+        return ParameterSpace(standard_parameters, schema=cls.get_schema(), size=native_parameters.size)
 
     @classmethod
     def simple_parameters(cls):
@@ -118,7 +118,11 @@ class StandardModelType(models.BaseModelType):
         """Return a list of parameters whose values must be computed from
         more than one other parameter."""
         return [name for name in cls.translations if name not in cls.simple_parameters()+cls.scaled_parameters()]
-        
+    
+    @classmethod
+    def get_translated_names(cls):
+        return [D['translated_name'] for D in cls.translations.values()]
+
 #    def update_parameters(self, parameters):
 #        """
 #        update self.parameters with those in parameters 
