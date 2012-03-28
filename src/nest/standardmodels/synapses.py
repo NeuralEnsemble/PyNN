@@ -58,7 +58,11 @@ class SynapseDynamics(SynapseDynamics):
     def _set_tau_minus(self, cells):
         if len(cells) > 0 and self.slow:
             if 'tau_minus' in nest.GetStatus([cells[0]])[0]:
-                tau_minus = self.slow.timing_dependence.parameters["tau_minus"]
+                native_parameters = self.slow.timing_dependence.translated_parameters
+                if not native_parameters["tau_minus"].is_homogeneous: # could allow inhomogeneous values as long as each column is internally homogeneous
+                    raise ValueError("pyNN.NEST does not support tau_minus being different for different synapses")
+                native_parameters.size = 1 # hack
+                tau_minus = native_parameters["tau_minus"].evaluate(simplify=True)
                 nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
             else:
                 raise Exception("Postsynaptic cell model does not support STDP.")
@@ -77,7 +81,6 @@ class STDPMechanism(STDPMechanism):
 
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
-    
     __doc__ = synapses.TsodyksMarkramMechanism.__doc__    
 
     translations = build_translations(
@@ -89,15 +92,9 @@ class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
         ('y0', 'y')   # is not stored, only set.
     )
     native_name = 'tsodyks_synapse'
-    
-    def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
-        #synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
-        parameters = dict(locals()) # need the dict to get a copy of locals. When running
-        parameters.pop('self')      # through coverage.py, for some reason, the pop() doesn't have any effect
-        self.parameters = self.translate(parameters)
+
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
-
     __doc__ = synapses.AdditiveWeightDependence.__doc__     
     
     translations = build_translations(
@@ -107,20 +104,18 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
         ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
+    extra_parameters = {
+        'mu_plus': 0.0,
+        'mu_minus': 0.0
+    }
     
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        #synapses.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
-        parameters = dict(locals())
-        parameters.pop('self')
-        self.parameters = self.translate(parameters)
-        self.parameters['mu_plus'] = 0.0
-        self.parameters['mu_minus'] = 0.0
+        synapses.AdditiveWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
 
 
 class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
-    
     __doc__ = synapses.MultiplicativeWeightDependence.__doc__    
 
     translations = build_translations(
@@ -130,19 +125,17 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
-        
+    extra_parameters = {
+        'mu_plus': 1.0,
+        'mu_minus': 1.0
+    }
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        #synapses.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
-        parameters = dict(locals())
-        parameters.pop('self') 
-        self.parameters = self.translate(parameters)
-        self.parameters['mu_plus'] = 1.0
-        self.parameters['mu_minus'] = 1.0
+        synapses.MultiplicativeWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
+
 
 class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
-    
     __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__   
 
     translations = build_translations(
@@ -152,20 +145,18 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
+    extra_parameters = {
+        'mu_plus': 0.0,
+        'mu_minus': 1.0
+    }
         
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        #synapses.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
-        parameters = dict(locals())
-        parameters.pop('self') 
-        self.parameters = self.translate(parameters)
-        self.parameters['mu_plus'] = 0.0
-        self.parameters['mu_minus'] = 1.0
+        synapses.AdditivePotentiationMultiplicativeDepression.__init__(self, w_min, w_max, A_plus, A_minus)
 
 
 class GutigWeightDependence(synapses.GutigWeightDependence):
-
     __doc__ = synapses.GutigWeightDependence.__doc__     
 
     translations = build_translations(
@@ -178,17 +169,13 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
         
-    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01,mu_plus=0.5,mu_minus=0.5):
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01, mu_plus=0.5, mu_minus=0.5):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
-        #synapses.GutigWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
-        parameters = dict(locals())
-        parameters.pop('self') 
-        self.parameters = self.translate(parameters)
+        synapses.GutigWeightDependence.__init__(self, w_min, w_max, A_plus, A_minus)
 
 
 class SpikePairRule(synapses.SpikePairRule):
-    
     __doc__ = synapses.SpikePairRule.__doc__
 
     translations = build_translations(
@@ -196,10 +183,4 @@ class SpikePairRule(synapses.SpikePairRule):
         ('tau_minus', 'tau_minus'), # defined in post-synaptic neuron
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
-    
-    def __init__(self, tau_plus=20.0, tau_minus=20.0):
-        #synapses.SpikePairRule.__init__(self, tau_plus, tau_minus)
-        parameters = dict(locals())
-        parameters.pop('self')
-        self.parameters = self.translate(parameters)
-        
+

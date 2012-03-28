@@ -48,7 +48,9 @@ class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):
         `tau_facil` -- facilitation time constant (ms)
         `u0`, `x0`, `y0` -- initial conditions.
         """
-        raise NotImplementedError
+        parameters = dict(locals())
+        parameters.pop('self')
+        ShortTermPlasticityMechanism.__init__(self, **parameters)
     
 
 class AdditiveWeightDependence(STDPWeightDependence):
@@ -79,7 +81,9 @@ class AdditiveWeightDependence(STDPWeightDependence):
                      pre-synaptic spike lags the post-synaptic spike by an
                      infinitessimal amount.
         """
-        raise NotImplementedError
+        parameters = dict(locals())
+        parameters.pop('self')
+        STDPWeightDependence.__init__(self, **parameters)
 
 
 class MultiplicativeWeightDependence(STDPWeightDependence):
@@ -109,7 +113,9 @@ class MultiplicativeWeightDependence(STDPWeightDependence):
                      pre-synaptic spike lags the post-synaptic spike by an
                      infinitessimal amount.
         """
-        raise NotImplementedError
+        parameters = dict(locals())
+        parameters.pop('self')
+        STDPWeightDependence.__init__(self, **parameters)
     
 
 class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
@@ -139,7 +145,9 @@ class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
                      pre-synaptic spike lags the post-synaptic spike by an
                      infinitessimal amount.
         """
-        raise NotImplementedError
+        parameters = dict(locals())
+        parameters.pop('self')
+        STDPWeightDependence.__init__(self, **parameters)
 
     
 class GutigWeightDependence(STDPWeightDependence):
@@ -157,7 +165,7 @@ class GutigWeightDependence(STDPWeightDependence):
         'mu_minus': 0.5
     }
 
-    def __init__(self, w_min=0.0,  w_max=1.0, A_plus=0.01, A_minus=0.01,mu_plus=0.5,mu_minus=0.5):
+    def __init__(self, w_min=0.0,  w_max=1.0, A_plus=0.01, A_minus=0.01, mu_plus=0.5, mu_minus=0.5):
         """
         Create a new specification for the weight-dependence of an STDP rule.
         
@@ -173,7 +181,9 @@ class GutigWeightDependence(STDPWeightDependence):
         `mu_plus`  -- see above
         `mu_minus` -- see above
         """
-        raise NotImplementedError
+        parameters = dict(locals())
+        parameters.pop('self')
+        STDPWeightDependence.__init__(self, **parameters)
 
 # Not yet implemented for any module
 #class PfisterSpikeTripletRule(STDPTimingDependence):
@@ -200,4 +210,6 @@ class SpikePairRule(STDPTimingDependence):
         `tau_minus` -- time constant of the negative part of the STDP curve, in
                        milliseconds.
         """
-        raise NotImplementedError #_abstract_method(self)
+        parameters = dict(locals())
+        parameters.pop('self')
+        STDPTimingDependence.__init__(self, **parameters)

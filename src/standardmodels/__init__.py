@@ -240,8 +240,19 @@ class SynapseDynamics(models.BaseSynapseDynamics):
 class ShortTermPlasticityMechanism(StandardModelType):
     """Abstract base class for models of short-term synaptic dynamics."""
     
-    def __init__(self):
-        raise NotImplementedError
+    def __init__(self, **parameters):
+        StandardModelType.__init__(self, parameters)
+
+    @property
+    def parameters(self):
+        parameter_space = self.translated_parameters
+        parameter_space.size = 1
+        if not parameter_space.is_homogeneous:
+            raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
+        parameter_space.evaluate(simplify=True)
+        p = parameter_space.as_dict()
+        p.update(self.extra_parameters)
+        return p
 
 
 class STDPMechanism(object):
@@ -294,8 +305,17 @@ class STDPMechanism(object):
     
     @property
     def all_parameters(self):
-        parameters = self.timing_dependence.parameters.copy()
-        parameters.update(self.weight_dependence.parameters)
+        timing_parameters = self.timing_dependence.translated_parameters
+        weight_parameters = self.weight_dependence.translated_parameters
+        for parameter_space in (timing_parameters, weight_parameters):
+            parameter_space.size = 1
+            if not parameter_space.is_homogeneous:
+                raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
+            parameter_space.evaluate(simplify=True)
+        parameters = timing_parameters.as_dict()
+        parameters.update(weight_parameters.as_dict())  # should add a "join" or "merge" method to ParameterSpace
+        parameters.update(self.timing_dependence.extra_parameters)
+        parameters.update(self.weight_dependence.extra_parameters)
         return parameters
     
     def describe(self, template='stdpmechanism_default.txt', engine='default'):
@@ -316,14 +336,14 @@ class STDPMechanism(object):
 
 
 class STDPWeightDependence(StandardModelType):
-    """Abstract base class for models of STDP weight dependence."""
-    
-    def __init__(self):
-        raise NotImplementedError
+    """Base class for models of STDP weight dependence."""
+
+    def __init__(self, **parameters):
+        StandardModelType.__init__(self, parameters)
 
 
 class STDPTimingDependence(StandardModelType):
-    """Abstract base class for models of STDP timing dependence (triplets, etc)"""
+    """Base class for models of STDP timing dependence (triplets, etc)"""
     
-    def __init__(self):
-        raise NotImplementedError
+    def __init__(self, **parameters):
+        StandardModelType.__init__(self, parameters)
