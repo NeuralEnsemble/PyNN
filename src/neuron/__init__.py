@@ -101,7 +101,7 @@ class PopulationMixin(object):
     
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        parameter_space.evaluate() #self._mask_local)
+        parameter_space.evaluate(mask=numpy.where(self._mask_local)[0])
         for cell, param_dict in zip(self, parameter_space):
             cell.set_native_parameters(param_dict)
 
@@ -159,7 +159,7 @@ class Population(common.Population, PopulationMixin):
         self._mask_local = self.all_cells%simulator.state.num_processes==simulator.state.mpi_rank # round-robin distribution of cells between nodes
         parameter_space = self.celltype.translated_parameters
         parameter_space.size = self.size
-        parameter_space.evaluate() #self._mask_local)
+        parameter_space.evaluate(mask=None)
         for i, (id, is_local, params) in enumerate(zip(self.all_cells, self._mask_local, parameter_space)):
             self.all_cells[i] = simulator.ID(id)
             self.all_cells[i].parent = self

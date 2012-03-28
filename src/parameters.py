@@ -80,6 +80,10 @@ class ParameterSpace(object):
         return "<ParameterSpace %s, size=%s>" % (", ".join(self.keys()), self.size)
 
     def update(self, **parameters):
+        if self._size is None:
+            array_shape = None
+        else:
+            array_shape = (self._size,)
         if self.schema:
             for name, value in parameters.items():
                 expected_dtype = self.schema[name]
@@ -88,7 +92,7 @@ class ParameterSpace(object):
                     and not isinstance(value[0], Sequence)): # may be a more generic way to do it, but for now this special-casing seems like the most robust approach
                     value = Sequence(value)
                 try:
-                    self._parameters[name] = LazyArray(value, shape=(self._size,),
+                    self._parameters[name] = LazyArray(value, shape=array_shape,
                                                        dtype=expected_dtype)
                 except TypeError:
                     raise errors.InvalidParameterValueError("For parameter %s expected %s, got %s" % (name, type(value), expected_dtype))
@@ -96,7 +100,7 @@ class ParameterSpace(object):
                     raise errors.InvalidDimensionsError(err) # maybe put the more specific error classes into lazyarray
         else:
             for name, value in parameters.items():
-                self._parameters[name] = LazyArray(value, shape=(self._size,))
+                self._parameters[name] = LazyArray(value, shape=array_shape)
     
     def __getitem__(self, name):
         return self._parameters[name]
@@ -112,12 +116,15 @@ class ParameterSpace(object):
         """
         if self._size is None:
             raise Exception("Must set size of parameter space before evaluating")
-        if mask:
-            for name, value in self._parameters:
-                self._parameters[name] = value[mask]
-        else:
+        if mask is None:
             for name, value in self._parameters.items():
                 self._parameters[name] = value.evaluate(simplify=simplify)
+            self._evaluated_size = self._size
+        else:
+            if len(mask) > 0:
+                for name, value in self._parameters.items():
+                    self._parameters[name] = value[mask]
+            self._evaluated_size = len(mask)
         self._evaluated = True
         # should possibly update self.size according to mask?
 
@@ -134,7 +141,7 @@ class ParameterSpace(object):
     def __iter__(self):
         if not self._evaluated:
             raise Exception("Must call evaluate() method before iterating over a ParameterSpace")
-        for i in range(self._size):
+        for i in range(self._evaluated_size):
             D = {}
             for name, value in self._parameters.items():
                 if is_listlike(value):

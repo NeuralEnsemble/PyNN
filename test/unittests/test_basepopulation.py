@@ -228,7 +228,8 @@ def test_tset_with_numeric_values():
     p._set_parameters = Mock()
     tau_m = numpy.linspace(10.0, 20.0, num=p.size)
     p.tset("tau_m", tau_m)
-    assert_arrays_equal(p._set_parameters.call_args[0][0]['tau_m'].evaluate(), tau_m[p._mask_local])
+    assert_arrays_equal(p._set_parameters.call_args[0][0]['tau_m'][p._mask_local],
+                        tau_m[p._mask_local])
 
 def test_tset_with_array_values():
     p = MockPopulation()
@@ -237,7 +238,7 @@ def test_tset_with_array_values():
     p.tset("spike_times", spike_times)
     param = p._set_parameters.call_args[0][0]['spike_times']
     assert_equal(param.shape[0], len(spike_times))
-    assert_arrays_equal(param.evaluate(),
+    assert_arrays_equal(param[p._mask_local],
                         numpy.array(spike_times)[p._mask_local])
     
 def test_tset_invalid_dimensions_2D():

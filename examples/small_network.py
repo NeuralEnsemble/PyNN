@@ -10,10 +10,11 @@ $Id$
 
 import numpy
 from pyNN.utility import get_script_args
-from pyNN.parameters import Sequence
 
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
+
+from pyNN.parameters import Sequence
 
 # === Define parameters ========================================================
 

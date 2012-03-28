@@ -175,7 +175,7 @@ class PopulationMixin(object):
         """
         parameter_space should contain native parameters
         """
-        param_dict = _build_params(parameter_space)
+        param_dict = _build_params(parameter_space, numpy.where(self._mask_local)[0])
         nest.SetStatus(self.local_cells.tolist(), param_dict)
 
     def _get_parameters(self, *names):
@@ -200,7 +200,7 @@ class PopulationView(common.PopulationView, PopulationMixin):
         return PopulationView(self, selector, label)
 
 
-def _build_params(parameter_space, size=None):
+def _build_params(parameter_space, mask_local, size=None, extra_parameters=None):
     """
     Return either a single parameter dict or a list of dicts, suitable for use
     in Create or SetStatus.
@@ -208,18 +208,22 @@ def _build_params(parameter_space, size=None):
     if size:
         parameter_space.size = size
     if parameter_space.is_homogeneous:
-        parameter_space.evaluate(simplify=True) # use _mask_local
+        parameter_space.evaluate(simplify=True)
         cell_parameters = parameter_space.as_dict()
+        if extra_parameters:
+            cell_parameters.update(extra_parameters)
         for name, val in cell_parameters.items():
             if isinstance(val, Sequence):
                 cell_parameters[name] = val.value
     else:
-        parameter_space.evaluate() 
+        parameter_space.evaluate(mask=mask_local) 
         cell_parameters = list(parameter_space) # may not be the most efficient way. Might be best to set homogeneous parameters on creation, then inhomogeneous ones using SetStatus. Need some timings.
         for D in cell_parameters:
             for name, val in D.items():
                 if isinstance(val, Sequence):
                     D[name] = val.value
+            if extra_parameters:
+                D.update(extra_parameters)
     return cell_parameters 
 
 
@@ -237,13 +241,15 @@ class Population(common.Population, PopulationMixin):
 
     def _create_cells(self):
         """
-        Create cells in NEST using the celltype the current Population.
+        Create cells in NEST using the celltype of the current Population.
         """
         # this method should never be called more than once
         # perhaps should check for that
         nest_model = self.celltype.nest_name[simulator.state.spike_precision]
-        # TODO - set size of parameter_space
-        params = _build_params(self.celltype.translated_parameters, self.size)
+        params = _build_params(self.celltype.translated_parameters,
+                               None,
+                               size=self.size,
+                               extra_parameters=self.celltype.extra_parameters)
         try:
             self.all_cells = nest.Create(nest_model, self.size, params=params)
         except nest.NESTError, err:

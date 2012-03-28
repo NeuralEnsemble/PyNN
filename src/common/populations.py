@@ -255,7 +255,7 @@ class BasePopulation(object):
         """
         # if all the cells have the same value for this parameter, should
         # we return just the number, rather than an array?
-        values = self._get_parameters(parameter_name)[parameter_name].evaluate() # simplify=True?
+        values = self._get_parameters(parameter_name)[parameter_name].evaluate(mask=numpy.where(self._mask_local)[0]) # simplify=True?
         if gather == True and self._simulator.state.num_processes > 1:
             all_values  = { self._simulator.state.mpi_rank: values.tolist() }
             all_indices = { self._simulator.state.mpi_rank: self.local_cells.tolist()}
@@ -300,6 +300,7 @@ class BasePopulation(object):
                                              self.size)
         if isinstance(self.celltype, standardmodels.StandardCellType):
             parameter_space = self.celltype.translate(parameter_space)
+        assert parameter_space.size == self.size
         self._set_parameters(parameter_space)
 
     @deprecated("set(parametername=value_array)")
