@@ -83,17 +83,17 @@ class ID(int, common.IDMixin):
         id = int(self)
         self._cell = cell_model("neuron%d" % id, **cell_parameters)          # create the cell object
         
-    def get_native_parameters(self):
-        """Return a dictionary of parameters for the NEURON cell model."""
-        D = {}
-        for name in self._cell.parameter_names:
-            D[name] = getattr(self._cell, name)
-        return D
+#    def get_native_parameters(self):
+#        """Return a dictionary of parameters for the NEURON cell model."""
+#        D = {}
+#        for name in self._cell.parameter_names:
+#            D[name] = getattr(self._cell, name)
+#        return D
     
-    def set_native_parameters(self, parameters):
-        """Set parameters of the NEURON cell model from a dictionary."""
-        for name, val in parameters.items():
-            setattr(self._cell, name, val)
+#    def set_native_parameters(self, parameters):
+#        """Set parameters of the NEURON cell model from a dictionary."""
+#        for name, val in parameters.items():
+#            setattr(self._cell, name, val)
 
 state = _State()  # a Singleton, so only a single instance ever exists
 del _State

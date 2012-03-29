@@ -45,11 +45,7 @@ class MockID(common.IDMixin):
         self.parent = MockPopulation(standard=standard_cell)
         self.foo = "bar"
         self._parameters = {'A': 76.5, 'B': 23.4, 'C': 100.0}
-    
-    def get_native_parameters(self):
-        return self._parameters
-    def set_native_parameters(self, parameters):
-        self._parameters.update(parameters)
+
 
 class MockCurrentSource(object):
     def __init__(self):

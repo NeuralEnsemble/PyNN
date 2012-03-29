@@ -176,13 +176,19 @@ class PopulationMixin(object):
         parameter_space should contain native parameters
         """
         param_dict = _build_params(parameter_space, numpy.where(self._mask_local)[0])
-        nest.SetStatus(self.local_cells.tolist(), param_dict)
+        ids = self.local_cells.tolist()
+        if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
+            ids = [id.source for id in ids]
+        nest.SetStatus(ids, param_dict)
 
     def _get_parameters(self, *names):
         """
         return a ParameterSpace containing native parameters
         """
-        parameter_array = nest.GetStatus(self.local_cells.tolist(), names)
+        ids = self.local_cells.tolist()
+        if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
+            ids = [id.source for id in ids]
+        parameter_array = numpy.array(nest.GetStatus(ids, names))
         parameter_dict = dict((name, parameter_array[:, col])
                               for col, name in enumerate(names))
         return ParameterSpace(parameter_dict, size=self.size) # or local size?

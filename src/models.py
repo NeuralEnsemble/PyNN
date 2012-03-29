@@ -35,8 +35,7 @@ class BaseModelType(object):
         return dict((name, type(value))
                     for name, value in cls.default_parameters.items())
     
-    @classmethod
-    def describe(cls, template='modeltype_default.txt', engine='default'):
+    def describe(self, template='modeltype_default.txt', engine='default'):
         """
         Returns a human-readable description of the cell or synapse type.
         
@@ -47,9 +46,10 @@ class BaseModelType(object):
         will be returned.
         """
         context = {
-            "name": cls.__name__,
-            "default_parameters": cls.default_parameters,
-            "default_initial_values": cls.default_initial_values,
+            "name": self.__class__.__name__,
+            "default_parameters": self.default_parameters,
+            "default_initial_values": self.default_initial_values,
+            "parameters": self.parameter_space._parameters, # should add a describe() method to ParameterSpace
         }
         return descriptions.render(engine, template, context)
 

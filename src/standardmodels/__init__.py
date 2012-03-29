@@ -120,8 +120,12 @@ class StandardModelType(models.BaseModelType):
         return [name for name in cls.translations if name not in cls.simple_parameters()+cls.scaled_parameters()]
     
     @classmethod
-    def get_translated_names(cls):
-        return [D['translated_name'] for D in cls.translations.values()]
+    def get_translated_names(cls, *names):
+        if names:
+            translations = (cls.translations[name] for name in names)
+        else:  # return all names
+            translations = cls.translations.itervalues()
+        return [D['translated_name'] for D in translations]
 
 #    def update_parameters(self, parameters):
 #        """

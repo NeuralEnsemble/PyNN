@@ -228,19 +228,7 @@ class ID(int, common.IDMixin):
         register_gid(gid, self._cell.source, section=self._cell.source_section)
         if hasattr(self._cell, "get_threshold"):            # this is not adequate, since the threshold may be changed after cell creation
             state.parallel_context.threshold(int(self), self._cell.get_threshold()) # the problem is that self._cell does not know its own gid
-        
-    def get_native_parameters(self):
-        """Return a dictionary of parameters for the NEURON cell model."""
-        D = {}
-        for name in self._cell.parameter_names:
-            D[name] = getattr(self._cell, name)
-        return D
-    
-    def set_native_parameters(self, parameters):
-        """Set parameters of the NEURON cell model from a dictionary."""
-        for name, val in parameters.items():
-            setattr(self._cell, name, val)
-        
+
     def get_initial_value(self, variable):
         """Get the initial value of a state variable of the cell."""
         return getattr(self._cell, "%s_init" % variable)

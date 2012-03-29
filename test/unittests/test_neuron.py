@@ -177,14 +177,7 @@ class TestID(object):
     def test_build_cell(self):
         parameters = {'judeans': 1, 'romans': 0}
         self.id._build_cell(MockCell, parameters)
-     
-    def test_get_native_parameters(self):   
-        D = self.id.get_native_parameters()
-        assert isinstance(D, dict)
-    
-    def test_set_native_parameters(self):   
-        self.id.set_native_parameters({'romans': 3, 'judeans': 1})
-    
+
     def test_get_initial_value(self):
         foo_init = self.id.get_initial_value('foo')
         assert_equal(foo_init, -99.9)

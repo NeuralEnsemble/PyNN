@@ -73,26 +73,14 @@ class IDMixin(object):
         # if some of the parameters are computed from the values of other
         # parameters, need to get and translate all parameters
         if self.local:
-            if self.is_standard_cell:
-                computed_parameters = self.celltype.computed_parameters()
-                have_computed_parameters = numpy.any([p_name in computed_parameters
-                                                      for p_name in parameters])
-                if have_computed_parameters:
-                    all_parameters = self.get_parameters()
-                    all_parameters.update(parameters)
-                    parameters = all_parameters
-                parameters = self.celltype.translate(parameters)
-            self.set_native_parameters(parameters)
+            self.as_view().set(**parameters)
         else:
             raise errors.NotLocalError("Cannot set parameters for a cell that does not exist on this node.")
 
     def get_parameters(self):
         """Return a dict of all cell parameters."""
         if self.local:
-            parameters = self.get_native_parameters()
-            if self.is_standard_cell:
-                parameters = self.celltype.reverse_translate(parameters)
-            return parameters
+            return self.as_view().get(self.celltype.get_parameter_names())
         else:
             raise errors.NotLocalError("Cannot obtain parameters for a cell that does not exist on this node.")
 
@@ -102,7 +90,7 @@ class IDMixin(object):
 
     @property
     def is_standard_cell(self):
-        return issubclass(self.celltype.__class__, standardmodels.StandardCellType)
+        return isinstance(self.celltype, standardmodels.StandardCellType)
 
     def _set_position(self, pos):
         """
@@ -249,24 +237,43 @@ class BasePopulation(object):
         logger.debug("%s.sample(%s)", self.label, n)
         return self._get_view(indices)
 
-    def get(self, parameter_name, gather=False):
+    def get(self, parameter_names, gather=False):
         """
-        Get the values of a parameter for every local cell in the population.
+        Get the values of the given parameters for every local cell in the
+        population, or, if gather=True, for all cells in the population.
         """
-        # if all the cells have the same value for this parameter, should
+        # if all the cells have the same value for a parameter, should
         # we return just the number, rather than an array?
-        values = self._get_parameters(parameter_name)[parameter_name].evaluate(mask=numpy.where(self._mask_local)[0]) # simplify=True?
+        if isinstance(parameter_names, basestring):
+            parameter_names = (parameter_names,)
+        if isinstance(self.celltype, standardmodels.StandardCellType):
+            if any(name in self.celltype.computed_parameters() for name in parameter_names):
+                native_names = self.celltype.get_translated_names() # need all parameters in order to calculate values
+            else:
+                native_names = self.celltype.get_translated_names(*parameter_names) 
+        native_parameter_space = self._get_parameters(*native_names)
+        parameter_space = self.celltype.reverse_translate(native_parameter_space)
+        parameter_space.evaluate(simplify=True)
+    
+        parameters = {}
         if gather == True and self._simulator.state.num_processes > 1:
-            all_values  = { self._simulator.state.mpi_rank: values.tolist() }
-            all_indices = { self._simulator.state.mpi_rank: self.local_cells.tolist()}
-            all_values  = recording.gather_dict(all_values)
-            all_indices = recording.gather_dict(all_indices)
-            if self._simulator.state.mpi_rank == 0:
-                values  = reduce(operator.add, all_values.values())
-                indices = reduce(operator.add, all_indices.values())
-            idx    = numpy.argsort(indices)
-            values = numpy.array(values)[idx]
-        return values 
+            # seems inefficient to do it in a loop - should do as single operation
+            for name in parameter_names:
+                values = parameter_space[name]
+                all_values  = { self._simulator.state.mpi_rank: values.tolist() }
+                all_indices = { self._simulator.state.mpi_rank: self.local_cells.tolist()}
+                all_values  = recording.gather_dict(all_values)
+                all_indices = recording.gather_dict(all_indices)
+                if self._simulator.state.mpi_rank == 0:
+                    values  = reduce(operator.add, all_values.values())
+                    indices = reduce(operator.add, all_indices.values())
+                idx    = numpy.argsort(indices)
+                values = numpy.array(values)[idx]
+            parameters[name] = values
+        if len(parameter_names) == 1:
+            return parameters[parameter_names[0]]
+        else:
+            return parameters
 
     def set(self, **parameters):
         """

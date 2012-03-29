@@ -109,33 +109,6 @@ class ID(int, common.IDMixin):
         int.__init__(n)
         common.IDMixin.__init__(self)
 
-    def get_native_parameters(self):
-        """Return a dictionary of parameters for the NEST cell model."""
-        if "source" in self.__dict__: # self is a parrot_neuron
-            gid = self.source
-        else:
-            gid = int(self)
-        return nest.GetStatus([gid])[0]
-
-    def set_native_parameters(self, parameters):
-        """Set parameters of the NEST cell model from a dictionary."""
-        if hasattr(self, "source"): # self is a parrot_neuron
-            gid = self.source
-        else:
-            gid = self
-        try:
-    	    #nest does not like numpy array and so we will convert them to lists whenever we encounter one
-    	    for key in parameters:
-		if type(parameters[key]) == numpy.ndarray:
-		   parameters[key] = parameters[key].tolist()
-            nest.SetStatus([gid], [parameters])
-        except: # I can't seem to catch the NESTError that is raised, hence this roundabout way of doing it.
-            exc_type, exc_value, traceback = sys.exc_info()
-            if exc_type == 'NESTError' and "Unsupported Numpy array type" in exc_value:
-                raise errors.InvalidParameterValueError()
-            else:
-                raise
-            
 
 # --- For implementation of connect() and Connector classes --------------------
 

@@ -102,8 +102,9 @@ class PopulationMixin(object):
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
         parameter_space.evaluate(mask=numpy.where(self._mask_local)[0])
-        for cell, param_dict in zip(self, parameter_space):
-            cell.set_native_parameters(param_dict)
+        for cell, parameters in zip(self, parameter_space):
+            for name, val in parameters.items():
+                setattr(cell._cell, name, val)
 
     def _get_parameters(self, *names):
         """
