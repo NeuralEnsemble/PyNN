@@ -24,7 +24,7 @@ All other functions and classes are private, and should not be used by other
 modules.
 
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2012 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id: simulator.py 926 2011-02-03 13:44:28Z apdavison $

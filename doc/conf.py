@@ -41,7 +41,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'PyNN'
-copyright = u'2006-2011, the PyNN community'
+copyright = u'2006-2012, the PyNN community'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -222,7 +222,7 @@ man_pages = [
 epub_title = u'PyNN'
 epub_author = u'the PyNN community'
 epub_publisher = u'the PyNN community'
-epub_copyright = u'2006-2011, the PyNN community'
+epub_copyright = u'2006-2012, the PyNN community'
 
 # The language of the text. It defaults to the language option
 # or en if the language is not set.
