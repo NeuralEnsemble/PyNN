@@ -13,7 +13,7 @@ Classes:
     ID
     Recorder
     Connection
-    
+
 Attributes:
     state -- a singleton instance of the _State class.
     recorder_list
@@ -31,9 +31,8 @@ $Id$
 import logging
 import brian
 import numpy
-from itertools import izip
-import scipy.sparse
-from pyNN import common, errors, core
+from pyNN import common, core
+from pyNN.parameters import Sequence
 
 mV = brian.mV
 ms = brian.ms
@@ -47,12 +46,12 @@ ZERO_WEIGHT = 1e-99
 
 logger = logging.getLogger("PyNN")
 
-# --- Internal Brian functionality -------------------------------------------- 
+# --- Internal Brian functionality --------------------------------------------
 
 def _new_property(obj_hierarchy, attr_name, units):
     """
     Return a new property, mapping attr_name to obj_hierarchy.attr_name.
-    
+
     For example, suppose that an object of class A has an attribute b which
     itself has an attribute c which itself has an attribute d. Then placing
       e = _new_property('b.c', 'd')
@@ -66,6 +65,7 @@ def _new_property(obj_hierarchy, attr_name, units):
         return getattr(obj, attr_name)/units
     return property(fset=set, fget=get)
 
+
 def nesteddictwalk(d):
     """
     Walk a nested dict structure, returning all values in all dicts.
@@ -75,11 +75,11 @@ def nesteddictwalk(d):
             for value2 in nesteddictwalk(value1):  # recurse into subdict
                 yield value2
         else:
-            yield value1     
+            yield value1
 
 
 class PlainNeuronGroup(brian.NeuronGroup):
-    
+
     def __init__(self, n, equations, **kwargs):
         try:
             clock = state.simclock
@@ -103,8 +103,9 @@ class PlainNeuronGroup(brian.NeuronGroup):
         for variable, values in self.initial_values.items():
             setattr(self, variable, values)
 
+
 class ThresholdNeuronGroup(brian.NeuronGroup):
-    
+
     def __init__(self, n, equations, **kwargs):
         try:
             clock = state.simclock
@@ -132,6 +133,7 @@ class ThresholdNeuronGroup(brian.NeuronGroup):
         for variable, values in self.initial_values.items():
             setattr(self, variable, values)
 
+
 class PoissonGroupWithDelays(brian.PoissonGroup):
 
     def __init__(self, N, rates=0):
@@ -148,13 +150,13 @@ class PoissonGroupWithDelays(brian.PoissonGroup):
         self.rates          = rates
         self._S0[0]         = self.rates(self.clock.t)
         self.parameter_names = ['rate', 'start', 'duration']
-    
+
     def initialize(self):
         pass
-    
-            
+
+
 class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
-   
+
     def __init__(self, spiketimes):
         try:
             clock = state.simclock
@@ -173,10 +175,9 @@ class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
         return self._threshold.spiketimes
     def _set_spiketimes(self, spiketimes):
         assert core.is_listlike(spiketimes)
-        if len(spiketimes) == 0 or numpy.isscalar(spiketimes[0]):
-            spiketimes = [spiketimes for i in xrange(len(self))]
         assert len(spiketimes) == len(self), "spiketimes (length %d) must contain as many iterables as there are cells in the group (%d)." % (len(spiketimes), len(self))
-        self._threshold.set_spike_times(spiketimes)
+        assert isinstance(spiketimes[0], Sequence)
+        self._threshold.set_spike_times([st.value for st in spiketimes])
     spiketimes = property(fget=_get_spiketimes, fset=_set_spiketimes)
 
     def initialize(self):
@@ -187,7 +188,7 @@ class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
 
 class _State(object):
     """Represent the simulator state."""
-    
+
     def __init__(self, timestep, min_delay, max_delay):
         """Initialize the simulator."""
         self.network       = brian.Network()
@@ -198,12 +199,12 @@ class _State(object):
         self.min_delay     = min_delay
         self.max_delay     = max_delay
         self.gid           = 0
-        
+
     def _get_dt(self):
         if self.network.clock is None:
             raise Exception("Simulation timestep not yet set. Need to call setup()")
         return self.network.clock.dt/ms
-        
+
     def _set_dt(self, timestep):
         if self.network.clock is None or timestep != self._get_dt():
             self.network.clock = brian.Clock(dt=timestep*ms)
@@ -220,86 +221,86 @@ class _State(object):
         return self.simclock.t/ms
 
     def run(self, simtime):
-        self.network.run(simtime * ms)        
+        self.network.run(simtime * ms)
 
     def add(self, obj):
         self.network.add(obj)
-    
+
     @property
-    def next_id(self):        
+    def next_id(self):
         res = self.gid
         self.gid += 1
         return res
-        
+
 
 def reset():
     """Reset the state of the current network to time t = 0."""
     state.network.reinit()
     for group in state.network.groups:
-        group.initialize()    
-    
+        group.initialize()
+
 # --- For implementation of access to individual neurons' parameters -----------
-    
+
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
 
     gid = 0
 
     def __init__(self, n):
-        """Create an ID object with numerical value `n`."""    
+        """Create an ID object with numerical value `n`."""
         if n is None:
             n = gid
         int.__init__(n)
         common.IDMixin.__init__(self)
-    
-    def get_native_parameters(self):
-        """Return a dictionary of parameters for the Brian cell model."""
-        params = {}
-        assert hasattr(self.parent_group, "parameter_names"), str(self.celltype)
-        index = self.parent.id_to_index(self)
-        for name in self.parent_group.parameter_names:
-            if name in ['v_thresh', 'v_reset', 'tau_refrac']:
-                # parameter shared among all cells
-                params[name] = float(getattr(self.parent_group, name))
-            elif name in ['rate', 'duration', 'start']:
-                params[name] = getattr(self.parent_group.rates, name)[index]
-            elif name == 'spiketimes':
-                params[name] = getattr(self.parent_group,name)[index]
-            else:
-                # parameter may vary from cell to cell
-                try:
-                    params[name] = float(getattr(self.parent_group, name)[index])
-                except TypeError, errmsg:
-                    raise TypeError("%s. celltype=%s, parameter name=%s" % (errmsg, self.celltype, name))
-        return params
-    
-    def set_native_parameters(self, parameters):
-        """Set parameters of the Brian cell model from a dictionary."""
-        index = self.parent.id_to_index(self)
-        for name, value in parameters.items():
-            if name in ['v_thresh', 'v_reset', 'tau_refrac']:
-                setattr(self.parent_group, name, value)
-                #logger.warning("This parameter cannot be set for individual cells within a Population. Changing the value for all cells in the Population.")
-            elif name in ['rate', 'duration', 'start']:
-                getattr(self.parent_group.rates, name)[index] = value
-            elif name == 'spiketimes':
-                all_spiketimes = [st[st>state.t] for st in self.parent_group.spiketimes]
-                all_spiketimes[index] = value
-                self.parent_group.spiketimes = all_spiketimes
-            else:
-                setattr(self.parent_group[index], name, value)
-        
+
+    #def get_native_parameters(self):
+    #    """Return a dictionary of parameters for the Brian cell model."""
+    #    params = {}
+    #    assert hasattr(self.parent_group, "parameter_names"), str(self.celltype)
+    #    index = self.parent.id_to_index(self)
+    #    for name in self.parent_group.parameter_names:
+    #        if name in ['v_thresh', 'v_reset', 'tau_refrac']:
+    #            # parameter shared among all cells
+    #            params[name] = float(getattr(self.parent_group, name))
+    #        elif name in ['rate', 'duration', 'start']:
+    #            params[name] = getattr(self.parent_group.rates, name)[index]
+    #        elif name == 'spiketimes':
+    #            params[name] = getattr(self.parent_group,name)[index]
+    #        else:
+    #            # parameter may vary from cell to cell
+    #            try:
+    #                params[name] = float(getattr(self.parent_group, name)[index])
+    #            except TypeError, errmsg:
+    #                raise TypeError("%s. celltype=%s, parameter name=%s" % (errmsg, self.celltype, name))
+    #    return params
+    #
+    #def set_native_parameters(self, parameters):
+    #    """Set parameters of the Brian cell model from a dictionary."""
+    #    index = self.parent.id_to_index(self)
+    #    for name, value in parameters.items():
+    #        if name in ['v_thresh', 'v_reset', 'tau_refrac']:
+    #            setattr(self.parent_group, name, value)
+    #            #logger.warning("This parameter cannot be set for individual cells within a Population. Changing the value for all cells in the Population.")
+    #        elif name in ['rate', 'duration', 'start']:
+    #            getattr(self.parent_group.rates, name)[index] = value
+    #        elif name == 'spiketimes':
+    #            all_spiketimes = [st[st>state.t] for st in self.parent_group.spiketimes]
+    #            all_spiketimes[index] = value
+    #            self.parent_group.spiketimes = all_spiketimes
+    #        else:
+    #            setattr(self.parent_group[index], name, value)
+
     def set_initial_value(self, variable, value):
         if variable is 'v':
             value *= mV
         self.parent_group.initial_values[variable][self.parent.id_to_local_index(self)] = value
-    
+
     def get_initial_value(self, variable):
         return self.parent_group.initial_values[variable][self.parent.id_to_local_index(self)]
-    
 
-# --- For implementation of create() and Population.__init__() ----------------- 
-    
+
+# --- For implementation of create() and Population.__init__() -----------------
+
 class STDP(brian.STDP):
     '''
     See documentation for brian:class:`STDP` for more details. Options hidden here could be used in a more
@@ -319,14 +320,14 @@ class STDP(brian.STDP):
             dA_post/dt = -A_post/taum : 1''', taup=taup, taum=taum, wmax=wmax, mu_m=mu_m, mu_p=mu_p)
         pre   = 'A_pre += Ap'
         pre  += '\nw += A_post*(w/wmax)**mu_m'
-        
-        post  = 'A_post += Am'       
+
+        post  = 'A_post += Am'
         post += '\nw += A_pre*(1-w/wmax)**mu_p'
         brian.STDP.__init__(self, C, eqs=eqs, pre=pre, post=post, wmin=wmin, wmax=wmax, delay_pre=None, delay_post=None, clock=None)
 
-    
+
 class SimpleCustomRefractoriness(brian.Refractoriness):
-    
+
     @brian.check_units(period=brian.second)
     def __init__(self, resetfun, period=5*brian.msecond, state=0):
         self.period = period
@@ -356,11 +357,11 @@ class SimpleCustomRefractoriness(brian.Refractoriness):
             LRV = numpy.zeros(len(V))
             self.lastresetvalues[id(P)] = LRV
         lastspikes = P.LS.lastspikes()
-        self.resetfun(P,lastspikes)             # call custom reset function 
+        self.resetfun(P,lastspikes)             # call custom reset function
         LRV[lastspikes] = V[lastspikes]         # store a copy of the custom resetted values
-        clampedindices = P.LS[0:period] 
+        clampedindices = P.LS[0:period]
         V[clampedindices] = LRV[clampedindices] # clamp at custom resetted values
-        
+
     def __repr__(self):
         return 'Custom refractory period, '+str(self.period)
 
@@ -383,11 +384,11 @@ class Connection(object):
     Provide an interface that allows access to the connection's weight, delay
     and other attributes.
     """
-    
+
     def __init__(self, brian_connection, indices, addr):
         """
         Create a new connection.
-        
+
         `brian_connection` -- a Brian Connection object (may contain
                               many connections).
         `index` -- the index of the current connection within
@@ -400,7 +401,7 @@ class Connection(object):
         # the index is the nth non-zero element
         self.bc                  = brian_connection
         self.addr                = int(indices[0]), int(indices[1])
-        self.source, self.target = addr        
+        self.source, self.target = addr
 
     def _set_weight(self, w):
         w = w or ZERO_WEIGHT
@@ -419,10 +420,10 @@ class Connection(object):
             return float(self.bc.delay[self.addr]/ms)
         if isinstance(self.bc, brian.Connection):
             return float(self.bc.delay * self.bc.source.clock.dt/ms)
-            
+
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
-  
+
 
 # --- Initialization, and module attributes ------------------------------------
 

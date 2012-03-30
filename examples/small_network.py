@@ -11,7 +11,7 @@ $Id$
 import numpy
 from pyNN.utility import get_script_args
 
-simulator_name = get_script_args(1)[0]  
+simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
 from pyNN.parameters import Sequence
@@ -43,7 +43,11 @@ cells = Population(n, IF_curr_alpha, cell_params, initial_values={'v': 0.0}, lab
 number = int(2*simtime*input_rate/1000.0)
 numpy.random.seed(26278342)
 def generate_spike_times(i):
-    return Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number)))
+    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number)))
+    if hasattr(i, "__len__"):
+        return [gen() for j in i]
+    else:
+        return gen()
 assert generate_spike_times(0).max() > simtime
 
 spike_source = Population(n, SpikeSourceArray, {'spike_times': generate_spike_times})

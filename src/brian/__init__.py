@@ -9,11 +9,9 @@ $Id$
 """
 
 import logging
-Set = set
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
 from pyNN import common, recording, space, core, __doc__
-from pyNN.random import *
 from pyNN.recording import files
 from pyNN.brian.standardmodels.cells import *
 from pyNN.brian.standardmodels.electrodes import *
@@ -48,7 +46,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     common.setup(timestep, min_delay, max_delay, **extra_params)
     brian.set_global_preferences(**extra_params)
-    simulator.state = simulator._State(timestep, min_delay, max_delay)    
+    simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.state.add(update_currents) # from electrodes
     ## We need to reset the clock of the update_currents function, for the electrodes
     simulator.state.network._all_operations[0].clock = brian.Clock(t=0*ms, dt=timestep*ms)
@@ -66,14 +64,10 @@ def end(compatible_output=True):
     simulator.recorder_list = []
     electrodes.current_sources = []
     for item in simulator.state.network.groups + simulator.state.network._all_operations:
-        del item    
+        del item
     del simulator.state
 
-def get_current_time():
-    """Return the current time in the simulation."""
-    return simulator.state.t
-    
-def run(simtime):    
+def run(simtime):
     """Run the simulation for simtime ms."""
     simulator.state.run(simtime)
     return get_current_time()
@@ -94,11 +88,41 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 #   neurons.
 # ==============================================================================
 
+
+class PopulationMixin(object):
+
+    def _set_parameters(self, parameter_space):
+        """
+        parameter_space should contain native parameters
+        """
+        parameter_space.evaluate(simplify=True)
+        for name, value in parameter_space.items():
+            if name in ['rate', 'duration', 'start']:
+                setattr(self.brian_cells.rates, name, value)
+            elif name == 'spiketimes':
+                self.brian_cells.spiketimes = value
+            else:
+                setattr(self.brian_cells, name, value)
+
+    def _get_parameters(self, *names):
+        """
+        Return a ParameterSpace containing native parameters
+        """
+        params = {}
+        for name in names:
+            if name in ('rate', 'duration', 'start'):
+                params[name] = getattr(self.brian_cells.rates, name)
+            else:
+                params[name] = getattr(self.brian_cells, name)
+            assert isinstance(params[name], numpy.ndarray)
+        return ParameterSpace(params, size=self.size)
+
+
 class Assembly(common.Assembly):
     _simulator = simulator
 
 
-class PopulationView(common.PopulationView):
+class PopulationView(common.PopulationView, PopulationMixin):
     _simulator = simulator
     assembly_class = Assembly
 
@@ -106,7 +130,7 @@ class PopulationView(common.PopulationView):
         return PopulationView(self, selector, label)
 
 
-class Population(common.Population, common.BasePopulation):
+class Population(common.Population, PopulationMixin):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
@@ -118,75 +142,60 @@ class Population(common.Population, common.BasePopulation):
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
-    def _create_cells(self, cellclass, cellparams=None, n=1):
+    def _create_cells(self):
         """
-        Create cells in Brian.
-        
-        `cellclass`  -- a PyNN standard cell or a native Brian cell class.
-        `cellparams` -- a dictionary of cell parameters.
-        `n`          -- the number of cells to create
+        Create cells in Brian using the celltype of the current Population.
         """
         # currently, we create a single NeuronGroup for create(), but
         # arguably we should use n NeuronGroups each containing a single cell
         # either that or use the subgroup() method in connect(), etc
-        assert n > 0, 'n must be a positive integer'
-#        if isinstance(cellclass, basestring):  # celltype is not a standard cell
-#            try:
-#                eqs = brian.Equations(cellclass)
-#            except Exception, errmsg:
-#                raise errors.InvalidModelError(errmsg)
-#            v_thresh   = cellparams['v_thresh'] * mV
-#            v_reset    = cellparams['v_reset'] * mV
-#            tau_refrac = cellparams['tau_refrac'] * ms
-#            brian_cells = brian.NeuronGroup(n,
-#                                            model=eqs,
-#                                            threshold=v_thresh,
-#                                            reset=v_reset,
-#                                            clock=simulator.state.simclock,
-#                                            compile=True,
-#                                            max_delay=simulator.state.max_delay)
-#            cell_parameters = cellparams or {}
-#        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
-        celltype = cellclass(cellparams)
-        cell_parameters = celltype.parameters
-        if isinstance(celltype, cells.SpikeSourcePoisson):    
-            fct = celltype.rates(cell_parameters['start'], cell_parameters['duration'], cell_parameters['rate'], n)
-            brian_cells = simulator.PoissonGroupWithDelays(n, rates=fct)
-        elif isinstance(celltype, cells.SpikeSourceArray):
+        cell_parameters = self.celltype.translated_parameters
+        cell_parameters.size = self.size
+        if isinstance(self.celltype, cells.SpikeSourcePoisson):
+            fct = self.celltype.rates(cell_parameters['start'], cell_parameters['duration'], cell_parameters['rate'], n)
+            #### need to update the previous line to take account of parameter spaces
+            brian_cells = simulator.PoissonGroupWithDelays(self.size, rates=fct)
+        elif isinstance(self.celltype, cells.SpikeSourceArray):
             spike_times = cell_parameters['spiketimes']
-            brian_cells = simulator.MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(n)])
-        elif 'v_reset' in cell_parameters:
-            params = {'threshold'  : celltype.threshold, 
-                      'reset'      : celltype.reset}
-            if cell_parameters.has_key('tau_refrac'):                 
-                params['refractory'] = cell_parameters['tau_refrac'] * ms
-            if hasattr(celltype, 'extra'):
-                params.update(celltype.extra)
-            brian_cells = simulator.ThresholdNeuronGroup(n, cellclass.eqs, **params)
+            brian_cells = simulator.MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(self.size)])
+            #### need to update the previous line to take account of parameter spaces
+        elif 'v_reset' in self.celltype.parameter_space.keys():
+            params = {'threshold'  : self.celltype.threshold,
+                      'reset'      : self.celltype.reset}
+            if self.celltype.has_parameter('tau_refrac'):
+                params['refractory'] = self.celltype.parameter_space['tau_refrac'] * ms
+            for name, value in params.items():
+                if not value.is_homogeneous:
+                    raise ValueError("For the pyNN.brian backend, this parameter cannot be set for individual cells within a Population.")
+                value.shape = (self.size,)
+                params[name] = value.evaluate(simplify=True)
+            brian_cells = simulator.ThresholdNeuronGroup(self.size, self.celltype.eqs, **params)
         else:
-            params = {'threshold'  : celltype.threshold}
-            if hasattr(celltype, 'extra'):
-                params.update(celltype.extra)
-            brian_cells = simulator.PlainNeuronGroup(n, cellclass.eqs, **params)
-                
-#        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.ModelNotAvailable):
-#            raise NotImplementedError("The %s model is not available for this simulator." % cellclass.__name__)
-#        else:
-#            raise Exception("Invalid cell type: %s" % type(cellclass))    
-    
-        if cell_parameters:
-            for key, value in cell_parameters.items():
-                setattr(brian_cells, key, value)
+            params = {'threshold': self.celltype.threshold}
+            for name, value in params.items():
+                if not value.is_homogeneous:
+                    raise ValueError("For the pyNN.brian backend, this parameter cannot be set for individual cells within a Population.")
+                value.shape = (self.size,)
+                params[name] = value.evaluate(simplify=True)
+            brian_cells = simulator.PlainNeuronGroup(self.size, self.celltype.eqs, **params)
+        if hasattr(self.celltype, 'extra_parameters'):
+            cell_parameters.update(**self.celltype.extra_parameters)
+
         # should we globally track the IDs used, so as to ensure each cell gets a unique integer? (need only track the max ID)
-        self.all_cells = numpy.array([simulator.ID(simulator.state.next_id) for cell in xrange(len(brian_cells))], simulator.ID)
+        self.all_cells = numpy.array([simulator.ID(simulator.state.next_id)
+                                        for cell in xrange(len(brian_cells))],
+                                     simulator.ID)
         for cell in self.all_cells:
             cell.parent = self
             cell.parent_group = brian_cells
-       
-        self._mask_local = numpy.ones((n,), bool) # all cells are local. This doesn't seem very efficient.
+
+        self._mask_local = numpy.ones((self.size,), bool) # all cells are local. This doesn't seem very efficient.
         self.first_id    = self.all_cells[0]
         self.last_id     = self.all_cells[-1]
         self.brian_cells = brian_cells
+
+        self._set_parameters(cell_parameters)
+
         simulator.state.network.add(brian_cells)
 
     def _set_initial_value_array(self, variable, value):
@@ -205,38 +214,38 @@ class Projection(common.Projection):
     parameters of those connections, including of plasticity mechanisms.
     """
     _simulator = simulator
-    
+
     def __init__(self, presynaptic_population, postsynaptic_population, method,
                  source=None, target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
-        
+
         source - string specifying which attribute of the presynaptic cell
                  signals action potentialss
-                 
+
         target - string specifying which synapse on the postsynaptic cell to
                  connect to
-                 
+
         If source and/or target are not given, default values are used.
-        
+
         method - a Connector object, encapsulating the algorithm to use for
                  connecting the neurons.
-        
+
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
-        
+
         rng - specify an RNG object to be used by the Connector.
         """
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    source, target, synapse_dynamics, label, rng)
-        
+
         self._method           = method
         self._connections      = None
         self.synapse_type      = target or 'excitatory'
-        
+
         #if isinstance(presynaptic_population, common.Assembly) or isinstance(postsynaptic_population, common.Assembly):
             #raise Exception("Projections with Assembly objects are not working yet in Brian")
-        
+
         if self.synapse_dynamics:
             if self.synapse_dynamics.fast:
                 if self.synapse_dynamics.slow:
@@ -245,27 +254,27 @@ class Projection(common.Projection):
                     self._plasticity_model = "tsodyks_markram_synapse"
             elif synapse_dynamics.slow:
                 self._plasticity_model = "stdp_synapse"
-        else:        
+        else:
             self._plasticity_model = "static_synapse"
-        
+
         self._n                 = {}
         self._brian_connections = {}
         self._indices           = {}
         self._populations      = [{}, {}]
-              
+
         method.connect(self)
         self._finalize()
-        
+
         if self._plasticity_model != "static_synapse":
             for key in self._brian_connections.keys():
                 synapses = self._brian_connections[key]
-                if self._plasticity_model is "stdp_synapse": 
+                if self._plasticity_model is "stdp_synapse":
                     parameters   = self.synapse_dynamics.slow.all_parameters
                     if common.is_conductance(self.post[0]):
                         units = uS
                     else:
                         units = nA
-                    stdp = simulator.STDP(synapses, 
+                    stdp = simulator.STDP(synapses,
                                         parameters['tau_plus'] * ms,
                                         parameters['tau_minus'] * ms,
                                         parameters['A_plus'],
@@ -277,27 +286,27 @@ class Projection(common.Projection):
                     simulator.state.add(stdp)
                 elif self._plasticity_model is "tsodyks_markram_synapse":
                     parameters   = self.synapse_dynamics.fast.parameters
-                    stp = brian.STP(synapses, parameters['tau_rec'] * ms, 
-                                            parameters['tau_facil'] * ms, 
+                    stp = brian.STP(synapses, parameters['tau_rec'] * ms,
+                                            parameters['tau_facil'] * ms,
                                             parameters['U'])
                     simulator.state.add(stp)
-    
+
     def __len__(self):
         """Return the total number of connections in this Projection."""
         result = 0
         for key in self._brian_connections.keys():
             result += self._n[key]
         return result
-    
+
     def _get_indices(self):
         sources = numpy.array([], int)
         targets = numpy.array([], int)
         for key in self._brian_connections.keys():
-            paddings = self._populations[0][key[0]], self._populations[1][key[1]] 
+            paddings = self._populations[0][key[0]], self._populations[1][key[1]]
             sources  = numpy.concatenate((sources, self._indices[key][0] + paddings[0]))
             targets  = numpy.concatenate((targets, self._indices[key][1] + paddings[1]))
-        return sources.astype(int), targets.astype(int)    
-    
+        return sources.astype(int), targets.astype(int)
+
     def __getitem__(self, i):
         """Return the `i`th connection as a Connection object."""
         cumsum_idx     = numpy.cumsum(self._n.values())
@@ -328,7 +337,7 @@ class Projection(common.Projection):
                 return res
             else:
                 raise IndexError("%d > %d" % (i.stop, len(self)-1))
-    
+
     def __connection_generator(self):
         """Yield each connection in turn."""
         global_indices = self._get_indices()
@@ -336,25 +345,25 @@ class Projection(common.Projection):
         for key in self._brian_connections.keys():
             bc = self._brian_connections[key]
             for i in xrange(bc.W.getnnz()):
-                local_idx  = self._indices[key][0][i], self._indices[key][0][i] 
+                local_idx  = self._indices[key][0][i], self._indices[key][0][i]
                 local_addr = global_indices[0][count], global_indices[1][count]
                 yield simulator.Connection(bc, self._indices[key])
-                count += 1                
-                
+                count += 1
+
     def __iter__(self):
         """Return an iterator over all connections in this Projection."""
         return self.__connection_generator()
-    
+
     def _finalize(self):
         for key in self._brian_connections.keys():
             self._indices[key]  = self._brian_connections[key].W.nonzero()
-            self._brian_connections[key].compress()     
-    
+            self._brian_connections[key].compress()
+
     def _get_brian_connection(self, source_group, target_group, synapse_obj, weight_units, homogeneous=False):
         """
         Return the Brian Connection object that connects two NeuronGroups with a
         given synapse model.
-        
+
         source_group -- presynaptic Brian NeuronGroup.
         target_group -- postsynaptic Brian NeuronGroup
         synapse_obj  -- name of the variable that will be modified by synaptic
@@ -385,7 +394,7 @@ class Projection(common.Projection):
             simulator.state.add(self._brian_connections[key])
             self._n[key] = 0
         return self._brian_connections[key]
-    
+
     def _detect_parent_groups(self, cells):
         groups = {}
         for index, cell in enumerate(cells):
@@ -395,11 +404,11 @@ class Projection(common.Projection):
             else:
                 groups[group] += [index]
         return groups
-    
+
     def _divergent_connect(self, source, targets, weights, delays, homogeneous=False):
         """
         Connect a neuron to one or more other neurons with a static connection.
-        
+
         `source`  -- the ID of the pre-synaptic cell.
         `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
         `weight`  -- a list/1D array of connection weights, or a single weight.
@@ -431,19 +440,19 @@ class Projection(common.Projection):
         except AttributeError, errmsg:
             raise errors.ConnectionError("%s. Maybe trying to connect from non-existing cell (ID=%s)." % (errmsg, source))
         groups = self._detect_parent_groups(targets) # we assume here all the targets belong to the same NeuronGroup
-        
+
         weights = numpy.array(weights) * units
         delays  = numpy.array(delays) * ms
-        weights[weights == 0] = simulator.ZERO_WEIGHT            
-        
+        weights[weights == 0] = simulator.ZERO_WEIGHT
+
         for target_group, indices in groups.items():
-            synapse_obj = targets[indices[0]].parent.celltype.synapses[synapse_type]        
-            bc          = self._get_brian_connection(source_group, target_group, synapse_obj, units, homogeneous)       
+            synapse_obj = targets[indices[0]].parent.celltype.synapses[synapse_type]
+            bc          = self._get_brian_connection(source_group, target_group, synapse_obj, units, homogeneous)
             padding     = (int(source.parent.first_id), int(targets[indices[0]].parent.first_id))
             src         = int(source) - padding[0]
-            mytargets   = numpy.array(targets, int)[indices] - padding[1]            
+            mytargets   = numpy.array(targets, int)[indices] - padding[1]
             bc.W.rows[src] = mytargets
-            bc.W.data[src] = weights[indices]        
+            bc.W.data[src] = weights[indices]
             if not homogeneous:
                 bc.delayvec.rows[src] = mytargets
                 bc.delayvec.data[src] = delays[indices]
@@ -451,7 +460,7 @@ class Projection(common.Projection):
                 bc.delay = int(delays[0] / bc.source.clock.dt)
             key = (source_group, target_group, synapse_obj)
             self._n[key] += len(mytargets)
-            
+
             pop_sources = self._populations[0]
             if len(pop_sources) is 0:
                 pop_sources[source_group] = 0
@@ -461,7 +470,7 @@ class Projection(common.Projection):
             if len(pop_targets) is 0:
                 pop_targets[target_group] = 0
             elif not pop_targets.has_key(target_group):
-                pop_targets[target_group] = numpy.sum([len(item) for item in pop_targets.keys()])  
+                pop_targets[target_group] = numpy.sum([len(item) for item in pop_targets.keys()])
 
     def saveConnections(self, file, gather=True, compatible_output=True):
         """
@@ -481,19 +490,19 @@ class Projection(common.Projection):
             else:
                 lines[padding:padding+size,3] = bc.delay * bc.source.clock.dt / ms
             padding += size
-            
+
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
-        
+
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
-        
+
         file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
         file.close()
 
     def set(self, name, value):
         """
         Set connection attributes for all connections in this Projection.
-        
+
         `name`  -- attribute name
         `value` -- the attribute numeric value, or a list/1D array of such
                    values of the same length as the number of local connections,
@@ -540,11 +549,11 @@ class Projection(common.Projection):
         """
         Get the values of a given attribute (weight or delay) for all
         connections in this Projection.
-        
+
         `parameter_name` -- name of the attribute whose values are wanted.
         `format` -- "list" or "array". Array format implicitly assumes that all
                     connections belong to a single Projection.
-        
+
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
         synaptic Population to the jth neuron in the post-synaptic Population,
@@ -555,7 +564,7 @@ class Projection(common.Projection):
         for key in self._brian_connections.keys():
             bc = self._brian_connections[key]
             if parameter_name == "weight":
-                values = numpy.concatenate((values, bc.W.alldata / bc.weight_units))            
+                values = numpy.concatenate((values, bc.W.alldata / bc.weight_units))
             elif parameter_name == 'delay':
                 if isinstance(bc, brian.DelayConnection):
                     values = numpy.concatenate((values, bc.delay.alldata / ms))
@@ -564,7 +573,7 @@ class Projection(common.Projection):
                     values = numpy.concatenate((values, data))
             else:
                 raise Exception("Getting parameters other than weight and delay not yet supported.")
-        
+
         if format == 'list':
             values = values.tolist()
         elif format == 'array':
@@ -593,6 +602,5 @@ record = common.build_record('spikes', simulator)
 record_v = common.build_record('v', simulator)
 
 record_gsyn = common.build_record('gsyn', simulator)
-
 
 # ==============================================================================

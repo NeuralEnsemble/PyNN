@@ -14,13 +14,13 @@ from pyNN import errors
 class Sequence(object):
     """
     Represents a sequence of numerical values.
-    
+
     The reason for defining this class rather than just using a NumPy array is
     to avoid the ambiguity of "is a given array a single parameter value (e.g.
     a spike train for one cell) or an array of parameter values (e.g. one number
     per cell)?".
     """
-     
+
     def __init__(self, value):
         if isinstance(value, Sequence):
             self.value = value.value
@@ -29,7 +29,7 @@ class Sequence(object):
 
     #def __len__(self):
     #    This must not be defined, otherwise Sequence is insufficiently different from NumPy array
-        
+
     def max(self):
         return self.value.max()
 
@@ -46,12 +46,12 @@ class Sequence(object):
 class ParameterSpace(object):
     """
     Representation of one or more points in a parameter space.
-    
+
     i.e. represents one or more parameter sets, where each parameter set has
     the same parameter names and types but the parameters may have different
     values.
     """
-    
+
     def __init__(self, parameters, schema=None, size=None):
         """
         `parameters` - a dict containing values of any type that may be used to
@@ -75,6 +75,9 @@ class ParameterSpace(object):
 
     def keys(self):
         return self._parameters.keys()
+
+    def items(self):
+        return self._parameters.iteritems()
 
     def __repr__(self):
         return "<ParameterSpace %s, size=%s>" % (", ".join(self.keys()), self.size)
@@ -101,14 +104,14 @@ class ParameterSpace(object):
         else:
             for name, value in parameters.items():
                 self._parameters[name] = LazyArray(value, shape=array_shape)
-    
+
     def __getitem__(self, name):
         return self._parameters[name]
-        
+
     @property
     def is_homogeneous(self):
         return all(value.is_homogeneous for value in self._parameters.values())
-    
+
     def evaluate(self, mask=None, simplify=False):
         """
         Evaluate all lazy arrays contained in the parameter space, using the
