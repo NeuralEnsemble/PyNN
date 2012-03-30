@@ -1,5 +1,12 @@
+# encoding: utf-8
 """
-Functions for simulation set-up and control
+Common implementation of functions for simulation set-up and control
+
+This module contains:
+  * partial implementations of API functions which can be reused by
+    backend-specific implementations (in some cases only the docstring
+    is intended to be reused)
+  * function factories for generating backend-specific API functions.
 
 :copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.

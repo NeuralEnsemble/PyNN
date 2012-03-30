@@ -2,6 +2,8 @@
 """
 Common implementation of ID, Population, PopulationView and Assembly classes.
 
+These base classes should be sub-classed by the backend-specific classes.
+
 :copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
@@ -9,7 +11,6 @@ Common implementation of ID, Population, PopulationView and Assembly classes.
 import numpy
 import os
 import logging
-from warnings import warn
 import operator
 import tempfile
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions

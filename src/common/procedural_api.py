@@ -20,6 +20,7 @@ def build_create(population_class):
         return population_class(n, cellclass, cellparams)  # return the Population or Population.all_cells?
     return create
 
+
 def build_connect(projection_class, connector_class):
     def connect(source, target, weight=0.0, delay=None, synapse_type=None,
                 p=1, rng=None):
@@ -39,6 +40,7 @@ def build_connect(projection_class, connector_class):
         return projection_class(source, target, connector, target=synapse_type, rng=rng)
     return connect
 
+
 def set(cells, param, val=None):
     """
     Set one or more parameters of an individual cell or list of cells.
@@ -48,6 +50,7 @@ def set(cells, param, val=None):
     """
     assert isinstance(cells, (BasePopulation, Assembly))
     cells.set(param, val)
+
 
 def build_record(variable, simulator):
     def record(source, filename):
@@ -79,6 +82,7 @@ def build_record(variable, simulator):
             Record synaptic conductances to a file. source can be an individual
             cell, a Population, PopulationView or Assembly."""
     return record
+
 
 def initialize(cells, variable, value):
     assert isinstance(cells, (BasePopulation, Assembly)), type(cells)
