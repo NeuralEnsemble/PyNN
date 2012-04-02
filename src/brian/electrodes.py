@@ -36,20 +36,20 @@ class CurrentSource(object):
         for cell in cell_list:
             if not cell.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
-        self.cell_list.extend(cell_list)        
-    
-        
+        self.cell_list.extend(cell_list)
+
+
 class StepCurrentSource(CurrentSource):
     """A step-wise time-varying current source."""
-    
+
     def __init__(self, times, amplitudes):
         """Construct the current source.
-        
+
         Arguments:
             times      -- list/array of times at which the injected current changes.
             amplitudes -- list/array of current amplitudes to be injected at the
                           times specified in `times`.
-                          
+
         The injected current will be zero up until the first time in `times`. The
         current will continue at the final value in `amplitudes` until the end
         of the simulation.
@@ -60,35 +60,37 @@ class StepCurrentSource(CurrentSource):
         self.amplitudes = numpy.array(amplitudes) * nA
         self.i = 0
         self.running = True
-    
+
     def _update_current(self):
         """
         Check whether the current amplitude needs updating, and then do so if
         needed.
-        
+
         This is called at every timestep.
         """
-        if self.running and simulator.state.t >= self.times[self.i]: #*ms:   
+        if self.running and simulator.state.t >= self.times[self.i]: #*ms:
             for cell in self.cell_list:
                 index = cell.parent.id_to_index(cell)
                 cell.parent_group.i_inj[index] = self.amplitudes[self.i]
             self.i += 1
             if self.i >= len(self.times):
-                self.running = False            
-        
-                
+                self.running = False
+
+
 class DCSource(StepCurrentSource):
     """Source producing a single pulse of current of constant amplitude."""
-    
+
     def __init__(self, amplitude=1.0, start=0.0, stop=None):
         """Construct the current source.
-        
+
         Arguments:
             start     -- onset time of pulse in ms
             stop      -- end of pulse in ms
             amplitude -- pulse amplitude in nA
         """
+        self.start = start
+        self.stop = stop
+        self.amplitude = amplitude
         times = [0.0, start, (stop or 1e99)]
         amplitudes = [0.0, amplitude, 0.0]
         StepCurrentSource.__init__(self, times, amplitudes)
-        
