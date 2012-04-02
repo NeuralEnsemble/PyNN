@@ -1,0 +1,153 @@
+===================================
+Model parameters and initial values
+===================================
+
+As was discussed in :doc:`building_networks`, PyNN deals with neurons, and with
+the synaptic connections between them, principally at the level of groups:
+with :class:`Population` and :class:`Assembly` for neurons and
+:class:`Projection` for connections.
+
+Setting the parameters of neurons and connections is also done principally at
+the group level, either when creating the group, or after creation using the
+:meth:`set()` method. Sometimes, all the neurons in a :class:`Population` or all
+the connections in a :class:`Projection` should have the same value. Other
+times, different individual cells or connections should have different parameter
+values. To handle both of these situations, parameter values may be of four
+different types:
+
+a single number
+    sets the same value for all cells in the :class:`Population` or connections
+    in the :class:`Projection`
+    
+a :class:`RandomDistribution` object (see :doc:`random`)
+    each item in the group will have the parameter set to a value drawn from
+    the distribution
+    
+a list or 1D NumPy array
+    of the same size as the :class:`Population` or the number of connections in
+    the :class:`Projection`
+
+a function
+    for a :class:`Population` or :class:`Assembly` the function should take a
+    single integer argument, and will be called with the index of every
+    neuron in the :class:`Population` to return the parameter value for that
+    neuron. For a :class:`Projection`, the function should take two integer
+    arguments, and for every connection will be called with the indices of the
+    pre- and post-synaptic neurons.
+    
+Examples
+========
+
+Setting the same value for all neurons in a population
+------------------------------------------------------
+
+::
+
+    >>> p = Population(5, sim.IF_cond_exp, {'tau_m': 15.0})
+    
+or, equivalently::
+
+    >>> p = Population(5, sim.IF_cond_exp)
+    >>> p.set(tau_m=15.0)
+
+.. note: for some backend simulators it is more efficient to set parameters on
+:class:`population` creation, rather than using the :meth:`set()` method.
+
+To set values for a subset of the population, use a view::
+
+::
+
+    >>> p[0,2,4].set(tau_m=10.0)
+    >>> p.get('tau_m')
+    array([ 10.,  15.,  10.,  15.,  10.])
+
+
+Setting parameters to random values
+-----------------------------------
+
+::
+
+    >>> from pyNN.random import RandomDistribution
+    >>> p = Population(7, sim.HH_cond_exp,
+    ...               {'gbar_Na': RandomDistribution('normal', (20.0, 2.0)))
+    >>> p.get('gbar_Na')
+    array([ 21.29841474,  17.90707467,  19.54325935,  22.3690986 ,
+            20.17575559,  19.94528863,  18.31760824])
+    >>> p[0].gbar_Na
+    21.29841474
+
+Setting parameters from an array
+--------------------------------
+
+::
+
+    >>> import numpy as np
+    >>> p = Population(6, SpikeSourcePoisson, {'rate': np.linspace(10.0, 20.0, num=6)})
+    >>> p.get('rate')
+    array([ 10.,  12.,  14.,  16.,  18.,  20.])
+    
+The array of course has to have the same size as the population::
+
+    >>> p = Population(6, SpikeSourcePoisson, {'rate': np.linspace(10.0, 20.0, num=7)})
+    ValueError
+
+Using a function to calculate parameter values
+----------------------------------------------
+
+::
+
+    >>> from numpy import sin, pi
+    >>> p = Population(8, IF_cond_exp, {'i_offset': lambda i: sin(i*pi/8)})
+    >>> p.get('i_offset')
+    array([ 0.        ,  0.38268343,  0.70710678,  0.92387953,  1.        ,
+            0.92387953,  0.70710678,  0.38268343])
+
+Setting parameters as a function of spatial position
+----------------------------------------------------
+
+::
+
+    >>> from pyNN.space import Grid2D
+    >>> grid = Grid2D()
+    >>> p = Population(16, IF_cond_alpha, structure=grid)
+    >>> def f_v_thresh(pos):
+    ...     x, y, z = pos
+    ...     return -50 + 0.5*x - 0.2*y
+    >>> p.set(v_thresh=lambda i: f_v_thresh(p.position_generator(i)))
+    >>> p.get('v_thresh').reshape((4,4))
+    array([[-50., -52., -54., -56.],
+           [-45., -47., -49., -51.],
+           [-40., -42., -44., -46.],    
+           [-35., -37., -39., -41.]])
+
+.. todo: Another example, using Space
+
+For more on spatial structure, see :doc:`space`.
+
+Using multiple parameter types
+------------------------------
+
+It is perfectly possible to use multiple different types of parameter value at
+the same time::
+
+    >>> n = 1e4
+    >>> parameters = {
+    ...     'tau_m': RandomDistribution('uniform', (10.0, 15.0)),
+    ...     'cm':    0.85,
+    ...     'v_rest': lambda i: numpy.cos(i*pi*10/n),
+    ...     'v_reset': numpy.linspace(-75.0: -65.0, num=n)}
+    >>> p = sim.Population(n, IF_cond_alpha, parameters)        
+    >>> p.set(v_thresh=lambda i: -65 + i/n, tau_refrac=5.0)
+
+.. todo: in the above, give current source examples, and Projection examples
+
+Time series parameters
+======================
+
+.. todo: discuss spike trains, current sources, Sequence class
+
+
+Setting initial values
+======================
+
+.. todo: complete
