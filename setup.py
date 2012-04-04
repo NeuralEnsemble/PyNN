@@ -26,7 +26,7 @@ class build(_build):
                 print "Successfully compiled NEURON extensions."
         else:
             print "Unable to find nrnivmodl. It will not be possible to use the pyNN.neuron module."
-        
+
     def find_nrnivmodl(self):
         """Try to find the nrnivmodl executable."""
         path = os.environ.get("PATH", "").split(os.pathsep)
@@ -37,10 +37,10 @@ class build(_build):
                 nrnivmodl = abs_name
                 break
         return nrnivmodl
-      
+
 setup(
     name = "PyNN",
-    version = "0.7.2",
+    version = "0.7.3dev",
     package_dir={'pyNN': 'src'},
     packages = ['pyNN','pyNN.nest', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.brian',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
@@ -52,7 +52,7 @@ setup(
     description = "A Python package for simulator-independent specification of neuronal network models",
         long_description = """In other words, you can write the code for a model once, using the PyNN API and the Python_ programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON, NEST, PCSIM and Brian).
 
-The API has two parts, a low-level, procedural API (functions ``create()``, ``connect()``, ``set()``, ``record()``, ``record_v()``), and a high-level, object-oriented API (classes ``Population`` and ``Projection``, which have methods like ``set()``, ``record()``, ``setWeights()``, etc.). 
+The API has two parts, a low-level, procedural API (functions ``create()``, ``connect()``, ``set()``, ``record()``, ``record_v()``), and a high-level, object-oriented API (classes ``Population`` and ``Projection``, which have methods like ``set()``, ``record()``, ``setWeights()``, etc.).
 
 The low-level API is good for small networks, and perhaps gives more flexibility. The high-level API is good for hiding the details and the book-keeping, allowing you to concentrate on the overall structure of your model.
 
@@ -74,4 +74,3 @@ PyNN is a work in progress, but is already being used for several large-scale si
                    'Topic :: Scientific/Engineering'],
     cmdclass = {'build': build},
 )
-
