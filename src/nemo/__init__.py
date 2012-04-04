@@ -201,7 +201,6 @@ class Projection(common.Projection):
         self._method           = method
         self._connections      = None
         self.synapse_type      = target or 'excitatory'
-        
         if self.synapse_dynamics:
             if self.synapse_dynamics.fast:
                 if self.synapse_dynamics.slow:

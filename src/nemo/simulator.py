@@ -80,7 +80,7 @@ class _State(object):
         pre  *= self.stdp.weight_dependence.parameters['A_plus']
         post *= -self.stdp.weight_dependence.parameters['A_minus']        
         w_min = self.stdp.weight_dependence.parameters['w_min']
-        w_max = self.stdp.weight_dependence.parameters['w_max']        
+        w_max = self.stdp.weight_dependence.parameters['w_max'] 
         self.conf.set_stdp_function(pre.tolist(), post.tolist(), float(w_min), float(w_max))
 
     def run(self, simtime):
@@ -111,7 +111,7 @@ class _State(object):
             self.time  += self.dt
         
             if self.stdp:
-                self.simulation.apply_stdp(1.0)
+                self.simulation.apply_stdp(self.dt)
                
     @property
     def next_id(self):        
@@ -190,6 +190,10 @@ class Connection(object):
     @property
     def target(self):
         return state.sim.get_synapse_target([self.synapse])[0]
+
+    @property
+    def source(self):
+        return state.sim.get_synapse_source([self.synapse])[0]
 
     def _set_weight(self, w):
         pass

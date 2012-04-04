@@ -40,8 +40,8 @@ class Recorder(recording.Recorder):
         raise NotImplementedError("Recording reset is not currently supported for pyNN.nemo")
 
     def _add_spike(self, fired, time):
-         ids       = self.recorded.intersection(fired)
-         self.data = numpy.vstack((self.data, numpy.array([list(ids), [time]*len(ids)]).T)) 
+        ids       = self.recorded.intersection(fired)
+        self.data = numpy.vstack((self.data, numpy.array([list(ids), [time]*len(ids)]).T)) 
         ## To file or memory ? ###
 
     def _add_vm(self, time):
