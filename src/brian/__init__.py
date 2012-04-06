@@ -53,6 +53,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     brian.set_global_preferences(**extra_params)
     simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.state.add(update_currents) # from electrodes
+    update_currents.clock = simulator.state.simclock
     recording.simulator = simulator
     reset()
     return rank()
