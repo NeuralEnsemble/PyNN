@@ -7,7 +7,7 @@
 
 NEURON {
   POINT_PROCESS Izikevich
-  RANGE a, b, vreset, d, gsyn
+  RANGE a, b, vreset, d
   NONSPECIFIC_CURRENT i
 }
 
@@ -18,7 +18,7 @@ UNITS {
 INITIAL {
   v = -65
   u = 0.2*v
-  gsyn = 0
+  i = 0
   net_send(0,1)
 }
 
@@ -36,7 +36,6 @@ STATE {
 }
 
 ASSIGNED {
-    v (mV)
     i (nA)
 }
 
@@ -45,8 +44,9 @@ BREAKPOINT {
 }
 
 DERIVATIVE states {
-  v' = 0.04*v*v + 5*v + 140 - u + I
+  v' = 0.04*v*v + 5*v + 140 - u + i
   u' = a*(b*v-u) 
+  i  = 0
 }
 
 NET_RECEIVE (weight) {
@@ -57,6 +57,6 @@ NET_RECEIVE (weight) {
     v = vreset
     u = u+d
   } else { : synaptic activation
-    gsyn = gsyn+weight
+    i = weight
   }
 }

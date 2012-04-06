@@ -94,7 +94,7 @@ class _State(object):
             if isinstance(source.celltype, SpikeSourceArray):
                 arrays_sources.append(source)
         
-        for t in numpy.arange(0, simtime, self.dt):
+        for t in numpy.arange(self.time, self.time+simtime, self.dt):
             spikes   = []
             currents = []
             for source in arrays_sources:
@@ -107,6 +107,7 @@ class _State(object):
                 if recorder.variable is "v":
                     recorder._add_vm(self.t)
 
+            
             self._fired = self.sim.step(spikes, currents)
             self.time  += self.dt
         
