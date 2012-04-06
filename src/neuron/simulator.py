@@ -16,7 +16,7 @@ Classes:
     Recorder
     ConnectionManager
     Connection
-    
+
 Attributes:
     state -- a singleton instance of the _State class.
     recorder_list
@@ -45,7 +45,7 @@ connection_managers = []
 gid_sources = []
 logger = logging.getLogger("PyNN")
 
-# --- Internal NEURON functionality -------------------------------------------- 
+# --- Internal NEURON functionality --------------------------------------------
 
 def is_point_process(obj):
     """Determine whether a particular object is a NEURON point process."""
@@ -71,7 +71,7 @@ def register_gid(gid, source, section=None):
 def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
     """
     Pick random numbers from a Hoc Random object.
-    
+
     Return a Numpy array.
     """
     native_rng = h.Random(0 or rng.seed)
@@ -93,11 +93,11 @@ class _Initializer(object):
     `FInializeHandler` instance for each cell that needs to initialize itself,
     we create a single instance, and use an instance of this class to maintain
     a list of cells that need to be initialized.
-    
+
     Public methods:
         register()
     """
-    
+
     def __init__(self):
         """
         Create an `FinitializeHandler` object in Hoc, which will call the
@@ -107,7 +107,7 @@ class _Initializer(object):
         h.initializer = self
         self.fih = h.FInitializeHandler(1, "initializer._initialize()")
         self.clear()
-    
+
     def register(self, *items):
         """
         Add items to the list of cells/populations to be initialized. Cell
@@ -120,7 +120,7 @@ class _Initializer(object):
             else:
                 if hasattr(item._cell, "memb_init"):
                     self.cell_list.append(item)
-    
+
     def _initialize(self):
         """Call `memb_init()` for all registered cell objects."""
         logger.info("Initializing membrane potential of %d cells and %d Populations." % \
@@ -134,13 +134,13 @@ class _Initializer(object):
     def clear(self):
         self.cell_list = []
         self.population_list = []
-        
+
 
 # --- For implementation of get_time_step() and similar functions --------------
 
 class _State(object):
     """Represent the simulator state."""
-    
+
     def __init__(self):
         """Initialize the simulator."""
         h('min_delay = 0')
@@ -154,7 +154,7 @@ class _State(object):
         h('objref plastic_connections')
         self.clear()
         self.default_maxstep=10.0
-    
+
     t = h_property('t')
     def __get_dt(self):
         return h.dt
@@ -210,16 +210,16 @@ def finalize(quit=False):
 
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
-    
+
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""
         int.__init__(n)
         common.IDMixin.__init__(self)
-    
+
     def _build_cell(self, cell_model, cell_parameters):
         """
         Create a cell in NEURON, and register its global ID.
-        
+
         `cell_model` -- one of the cell classes defined in the
                         `neuron.cells` module (more generally, any class that
                         implements a certain interface, but I haven't
@@ -232,23 +232,23 @@ class ID(int, common.IDMixin):
         register_gid(gid, self._cell.source, section=self._cell.source_section)
         if hasattr(self._cell, "get_threshold"):            # this is not adequate, since the threshold may be changed after cell creation
             state.parallel_context.threshold(int(self), self._cell.get_threshold()) # the problem is that self._cell does not know its own gid
-        
+
     def get_native_parameters(self):
         """Return a dictionary of parameters for the NEURON cell model."""
         D = {}
         for name in self._cell.parameter_names:
             D[name] = getattr(self._cell, name)
         return D
-    
+
     def set_native_parameters(self, parameters):
         """Set parameters of the NEURON cell model from a dictionary."""
         for name, val in parameters.items():
             setattr(self._cell, name, val)
-        
+
     def get_initial_value(self, variable):
         """Get the initial value of a state variable of the cell."""
         return getattr(self._cell, "%s_init" % variable)
-        
+
     def set_initial_value(self, variable, value):
         """Set the initial value of a state variable of the cell."""
         index = self.parent.id_to_local_index(self)
@@ -268,7 +268,7 @@ class Connection(object):
     def __init__(self, source, target, nc):
         """
         Create a new connection.
-        
+
         `source` -- ID of pre-synaptic neuron.
         `target` -- ID of post-synaptic neuron.
         `nc` -- a Hoc NetCon object.
@@ -276,11 +276,11 @@ class Connection(object):
         self.source = source
         self.target = target
         self.nc = nc
-        
+
     def useSTDP(self, mechanism, parameters, ddf):
         """
         Set this connection to use spike-timing-dependent plasticity.
-        
+
         `mechanism`  -- the name of an NMODL mechanism that modifies synaptic
                         weights based on the times of pre- and post-synaptic spikes.
         `parameters` -- a dictionary containing the parameters of the weight-
@@ -375,7 +375,7 @@ class ConnectionManager(object):
     def __init__(self, synapse_type, synapse_model=None, parent=None):
         """
         Create a new ConnectionManager.
-        
+
         `synapse_model` -- either None or 'Tsodyks-Markram'.
         `parent` -- the parent `Projection`
         """
@@ -386,7 +386,7 @@ class ConnectionManager(object):
         self.synapse_type = synapse_type
         self.synapse_model = synapse_model
         connection_managers.append(self)
-        
+
     def __getitem__(self, i):
         """Return the `i`th connection on the local MPI node."""
         if isinstance(i, int):
@@ -399,25 +399,25 @@ class ConnectionManager(object):
                 return [self.connections[j] for j in range(*i.indices(i.stop))]
             else:
                 raise IndexError("%d > %d" % (i.stop, len(self)-1))
-    
+
     def __len__(self):
         """Return the number of connections on the local MPI node."""
         return len(self.connections)
-    
+
     def __iter__(self):
         """Return an iterator over all connections on the local MPI node."""
         return iter(self.connections)
-    
+
     def _resolve_synapse_type(self):
         if self.synapse_type is None:
             self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
         if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
-            self.synapse_type += '_TM'  
-    
+            self.synapse_type += '_TM'
+
     def connect(self, source, targets, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
-        
+
         `source`  -- the ID of the pre-synaptic cell.
         `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
         `weight`  -- a list/1D array of connection weights, or a single weight.
@@ -438,23 +438,18 @@ class ConnectionManager(object):
         for target in targets:
             if not isinstance(target, common.IDMixin):
                 raise errors.ConnectionError("Invalid target ID: %s" % target)
-              
+
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets), len(weights), len(delays))
         self._resolve_synapse_type()
         for target, weight, delay in zip(targets, weights, delays):
             if target.local:
-                if "." in self.synapse_type: 
-                    section, synapse_type = self.synapse_type.split(".") 
-                    synapse_object = getattr(getattr(target._cell, section), synapse_type) 
-                else: 
-                    synapse_object = getattr(target._cell, self.synapse_type) 
+                if "." in self.synapse_type:
+                    section, synapse_type = self.synapse_type.split(".")
+                    synapse_object = getattr(getattr(target._cell, section), synapse_type)
+                else:
+                    synapse_object = getattr(target._cell, self.synapse_type)
                 nc = state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
-                
-                # if we have a mechanism (e.g. from 9ML that includes multiple
-                # synaptic channels, need to set nc.weight[1] here
-                if nc.wcnt() > 1:
-                    nc.weight[1] = target._cell.type.synapse_types.index(self.synapse_type)
                 nc.delay  = delay
                 # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
                 self.connections.append(Connection(source, target, nc))
@@ -462,7 +457,7 @@ class ConnectionManager(object):
     def convergent_connect(self, sources, target, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
-        
+
         `sources`  -- a list/1D array of pre-synaptic cell IDs, or a single ID.
         `target` -- the ID of the post-synaptic cell.
         `weight`  -- a list/1D array of connection weights, or a single weight.
@@ -483,16 +478,16 @@ class ConnectionManager(object):
         for source in sources:
             if not isinstance(source, common.IDMixin):
                 raise errors.ConnectionError("Invalid source ID: %s" % source)
-              
+
         assert len(sources) == len(weights) == len(delays), "%s %s %s" % (len(sources),len(weights),len(delays))
-                
+
         if target.local:
             for source, weight, delay in zip(sources, weights, delays):
                 if self.synapse_type is None:
                     self.synapse_type = weight >= 0 and 'excitatory' or 'inhibitory'
                 if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
                     self.synapse_type += '_TM'
-                synapse_object = getattr(target._cell, self.synapse_type)  
+                synapse_object = getattr(target._cell, self.synapse_type)
                 nc = state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
                 nc.delay  = delay
@@ -503,18 +498,18 @@ class ConnectionManager(object):
         """
         Get the values of a given attribute (weight, delay, etc) for all
         connections on the local MPI node.
-        
+
         `parameter_name` -- name of the attribute whose values are wanted.
         `format` -- "list" or "array". Array format implicitly assumes that all
                     connections belong to a single Projection.
-        
+
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
         synaptic Population to the jth neuron in the post-synaptic Population,
         if a single such connection exists. If there are no such connections,
         X_ij will be NaN. If there are multiple such connections, the summed
         value will be given, which makes some sense for weights, but is
-        pretty meaningless for delays. 
+        pretty meaningless for delays.
         """
         if format == 'list':
             values = [getattr(c, parameter_name) for c in self.connections]
@@ -534,7 +529,7 @@ class ConnectionManager(object):
     def set(self, name, value):
         """
         Set connection attributes for all connections on the local MPI node.
-        
+
         `name`  -- attribute name
         `value` -- the attribute numeric value, or a list/1D array of such
                    values of the same length as the number of local connections,

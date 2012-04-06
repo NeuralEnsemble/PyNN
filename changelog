@@ -1,3 +1,20 @@
+=====================
+Release 0.7.3 (r1121)
+=====================
+
+* Some fixes to the `CSAConnector` class
+* the Brian backend now includes the value at t=0 in recorded data (see ticket:225)
+* start times for `CurrentSources` in the NEST backend are now corrected for the
+  connection delay
+* start times for `CurrentSources` in the Brian backend are now correct (there
+  was something funny happening with clocks, before.)
+
+====================
+Release 0.7.2 (r995)
+====================
+
+Fixed a bug whereby the `connect()` function didn't work with single IDs (see ticket:195)
+
 ====================
 Release 0.7.1 (r958)
 ====================
@@ -49,7 +66,7 @@ for doing this are:
 The API for setting initial values has changed: this is now done via the
 `initialize()` function or the `Population.initialize()` method, rather than by
 having `v_init` and similar parameters for cell models.
-  
+
 Other API changes:
 
 - simplification of the `record_X()` methods.
@@ -87,7 +104,7 @@ Details:
 
 * reverted `pyNN.nest` to reading/resetting the current time from the kernel rather than keeping track of it within PyNN. NEST warns that this is dangerous, but all the tests pass, so let's wait and see.
 
-* In `HH_cond_exp`, conductances are now in µS, as for all other conductances in PyNN, instead of nS. 
+* In `HH_cond_exp`, conductances are now in µS, as for all other conductances in PyNN, instead of nS.
 
 * NEURON now supports Tsodyks-Markram synapses for current-based exponential synapses (before it was only for conductance-based).
 
@@ -121,7 +138,7 @@ Details:
 
 * The `random` module now uses `mpi4py` to determine the MPI rank and
   num_processes, rather than receiving these as arguments to the RNG constructor
-  (see ticket:164). 
+  (see ticket:164).
 
 * Many fixes and performance enhancements for the `brian` module, which now
   supports synaptic plasticity.
@@ -225,7 +242,7 @@ order to be able to constrain the total number of connections. Can be useful for
   and scaling with MPI, and extension of distance-dependent weights and delays
   to all connectors. In addition, a `safe` flag has been added to all connectors:
   on by default, a user can turn it off to avoid tests on weights and delays.
-  
+
 * Added the ability to set the `atol` and `rtol` parameters of NEURON's cvode
   solver in the `extra_params` argument of `setup()` (patch from Johannes Partzsch).
 
@@ -252,7 +269,7 @@ There have been three major changes to the API in this version.
    across simulators. `reset()` sets the simulation time to zero and sets
    membrane potentials to their initial values, but does not change the network
    structure. `setup()` destroys any previously defined network.
-   
+
 3. The possibility of expressing distance-dependent weights and delays was
    extended to the `AllToAllConnector` and `FixedProbabilityConnector` classes.
    To reduce the number of arguments to the constructors, the arguments affecting
@@ -270,7 +287,7 @@ Details:
 
 * Added an attribute `conductance_based` to `StandardCellType`, to make the determination of synapse type for a given cell more robust.
 
-* PyNN now uses a named logger, which makes it easier to control logging levels when using PyNN within a larger application. 
+* PyNN now uses a named logger, which makes it easier to control logging levels when using PyNN within a larger application.
 
 * implemented gather for `Projection.saveConnections()`
 
@@ -280,11 +297,11 @@ Details:
 
 * Speeded up record() by a huge factor (from 10 s for 12000 cells to less than 0.1 s) by removing an unecessary conditional path (since all IDs now have an attribute "local")
 
-* `synapse_type` is now passed to the `ConnectionManager` constructor, not to the `connect()` method, since (a) it is fixed for a given connection manager, (b) it is needed in other methods than just `connect()`; fixed weight unit conversion in `brian` module. 
+* `synapse_type` is now passed to the `ConnectionManager` constructor, not to the `connect()` method, since (a) it is fixed for a given connection manager, (b) it is needed in other methods than just `connect()`; fixed weight unit conversion in `brian` module.
 
 * Updated connection handling in `nest` module to work with NEST version 1.9.8498. Will not now work with previous NEST versions
 
-* The `neuron` back-end now supports having both static and Tsodyks-Markram synapses on the same neuron (previously, the T-M synapses replaced the static synapses) - in agreement with `nest`  and common sense. Thanks to Bartosz Telenczuk for reporting this. 
+* The `neuron` back-end now supports having both static and Tsodyks-Markram synapses on the same neuron (previously, the T-M synapses replaced the static synapses) - in agreement with `nest`  and common sense. Thanks to Bartosz Telenczuk for reporting this.
 
 * Added a `compatible_output` mode for the `saveConnections()` method. True by default, it allows connections to be reloaded from a file. If False, then the raw connections are stored, which makes for easier postprocessing.
 
@@ -325,7 +342,7 @@ Principal API changes:
     * Added `get_v()` and `get_gsyn()` methods to the `Population` class, enabling
       membrane potential and synaptic conductances to be read directly into memory,
       rather than saved to file.
-    
+
 Improvements to simulator back-ends:
     * Implemented an interface for the Brian simulator.
     * Re-implementated the interface to NEURON, to use the new functionality in v7.0.
@@ -443,7 +460,7 @@ Usage example:
   current_source2 = StepCurrentSource(times=[20,40,60,80], amplitudes=[0.3,-0.3,0.3,0.0])
 
   cell.inject(current_source1)            # two alternatives
-  current_source2.inject_into([cell]) 
+  current_source2.inject_into([cell])
 }}}
 `DCSource` and `StepCurrentSource` are available in the `nest2`, `neuron` and `brian` modules. `NoisyCurrentSource` is only available in `nest2` for the time being, but it will be straightforward to add it for the other backends. Adding `ACSource`, etc., should be straightforward.
 
@@ -483,7 +500,7 @@ Release 0.4.0 (r342)
 
 * Removed `setRNGseeds()` from the API, since each simulator is so different in its requirements. The seeds may be provided using the `extra_params` argument to `setup()`.
 
-* The headers of output files now contain the first and last ids in the Population (not fully implemented yet 
+* The headers of output files now contain the first and last ids in the Population (not fully implemented yet
 for recording with the low-level API)
 
 * Global variables such as the time step and minimum delay have been replaced
@@ -515,7 +532,7 @@ to vary (`int` for `neuron` and `nest1/2`, `long` for pcsim).
 * In `common.StandardModelType`, changed most of the methods to be classmethods,
 since they do not act on instance data.
 
-* Added a `ModelNotAvailable` class to allow more informative error messages 
+* Added a `ModelNotAvailable` class to allow more informative error messages
 when people try to use a model with a simulator that doesn't support it.
 
 * hoc and mod files are now correctly packaged, installed and compiled with
@@ -544,7 +561,7 @@ NOTE: check for which simulators this works. XXX
 
 * The `neuron` module now requires NEURON v6.1 or later.
 
-* For developers, changes to the layout of the code: 
+* For developers, changes to the layout of the code:
     (1) Simulator modules have been moved to a `src` subdirectory - this is to
     make distribution/installation of PyNN easier.
     (2) Several of the modules have been split into multiple files, in their own
@@ -589,7 +606,7 @@ Weights and delays can also be specified in the `Connector` constructor,
 removing the need to call `setWeights()` and `setDelays()` after the building
 of the connections.
 We keep the string specification for backwards compatibility, but this is
-deprecated and will be removed in a future API version. 
+deprecated and will be removed in a future API version.
 
 * Added new standard models: EIF_cond_alpha_isfa_ista, IF_cond_exp_gsfa_grr,
 HodgkinHuxley. NOTE: check names, and that all models are supported by at
@@ -622,7 +639,7 @@ of all cells in a population to be set/read at once as a numpy array.
 `Population`.
 
 * Threads can now be used in `nest` and `pcsim`, via the `extra_param` option of
-the `setup()` function. 
+the `setup()` function.
 
 * Removed `oldneuron` module.
 
@@ -643,7 +660,7 @@ the API that are not implemented.
 * Change to `neuron` and `oldneuron` to match more closely the behaviour of
 `nest` and `pcsim` when the `synapse_type` argument is not given in `connect()`.
 Before, `neuron` would by default choose an excitatory synapse. Now, it chooses
-an inhibitory synapse if the weight is negative. 
+an inhibitory synapse if the weight is negative.
 
 * `runtests.py` now runs tests for `pcsim` as well as `nest`, `neuron` and
 `oldneuron`.
@@ -719,7 +736,7 @@ that you have to use, e.g.,
 instead of
     `create('IF_curr_alpha')`
 i.e., pass the class instead of a string.
-For developers, it should now be easier to add new standard models. 
+For developers, it should now be easier to add new standard models.
 
 * Added `neuron2` module, a reimplemtation of the PyNN API for NEURON, that uses
 more Python and less hoc.

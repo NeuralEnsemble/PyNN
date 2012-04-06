@@ -24,6 +24,10 @@ from pyNN.common import Population, PopulationView, Assembly
 class CurrentSource(object):
     """Base class for a source of current to be injected into a neuron."""
 
+    def delay_correction(self, value):
+        # use dt or min_delay?
+        return value - state.min_delay
+
     def inject_into(self, cell_list):
         """Inject this current source into some cells."""
         for id in cell_list:
@@ -31,7 +35,7 @@ class CurrentSource(object):
                 raise TypeError("Can't inject current into a spike source.")
         if isinstance(cell_list, (Population, PopulationView, Assembly)):
             cell_list = [cell for cell in cell_list]
-        nest.DivergentConnect(self._device, cell_list)
+        nest.DivergentConnect(self._device, cell_list, delay=state.min_delay, weight=1.0)
 
 
 class DCSource(CurrentSource):
@@ -50,9 +54,9 @@ class DCSource(CurrentSource):
         self.amplitude = amplitude
         self._device = nest.Create('dc_generator')
         nest.SetStatus(self._device, {'amplitude': 1000.0*self.amplitude,
-                                      'start': float(start)}) # conversion from nA to pA
+                                      'start': self.delay_correction(start)}) # conversion from nA to pA
         if stop:
-            nest.SetStatus(self._device, {'stop': float(stop)})
+            nest.SetStatus(self._device, {'stop': self.delay_correction(stop)})
 
 
 class ACSource(CurrentSource):
@@ -79,7 +83,7 @@ class ACSource(CurrentSource):
                                       'offset'   : 1000.0*self.offset,
                                       'frequency': float(self.frequency),
                                       'phase'    : float(self.phase),
-                                      'start'    : float(start)}) # conversion from nA to pA
+                                      'start'    : self.delay_correction(start)}) # conversion from nA to pA
         if stop:
             nest.SetStatus(self._device, {'stop': float(stop)})
 
@@ -110,7 +114,7 @@ class StepCurrentSource(CurrentSource):
             amplitudes.append(amplitudes[-1])  # bug in NEST
         except AttributeError:
             numpy.append(amplitudes, amplitudes[-1])
-        nest.SetStatus(self._device, {'amplitude_times': numpy.array(times, 'float'),
+        nest.SetStatus(self._device, {'amplitude_times': self.delay_correction(numpy.array(times, 'float')),
                                       'amplitude_values': 1000.0*numpy.array(amplitudes, 'float')})
 
 
@@ -159,9 +163,9 @@ class NoisyCurrentSource(CurrentSource):
             self._device = nest.Create('noise_generator')
             nest.SetStatus(self._device, {'mean': mean*1000.0,
                                            'std': stdev*1000.0,
-                                           'start': float(start),
+                                           'start': self.delay_correction(start),
                                            'dt': self.dt})
             if stop:
-                nest.SetStatus(self._device, {'stop': float(stop)})
+                nest.SetStatus(self._device, {'stop': self.delay_correction(stop)})
         else:
             raise NotImplementedError("Only using a NativeRNG is currently supported.")

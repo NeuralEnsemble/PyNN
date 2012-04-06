@@ -49,33 +49,34 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     simulator but not by others.
     """
     common.setup(timestep, min_delay, max_delay, **extra_params)
+    _cleanup()
     brian.set_global_preferences(**extra_params)
-    simulator.state = simulator._State(timestep, min_delay, max_delay)    
+    simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.state.add(update_currents) # from electrodes
-    ## We need to reset the clock of the update_currents function, for the electrodes
-    simulator.state.network._all_operations[0].clock = brian.Clock(t=0*ms, dt=timestep*ms)
-    simulator.state.min_delay = min_delay
-    simulator.state.max_delay = max_delay
-    simulator.state.dt        = timestep
     recording.simulator = simulator
     reset()
     return rank()
+
+def _cleanup():
+    simulator.recorder_list = []
+    electrodes.current_sources = []
+    if hasattr(simulator, 'state'):
+        if hasattr(simulator.state, 'network'):
+            for item in simulator.state.network.groups + simulator.state.network._all_operations:
+                del item
+        del simulator.state
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     for recorder in simulator.recorder_list:
         recorder.write(gather=True, compatible_output=compatible_output)
-    simulator.recorder_list = []
-    electrodes.current_sources = []
-    for item in simulator.state.network.groups + simulator.state.network._all_operations:
-        del item    
-    del simulator.state
+    _cleanup()
 
 def get_current_time():
     """Return the current time in the simulation."""
     return simulator.state.t
-    
-def run(simtime):    
+
+def run(simtime):
     """Run the simulation for simtime ms."""
     simulator.state.run(simtime)
     return get_current_time()
@@ -109,7 +110,7 @@ class Population(common.Population, common.BasePopulation):
     def _create_cells(self, cellclass, cellparams=None, n=1):
         """
         Create cells in Brian.
-        
+
         `cellclass`  -- a PyNN standard cell or a native Brian cell class.
         `cellparams` -- a dictionary of cell parameters.
         `n`          -- the number of cells to create
@@ -137,16 +138,16 @@ class Population(common.Population, common.BasePopulation):
 #        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
         celltype = cellclass(cellparams)
         cell_parameters = celltype.parameters
-        if isinstance(celltype, cells.SpikeSourcePoisson):    
+        if isinstance(celltype, cells.SpikeSourcePoisson):
             fct = celltype.rates(cell_parameters['start'], cell_parameters['duration'], cell_parameters['rate'], n)
             brian_cells = simulator.PoissonGroupWithDelays(n, rates=fct)
         elif isinstance(celltype, cells.SpikeSourceArray):
             spike_times = cell_parameters['spiketimes']
             brian_cells = simulator.MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(n)])
         elif 'v_reset' in cell_parameters:
-            params = {'threshold'  : celltype.threshold, 
+            params = {'threshold'  : celltype.threshold,
                       'reset'      : celltype.reset}
-            if cell_parameters.has_key('tau_refrac'):                 
+            if cell_parameters.has_key('tau_refrac'):
                 params['refractory'] = cell_parameters['tau_refrac'] * ms
             if hasattr(celltype, 'extra'):
                 params.update(celltype.extra)
@@ -156,12 +157,12 @@ class Population(common.Population, common.BasePopulation):
             if hasattr(celltype, 'extra'):
                 params.update(celltype.extra)
             brian_cells = simulator.PlainNeuronGroup(n, cellclass.eqs, **params)
-                
+
 #        elif isinstance(cellclass, type) and issubclass(cellclass, standardmodels.ModelNotAvailable):
 #            raise NotImplementedError("The %s model is not available for this simulator." % cellclass.__name__)
 #        else:
-#            raise Exception("Invalid cell type: %s" % type(cellclass))    
-    
+#            raise Exception("Invalid cell type: %s" % type(cellclass))
+
         if cell_parameters:
             for key, value in cell_parameters.items():
                 setattr(brian_cells, key, value)
@@ -170,7 +171,7 @@ class Population(common.Population, common.BasePopulation):
         for cell in self.all_cells:
             cell.parent = self
             cell.parent_group = brian_cells
-       
+
         self._mask_local = numpy.ones((n,), bool) # all cells are local. This doesn't seem very efficient.
         self.first_id    = self.all_cells[0]
         self.last_id     = self.all_cells[-1]
@@ -195,38 +196,38 @@ class Projection(common.Projection):
     plasticity mechanisms) between two populations, together with methods to set
     parameters of those connections, including of plasticity mechanisms.
     """
-    
+
     def __init__(self, presynaptic_population, postsynaptic_population, method,
                  source=None, target=None, synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
-        
+
         source - string specifying which attribute of the presynaptic cell
                  signals action potentialss
-                 
+
         target - string specifying which synapse on the postsynaptic cell to
                  connect to
-                 
+
         If source and/or target are not given, default values are used.
-        
+
         method - a Connector object, encapsulating the algorithm to use for
                  connecting the neurons.
-        
+
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
-        
+
         rng - specify an RNG object to be used by the Connector.
         """
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    source, target, synapse_dynamics, label, rng)
-        
+
         self._method           = method
         self._connections      = None
         self.synapse_type      = target or 'excitatory'
-        
+
         #if isinstance(presynaptic_population, common.Assembly) or isinstance(postsynaptic_population, common.Assembly):
             #raise Exception("Projections with Assembly objects are not working yet in Brian")
-        
+
         if self.synapse_dynamics:
             if self.synapse_dynamics.fast:
                 if self.synapse_dynamics.slow:
@@ -235,23 +236,23 @@ class Projection(common.Projection):
                     self._plasticity_model = "tsodyks_markram_synapse"
             elif synapse_dynamics.slow:
                 self._plasticity_model = "stdp_synapse"
-        else:        
+        else:
             self._plasticity_model = "static_synapse"
-                                        
+
         self.connection_manager = simulator.ConnectionManager(self.synapse_type, self._plasticity_model, parent=self)
-        self.connections = self.connection_manager        
+        self.connections = self.connection_manager
         method.connect(self)
         self.connection_manager._finalize()
         if self._plasticity_model != "static_synapse":
             for key in self.connections.key():
                 synapses = self.connections.brian_connections[key]
-                if self._plasticity_model is "stdp_synapse": 
+                if self._plasticity_model is "stdp_synapse":
                     parameters   = self.synapse_dynamics.slow.all_parameters
                     if common.is_conductance(self.post[0]):
                         units = uS
                     else:
                         units = nA
-                    stdp = simulator.STDP(synapses, 
+                    stdp = simulator.STDP(synapses,
                                         parameters['tau_plus'] * ms,
                                         parameters['tau_minus'] * ms,
                                         parameters['A_plus'],
@@ -263,11 +264,11 @@ class Projection(common.Projection):
                     simulator.state.add(stdp)
                 elif self._plasticity_model is "tsodyks_markram_synapse":
                     parameters   = self.synapse_dynamics.fast.parameters
-                    stp = brian.STP(synapses, parameters['tau_rec'] * ms, 
-                                            parameters['tau_facil'] * ms, 
+                    stp = brian.STP(synapses, parameters['tau_rec'] * ms,
+                                            parameters['tau_facil'] * ms,
                                             parameters['U'])
                     simulator.state.add(stp)
-                    
+
     def saveConnections(self, file, gather=True, compatible_output=True):
         """
         Save connections to file in a format suitable for reading in with a
@@ -286,12 +287,12 @@ class Projection(common.Projection):
             else:
                 lines[padding:padding+size,3] = bc.delay * bc.source.clock.dt / ms
             padding += size
-            
+
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
-        
+
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
-        
+
         file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
         file.close()
 

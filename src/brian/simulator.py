@@ -15,7 +15,7 @@ Classes:
     Recorder
     ConnectionManager
     Connection
-    
+
 Attributes:
     state -- a singleton instance of the _State class.
     recorder_list
@@ -49,12 +49,12 @@ ZERO_WEIGHT = 1e-99
 
 logger = logging.getLogger("PyNN")
 
-# --- Internal Brian functionality -------------------------------------------- 
+# --- Internal Brian functionality --------------------------------------------
 
 def _new_property(obj_hierarchy, attr_name, units):
     """
     Return a new property, mapping attr_name to obj_hierarchy.attr_name.
-    
+
     For example, suppose that an object of class A has an attribute b which
     itself has an attribute c which itself has an attribute d. Then placing
       e = _new_property('b.c', 'd')
@@ -77,11 +77,11 @@ def nesteddictwalk(d):
             for value2 in nesteddictwalk(value1):  # recurse into subdict
                 yield value2
         else:
-            yield value1     
+            yield value1
 
 
 class PlainNeuronGroup(brian.NeuronGroup):
-    
+
     def __init__(self, n, equations, **kwargs):
         try:
             clock = state.simclock
@@ -106,7 +106,7 @@ class PlainNeuronGroup(brian.NeuronGroup):
             setattr(self, variable, values)
 
 class ThresholdNeuronGroup(brian.NeuronGroup):
-    
+
     def __init__(self, n, equations, **kwargs):
         try:
             clock = state.simclock
@@ -150,13 +150,13 @@ class PoissonGroupWithDelays(brian.PoissonGroup):
         self.rates          = rates
         self._S0[0]         = self.rates(self.clock.t)
         self.parameter_names = ['rate', 'start', 'duration']
-    
+
     def initialize(self):
         pass
-    
-            
+
+
 class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
-   
+
     def __init__(self, spiketimes):
         try:
             clock = state.simclock
@@ -189,26 +189,23 @@ class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
 
 class _State(object):
     """Represent the simulator state."""
-    
+
     def __init__(self, timestep, min_delay, max_delay):
         """Initialize the simulator."""
         self.network       = brian.Network()
-        self._set_dt(timestep)
+        self.network.clock = brian.Clock(t=0*ms, dt=timestep*ms)
         self.initialized   = True
         self.num_processes = 1
         self.mpi_rank      = 0
         self.min_delay     = min_delay
         self.max_delay     = max_delay
         self.gid           = 0
-        
+
     def _get_dt(self):
-        if self.network.clock is None:
-            raise Exception("Simulation timestep not yet set. Need to call setup()")
-        return self.network.clock.dt/ms
-        
+        return self.simclock.dt/ms
+
     def _set_dt(self, timestep):
-        if self.network.clock is None or timestep != self._get_dt():
-            self.network.clock = brian.Clock(dt=timestep*ms)
+        self.simclock.set_dt(timestep*ms)
     dt = property(fget=_get_dt, fset=_set_dt)
 
     @property
@@ -222,38 +219,38 @@ class _State(object):
         return self.simclock.t/ms
 
     def run(self, simtime):
-        self.network.run(simtime * ms)        
+        self.network.run(simtime * ms)
 
     def add(self, obj):
         self.network.add(obj)
-    
+
     @property
-    def next_id(self):        
+    def next_id(self):
         res = self.gid
         self.gid += 1
         return res
-        
+
 
 def reset():
     """Reset the state of the current network to time t = 0."""
     state.network.reinit()
     for group in state.network.groups:
-        group.initialize()    
-    
+        group.initialize()
+
 # --- For implementation of access to individual neurons' parameters -----------
-    
+
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
 
     gid = 0
 
     def __init__(self, n):
-        """Create an ID object with numerical value `n`."""    
+        """Create an ID object with numerical value `n`."""
         if n is None:
             n = gid
         int.__init__(n)
         common.IDMixin.__init__(self)
-    
+
     def get_native_parameters(self):
         """Return a dictionary of parameters for the Brian cell model."""
         params = {}
@@ -274,7 +271,7 @@ class ID(int, common.IDMixin):
                 except TypeError, errmsg:
                     raise TypeError("%s. celltype=%s, parameter name=%s" % (errmsg, self.celltype, name))
         return params
-    
+
     def set_native_parameters(self, parameters):
         """Set parameters of the Brian cell model from a dictionary."""
         index = self.parent.id_to_index(self)
@@ -290,18 +287,18 @@ class ID(int, common.IDMixin):
                 self.parent_group.spiketimes = all_spiketimes
             else:
                 setattr(self.parent_group[index], name, value)
-        
+
     def set_initial_value(self, variable, value):
         if variable is 'v':
             value *= mV
         self.parent_group.initial_values[variable][self.parent.id_to_local_index(self)] = value
-    
+
     def get_initial_value(self, variable):
         return self.parent_group.initial_values[variable][self.parent.id_to_local_index(self)]
-    
 
-# --- For implementation of create() and Population.__init__() ----------------- 
-    
+
+# --- For implementation of create() and Population.__init__() -----------------
+
 class STDP(brian.STDP):
     '''
     See documentation for brian:class:`STDP` for more details. Options hidden here could be used in a more
@@ -321,14 +318,14 @@ class STDP(brian.STDP):
             dA_post/dt = -A_post/taum : 1''', taup=taup, taum=taum, wmax=wmax, mu_m=mu_m, mu_p=mu_p)
         pre   = 'A_pre += Ap'
         pre  += '\nw += A_post*pow(w/wmax, mu_m)'
-        
-        post  = 'A_post += Am'        
+
+        post  = 'A_post += Am'
         post += '\nw += A_pre*pow(1-w/wmax, mu_p)'
         brian.STDP.__init__(self, C, eqs=eqs, pre=pre, post=post, wmin=wmin, wmax=wmax, delay_pre=None, delay_post=None, clock=None)
 
-    
+
 class SimpleCustomRefractoriness(brian.Refractoriness):
-    
+
     @brian.check_units(period=brian.second)
     def __init__(self, resetfun, period=5*brian.msecond, state=0):
         self.period = period
@@ -358,11 +355,11 @@ class SimpleCustomRefractoriness(brian.Refractoriness):
             LRV = numpy.zeros(len(V))
             self.lastresetvalues[id(P)] = LRV
         lastspikes = P.LS.lastspikes()
-        self.resetfun(P,lastspikes)             # call custom reset function 
+        self.resetfun(P,lastspikes)             # call custom reset function
         LRV[lastspikes] = V[lastspikes]         # store a copy of the custom resetted values
-        clampedindices = P.LS[0:period] 
+        clampedindices = P.LS[0:period]
         V[clampedindices] = LRV[clampedindices] # clamp at custom resetted values
-        
+
     def __repr__(self):
         return 'Custom refractory period, '+str(self.period)
 
@@ -385,11 +382,11 @@ class Connection(object):
     Provide an interface that allows access to the connection's weight, delay
     and other attributes.
     """
-    
+
     def __init__(self, brian_connection, indices, addr):
         """
         Create a new connection.
-        
+
         `brian_connection` -- a Brian Connection object (may contain
                               many connections).
         `index` -- the index of the current connection within
@@ -402,7 +399,7 @@ class Connection(object):
         # the index is the nth non-zero element
         self.bc                  = brian_connection
         self.addr                = int(indices[0]), int(indices[1])
-        self.source, self.target = addr        
+        self.source, self.target = addr
 
     def _set_weight(self, w):
         w = w or ZERO_WEIGHT
@@ -421,10 +418,10 @@ class Connection(object):
             return float(self.bc.delay[self.addr]/ms)
         if isinstance(self.bc, brian.Connection):
             return float(self.bc.delay * self.bc.source.clock.dt/ms)
-            
+
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
-    
+
 
 class ConnectionManager(object):
     """
@@ -435,7 +432,7 @@ class ConnectionManager(object):
     def __init__(self, synapse_type, synapse_model=None, parent=None):
         """
         Create a new ConnectionManager.
-        
+
         `synapse_type` -- the 'physiological type' of the synapse, e.g.
                           'excitatory' or 'inhibitory',or any other key in the
                           `synapses` attibute of the celltype class.
@@ -449,7 +446,7 @@ class ConnectionManager(object):
         self.brian_connections = {}
         self.indices           = {}
         self._populations      = [{}, {}]
-        
+
     def __getitem__(self, i):
         """Return the `i`th connection as a Connection object."""
         cumsum_idx     = numpy.cumsum(self.n.values())
@@ -480,14 +477,14 @@ class ConnectionManager(object):
                 return res
             else:
                 raise IndexError("%d > %d" % (i.stop, len(self)-1))
-    
+
     def __len__(self):
         """Return the total number of connections in this manager."""
         result = 0
         for key in self.keys:
           result += self.n[key]
-        return result 
-    
+        return result
+
     def __connection_generator(self):
         """Yield each connection in turn."""
         global_indices = self._indices
@@ -495,39 +492,39 @@ class ConnectionManager(object):
         for key in self.keys:
             bc = self.brian_connections[key]
             for i in xrange(bc.W.getnnz()):
-                local_idx  = self.indices[key][0][i], self.indices[key][0][i] 
+                local_idx  = self.indices[key][0][i], self.indices[key][0][i]
                 local_addr = global_indices[0][count], global_indices[1][count]
                 yield Connection(bc, self.indices[key])
-                count     += 1                
-                
+                count     += 1
+
     @property
     def keys(self):
         return self.brian_connections.keys()
-                
+
     def __iter__(self):
         """Return an iterator over all connections in this manager."""
         return self.__connection_generator()
-    
+
     def _finalize(self):
         for key in self.keys:
             self.indices[key]  = self.brian_connections[key].W.nonzero()
-            self.brian_connections[key].compress()            
-    
+            self.brian_connections[key].compress()
+
     @property
     def _indices(self):
         sources = numpy.array([], int)
         targets = numpy.array([], int)
         for key in self.keys:
-            paddings = self._populations[0][key[0]], self._populations[1][key[1]] 
+            paddings = self._populations[0][key[0]], self._populations[1][key[1]]
             sources  = numpy.concatenate((sources, self.indices[key][0] + paddings[0]))
             targets  = numpy.concatenate((targets, self.indices[key][1] + paddings[1]))
-        return sources.astype(int), targets.astype(int)    
-    
+        return sources.astype(int), targets.astype(int)
+
     def _get_brian_connection(self, source_group, target_group, synapse_obj, weight_units, homogeneous=False):
         """
         Return the Brian Connection object that connects two NeuronGroups with a
         given synapse model.
-        
+
         source_group -- presynaptic Brian NeuronGroup.
         target_group -- postsynaptic Brian NeuronGroup
         synapse_obj  -- name of the variable that will be modified by synaptic
@@ -558,7 +555,7 @@ class ConnectionManager(object):
             state.add(self.brian_connections[key])
             self.n[key] = 0
         return self.brian_connections[key]
-    
+
     def _detect_parent_groups(self, cells):
         groups = {}
         for index, cell in enumerate(cells):
@@ -568,11 +565,11 @@ class ConnectionManager(object):
             else:
                 groups[group] += [index]
         return groups
-    
+
     def connect(self, source, targets, weights, delays, homogeneous=False):
         """
         Connect a neuron to one or more other neurons with a static connection.
-        
+
         `source`  -- the ID of the pre-synaptic cell.
         `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
         `weight`  -- a list/1D array of connection weights, or a single weight.
@@ -604,19 +601,19 @@ class ConnectionManager(object):
         except AttributeError, errmsg:
             raise errors.ConnectionError("%s. Maybe trying to connect from non-existing cell (ID=%s)." % (errmsg, source))
         groups = self._detect_parent_groups(targets) # we assume here all the targets belong to the same NeuronGroup
-        
+
         weights = numpy.array(weights) * units
         delays  = numpy.array(delays) * ms
-        weights[weights == 0] = ZERO_WEIGHT            
-        
+        weights[weights == 0] = ZERO_WEIGHT
+
         for target_group, indices in groups.items():
-            synapse_obj = targets[indices[0]].parent.celltype.synapses[synapse_type]        
-            bc          = self._get_brian_connection(source_group, target_group, synapse_obj, units, homogeneous)       
+            synapse_obj = targets[indices[0]].parent.celltype.synapses[synapse_type]
+            bc          = self._get_brian_connection(source_group, target_group, synapse_obj, units, homogeneous)
             padding     = (int(source.parent.first_id), int(targets[indices[0]].parent.first_id))
             src         = int(source) - padding[0]
-            mytargets   = numpy.array(targets, int)[indices] - padding[1]            
+            mytargets   = numpy.array(targets, int)[indices] - padding[1]
             bc.W.rows[src] = mytargets
-            bc.W.data[src] = weights[indices]        
+            bc.W.data[src] = weights[indices]
             if not homogeneous:
                 bc.delayvec.rows[src] = mytargets
                 bc.delayvec.data[src] = delays[indices]
@@ -624,7 +621,7 @@ class ConnectionManager(object):
                 bc.delay = int(delays[0] / bc.source.clock.dt)
             key = (source_group, target_group, synapse_obj)
             self.n[key] += len(mytargets)
-            
+
             pop_sources = self._populations[0]
             if len(pop_sources) is 0:
                 pop_sources[source_group] = 0
@@ -634,18 +631,18 @@ class ConnectionManager(object):
             if len(pop_targets) is 0:
                 pop_targets[target_group] = 0
             elif not pop_targets.has_key(target_group):
-                pop_targets[target_group] = numpy.sum([len(item) for item in pop_targets.keys()])  
-                
-        
+                pop_targets[target_group] = numpy.sum([len(item) for item in pop_targets.keys()])
+
+
     def get(self, parameter_name, format):
         """
         Get the values of a given attribute (weight or delay) for all
         connections in this manager.
-        
+
         `parameter_name` -- name of the attribute whose values are wanted.
         `format` -- "list" or "array". Array format implicitly assumes that all
                     connections belong to a single Projection.
-        
+
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
         synaptic Population to the jth neuron in the post-synaptic Population,
@@ -658,7 +655,7 @@ class ConnectionManager(object):
         for key in self.keys:
             bc = self.brian_connections[key]
             if parameter_name == "weight":
-                values = numpy.concatenate((values, bc.W.alldata / bc.weight_units))            
+                values = numpy.concatenate((values, bc.W.alldata / bc.weight_units))
             elif parameter_name == 'delay':
                 if isinstance(bc, brian.DelayConnection):
                     values = numpy.concatenate((values, bc.delay.alldata / ms))
@@ -667,7 +664,7 @@ class ConnectionManager(object):
                     values = numpy.concatenate((values, data))
             else:
                 raise Exception("Getting parameters other than weight and delay not yet supported.")
-        
+
         if format == 'list':
             values = values.tolist()
         elif format == 'array':
@@ -678,11 +675,11 @@ class ConnectionManager(object):
         else:
             raise Exception("format must be 'list' or 'array', actually '%s'" % format)
         return values
-        
+
     def set(self, name, value):
         """
         Set connection attributes for all connections in this manager.
-        
+
         `name`  -- attribute name
         `value` -- the attribute numeric value, or a list/1D array of such
                    values of the same length as the number of local connections,
@@ -726,7 +723,7 @@ class ConnectionManager(object):
             else:
                 raise Exception("Values must be scalars or lists/arrays")
             padding += M.getnnz()
-                    
+
 
 # --- Initialization, and module attributes ------------------------------------
 
