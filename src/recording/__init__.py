@@ -71,7 +71,8 @@ def gather_array(data):
     else:
         num_columns = data.shape[1]
         return gdata.reshape((gdata.size/num_columns, num_columns))
-  
+
+
 def gather_dict(D):
     # Note that if the same key exists on multiple nodes, the value from the
     # node with the highest rank will appear in the final dict.
@@ -80,6 +81,22 @@ def gather_dict(D):
         for otherD in Ds:
             D.update(otherD)
     return D
+
+
+def gather_blocks(data):
+    """Gather Neo Blocks"""
+    if MPI is None:
+        raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
+    assert isinstance(data, neo.Block)
+    # for now, use gather_dict, which will probably be slow. Can optimize later
+    D = {mpi_comm.rank: data}
+    D = gather_dict(D)
+    blocks = D.values()
+    merged = blocks[0]
+    for block in blocks[1:]:
+        merged.merge(block)
+    return merged
+
 
 def mpi_sum(x):
     if MPI and mpi_comm.size > 1:
@@ -130,7 +147,7 @@ class DataCache(object):
 
     def __iter__(self):
         return iter(self._data)
-    
+
     def store(self, obj):
         if obj not in self._data:
             self._data.append(obj)
@@ -141,11 +158,11 @@ class DataCache(object):
 
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
-    
+
     def __init__(self, population, file=None):
         """
         Create a recorder.
-        
+
         `population` -- the Population instance which is being recorded by the
                         recorder
         `file` -- one of:
@@ -159,7 +176,7 @@ class Recorder(object):
         self.cache = DataCache()
         self._simulator.recorders.add(self)
         self.clear_flag = False
-        
+
     def record(self, variables, ids):
         """
         Add the cells in `ids` to the sets of recorded cells for the given variables.
@@ -168,22 +185,22 @@ class Recorder(object):
         ids = set([id for id in ids if id.local])
         for variable in normalize_variables_arg(variables):
             if not self.population.can_record(variable):
-                raise errors.RecordingError(variable, self.population.celltype)     
+                raise errors.RecordingError(variable, self.population.celltype)
             new_ids = ids.difference(self.recorded[variable])
             self.recorded[variable] = self.recorded[variable].union(ids)
             self._record(variable, new_ids)
-    
+
     def reset(self):
         """Reset the list of things to be recorded."""
         self._reset()
         self.recorded = defaultdict(set)
-    
+
     def filter_recorded(self, variable, filter_ids):
         if filter_ids is not None:
             return set(filter_ids).intersection(self.recorded[variable])
         else:
             return self.recorded[variable]
-    
+
     def get(self, variables, gather=False, filter_ids=None, clear=False):
         """Return the recorded data as a Neo `Block`."""
         variables = normalize_variables_arg(variables)
@@ -197,17 +214,16 @@ class Recorder(object):
         data.rec_datetime = data.segments[0].rec_datetime
         data.annotate(**self.metadata)
         if gather and self._simulator.state.num_processes > 1:
-            data = gather_array(data)
-
+            data = gather_blocks(data)
         if clear:
             self.cache.clear()
-        
         self.clear_flag = True
-          
         return data
-    
+
     def write(self, variables, file=None, gather=False, filter_ids=None, clear=False):
         """Write recorded data to a Neo IO"""
+        if isinstance(file, basestring):
+            file = get_io(file)
         io = file or self.file
         if gather==False and self._simulator.state.num_processes > 1:
             io.filename += '.%d' % self._simulator.state.mpi_rank
@@ -218,7 +234,7 @@ class Recorder(object):
             # Open the output file, if necessary and write the data
             logger.debug("Writing data to file %s" % io)
             io.write(data)
-    
+
     @property
     def metadata(self):
         metadata = {
@@ -232,7 +248,7 @@ class Recorder(object):
         metadata.update(self.population.annotations)
         metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
         return metadata
-    
+
     def count(self, variable, gather=True, filter_ids=None):
         """
         Return the number of data points for each cell, as a dict. This is mainly
@@ -245,7 +261,7 @@ class Recorder(object):
         if gather and self._simulator.state.num_processes > 1:
             N = gather_dict(N)
         return N
-    
+
     def store_to_cache(self, annotations={}):
         #make sure we haven't called get with clear=True since last reset
         #and that we did not do two resets in a row

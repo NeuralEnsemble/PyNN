@@ -11,7 +11,7 @@ $Id$
 import numpy
 from pyNN.utility import get_script_args
 
-simulator_name = get_script_args(1)[0]  
+simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
 # === Define parameters ========================================================
@@ -45,7 +45,7 @@ assert spike_times.max() > simtime
 
 spike_source = Population(n, SpikeSourceArray, {'spike_times': spike_times})
 
-cells.record()
+cells.record('spikes')
 cells.record_v()
 
 input_conns = Projection(spike_source, cells, AllToAllConnector())
@@ -57,8 +57,8 @@ input_conns.setDelays(syn_delay)
 cells.initialize('v', 0.0)  # (mV)
 run(simtime)
 
-cells.printSpikes("Results/small_network_%s.ras" % simulator_name)
-cells.print_v("Results/small_network_%s.v" % simulator_name)
+cells.printSpikes("Results/small_network_%s_np%d.ras" % (simulator_name, num_processes()))
+cells.print_v("Results/small_network_%s_np%d.v" % (simulator_name, num_processes()))
 
 print "Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz"
 
