@@ -243,7 +243,7 @@ class BasePopulation(object):
         assert isinstance(n, int)
         if not rng:
             rng = random.NumpyRNG()
-        indices = rng.permutation(numpy.arange(len(self)))[0:n]
+        indices = rng.permutation(numpy.arange(len(self)), dtype=numpy.int)[0:n]
         logger.debug("The %d cells recorded have indices %s" % (n, indices))
         logger.debug("%s.sample(%s)", self.label, n)
         return self._get_view(indices)
@@ -668,7 +668,7 @@ class Population(BasePopulation):
             id = numpy.array(id)
             if (self.first_id > id.min()) or (self.last_id < id.max()):
                 raise ValueError("ids should be in the range [%d,%d], actually [%d, %d]" % (self.first_id, self.last_id, id.min(), id.max()))
-            return (id - self.first_id).astype(int)  # this assumes ids are consecutive
+            return (id - self.first_id).astype(numpy.int)  # this assumes ids are consecutive
 
     def id_to_local_index(self, id):
         """
@@ -841,7 +841,7 @@ class PopulationView(BasePopulation):
             if self._is_sorted:
                 return numpy.searchsorted(self.all_cells, id)
             else:
-                result = numpy.array([])
+                result = numpy.array([], dtype=numpy.int)
                 for item in id:
                     data = numpy.where(self.all_cells == item)[0]
                     if len(data) == 0:
@@ -1006,7 +1006,7 @@ class Assembly(object):
             if self._is_sorted:
                 return numpy.searchsorted(all_cells, id)
             else:
-                result = numpy.array([])
+                result = numpy.array([], dtype=numpy.int)
                 for item in id:
                     data = numpy.where(all_cells == item)[0]
                     if len(data) == 0:
@@ -1055,7 +1055,7 @@ class Assembly(object):
         for p in self.populations:
             count += p.size
             boundaries.append(count)
-        boundaries = numpy.array(boundaries)
+        boundaries = numpy.array(boundaries, dtype=numpy.int)
         
         if isinstance(index, int): # return an ID
             pindex = boundaries[1:].searchsorted(index, side='right')
@@ -1109,7 +1109,7 @@ class Assembly(object):
         assert isinstance(n, int)
         if not rng:
             rng = random.NumpyRNG()
-        indices = rng.permutation(numpy.arange(len(self)))[0:n]
+        indices = rng.permutation(numpy.arange(len(self), dtype=numpy.int))[0:n]
         logger.debug("The %d cells recorded have indices %s" % (n, indices))
         logger.debug("%s.sample(%s)", self.label, n)
         return self[indices]
