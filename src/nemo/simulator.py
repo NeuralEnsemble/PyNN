@@ -106,6 +106,8 @@ class _State(object):
                     recorder._add_spike(self._fired, self.t)
                 if recorder.variable is "v":
                     recorder._add_vm(self.t)
+                if recorder.variable is "gsyn":
+                    recorder._add_gsyn(self.t)
 
             
             self._fired = self.sim.step(spikes, currents)

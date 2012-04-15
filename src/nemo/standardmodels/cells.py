@@ -117,7 +117,7 @@ class IF_curr_alpha(cells.IF_curr_alpha):
             'v_thresh' : 7
         }
 
-    initial_indices = {'v' : 0}
+    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
     nemo_name = "IF_curr_alpha"
 
 
@@ -149,7 +149,7 @@ class IF_curr_exp(cells.IF_curr_exp):
             'v_thresh' : 7
         }
 
-    initial_indices = {'v' : 0}
+    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
     nemo_name = "IF_curr_exp"
 
 
@@ -185,7 +185,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
             'e_rev_I'  : 10
         }
 
-    initial_indices = {'v' : 0}
+    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
     nemo_name = "IF_cond_alpha"
 
 
@@ -221,7 +221,7 @@ class IF_cond_exp(cells.IF_cond_exp):
             'e_rev_I'  : 10
         }
 
-    initial_indices = {'v' : 0}
+    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
     nemo_name = "IF_cond_exp"
 
 
@@ -235,22 +235,7 @@ class EIF_cond_exp_isfa_ista(ModelNotAvailable):
     pass    
 
 class HH_cond_exp(ModelNotAvailable):
-
-    translations = build_translations(
-       ('gbar_Na',    'gbar_Na'),   
-       ('gbar_K',     'gbar_K'),    
-       ('g_leak',     'g_leak'),    
-       ('cm',         'c_m'),  
-       ('v_offset',   'v_offset'),
-       ('e_rev_Na',   'e_rev_Na'),
-       ('e_rev_K',    'e_rev_K'), 
-       ('e_rev_leak', 'e_rev_leak'),
-       ('e_rev_E',    'e_rev_E'),
-       ('e_rev_I',    'e_rev_I'),
-       ('tau_syn_E',  'tau_syn_E'),
-       ('tau_syn_I',  'tau_syn_I'),
-       ('i_offset',   'i_offset'),
-   )
+    pass
 
 class SpikeSourceInhGamma(ModelNotAvailable):
     pass

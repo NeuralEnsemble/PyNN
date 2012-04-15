@@ -54,7 +54,7 @@ def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
     common.setup(timestep, min_delay, max_delay, **extra_params)
     simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.spikes_array_list = []
-    simulator.recorder_lise     = []
+    simulator.recorder_list     = []
     if "cpu_backend" in extra_params:
 	simulator.state.conf.set_cpu_backend()
     if "cuda_backend" in extra_params:
@@ -153,7 +153,7 @@ class Population(common.Population, common.BasePopulation):
                         list(params['v_thresh']*i1),
                         list(params['i_offset']*i1),                        
                         list(init['v']*i1), i0, i0, list(1000.*i1))
-        elif isinstance(celltype, cells.IF_cond_alpha) or isinstance(celltype, cells.IF_cond_exp):
+        elif isinstance(celltype, cells.IF_cond_alpha):
             simulator.state.net.add_neuron(ntype, self.all_cells.tolist(),
                         list(params['v_rest']*i1),
                         list(params['v_reset']*i1),
@@ -167,6 +167,20 @@ class Population(common.Population, common.BasePopulation):
                         list(params['e_rev_E']*i1),  
                         list(params['e_rev_I']*i1),                      
                         list(init['v']*i1), i0, i0, i0, i0, list(1000.*i1))
+        elif isinstance(celltype, cells.IF_cond_exp):
+            simulator.state.net.add_neuron(ntype, self.all_cells.tolist(),
+                        list(params['v_rest']*i1),
+                        list(params['v_reset']*i1),
+                        list(params['cm']*i1),
+                        list(params['tau_m']*i1),                    
+                        list(params['t_refrac']*i1),
+                        list(params['tau_syn_E']*i1),
+                        list(params['tau_syn_I']*i1),
+                        list(params['v_thresh']*i1),
+                        list(params['i_offset']*i1),  
+                        list(params['e_rev_E']*i1),  
+                        list(params['e_rev_I']*i1),                      
+                        list(init['v']*i1), i0, i0, list(1000.*i1))
         elif isinstance(celltype, cells.Izikevich):            
             simulator.state.net.add_neuron(ntype, self.all_cells.tolist(), 
                         list(params['a']*i1), 
@@ -184,8 +198,12 @@ class Population(common.Population, common.BasePopulation):
     def _set_initial_value_array(self, variable, value):
         if not hasattr(value, "__len__"):
             value = value*numpy.ones((len(self),))
-        for cell, val in zip(self, value):
-            cell.set_initial_value(variable, val)
+        indices = self.celltype.initial_indices
+        if simulator.state.simulation is None:
+            simulator.state.net.set_neuron_state(self.all_cells.tolist(), indices[variable], value.tolist()) 
+        else:
+            simulator.state.sim.set_neuron_state(self.all_cells.tolist(), indices[variable], value.tolist())
+
 
 class Projection(common.Projection):
     """
@@ -306,6 +324,8 @@ class Projection(common.Projection):
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
         synapse_type = self.synapse_type or "excitatory"
         delays = numpy.array(delays).astype(numpy.int).tolist()
+        if self.synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
+            weights *= -1 # NEMO wants negative values for inhibitory weights, even if these are conductances
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()    
         source   = int(source)        
@@ -333,11 +353,10 @@ class Projection(common.Projection):
 
         if format == 'list':
             values = []
-            if parameter_name is "weight":
-                for ranges in self.connections:
+            for ranges in self.connections:
+                if parameter_name is "weight":
                     values += simulator.state.sim.get_synapse_weight(xrange(ranges[0], ranges[1]))
-            if parameter_name is "delay":
-                for ranges in self.connections:
+                if parameter_name is "delay":
                     values += simulator.state.sim.get_synapse_delay(xrange(ranges[0], ranges[1]))
         elif format == 'array':
             value_arr = numpy.nan * numpy.ones((self.pre.size, self.post.size))            
