@@ -2,7 +2,7 @@
 Installation
 ============
 
-Use of PyNN_ requires that you have Python (version 2.5, 2.6or 2.7) and a recent version of the numpy_ package installed, plus at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
+Use of PyNN_ requires that you have Python (version 2.5, 2.6 or 2.7), a recent version of the numpy_ package, the lazyarray_ package, plus at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
 
 Installing PyNN
 ===============
@@ -154,3 +154,4 @@ Instructions for downloading and installing Brian_ are available from `<http://w
 .. _`distutils`: http://docs.python.org/inst/inst.html
 .. _`GNU Scientific Library`: http://www.gnu.org/software/gsl/
 .. _`NEURON Forum`: http://www.neuron.yale.edu/phpBB/index.php
+.. _lazyarray: http://pypi.python.org/pypi/lazyarray

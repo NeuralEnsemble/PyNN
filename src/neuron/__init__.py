@@ -49,6 +49,12 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     NEURON specific extra_params:
 
     use_cvode - use the NEURON cvode solver. Defaults to False.
+      Optional cvode Parameters:
+      -> rtol - specify relative error tolerance
+      -> atol - specify absolute error tolerance
+
+    native_rng_baseseed - added to MPI.rank to form seed for SpikeSourcePoisson, etc.
+    default_maxstep - TODO
 
     returns: MPI rank
 
@@ -66,6 +72,12 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
             simulator.state.cvode.rtol(float(extra_params['rtol']))
         if extra_params.has_key('atol'):
             simulator.state.cvode.atol(float(extra_params['atol']))
+
+    if extra_params.has_key('native_rng_baseseed'):
+        simulator.state.native_rng_baseseed=int(extra_params['native_rng_baseseed'])
+    else: 
+        simulator.state.native_rng_baseseed=0
+        
     if extra_params.has_key('default_maxstep'):
         simulator.state.default_maxstep=float(extra_params['default_maxstep'])
     return rank()
@@ -122,9 +134,9 @@ class Population(common.Population):
     assembly_class = Assembly
     
     def __init__(self, size, cellclass, cellparams=None, structure=None,
-                 label=None):
+                 initial_values={}, label=None):
         __doc__ = common.Population.__doc__
-        common.Population.__init__(self, size, cellclass, cellparams, structure, label)
+        common.Population.__init__(self, size, cellclass, cellparams, structure, initial_values, label)
         simulator.initializer.register(self)
 
     def _get_view(self, selector, label=None):
@@ -388,40 +400,18 @@ class Projection(common.Projection):
         elif core.is_listlike(value):
             for c,val in zip(self.connections, value):
                 setattr(c, name, val)
+        elif isinstance(value, RandomDistribution):
+            if isinstance(value.rng, NativeRNG):
+                rarr = simulator.nativeRNG_pick(len(self),
+                                                value.rng,
+                                                value.name,
+                                                value.parameters)
+            else:       
+                rarr = value.next(len(self))
+            for c,val in zip(self.connections, rarr):
+                setattr(c, name, val)   
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-
-    def randomizeWeights(self, rand_distr):
-        """
-        Set weights to random values taken from rand_distr.
-        """
-        # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
-        # Python
-        if isinstance(rand_distr.rng, NativeRNG):
-            rarr = simulator.nativeRNG_pick(len(self),
-                                            rand_distr.rng,
-                                            rand_distr.name,
-                                            rand_distr.parameters)
-        else:       
-            rarr = rand_distr.next(len(self))  
-        logger.info("--- Projection[%s].__randomizeWeights__() ---" % self.label)
-        self.setWeights(rarr)
-    
-    def randomizeDelays(self, rand_distr):
-        """
-        Set delays to random values taken from rand_distr.
-        """
-        # If we have a native rng, we do the loops in hoc. Otherwise, we do the loops in
-        # Python
-        if isinstance(rand_distr.rng, NativeRNG):
-            rarr = simulator.nativeRNG_pick(len(self),
-                                            rand_distr.rng,
-                                            rand_distr.name,
-                                            rand_distr.parameters)
-        else:       
-            rarr = rand_distr.next(len(self))  
-        logger.info("--- Projection[%s].__randomizeDelays__() ---" % self.label)
-        self.setDelays(rarr)
 
     def get(self, parameter_name, format, gather=True):
         """

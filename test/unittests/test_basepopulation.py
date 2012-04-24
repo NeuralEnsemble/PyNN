@@ -299,7 +299,7 @@ def test_initialize():
     p.initial_values = {}
     p._set_initial_value_array = Mock()
     p.initialize('v', -65.0)
-    assert_equal(p.initial_values['v'].value, -65.0)
+    assert_equal(p.initial_values['v'].evaluate(simplify=True), -65.0)
     p._set_initial_value_array.assert_called_with('v', -65.0)    
 
 def test_initialize_random_distribution():
@@ -310,7 +310,7 @@ def test_initialize_random_distribution():
         def next(self, n, mask_local):
             return 42*numpy.ones(n)[mask_local]
     p.initialize('v', MockRandomDistribution())
-    assert_arrays_equal(p.initial_values['v'].value, 42*numpy.ones(p.local_size))
+    assert_arrays_equal(p.initial_values['v'].evaluate(simplify=True), 42*numpy.ones(p.local_size))
     #p._set_initial_value_array.assert_called_with('v', 42*numpy.ones(p.size)) 
 
 def test_can_record():

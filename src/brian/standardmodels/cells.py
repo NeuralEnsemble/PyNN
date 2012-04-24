@@ -13,7 +13,7 @@ from pyNN import errors
 #import brian_no_units_no_warnings
 from brian.library.synapses import *
 import brian
-from pyNN.brian.simulator import SimpleCustomRefractoriness, AdaptiveReset
+from pyNN.brian.simulator import SimpleCustomRefractoriness, AdaptiveReset, IzikevichReset
 from brian import mV, ms, nF, nA, uS, second, Hz, amp
 import numpy
 
@@ -95,7 +95,6 @@ class IF_curr_exp(cells.IF_curr_exp):
     @property
     def reset(self):
         return self.parameters['v_reset'] * mV    
-
 
 class IF_cond_alpha(cells.IF_cond_alpha):
 
@@ -300,6 +299,43 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     def reset(self):
         reset = AdaptiveReset(self.parameters['v_reset'] * mV, self.parameters['b'] * amp)
         return SimpleCustomRefractoriness(reset, period = self.parameters['tau_refrac'] * ms)
+
+
+
+class Izikevich(cells.Izikevich):
+    
+    __doc__ = cells.Izikevich.__doc__ 
+
+    translations = build_translations(
+        ('a',    'a', 1/ms),
+        ('b',    'b', 1/ms),
+        ('v_reset', 'v_reset'),
+        ('d',    'd', mV/ms),   
+        ('tau_refrac', 'tau_refrac')
+    )
+
+    eqs = brian.Equations('''
+	    dv/dt = (0.04/ms/mV)*v**2+(5/ms)*v+140*mV/ms - u + (ie + ii) * (mV/ms) / nA : mV
+	    du/dt = a*(b*v-u)                                : mV/ms
+        die/dt = -ie/(1*ms)                              : nA
+        dii/dt = -ii/(1*ms)                              : nA
+        a                                                : 1/ms
+        b                                                : 1/ms
+        v_reset                                          : mV
+        d                                                : mV/ms
+	    ''')
+
+    synapses  = {'excitatory': 'ie', 'inhibitory': 'ii'}    
+
+    @property
+    def reset(self):
+        reset = IzikevichReset(self.parameters['v_reset'] * mV, self.parameters['d'])
+        return SimpleCustomRefractoriness(reset, period = self.parameters['tau_refrac'] * ms)
+
+    @property
+    def threshold(self):
+	    return 30 * mV
+
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
 

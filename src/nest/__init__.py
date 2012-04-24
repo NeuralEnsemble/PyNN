@@ -414,7 +414,7 @@ class Projection(common.Projection):
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
         if self.synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
-            weights = -1*weights # NEST wants negative values for inhibitory weights, even if these are conductances
+            weights *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()
         elif isinstance(weights, float):
@@ -435,6 +435,7 @@ class Projection(common.Projection):
                 nest.Connect([source], [target], {'weight': w, 'delay': d, 'receptor_type': target.celltype.get_receptor_type(self.synapse_type)})
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.append(source)  
+        
 
     def _convergent_connect(self, sources, target, weights, delays):
         """

@@ -299,6 +299,31 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
     }
 
 
+class Izikevich(StandardCellType):
+    """
+    Izikevich spiking model with a quadratic non-linearity according to:
+
+    E. Izikevich (2003), IEEE transactions on neural networks, 14(6) 
+
+    Synapses are modeled as dirac, as in the original model
+    """
+
+    default_parameters = {
+        'a'        : 0.02,     
+        'b'        : 0.2,     
+        'v_reset'  : -65.0,   
+        'd'        :   2.,
+        'tau_refrac' : 0.1       
+    }
+    recordable        = ['spikes', 'v', 'u']
+    conductance_based = False
+
+    default_initial_values = {
+        'v': -65.0, 
+        'u': 0.0
+    }  
+
+
 class SpikeSourcePoisson(StandardCellType):
     """Spike source, generating spikes according to a Poisson process."""
 
@@ -330,7 +355,7 @@ class SpikeSourceInhGamma(StandardCellType):
     }
     recordable = ['spikes']
     injectable = False
-    synapse_types = ()
+    synapse_types = ()      
 
 
 class SpikeSourceArray(StandardCellType):

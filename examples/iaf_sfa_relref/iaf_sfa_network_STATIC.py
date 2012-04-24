@@ -132,7 +132,7 @@ class LatticeConnector(connectors.Connector):
                         
             # Check for small and big delays
             myTimer = time.time()
-            delaysClipped = numpy.clip(delays,common.get_min_delay(),common.get_max_delay())
+            delaysClipped = numpy.clip(delays,sim.get_min_delay(),sim.get_max_delay())
             howManyClipped = len((delays != delaysClipped).nonzero()[0])
             if (howManyClipped > 1):
                 print "Warning: %d of %d delays were cliped because they were either bigger than the max delay or lower than the min delay." % (howManyClipped, n)

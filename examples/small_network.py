@@ -36,7 +36,7 @@ simtime    = 1000.0      # (ms)
 
 setup(timestep=dt, max_delay=syn_delay)
 
-cells = Population(n, IF_curr_alpha, cell_params, label="cells")
+cells = Population(n, IF_curr_alpha, cell_params, initial_values={'v': 0.0}, label="cells")
 
 number = int(2*simtime*input_rate/1000.0)
 numpy.random.seed(26278342)
@@ -54,7 +54,6 @@ input_conns.setDelays(syn_delay)
 
 # === Run simulation ===========================================================
 
-cells.initialize('v', 0.0)  # (mV)
 run(simtime)
 
 cells.printSpikes("Results/small_network_%s_np%d.ras" % (simulator_name, num_processes()))
