@@ -10,12 +10,13 @@ $Id$
 
 from pyNN.standardmodels import cells, build_translations, ModelNotAvailable
 from pyNN import errors
-#import brian_no_units_no_warnings
-from brian.library.synapses import *
+#from brian.library.synapses import *
 import brian
-from pyNN.brian.simulator import SimpleCustomRefractoriness, AdaptiveReset
+from pyNN.brian.simulator import PoissonGroupWithDelays, ThresholdNeuronGroup, \
+                                 AdaptiveNeuronGroup, BiophysicalNeuronGroup, \
+                                 MultipleSpikeGeneratorGroupWithDelays
 from brian import mV, ms, nF, nA, uS, second, Hz, amp
-import numpy
+
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):
@@ -48,14 +49,7 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         '''
         )
     synapses  = {'excitatory' : 'ye', 'inhibitory' : 'yi'}
-
-    @property
-    def threshold(self):
-        return self.parameter_space['v_thresh'] * mV
-
-    @property
-    def reset(self):
-        return self.parameter_space['v_reset'] * mV
+    brian_model = ThresholdNeuronGroup
 
 
 class IF_curr_exp(cells.IF_curr_exp):
@@ -85,16 +79,8 @@ class IF_curr_exp(cells.IF_curr_exp):
         i_inj                                 : nA
         '''
         )
-
     synapses  = {'excitatory': 'ie', 'inhibitory': 'ii'}
-
-    @property
-    def threshold(self):
-        return self.parameter_space['v_thresh'] * mV
-
-    @property
-    def reset(self):
-        return self.parameter_space['v_reset'] * mV
+    brian_model = ThresholdNeuronGroup
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):
@@ -131,14 +117,8 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         '''
         )
     synapses  = {'excitatory': 'ye', 'inhibitory': 'yi'}
+    brian_model = ThresholdNeuronGroup
 
-    @property
-    def threshold(self):
-        return self.parameter_space['v_thresh'] * mV
-
-    @property
-    def reset(self):
-        return self.parameter_space['v_reset'] * mV
 
 
 class IF_cond_exp(cells.IF_cond_exp):
@@ -173,14 +153,8 @@ class IF_cond_exp(cells.IF_cond_exp):
         '''
         )
     synapses  = {'excitatory': 'ge', 'inhibitory': 'gi'}
+    brian_model = ThresholdNeuronGroup
 
-    @property
-    def threshold(self):
-        return self.parameter_space['v_thresh'] * mV
-
-    @property
-    def reset(self):
-        return self.parameter_space['v_reset'] * mV
 
 
 class IF_facets_hardware1(ModelNotAvailable):
@@ -196,24 +170,12 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     __doc__ = cells.SpikeSourcePoisson.__doc__
 
     translations = build_translations(
-        ('rate',     'rate'),
-        ('start',    'start'),
-        ('duration', 'duration'),
+        ('rate',     'rate',        Hz),
+        ('start',    'start',       ms),
+        ('duration', 'duration',    ms),
     )
-
-    class rates(object):
-        """
-        Acts as a function of time for the PoissonGroup, while storing the
-        parameters for later retrieval.
-        """
-        def __init__(self, start, duration, rate, n):
-            self.start    = start * numpy.ones(n) * ms
-            self.duration = duration * numpy.ones(n) * ms
-            self.rate     = rate * numpy.ones(n) * Hz
-
-        def __call__(self, t):
-            idx = (self.start <= t) & (t <= self.start + self.duration)
-            return numpy.where(idx, self.rate, 0)
+    eqs = None
+    brian_model = PoissonGroupWithDelays
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
@@ -222,6 +184,8 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     translations = build_translations(
         ('spike_times', 'spiketimes', ms),
     )
+    eqs = None
+    brian_model = MultipleSpikeGeneratorGroupWithDelays
 
 
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
@@ -245,7 +209,6 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         ('e_rev_I',    'e_rev_I',    mV),
         ('tau_syn_I',  'tau_syn_I',  ms),
     )
-
     eqs= brian.Equations('''
         dv/dt  = ((v_rest-v) + delta_T*exp((v-v_thresh)/delta_T))/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v) + i_offset + i_inj - w)/c_m : mV
         dge/dt = (2.7182818284590451*ye-ge)/tau_syn_E  : uS
@@ -270,17 +233,9 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         v_spike                               : mV
         '''
         )
-
     synapses  = {'excitatory': 'ye', 'inhibitory': 'yi'}
+    brian_model = AdaptiveNeuronGroup
 
-    @property
-    def threshold(self):
-        return self.parameter_space['v_spike'] * mV
-
-    @property
-    def reset(self):
-        reset = AdaptiveReset(self.parameter_space['v_reset'] * mV, self.parameter_space['b'] * amp)
-        return SimpleCustomRefractoriness(reset, period = self.parameter_space['tau_refrac'] * ms)
 
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
@@ -304,7 +259,6 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         ('e_rev_I',    'e_rev_I',    mV),
         ('tau_syn_I',  'tau_syn_I',  ms),
     )
-
     eqs= brian.Equations('''
         dv/dt  = ((v_rest-v) + delta_T*exp((v - v_thresh)/delta_T))/tau_m + (ge*(e_rev_E-v) + gi*(e_rev_I-v) + i_offset + i_inj - w)/c_m : mV
         dge/dt = -ge/tau_syn_E                : uS
@@ -327,17 +281,8 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         v_spike                               : mV
         '''
         )
-
     synapses  = {'excitatory': 'ge', 'inhibitory': 'gi'}
-
-    @property
-    def threshold(self):
-        return self.parameter_space['v_spike'] * mV
-
-    @property
-    def reset(self):
-        reset = AdaptiveReset(self.parameter_space['v_reset'] * mV, self.parameter_space['b'] * amp)
-        return SimpleCustomRefractoriness(reset, period = self.parameter_space['tau_refrac'] * ms)
+    brian_model = AdaptiveNeuronGroup
 
 
 class HH_cond_exp(cells.HH_cond_exp):
@@ -358,7 +303,6 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('tau_syn_I',  'tau_syn_I',  ms),
         ('i_offset',   'i_offset',   nA),
     )
-
     eqs= brian.Equations('''
         dv/dt = (g_leak*(e_rev_leak-v)+ge*(e_rev_E-v)+gi*(e_rev_I-v)-gbar_Na*(m*m*m)*h*(v-e_rev_Na)-gbar_K*(n*n*n*n)*(v-e_rev_K) + i_offset + i_inj)/c_m : mV
         dm/dt  = (alpham*(1-m)-betam*m) : 1
@@ -388,9 +332,7 @@ class HH_cond_exp(cells.HH_cond_exp):
         i_inj                  : nA
     ''')
     synapses  = {'excitatory': 'ge', 'inhibitory': 'gi'}
-    extra_parameters = {'implicit' : True}
-    threshold = brian.EmpiricalThreshold(threshold=-40*mV, refractory=2*ms)
-    reset = 0 * mV
+    brian_model = BiophysicalNeuronGroup
 
 
 class SpikeSourceInhGamma(ModelNotAvailable):

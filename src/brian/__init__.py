@@ -20,6 +20,7 @@ from pyNN.brian.standardmodels.synapses import *
 from pyNN.brian import electrodes
 from pyNN.brian.recording import *
 from pyNN import standardmodels
+from pyNN.parameters import ParameterSpace
 
 logger = logging.getLogger("PyNN")
 
@@ -89,20 +90,16 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 # ==============================================================================
 
 
-class PopulationMixin(object):
+class Assembly(common.Assembly):
+    _simulator = simulator
 
-    def _set_parameters(self, parameter_space):
-        """
-        parameter_space should contain native parameters
-        """
-        parameter_space.evaluate(simplify=True)
-        for name, value in parameter_space.items():
-            if name in ['rate', 'duration', 'start']:
-                setattr(self.brian_cells.rates, name, value)
-            elif name == 'spiketimes':
-                self.brian_cells.spiketimes = value
-            else:
-                setattr(self.brian_cells, name, value)
+
+class PopulationView(common.PopulationView):
+    _simulator = simulator
+    assembly_class = Assembly
+
+    def _get_view(self, selector, label=None):
+        return PopulationView(self, selector, label)
 
     def _get_parameters(self, *names):
         """
@@ -110,27 +107,12 @@ class PopulationMixin(object):
         """
         params = {}
         for name in names:
-            if name in ('rate', 'duration', 'start'):
-                params[name] = getattr(self.brian_cells.rates, name)
-            else:
-                params[name] = getattr(self.brian_cells, name)
+            params[name] = getattr(self.parent.brian_cells, name)[self.mask]
             assert isinstance(params[name], numpy.ndarray)
         return ParameterSpace(params, size=self.size)
 
 
-class Assembly(common.Assembly):
-    _simulator = simulator
-
-
-class PopulationView(common.PopulationView, PopulationMixin):
-    _simulator = simulator
-    assembly_class = Assembly
-
-    def _get_view(self, selector, label=None):
-        return PopulationView(self, selector, label)
-
-
-class Population(common.Population, PopulationMixin):
+class Population(common.Population):
     """
     An array of neurons all of the same type. `Population' is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
@@ -151,35 +133,10 @@ class Population(common.Population, PopulationMixin):
         # either that or use the subgroup() method in connect(), etc
         cell_parameters = self.celltype.translated_parameters
         cell_parameters.size = self.size
-        if isinstance(self.celltype, cells.SpikeSourcePoisson):
-            fct = self.celltype.rates(cell_parameters['start'], cell_parameters['duration'], cell_parameters['rate'], n)
-            #### need to update the previous line to take account of parameter spaces
-            brian_cells = simulator.PoissonGroupWithDelays(self.size, rates=fct)
-        elif isinstance(self.celltype, cells.SpikeSourceArray):
-            spike_times = cell_parameters['spiketimes']
-            brian_cells = simulator.MultipleSpikeGeneratorGroupWithDelays([spike_times for i in xrange(self.size)])
-            #### need to update the previous line to take account of parameter spaces
-        elif 'v_reset' in self.celltype.parameter_space.keys():
-            params = {'threshold'  : self.celltype.threshold,
-                      'reset'      : self.celltype.reset}
-            if self.celltype.has_parameter('tau_refrac'):
-                params['refractory'] = self.celltype.parameter_space['tau_refrac'] * ms
-            for name, value in params.items():
-                if not value.is_homogeneous:
-                    raise ValueError("For the pyNN.brian backend, this parameter cannot be set for individual cells within a Population.")
-                value.shape = (self.size,)
-                params[name] = value.evaluate(simplify=True)
-            brian_cells = simulator.ThresholdNeuronGroup(self.size, self.celltype.eqs, **params)
-        else:
-            params = {'threshold': self.celltype.threshold}
-            for name, value in params.items():
-                if not value.is_homogeneous:
-                    raise ValueError("For the pyNN.brian backend, this parameter cannot be set for individual cells within a Population.")
-                value.shape = (self.size,)
-                params[name] = value.evaluate(simplify=True)
-            brian_cells = simulator.PlainNeuronGroup(self.size, self.celltype.eqs, **params)
-        if hasattr(self.celltype, 'extra_parameters'):
-            cell_parameters.update(**self.celltype.extra_parameters)
+        cell_parameters.evaluate(simplify=False)
+        brian_cells = self.celltype.brian_model(self.size,
+                                                self.celltype.eqs,
+                                                **cell_parameters)
 
         # should we globally track the IDs used, so as to ensure each cell gets a unique integer? (need only track the max ID)
         self.all_cells = numpy.array([simulator.ID(simulator.state.next_id)
@@ -193,10 +150,25 @@ class Population(common.Population, PopulationMixin):
         self.first_id    = self.all_cells[0]
         self.last_id     = self.all_cells[-1]
         self.brian_cells = brian_cells
-
-        self._set_parameters(cell_parameters)
-
         simulator.state.network.add(brian_cells)
+
+    def _get_parameters(self, *names):
+        """
+        Return a ParameterSpace containing native parameters
+        """
+        params = {}
+        for name in names:
+            params[name] = getattr(self.brian_cells, name)
+            assert isinstance(params[name], numpy.ndarray)
+        return ParameterSpace(params, size=self.size)
+
+    def _set_parameters(self, parameter_space):
+        """
+        parameter_space should contain native parameters
+        """
+        parameter_space.evaluate(simplify=False)
+        for name, value in parameter_space.items():
+            setattr(self.brian_cells, name, value)
 
     def _set_initial_value_array(self, variable, value):
         if variable is 'v':

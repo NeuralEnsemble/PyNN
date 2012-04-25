@@ -13,10 +13,11 @@ Classes:
 $Id: electrodes.py 957 2011-05-03 13:44:15Z apdavison $
 """
 
-from brian import ms, nA, Hz, pA, network_operation
+from brian import ms, nA, Hz, pA, network_operation, amp as ampere
 import numpy
 from pyNN.brian import simulator
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
+from pyNN.parameters import ParameterSpace, Sequence
 
 current_sources = []
 
@@ -37,16 +38,20 @@ class BrianCurrentSource(StandardCurrentSource):
         self.cell_list = []
         self.indices   = []
         current_sources.append(self)
-        self.set_native_parameters(parameters)
+        parameter_space = ParameterSpace(self.default_parameters,
+                                         self.get_schema(),
+                                         size=1)
+        parameter_space.update(**parameters)
+        parameter_space = self.translate(parameter_space)
+        parameter_space.evaluate(simplify=True)
+        self.set_native_parameters(parameter_space.as_dict())
 
     def set_native_parameters(self, parameters):
-        parameters = self.translate(parameters)
-        for key, value in parameters.items():
-            self.parameters[key] = value
+        for name, value in parameters.items():
+            if isinstance(value, Sequence):
+                value = value.value
+            object.__setattr__(self, name, value)
         self._reset()
-
-    def get_native_parameters(self):
-        return self.parameters
 
     def _reset(self):
         self.i       = 0
@@ -62,34 +67,34 @@ class BrianCurrentSource(StandardCurrentSource):
         self.cell_list.extend(cell_list)
         for cell in cell_list:
             self.indices.extend([cell.parent.id_to_index(cell)])
-    
+
     def _update_current(self):
-        if self.running and simulator.state.t >= self.times[self.i]:
+        if self.running and simulator.state.t >= self.times[self.i]*1e3:
             for cell, idx in zip(self.cell_list, self.indices):
                 if not self._is_playable:
-                    cell.parent_group.i_inj[idx] = self.amplitudes[self.i] * nA
-                else:  
-                    cell.parent_group.i_inj[idx] = self._compute(self.times[self.i]) * nA
+                    cell.parent_group.i_inj[idx] = self.amplitudes[self.i] * ampere
+                else:
+                    cell.parent_group.i_inj[idx] = self._compute(self.times[self.i]) * ampere
+            print simulator.state.t, self.i, self.times[self.i], self.cell_list[0].parent_group.i_inj[0]
             self.i += 1
             if self.i >= len(self.times):
-                self.running = False         
-        
+                self.running = False
+
 
 class StepCurrentSource(BrianCurrentSource, electrodes.StepCurrentSource):
     __doc__ = electrodes.StepCurrentSource.__doc__
-    
+
     translations = build_translations(
         ('amplitudes',  'amplitudes', nA),
         ('times',       'times',      ms)
     )
-
     _is_computed = False
     _is_playable = False
 
 
 class ACSource(BrianCurrentSource, electrodes.ACSource):
-    __doc__ = electrodes.ACSource.__doc__    
-    
+    __doc__ = electrodes.ACSource.__doc__
+
     translations = build_translations(
         ('amplitude',  'amplitude', nA),
         ('start',      'start',     ms),
@@ -98,30 +103,28 @@ class ACSource(BrianCurrentSource, electrodes.ACSource):
         ('offset',     'offset',    nA),
         ('phase',      'phase',     1)
     )
-
     _is_computed = True
     _is_playable = True
 
     def __init__(self, parameters):
         BrianCurrentSource.__init__(self, parameters)
         self._generate()
-    
+
     def _generate(self):
         self.times = numpy.arange(self.start, self.stop, simulator.state.dt)
-    
+
     def _compute(self, time):
         return self.amplitude * numpy.sin(time*2*numpy.pi*self.frequency/1000. + 2*numpy.pi*self.phase/360)
 
 
 class DCSource(BrianCurrentSource, electrodes.DCSource):
     __doc__ = electrodes.DCSource.__doc__
-    
+
     translations = build_translations(
         ('amplitude',  'amplitude', nA),
         ('start',      'start',     ms),
         ('stop',       'stop',      ms)
     )
-
     _is_computed = True
     _is_playable = False
 
@@ -134,9 +137,9 @@ class DCSource(BrianCurrentSource, electrodes.DCSource):
         self.amplitudes = [0.0, self.amplitude, 0.0]
 
 
-class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):   
+class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
     __doc__ = electrodes.NoisyCurrentSource.__doc__
-    
+
     translations = build_translations(
         ('mean',  'mean',    nA),
         ('start', 'start',   ms),
@@ -144,10 +147,9 @@ class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
         ('stdev', 'stdev',   nA),
         ('dt',    'dt',      ms)
     )
-
     _is_computed = True
     _is_playable = True
-    
+
     def __init__(self, parameters):
         BrianCurrentSource.__init__(self, parameters)
         self._generate()
@@ -157,4 +159,3 @@ class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
 
     def _compute(self, time):
         return self.mean + (self.stdev*self.dt)*numpy.random.randn()
-

@@ -39,6 +39,8 @@ class Sequence(object):
         else:
             return Sequence(self.value * val)
 
+    __rmul__ = __mul__
+
     def __eq__(self, other):
         return (self.value == other.value).all()
 
