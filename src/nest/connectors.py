@@ -43,7 +43,7 @@ class FastProbabilisticConnector(Connector):
         self.local_long        = numpy.zeros(self.M, bool)
         self.local_long[idx]   = True
         self.weights_generator = WeightGenerator(weights, self.local_long, projection, safe)
-        self.delays_generator  = DelayGenerator(delays, self.local_long, kernel=projection._simulator.state, safe=safe)
+        self.delays_generator  = DelayGenerator(self.delays, self.local_long, kernel=projection._simulator.state, safe=safe)
         self.probas_generator  = ProbaGenerator(random.RandomDistribution('uniform',(0,1), rng=self.rng), self.local_long)
         self.distance_matrix   = DistanceMatrix(projection.pre.positions, self.space, self.local)
         self.projection        = projection
