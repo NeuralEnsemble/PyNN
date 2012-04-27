@@ -1,0 +1,10 @@
+=================================
+Populations, Views and Assemblies
+=================================
+
+.. autoclass:: pyNN.neuron.Population
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:

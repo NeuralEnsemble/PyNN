@@ -1,0 +1,10 @@
+=============
+Neuron models
+=============
+
+.. autoclass:: pyNN.standardmodels.StandardCellType
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
