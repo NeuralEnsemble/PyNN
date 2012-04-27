@@ -54,7 +54,12 @@ def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
     common.setup(timestep, min_delay, max_delay, **extra_params)
     simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.spikes_array_list = []
-    simulator.recorder_lise     = []
+    simulator.recorder_list     = []
+    if "cpu_backend" in extra_params:
+	simulator.state.conf.set_cpu_backend()
+    if "cuda_backend" in extra_params:
+	simulator.state.conf.set_cuda_backend(extra_params["cuda_backend"])
+    print "The backend used by nemo is: ", simulator.state.conf.backend_description()
     return simulator.state.mpi_rank
 
 def end(compatible_output=True):
@@ -118,46 +123,73 @@ class Population(common.Population, common.BasePopulation):
         self.all_cells  = numpy.array([simulator.ID(simulator.state.next_id) for cell in xrange(n)], simulator.ID)
         for cell in self.all_cells:
             cell.parent = self
+        
+        ntype = simulator.state.net.add_neuron_type(cellclass.nemo_name)
+        i1    = numpy.ones(n)
+        i0    = numpy.zeros(n).tolist()        
+        init  = celltype.default_initial_values
+
         if isinstance(celltype, SpikeSourcePoisson):    
-            simulator.spikes_array_list += self.all_cells.tolist()
-            params['precision'] = simulator.state.dt
-            for idx in self.all_cells:
-                player = SpikeSourcePoisson.spike_player(**params)
-                setattr(idx, 'player', player)
-                ntype = simulator.state.net.add_neuron_type('Input')
-                simulator.state.net.add_neuron(ntype, int(idx))
+            simulator.state.net.add_neuron(ntype, self.all_cells.tolist(), params['rate']*i1)
         elif isinstance(celltype, SpikeSourceArray):
-            ### For the moment, we model spike_source_array and spike_source_poisson
-            ### as hyperpolarized neurons that are forced to fire, but this could be
-            ### enhanced. A local copy of these devices is kept on the CPU, to send the
+            ### For the moment, we model spike_source_array as neurons that are forced to fire, 
+            ### but this could be enhanced. A local copy of these devices is kept on the CPU, to send the
             ### spikes
             simulator.spikes_array_list += self.all_cells.tolist()
             params['precision'] = simulator.state.dt
             for idx in self.all_cells:
                 player = SpikeSourceArray.spike_player(**params)
-                setattr(idx, 'player', player)
-                ntype = simulator.state.net.add_neuron_type('Input')
-                simulator.state.net.add_neuron(ntype, int(idx))
-        elif isinstance(celltype, cells.IF_curr_exp):
-            init = celltype.default_initial_values
-            for idx in self.all_cells:                
-                ntype = simulator.state.net.add_neuron_type('IF_curr_exp')               
-                simulator.state.net.add_neuron(ntype, int(idx),
-                        params['v_rest'],
-                        params['v_reset'],
-                        params['cm'],
-                        params['tau_m'],                    
-                        params['t_refrac'],
-                        params['tau_syn_E'],
-                        params['tau_syn_I'],
-                        params['v_thresh'],
-                        params['i_offset'],                        
-                        init['v'], 0., 0., 1000.)
-        else:            
-            init = celltype.default_initial_values
-            ntype = simulator.state.net.add_neuron_type('Izhikevich')
-            for idx in self.all_cells:
-                simulator.state.net.add_neuron(ntype, int(idx), params['a'], params['b'], params['c'], params['d'], init['u'], init['v'], 0.)
+                setattr(idx, 'player', player)                
+            simulator.state.net.add_neuron(ntype, self.all_cells.tolist())
+        elif isinstance(celltype, cells.IF_curr_exp) or isinstance(celltype, cells.IF_curr_alpha):            
+            simulator.state.net.add_neuron(ntype, self.all_cells.tolist(),
+                        list(params['v_rest']*i1),
+                        list(params['v_reset']*i1),
+                        list(params['cm']*i1),
+                        list(params['tau_m']*i1),                    
+                        list(params['t_refrac']*i1),
+                        list(params['tau_syn_E']*i1),
+                        list(params['tau_syn_I']*i1),
+                        list(params['v_thresh']*i1),
+                        list(params['i_offset']*i1),                        
+                        list(init['v']*i1), i0, i0, list(1000.*i1))
+        elif isinstance(celltype, cells.IF_cond_alpha):
+            simulator.state.net.add_neuron(ntype, self.all_cells.tolist(),
+                        list(params['v_rest']*i1),
+                        list(params['v_reset']*i1),
+                        list(params['cm']*i1),
+                        list(params['tau_m']*i1),                    
+                        list(params['t_refrac']*i1),
+                        list(params['tau_syn_E']*i1),
+                        list(params['tau_syn_I']*i1),
+                        list(params['v_thresh']*i1),
+                        list(params['i_offset']*i1),  
+                        list(params['e_rev_E']*i1),  
+                        list(params['e_rev_I']*i1),                      
+                        list(init['v']*i1), i0, i0, i0, i0, list(1000.*i1))
+        elif isinstance(celltype, cells.IF_cond_exp):
+            simulator.state.net.add_neuron(ntype, self.all_cells.tolist(),
+                        list(params['v_rest']*i1),
+                        list(params['v_reset']*i1),
+                        list(params['cm']*i1),
+                        list(params['tau_m']*i1),                    
+                        list(params['t_refrac']*i1),
+                        list(params['tau_syn_E']*i1),
+                        list(params['tau_syn_I']*i1),
+                        list(params['v_thresh']*i1),
+                        list(params['i_offset']*i1),  
+                        list(params['e_rev_E']*i1),  
+                        list(params['e_rev_I']*i1),                      
+                        list(init['v']*i1), i0, i0, list(1000.*i1))
+        elif isinstance(celltype, cells.Izikevich):            
+            simulator.state.net.add_neuron(ntype, self.all_cells.tolist(), 
+                        list(params['a']*i1), 
+                        list(params['b']*i1), 
+                        list(params['c']*i1), 
+                        list(params['d']*i1), 
+                        i0, 
+                        list(init['u']*i1), 
+                        list(init['v']*i1))
        
         self._mask_local = numpy.ones((n,), bool) # all cells are local
         self.first_id    = self.all_cells[0]
@@ -166,8 +198,12 @@ class Population(common.Population, common.BasePopulation):
     def _set_initial_value_array(self, variable, value):
         if not hasattr(value, "__len__"):
             value = value*numpy.ones((len(self),))
-        for cell, val in zip(self, value):
-            cell.set_initial_value(variable, val)
+        indices = self.celltype.initial_indices
+        if simulator.state.simulation is None:
+            simulator.state.net.set_neuron_state(self.all_cells.tolist(), indices[variable], value.tolist()) 
+        else:
+            simulator.state.sim.set_neuron_state(self.all_cells.tolist(), indices[variable], value.tolist())
+
 
 class Projection(common.Projection):
     """
@@ -204,7 +240,6 @@ class Projection(common.Projection):
         self._method           = method
         self._connections      = None
         self.synapse_type      = target or 'excitatory'
-        
         if self.synapse_dynamics:
             if self.synapse_dynamics.fast:
                 if self.synapse_dynamics.slow:
@@ -230,22 +265,33 @@ class Projection(common.Projection):
         self._connections = []
         
         method.connect(self)
+        self._ranges = [0]
+        for conn in self.connections:
+            self._ranges += [self._ranges[-1] + (conn[1] - conn[0])]
         
     def __getitem__(self, i):
+        idx = numpy.searchsorted(self._ranges, i)
         if isinstance(i, int):
             if i < len(self):
-                return simulator.Connection(self.connections[i])
+                padding = numpy.maximum(0, idx - 1)
+                return simulator.Connection(self.connections[padding][0] + i - self._ranges[padding])
             else:
                 raise IndexError("%d > %d" % (i, len(self)-1))
         elif isinstance(i, slice):
             if i.stop < len(self):
-                return [simulator.Connection(self.connections[j]) for j in range(i.start, i.stop, i.step or 1)]
+                data = xrange(i.start, i.stop, i.step or 1)
+                idx  = numpy.searchsorted(self._ranges, data)            
+                res  = []
+                pads = numpy.maximum(0, idx - 1)
+                for count, j in enumerate(data):
+                    res += [simulator.Connection(self.connections[pads[count]][0] + j - self._ranges[pads[count]])]
+                return res
             else:
                 raise IndexError("%d > %d" % (i.stop, len(self)-1))
     
     def __len__(self):
         """Return the number of connections on the local MPI node."""
-        return len(self.connections)
+        return self._ranges[-1]
 
     @property
     def connections(self):        
@@ -277,13 +323,15 @@ class Projection(common.Projection):
                 raise errors.ConnectionError("Invalid target ID: %s" % target)
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
         synapse_type = self.synapse_type or "excitatory"
-        delays = numpy.array(delays).astype(int).tolist()
+        delays = numpy.array(delays).astype(numpy.int).tolist()
+        if self.synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
+            weights *= -1 # NEMO wants negative values for inhibitory weights, even if these are conductances
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()    
         source   = int(source)        
         synapses = simulator.state.net.add_synapse(source, targets, delays, weights, self._is_plastic)
         self._sources.append(source)
-        self._connections += synapses
+        self._connections += [(synapses[0], synapses[-1])]
 
     def get(self, parameter_name, format, gather=True):
         """
@@ -304,20 +352,26 @@ class Projection(common.Projection):
             raise Exception("Only weights and delays can be accessed by Nemo")
 
         if format == 'list':
-            if parameter_name is "weight":
-                values = list(simulator.state.sim.get_synapse_weight(self.connections))
-            if parameter_name is "delay":
-                values = list(simulator.state.sim.get_synapse_delay(self.connections))
+            values = []
+            for ranges in self.connections:
+                if parameter_name is "weight":
+                    values += simulator.state.sim.get_synapse_weight(xrange(ranges[0], ranges[1]))
+                if parameter_name is "delay":
+                    values += simulator.state.sim.get_synapse_delay(xrange(ranges[0], ranges[1]))
         elif format == 'array':
-            value_arr = numpy.nan * numpy.ones((self.pre.size, self.post.size))
-            sources  = [i.source for i in self]
-            synapses = [i.synapse for i in self]
-            targets  = list(simulator.state.sim.get_targets(synapses))
-            addr     = self.pre.id_to_index(sources), self.post.id_to_index(targets)      
-            if parameter_name is "weight":
-                data = list(simulator.state.sim.get_weights(synapses))
-            if parameter_name is "delay":
-                data = list(simulator.state.sim.get_delays(synapses))          
+            value_arr = numpy.nan * numpy.ones((self.pre.size, self.post.size))            
+            synapses  = []
+            sources   = []
+            targets   = []
+            for ranges in self.connections:
+                sources += simulator.state.sim.get_targets(xrange(ranges[0], ranges[1]))
+                targets += simulator.state.sim.get_targets(xrange(ranges[0], ranges[1]))               
+                if parameter_name is "weight":
+                    data = simulator.state.sim.get_weights(xrange(ranges[0], ranges[1]))
+                if parameter_name is "delay":
+                    data = simulator.state.sim.get_delays(xrange(ranges[0], ranges[1]))          
+
+            addr     = self.pre.id_to_index(sources), self.post.id_to_index(targets)   
             for idx in xrange(len(data)):
                 address = addr[0][idx], addr[1][idx]
                 if numpy.isnan(value_arr[address]):
@@ -339,14 +393,16 @@ class Projection(common.Projection):
             file = files.StandardTextFile(file, mode='w')
         
         lines = numpy.empty((len(self), 4))        
-        lines[:,0] = [i.source for i in self]
-        lines[:,1] = [i.target for i in self]            
+        synapses = []
+        for count, ranges in enumerate(self.connections):
+            idx          = range(self._ranges[count], self._ranges[count+1])
+            lines[idx,0] = simulator.state.sim.get_sources(xrange(ranges[0], ranges[1]))
+            lines[idx,1] = simulator.state.sim.get_targets(xrange(ranges[0], ranges[1]))  
+            lines[idx,2] = simulator.state.sim.get_weights(xrange(ranges[0], ranges[1]))
+            lines[idx,3] = simulator.state.sim.get_delays(xrange(ranges[0], ranges[1]))                   
         if compatible_output:
             lines[:,0] = self.pre.id_to_index(lines[:, 0]) 
-            lines[:,1] = self.post.id_to_index(lines[:, 1])    
-        synapses   = [i.synapse for i in self]  
-        lines[:,2] = list(simulator.state.sim.get_weights(synapses))
-        lines[:,3] = list(simulator.state.sim.get_delays(synapses))         
+            lines[:,1] = self.post.id_to_index(lines[:, 1])        
         file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
         file.close()                            
 

@@ -25,12 +25,14 @@ class Recorder(recording.Recorder):
             self.data  = numpy.empty([0, 2])
         elif self.variable is "v":
             self.data  = numpy.empty([0, 3])
+        elif self.variable is "gsyn":
+            self.data  = numpy.empty([0, 4])
         else:
             raise Exception("Nemo can record only v and spikes for now !")    
 
     def write(self, file=None, gather=False, compatible_output=True, filter=None):
         recording.Recorder.write(self, file, gather, compatible_output, filter)
-        self._simulator.recorder_list.remove(self)
+        #self._simulator.recorder_list.remove(self)
 
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
@@ -40,13 +42,18 @@ class Recorder(recording.Recorder):
         raise NotImplementedError("Recording reset is not currently supported for pyNN.nemo")
 
     def _add_spike(self, fired, time):
-         ids       = self.recorded.intersection(fired)
-         self.data = numpy.vstack((self.data, numpy.array([list(ids), [time]*len(ids)]).T)) 
+        ids       = self.recorded.intersection(fired)
+        self.data = numpy.vstack((self.data, numpy.array([list(ids), [time]*len(ids)]).T)) 
         ## To file or memory ? ###
 
     def _add_vm(self, time):
         data      =  self._simulator.state.sim.get_membrane_potential(list(self.recorded))   
         self.data = numpy.vstack((self.data, numpy.array([list(self.recorded), [time]*len(self.recorded), data]).T))
+
+    def _add_gsyn(self, time):
+        ge      =  self._simulator.state.sim.get_neuron_state(list(self.recorded), 1)
+        gi      =  self._simulator.state.sim.get_neuron_state(list(self.recorded), 2) 
+        self.data = numpy.vstack((self.data, numpy.array([list(self.recorded), [time]*len(self.recorded), ge, gi]).T))
 
     def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""

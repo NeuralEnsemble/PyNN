@@ -13,7 +13,9 @@ from pyNN.standardmodels import cells, build_translations, ModelNotAvailable
 import brian
 from pyNN.brian.simulator import PoissonGroupWithDelays, ThresholdNeuronGroup, \
                                  AdaptiveNeuronGroup, BiophysicalNeuronGroup, \
-                                 MultipleSpikeGeneratorGroupWithDelays
+                                 MultipleSpikeGeneratorGroupWithDelays, \
+                                 IzhikevichNeuronGroup
+
 from brian import mV, ms, nF, nA, uS, Hz
 
 
@@ -79,7 +81,6 @@ class IF_curr_exp(cells.IF_curr_exp):
         )
     synapses  = {'excitatory': 'ie', 'inhibitory': 'ii'}
     brian_model = ThresholdNeuronGroup
-
 
 class IF_cond_alpha(cells.IF_cond_alpha):
     __doc__ = cells.IF_cond_alpha.__doc__
@@ -235,7 +236,6 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     brian_model = AdaptiveNeuronGroup
 
 
-
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
 
@@ -339,3 +339,27 @@ class SpikeSourceInhGamma(ModelNotAvailable):
 
 class IF_cond_exp_gsfa_grr(ModelNotAvailable):
     pass
+
+
+class Izikevich(cells.Izikevich):
+    __doc__ = cells.Izikevich.__doc__
+
+    translations = build_translations(
+        ('a',    'a', 1/ms),
+        ('b',    'b', 1/ms),
+        ('v_reset', 'v_reset'),
+        ('d',    'd', mV/ms),
+        ('tau_refrac', 'tau_refrac')
+    )
+    eqs = brian.Equations('''
+        dv/dt = (0.04/ms/mV)*v**2+(5/ms)*v+140*mV/ms - u + (ie + ii) * (mV/ms) / nA : mV
+        du/dt = a*(b*v-u)                                : mV/ms
+        die/dt = -ie/(1*ms)                              : nA
+        dii/dt = -ii/(1*ms)                              : nA
+        a                                                : 1/ms
+        b                                                : 1/ms
+        v_reset                                          : mV
+        d                                                : mV/ms
+        ''')
+    synapses  = {'excitatory': 'ie', 'inhibitory': 'ii'}
+    brian_model = IzhikevichNeuronGroup

@@ -67,7 +67,7 @@ class ConnectionAttributeGenerator(object):
         if self.safe:
             self.get = self.get_safe
         if isinstance(self.source, list):
-            self.source = numpy.array(self.source)
+            self.source = numpy.array(self.source, dtype=numpy.int)
         if isinstance(self.source, numpy.ndarray):
             self.source_iterator = iter(self.source)
 
@@ -116,7 +116,7 @@ class ConnectionAttributeGenerator(object):
                 values = self.source.next(N, mask_local=self.local_mask)
             else:
                 data  = self.source.next(N, mask_local=self.local_mask)
-                if type(data) == numpy.float64:
+                if type(data) == numpy.float:
                     data = numpy.array([data])
                 values = data[sub_mask]
             return values
@@ -317,7 +317,7 @@ class ProbabilisticConnector(Connector):
         targets of that pre-synaptic cell.
         """
         if numpy.isscalar(p) and p == 1:
-            precreate = numpy.arange(self.size)
+            precreate = numpy.arange(self.size, dtype=numpy.int)
         else:
             rarr   = self.probas_generator.get(self.N)
             if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
@@ -333,7 +333,7 @@ class ProbabilisticConnector(Connector):
                     precreate = numpy.delete(precreate, i[0])
 
         if (n_connections is not None) and (len(precreate) > 0):
-            create = numpy.array([], int)
+            create = numpy.array([], dtype=numpy.int)
             while len(create) < n_connections: # if the number of requested cells is larger than the size of the
                                                ## presynaptic population, we allow multiple connections for a given cell
                 create = numpy.concatenate((create, self.projection.rng.permutation(precreate)))
@@ -346,7 +346,6 @@ class ProbabilisticConnector(Connector):
 
         if len(targets) > 0:
             self.projection._divergent_connect(src, targets.tolist(), weights, delays)
-
 
 
 class AllToAllConnector(Connector):
@@ -502,7 +501,7 @@ class FromListConnector(Connector):
     def connect(self, projection):
         """Connect-up a Projection."""
         idx     = numpy.argsort(self.conn_list[:, 0])
-        self.sources    = numpy.unique(self.conn_list[:,0]).astype(int)
+        self.sources    = numpy.unique(self.conn_list[:,0]).astype(numpy.int)
         self.candidates = projection.post.local_cells
         self.conn_list  = self.conn_list[idx]
         self.progressbar(len(self.sources))
@@ -511,7 +510,7 @@ class FromListConnector(Connector):
         right = numpy.searchsorted(self.conn_list[:,0], self.sources, 'right')
         #tests = "|".join(['(tgts == %d)' %id for id in self.candidates])
         for src, l, r in zip(self.sources, left, right):
-            targets = self.conn_list[l:r, 1].astype(int)
+            targets = self.conn_list[l:r, 1].astype(numpy.int)
             weights = self.conn_list[l:r, 2]
             delays  = self.conn_list[l:r, 3]
             try:
@@ -529,7 +528,6 @@ class FromListConnector(Connector):
             projection._divergent_connect(src, tgts.tolist(), weights, delays)
             self.progression(count, projection._simulator.state.mpi_rank)
             count += 1
-
 
 class FromFileConnector(FromListConnector):
     """
@@ -634,14 +632,13 @@ class FixedNumberPostConnector(Connector):
             if not self.allow_self_connections and projection.pre == projection.post:
                 i   = numpy.where(candidates == src)[0]
                 idx = numpy.delete(idx, i)
-
-            create = numpy.array([])
+            create = numpy.array([], dtype=numpy.int)
             while len(create) < n: # if the number of requested cells is larger than the size of the
                                     # postsynaptic population, we allow multiple connections for a given cell
                 create = numpy.concatenate((create, projection.rng.permutation(idx)[:n]))
 
             distance_matrix.set_source(src.position)
-            create  = create[:n].astype(int)
+            create  = create[:n].astype(numpy.int)
             targets = candidates[create]
             weights = weights_generator.get(n, distance_matrix, create)
             delays  = delays_generator.get(n, distance_matrix, create)
@@ -718,17 +715,17 @@ class FixedNumberPreConnector(Connector):
             else:
                 n = self.n
 
-            idx        = numpy.arange(size)
+            idx        = numpy.arange(size, dtype=numpy.int)
             if not self.allow_self_connections and projection.pre == projection.post:
                 i   = numpy.where(candidates == tgt)[0]
                 idx = numpy.delete(idx, i)
-            create = numpy.array([])
+            create = numpy.array([], dtype=numpy.int)
             while len(create) < n: # if the number of requested cells is larger than the size of the
                                     # presynaptic population, we allow multiple connections for a given cell
                 create = numpy.concatenate((create, projection.rng.permutation(idx)[:n]))
 
             distance_matrix.set_source(tgt.position)
-            create  = create[:n].astype(int)
+            create  = create[:n].astype(numpy.int)
             sources = candidates[create]
             weights = weights_generator.get(n, distance_matrix, create)
             delays  = delays_generator.get(n, distance_matrix, create)
@@ -776,7 +773,7 @@ class OneToOneConnector(Connector):
             delays            = delays_generator.get(N)
             self.progressbar(len(projection.post.local_cells))
             count             = 0
-            create            = numpy.arange(0, N)[local]
+            create            = numpy.arange(N, dtype=numpy.int)[local]
             sources           = projection.pre.all_cells[create]
 
             for tgt, src, w, d in zip(projection.post.local_cells, sources, weights, delays):
@@ -838,7 +835,7 @@ class SmallWorldConnector(Connector):
             i         = numpy.where(self.candidates == src)[0]
             precreate = numpy.delete(precreate, i)
 
-        idx = numpy.arange(0, self.size)
+        idx = numpy.arange(self.size, dtype=numpy.int)
         if not self.allow_self_connections and self.projection.pre == self.projection.post:
             i   = numpy.where(self.candidates == src)[0]
             idx = numpy.delete(idx, i)

@@ -170,6 +170,28 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
         return v >= self.v_spike*mV
 
 
+class IzhikevichNeuronGroup(BaseNeuronGroup):
+    def __init__(self, n, equations, **parameters):
+        threshold = brian.SimpleFunThreshold(self.check_threshold)
+        reset = brian.SimpleCustomRefractoriness(
+                    IzikevichReset(parameters['v_reset']* mV,
+                                  parameters['d']),
+                    period=parameters['tau_refrac'].max()*ms)
+        refractory = None
+        BaseNeuronGroup.__init__(self, n, equations,
+                                 threshold, reset, refractory,
+                                 **parameters)
+        self._variable_refractory_time = True
+        self._refractory_variable = None
+
+    tau_refrac = _new_property('', '_refractory_array', ms)
+    v_reset    = _new_property('_resetfun.resetfun', 'Vr', mV)
+    b = _new_property('_resetfun.resetfun', 'b', nA)
+
+    def check_threshold(self, v):
+        return v >= 30*mV
+
+
 class PoissonGroupWithDelays(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
@@ -422,6 +444,17 @@ class AdaptiveReset(object):
     def __call__(self, P, spikes):
         P.v[spikes] = self.Vr
         P.w[spikes] += self.b
+
+
+class IzikevichReset(object):
+
+    def __init__(self, Vr= -65 * mV, d=0.2 * mV/ms):
+        self.Vr = Vr
+        self.d  = d
+
+    def __call__(self, P, spikes):
+        P.v[spikes]  = self.Vr
+        P.u[spikes] += self.d
 
 
 # --- For implementation of connect() and Connector classes --------------------

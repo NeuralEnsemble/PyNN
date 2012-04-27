@@ -1,0 +1,85 @@
+
+
+Outline for revamped PyNN documentation
+
+
+Topics
+
+installation
+quick start
+building networks
+    populations
+    connections
+    space
+injecting current
+recording
+data (Neo), files
+simulation control (run, reset, setup, end)
+distributed simulations
+descriptions
+parameters
+logging
+NEURON
+NEST
+Brian
+NeMo
+PCSIM
+MOOSE
+NeuroML/NineML
+neuromorphic hardware
+developers' guide
+    code checkout
+    style
+    running tests
+    writing new tests
+    coverage measurement
+    writing tickets
+    contributing code
+    implementing a new backend
+    description of the common implementation (sequence of interactions)
+    building the documentation    
+    making a release
+    roadmap
+authors, licence
+
+Reference
+    populations
+        Population
+        PopulationView
+        Assembly
+        create()
+        ID
+    connectors
+        AllToAllConnector
+        ...
+        ...
+    projections
+        Projection
+        connect()
+    neuron models
+        standardcells
+            ...
+        nativecells
+        9ML/LEMS
+    synaptic plasticity models
+        standard models
+            TsodyksMarkramFoo
+            STDPMechanism
+            WeightDependencyFoo
+            ...
+        native models
+        9ML/LEMS
+    electrodes
+    simulation control
+        run()
+        get_time_step()
+        ...
+        initialize()
+        record()
+    random
+        ...
+    parameters
+        ParameterSpace
+        LazyArray
+    space
+    utility

@@ -7,14 +7,10 @@ Synapse Dynamics classes for the nemo module.
 
 $Id: synapses.py 888 2011-01-04 15:17:54Z pierre $
 """
-
-from pyNN import standardmodels
-from pyNN.standardmodels import synapses
 import numpy
+from pyNN.standardmodels import synapses, SynapseDynamics, STDPMechanism
 
-SynapseDynamics = standardmodels.SynapseDynamics
-
-class STDPMechanism(standardmodels.STDPMechanism):
+class STDPMechanism(STDPMechanism):
     """Specification of STDP models."""
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
@@ -24,10 +20,6 @@ class STDPMechanism(standardmodels.STDPMechanism):
                                                  are assumed to be axonal."""
         super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
                                             voltage_dependence, dendritic_delay_fraction)
-
-
-class TsodyksMarkramMechanism(standardmodels.ModelNotAvailable):
-    pass
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     
@@ -40,38 +32,6 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
         self.parameters['mu_plus']  = 0.
         self.parameters['mu_minus'] = 0.
 
-
-class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
-    
-    __doc__ = synapses.MultiplicativeWeightDependence.__doc__
-
-    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
-        parameters = dict(locals())
-        parameters.pop('self')
-        self.parameters = parameters
-        self.parameters['mu_plus']  = 1.
-        self.parameters['mu_minus'] = 1.
-
-class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
-    
-    __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
-
-    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
-        parameters = dict(locals())
-        parameters.pop('self')
-        self.parameters = parameters
-        self.parameters['mu_plus']  = 0.0
-        self.parameters['mu_minus'] = 1.0
-
-
-class GutigWeightDependence(standardmodels.ModelNotAvailable):
-    
-    __doc__ = synapses.AdditiveWeightDependence.__doc__
-    
-    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01, mu_plus=0.5, mu_minus=0.5): # units?
-        parameters = dict(locals())
-        parameters.pop('self')
-        self.parameters = parameters
 
 class SpikePairRule(synapses.SpikePairRule):
 

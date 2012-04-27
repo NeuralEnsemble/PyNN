@@ -49,7 +49,7 @@ class _State(object):
     def __init__(self, timestep, min_delay, max_delay):
         """Initialize the simulator."""
         self.net           = nemo.Network()
-        self.conf          = nemo.Configuration()
+        self.conf          = nemo.Configuration()	
         self.initialized   = True
         self.num_processes = 1
         self.mpi_rank      = 0
@@ -80,7 +80,7 @@ class _State(object):
         pre  *= self.stdp.weight_dependence.parameters['A_plus']
         post *= -self.stdp.weight_dependence.parameters['A_minus']        
         w_min = self.stdp.weight_dependence.parameters['w_min']
-        w_max = self.stdp.weight_dependence.parameters['w_max']        
+        w_max = self.stdp.weight_dependence.parameters['w_max'] 
         self.conf.set_stdp_function(pre.tolist(), post.tolist(), float(w_min), float(w_max))
 
     def run(self, simtime):
@@ -88,21 +88,15 @@ class _State(object):
         if self.simulation is None:
             self.simulation = nemo.Simulation(self.net, self.conf)
 
-        poissons_sources = []
         arrays_sources   = []
 
         for source in spikes_array_list:
-            if isinstance(source.celltype, SpikeSourcePoisson):        
-                poissons_sources.append(source)
             if isinstance(source.celltype, SpikeSourceArray):
                 arrays_sources.append(source)
         
-        for t in numpy.arange(0, simtime, self.dt):
+        for t in numpy.arange(self.time, self.time+simtime, self.dt):
             spikes   = []
             currents = []
-            for source in poissons_sources:                
-                if source.player.do_spike(t):
-                    spikes += [source]
             for source in arrays_sources:
                 if source.player.next_spike == t:
                     source.player.update()                    
@@ -112,12 +106,15 @@ class _State(object):
                     recorder._add_spike(self._fired, self.t)
                 if recorder.variable is "v":
                     recorder._add_vm(self.t)
+                if recorder.variable is "gsyn":
+                    recorder._add_gsyn(self.t)
 
+            
             self._fired = self.sim.step(spikes, currents)
             self.time  += self.dt
         
             if self.stdp:
-                self.simulation.apply_stdp(1.0)
+                self.simulation.apply_stdp(self.dt)
                
     @property
     def next_id(self):        
@@ -143,9 +140,6 @@ class ID(int, common.IDMixin):
     def get_native_parameters(self):
         if isinstance(self.celltype, SpikeSourceArray):
             return {'spike_times' : self.player.spike_times}
-        elif isinstance(self.celltype, SpikeSourcePoisson):
-            return {'rate' : self.player.rate, 'duration' : self.player.duration, 
-                    'start' : self.player.start}
         else:
             params = {}
             for key, value in self.celltype.indices.items():
@@ -159,9 +153,6 @@ class ID(int, common.IDMixin):
         if isinstance(self.celltype, SpikeSourceArray):
             parameters['precision'] = state.dt
             self.player.reset(**parameters)
-        elif isinstance(self.celltype, SpikeSourcePoisson):
-            parameters['precision'] = state.dt
-            self.player.reset(**parameters)    
         else:
             indices = self.celltype.indices
             for key, value in parameters.items():
@@ -202,6 +193,10 @@ class Connection(object):
     @property
     def target(self):
         return state.sim.get_synapse_target([self.synapse])[0]
+
+    @property
+    def source(self):
+        return state.sim.get_synapse_source([self.synapse])[0]
 
     def _set_weight(self, w):
         pass

@@ -37,7 +37,7 @@ class FastProbabilisticConnector(Connector):
         self.N                 = projection.pre.size
         mpi_rank               = projection._simulator.state.mpi_rank
         num_processes          = projection._simulator.state.num_processes
-        idx                    = numpy.arange(self.N*mpi_rank, self.N*(mpi_rank+1))        
+        idx                    = numpy.arange(self.N*mpi_rank, self.N*(mpi_rank+1), dtype=numpy.int)        
         self.M                 = num_processes*self.N
         self.local             = numpy.ones(self.N, bool)        
         self.local_long        = numpy.zeros(self.M, bool)
@@ -58,7 +58,7 @@ class FastProbabilisticConnector(Connector):
         targets of that pre-synaptic cell.
         """
         if numpy.isscalar(p) and p == 1:
-            precreate = numpy.arange(self.N)
+            precreate = numpy.arange(self.N, dtype=numpy.int)
         else:
             rarr   = self.probas_generator.get(self.M)
             if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
@@ -74,7 +74,7 @@ class FastProbabilisticConnector(Connector):
                     precreate = numpy.delete(precreate, i[0])
                 
         if (rewiring is not None) and (rewiring > 0):
-            idx = numpy.arange(0, self.N)          
+            idx = numpy.arange(self.N, dtype=numpy.int)          
             if not self.allow_self_connections and self.projection.pre == self.projection.post:
                 i   = numpy.where(self.candidates == tgt)[0]
                 idx = numpy.delete(idx, i)
@@ -87,7 +87,7 @@ class FastProbabilisticConnector(Connector):
                 precreate[rewired] = idx[new_idx.astype(int)]    
         
         if (n_connections is not None) and (len(precreate) > 0):
-            create = numpy.array([], int)
+            create = numpy.array([], dtype=numpy.int)
             while len(create) < n_connections: # if the number of requested cells is larger than the size of the
                                                # presynaptic population, we allow multiple connections for a given cell
                 create = numpy.concatenate((create, self.projection.rng.permutation(precreate)))
@@ -181,7 +181,7 @@ class FastFromListConnector(FromListConnector):
     def connect(self, projection):
         """Connect-up a Projection."""
         idx     = numpy.argsort(self.conn_list[:, 1])
-        self.targets    = numpy.unique(self.conn_list[:, 1]).astype(int)
+        self.targets    = numpy.unique(self.conn_list[:, 1]).astype(numpy.int)
         self.candidates = projection.pre.all_cells
         self.conn_list  = self.conn_list[idx]
         self.progressbar(len(self.targets))        
@@ -189,7 +189,7 @@ class FastFromListConnector(FromListConnector):
         left  = numpy.searchsorted(self.conn_list[:, 1], self.targets, 'left')
         right = numpy.searchsorted(self.conn_list[:, 1], self.targets, 'right')
         for tgt, l, r in zip(self.targets, left, right):
-            sources = self.conn_list[l:r, 0].astype(int)
+            sources = self.conn_list[l:r, 0].astype(numpy.int)
             weights = self.conn_list[l:r, 2]
             delays  = self.conn_list[l:r, 3]
         

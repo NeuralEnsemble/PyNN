@@ -132,7 +132,7 @@ class NumpyRNG(WrappedRNG):
 
     def _next(self, distribution, n, parameters):
         return getattr(self.rng, distribution)(size=n, *parameters)
-
+        
     def describe(self):
         return "NumpyRNG() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
             self.seed, mpi_rank, num_processes, self.parallel_safe and "Is" or "Not")
@@ -229,7 +229,7 @@ class RandomDistribution(VectorizedIterable):
                             parameters=self.parameters,
                             mask_local=mask_local)
         if self.boundaries:
-            if type(res) == numpy.float64:
+            if type(res) == numpy.float:
                 res = numpy.array([res])
             if self.constrain == "clip":
                 return numpy.maximum(numpy.minimum(res, self.max_bound), self.min_bound)

@@ -1,0 +1,104 @@
+PyNN and NineML
+===============
+
+NineML_ is a declarative XML-based language for describing neuronal network
+models. One of its key features is the separation into an "abstraction layer",
+which provides the mathematical details of the model components (neurons,
+synapses, etc.), and a "user layer", which describes how the components are put
+together to form a network model.
+
+PyNN can work with NineML in two ways:
+  * at the user layer level - exporting an entire PyNN model as XML or
+    importing a NineML XML file into PyNN and running simulations with the
+    resulting model;
+  * at the abstraction layer level - constructing PyNN ``CellType`` classes from
+    NineML neuron/synapse components (and, in the future, PyNN dynamic synapse
+    classes from NineML synaptic plasticity components).
+    
+[Note: most of what is described below does not work yet, or is not properly
+tested - this document is currently a statement of intent, which will gradually
+turn into proper documentation as things get implemented/tested]
+
+Exporting a PyNN model as XML
+=============================
+
+Using ``pyNN.nineml`` as the simulator backend will cause the model to be
+written to XML rather than simulated. This requires specifying an output
+file name in the ``setup()`` call::
+
+    import pyNN.nineml as sim
+    
+    sim.setup(filename="my_model.xml")
+
+    ...
+    
+    sim.end()
+    
+Writing to file takes place when ``sim.end()`` is called. Note that any PyNN
+calls related to recording or saving data are ignored. It is possible that in
+future this information could be saved in a simulation experiment description
+format such as SEDML_ 
+
+
+Using a NineML abstraction layer model in a NEST or NEURON simulation
+=====================================================================
+
+This requires code-generation support for the backend simulator. For NEST, this
+will be built-in to some future release; for NEURON, the nineml2nmodl package
+is required [currently available in the NineML svn, will be released on PyPI at
+some point]. Brian support is also envisaged.
+
+::
+
+    import pyNN.neuron as sim
+    
+    celltype_cls = sim.nineml_celltype(
+                        name="my_neuron_type",
+                        neuron_model="iaf.xml",
+                        synapse_models={
+                            "AMPA": "coba_syn.xml",
+                            "NMDA": "nmda_syn.xml",
+                            "GABAA": "coba_syn.xml"
+                        })
+    
+    parameters = {
+        'iaf.cm': 1.0, 'iaf.gl': 50.0, 'iaf.taurefrac': 5.0,
+        'iaf.vrest': -65.0, 'iaf.vreset': -65.0, 'iaf.vthresh': -50.0,
+        'AMPA.tau': 2.0, 'GABAA.tau': 5.0, 'AMPA.vrev': 0.0, 'GABAA.vrev': -70.0,
+        'NMDA.taur': 3.0, 'NMDA.taud': 40.0, 'NMDA.gmax': 1.2, 'NMDA.E': 0.0,
+        'NMDA.gamma': 0.062, 'NMDA.mgconc': 1.2, 'NMDA.beta': 3.57
+        }
+    
+    cells = sim.Population(100, celltype_cls, parameters)
+    
+    cells.record(("iaf.v", "AMPA.g", "NMDA.g", "GABAA.v"))
+
+
+Simulating an entire NineML model with NEST or NEURON
+=====================================================
+
+Again, this requires code-generation support for the backend simulator, or for
+PyNN to be able to recognize the components as equivalent to existing PyNN
+standard models. [For example, the PyNN Subversion repository could contain
+NineML representations of the standard models; these representations would then
+each have a URL including version information, and if these URLs are used in the
+user layer description, PyNN can safely use a standard model rather than
+doing code generation].
+
+::
+
+    import pyNN.neuron as sim
+    
+    network = sim.NineMLNetwork("my_network_model.xml") # user layer description
+    
+    network.populations["excitatory cells"].record("spikes")
+    
+    sim.run(1000.0)
+    
+    network.populations["excitatory_cells"].write("spikes")
+    
+    sim.end()
+
+
+.. _NineML: http://nineml.incf.org
+.. _SEDML: http://sedml.org/
