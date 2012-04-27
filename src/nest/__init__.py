@@ -38,6 +38,11 @@ NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')
 STATE_VARIABLE_MAP = {"v": "V_m", "w": "w"}
 logger = logging.getLogger("PyNN")
 
+try:
+    nest.GetStatus([numpy.int64(0)])
+except NESTError:
+    raise Exception("NEST built without NumPy support. Try rebuilding NEST after installing NumPy.")
+
 # ==============================================================================
 #   Utility functions
 # ==============================================================================
