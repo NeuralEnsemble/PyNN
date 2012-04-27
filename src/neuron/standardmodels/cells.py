@@ -9,18 +9,16 @@ $Id: cells.py 873 2010-12-13 22:40:03Z apdavison $
 """
 
 from pyNN.standardmodels import cells, build_translations
-from pyNN import errors
 from pyNN.neuron.cells import StandardIF, SingleCompartmentTraub, RandomSpikeSource, VectorSpikeSource, BretteGerstnerIF, GsfaGrrIF
-from math import pi
 import logging
 
 logger = logging.getLogger("PyNN")
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):
-    
-    __doc__ = cells.IF_curr_alpha.__doc__      
-    
+
+    __doc__ = cells.IF_curr_alpha.__doc__
+
     translations = build_translations(
         ('tau_m',      'tau_m'),
         ('cm',         'c_m'),
@@ -38,9 +36,9 @@ class IF_curr_alpha(cells.IF_curr_alpha):
 
 
 class IF_curr_exp(cells.IF_curr_exp):
-    
-    __doc__ = cells.IF_curr_exp.__doc__    
-    
+
+    __doc__ = cells.IF_curr_exp.__doc__
+
     translations = build_translations(
         ('tau_m',      'tau_m'),
         ('cm',         'c_m'),
@@ -58,9 +56,9 @@ class IF_curr_exp(cells.IF_curr_exp):
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):
-    
-    __doc__ = cells.IF_cond_alpha.__doc__    
-    
+
+    __doc__ = cells.IF_cond_alpha.__doc__
+
     translations = build_translations(
         ('tau_m',      'tau_m'),
         ('cm',         'c_m'),
@@ -80,9 +78,9 @@ class IF_cond_alpha(cells.IF_cond_alpha):
 
 
 class IF_cond_exp(cells.IF_cond_exp):
-    
-    __doc__ = cells.IF_cond_exp.__doc__    
-    
+
+    __doc__ = cells.IF_cond_exp.__doc__
+
     translations = build_translations(
         ('tau_m',      'tau_m'),
         ('cm',         'c_m'),
@@ -102,8 +100,8 @@ class IF_cond_exp(cells.IF_cond_exp):
 
 
 class IF_facets_hardware1(cells.IF_facets_hardware1):
-    
-    __doc__ = cells.IF_facets_hardware1.__doc__        
+
+    __doc__ = cells.IF_facets_hardware1.__doc__
 
     translations = build_translations(
         ('v_rest',     'v_rest'),
@@ -124,17 +122,17 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
 
 
 class HH_cond_exp(cells.HH_cond_exp):
-    
-    __doc__ = cells.HH_cond_exp.__doc__    
+
+    __doc__ = cells.HH_cond_exp.__doc__
 
     translations = build_translations(
         ('gbar_Na',    'gbar_Na',   1e-3),   # uS -> mS
-        ('gbar_K',     'gbar_K',    1e-3),    
-        ('g_leak',     'g_leak',    1e-3),    
-        ('cm',         'c_m'),  
+        ('gbar_K',     'gbar_K',    1e-3),
+        ('g_leak',     'g_leak',    1e-3),
+        ('cm',         'c_m'),
         ('v_offset',   'v_offset'),
         ('e_rev_Na',   'ena'),
-        ('e_rev_K',    'ek'), 
+        ('e_rev_K',    'ek'),
         ('e_rev_leak', 'e_leak'),
         ('e_rev_E',    'e_e'),
         ('e_rev_I',    'e_i'),
@@ -149,7 +147,7 @@ class HH_cond_exp(cells.HH_cond_exp):
 
 class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
 
-    __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__        
+    __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__
 
     translations = build_translations(
         ('v_rest',     'v_reset'),
@@ -177,7 +175,7 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
-    __doc__ = cells.SpikeSourcePoisson.__doc__     
+    __doc__ = cells.SpikeSourcePoisson.__doc__
 
     translations = build_translations(
         ('start',    'start'),
@@ -188,8 +186,8 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
-    
-    __doc__ = cells.SpikeSourceArray.__doc__    
+
+    __doc__ = cells.SpikeSourceArray.__doc__
 
     translations = build_translations(
         ('spike_times', 'spike_times'),
@@ -198,25 +196,25 @@ class SpikeSourceArray(cells.SpikeSourceArray):
 
 
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
-    
-    __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__ 
-    
+
+    __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__
+
     translations = build_translations(
         ('cm',         'c_m'),
-        ('tau_refrac', 't_refrac'), 
+        ('tau_refrac', 't_refrac'),
         ('v_spike',    'v_spike'),
         ('v_reset',    'v_reset'),
         ('v_rest',     'v_rest'),
         ('tau_m',      'tau_m'),
-        ('i_offset',   'i_offset'), 
+        ('i_offset',   'i_offset'),
         ('a',          'A',        0.001), # nS --> uS
         ('b',          'B'),
-        ('delta_T',    'delta'), 
-        ('tau_w',      'tau_w'), 
-        ('v_thresh',   'v_thresh'), 
+        ('delta_T',    'delta'),
+        ('tau_w',      'tau_w'),
+        ('v_thresh',   'v_thresh'),
         ('e_rev_E',    'e_e'),
-        ('tau_syn_E',  'tau_e'), 
-        ('e_rev_I',    'e_i'), 
+        ('tau_syn_E',  'tau_e'),
+        ('e_rev_I',    'e_i'),
         ('tau_syn_I',  'tau_i'),
     )
     model = BretteGerstnerIF
@@ -225,11 +223,10 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
 
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
-    
-    __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__    
-    
+
+    __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
+
     translations = EIF_cond_alpha_isfa_ista.translations
     model = BretteGerstnerIF
     extra_parameters = {'syn_type': 'conductance',
                         'syn_shape': 'exp'}
-

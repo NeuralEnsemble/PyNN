@@ -317,8 +317,8 @@ class Projection(common.Projection):
         for key in self._brian_connections.keys():
             bc = self._brian_connections[key]
             for i in xrange(bc.W.getnnz()):
-                local_idx  = self._indices[key][0][i], self._indices[key][0][i]
-                local_addr = global_indices[0][count], global_indices[1][count]
+                #local_idx  = self._indices[key][0][i], self._indices[key][0][i]
+                #local_addr = global_indices[0][count], global_indices[1][count]
                 yield simulator.Connection(bc, self._indices[key])
                 count += 1
 
@@ -449,7 +449,6 @@ class Projection(common.Projection):
         Save connections to file in a format suitable for reading in with a
         FromFileConnector.
         """
-        import operator
         lines   = numpy.empty((len(self), 4))
         padding = 0
         for key in self._brian_connections.keys():

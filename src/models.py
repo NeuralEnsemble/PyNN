@@ -6,9 +6,9 @@ or "native" (restricted to an individual simulator).
 :license: CeCILL, see LICENSE for details.
 """
 
-import copy
-from pyNN import errors, descriptions
+from pyNN import descriptions
 from pyNN.parameters import ParameterSpace
+
 
 class BaseModelType(object):
     """Base class for standard and native cell and synapse model classes."""
@@ -16,6 +16,9 @@ class BaseModelType(object):
     default_initial_values = {}
 
     def __init__(self, parameters):
+        """
+        `parameters` should be a mapping object, e.g. a dict
+        """
         self.parameter_space = ParameterSpace(self.default_parameters,
                                               self.get_schema(),
                                               size=None)
@@ -25,23 +28,27 @@ class BaseModelType(object):
     @classmethod
     def has_parameter(cls, name):
         return name in cls.default_parameters
-    
+
     @classmethod
     def get_parameter_names(cls):
         return cls.default_parameters.keys()
-    
+
     @classmethod
     def get_schema(cls):
+        """
+        Returns the model schema: i.e. a mapping of parameter names to allowed
+        parameter types.
+        """
         return dict((name, type(value))
                     for name, value in cls.default_parameters.items())
-    
+
     def describe(self, template='modeltype_default.txt', engine='default'):
         """
         Returns a human-readable description of the cell or synapse type.
-        
+
         The output may be customized by specifying a different template
         togther with an associated template engine (see ``pyNN.descriptions``).
-        
+
         If template is None, then a dictionary containing the template context
         will be returned.
         """

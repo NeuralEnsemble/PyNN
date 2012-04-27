@@ -9,10 +9,14 @@ $Id$
 
 import nest
 from pyNN.standardmodels import synapses, build_translations, SynapseDynamics, STDPMechanism
+import logging
+
+logger = logging.getLogger("PyNN")
+
 
 class SynapseDynamics(SynapseDynamics):
     __doc__ = SynapseDynamics.__doc__
-    
+
     def _get_nest_synapse_model(self, suffix):
         # We create a particular synapse context for each projection, by copying
         # the one which is desired.
@@ -28,11 +32,11 @@ class SynapseDynamics(SynapseDynamics):
                 logger.warning(", ".join(model for model in base_model))
                 base_model = list(base_model)[0]
                 logger.warning("By default, %s is used" % base_model)
-        available_models = nest.Models(mtype='synapses') 
+        available_models = nest.Models(mtype='synapses')
         if base_model not in available_models:
             raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
                              "Possible models in your NEST build are: %s" % (base_model, available_models))
-            
+
         synapse_defaults = nest.GetDefaults(base_model)
         synapse_defaults.pop('synapsemodel')
         synapse_defaults.pop('num_connections')
@@ -49,8 +53,8 @@ class SynapseDynamics(SynapseDynamics):
                 pass
             # Tau_minus is a parameter of the post-synaptic cell, not of the connection
             stdp_parameters.pop("tau_minus")
-            synapse_defaults.update(stdp_parameters)                
-        
+            synapse_defaults.update(stdp_parameters)
+
         label = "%s_%s" % (base_model, suffix)
         nest.CopyModel(base_model, label, synapse_defaults)
         return label
@@ -70,7 +74,7 @@ class SynapseDynamics(SynapseDynamics):
 
 class STDPMechanism(STDPMechanism):
     """Specification of STDP models."""
-    
+
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0):
         assert dendritic_delay_fraction == 1, """NEST does not currently support axonal delays:
@@ -81,7 +85,7 @@ class STDPMechanism(STDPMechanism):
 
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
-    __doc__ = synapses.TsodyksMarkramMechanism.__doc__    
+    __doc__ = synapses.TsodyksMarkramMechanism.__doc__
 
     translations = build_translations(
         ('U', 'U'),
@@ -95,8 +99,8 @@ class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
 
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
-    __doc__ = synapses.AdditiveWeightDependence.__doc__     
-    
+    __doc__ = synapses.AdditiveWeightDependence.__doc__
+
     translations = build_translations(
         ('w_max',     'Wmax',  1000.0), # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
@@ -108,7 +112,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
         'mu_plus': 0.0,
         'mu_minus': 0.0
     }
-    
+
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
@@ -116,7 +120,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
 
 
 class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
-    __doc__ = synapses.MultiplicativeWeightDependence.__doc__    
+    __doc__ = synapses.MultiplicativeWeightDependence.__doc__
 
     translations = build_translations(
         ('w_max',     'Wmax',  1000.0), # unit conversion
@@ -136,7 +140,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
 
 
 class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
-    __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__   
+    __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
 
     translations = build_translations(
         ('w_max',     'Wmax',  1000.0), # unit conversion
@@ -149,7 +153,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         'mu_plus': 0.0,
         'mu_minus': 1.0
     }
-        
+
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
@@ -157,7 +161,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
 
 
 class GutigWeightDependence(synapses.GutigWeightDependence):
-    __doc__ = synapses.GutigWeightDependence.__doc__     
+    __doc__ = synapses.GutigWeightDependence.__doc__
 
     translations = build_translations(
         ('w_max',     'Wmax',  1000.0), # unit conversion
@@ -168,7 +172,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         ('mu_minus',  'mu_minus'),
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
-        
+
     def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01, mu_plus=0.5, mu_minus=0.5):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
@@ -183,4 +187,3 @@ class SpikePairRule(synapses.SpikePairRule):
         ('tau_minus', 'tau_minus'), # defined in post-synaptic neuron
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
-

@@ -15,7 +15,6 @@ if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
     raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
 
 import numpy
-import os
 import shutil
 import logging
 import tempfile
@@ -27,7 +26,7 @@ from pyNN.nest.connectors import *
 from pyNN.nest.standardmodels.synapses import *
 from pyNN.nest.standardmodels.electrodes import *
 from pyNN.nest.recording import *
-from pyNN.random import RandomDistribution
+from pyNN.random import NumpyRNG
 from pyNN import standardmodels
 from pyNN.parameters import Sequence
 
@@ -521,7 +520,6 @@ class Projection(common.Projection):
             if translated_name:
                 name = translated_name
 
-        i = 0
         try:
             nest.SetStatus(self.connections, name, value)
         except nest.NESTError, e:

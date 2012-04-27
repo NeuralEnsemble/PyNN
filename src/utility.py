@@ -8,7 +8,7 @@ Functions:
                         it was run (python, nrniv, mpirun, etc.).
     init_logging()    - convenience function for setting up logging to file and
                         to the screen.
-    
+
     Timer    - a convenience wrapper around the time.time() function from the
                standard library.
 
@@ -29,6 +29,7 @@ import sys
 import logging
 import time
 import os
+import functools
 
 red     = 0010; green  = 0020; yellow = 0030; blue = 0040
 magenta = 0050; cyan   = 0060; bright = 0100
@@ -54,10 +55,11 @@ def notify(msg="Simulation finished.", subject="Simulation finished.",
         server.sendmail(address, address, msg)
         server.quit()
 
+
 def get_script_args(n_args, usage=''):
     """
     Get command line arguments.
-    
+
     This works by finding the name of the main script and assuming any
     arguments after this in sys.argv are arguments to the script.
     It would be nicer to use optparse, but this doesn't seem to work too well
@@ -66,7 +68,7 @@ def get_script_args(n_args, usage=''):
     calling_frame = sys._getframe(1)
     if '__file__' in calling_frame.f_locals:
         script = calling_frame.f_locals['__file__']
-        try:    
+        try:
             script_index = sys.argv.index(script)
         except ValueError:
             try:
@@ -80,10 +82,15 @@ def get_script_args(n_args, usage=''):
         usage = usage or "Script requires %d arguments, you supplied %d" % (n_args, len(args))
         raise Exception(usage)
     return args
-    
+
+
 def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
+    """
+    Simple configuration of logging.
+    """
     # allow logfile == None
     # which implies output to stderr
+    # num_processes and rank should be obtained using mpi4py, rather than having them as arguments
     if logfile:
         if num_processes > 1:
             logfile += '.%d' % rank
@@ -102,7 +109,7 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
     # allow user to override exact log_level
     if level:
         log_level = level
-        
+
     logging.basicConfig(level=log_level,
                         format=mpi_prefix+'%(asctime)s %(levelname)s %(message)s',
                         filename=logfile,
@@ -111,7 +118,9 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
 
 def save_population(population, filename, variables=[]):
     """
-    Saves the spike_times of a  population and the size, structure, labels such that one can load it back into a SpikeSourceArray population using the load_population function.
+    Saves the spike_times of a  population and the size, structure, labels such
+    that one can load it back into a SpikeSourceArray population using the
+    load_population() function.
     """
     import shelve
     s = shelve.open(filename)
@@ -128,7 +137,8 @@ def save_population(population, filename, variables=[]):
 
 def load_population(filename, sim):
     """
-    Loads a population that was saved with the save_population function into SpikeSourceArray.
+    Loads a population that was saved with the save_population() function into
+    SpikeSourceArray.
     """
     import shelve
     s = shelve.open(filename)
@@ -152,15 +162,15 @@ def load_population(filename, sim):
 
 class Timer(object):
     """For timing script execution."""
-    
+
     def __init__(self):
         self.start()
-    
+
     def start(self):
         """Start timing."""
         self._start_time = time.time()
         self._last_check = self._start_time
-    
+
     def elapsedTime(self, format=None):
         """Return the elapsed time in seconds but keep the clock running."""
         current_time = time.time()
@@ -169,20 +179,20 @@ class Timer(object):
             elapsed_time = Timer.time_in_words(elapsed_time)
         self._last_check = current_time
         return elapsed_time
-    
+
     def reset(self):
         """Reset the time to zero, and start the clock."""
         self.start()
-    
+
     def diff(self, format=None): # I think delta() would be a better name for this method.
         """Return the time since the last time elapsedTime() or diff() was called."""
         current_time = time.time()
         time_since_last_check = current_time - self._last_check
         self._last_check = current_time
         if format=='long':
-            time_since_last_check = Timer.time_in_words(elapsed_time)
+            time_since_last_check = Timer.time_in_words(time_since_last_check)
         return time_since_last_check
-    
+
     @staticmethod
     def time_in_words(s):
         """Formats a time in seconds as a string containing the time in days,
@@ -211,37 +221,35 @@ class ProgressBar:
     """
     Create a progress bar in the shell.
     """
-    
+
     def __init__(self, min_value=0, max_value=100, width=77, **kwargs):
         self.char = kwargs.get('char', '#')
         self.mode = kwargs.get('mode', 'dynamic') # fixed or dynamic
         if not self.mode in ['fixed', 'dynamic']:
             self.mode = 'fixed'
- 
+
         self.bar = ''
         self.min = min_value
         self.max = max_value
         self.span = max_value - min_value
         self.width = width
-        self.amount = 0       # When amount == max, we are 100% done 
-        self.update_amount(0) 
- 
- 
+        self.amount = 0       # When amount == max, we are 100% done
+        self.update_amount(0)
+
     def increment_amount(self, add_amount = 1):
         """
-        Increment self.amount by 'add_ammount' or default to incrementing
-        by 1, and then rebuild the bar string. 
+        Increment self.amount by 'add_amount' or default to incrementing
+        by 1, and then rebuild the bar string.
         """
         new_amount = self.amount + add_amount
         if new_amount < self.min: new_amount = self.min
         if new_amount > self.max: new_amount = self.max
         self.amount = new_amount
         self.build_bar()
- 
- 
+
     def update_amount(self, new_amount = None):
         """
-        Update self.amount with 'new_amount', and then rebuild the bar 
+        Update self.amount with 'new_amount', and then rebuild the bar
         string.
         """
         if not new_amount: new_amount = self.amount
@@ -249,11 +257,10 @@ class ProgressBar:
         if new_amount > self.max: new_amount = self.max
         self.amount = new_amount
         self.build_bar()
- 
- 
+
     def build_bar(self):
         """
-        Figure new percent complete, and rebuild the bar string base on 
+        Figure new percent complete, and rebuild the bar string based on
         self.amount.
         """
         diff = float(self.amount - self.min)
@@ -261,24 +268,23 @@ class ProgressBar:
             percent_done = int(round((diff / float(self.span)) * 100.0))
         except Exception:
             percent_done = 100
- 
-        # figure the proper number of 'character' make up the bar 
+
+        # figure the proper number of 'character' make up the bar
         all_full = self.width - 2
         num_hashes = int(round((percent_done * all_full) / 100))
- 
+
         if self.mode == 'dynamic':
             # build a progress bar with self.char (to create a dynamic bar
             # where the percent string moves along with the bar progress.
             self.bar = self.char * num_hashes
         else:
-            # build a progress bar with self.char and spaces (to create a 
+            # build a progress bar with self.char and spaces (to create a
             # fixe bar (the percent string doesn't move)
             self.bar = self.char * num_hashes + ' ' * (all_full-num_hashes)
- 
+
         percent_str = str(percent_done) + "%"
         self.bar = '[ ' + self.bar + ' ] ' + percent_str
- 
- 
+
     def __str__(self):
         return str(self.bar)
 
@@ -290,6 +296,7 @@ def assert_arrays_equal(a, b):
     assert a.shape == b.shape, "%s != %s" % (a,b)
     assert (a.flatten()==b.flatten()).all(), "%s != %s" % (a,b)
 
+
 def assert_arrays_almost_equal(a, b, threshold):
     import numpy
     assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
@@ -297,6 +304,41 @@ def assert_arrays_almost_equal(a, b, threshold):
     assert a.shape == b.shape, "%s != %s" % (a,b)
     assert (abs(a - b) < threshold).all(), "max(|a - b|) = %s" % (abs(a - b)).max()
 
+
 def sort_by_column(a, col):
     # see stackoverflow.com/questions/2828059/
     return a[a[:,col].argsort(),:]
+
+
+# based on http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
+class forgetful_memoize(object):
+    """
+    Decorator that caches the result from the last time a function was called.
+    If the next call uses the same arguments, the cached value is returned, and
+    not re-evaluated. If the next call uses different arguments, the cached
+    value is overwritten.
+
+    The use case is when the same, heavy-weight function is called repeatedly
+    with the same arguments in different places.
+    """
+
+    def __init__(self, func):
+        self.func = func
+        self.cached_args = None
+        self.cached_value = None
+
+    def __call__(self, *args):
+        import pdb; pdb.set_trace()
+        if args == self.cached_args:
+            print "using cached value"
+            return self.cached_value
+        else:
+            #print "calculating value"
+            value = self.func(*args)
+            self.cached_args = args
+            self.cached_value = value
+            return value
+
+    def __get__(self, obj, objtype):
+        """Support instance methods."""
+        return functools.partial(self.__call__, obj)

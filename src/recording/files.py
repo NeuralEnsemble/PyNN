@@ -18,7 +18,7 @@ $Id$
 """
 
 
-import numpy, sys, os, shutil
+import numpy, os, shutil
 import cPickle as pickle
 
 try:
@@ -26,7 +26,7 @@ try:
     have_hdf5 = True
 except ImportError:
     have_hdf5 = False
-    
+
 
 DEFAULT_BUFFER_SIZE = 10000
 
@@ -42,11 +42,11 @@ def _savetxt(filename, data, format, delimiter):
 
 
 def savez(file, *args, **kwds):
-    
-    __doc__ = numpy.savez.__doc__    
+
+    __doc__ = numpy.savez.__doc__
     import zipfile
     from numpy.lib import format
-    
+
     if isinstance(file, basestring):
         if not file.endswith('.npz'):
             file = file + '.npz'
@@ -74,13 +74,13 @@ def savez(file, *args, **kwds):
         zip.write(filename, arcname=fname)
     zip.close()
     shutil.rmtree(direc)
-    
+
 
 class BaseFile(object):
     """
     Base class for PyNN File classes.
     """
-    
+
     def __init__(self, filename, mode='r'):
         """
         Open a file with the given filename and mode.
@@ -109,8 +109,8 @@ class BaseFile(object):
         except Exception:
             pass
         self.name = filename
-        self.fileobj = open(self.name, self.mode, DEFAULT_BUFFER_SIZE)        
-        
+        self.fileobj = open(self.name, self.mode, DEFAULT_BUFFER_SIZE)
+
     def write(self, data, metadata):
         """
         Write data and metadata to file. `data` should be a NumPy array,
@@ -123,7 +123,7 @@ class BaseFile(object):
         Read data from the file and return a NumPy array.
         """
         raise NotImplementedError
-    
+
     def get_metadata(self):
         """
         Read metadata from the file and return a dict.
@@ -141,7 +141,7 @@ class StandardTextFile(BaseFile):
     Data and metadata is written as text. Metadata is written at the top of the
     file, with each line preceded by "#". Data is written with one data point per line.
     """
-    
+
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
         self._check_open()
@@ -158,52 +158,52 @@ class StandardTextFile(BaseFile):
     def read(self):
         self._check_open()
         return numpy.loadtxt(self.fileobj)
-        
+
 
 class PickleFile(BaseFile):
     """
     Data and metadata are pickled and saved to file.
     """
-    
+
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
         self._check_open()
         pickle.dump((data, metadata), self.fileobj)
-        
+
     def read(self):
         __doc__ = BaseFile.read.__doc__
         self._check_open()
         data = pickle.load(self.fileobj)[0]
         self.fileobj.seek(0)
         return data
-    
+
     def get_metadata(self):
         __doc__ = BaseFile.get_metadata.__doc__
         self._check_open()
         metadata = pickle.load(self.fileobj)[1]
         self.fileobj.seek(0)
         return metadata
-        
-        
+
+
 class NumpyBinaryFile(BaseFile):
     """
     Data and metadata are saved in .npz format, which is a zipped archive of
     arrays.
     """
-    
+
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
         self._check_open()
         metadata_array = numpy.array(metadata.items())
         savez(self.fileobj, data=data, metadata=metadata_array)
-        
+
     def read(self):
         __doc__ = BaseFile.read.__doc__
         self._check_open()
         data = numpy.load(self.fileobj)['data']
         self.fileobj.seek(0)
         return data
-    
+
     def get_metadata(self):
         __doc__ = BaseFile.get_metadata.__doc__
         self._check_open()
@@ -215,15 +215,15 @@ class NumpyBinaryFile(BaseFile):
                 D[name] = value
         self.fileobj.seek(0)
         return D
-    
-    
-if have_hdf5:    
+
+
+if have_hdf5:
     class HDF5ArrayFile(BaseFile):
         """
         Data are saved as an array within a node named "data". Metadata are
         saved as attributes of this node.
         """
-        
+
         def __init__(self, filename, mode='r', title="PyNN data file"):
             """
             Open an HDF5 file with the given filename, mode and title.
@@ -231,7 +231,7 @@ if have_hdf5:
             self.name = filename
             self.mode = mode
             self.fileobj = tables.openFile(filename, mode=mode, title=title)
-            
+
         # may not work with old versions of PyTables < 1.3, since they only support numarray, not numpy
         def write(self, data, metadata):
             __doc__ = BaseFile.write.__doc__
@@ -243,11 +243,11 @@ if have_hdf5:
                 for name, value in metadata.items():
                     setattr(node.attrs, name, value)
                 self.fileobj.close()
-    
+
         def read(self):
             __doc__ = BaseFile.read.__doc__
             return self.fileobj.root.data.read()
-    
+
         def get_metadata(self):
             __doc__ = BaseFile.get_metadata.__doc__
             D = {}
@@ -255,4 +255,3 @@ if have_hdf5:
             for name in node._v_attrs._f_list():
                 D[name] = node.attrs.__getattr__(name)
             return D
-    

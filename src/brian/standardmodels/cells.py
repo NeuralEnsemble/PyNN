@@ -9,14 +9,12 @@ $Id$
 """
 
 from pyNN.standardmodels import cells, build_translations, ModelNotAvailable
-from pyNN import errors
 #from brian.library.synapses import *
 import brian
 from pyNN.brian.simulator import PoissonGroupWithDelays, ThresholdNeuronGroup, \
                                  AdaptiveNeuronGroup, BiophysicalNeuronGroup, \
                                  MultipleSpikeGeneratorGroupWithDelays
-from brian import mV, ms, nF, nA, uS, second, Hz, amp
-
+from brian import mV, ms, nF, nA, uS, Hz
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):

@@ -25,8 +25,8 @@ class STDPMechanism(STDPMechanism):
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     __doc__ = synapses.TsodyksMarkramMechanism.__doc__
 
-    def reset(population,spikes, v_reset):
-        population.R_[spikes]-=U_SE*population.R_[spikes]
+    def reset(population, spikes, v_reset):
+        population.R_[spikes] -= U_SE*population.R_[spikes]
         population.v_[spikes]= v_reset
 
 

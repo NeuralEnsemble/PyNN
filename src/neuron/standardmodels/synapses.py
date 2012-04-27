@@ -11,18 +11,18 @@ from pyNN.standardmodels import synapses, build_translations, STDPMechanism, Syn
 
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
-    __doc__ = synapses.TsodyksMarkramMechanism.__doc__    
+    __doc__ = synapses.TsodyksMarkramMechanism.__doc__
 
     translations = build_translations(
         ('U', 'U'),
         ('tau_rec', 'tau_rec'),
         ('tau_facil', 'tau_facil'),
-        ('u0', 'u0'),  
+        ('u0', 'u0'),
         ('x0', 'x' ), # } note that these two values
         ('y0', 'y')   # } are not used
     )
     native_name = 'tsodkys-markram'
-    
+
     def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
         assert (x0 == 1 and y0 == 0), "It is not currently possible to set x0 and y0"
         synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
@@ -30,7 +30,7 @@ class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
-    
+
     translations = build_translations(
         ('w_max',     'wmax'),
         ('w_min',     'wmin'),
@@ -41,7 +41,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
 
 
 class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
-    __doc__ = synapses.MultiplicativeWeightDependence.__doc__ 
+    __doc__ = synapses.MultiplicativeWeightDependence.__doc__
 
     translations = build_translations(
         ('w_max',     'wmax'),
@@ -68,7 +68,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
     }
 
 
-class GutigWeightDependence(synapses.GutigWeightDependence):  
+class GutigWeightDependence(synapses.GutigWeightDependence):
     __doc__ = synapses.GutigWeightDependence.__doc__
 
     translations = build_translations(
@@ -83,11 +83,10 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
 
 
 class SpikePairRule(synapses.SpikePairRule):
-    __doc__ = synapses.SpikePairRule.__doc__    
+    __doc__ = synapses.SpikePairRule.__doc__
 
     translations = build_translations(
         ('tau_plus',  'tauLTP'),
         ('tau_minus', 'tauLTD'),
     )
     possible_models = set(['StdwaSA', 'StdwaSoft', 'StdwaGuetig'])
-

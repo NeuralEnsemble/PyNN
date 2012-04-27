@@ -6,17 +6,17 @@ Classes:
 
   Space           - representation of a Cartesian space for use in calculating
                     distances
-    
+
   Line            - represents a structure with neurons distributed evenly on a
                     straight line.
   Grid2D          - represents a structure with neurons distributed on a 2D grid.
   Grid3D          - represents a structure with neurons distributed on a 3D grid.
   RandomStructure - represents a structure with neurons distributed randomly
                     within a given volume.
-                    
+
   Cuboid          - representation of a cuboidal volume, for use with RandomStructure.
   Sphere          - representation of a spherical volume, for use with RandomStructure.
-  
+
 :copyright: Copyright 2006-2012 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
@@ -41,7 +41,7 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
     (the post-synaptic position is multipied by this quantity).
     """
     d = src.position - scale_factor*(tgt.position + offset)
-    
+
     if not periodic_boundaries == None:
         d = numpy.minimum(abs(d), periodic_boundaries-abs(d))
     if mask is not None:
@@ -55,10 +55,10 @@ class Space(object):
     is Cartesian, may be 1-, 2- or 3-dimensional, and may have periodic
     boundaries in any of the dimensions.
     """
-    
+
     AXES = {'x' : [0],    'y': [1],    'z': [2],
             'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': range(3), None: range(3)}
-    
+
     def __init__(self, axes=None, scale_factor=1.0, offset=0.0,
                  periodic_boundaries=None):
         """
@@ -79,7 +79,7 @@ class Space(object):
         self.axes = numpy.array(Space.AXES[axes])
         self.scale_factor = scale_factor
         self.offset = offset
-        
+
     def distances(self, A, B, expand=False):
         """
         Calculate the distance matrix between two sets of coordinates, given
@@ -123,7 +123,7 @@ class Space(object):
 
 
 class BaseStructure(object):
-    
+
     def __eq__(self, other):
         return reduce(and_, (getattr(self, attr) == getattr(other, attr)
                              for attr in self.parameter_names))
@@ -137,10 +137,10 @@ class BaseStructure(object):
     def describe(self, template='structure_default.txt', engine='default'):
         """
         Returns a human-readable description of the network structure.
-        
+
         The output may be customized by specifying a different template
         togther with an associated template engine (see ``pyNN.descriptions``).
-        
+
         If template is None, then a dictionary containing the template context
         will be returned.
         """
@@ -154,13 +154,13 @@ class Line(BaseStructure):
     Represents a structure with neurons distributed evenly on a straight line.
     """
     parameter_names = ("dx", "x0", "y", "z")
-    
+
     def __init__(self, dx=1.0, x0=0.0, y=0.0, z=0.0):
         self.dx = dx
         self.x0 = x0
         self.y = y
         self.z = z
-    
+
     def generate_positions(self, n):
         x = self.dx*numpy.arange(n, dtype=float) + self.x0
         y = numpy.zeros(n) + self.y
@@ -173,8 +173,9 @@ class Grid2D(BaseStructure):
     Represents a structure with neurons distributed on a 2D grid.
     """
     parameter_names = ("aspect_ratio", "dx", "dy", "x0", "y0", "fill_order")
-    
-    def __init__(self, aspect_ratio=1.0, dx=1.0, dy=1.0, x0=0.0, y0=0.0, z=0, fill_order="sequential"):
+
+    def __init__(self, aspect_ratio=1.0, dx=1.0, dy=1.0, x0=0.0, y0=0.0, z=0,
+                 fill_order="sequential"):
         """
         aspect_ratio - ratio of the number of grid points per side (not the ratio
                        of the side lengths, unless dx == dy)
@@ -183,14 +184,14 @@ class Grid2D(BaseStructure):
         assert fill_order in ('sequential', 'random')
         self.fill_order = fill_order
         self.dx = dx; self.dy = dy; self.x0 = x0; self.y0 = y0; self.z = z
-    
+
     def calculate_size(self, n):
         nx = math.sqrt(n*self.aspect_ratio)
         if n%nx != 0:
             raise Exception("Invalid size: n=%g, nx=%d" % (n, nx))
         ny = n/nx
         return nx, ny
-    
+
     def generate_positions(self, n):
         nx, ny = self.calculate_size(n)
         x,y,z = numpy.indices((nx,ny,1), dtype=float)
@@ -209,9 +210,9 @@ class Grid3D(BaseStructure):
     Represents a structure with neurons distributed on a 3D grid.
     """
     parameter_names = ("aspect_ratios", "dx", "dy", "dz", "x0", "y0", "z0", "fill_order")
-    
-    def __init__(self, aspect_ratioXY=1.0, aspect_ratioXZ=1.0, dx=1.0, dy=1.0, dz=1.0, x0=0.0, y0=0.0, z0=0,
-                 fill_order="sequential"):
+
+    def __init__(self, aspect_ratioXY=1.0, aspect_ratioXZ=1.0, dx=1.0, dy=1.0,
+                 dz=1.0, x0=0.0, y0=0.0, z0=0, fill_order="sequential"):
         """
         If fill_order is 'sequential', the z-index will be filled first, then y then x, i.e.
         the first cell will be at (0,0,0) (given default values for the other arguments),
@@ -222,7 +223,7 @@ class Grid3D(BaseStructure):
         self.fill_order = fill_order
         self.dx = dx; self.dy = dy; self.dz = dz
         self.x0 = x0; self.y0 = y0; self.z0 = z0
-    
+
     def calculate_size(self, n):
         a,b = self.aspect_ratios
         nx = int(round(math.pow(n*a*b, 1/3.0)))
@@ -230,7 +231,7 @@ class Grid3D(BaseStructure):
         nz = int(round(nx/b))
         assert nx*ny*nz == n, str((nx, ny, nz, nx*ny*nz, n, a, b))
         return nx, ny, nz
-    
+
     def generate_positions(self, n):
         nx, ny, nz = self.calculate_size(n)
         x,y,z = numpy.indices((nx,ny,nz), dtype=float)
@@ -246,11 +247,12 @@ class Grid3D(BaseStructure):
 class Shape(object):
     pass
 
+
 class Cuboid(Shape):
     """
     Represents a cuboidal volume within which neurons may be distributed.
     """
-    
+
     def __init__(self, width, height, depth):
         """
         height: extent in y direction
@@ -260,7 +262,7 @@ class Cuboid(Shape):
         self.height = height
         self.width = width
         self.depth = depth
-        
+
     def sample(self, n, rng):
         return 0.5*rng.uniform(-1, 1, size=(n,3)) * (self.width, self.height, self.depth)
 
@@ -269,11 +271,11 @@ class Sphere(Shape):
     """
     Represents a spherical volume within which neurons may be distributed.
     """
-    
+
     def __init__(self, radius):
         Shape.__init__(self)
         self.radius = radius
-        
+
     def sample(self, n, rng):
         # this implementation is wasteful, as it throws away a lot of numbers,
         # but simple. More efficient implementations welcome.
@@ -293,7 +295,7 @@ class RandomStructure(BaseStructure):
     volume.
     """
     parameter_names = ('boundary', 'origin', 'rng')
-    
+
     def __init__(self, boundary, origin=(0.0,0.0,0.0), rng=None):
         """
         `boundary` - a subclass of Shape
@@ -304,7 +306,7 @@ class RandomStructure(BaseStructure):
         self.boundary = boundary
         self.origin = origin
         self.rng = rng or NumpyRNG()
-        
+
     def generate_positions(self, n):
         return (numpy.array(self.origin) + self.boundary.sample(n, self.rng)).T
 

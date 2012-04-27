@@ -145,7 +145,7 @@ class BasePopulation(object):
         Return either a single cell (ID object) from the Population, if index
         is an integer, or a subset of the cells (PopulationView object), if
         index is a slice or array.
-        
+
         Note that __getitem__ is called when using [] access, e.g.
             p = Population(...)
             p[2] is equivalent to p.__getitem__(2).
@@ -251,11 +251,11 @@ class BasePopulation(object):
             if any(name in self.celltype.computed_parameters() for name in parameter_names):
                 native_names = self.celltype.get_translated_names() # need all parameters in order to calculate values
             else:
-                native_names = self.celltype.get_translated_names(*parameter_names) 
+                native_names = self.celltype.get_translated_names(*parameter_names)
         native_parameter_space = self._get_parameters(*native_names)
         parameter_space = self.celltype.reverse_translate(native_parameter_space)
         parameter_space.evaluate(simplify=True)
-    
+
         parameters = {}
         if gather == True and self._simulator.state.num_processes > 1:
             # seems inefficient to do it in a loop - should do as single operation
@@ -279,17 +279,17 @@ class BasePopulation(object):
     def set(self, **parameters):
         """
         Set one or more parameters for every cell in the population.
-        
+
         Values passed to set() may be:
             (1) single values
             (2) RandomDistribution objects
             (3) lists/arrays of values of the same size as the population
             (4) mapping functions, where a mapping function accepts a single
                 argument (the cell index) and returns a single value.
-        
+
         Here, a "value" may be either a single number or a list/array of numbers
         (e.g. for spike times).
-        
+
         Examples:
             p.set(tau_m=20.0, v_rest=-65).
             p.set(spike_times=[0.3, 0.7, 0.9, 1.4])
@@ -303,7 +303,7 @@ class BasePopulation(object):
             parameter_space = self.celltype.reverse_translate(self._get_parameters(*native_names))
             parameter_space.update(**parameters)
         else:
-            parameter_space = ParameterSpace(parameters, 
+            parameter_space = ParameterSpace(parameters,
                                              self.celltype.get_schema(),
                                              self.size)
         if isinstance(self.celltype, standardmodels.StandardCellType):
@@ -382,10 +382,10 @@ class BasePopulation(object):
                              # recording will be reset for the entire population, not just the view
             for recorder in self.recorders.values():
                 recorder.reset()
-            self.recorders = {}    
+            self.recorders = {}
         else:
             if not self.can_record(variable):
-                raise errors.RecordingError(variable, self.celltype)        
+                raise errors.RecordingError(variable, self.celltype)
             logger.debug("%s.record('%s')", self.label, variable)
             if variable not in self.recorders:
                 self._add_recorder(variable, to_file)
@@ -528,7 +528,7 @@ class BasePopulation(object):
                 return 0
         else:
             return numpy.nan
-        
+
     def inject(self, current_source):
         """
         Connect a current source to all cells in the Population.
@@ -548,7 +548,7 @@ class BasePopulation(object):
         cells  = self.all_cells
         result = numpy.empty((len(cells), 4))
         result[:,0]   = cells
-        result[:,1:4] = self.positions.T 
+        result[:,1:4] = self.positions.T
         if self._simulator.state.mpi_rank == 0:
             file.write(result, {'population' : self.label})
             file.close()
@@ -718,12 +718,12 @@ class Population(BasePopulation):
 class PopulationView(BasePopulation):
     """
     A view of a subset of neurons within a Population.
-    
+
     In most ways, Populations and PopulationViews have the same behaviour, i.e.
     they can be recorded, connected with Projections, etc. It should be noted
     that any changes to neurons in a PopulationView will be reflected in the
     parent Population and vice versa.
-    
+
     It is possible to have views of views.
     """
 
@@ -731,7 +731,7 @@ class PopulationView(BasePopulation):
         """
         Create a view of a subset of neurons within a parent Population or
         PopulationView.
-        
+
         selector - a slice or numpy mask array. The mask array should either be
                    a boolean array of the same size as the parent, or an
                    integer array containing cell indices, i.e. if p.size == 5,
@@ -741,7 +741,7 @@ class PopulationView(BasePopulation):
                    will all create the same view.
         """
         self.parent = parent
-        self.mask = selector # later we can have fancier selectors, for now we just have numpy masks              
+        self.mask = selector # later we can have fancier selectors, for now we just have numpy masks
         self.label  = label or "view of %s with mask %s" % (parent.label, self.mask)
         # maybe just redefine __getattr__ instead of the following...
         self.celltype     = self.parent.celltype
@@ -753,7 +753,7 @@ class PopulationView(BasePopulation):
             if self.mask.dtype is numpy.dtype('bool'):
                 if len(self.mask) != len(self.parent):
                     raise Exception("Boolean masks should have the size of Parent Population")
-                self.mask = numpy.arange(len(self.parent))[self.mask]     
+                self.mask = numpy.arange(len(self.parent))[self.mask]
             if len(numpy.unique(self.mask)) != len(self.mask):
                 logging.warning("PopulationView can contain only once each ID, duplicated IDs are remove")
                 self.mask = numpy.unique(self.mask)
@@ -816,13 +816,13 @@ class PopulationView(BasePopulation):
                     else:
                         result = numpy.append(result, data)
                 return result
-        
+
     @property
     def grandparent(self):
         """
         Returns the parent Population at the root of the tree (since the
         immediate parent may itself be a PopulationView).
-        
+
         The name "grandparent" is of course a little misleading, as it could
         be just the parent, or the great, great, great, ..., grandparent.
         """
@@ -830,7 +830,7 @@ class PopulationView(BasePopulation):
             return self.parent.grandparent
         else:
             return self.parent
-    
+
     def describe(self, template='populationview_default.txt', engine='default'):
         """
         Returns a human-readable description of the population view.
@@ -860,7 +860,7 @@ class Assembly(object):
     def __init__(self, *populations, **kwargs):
         """
         Create an Assembly of Populations and/or PopulationViews.
-        
+
         kwargs may contain a keyword argument 'label'.
         """
         if kwargs:
@@ -910,46 +910,46 @@ class Assembly(object):
 
     def all(self):
         """Iterator over cell ids on all nodes."""
-        return iter(self.all_cells)    
+        return iter(self.all_cells)
 
     @property
     def _is_sorted(self):
         idx = numpy.argsort(self.all_cells)
         return numpy.all(idx == numpy.arange(len(self.all_cells)))
-    
+
     @property
     def _homogeneous_synapses(self):
         syn   = None
         for count, p in enumerate(self.populations):
              if len(p.all_cells) > 0:
                 syn = is_conductance(p.all_cells[0])
-                
+
         if syn is not None:
             for p in self.populations[count:]:
                 if len(p.all_cells) > 0:
                     if syn != is_conductance(p.all_cells[0]):
                         return False
         return True
-    
+
     @property
     def conductance_based(self):
         return all(p.celltype.conductance_based for p in self.populations)
-    
+
     @property
     def _mask_local(self):
         result = self.populations[0]._mask_local
         for p in self.populations[1:]:
             result = numpy.concatenate((result, p._mask_local))
         return result
-    
+
     @property
     def first_id(self):
         return numpy.min(self.all_cells)
-        
+
     @property
     def last_id(self):
         return numpy.max(self.all_cells)
-    
+
     def id_to_index(self, id):
         """
         Given the ID(s) of cell(s) in the Assembly, return its (their) index
@@ -982,17 +982,13 @@ class Assembly(object):
                         result = numpy.append(result, data)
                 return result
 
-    def all(self):
-        """Iterator over cell ids on all nodes."""
-        return iter(self.all_cells)    
-            
     @property
     def positions(self):
         result = self.populations[0].positions
         for p in self.populations[1:]:
             result = numpy.hstack((result, p.positions))
         return result
-        
+
     @property
     def size(self):
         return sum(p.size for p in self.populations)
@@ -1021,7 +1017,7 @@ class Assembly(object):
             count += p.size
             boundaries.append(count)
         boundaries = numpy.array(boundaries)
-        
+
         if isinstance(index, int): # return an ID
             pindex = boundaries[1:].searchsorted(index, side='right')
             return self.populations[pindex][index-boundaries[pindex]]
@@ -1040,7 +1036,7 @@ class Assembly(object):
         """
         An Assembly may be added to a Population, PopulationView or Assembly
         with the '+' operator, returning a new Assembly, e.g.:
-        
+
             a2 = a1 + p
         """
         if isinstance(other, BasePopulation):
@@ -1054,7 +1050,7 @@ class Assembly(object):
         """
         A Population, PopulationView or Assembly may be added to an existing
         Assembly using the '+=' operator, e.g.:
-        
+
             a += p
         """
         if isinstance(other, BasePopulation):
@@ -1065,7 +1061,7 @@ class Assembly(object):
         else:
             raise TypeError("can only add a Population or another Assembly to an Assembly")
         return self
-    
+
     def sample(self, n, rng=None):
         """
         Randomly sample n cells from the Assembly, and return a Assembly
@@ -1078,7 +1074,7 @@ class Assembly(object):
         logger.debug("The %d cells recorded have indices %s" % (n, indices))
         logger.debug("%s.sample(%s)", self.label, n)
         return self[indices]
-    
+
     def initialize(self, variable, value):
         """
         Set the initial value of one of the state variables of the neurons in
@@ -1150,7 +1146,7 @@ class Assembly(object):
         cells  = self.all_cells
         result = numpy.empty((len(cells), 4))
         result[:,0]   = cells
-        result[:,1:4] = self.positions.T 
+        result[:,1:4] = self.positions.T
         if self._simulator.state.mpi_rank == 0:
             file.write(result, {'assembly' : self.label})
             file.close()
@@ -1207,7 +1203,7 @@ class Assembly(object):
         Returns the number of spikes for each neuron.
         """
         try:
-            spike_counts = self.populations[0].recorders['spikes'].count(gather, self.populations[0].record_filter)      
+            spike_counts = self.populations[0].recorders['spikes'].count(gather, self.populations[0].record_filter)
         except errors.NothingToWriteError:
             spike_counts = {}
         for p in self.populations[1:]:
@@ -1218,58 +1214,58 @@ class Assembly(object):
         return spike_counts
 
     def _print(self, file, variable, format, gather=True, compatible_output=True):
-        
+
         ## First, we write all the individual data for the heterogeneous populations
-        ## embedded within the Assembly. To speed things up, we write them in temporary 
+        ## embedded within the Assembly. To speed things up, we write them in temporary
         ## folders as Numpy Binary objects
         tempdir   = tempfile.mkdtemp()
-        filenames = {} 
+        filenames = {}
         filename  = '%s/%s.%s' %(tempdir, self.populations[0].label, variable)
         p_file    = files.NumpyBinaryFile(filename, mode='w')
         try:
             self.populations[0].recorders[variable].write(p_file, gather, compatible_output, self.populations[0].record_filter)
-            filenames[self.populations[0]] = (filename, True)        
+            filenames[self.populations[0]] = (filename, True)
         except errors.NothingToWriteError:
-            filenames[self.populations[0]] = (filename, False)       
+            filenames[self.populations[0]] = (filename, False)
         for p in self.populations[1:]:
             filename = '%s/%s.%s' %(tempdir, p.label, variable)
-            p_file = files.NumpyBinaryFile(filename, mode='w')           
+            p_file = files.NumpyBinaryFile(filename, mode='w')
             try:
                 p.recorders[variable].write(p_file, gather, compatible_output, p.record_filter)
                 filenames[p] = (filename, True)
             except errors.NothingToWriteError:
                 filenames[p] = (filename, False)
-                
+
         ## Then we need to merge the previsouly written files into a single one, to be consistent
-        ## with a Population object. Note that the header should be better considered.          
+        ## with a Population object. Note that the header should be better considered.
         metadata = {'variable'    : variable,
                     'size'        : self.size,
                     'label'       : self.label,
                     'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
                     'first_id'    : self.first_id,
                     'last_id'     : self.last_id}
-        
+
         metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
         data = numpy.zeros(format)
         for pop in filenames.keys():
             if filenames[pop][1] is True:
                 name     = filenames[pop][0]
                 if gather==False and self._simulator.state.num_processes > 1:
-                    name += '.%d' % self._simulator.state.mpi_rank            
-                p_file   = files.NumpyBinaryFile(name, mode='r') 
-                tmp_data = p_file.read()                    
+                    name += '.%d' % self._simulator.state.mpi_rank
+                p_file   = files.NumpyBinaryFile(name, mode='r')
+                tmp_data = p_file.read()
                 if compatible_output:
                     tmp_data[:, -1] = self.id_to_index(tmp_data[:,-1] + pop.first_id)
                 data = numpy.vstack((data, tmp_data))
             os.remove(name)
-        metadata['n'] = data.shape[0]             
+        metadata['n'] = data.shape[0]
         os.rmdir(tempdir)
-        
+
         if isinstance(file, basestring):
             if gather==False and self._simulator.state.num_processes > 1:
                 file += '.%d' % self._simulator.state.mpi_rank
             file = files.StandardTextFile(file, mode='w')
-        
+
         if self._simulator.state.mpi_rank == 0 or gather == False:
             file.write(data, metadata)
             file.close()

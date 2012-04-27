@@ -25,7 +25,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     """
     Initialises/reinitialises the simulator. Any existing network structure is
     destroyed.
-    
+
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
@@ -38,13 +38,16 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     if min_delay < timestep:
         raise Exception("min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep))
 
+
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     raise NotImplementedError
 
+
 def run(simtime):
     """Run the simulation for simtime ms."""
     raise NotImplementedError
+
 
 def build_reset(simulator):
     def reset():
@@ -60,25 +63,25 @@ def build_state_queries(simulator):
     def get_current_time():
         """Return the current time in the simulation."""
         return simulator.state.t
-    
+
     def get_time_step():
         """Return the integration time step."""
         return simulator.state.dt
-    
+
     def get_min_delay():
         """Return the minimum allowed synaptic delay."""
         return simulator.state.min_delay
-    
+
     def get_max_delay():
         """Return the maximum allowed synaptic delay."""
         return simulator.state.max_delay
-    
+
     def num_processes():
         """Return the number of MPI processes."""
         return simulator.state.num_processes
-    
+
     def rank():
         """Return the MPI rank of the current node."""
         return simulator.state.mpi_rank
-    
+
     return get_current_time, get_time_step, get_min_delay, get_max_delay, num_processes, rank

@@ -296,7 +296,7 @@ class ID(int, common.IDMixin):
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""
         if n is None:
-            n = gid
+            n = ID.gid
         int.__init__(n)
         common.IDMixin.__init__(self)
 

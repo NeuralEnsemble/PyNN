@@ -15,10 +15,7 @@ $Id: electrodes.py 991 2011-09-30 13:05:02Z apdavison $
 """
 
 import nest
-import numpy
-from pyNN.nest.simulator import state
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
-from pyNN.random import NumpyRNG, NativeRNG
 from pyNN.common import Population, PopulationView, Assembly
 from pyNN.parameters import ParameterSpace, Sequence
 
@@ -48,7 +45,7 @@ class NestCurrentSource(StandardCurrentSource):
             self.cell_list = cell_list
         nest.DivergentConnect(self._device, self.cell_list)
 
-    def set_native_parameters(self, parameters): 
+    def set_native_parameters(self, parameters):
         for key, value in parameters.items():
             if key == "amplitude_values":
                 assert isinstance(value, Sequence)
@@ -58,11 +55,11 @@ class NestCurrentSource(StandardCurrentSource):
 
     def get_native_parameters(self):
         return nest.GetStatus([self._device])[0]
-    
+
 
 class DCSource(NestCurrentSource, electrodes.DCSource):
-    __doc__ = electrodes.DCSource.__doc__    
-    
+    __doc__ = electrodes.DCSource.__doc__
+
     translations = build_translations(
         ('amplitude',  'amplitude', 1000.),
         ('start',      'start'),
@@ -72,8 +69,8 @@ class DCSource(NestCurrentSource, electrodes.DCSource):
 
 
 class ACSource(NestCurrentSource, electrodes.ACSource):
-    __doc__ = electrodes.ACSource.__doc__    
-    
+    __doc__ = electrodes.ACSource.__doc__
+
     translations = build_translations(
         ('amplitude',  'amplitude', 1000.),
         ('start',      'start'),
@@ -86,8 +83,8 @@ class ACSource(NestCurrentSource, electrodes.ACSource):
 
 
 class StepCurrentSource(NestCurrentSource, electrodes.StepCurrentSource):
-    __doc__ = electrodes.StepCurrentSource.__doc__ 
-    
+    __doc__ = electrodes.StepCurrentSource.__doc__
+
     translations = build_translations(
         ('amplitudes',  'amplitude_values', 1000.),
         ('times',       'amplitude_times')
@@ -97,7 +94,7 @@ class StepCurrentSource(NestCurrentSource, electrodes.StepCurrentSource):
 
 class NoisyCurrentSource(NestCurrentSource, electrodes.NoisyCurrentSource):
     __doc__ = electrodes.NoisyCurrentSource.__doc__
-    
+
     translations = build_translations(
         ('mean',  'mean', 1000.),
         ('start', 'start'),

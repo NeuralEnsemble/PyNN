@@ -14,7 +14,7 @@ Classes:
     ID
     Recorder
     Connection
-    
+
 Attributes:
     state -- a singleton instance of the _State class.
     recorder_list
@@ -29,8 +29,7 @@ $Id$
 """
 
 from pyNN import __path__ as pyNN_path
-from pyNN import common, errors, core
-import platform
+from pyNN import common
 import logging
 import numpy
 import os.path
@@ -42,7 +41,7 @@ recorder_list = []
 gid_sources = []
 logger = logging.getLogger("PyNN")
 
-# --- Internal NEURON functionality -------------------------------------------- 
+# --- Internal NEURON functionality --------------------------------------------
 
 def is_point_process(obj):
     """Determine whether a particular object is a NEURON point process."""
@@ -68,7 +67,7 @@ def register_gid(gid, source, section=None):
 def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
     """
     Pick random numbers from a Hoc Random object.
-    
+
     Return a Numpy array.
     """
     native_rng = h.Random(0 or rng.seed)
@@ -90,11 +89,11 @@ class _Initializer(object):
     `FInializeHandler` instance for each cell that needs to initialize itself,
     we create a single instance, and use an instance of this class to maintain
     a list of cells that need to be initialized.
-    
+
     Public methods:
         register()
     """
-    
+
     def __init__(self):
         """
         Create an `FinitializeHandler` object in Hoc, which will call the
@@ -104,7 +103,7 @@ class _Initializer(object):
         h.initializer = self
         self.fih = h.FInitializeHandler(1, "initializer._initialize()")
         self.clear()
-    
+
     def register(self, *items):
         """
         Add items to the list of cells/populations to be initialized. Cell
@@ -117,7 +116,7 @@ class _Initializer(object):
             else:
                 if hasattr(item._cell, "memb_init"):
                     self.cell_list.append(item)
-    
+
     def _initialize(self):
         """Call `memb_init()` for all registered cell objects."""
         logger.info("Initializing membrane potential of %d cells and %d Populations." % \
@@ -131,13 +130,13 @@ class _Initializer(object):
     def clear(self):
         self.cell_list = []
         self.population_list = []
-        
+
 
 # --- For implementation of get_time_step() and similar functions --------------
 
 class _State(object):
     """Represent the simulator state."""
-    
+
     def __init__(self):
         """Initialize the simulator."""
         h('min_delay = 0')
@@ -151,7 +150,7 @@ class _State(object):
         h('objref plastic_connections')
         self.clear()
         self.default_maxstep=10.0
-    
+
     t = h_property('t')
     def __get_dt(self):
         return h.dt
@@ -206,16 +205,16 @@ def finalize(quit=False):
 
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
-    
+
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""
         int.__init__(n)
         common.IDMixin.__init__(self)
-    
+
     def _build_cell(self, cell_model, cell_parameters):
         """
         Create a cell in NEURON, and register its global ID.
-        
+
         `cell_model` -- one of the cell classes defined in the
                         `neuron.cells` module (more generally, any class that
                         implements a certain interface, but I haven't
@@ -232,7 +231,7 @@ class ID(int, common.IDMixin):
     def get_initial_value(self, variable):
         """Get the initial value of a state variable of the cell."""
         return getattr(self._cell, "%s_init" % variable)
-        
+
     def set_initial_value(self, variable, value):
         """Set the initial value of a state variable of the cell."""
         index = self.parent.id_to_local_index(self)
@@ -252,7 +251,7 @@ class Connection(object):
     def __init__(self, source, target, nc):
         """
         Create a new connection.
-        
+
         `source` -- ID of pre-synaptic neuron.
         `target` -- ID of post-synaptic neuron.
         `nc` -- a Hoc NetCon object.
@@ -260,11 +259,11 @@ class Connection(object):
         self.source = source
         self.target = target
         self.nc = nc
-        
+
     def useSTDP(self, mechanism, parameters, ddf):
         """
         Set this connection to use spike-timing-dependent plasticity.
-        
+
         `mechanism`  -- the name of an NMODL mechanism that modifies synaptic
                         weights based on the times of pre- and post-synaptic spikes.
         `parameters` -- a dictionary containing the parameters of the weight-

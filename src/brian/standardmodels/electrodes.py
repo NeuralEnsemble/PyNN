@@ -13,7 +13,7 @@ Classes:
 $Id: electrodes.py 957 2011-05-03 13:44:15Z apdavison $
 """
 
-from brian import ms, nA, Hz, pA, network_operation, amp as ampere
+from brian import ms, nA, Hz, network_operation, amp as ampere
 import numpy
 from pyNN.brian import simulator
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource

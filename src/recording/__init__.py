@@ -11,7 +11,6 @@ internal use.
 $Id$
 """
 
-import tempfile
 import logging
 import os.path
 import numpy
@@ -61,7 +60,7 @@ def gather(data):
     else:
         num_columns = data.shape[1]
         return gdata.reshape((gdata.size/num_columns, num_columns))
-  
+
 def gather_dict(D):
     # Note that if the same key exists on multiple nodes, the value from the
     # node with the highest rank will appear in the final dict.
@@ -80,17 +79,17 @@ def mpi_sum(x):
 
 class Recorder(object):
     """Encapsulates data and functions related to recording model variables."""
-    
+
 
     formats = {'spikes': 'id t',
                'v': 'id t v',
                'gsyn': 'id t ge gi',
                'generic': 'id t variable'}
-    
+
     def __init__(self, variable, population=None, file=None):
         """
         Create a recorder.
-        
+
         `variable` -- "spikes", "v" or "gsyn"
         `population` -- the Population instance which is being recorded by the
                         recorder (optional)
@@ -105,7 +104,7 @@ class Recorder(object):
         if population:
             assert population.can_record(variable)
         self.recorded = set([])
-        
+
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
         logger.debug('Recorder.record(<%d cells>)' % len(ids))
@@ -114,29 +113,29 @@ class Recorder(object):
         self.recorded = self.recorded.union(ids)
         logger.debug('Recorder.recorded contains %d ids' % len(self.recorded))
         self._record(new_ids)
-    
+
     def reset(self):
         """Reset the list of things to be recorded."""
         self._reset()
         self.recorded = set([])
-    
+
     def filter_recorded(self, filter):
         if filter is not None:
             return set(filter).intersection(self.recorded)
         else:
             return self.recorded
-    
+
     def get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         data_array = self._get(gather, compatible_output, filter)
         if self.population is not None:
             try:
-                data_array[:,0] = self.population.id_to_index(data_array[:, 0]) # id is always first column            
+                data_array[:,0] = self.population.id_to_index(data_array[:, 0]) # id is always first column
             except Exception:
                 pass
         self._data_size = data_array.shape[0]
         return data_array
-    
+
     def write(self, file=None, gather=False, compatible_output=True, filter=None):
         """Write recorded data to file."""
         file = file or self.file
@@ -163,7 +162,7 @@ class Recorder(object):
                 file = files.StandardTextFile(filename, mode='w')
             file.write(data, metadata)
             file.close()
-    
+
     @property
     def metadata(self):
         metadata = {}
@@ -182,7 +181,7 @@ class Recorder(object):
             self.get()
         metadata['n'] = self._data_size
         return metadata
-    
+
     def _make_compatible(self, data_source):
         """
         Rewrite simulation data in a standard format:
@@ -191,7 +190,7 @@ class Recorder(object):
         assert isinstance(data_source, numpy.ndarray)
         logger.debug("Converting data from memory into compatible format")
         N = len(data_source)
-        
+
         logger.debug("Number of data elements = %d" % N)
         if N > 0:
             # Shuffle columns if necessary
@@ -199,7 +198,7 @@ class Recorder(object):
                                             self.formats["generic"]).split()
             time_column = input_format.index('t')
             id_column = input_format.index('id')
-            
+
             if self.variable == 'gsyn':
                 ge_column = input_format.index('ge')
                 gi_column = input_format.index('gi')
@@ -212,13 +211,13 @@ class Recorder(object):
             else:
                 variable_column = input_format.index('variable')
                 column_map = [variable_column, id_column]
-            
+
             data_array = data_source[:, column_map]
         else:
             logger.warning("%s is empty or does not exist" % data_source)
             data_array = numpy.array([])
         return data_array
-    
+
     def count(self, gather=True, filter=None):
         """
         Return the number of data points for each cell, as a dict. This is mainly
@@ -231,4 +230,3 @@ class Recorder(object):
         if gather and self._simulator.state.num_processes > 1:
             N = gather_dict(N)
         return N
-    
