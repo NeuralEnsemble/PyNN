@@ -73,9 +73,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
 
     if extra_params.has_key('native_rng_baseseed'):
         simulator.state.native_rng_baseseed=int(extra_params['native_rng_baseseed'])
-    else: 
+    else:
         simulator.state.native_rng_baseseed=0
-        
+
     if extra_params.has_key('default_maxstep'):
         simulator.state.default_maxstep=float(extra_params['default_maxstep'])
     return rank()
@@ -86,12 +86,12 @@ def end(compatible_output=True):
         recorder.write(gather=True, compatible_output=compatible_output)
     simulator.recorder_list = []
     #simulator.finalize()
-        
+
 def run(simtime):
     """Run the simulation for simtime ms."""
     simulator.run(simtime)
     return get_current_time()
-    
+
 reset = common.build_reset(simulator)
 
 initialize = common.initialize
@@ -110,7 +110,7 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 # ==============================================================================
 
 class PopulationMixin(object):
-    
+
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
         parameter_space.evaluate(mask=numpy.where(self._mask_local)[0])
@@ -135,20 +135,17 @@ class Assembly(common.Assembly):
 class PopulationView(common.PopulationView, PopulationMixin):
     _simulator = simulator
     assembly_class = Assembly
-    
+
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
-    
+
 
 class Population(common.Population, PopulationMixin):
-    """
-    An array of neurons all of the same type. `Population' is used as a generic
-    term intended to include layers, columns, nuclei, etc., of cells.
-    """
+    __doc__ = common.Population.__doc__
     _simulator = simulator
     recorder_class = Recorder
     assembly_class = Assembly
-    
+
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  initial_values={}, label=None):
         __doc__ = common.Population.__doc__
@@ -202,34 +199,34 @@ class Projection(common.Projection):
     """
     _simulator = simulator
     nProj = 0
-    
+
     def __init__(self, presynaptic_population, postsynaptic_population, method,
                  source=None, target=None,
                  synapse_dynamics=None, label=None, rng=None):
         """
         presynaptic_population and postsynaptic_population - Population objects.
-        
+
         source - string specifying which attribute of the presynaptic cell
                  signals action potentials
-                 
+
         target - string specifying which synapse on the postsynaptic cell to
                  connect to
-                 
+
         If source and/or target are not given, default values are used.
-        
+
         method - a Connector object, encapsulating the algorithm to use for
                  connecting the neurons.
-        
+
         synapse_dynamics - a `SynapseDynamics` object specifying which
         synaptic plasticity mechanisms to use.
-        
+
         rng - specify an RNG object to be used by the Connector.
         """
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    source, target, synapse_dynamics, label, rng)
         self.synapse_type = target or 'excitatory'
-        
-        
+
+
         ## Deal with short-term synaptic plasticity
         if self.synapse_dynamics and self.synapse_dynamics.fast:
             # need to check it is actually the Ts-M model, even though that is the only one at present!
@@ -243,12 +240,12 @@ class Projection(common.Projection):
         else:
             self.synapse_model = None
         self.connections = []
-        
+
         ## Create connections
         method.connect(self)
-            
+
         logger.info("--- Projection[%s].__init__() ---" %self.label)
-               
+
         ## Deal with long-term synaptic plasticity
         if self.synapse_dynamics and self.synapse_dynamics.slow:
             ddf = self.synapse_dynamics.slow.dendritic_delay_fraction
@@ -264,16 +261,16 @@ class Projection(common.Projection):
             long_term_plasticity_mechanism = self.synapse_dynamics.slow.possible_models
             for c in self.connections:
                 c.useSTDP(long_term_plasticity_mechanism, stdp_parameters, ddf)
-        
+
         # Check none of the delays are out of bounds. This should be redundant,
         # as this should already have been done in the Connector object, so
         # we could probably remove it.
         delays = [c.nc.delay for c in self.connections]
         if delays:
             assert min(delays) >= get_min_delay()
-        
-        Projection.nProj += 1           
-    
+
+        Projection.nProj += 1
+
     def __getitem__(self, i):
         """Return the `i`th connection on the local MPI node."""
         if isinstance(i, int):
@@ -286,21 +283,21 @@ class Projection(common.Projection):
                 return [self.connections[j] for j in range(*i.indices(i.stop))]
             else:
                 raise IndexError("%d > %d" % (i.stop, len(self)-1))
-    
+
     def __len__(self):
         """Return the number of connections on the local MPI node."""
         return len(self.connections)
-    
+
     def _resolve_synapse_type(self):
         if self.synapse_type is None:
             self.synapse_type = weight>=0 and 'excitatory' or 'inhibitory'
         if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
-            self.synapse_type += '_TM' 
-    
+            self.synapse_type += '_TM'
+
     def _divergent_connect(self, source, targets, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
-        
+
         `source`  -- the ID of the pre-synaptic cell.
         `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
         `weight`  -- a list/1D array of connection weights, or a single weight.
@@ -321,19 +318,19 @@ class Projection(common.Projection):
         for target in targets:
             if not isinstance(target, common.IDMixin):
                 raise errors.ConnectionError("Invalid target ID: %s" % target)
-              
+
         assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets), len(weights), len(delays))
         self._resolve_synapse_type()
         for target, weight, delay in zip(targets, weights, delays):
             if target.local:
-                if "." in self.synapse_type: 
-                    section, synapse_type = self.synapse_type.split(".") 
-                    synapse_object = getattr(getattr(target._cell, section), synapse_type) 
-                else: 
-                    synapse_object = getattr(target._cell, self.synapse_type) 
+                if "." in self.synapse_type:
+                    section, synapse_type = self.synapse_type.split(".")
+                    synapse_object = getattr(getattr(target._cell, section), synapse_type)
+                else:
+                    synapse_object = getattr(target._cell, self.synapse_type)
                 nc = simulator.state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
-                
+
                 # if we have a mechanism (e.g. from 9ML) that includes multiple
                 # synaptic channels, need to set nc.weight[1] here
                 if nc.wcnt() > 1 and hasattr(target._cell, "type"):
@@ -345,7 +342,7 @@ class Projection(common.Projection):
     def _convergent_connect(self, sources, target, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
-        
+
         `sources`  -- a list/1D array of pre-synaptic cell IDs, or a single ID.
         `target` -- the ID of the post-synaptic cell.
         `weight`  -- a list/1D array of connection weights, or a single weight.
@@ -366,29 +363,29 @@ class Projection(common.Projection):
         for source in sources:
             if not isinstance(source, common.IDMixin):
                 raise errors.ConnectionError("Invalid source ID: %s" % source)
-              
+
         assert len(sources) == len(weights) == len(delays), "%s %s %s" % (len(sources),len(weights),len(delays))
-                
+
         if target.local:
             for source, weight, delay in zip(sources, weights, delays):
                 if self.synapse_type is None:
                     self.synapse_type = weight >= 0 and 'excitatory' or 'inhibitory'
                 if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
                     self.synapse_type += '_TM'
-                synapse_object = getattr(target._cell, self.synapse_type)  
+                synapse_object = getattr(target._cell, self.synapse_type)
                 nc = simulator.state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
                 nc.delay  = delay
                 # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
                 self.connections.append(simulator.Connection(source, target, nc))
 
-    
+
     # --- Methods for setting connection parameters ----------------------------
-    
+
     def set(self, name, value):
         """
         Set connection attributes for all connections on the local MPI node.
-        
+
         `name`  -- attribute name
         `value` -- the attribute numeric value, or a list/1D array of such
                    values of the same length as the number of local connections,
@@ -418,10 +415,10 @@ class Projection(common.Projection):
                                                 value.rng,
                                                 value.name,
                                                 value.parameters)
-            else:       
+            else:
                 rarr = value.next(len(self))
             for c,val in zip(self.connections, rarr):
-                setattr(c, name, val)   
+                setattr(c, name, val)
         else:
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
 
@@ -429,18 +426,18 @@ class Projection(common.Projection):
         """
         Get the values of a given attribute (weight, delay, etc) for all
         connections on the local MPI node.
-        
+
         `parameter_name` -- name of the attribute whose values are wanted.
         `format` -- "list" or "array". Array format implicitly assumes that all
                     connections belong to a single Projection.
-        
+
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
         synaptic Population to the jth neuron in the post-synaptic Population,
         if a single such connection exists. If there are no such connections,
         X_ij will be NaN. If there are multiple such connections, the summed
         value will be given, which makes some sense for weights, but is
-        pretty meaningless for delays. 
+        pretty meaningless for delays.
         """
         if format == 'list':
             values = [getattr(c, parameter_name) for c in self.connections]
@@ -456,7 +453,7 @@ class Projection(common.Projection):
         else:
             raise Exception("format must be 'list' or 'array'")
         return values
-    
+
 
 Space = space.Space
 

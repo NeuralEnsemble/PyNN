@@ -556,7 +556,30 @@ class BasePopulation(object):
 
 class Population(BasePopulation):
     """
-    A group of neurons all of the same type.
+    A group of neurons all of the same type. `Population' is used as a generic
+    term intended to include layers, columns, nuclei, etc., of cells.
+
+    `size`:
+        number of cells in the Population. For backwards-compatibility,
+        `size` may also be a tuple giving the dimensions of a grid,
+        e.g. ``size=(10,10)`` is equivalent to ``size=100`` with ``structure=Grid2D()``
+
+    `cellclass`:
+        a cell type (a class inheriting from :class:`pyNN.models.BaseCellType`)
+
+    `cellparams`:
+        a dict or other mapping containing parameters, which is passed to the
+        neuron model constructor
+
+    `structure`:
+        a :class:`pyNN.space.Structure` instance.
+
+    `initial_values`:
+        a dict
+
+    `label`:
+        a name for the population. One will be auto-generated if this is not
+        supplied.
     """
     nPop = 0
 
@@ -564,18 +587,6 @@ class Population(BasePopulation):
                  initial_values={}, label=None):
         """
         Create a population of neurons all of the same type.
-
-        size - number of cells in the Population. For backwards-compatibility,
-               n may also be a tuple giving the dimensions of a grid,
-               e.g. n=(10,10) is equivalent to n=100 with structure=Grid2D()
-        cellclass should either be a standardized cell class (a class inheriting
-        from common.standardmodels.StandardCellType) or a string giving the
-        name of the simulator-specific model that makes up the population.
-        cellparams should be a dict which is passed to the neuron model
-          constructor
-        structure should be a Structure instance.
-        initial_values should be a dict
-        label is an optional name for the population.
         """
         if not isinstance(size, int):  # also allow a single integer, for a 1D population
             assert isinstance(size, tuple), "`size` must be an integer or a tuple of ints. You have supplied a %s" % type(size)
