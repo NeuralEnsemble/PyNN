@@ -589,7 +589,7 @@ The :class:`FixedNumberPreConnector` has the same arguments as :class:`FixedNumb
 Using the Connection Set Algebra
 --------------------------------
 
-The Connection Set Algebra (Djurfeldt, 2010) is a sophisticated system that allows elaborate connectivity patterns to be constructed using a concise syntax. Using the CSA requires the Python ``csa`` module to be installed (see :doc:`Installation`).
+The Connection Set Algebra (Djurfeldt, 2010) is a sophisticated system that allows elaborate connectivity patterns to be constructed using a concise syntax. Using the CSA requires the Python ``csa`` module to be installed (see :doc:`installation`).
 
 The details of constructing a connection set are beyond the scope of this manual. We give here a simple example.
 

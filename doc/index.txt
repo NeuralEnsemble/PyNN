@@ -6,20 +6,36 @@ Welcome to PyNN's documentation!
 
    introduction
    installation
+   quickstart
+   building_networks
+   injecting_current
+   recording
+   data_handling
+   simulation_control
+   parameters
+   random_numbers
+   backends
+   parallel
+   logging
+   descriptions
+   examples
+   contributors
+   developers_guide
+   api_reference
+
+Old documents
+=============
+
+.. toctree::
+   :maxdepth: 2
+
    highlevelapi
    standardmodels
    dynamicsynapses
    nonstandardmodels
-   space
-   parallel
    fileformats
    lowlevelapi
-   descriptions
-   examples
    simulatorspecificoptions
-   developers_guide
-   roadmap
-   api_reference
 
 Indices and tables
 ==================

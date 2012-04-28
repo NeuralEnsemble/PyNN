@@ -1,0 +1,17 @@
+==========
+Connectors
+==========
+
+.. autoclass:: pyNN.connectors.AllToAllConnector
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+.. autoclass:: pyNN.connectors.OneToOneConnector
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:

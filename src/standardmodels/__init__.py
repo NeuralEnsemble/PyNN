@@ -91,14 +91,13 @@ class StandardModelType(models.BaseModelType):
         """Translate simulator-specific model parameters to standardized parameters."""
         standard_parameters = {}
         for name,D  in cls.translations.items():
-            if is_listlike(cls.default_parameters[name]):
-                tname = D['translated_name']
-                native_parameters[tname] = numpy.array(native_parameters[tname])
-            try:
-                standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
-            except NameError, errmsg:
-                raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
-                                % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
+            tname = D['translated_name']
+            if tname in native_parameters.keys():
+                try:
+                    standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
+                except NameError, errmsg:
+                    raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
+                                    % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
         return ParameterSpace(standard_parameters, schema=cls.get_schema(), size=native_parameters.size)
 
     @classmethod

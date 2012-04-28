@@ -19,7 +19,7 @@ a single number
     sets the same value for all cells in the :class:`Population` or connections
     in the :class:`Projection`
     
-a :class:`RandomDistribution` object (see :doc:`random`)
+a :class:`RandomDistribution` object (see :doc:`random_numbers`)
     each item in the group will have the parameter set to a value drawn from
     the distribution
     
@@ -51,11 +51,9 @@ or, equivalently::
     >>> p.set(tau_m=15.0)
 
 .. note: for some backend simulators it is more efficient to set parameters on
-:class:`population` creation, rather than using the :meth:`set()` method.
+         :class:`population` creation, rather than using the :meth:`set()` method.
 
 To set values for a subset of the population, use a view::
-
-::
 
     >>> p[0,2,4].set(tau_m=10.0)
     >>> p.get('tau_m')

@@ -1,0 +1,29 @@
+==================
+Simulation control
+==================
+
+.. autofunction:: pyNN.neuron.setup
+
+.. autofunction:: pyNN.neuron.run
+
+.. autofunction:: pyNN.neuron.reset
+
+.. autofunction:: pyNN.neuron.end
+
+.. autofunction:: pyNN.neuron.get_time_step
+
+.. autofunction:: pyNN.neuron.get_current_time
+
+.. autofunction:: pyNN.neuron.get_min_delay
+
+.. autofunction:: pyNN.neuron.get_max_delay
+
+.. autofunction:: pyNN.neuron.num_processes
+
+.. autofunction:: pyNN.neuron.rank
+
+.. autofunction:: pyNN.neuron.set
+
+.. autofunction:: pyNN.neuron.initialize
+
+.. autofunction:: pyNN.neuron.record

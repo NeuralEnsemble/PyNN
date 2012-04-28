@@ -8,3 +8,21 @@ Populations, Views and Assemblies
    :special-members:
    :inherited-members:
    :show-inheritance:
+
+
+.. autoclass:: pyNN.neuron.PopulationView
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+
+
+.. autoclass:: pyNN.neuron.Assembly
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+.. autofunction:: pyNN.neuron.create

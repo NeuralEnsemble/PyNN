@@ -192,40 +192,17 @@ class Population(common.Population, PopulationMixin):
 
 
 class Projection(common.Projection):
-    """
-    A container for all the connections of a given type (same synapse type and
-    plasticity mechanisms) between two populations, together with methods to set
-    parameters of those connections, including of plasticity mechanisms.
-    """
+    __doc__ = common.Projection.__doc__
     _simulator = simulator
     nProj = 0
 
     def __init__(self, presynaptic_population, postsynaptic_population, method,
                  source=None, target=None,
                  synapse_dynamics=None, label=None, rng=None):
-        """
-        presynaptic_population and postsynaptic_population - Population objects.
-
-        source - string specifying which attribute of the presynaptic cell
-                 signals action potentials
-
-        target - string specifying which synapse on the postsynaptic cell to
-                 connect to
-
-        If source and/or target are not given, default values are used.
-
-        method - a Connector object, encapsulating the algorithm to use for
-                 connecting the neurons.
-
-        synapse_dynamics - a `SynapseDynamics` object specifying which
-        synaptic plasticity mechanisms to use.
-
-        rng - specify an RNG object to be used by the Connector.
-        """
+        __doc__ = common.Projection.__init__.__doc__
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    source, target, synapse_dynamics, label, rng)
         self.synapse_type = target or 'excitatory'
-
 
         ## Deal with short-term synaptic plasticity
         if self.synapse_dynamics and self.synapse_dynamics.fast:
@@ -272,7 +249,7 @@ class Projection(common.Projection):
         Projection.nProj += 1
 
     def __getitem__(self, i):
-        """Return the `i`th connection on the local MPI node."""
+        __doc__ = common.Projection.__getitem__.__doc__
         if isinstance(i, int):
             if i < len(self):
                 return self.connections[i]
@@ -383,15 +360,7 @@ class Projection(common.Projection):
     # --- Methods for setting connection parameters ----------------------------
 
     def set(self, name, value):
-        """
-        Set connection attributes for all connections on the local MPI node.
-
-        `name`  -- attribute name
-        `value` -- the attribute numeric value, or a list/1D array of such
-                   values of the same length as the number of local connections,
-                   or a 2D array with the same dimensions as the connectivity
-                   matrix (as returned by `get(format='array')`).
-        """
+        __doc__ = common.Projection.set.__doc__
         if numpy.isscalar(value):
             for c in self:
                 setattr(c, name, value)
@@ -423,22 +392,7 @@ class Projection(common.Projection):
             raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
 
     def get(self, parameter_name, format, gather=True):
-        """
-        Get the values of a given attribute (weight, delay, etc) for all
-        connections on the local MPI node.
-
-        `parameter_name` -- name of the attribute whose values are wanted.
-        `format` -- "list" or "array". Array format implicitly assumes that all
-                    connections belong to a single Projection.
-
-        Return a list or a 2D Numpy array. The array element X_ij contains the
-        attribute value for the connection from the ith neuron in the pre-
-        synaptic Population to the jth neuron in the post-synaptic Population,
-        if a single such connection exists. If there are no such connections,
-        X_ij will be NaN. If there are multiple such connections, the summed
-        value will be given, which makes some sense for weights, but is
-        pretty meaningless for delays.
-        """
+        __doc__ = common.Projection.get.__doc__
         if format == 'list':
             values = [getattr(c, parameter_name) for c in self.connections]
         elif format == 'array':

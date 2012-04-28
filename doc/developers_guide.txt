@@ -3,6 +3,19 @@
 Developers' guide
 =================
 
+..    code checkout
+..    style
+..    running tests
+..    writing new tests
+..    coverage measurement
+..    writing tickets
+..    contributing code
+..    implementing a new backend
+..    description of the common implementation (sequence of interactions)
+..    building the documentation    
+..    making a release
+..    roadmap
+
 This guide contains information about contributing to PyNN development, and aims
 to explain the overall architecture and some of the internal details of the
 PyNN codebase.

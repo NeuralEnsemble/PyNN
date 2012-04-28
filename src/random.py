@@ -191,22 +191,27 @@ class RandomDistribution(VectorizedIterable):
     def __init__(self, distribution='uniform', parameters=[], rng=None,
                  boundaries=None, constrain="clip"):
         """
-        If present, rng should be a NumpyRNG or GSLRNG object.
-        distribution should be the name of a method supported by the underlying
-            random number generator object.
-        parameters should be a list or tuple containing the arguments expected
-            by the underlying method in the correct order. named arguments are
-            not yet supported.
-        boundaries is a tuple (min, max) used to specify explicitly, for distribution
-            like Gaussian, Gamma or others, hard boundaries for the parameters. If
-            parameters are drawn outside those boundaries, the policy applied will depend
-            on the constrain parameter.
-        constrain control the policy for weights out of the specified boundaries.
+        `rng`:
+            if present, should be a NumpyRNG or GSLRNG object.
+        `distribution`:
+            the name of a method supported by the underlying random number
+            generator object.
+        `parameters`:
+            a list or tuple containing the arguments expected by the underlying
+            method in the correct order. Named arguments are not yet supported.
+        `boundaries`:
+            a tuple (min, max) used to specify explicitly, for distributions
+            like Gaussian, gamma or others, hard boundaries for the parameters.
+            If parameters are drawn outside those boundaries, the policy applied
+            will depend on the `constrain` parameter.
+        `constrain`:
+            controls the policy for weights out of the specified boundaries.
             If "clip", random numbers are clipped to the boundaries.
             If "redraw", random numbers are drawn till they fall within the boundaries.
+        
         Note that NumpyRNG and GSLRNG distributions may not have the same names,
-            e.g., 'normal' for NumpyRNG and 'gaussian' for GSLRNG, and the
-            arguments may also differ.
+        e.g., 'normal' for NumpyRNG and 'gaussian' for GSLRNG, and the arguments
+        may also differ.
         """
         self.name = distribution
         assert isinstance(parameters, (list, tuple, dict)), "The parameters argument must be a list or tuple or dict"

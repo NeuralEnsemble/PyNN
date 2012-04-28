@@ -1,0 +1,12 @@
+===========
+Projections
+===========
+
+.. autoclass:: pyNN.neuron.Projection
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+.. autofunction:: pyNN.neuron.connect

@@ -1,0 +1,31 @@
+==============
+Parameter sets
+==============
+
+.. note:: these classes are not part of the PyNN API, and if you are
+          implementing your own backend, you are not required to use them, as long as
+          your backend conforms to the API.
+
+
+.. autoclass:: pyNN.parameters.ParameterSpace
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+
+.. autoclass:: pyNN.parameters.LazyArray
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+
+
+.. autoclass:: pyNN.parameters.Sequence
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:   

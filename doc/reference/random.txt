@@ -1,0 +1,35 @@
+==============
+Random numbers
+==============
+
+
+.. autoclass:: pyNN.random.RandomDistribution
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+   
+.. autoclass:: pyNN.random.NumpyRNG
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+
+   
+.. autoclass:: pyNN.random.GSLRNG
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+
+.. autoclass:: pyNN.random.NativeRNG
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:

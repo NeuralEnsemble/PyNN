@@ -81,7 +81,7 @@ class IDMixin(object):
     def get_parameters(self):
         """Return a dict of all cell parameters."""
         if self.local:
-            return self.as_view().get(self.celltype.get_parameter_names())
+            return dict((k, v[0]) for k,v in self.as_view().get(self.celltype.get_parameter_names()).items())
         else:
             raise errors.NotLocalError("Cannot obtain parameters for a cell that does not exist on this node.")
 
@@ -256,7 +256,7 @@ class BasePopulation(object):
         parameter_space = self.celltype.reverse_translate(native_parameter_space)
         parameter_space.evaluate(simplify=True)
 
-        parameters = {}
+        parameters = dict(parameter_space.items())
         if gather == True and self._simulator.state.num_processes > 1:
             # seems inefficient to do it in a loop - should do as single operation
             for name in parameter_names:
@@ -423,7 +423,7 @@ class BasePopulation(object):
         If compatible_output is True, the format is "spiketime cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
-        This allows easy plotting of a `raster' plot of spiketimes, with one
+        This allows easy plotting of a 'raster' plot of spiketimes, with one
         line for each cell.
         The timestep, first id, last id, and number of data points per cell are
         written in a header, indicated by a '#' at the beginning of the line.
@@ -556,30 +556,31 @@ class BasePopulation(object):
 
 class Population(BasePopulation):
     """
-    A group of neurons all of the same type. `Population' is used as a generic
+    A group of neurons all of the same type. "Population" is used as a generic
     term intended to include layers, columns, nuclei, etc., of cells.
 
-    `size`:
-        number of cells in the Population. For backwards-compatibility,
-        `size` may also be a tuple giving the dimensions of a grid,
-        e.g. ``size=(10,10)`` is equivalent to ``size=100`` with ``structure=Grid2D()``
+    Arguments:
+        `size`:
+            number of cells in the Population. For backwards-compatibility,
+            `size` may also be a tuple giving the dimensions of a grid,
+            e.g. ``size=(10,10)`` is equivalent to ``size=100`` with ``structure=Grid2D()``
 
-    `cellclass`:
-        a cell type (a class inheriting from :class:`pyNN.models.BaseCellType`)
-
-    `cellparams`:
-        a dict or other mapping containing parameters, which is passed to the
-        neuron model constructor
-
-    `structure`:
-        a :class:`pyNN.space.Structure` instance.
-
-    `initial_values`:
-        a dict
-
-    `label`:
-        a name for the population. One will be auto-generated if this is not
-        supplied.
+        `cellclass`:
+            a cell type (a class inheriting from :class:`pyNN.models.BaseCellType`)
+    
+        `cellparams`:
+            a dict or other mapping containing parameters, which is passed to the
+            neuron model constructor
+    
+        `structure`:
+            a :class:`pyNN.space.Structure` instance.
+    
+        `initial_values`:
+            a dict
+    
+        `label`:
+            a name for the population. One will be auto-generated if this is not
+            supplied.
     """
     nPop = 0
 
@@ -743,13 +744,16 @@ class PopulationView(BasePopulation):
         Create a view of a subset of neurons within a parent Population or
         PopulationView.
 
-        selector - a slice or numpy mask array. The mask array should either be
-                   a boolean array of the same size as the parent, or an
-                   integer array containing cell indices, i.e. if p.size == 5,
-                     PopulationView(p, array([False, False, True, False, True]))
-                     PopulationView(p, array([2,4]))
-                     PopulationView(p, slice(2,5,2))
-                   will all create the same view.
+        selector:
+            a slice or numpy mask array. The mask array should either be a
+            boolean array of the same size as the parent, or an integer array
+            containing cell indices, i.e. if p.size == 5::
+            
+                PopulationView(p, array([False, False, True, False, True]))
+                PopulationView(p, array([2,4]))
+                PopulationView(p, slice(2,5,2))
+            
+            will all create the same view.
         """
         self.parent = parent
         self.mask = selector # later we can have fancier selectors, for now we just have numpy masks
@@ -1020,8 +1024,8 @@ class Assembly(object):
         """
         Where index is an integer, return an ID.
         Where index is a slice, list or numpy array, return a new Assembly
-          consisting of appropriate populations and (possibly newly created)
-          population views.
+        consisting of appropriate populations and (possibly newly created)
+        population views.
         """
         count = 0; boundaries = [0]
         for p in self.populations:
@@ -1104,9 +1108,10 @@ class Assembly(object):
         can be a dict, in which case val should not be supplied, or a string
         giving the parameter name, in which case val is the parameter value.
         val can be a numeric value, or list of such (e.g. for setting spike
-        times).
-        e.g. p.set("tau_m",20.0).
-             p.set({'tau_m':20,'v_rest':-65})
+        times). Example::
+        
+            p.set("tau_m",20.0).
+            p.set({'tau_m':20,'v_rest':-65})
         """
         for p in self.populations:
             p.set(param, val)
@@ -1290,7 +1295,7 @@ class Assembly(object):
         If compatible_output is True, the format is "spiketime cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
-        This allows easy plotting of a `raster' plot of spiketimes, with one
+        This allows easy plotting of a 'raster' plot of spiketimes, with one
         line for each cell.
         The timestep, first id, last id, and number of data points per cell are
         written in a header, indicated by a '#' at the beginning of the line.

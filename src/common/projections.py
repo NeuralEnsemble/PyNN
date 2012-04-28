@@ -130,7 +130,7 @@ class Projection(object):
         return 'Projection("%s")' % self.label
 
     def __getitem__(self, i):
-        """Return the `i`th connection within the Projection."""
+        """Return the *i*th connection within the Projection."""
         raise NotImplementedError
 
     def __iter__(self):
@@ -144,12 +144,13 @@ class Projection(object):
         """
         Set connection attributes for all connections on the local MPI node.
         
-        `name`  -- attribute name
-        
-        `value` -- the attribute numeric value, or a list/1D array of such
-                   values of the same length as the number of local connections,
-                   or a 2D array with the same dimensions as the connectivity
-                   matrix (as returned by `get(format='array')`).
+        `name`:
+            attribute name 
+        `value`:
+            the attribute numeric value, or a list/1D array of such values of
+            the same length as the number of local connections, or a 2D array
+            with the same dimensions as the connectivity matrix (as returned by
+            `get(format='array')`).
         """
         raise NotImplementedError
 
@@ -217,10 +218,11 @@ class Projection(object):
         Get the values of a given attribute (weight or delay) for all
         connections in this Projection.
         
-        `parameter_name` -- name of the attribute whose values are wanted.
-        
-        `format` -- "list" or "array". Array format implicitly assumes that all
-                    connections belong to a single Projection.
+        `parameter_name`:
+            name of the attribute whose values are wanted.
+        `format`:
+            "list" or "array". Array format implicitly assumes that all
+            connections belong to a single Projection.
         
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-

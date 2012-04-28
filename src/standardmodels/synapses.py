@@ -71,15 +71,19 @@ class AdditiveWeightDependence(STDPWeightDependence):
         """
         Create a new specification for the weight-dependence of an STDP rule.
         
-        `w_min`   -- minimum synaptic weight, in the same units as the weight, i.e.
-                     µS or nA.
-        `w_max`   -- maximum synaptic weight.
-        `A_plus`  -- synaptic weight increase as a fraction of `w_max` when the
-                     pre-synaptic spike precedes the post-synaptic spike by an
-                     infinitessimal amount.
-        `A_minus` -- synaptic weight decrease as a fraction of `w_max` when the
-                     pre-synaptic spike lags the post-synaptic spike by an
-                     infinitessimal amount.
+        `w_min`:
+            minimum synaptic weight, in the same units as the weight, i.e.
+            µS or nA.
+        `w_max`:
+            maximum synaptic weight.
+        `A_plus`:
+            synaptic weight increase as a fraction of `w_max` when the
+            pre-synaptic spike precedes the post-synaptic spike by an
+            infinitessimal amount.
+        `A_minus`:
+            synaptic weight decrease as a fraction of `w_max` when the
+            pre-synaptic spike lags the post-synaptic spike by an
+            infinitessimal amount.
         """
         parameters = dict(locals())
         parameters.pop('self')
@@ -103,15 +107,19 @@ class MultiplicativeWeightDependence(STDPWeightDependence):
         """
         Create a new specification for the weight-dependence of an STDP rule.
         
-        `w_min`   -- minimum synaptic weight, in the same units as the weight, i.e.
-                     µS or nA.
-        `w_max`   -- maximum synaptic weight.
-        `A_plus`  -- synaptic weight increase as a fraction of `w_max-w` when the
-                     pre-synaptic spike precedes the post-synaptic spike by an
-                     infinitessimal amount.
-        `A_minus` -- synaptic weight decrease as a fraction of `w-w_min` when the
-                     pre-synaptic spike lags the post-synaptic spike by an
-                     infinitessimal amount.
+        `w_min`:
+            minimum synaptic weight, in the same units as the weight, i.e.
+            µS or nA.
+        `w_max`:
+            maximum synaptic weight.
+        `A_plus`:
+            synaptic weight increase as a fraction of `w_max-w` when the
+            pre-synaptic spike precedes the post-synaptic spike by an
+            infinitessimal amount.
+        `A_minus`:
+            synaptic weight decrease as a fraction of `w-w_min` when the
+            pre-synaptic spike lags the post-synaptic spike by an
+            infinitessimal amount.
         """
         parameters = dict(locals())
         parameters.pop('self')
@@ -135,15 +143,19 @@ class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
         """
         Create a new specification for the weight-dependence of an STDP rule.
         
-        `w_min`   -- minimum synaptic weight, in the same units as the weight, i.e.
-                     µS or nA.
-        `w_max`   -- maximum synaptic weight.
-        `A_plus`  -- synaptic weight increase as a fraction of `w_max` when the
-                     pre-synaptic spike precedes the post-synaptic spike by an
-                     infinitessimal amount.
-        `A_minus` -- synaptic weight decrease as a fraction of `w-w_min` when the
-                     pre-synaptic spike lags the post-synaptic spike by an
-                     infinitessimal amount.
+        `w_min`:
+            minimum synaptic weight, in the same units as the weight, i.e.
+            µS or nA.
+        `w_max`:
+            maximum synaptic weight.
+        `A_plus`:
+            synaptic weight increase as a fraction of `w_max` when the
+            pre-synaptic spike precedes the post-synaptic spike by an
+            infinitessimal amount.
+        `A_minus`:
+            synaptic weight decrease as a fraction of `w-w_min` when the
+            pre-synaptic spike lags the post-synaptic spike by an
+            infinitessimal amount.
         """
         parameters = dict(locals())
         parameters.pop('self')
@@ -169,17 +181,23 @@ class GutigWeightDependence(STDPWeightDependence):
         """
         Create a new specification for the weight-dependence of an STDP rule.
         
-        `w_min`    -- minimum synaptic weight, in the same units as the weight, i.e.
-                      µS or nA.
-        `w_max`    -- maximum synaptic weight.
-        `A_plus`   -- synaptic weight increase as a fraction of `(w_max-w)^mu_plus`
-                      when the pre-synaptic spike precedes the post-synaptic
-                      spike by an infinitessimal amount.
-        `A_minus`  -- synaptic weight decrease as a fraction of `(w-w_min)^mu_minus`
-                      when the pre-synaptic spike lags the post-synaptic spike
-                      by an infinitessimal amount.
-        `mu_plus`  -- see above
-        `mu_minus` -- see above
+        `w_min`:
+            minimum synaptic weight, in the same units as the weight, i.e.
+            µS or nA.
+        `w_max`:
+            maximum synaptic weight.
+        `A_plus`:
+            synaptic weight increase as a fraction of `(w_max-w)^mu_plus`
+            when the pre-synaptic spike precedes the post-synaptic spike by an
+            infinitessimal amount.
+        `A_minus`:
+            synaptic weight decrease as a fraction of `(w-w_min)^mu_minus`
+            when the pre-synaptic spike lags the post-synaptic spike by an
+            infinitessimal amount.
+        `mu_plus`:
+            see above
+        `mu_minus`:
+            see above
         """
         parameters = dict(locals())
         parameters.pop('self')
@@ -205,10 +223,10 @@ class SpikePairRule(STDPTimingDependence):
         """
         Create a new specification for the timing-dependence of an STDP rule.
         
-        `tau_plus`  -- time constant of the positive part of the STDP curve, in
-                       milliseconds.
-        `tau_minus` -- time constant of the negative part of the STDP curve, in
-                       milliseconds.
+        `tau_plus`:
+            time constant of the positive part of the STDP curve, in milliseconds.
+        `tau_minus`
+            time constant of the negative part of the STDP curve, in milliseconds.
         """
         parameters = dict(locals())
         parameters.pop('self')

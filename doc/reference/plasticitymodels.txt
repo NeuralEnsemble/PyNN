@@ -1,0 +1,64 @@
+==========================
+Synaptic plasticity models
+==========================
+
+.. autoclass:: pyNN.standardmodels.SynapseDynamics
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+
+.. autoclass:: pyNN.standardmodels.synapses.TsodyksMarkramMechanism
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+
+.. autoclass:: pyNN.standardmodels.STDPMechanism
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+
+.. autoclass:: pyNN.standardmodels.synapses.AdditiveWeightDependence
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+
+.. autoclass:: pyNN.standardmodels.synapses.MultiplicativeWeightDependence
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+
+.. autoclass:: pyNN.standardmodels.synapses.AdditivePotentiationMultiplicativeDepression
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+.. autoclass:: pyNN.standardmodels.synapses.GutigWeightDependence
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+
+.. autoclass:: pyNN.standardmodels.synapses.SpikePairRule
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+
+
+native models...
+
+nineml models...

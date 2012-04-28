@@ -1,0 +1,56 @@
+=================
+Spatial structure
+=================
+
+.. autoclass:: pyNN.space.Line
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+   
+.. autoclass:: pyNN.space.Grid2D
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+.. autoclass:: pyNN.space.Grid3D
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+.. autoclass:: pyNN.space.RandomStructure
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+.. autoclass:: pyNN.space.Cuboid
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+.. autoclass:: pyNN.space.Sphere
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+.. autoclass:: pyNN.space.Space
+   :members:
+   :undoc-members:
+   :special-members:
+   :inherited-members:
+   :show-inheritance:
+   
+implementing your own Shape
+implementing your own Structure

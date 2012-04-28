@@ -59,6 +59,7 @@ class::
 To create a :class:`Population`, we need to specify at minimum the number of
 neurons and the cell type. Three additional arguments may optionally be
 specified:
+
     * the spatial structure of the population;
     * initial values for the neuron state variables;
     * a label.
@@ -226,7 +227,7 @@ or the :meth:`inject()` method of the :class:`Population`,
     >>> sine_wave = StepCurrentSource(times, amplitudes)
     >>> cortical_neurons[800:900].inject(sine_wave)
 
-See :doc:`currentsources` for more about injecting currents.
+See :doc:`injecting_current` for more about injecting currents.
     
     
 Recording variables and retrieving recorded data

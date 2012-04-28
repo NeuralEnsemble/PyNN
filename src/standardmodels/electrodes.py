@@ -50,13 +50,15 @@ class StepCurrentSource(StandardCurrentSource):
     """A step-wise time-varying current source.
 
     Arguments:
-            times      -- list/array of times at which the injected current changes.
-            amplitudes -- list/array of current amplitudes to be injected at the
-                          times specified in `times`.
+        times:
+            list/array of times at which the injected current changes.
+        amplitudes:
+            list/array of current amplitudes to be injected at the times
+            specified in `times`.
 
-        The injected current will be zero up until the first time in `times`. The
-        current will continue at the final value in `amplitudes` until the end
-        of the simulation.
+    The injected current will be zero up until the first time in `times`. The
+    current will continue at the final value in `amplitudes` until the end
+    of the simulation.
     """
 
     default_parameters = {
