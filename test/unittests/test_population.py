@@ -21,7 +21,7 @@ class MockID(int, populations.IDMixin):
 
 class MockPopulation(populations.Population):
     _simulator = MockSimulator
-    recorder_class = Mock()
+    _recorder_class = Mock()
     initialize = Mock()
     size = 11
     

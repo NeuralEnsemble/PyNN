@@ -138,13 +138,13 @@ class IDMixin(object):
 
 
 class BasePopulation(object):
-    record_filter = None
+    _record_filter = None
 
     def __getitem__(self, index):
         """
-        Return either a single cell (ID object) from the Population, if index
+        Return either a single cell (ID object) from the Population, if `index`
         is an integer, or a subset of the cells (PopulationView object), if
-        index is a slice or array.
+        `index` is a slice or array.
 
         Note that __getitem__ is called when using [] access, e.g.
             p = Population(...)
@@ -166,6 +166,7 @@ class BasePopulation(object):
 
     @property
     def local_size(self):
+        """Return the number of cells in the population on the local MPI node"""
         return len(self.local_cells) # would self._mask_local.sum() be faster?
 
     def __iter__(self):
@@ -174,18 +175,22 @@ class BasePopulation(object):
 
     @property
     def conductance_based(self):
+        """
+        Indicates whether the post-synaptic response is modelled as a change
+        in conductance or a change in current.
+        """
         return self.celltype.conductance_based
 
     def is_local(self, id):
         """
-        Determine whether the cell with the given ID exists on the local MPI node.
+        Indicates whether the cell with the given ID exists on the local MPI node.
         """
         assert id.parent is self
         index = self.id_to_index(id)
         return self._mask_local[index]
 
     def all(self):
-        """Iterator over cell ids on all nodes."""
+        """Iterator over cell ids on all MPI nodes."""
         return iter(self.all_cells)
 
     def __add__(self, other):
@@ -194,7 +199,7 @@ class BasePopulation(object):
         PopulationView or Assembly, returning an Assembly.
         """
         assert isinstance(other, BasePopulation)
-        return self.assembly_class(self, other)
+        return self._assembly_class(self, other)
 
     def _get_cell_position(self, id):
         index = self.id_to_index(id)
@@ -227,8 +232,8 @@ class BasePopulation(object):
 
     def sample(self, n, rng=None):
         """
-        Randomly sample n cells from the Population, and return a PopulationView
-        object.
+        Randomly sample `n` cells from the Population, and return a
+        PopulationView object.
         """
         assert isinstance(n, int)
         if not rng:
@@ -287,10 +292,11 @@ class BasePopulation(object):
             (4) mapping functions, where a mapping function accepts a single
                 argument (the cell index) and returns a single value.
 
-        Here, a "value" may be either a single number or a list/array of numbers
-        (e.g. for spike times).
+        Here, a "single value" may be either a single number or a list/array of
+        numbers (e.g. for spike times).
 
-        Examples:
+        Examples::
+        
             p.set(tau_m=20.0, v_rest=-65).
             p.set(spike_times=[0.3, 0.7, 0.9, 1.4])
             p.set(cm=rand_distr, tau_m=lambda i: 10 + i/10.0)
@@ -335,9 +341,11 @@ class BasePopulation(object):
         """
         Set initial values of state variables, e.g. the membrane potential.
 
-        `value` may either be a numeric value (all neurons set to the same
-                value) or a `RandomDistribution` object (each neuron gets a
-                different value)
+        `variable`:
+            the name of the variable
+        `value`:
+            either a numeric value (all neurons set to the same value) or a
+            `RandomDistribution` object (each neuron gets a different value)
         """
         logger.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
         if isinstance(value, random.RandomDistribution):
@@ -370,7 +378,7 @@ class BasePopulation(object):
         else:
             population = self
         logger.debug("Adding recorder for %s to %s" % (variable, self.label))
-        population.recorders[variable] = population.recorder_class(variable,
+        population.recorders[variable] = population._recorder_class(variable,
                                                                    population=population, file=to_file)
 
     def _record(self, variable, to_file=True):
@@ -389,8 +397,8 @@ class BasePopulation(object):
             logger.debug("%s.record('%s')", self.label, variable)
             if variable not in self.recorders:
                 self._add_recorder(variable, to_file)
-            if self.record_filter is not None:
-                self.recorders[variable].record(self.record_filter)
+            if self._record_filter is not None:
+                self.recorders[variable].record(self._record_filter)
             else:
                 self.recorders[variable].record(self.all_cells)
             #if isinstance(to_file, basestring):
@@ -437,7 +445,7 @@ class BasePopulation(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        self.recorders['spikes'].write(file, gather, compatible_output, self.record_filter)
+        self.recorders['spikes'].write(file, gather, compatible_output, self._record_filter)
 
     def getSpikes(self, gather=True, compatible_output=True):
         """
@@ -446,7 +454,7 @@ class BasePopulation(object):
 
         Useful for small populations, for example for single neuron Monte-Carlo.
         """
-        return self.recorders['spikes'].get(gather, compatible_output, self.record_filter)
+        return self.recorders['spikes'].get(gather, compatible_output, self._record_filter)
         # if we haven't called record(), this will give a KeyError. A more
         # informative error message would be nice.
 
@@ -471,14 +479,14 @@ class BasePopulation(object):
         file will be written on each node, containing only the cells simulated
         on that node.
         """
-        self.recorders['v'].write(file, gather, compatible_output, self.record_filter)
+        self.recorders['v'].write(file, gather, compatible_output, self._record_filter)
 
     def get_v(self, gather=True, compatible_output=True):
         """
         Return a 2-column numpy array containing cell ids and Vm for
         recorded cells.
         """
-        return self.recorders['v'].get(gather, compatible_output, self.record_filter)
+        return self.recorders['v'].get(gather, compatible_output, self._record_filter)
 
     def print_gsyn(self, file, gather=True, compatible_output=True):
         """
@@ -496,20 +504,20 @@ class BasePopulation(object):
         is used. This may be faster, since it avoids any post-processing of the
         voltage files.
         """
-        self.recorders['gsyn'].write(file, gather, compatible_output, self.record_filter)
+        self.recorders['gsyn'].write(file, gather, compatible_output, self._record_filter)
 
     def get_gsyn(self, gather=True, compatible_output=True):
         """
         Return a 3-column numpy array containing cell ids and synaptic
         conductances for recorded cells.
         """
-        return self.recorders['gsyn'].get(gather, compatible_output, self.record_filter)
+        return self.recorders['gsyn'].get(gather, compatible_output, self._record_filter)
 
     def get_spike_counts(self, gather=True):
         """
         Returns the number of spikes for each neuron.
         """
-        return self.recorders['spikes'].count(gather, self.record_filter)
+        return self.recorders['spikes'].count(gather, self._record_filter)
 
     @deprecated("mean_spike_count()")
     def meanSpikeCount(self, gather=True):
@@ -539,7 +547,7 @@ class BasePopulation(object):
 
     def save_positions(self, file):
         """
-        Save positions to file. The output format is id x y z
+        Save positions to file. The output format is ``id x y z``
         """
         # first column should probably be indices, not ids. This would make it
         # simulator independent.
@@ -563,26 +571,28 @@ class Population(BasePopulation):
         `size`:
             number of cells in the Population. For backwards-compatibility,
             `size` may also be a tuple giving the dimensions of a grid,
-            e.g. ``size=(10,10)`` is equivalent to ``size=100`` with ``structure=Grid2D()``
+            e.g. ``size=(10,10)`` is equivalent to ``size=100`` with ``structure=Grid2D()``.
 
         `cellclass`:
-            a cell type (a class inheriting from :class:`pyNN.models.BaseCellType`)
+            a cell type (a class inheriting from :class:`pyNN.models.BaseCellType`).
     
         `cellparams`:
-            a dict or other mapping containing parameters, which is passed to the
-            neuron model constructor
+            a dict, or other mapping, containing parameters, which is passed to
+            the neuron model constructor.
     
         `structure`:
-            a :class:`pyNN.space.Structure` instance.
+            a :class:`pyNN.space.Structure` instance, used to specify the
+            positions of neurons in space.
     
         `initial_values`:
-            a dict
+            a dict, or other mapping, containing initial values for the neuron
+            state variables.
     
         `label`:
             a name for the population. One will be auto-generated if this is not
             supplied.
     """
-    nPop = 0
+    _nPop = 0
 
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  initial_values={}, label=None):
@@ -608,7 +618,7 @@ class Population(BasePopulation):
                 raise Exception("A maximum of 3 dimensions is allowed. What do you think this is, string theory?")
             size = int(reduce(operator.mul, size)) # NEST doesn't like numpy.int, so to be safe we cast to Python int
         self.size = size
-        self.label = label or 'population%d' % Population.nPop
+        self.label = label or 'population%d' % Population._nPop
         self._structure = structure or space.Line()
         self._positions = None
         self._is_sorted = True
@@ -622,18 +632,22 @@ class Population(BasePopulation):
         for variable, default in self.celltype.default_initial_values.items():
             self.initialize(variable, initial_values.get(variable, default))
         self.recorders = {}
-        Population.nPop += 1
+        Population._nPop += 1
 
     @property
     def local_cells(self):
+        """
+        An array containing cell ids for the local node.
+        """
         return self.all_cells[self._mask_local]
 
     def id_to_index(self, id):
         """
         Given the ID(s) of cell(s) in the Population, return its (their) index
         (order in the Population).
-        >>> assert p.id_to_index(p[5]) == 5
-        >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
+        
+            >>> assert p.id_to_index(p[5]) == 5
+            >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
         """
         if not numpy.iterable(id):
             if not self.first_id <= id <= self.last_id:
@@ -660,6 +674,7 @@ class Population(BasePopulation):
             return self.id_to_index(id)
 
     def _get_structure(self):
+        """The spatial structure of the Population."""
         return self._structure
 
     def _set_structure(self, structure):
@@ -693,7 +708,7 @@ class Population(BasePopulation):
         self._structure = None  # explicitly setting positions destroys any previous structure
 
     positions = property(_get_positions, _set_positions,
-                         """A 3xN array (where N is the number of neurons in the Population)
+                         doc="""A 3xN array (where N is the number of neurons in the Population)
                          giving the x,y,z coordinates of all the neurons (soma, in the
                          case of non-point models).""")
 
@@ -702,7 +717,7 @@ class Population(BasePopulation):
         Returns a human-readable description of the population.
 
         The output may be customized by specifying a different template
-        togther with an associated template engine (see ``pyNN.descriptions``).
+        together with an associated template engine (see :mod:`pyNN.descriptions`).
 
         If template is None, then a dictionary containing the template context
         will be returned.
@@ -781,7 +796,7 @@ class PopulationView(BasePopulation):
         self.first_id     = numpy.min(self.all_cells) # only works if we assume all_cells is sorted, otherwise could use min()
         self.last_id      = numpy.max(self.all_cells)
         self.recorders    = self.parent.recorders
-        self.record_filter= self.all_cells
+        self._record_filter= self.all_cells
 
     @property
     def initial_values(self):
@@ -791,6 +806,7 @@ class PopulationView(BasePopulation):
 
     @property
     def structure(self):
+        """The spatial structure of the parent Population."""
         return self.parent.structure
     # should we allow setting structure for a PopulationView? Maybe if the
     # parent has some kind of CompositeStructure?
@@ -803,8 +819,9 @@ class PopulationView(BasePopulation):
         """
         Given the ID(s) of cell(s) in the PopulationView, return its/their
         index/indices (order in the PopulationView).
-        >>> assert id_to_index(p.index(5)) == 5
-        >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
+        
+            >>> assert id_to_index(p.index(5)) == 5
+            >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
         """
         if not numpy.iterable(id):
             if self._is_sorted:
@@ -870,7 +887,7 @@ class Assembly(object):
     A group of neurons, may be heterogeneous, in contrast to a Population where
     all the neurons are of the same type.
     """
-    count = 0
+    _count = 0
 
     def __init__(self, *populations, **kwargs):
         """
@@ -883,9 +900,9 @@ class Assembly(object):
         self.populations = []
         for p in populations:
             self._insert(p)
-        self.label = kwargs.get('label', 'assembly%d' % Assembly.count)
+        self.label = kwargs.get('label', 'assembly%d' % Assembly._count)
         assert isinstance(self.label, basestring), "label must be a string or unicode"
-        Assembly.count += 1
+        Assembly._count += 1
 
     def _insert(self, element):
         if not isinstance(element, BasePopulation):
@@ -948,6 +965,10 @@ class Assembly(object):
 
     @property
     def conductance_based(self):
+        """
+        `True` if the post-synaptic response is modelled as a change
+        in conductance, `False` if a change in current.
+        """
         return all(p.celltype.conductance_based for p in self.populations)
 
     @property
@@ -968,9 +989,10 @@ class Assembly(object):
     def id_to_index(self, id):
         """
         Given the ID(s) of cell(s) in the Assembly, return its (their) index
-        (order in the Assembly).
-        >>> assert p.id_to_index(p[5]) == 5
-        >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
+        (order in the Assembly)::
+        
+            >>> assert p.id_to_index(p[5]) == 5
+            >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
         """
         all_cells = self.all_cells
         if not numpy.iterable(id):
@@ -1022,8 +1044,8 @@ class Assembly(object):
 
     def __getitem__(self, index):
         """
-        Where index is an integer, return an ID.
-        Where index is a slice, list or numpy array, return a new Assembly
+        Where `index` is an integer, return an ID.
+        Where `index` is a slice, list or numpy array, return a new Assembly
         consisting of appropriate populations and (possibly newly created)
         population views.
         """
@@ -1050,7 +1072,7 @@ class Assembly(object):
     def __add__(self, other):
         """
         An Assembly may be added to a Population, PopulationView or Assembly
-        with the '+' operator, returning a new Assembly, e.g.:
+        with the '+' operator, returning a new Assembly, e.g.::
 
             a2 = a1 + p
         """
@@ -1064,7 +1086,7 @@ class Assembly(object):
     def __iadd__(self, other):
         """
         A Population, PopulationView or Assembly may be added to an existing
-        Assembly using the '+=' operator, e.g.:
+        Assembly using the '+=' operator, e.g.::
 
             a += p
         """
@@ -1079,7 +1101,7 @@ class Assembly(object):
 
     def sample(self, n, rng=None):
         """
-        Randomly sample n cells from the Assembly, and return a Assembly
+        Randomly sample `n` cells from the Assembly, and return a Assembly
         object.
         """
         assert isinstance(n, int)
@@ -1096,7 +1118,7 @@ class Assembly(object):
         this assembly.
 
        `value` may either be a numeric value (all neurons set to the same
-        value) or a `!RandomDistribution` object (each neuron gets a
+        value) or a `RandomDistribution` object (each neuron gets a
         different value)
         """
         for p in self.populations:
@@ -1114,8 +1136,7 @@ class Assembly(object):
             p.set({'tau_m':20,'v_rest':-65})
         """
         for p in self.populations:
-            p.set(param, val)
-
+            p.set(param=val)
 
     def rset(self, parametername, rand_distr):
         """
@@ -1175,13 +1196,13 @@ class Assembly(object):
 
     def _get_recorded_variable(self, variable, gather=True, compatible_output=True, size=1):
         try:
-            result = self.populations[0].recorders[variable].get(gather, compatible_output, self.populations[0].record_filter)
+            result = self.populations[0].recorders[variable].get(gather, compatible_output, self.populations[0]._record_filter)
         except errors.NothingToWriteError:
             result = numpy.zeros((0, size+2))
         count = self.populations[0].size
         for p in self.populations[1:]:
             try:
-                data = p.recorders[variable].get(gather, compatible_output, p.record_filter)
+                data = p.recorders[variable].get(gather, compatible_output, p._record_filter)
                 data[:,0] += count # map index-in-population to index-in-assembly
                 result = numpy.vstack((result, data))
             except errors.NothingToWriteError:
@@ -1219,12 +1240,12 @@ class Assembly(object):
         Returns the number of spikes for each neuron.
         """
         try:
-            spike_counts = self.populations[0].recorders['spikes'].count(gather, self.populations[0].record_filter)
+            spike_counts = self.populations[0].recorders['spikes'].count(gather, self.populations[0]._record_filter)
         except errors.NothingToWriteError:
             spike_counts = {}
         for p in self.populations[1:]:
             try:
-                spike_counts.update(p.recorders['spikes'].count(gather, p.record_filter))
+                spike_counts.update(p.recorders['spikes'].count(gather, p._record_filter))
             except errors.NothingToWriteError:
                 pass
         return spike_counts
@@ -1239,7 +1260,7 @@ class Assembly(object):
         filename  = '%s/%s.%s' %(tempdir, self.populations[0].label, variable)
         p_file    = files.NumpyBinaryFile(filename, mode='w')
         try:
-            self.populations[0].recorders[variable].write(p_file, gather, compatible_output, self.populations[0].record_filter)
+            self.populations[0].recorders[variable].write(p_file, gather, compatible_output, self.populations[0]._record_filter)
             filenames[self.populations[0]] = (filename, True)
         except errors.NothingToWriteError:
             filenames[self.populations[0]] = (filename, False)
@@ -1247,7 +1268,7 @@ class Assembly(object):
             filename = '%s/%s.%s' %(tempdir, p.label, variable)
             p_file = files.NumpyBinaryFile(filename, mode='w')
             try:
-                p.recorders[variable].write(p_file, gather, compatible_output, p.record_filter)
+                p.recorders[variable].write(p_file, gather, compatible_output, p._record_filter)
                 filenames[p] = (filename, True)
             except errors.NothingToWriteError:
                 filenames[p] = (filename, False)

@@ -39,7 +39,7 @@ class MockPopulation(populations.BasePopulation):
     label = "mock_population"
     celltype = MockStandardCell({})
     initial_values = {"foo": core.LazyArray(numpy.array((98, 100, 102)), shape=(3,))}
-    assembly_class = populations.Assembly
+    _assembly_class = populations.Assembly
 
     def _get_view(self, selector, label=None):
         return populations.PopulationView(self, selector, label)
@@ -370,7 +370,7 @@ def test_record_gsyn():
 def test_printSpikes():
     p = MockPopulation()
     p.recorders = {'spikes': Mock()}
-    p.record_filter = "arg4"
+    p._record_filter = "arg4"
     p.printSpikes("arg1", "arg2", "arg3")
     meth, args, kwargs = p.recorders['spikes'].method_calls[0]
     assert_equal(meth, 'write')
@@ -379,7 +379,7 @@ def test_printSpikes():
 def test_getSpikes():
     p = MockPopulation()
     p.recorders = {'spikes': Mock()}
-    p.record_filter = "arg3"
+    p._record_filter = "arg3"
     p.getSpikes("arg1", "arg2")
     meth, args, kwargs = p.recorders['spikes'].method_calls[0]
     assert_equal(meth, 'get')
@@ -388,7 +388,7 @@ def test_getSpikes():
 def test_print_v():
     p = MockPopulation()
     p.recorders = {'v': Mock()}
-    p.record_filter = "arg4"
+    p._record_filter = "arg4"
     p.print_v("arg1", "arg2", "arg3")
     meth, args, kwargs = p.recorders['v'].method_calls[0]
     assert_equal(meth, 'write')
@@ -397,7 +397,7 @@ def test_print_v():
 def test_get_v():
     p = MockPopulation()
     p.recorders = {'v': Mock()}
-    p.record_filter = "arg3"
+    p._record_filter = "arg3"
     p.get_v("arg1", "arg2")
     meth, args, kwargs = p.recorders['v'].method_calls[0]
     assert_equal(meth, 'get')
@@ -406,7 +406,7 @@ def test_get_v():
 def test_print_gsyn():
     p = MockPopulation()
     p.recorders = {'gsyn': Mock()}
-    p.record_filter = "arg4"
+    p._record_filter = "arg4"
     p.print_gsyn("arg1", "arg2", "arg3")
     meth, args, kwargs = p.recorders['gsyn'].method_calls[0]
     assert_equal(meth, 'write')
@@ -415,7 +415,7 @@ def test_print_gsyn():
 def test_get_gsyn():
     p = MockPopulation()
     p.recorders = {'gsyn': Mock()}
-    p.record_filter = "arg3"
+    p._record_filter = "arg3"
     p.get_gsyn("arg1", "arg2")
     meth, args, kwargs = p.recorders['gsyn'].method_calls[0]
     assert_equal(meth, 'get')

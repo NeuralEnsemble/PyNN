@@ -222,7 +222,7 @@ class Assembly(common.Assembly):
     
 class PopulationView(common.PopulationView):
     _simulator = simulator
-    assembly_class = Assembly
+    _assembly_class = Assembly
     
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
@@ -234,8 +234,8 @@ class Population(common.Population):
     term intended to include layers, columns, nuclei, etc., of cells.
     """
     _simulator = simulator
-    recorder_class = Recorder
-    assembly_class = Assembly
+    _recorder_class = Recorder
+    _assembly_class = Assembly
     
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  label=None, parent=None):

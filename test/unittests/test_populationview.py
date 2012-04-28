@@ -12,7 +12,7 @@ class MockID(object):
         return {}
     
 class MockPopulation(common.Population):
-    recorder_class = Mock()
+    _recorder_class = Mock()
     initialize = Mock()
     size = 11
     

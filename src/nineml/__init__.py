@@ -187,7 +187,7 @@ class BasePopulation(common.BasePopulation):
         
 
 class Population(BasePopulation, common.Population):
-    recorder_class = Recorder
+    _recorder_class = Recorder
     
     def __init__(self, size, cellclass, cellparams=None, structure=None, label=None):
         global net

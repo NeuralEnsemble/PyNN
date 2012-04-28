@@ -254,3 +254,7 @@ epub_copyright = u'2006-2012, the PyNN community'
 
 # Allow duplicate toc entries.
 #epub_tocdup = True
+
+# -- autodoc options -----------------------------------------------------------
+
+autodoc_member_order = 'bysource'

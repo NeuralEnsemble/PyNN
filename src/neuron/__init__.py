@@ -134,7 +134,7 @@ class Assembly(common.Assembly):
 
 class PopulationView(common.PopulationView, PopulationMixin):
     _simulator = simulator
-    assembly_class = Assembly
+    _assembly_class = Assembly
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
@@ -143,8 +143,8 @@ class PopulationView(common.PopulationView, PopulationMixin):
 class Population(common.Population, PopulationMixin):
     __doc__ = common.Population.__doc__
     _simulator = simulator
-    recorder_class = Recorder
-    assembly_class = Assembly
+    _recorder_class = Recorder
+    _assembly_class = Assembly
 
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  initial_values={}, label=None):

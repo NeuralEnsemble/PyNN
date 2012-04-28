@@ -12,10 +12,9 @@ from populations import IDMixin, BasePopulation, Assembly
 def build_create(population_class):
     def create(cellclass, cellparams=None, n=1):
         """
-        Create n cells all of the same type.
+        Create `n` cells all of the same type.
 
-        If n > 1, return a list of cell ids/references.
-        If n==1, return just the single id.
+        Returns a Population object.
         """
         return population_class(n, cellclass, cellparams)  # return the Population or Population.all_cells?
     return create

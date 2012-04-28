@@ -207,7 +207,7 @@ class Assembly(common.Assembly):
 
 class PopulationView(common.PopulationView, PopulationMixin):
     _simulator = simulator
-    assembly_class = Assembly
+    _assembly_class = Assembly
 
 
 def _build_params(parameter_space, mask_local, size=None, extra_parameters=None):
@@ -243,8 +243,8 @@ class Population(common.Population, PopulationMixin):
     term intended to include layers, columns, nuclei, etc., of cells.
     """
     _simulator = simulator
-    recorder_class = Recorder
-    assembly_class = Assembly
+    _recorder_class = Recorder
+    _assembly_class = Assembly
 
 
 

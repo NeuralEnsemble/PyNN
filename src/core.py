@@ -90,6 +90,6 @@ class deprecated(object):
             warnings.warn(msg, category=DeprecationWarning)
             return func(*args, **kwargs)
         new_func.__name__ = func.__name__
-        new_func.__doc__ = func.__doc__
+        new_func.__doc__ = "*Deprecated*. Use ``%s`` instead." % self.replacement
         new_func.__dict__.update(func.__dict__)
         return new_func
