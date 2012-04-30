@@ -78,15 +78,15 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     simulator but not by others.
     """
     global tempdir
-    
+
     common.setup(timestep, min_delay, max_delay, **extra_params)
-    
+
     if 'verbosity' in extra_params:
         nest_verbosity = extra_params['verbosity'].upper()
     else:
         nest_verbosity = "WARNING"
     nest.sli_run("M_%s setverbosity" % nest_verbosity)
-    
+
     if "spike_precision" in extra_params:
         simulator.state.spike_precision = extra_params["spike_precision"]
         if extra_params["spike_precision"] == 'off_grid':
@@ -94,17 +94,17 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     nest.SetKernelStatus({'off_grid_spiking': simulator.state.spike_precision=='off_grid'})
     if "recording_precision" in extra_params:
         simulator.state.default_recording_precision = extra_params["recording_precision"]
-    
-    
+
+
     # clear the sli stack, if this is not done --> memory leak cause the stack increases
     nest.sr('clear')
-    
+
     # reset the simulation kernel
     nest.ResetKernel()
-    
+
     # all NEST to erase previously written files (defaut with all the other simulators)
     nest.SetKernelStatus({'overwrite_files' : True})
-    
+
     # set tempdir
     tempdir = tempfile.mkdtemp()
     tempdirs.append(tempdir) # append tempdir to tempdirs list
@@ -117,7 +117,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     else:
         rng_seeds_seed = extra_params.get('rng_seeds_seed') or 42
         rng = NumpyRNG(rng_seeds_seed)
-        rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100000).astype('int').tolist() 
+        rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100000).astype('int').tolist()
     logger.debug("rng_seeds = %s" % rng_seeds)
     nest.SetKernelStatus({'local_num_threads': num_threads,
                           'rng_seeds'        : rng_seeds})
@@ -131,9 +131,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
                                          'min_delay': float(min_delay),
                                          'max_delay': float(max_delay)})
     simulator.reset()
-    
+
     return rank()
- 
+
 def end():
     """Do any necessary cleaning up before exiting."""
     global tempdirs
@@ -189,18 +189,18 @@ class Population(common.Population):
     assembly_class = Assembly
 
     def __init__(self, size, cellclass, cellparams=None, structure=None,
-                 label=None):
+                 initial_values={}, label=None):
         __doc__ = common.Population.__doc__
-        super(Population, self).__init__(size, cellclass, cellparams, structure, label)
+        super(Population, self).__init__(size, cellclass, cellparams, structure, initial_values, label)
         self._simulator.populations.append(self)
-    
+
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
     def _create_cells(self, cellclass, cellparams, n):
         """
         Create cells in NEST.
-        
+
         `cellclass`  -- a PyNN standard cell or the name of a native NEST model.
         `cellparams` -- a dictionary of cell parameters.
         `n`          -- the number of cells to create
@@ -209,7 +209,7 @@ class Population(common.Population):
         # perhaps should check for that
         assert n > 0, 'n must be a positive integer'
         n = int(n)
-        
+
         celltype = cellclass(cellparams)
         nest_model = celltype.nest_name[simulator.state.spike_precision]
         try:
@@ -232,12 +232,12 @@ class Population(common.Population):
         if hasattr(celltype, "uses_parrot") and celltype.uses_parrot:
             for gid, source in zip(self.all_cells, self.all_cells_source):
                 gid.source = source
-        
+
 
     def set(self, param, val=None):
         """
         Set one or more parameters for every cell in the population.
-        
+
         param can be a dict, in which case val should not be supplied, or a string
         giving the parameter name, in which case val is the parameter value.
         val can be a numeric value, or list of such (e.g. for setting spike times).
@@ -264,7 +264,7 @@ class Population(common.Population):
         # case, it may be quicker to test whether the parameters participating
         # in the computation vary between cells, since if this is not the case
         # we can do the computation here and use nest.SetStatus.
-        
+
         if isinstance(self.celltype, standardmodels.StandardCellType):
             to_be_set = {}
             if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
@@ -275,10 +275,10 @@ class Population(common.Population):
                 if key in self.celltype.scaled_parameters():
                     translation = self.celltype.translations[key]
                     value = eval(translation['forward_transform'], globals(), {key:value})
-                    to_be_set[translation['translated_name']] = value                
+                    to_be_set[translation['translated_name']] = value
                 elif key in self.celltype.simple_parameters():
                     translation = self.celltype.translations[key]
-                    to_be_set[translation['translated_name']] = value                    
+                    to_be_set[translation['translated_name']] = value
                 else:
                     assert key in self.celltype.computed_parameters()
             logger.debug("Setting the following parameters: %s" % to_be_set)
@@ -336,8 +336,8 @@ class Projection(common.Projection):
         self.synapse_type = target or 'excitatory'
         if self.synapse_dynamics:
             synapse_dynamics = self.synapse_dynamics
-            self.synapse_dynamics._set_tau_minus(self.post.local_cells) 
-        else:        
+            self.synapse_dynamics._set_tau_minus(self.post.local_cells)
+        else:
             synapse_dynamics = NativeSynapseDynamics("static_synapse")
         synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection.nProj)
         if synapse_model is None:
@@ -348,10 +348,10 @@ class Projection(common.Projection):
         self._sources = []
         self._connections = None
         Projection.nProj += 1
-               
+
         # Create connections
         method.connect(self)
-    
+
     def __getitem__(self, i):
         """Return the `i`th connection on the local MPI node."""
         if isinstance(i, int):
@@ -381,18 +381,18 @@ class Projection(common.Projection):
                                             # after creating the Projection, tau_psc ought to be changed as well.
             assert self.synapse_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
             logger.debug("setting tau_psc")
-            targets = nest.GetStatus(self.connections, 'target')            
+            targets = nest.GetStatus(self.connections, 'target')
             if self.synapse_type == 'inhibitory':
                 param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
             if self.synapse_type == 'excitatory':
                 param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
             tau_syn = nest.GetStatus(targets, (param_name))
-            nest.SetStatus(self.connections, 'tau_psc', tau_syn) 
+            nest.SetStatus(self.connections, 'tau_psc', tau_syn)
 
     def _divergent_connect(self, source, targets, weights, delays):
         """
         Connect a neuron to one or more other neurons.
-        
+
         `source`  -- the ID of the pre-synaptic cell.
         `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID.
         `weight`  -- a list/1D array of connection weights, or a single weight.
@@ -407,7 +407,7 @@ class Projection(common.Projection):
         if not core.is_listlike(targets):
             targets = [targets]
         assert len(targets) > 0
-        
+
         if self.synapse_type not in targets[0].celltype.synapse_types:
             raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: %s" % ( self.synapse_type, "'"+"', '".join(st for st in targets[0].celltype.synapse_types or ['*No connections supported*']))+"'" )
         weights = numpy.array(weights)*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
@@ -423,10 +423,10 @@ class Projection(common.Projection):
             delays = delays.tolist()
         elif isinstance(delays, float):
             delays = [delays]
-        
+
         if targets[0].celltype.standard_receptor_type:
             try:
-                nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)            
+                nest.DivergentConnect([source], targets, weights, delays, self.synapse_model)
             except nest.NESTError, e:
                 raise errors.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                              e, source, targets, weights, delays, self.synapse_model))
@@ -434,8 +434,8 @@ class Projection(common.Projection):
             for target, w, d in zip(targets, weights, delays):
                 nest.Connect([source], [target], {'weight': w, 'delay': d, 'receptor_type': target.celltype.get_receptor_type(self.synapse_type)})
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
-        self._sources.append(source)  
-        
+        self._sources.append(source)
+
 
     def _convergent_connect(self, sources, target, weights, delays):
         """
@@ -469,9 +469,9 @@ class Projection(common.Projection):
             delays = delays.tolist()
         elif isinstance(delays, float):
             delays = [delays]
-               
+
         try:
-            nest.ConvergentConnect(sources, [target], weights, delays, self.synapse_model)            
+            nest.ConvergentConnect(sources, [target], weights, delays, self.synapse_model)
         except nest.NESTError, e:
             raise errors.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                          e, sources, target, weights, delays, self.synapse_model))
@@ -481,21 +481,21 @@ class Projection(common.Projection):
     def set(self, name, value):
         """
         Set connection attributes for all connections on the local MPI node.
-        
+
         `name`  -- attribute name
-        
+
         `value` -- the attribute numeric value, or a list/1D array of such
                    values of the same length as the number of local connections,
                    or a 2D array with the same dimensions as the connectivity
                    matrix (as returned by `get(format='array')`).
         """
         if not (numpy.isscalar(value) or core.is_listlike(value)):
-            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")   
-        
+            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+
         if isinstance(value, numpy.ndarray) and len(value.shape) == 2:
             value_list = []
             connection_parameters = nest.GetStatus(self.connections, ('source', 'target'))
-            for conn in connection_parameters: 
+            for conn in connection_parameters:
                 addr = self.pre.id_to_index(conn['source']), self.post.id_to_index(conn['target'])
                 try:
                     val = value[addr]
@@ -533,7 +533,7 @@ class Projection(common.Projection):
                             break
             if translated_name:
                 name = translated_name
-        
+
         i = 0
         try:
             nest.SetStatus(self.connections, name, value)
@@ -549,12 +549,12 @@ class Projection(common.Projection):
         FromFileConnector.
         """
         import operator
-        
+
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
-        
-        lines   = nest.GetStatus(self.connections, ('source', 'target', 'weight', 'delay'))  
-        
+
+        lines   = nest.GetStatus(self.connections, ('source', 'target', 'weight', 'delay'))
+
         if gather == True and num_processes() > 1:
             all_lines = { rank(): lines }
             all_lines = recording.gather_dict(all_lines)
@@ -563,15 +563,15 @@ class Projection(common.Projection):
         elif num_processes() > 1:
             file.rename('%s.%d' % (file.name, rank()))
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
-                
+
         if gather == False or rank() == 0:
             lines       = numpy.array(lines, dtype=float)
             lines[:,2] *= 0.001
             if compatible_output:
                 lines[:,0] = self.pre.id_to_index(lines[:,0])
-                lines[:,1] = self.post.id_to_index(lines[:,1])  
+                lines[:,1] = self.post.id_to_index(lines[:,1])
             file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
-            file.close()        
+            file.close()
 
     def randomizeWeights(self, rand_distr):
         """
@@ -595,21 +595,21 @@ class Projection(common.Projection):
         """
         Get the values of a given attribute (weight or delay) for all
         connections in this Projection.
-        
+
         `parameter_name` -- name of the attribute whose values are wanted.
-        
+
         `format` -- "list" or "array". Array format implicitly assumes that all
                     connections belong to a single Projection.
-        
+
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
         synaptic Population to the jth neuron in the post-synaptic Population,
         if a single such connection exists. If there are no such connections,
         X_ij will be NaN. If there are multiple such connections, the summed
         value will be given, which makes some sense for weights, but is
-        pretty meaningless for delays. 
+        pretty meaningless for delays.
         """
-        
+
         if parameter_name not in ('weight', 'delay'):
             translated_name = None
             if self.synapse_dynamics.fast and parameter_name in self.synapse_dynamics.fast.translations:
@@ -631,7 +631,7 @@ class Projection(common.Projection):
         elif format == 'array':
             value_arr = numpy.nan * numpy.ones((self.pre.size, self.post.size))
             connection_parameters = nest.GetStatus(self.connections, ('source', 'target', parameter_name))
-            for conn in connection_parameters: 
+            for conn in connection_parameters:
                 # (offset is always 0,0 for connections created with connect())
                 src, tgt, value = conn
                 addr = self.pre.id_to_index(src), self.post.id_to_index(tgt)
