@@ -11,16 +11,10 @@ Utility classes and functions
 .. autoclass:: pyNN.utility.Timer
    :members:
    :undoc-members:
-   :special-members:
-   :inherited-members:
-   :show-inheritance:
    
 .. autoclass:: pyNN.utility.ProgressBar
    :members:
    :undoc-members:
-   :special-members:
-   :inherited-members:
-   :show-inheritance:
 
 .. autofunction:: pyNN.utility.colour
 

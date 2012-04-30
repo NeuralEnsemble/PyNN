@@ -233,6 +233,11 @@ class DistanceMatrix(object):
 
 
 class Connector(object):
+    """
+    Abstract base class for encapsulation of connection algorithms.
+    
+    Sub-classes must implement the :meth:`connect` method.
+    """
 
     def __init__(self, weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
         self.weights = weights
@@ -242,6 +247,13 @@ class Connector(object):
         self.delays = delays
 
     def connect(self, projection):
+        """
+        Connect the pre-synaptic and post-synaptic populations for the given
+        projection.
+        
+        This method is called by the Projection class constructor: the user
+        should not call it directly.
+        """
         raise NotImplementedError()
 
     def progressbar(self, N):
@@ -254,6 +266,9 @@ class Connector(object):
             sys.stdout.flush()
 
     def get_parameters(self):
+        """
+        Return the connector parameters as a dict.
+        """
         P = {}
         for name in self.parameter_names:
             P[name] = getattr(self, name)
@@ -265,7 +280,6 @@ class Connector(object):
 
         The output may be customized by specifying a different template
         togther with an associated template engine (see ``pyNN.descriptions``).
-
         If template is None, then a dictionary containing the template context
         will be returned.
         """
@@ -352,24 +366,33 @@ class AllToAllConnector(Connector):
     """
     Connects all cells in the presynaptic population to all cells in the
     postsynaptic population.
+    
+    Arguments:
+        `allow_self_connections`:
+            if the connector is used to connect a Population to itself, this
+            flag determines whether a neuron is allowed to connect to itself,
+            or only to other neurons in the Population.
+        `weights`:
+            may either be a float, a RandomDistribution object, a list/1D array
+            with at least as many items as connections to be created. Units nA.
+        `delays`:
+            as `weights`. If `None`, all synaptic delays will be set to the
+            global minimum delay.
+        `space`:
+            a `Space` object, needed if you wish to specify distance-dependent
+            weights or delays.
+        `safe`:
+            if True, check that weights and delays have valid values. If False,
+            this check is skipped.
+        `verbose`:
+            if True, display a progress bar on the terminal.
     """
     parameter_names = ('allow_self_connections',)
 
-    def __init__(self, allow_self_connections=True, weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
+    def __init__(self, allow_self_connections=True, weights=0.0, delays=None,
+                 space=Space(), safe=True, verbose=False):
         """
         Create a new connector.
-
-        `allow_self_connections` -- if the connector is used to connect a
-            Population to itself, this flag determines whether a neuron is
-            allowed to connect to itself, or only to other neurons in the
-            Population.
-        `weights` -- may either be a float, a RandomDistribution object, a list/
-                     1D array with at least as many items as connections to be
-                     created. Units nA.
-        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
-                     to the global minimum delay.
-        `space` -- a `Space` object, needed if you wish to specify distance-
-                   dependent weights or delays
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
         assert isinstance(allow_self_connections, bool)
@@ -387,6 +410,29 @@ class AllToAllConnector(Connector):
 class FixedProbabilityConnector(Connector):
     """
     For each pair of pre-post cells, the connection probability is constant.
+    
+    Arguments:
+        `p_connect`:
+            a float between zero and one. Each potential connection is created
+            with this probability.
+        `allow_self_connections`:
+            if the connector is used to connect a Population to itself, this
+            flag determines whether a neuron is allowed to connect to itself,
+            or only to other neurons in the Population.
+        `weights`:
+            may either be a float, a RandomDistribution object, a list/1D array
+            with at least as many items as connections to be created. Units nA.
+        `delays`:
+            as `weights`. If `None`, all synaptic delays will be set to the
+            global minimum delay.
+        `space`:
+            a `Space` object, needed if you wish to specify distance-dependent
+            weights or delays.
+        `safe`:
+            if True, check that weights and delays have valid values. If False,
+            this check is skipped.
+        `verbose`:
+            if True, display a progress bar on the terminal.
     """
     parameter_names = ('allow_self_connections', 'p_connect')
 
@@ -394,20 +440,6 @@ class FixedProbabilityConnector(Connector):
                  delays=None, space=Space(), safe=True, verbose=False):
         """
         Create a new connector.
-
-        `p_connect` -- a float between zero and one. Each potential connection
-                       is created with this probability.
-        `allow_self_connections` -- if the connector is used to connect a
-            Population to itself, this flag determines whether a neuron is
-            allowed to connect to itself, or only to other neurons in the
-            Population.
-        `weights` -- may either be a float, a RandomDistribution object, a list/
-                     1D array with at least as many items as connections to be
-                     created. Units nA.
-        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
-                     to the global minimum delay.
-        `space` -- a `Space` object, needed if you wish to specify distance-
-                   dependent weights or delays
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
         assert isinstance(allow_self_connections, bool)
@@ -429,23 +461,39 @@ class FixedProbabilityConnector(Connector):
 class DistanceDependentProbabilityConnector(Connector):
     """
     For each pair of pre-post cells, the connection probability depends on distance.
+    
+    Arguments:
+        `d_expression`:
+            the right-hand side of a valid python expression for probability,
+            involving 'd', e.g. "exp(-abs(d))", or "d<3"
+        `allow_self_connections`:
+            if the connector is used to connect a Population to itself, this
+            flag determines whether a neuron is allowed to connect to itself,
+            or only to other neurons in the Population.
+        `weights`:
+            may either be a float, a RandomDistribution object, a list/1D array
+            with at least as many items as connections to be created. Units nA.
+        `delays`:
+            as `weights`. If `None`, all synaptic delays will be set to the
+            global minimum delay.
+        `space`:
+            a `Space` object, needed if you wish to specify distance-dependent
+            weights or delays.
+        `safe`:
+            if True, check that weights and delays have valid values. If False,
+            this check is skipped.
+        `verbose`:
+            if True, display a progress bar on the terminal.
+        `n_connections`:
+            if specified, the number of efferent synaptic connections per neuron.
     """
     parameter_names = ('allow_self_connections', 'd_expression')
 
     def __init__(self, d_expression, allow_self_connections=True,
-                 weights=0.0, delays=None, space=Space(), safe=True, verbose=False, n_connections=None):
+                 weights=0.0, delays=None, space=Space(), safe=True,
+                 verbose=False, n_connections=None):
         """
         Create a new connector.
-
-        `d_expression` -- the right-hand side of a valid python expression for
-            probability, involving 'd', e.g. "exp(-abs(d))", or "d<3"
-        `n_connections`  -- The number of efferent synaptic connections per neuron.
-        `space` -- a Space object.
-        `weights` -- may either be a float, a RandomDistribution object, a list/
-                     1D array with at least as many items as connections to be
-                     created, or a distance expression as for `d_expression`. Units nA.
-        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
-                     to the global minimum delay.
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
         assert isinstance(d_expression, str)
@@ -480,19 +528,24 @@ class DistanceDependentProbabilityConnector(Connector):
 class FromListConnector(Connector):
     """
     Make connections according to a list.
+    
+    Arguments:
+        `conn_list`:
+            a list of tuples, one tuple for each connection. Each tuple should contain:
+            `(pre_idx, post_idx, weight, delay)` where `pre_idx` is the index
+            (i.e. order in the Population, not the ID) of the presynaptic
+            neuron, and `post_idx` is the index of the postsynaptic neuron.
+        `safe`:
+            if True, check that weights and delays have valid values. If False,
+            this check is skipped.
+        `verbose`:
+            if True, display a progress bar on the terminal.
     """
     parameter_names = ('conn_list',)
 
     def __init__(self, conn_list, safe=True, verbose=False):
         """
         Create a new connector.
-
-        `conn_list` -- a list of tuples, one tuple for each connection. Each
-                       tuple should contain:
-                          (pre_idx, post_idx, weight, delay)
-                       where pre_idx is the index (i.e. order in the Population,
-                       not the ID) of the presynaptic neuron, and post_idx is
-                       the index of the postsynaptic neuron.
         """
         # needs extending for dynamic synapses.
         Connector.__init__(self, 0.0, None, safe=safe, verbose=verbose)
@@ -532,19 +585,26 @@ class FromListConnector(Connector):
 class FromFileConnector(FromListConnector):
     """
     Make connections according to a list read from a file.
+    
+    Arguments:
+        `file`:
+            either an open file object or the filename of a file containing a
+            list of connections, in the format required by `FromListConnector`.
+        `distributed`:
+            if this is True, then each node will read connections from a file
+            called `filename.x`, where `x` is the MPI rank. This speeds up
+            loading connections for distributed simulations.
+        `safe`:
+            if True, check that weights and delays have valid values. If False,
+            this check is skipped.
+        `verbose`:
+            if True, display a progress bar on the terminal.
     """
     parameter_names = ('filename', 'distributed')
 
     def __init__(self, file, distributed=False, safe=True, verbose=False):
         """
         Create a new connector.
-
-        `file`        -- file object containing a list of connections, in
-                         the format required by `FromListConnector`.
-        `distributed` -- if this is True, then each node will read connections
-                         from a file called `filename.x`, where `x` is the MPI
-                         rank. This speeds up loading connections for
-                         distributed simulations.
         """
         Connector.__init__(self, 0.0, None, safe=safe, verbose=verbose)
 
@@ -556,42 +616,54 @@ class FromFileConnector(FromListConnector):
     def connect(self, projection):
         """Connect-up a Projection."""
         if self.distributed:
-            self.file.rename("%s.%d" % (self.file.name, projection._simulator.state.mpi_rank))
+            self.file.rename("%s.%d" % (self.file.name,
+                                        projection._simulator.state.mpi_rank))
         self.conn_list = self.file.read()
         FromListConnector.connect(self, projection)
 
 
-
 class FixedNumberPostConnector(Connector):
     """
-    Each pre-synaptic neuron is connected to exactly n post-synaptic neurons
+    Each pre-synaptic neuron is connected to exactly `n` post-synaptic neurons
     chosen at random.
 
-    If n is less than the size of the post-synaptic population, there are no
+    If `n` is less than the size of the post-synaptic population, there are no
     multiple connections, i.e., no instances of the same pair of neurons being
-    multiply connected. If n is greater than the size of the post-synaptic
+    multiply connected. If `n` is greater than the size of the post-synaptic
     population, all possible single connections are made before starting to add
     duplicate connections.
+    
+    Arguments:
+        `n`:
+            either a positive integer, or a `RandomDistribution` that produces
+            positive integers. If `n` is a `RandomDistribution`, then the
+            number of post-synaptic neurons is drawn from this distribution
+            for each pre-synaptic neuron.
+        `allow_self_connections`:
+            if the connector is used to connect a Population to itself, this
+            flag determines whether a neuron is allowed to connect to itself,
+            or only to other neurons in the Population.
+        `weights`:
+            may either be a float, a RandomDistribution object, a list/1D array
+            with at least as many items as connections to be created. Units nA.
+        `delays`:
+            as `weights`. If `None`, all synaptic delays will be set to the
+            global minimum delay.
+        `space`:
+            a `Space` object, needed if you wish to specify distance-dependent
+            weights or delays.
+        `safe`:
+            if True, check that weights and delays have valid values. If False,
+            this check is skipped.
+        `verbose`:
+            if True, display a progress bar on the terminal.
     """
     parameter_names = ('allow_self_connections', 'n')
 
-    def __init__(self, n, allow_self_connections=True, weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
+    def __init__(self, n, allow_self_connections=True, weights=0.0, delays=None,
+                 space=Space(), safe=True, verbose=False):
         """
         Create a new connector.
-
-        `n` -- either a positive integer, or a `RandomDistribution` that produces
-               positive integers. If `n` is a `RandomDistribution`, then the
-               number of post-synaptic neurons is drawn from this distribution
-               for each pre-synaptic neuron.
-        `allow_self_connections` -- if the connector is used to connect a
-               Population to itself, this flag determines whether a neuron is
-               allowed to connect to itself, or only to other neurons in the
-               Population.
-        `weights` -- may either be a float, a RandomDistribution object, a list/
-                     1D array with at least as many items as connections to be
-                     created. Units nA.
-        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
-                     to the global minimum delay.
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
         assert isinstance(allow_self_connections, bool)
@@ -651,34 +723,45 @@ class FixedNumberPostConnector(Connector):
 
 class FixedNumberPreConnector(Connector):
     """
-    Each post-synaptic neuron is connected to exactly n pre-synaptic neurons
+    Each post-synaptic neuron is connected to exactly `n` pre-synaptic neurons
     chosen at random.
 
-    If n is less than the size of the pre-synaptic population, there are no
+    If `n` is less than the size of the pre-synaptic population, there are no
     multiple connections, i.e., no instances of the same pair of neurons being
-    multiply connected. If n is greater than the size of the pre-synaptic
+    multiply connected. If `n` is greater than the size of the pre-synaptic
     population, all possible single connections are made before starting to add
     duplicate connections.
+    
+    Arguments:
+        `n`:
+            either a positive integer, or a `RandomDistribution` that produces
+            positive integers. If `n` is a `RandomDistribution`, then the
+            number of pre-synaptic neurons is drawn from this distribution
+            for each post-synaptic neuron.
+        `allow_self_connections`:
+            if the connector is used to connect a Population to itself, this
+            flag determines whether a neuron is allowed to connect to itself,
+            or only to other neurons in the Population.
+        `weights`:
+            may either be a float, a RandomDistribution object, a list/1D array
+            with at least as many items as connections to be created. Units nA.
+        `delays`:
+            as `weights`. If `None`, all synaptic delays will be set to the
+            global minimum delay.
+        `space`:
+            a `Space` object, needed if you wish to specify distance-dependent
+            weights or delays.
+        `safe`:
+            if True, check that weights and delays have valid values. If False,
+            this check is skipped.
+        `verbose`:
+            if True, display a progress bar on the terminal.
     """
     parameter_names = ('allow_self_connections', 'n')
 
     def __init__(self, n, allow_self_connections=True, weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
         """
         Create a new connector.
-
-        `n` -- either a positive integer, or a `RandomDistribution` that produces
-               positive integers. If `n` is a `RandomDistribution`, then the
-               number of pre-synaptic neurons is drawn from this distribution
-               for each post-synaptic neuron.
-        `allow_self_connections` -- if the connector is used to connect a
-            Population to itself, this flag determines whether a neuron is
-            allowed to connect to itself, or only to other neurons in the
-            Population.
-        `weights` -- may either be a float, a RandomDistribution object, a list/
-                     1D array with at least as many items as connections to be
-                     created. Units nA.
-        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
-                     to the global minimum delay.
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
         assert isinstance(allow_self_connections, bool)
@@ -739,20 +822,30 @@ class FixedNumberPreConnector(Connector):
 class OneToOneConnector(Connector):
     """
     Where the pre- and postsynaptic populations have the same size, connect
-    cell i in the presynaptic population to cell i in the postsynaptic
-    population for all i.
+    cell *i* in the presynaptic population to cell *i* in the postsynaptic
+    population for all *i*.
+    
+    Arguments:
+        `weights`:
+            may either be a float, a RandomDistribution object, a list/1D array
+            with at least as many items as connections to be created. Units nA.
+        `delays`:
+            as `weights`. If `None`, all synaptic delays will be set to the
+            global minimum delay.
+        `space`:
+            a `Space` object, needed if you wish to specify distance-dependent
+            weights or delays.
+        `safe`:
+            if True, check that weights and delays have valid values. If False,
+            this check is skipped.
+        `verbose`:
+            if True, display a progress bar on the terminal.
     """
     parameter_names = tuple()
 
     def __init__(self, weights=0.0, delays=None, space=Space(), safe=True, verbose=False):
         """
         Create a new connector.
-
-        `weights` -- may either be a float, a RandomDistribution object, a list/
-                     1D array with at least as many items as connections to be
-                     created. Units nA.
-        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
-                     to the global minimum delay.
         """
         Connector.__init__(self, weights, delays, space, verbose)
         self.space = space
@@ -787,28 +880,41 @@ class OneToOneConnector(Connector):
 
 class SmallWorldConnector(Connector):
     """
-    For each pair of pre-post cells, the connection probability depends on distance.
+    Connect cells so as to create a small-world network.
+    
+    Arguments:
+        `degree`:
+            the region length where nodes will be connected locally.
+        `rewiring`:
+            the probability of rewiring each edge.
+        `allow_self_connections`:
+            if the connector is used to connect a Population to itself, this
+            flag determines whether a neuron is allowed to connect to itself,
+            or only to other neurons in the Population.
+        `weights`:
+            may either be a float, a RandomDistribution object, a list/1D array
+            with at least as many items as connections to be created. Units nA.
+        `delays`:
+            as `weights`. If `None`, all synaptic delays will be set to the
+            global minimum delay.
+        `space`:
+            a `Space` object, needed if you wish to specify distance-dependent
+            weights or delays.
+        `safe`:
+            if True, check that weights and delays have valid values. If False,
+            this check is skipped.
+        `verbose`:
+            if True, display a progress bar on the terminal.
+        `n_connections`:
+            if specified, the number of efferent synaptic connections per neuron.
     """
     parameter_names = ('allow_self_connections', 'degree', 'rewiring')
 
     def __init__(self, degree, rewiring, allow_self_connections=True,
-                 weights=0.0, delays=None, space=Space(), safe=True, verbose=False, n_connections=None):
+                 weights=0.0, delays=None, space=Space(), safe=True,
+                 verbose=False, n_connections=None):
         """
         Create a new connector.
-
-        `degree` -- the region lenght where nodes will be connected locally
-        `rewiring` -- the probability of rewiring each eadges
-        `space` -- a Space object.
-        `allow_self_connections` -- if the connector is used to connect a
-            Population to itself, this flag determines whether a neuron is
-            allowed to connect to itself, or only to other neurons in the
-            Population.
-        `n_connections`  -- The number of efferent synaptic connections per neuron.
-        `weights` -- may either be a float, a RandomDistribution object, a list/
-                     1D array with at least as many items as connections to be
-                     created, or a DistanceDependence object. Units nA.
-        `delays`  -- as `weights`. If `None`, all synaptic delays will be set
-                     to the global minimum delay.
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
         assert 0 <= rewiring <= 1
@@ -890,6 +996,27 @@ class SmallWorldConnector(Connector):
 
 
 class CSAConnector(Connector):
+    """
+    Use the Connection Set Algebra (Djurfeldt, 2012) to connect cells.
+    
+    Arguments:
+        `cset`:
+            a connection set object.
+        `weights`:
+            may either be a float, a RandomDistribution object, a list/1D array
+            with at least as many items as connections to be created. Units nA.
+        `delays`:
+            as `weights`. If `None`, all synaptic delays will be set to the
+            global minimum delay.
+        `space`:
+            a `Space` object, needed if you wish to specify distance-dependent
+            weights or delays.
+        `safe`:
+            if True, check that weights and delays have valid values. If False,
+            this check is skipped.
+        `verbose`:
+            if True, display a progress bar on the terminal.
+    """
     parameter_names = ('cset',)
 
     if haveCSA:

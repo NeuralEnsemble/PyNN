@@ -752,13 +752,8 @@ class PopulationView(BasePopulation):
     parent Population and vice versa.
 
     It is possible to have views of views.
-    """
-
-    def __init__(self, parent, selector, label=None):
-        """
-        Create a view of a subset of neurons within a parent Population or
-        PopulationView.
-
+    
+    Arguments:
         selector:
             a slice or numpy mask array. The mask array should either be a
             boolean array of the same size as the parent, or an integer array
@@ -769,6 +764,12 @@ class PopulationView(BasePopulation):
                 PopulationView(p, slice(2,5,2))
             
             will all create the same view.
+    """
+
+    def __init__(self, parent, selector, label=None):
+        """
+        Create a view of a subset of neurons within a parent Population or
+        PopulationView.
         """
         self.parent = parent
         self.mask = selector # later we can have fancier selectors, for now we just have numpy masks
@@ -886,14 +887,18 @@ class Assembly(object):
     """
     A group of neurons, may be heterogeneous, in contrast to a Population where
     all the neurons are of the same type.
+    
+    Arguments:
+        *populations:
+            Populations or PopulationViews
+        **kwargs:
+            May contain a keyword argument 'label'
     """
     _count = 0
 
     def __init__(self, *populations, **kwargs):
         """
         Create an Assembly of Populations and/or PopulationViews.
-
-        kwargs may contain a keyword argument 'label'.
         """
         if kwargs:
             assert kwargs.keys() == ['label']

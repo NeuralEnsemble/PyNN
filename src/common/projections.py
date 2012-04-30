@@ -49,35 +49,38 @@ class Projection(object):
     """
     A container for all the connections of a given type (same synapse type and
     plasticity mechanisms) between two populations, together with methods to
-    set parameters of those connections, including of plasticity mechanisms.
+    set the parameters of those connections, including the parameters of
+    plasticity mechanisms.
+    
+    Arguments:
+        `presynaptic_neurons` and `postsynaptic_neurons`:
+            Population, PopulationView or Assembly objects.
+        `source`:
+            string specifying which attribute of the presynaptic cell signals
+            action potentials. This is only needed for multicompartmental cells
+            with branching axons or dendrodendriticsynapses. All standard cells
+            have a single source, and this is the default.
+        `target`:
+            string specifying which synapse on the postsynaptic cell to connect
+            to. For standard cells, this can be 'excitatory' or 'inhibitory'.
+            For non-standard cells, it could be 'NMDA', etc. If target is not
+            given, the default values of 'excitatory' is used.
+        `method`:
+            a Connector object, encapsulating the algorithm to use for
+            connecting the neurons.
+        `synapse_dynamics`:
+            a SynapseDynamics object specifying which synaptic plasticity
+            mechanisms to use.
+        `rng`:
+            specify an RNG object to be used by the Connector.
     """
+    _nProj = 0
 
     def __init__(self, presynaptic_neurons, postsynaptic_neurons, method,
                  source=None, target=None, synapse_dynamics=None,
                  label=None, rng=None):
         """
-        presynaptic_neurons and postsynaptic_neurons - Population, PopulationView
-                                                       or Assembly objects.
-
-        source - string specifying which attribute of the presynaptic cell
-                 signals action potentials. This is only needed for
-                 multicompartmental cells with branching axons or
-                 dendrodendriticsynapses. All standard cells have a single
-                 source, and this is the default.
-
-        target - string specifying which synapse on the postsynaptic cell to
-                 connect to. For standard cells, this can be 'excitatory' or
-                 'inhibitory'. For non-standard cells, it could be 'NMDA', etc.
-                 If target is not given, the default values of 'excitatory' is
-                 used.
-
-        method - a Connector object, encapsulating the algorithm to use for
-                 connecting the neurons.
-
-        synapse_dynamics - a `standardmodels.SynapseDynamics` object specifying
-                 which synaptic plasticity mechanisms to use.
-
-        rng - specify an RNG object to be used by the Connector.
+        Create a new projection, connecting the pre- and post-synaptic neurons.
         """
         for prefix, pop in zip(("pre", "post"),
                                (presynaptic_neurons, postsynaptic_neurons)):
@@ -109,6 +112,7 @@ class Projection(object):
         if self.synapse_dynamics:
             assert isinstance(self.synapse_dynamics, models.BaseSynapseDynamics), \
               "The synapse_dynamics argument, if specified, must be a models.BaseSynapseDynamics object, not a %s" % type(synapse_dynamics)
+        Projection._nProj += 1
 
     def __len__(self):
         """Return the total number of local connections."""

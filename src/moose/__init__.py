@@ -129,7 +129,6 @@ class Projection(common.Projection):
     parameters of those connections, including of plasticity mechanisms.
     """
     _simulator = simulator
-    nProj = 0
 
     def __init__(self, presynaptic_population, postsynaptic_population,
                  method, source=None,
@@ -163,7 +162,6 @@ class Projection(common.Projection):
         
         # Create connections
         method.connect(self)
-        Projection.nProj += 1
         
     def _divergent_connect(self, source, targets, weights, delays):
         """

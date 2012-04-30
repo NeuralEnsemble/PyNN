@@ -26,10 +26,10 @@ def build_connect(projection_class, connector_class):
         """
         Connect a source of spikes to a synaptic target.
 
-        source and target can both be individual cells or populations/assemblies
-        of cells, in which case all possible connections are made with
-        probability p, using either the random number generator supplied, or the
-        default rng otherwise. Weights should be in nA or µS.
+        `source` and `target` can both be individual cells or populations/
+        assemblies of cells, in which case all possible connections are made
+        with probability `p`, using either the random number generator supplied,
+        or the default RNG otherwise. Weights should be in nA or µS.
         """
         if isinstance(source, IDMixin):
             source = source.as_view()

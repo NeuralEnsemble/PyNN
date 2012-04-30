@@ -30,16 +30,31 @@ import logging
 import time
 import os
 import functools
+from pyNN.core import deprecated
 
 red     = 0010; green  = 0020; yellow = 0030; blue = 0040
 magenta = 0050; cyan   = 0060; bright = 0100
 try:
     import ll.ansistyle
     def colour(col, text):
+        """
+        Add ANSI colour codes to the given text to make it coloured when printed
+        to the terminal.
+    
+        Examples::
+        
+            >>> from pyNN.utility import colour, red, blue, bright
+            >>> print colour(red, "Hello world")
+            Hello world
+            >>> print colour(bright+blue, "Creating populations...")
+            Creating populations...
+        """
         return str(ll.ansistyle.Text(col, str(text)))
 except ImportError:
     def colour(col, text):
+        """:mod:`ll.ansistyle` module not available - install the ll-core package."""
         return text
+color = colour
 
 
 def notify(msg="Simulation finished.", subject="Simulation finished.",
@@ -161,18 +176,32 @@ def load_population(filename, sim):
 
 
 class Timer(object):
-    """For timing script execution."""
+    """
+    For timing script execution.
+    
+    Timing starts on creation of the timer.
+    """
 
     def __init__(self):
         self.start()
 
     def start(self):
-        """Start timing."""
+        """Start/restart timing."""
         self._start_time = time.time()
         self._last_check = self._start_time
 
-    def elapsedTime(self, format=None):
-        """Return the elapsed time in seconds but keep the clock running."""
+    def elapsed_time(self, format=None):
+        """
+        Return the elapsed time in seconds but keep the clock running.
+        
+        If called with ``format="long"``, return a text representation of the
+        time. Examples::
+        
+            >>> timer.elapsed_time()
+            987
+            >>> timer.elapsed_time(format='long')
+            16 minutes, 27 seconds
+        """
         current_time = time.time()
         elapsed_time = current_time - self._start_time
         if format == 'long':
@@ -180,12 +209,22 @@ class Timer(object):
         self._last_check = current_time
         return elapsed_time
 
+    @deprecated('elapsed_time()')
+    def elapsedTime(self, format=None):
+        return self.elapsed_time(format)
+
     def reset(self):
         """Reset the time to zero, and start the clock."""
         self.start()
 
     def diff(self, format=None): # I think delta() would be a better name for this method.
-        """Return the time since the last time elapsedTime() or diff() was called."""
+        """
+        Return the time since the last time :meth:`elapsed_time()` or
+        :meth:`diff()` was called.
+        
+        If called with ``format='long'``, return a text representation of the
+        time.
+        """
         current_time = time.time()
         time_since_last_check = current_time - self._last_check
         self._last_check = current_time
@@ -195,13 +234,15 @@ class Timer(object):
 
     @staticmethod
     def time_in_words(s):
-        """Formats a time in seconds as a string containing the time in days,
+        """
+        Formats a time in seconds as a string containing the time in days,
         hours, minutes, seconds. Examples::
-            >>> time_in_words(1)
+        
+            >>> Timer.time_in_words(1)
             1 second
-            >>> time_in_words(123)
+            >>> Timer.time_in_words(123)
             2 minutes, 3 seconds
-            >>> time_in_words(24*3600)
+            >>> Timer.time_in_words(24*3600)
             1 day
         """
         # based on http://mail.python.org/pipermail/python-list/2003-January/181442.html
@@ -236,9 +277,9 @@ class ProgressBar:
         self.amount = 0       # When amount == max, we are 100% done
         self.update_amount(0)
 
-    def increment_amount(self, add_amount = 1):
+    def increment_amount(self, add_amount=1):
         """
-        Increment self.amount by 'add_amount' or default to incrementing
+        Increment `self.amount` by `add_amount` or default to incrementing
         by 1, and then rebuild the bar string.
         """
         new_amount = self.amount + add_amount
@@ -247,9 +288,9 @@ class ProgressBar:
         self.amount = new_amount
         self.build_bar()
 
-    def update_amount(self, new_amount = None):
+    def update_amount(self, new_amount=None):
         """
-        Update self.amount with 'new_amount', and then rebuild the bar
+        Update `self.amount` with `new_amount`, and then rebuild the bar
         string.
         """
         if not new_amount: new_amount = self.amount
@@ -261,7 +302,7 @@ class ProgressBar:
     def build_bar(self):
         """
         Figure new percent complete, and rebuild the bar string based on
-        self.amount.
+        `self.amount`.
         """
         diff = float(self.amount - self.min)
         try:
@@ -279,7 +320,7 @@ class ProgressBar:
             self.bar = self.char * num_hashes
         else:
             # build a progress bar with self.char and spaces (to create a
-            # fixe bar (the percent string doesn't move)
+            # fixed bar (the percent string doesn't move)
             self.bar = self.char * num_hashes + ' ' * (all_full-num_hashes)
 
         percent_str = str(percent_done) + "%"

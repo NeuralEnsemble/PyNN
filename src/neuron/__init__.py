@@ -195,7 +195,6 @@ class Population(common.Population, PopulationMixin):
 class Projection(common.Projection):
     __doc__ = common.Projection.__doc__
     _simulator = simulator
-    nProj = 0
 
     def __init__(self, presynaptic_population, postsynaptic_population, method,
                  source=None, target=None,
@@ -246,8 +245,6 @@ class Projection(common.Projection):
         delays = [c.nc.delay for c in self.connections]
         if delays:
             assert min(delays) >= get_min_delay()
-
-        Projection.nProj += 1
 
     def __getitem__(self, i):
         __doc__ = common.Projection.__getitem__.__doc__

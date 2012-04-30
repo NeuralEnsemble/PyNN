@@ -293,7 +293,6 @@ class Projection(common.Projection):
     parameters of those connections, including of plasticity mechanisms.
     """
     _simulator = simulator
-    nProj = 0
 
     def __init__(self, presynaptic_population, postsynaptic_population,
                  method, source=None,
@@ -326,7 +325,7 @@ class Projection(common.Projection):
             self.synapse_dynamics._set_tau_minus(self.post.local_cells)
         else:
             synapse_dynamics = NativeSynapseDynamics("static_synapse")
-        synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection.nProj)
+        synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection._nProj)
         if synapse_model is None:
             self.synapse_model = 'static_synapse_%s' % id(self)
             nest.CopyModel('static_synapse', self.synapse_model)
@@ -334,7 +333,6 @@ class Projection(common.Projection):
             self.synapse_model = synapse_model
         self._sources = []
         self._connections = None
-        Projection.nProj += 1
 
         # Create connections
         method.connect(self)

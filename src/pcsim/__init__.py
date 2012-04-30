@@ -425,7 +425,6 @@ class Projection(common.Projection, WDManager):
     parameters of those connections, including of plasticity mechanisms.
     """
     _simulator = simulator
-    nProj = 0
     synapse_target_ids = { 'excitatory': 1, 'inhibitory': 2 }
     
     def __init__(self, presynaptic_population, postsynaptic_population,
@@ -624,7 +623,6 @@ class Projection(common.Projection, WDManager):
         self.synapse_type = target or 'excitatory'
         self.connections = []
         method.connect(self)
-        Projection.nProj += 1        
         
     # The commented-out code in this class has been left there as it may be
     # useful when we start (re-)optimizing the implementation
