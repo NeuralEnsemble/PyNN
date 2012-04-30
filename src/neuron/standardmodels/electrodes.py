@@ -18,7 +18,6 @@ import numpy
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.neuron import simulator
-from pyNN.core import inherits_docstring
 
 class NeuronCurrentSource(StandardCurrentSource):
     """Base class for a source of current to be injected into a neuron."""
