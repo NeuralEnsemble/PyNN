@@ -12,7 +12,7 @@ Classes:
     ID
     Recorder
     Connection
-    
+
 Attributes:
     state -- a singleton instance of the _State class.
 
@@ -46,9 +46,9 @@ logger = logging.getLogger("PyNN")
 
 class _State(object):
     """Represent the simulator state."""
-    
+
     def __init__(self):
-        
+
         self.initialized = False
         self.running     = False
         self.optimize    = False
@@ -61,27 +61,27 @@ class _State(object):
     @property
     def t(self):
         return nest.GetKernelStatus()['time']
-    
+
     dt = property(fget=lambda self: nest.GetKernelStatus()['resolution'],
-                  fset=lambda self, timestep: nest.SetKernelStatus({'resolution': timestep}))    
-    
+                  fset=lambda self, timestep: nest.SetKernelStatus({'resolution': timestep}))
+
     @property
     def min_delay(self):
         return nest.GetDefaults('static_synapse')['min_delay']
-    
+
     @property
     def max_delay(self):
         # any reason why not nest.GetKernelStatus()['min_delay']?
         return nest.GetDefaults('static_synapse')['max_delay']
-    
+
     @property
     def num_processes(self):
         return self._cache_num_processes
-    
+
     @property
     def mpi_rank(self):
         return nest.Rank()
-    
+
     @property
     def num_threads(self):
         return nest.GetKernelStatus()['local_num_threads']
@@ -96,7 +96,7 @@ def run(simtime):
         simtime += state.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
         state.running = True
     nest.Simulate(simtime)
-    
+
 def reset():
     global populations
     nest.ResetNetwork()
@@ -107,7 +107,7 @@ def reset():
     state.running = False
     state.t_start = 0.0
 
-# --- For implementation of access to individual neurons' parameters ----------- 
+# --- For implementation of access to individual neurons' parameters -----------
 
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
@@ -144,7 +144,7 @@ class ID(int, common.IDMixin):
                 raise errors.InvalidParameterValueError()
             else:
                 raise
-            
+
 
 # --- For implementation of connect() and Connector classes --------------------
 
@@ -157,8 +157,8 @@ class Connection(object):
     def __init__(self, parent, index):
         """
         Create a new connection interface.
-        
-        `parent` -- a ConnectionManager instance.
+
+        `parent` -- a Projection instance.
         `index` -- the index of this connection in the parent.
         """
         self.parent = parent
@@ -173,14 +173,14 @@ class Connection(object):
     def source(self):
         """The ID of the pre-synaptic neuron."""
         src = ID(nest.GetStatus([self.id()], 'source')[0])
-        src.parent = self.parent.parent.pre
+        src.parent = self.parent.pre
         return src
-    
+
     @property
     def target(self):
         """The ID of the post-synaptic neuron."""
         tgt = ID(nest.GetStatus([self.id()], 'target')[0])
-        tgt.parent = self.parent.parent.post
+        tgt.parent = self.parent.post
         return tgt
 
     def _set_weight(self, w):
@@ -214,7 +214,7 @@ setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))
 setattr(Connection, 'tau_facil', generate_synapse_property('tau_fac'))
 setattr(Connection, 'u0', generate_synapse_property('u0'))
 setattr(Connection, '_tau_psc', generate_synapse_property('tau_psc'))
-    
+
 
 # --- Initialization, and module attributes ------------------------------------
 
