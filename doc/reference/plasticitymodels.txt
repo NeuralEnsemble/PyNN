@@ -5,60 +5,78 @@ Synaptic plasticity models
 .. autoclass:: pyNN.standardmodels.SynapseDynamics
    :members:
    :undoc-members:
-   :special-members:
    :inherited-members:
    :show-inheritance:
+
+
+Short-term plasticity mechanisms
+================================
+
+.. currentmodule:: pyNN.standardmodels.synapses
 
 .. autoclass:: pyNN.standardmodels.synapses.TsodyksMarkramMechanism
    :members:
    :undoc-members:
-   :special-members:
-   :inherited-members:
    :show-inheritance:
+
+   .. automethod:: describe
+
+Long-term plasticity mechanisms
+===============================
 
 .. autoclass:: pyNN.standardmodels.STDPMechanism
    :members:
    :undoc-members:
-   :special-members:
    :inherited-members:
+
+
+Weight-dependence components
+----------------------------
+
+
+.. autoclass:: pyNN.standardmodels.STDPWeightDependence
+   :members:
+   :undoc-members:
    :show-inheritance:
+
+   .. automethod:: describe
 
 .. autoclass:: pyNN.standardmodels.synapses.AdditiveWeightDependence
    :members:
    :undoc-members:
-   :special-members:
-   :inherited-members:
    :show-inheritance:
 
 .. autoclass:: pyNN.standardmodels.synapses.MultiplicativeWeightDependence
    :members:
    :undoc-members:
-   :special-members:
-   :inherited-members:
    :show-inheritance:
 
 .. autoclass:: pyNN.standardmodels.synapses.AdditivePotentiationMultiplicativeDepression
    :members:
    :undoc-members:
-   :special-members:
-   :inherited-members:
    :show-inheritance:
-   
+
 .. autoclass:: pyNN.standardmodels.synapses.GutigWeightDependence
    :members:
    :undoc-members:
-   :special-members:
-   :inherited-members:
    :show-inheritance:
+
+
+Timing-dependence components
+----------------------------
 
 .. autoclass:: pyNN.standardmodels.synapses.SpikePairRule
    :members:
    :undoc-members:
-   :special-members:
-   :inherited-members:
    :show-inheritance:
 
+   .. automethod:: describe
 
-native models...
 
-nineml models...
+Native plasticity models
+========================
+
+
+NineML plasticity models
+========================
+

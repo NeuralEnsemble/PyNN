@@ -13,9 +13,12 @@ class DCSource(StandardCurrentSource):
     """Source producing a single pulse of current of constant amplitude.
 
     Arguments:
-            start     -- onset time of pulse in ms
-            stop      -- end of pulse in ms
-            amplitude -- pulse amplitude in nA
+        `start`:
+            onset time of pulse in ms
+        `stop`:
+            end of pulse in ms
+        `amplitude`:
+            pulse amplitude in nA
     """
 
     default_parameters = {
@@ -29,12 +32,18 @@ class ACSource(StandardCurrentSource):
     """Source producing a single pulse of current of constant amplitude.
 
     Arguments:
-            start     -- onset time of pulse in ms
-            stop      -- end of pulse in ms
-            amplitude -- sine amplitude in nA
-            offset    -- sine offset in nA
-            frequency -- frequency in Hz
-            phase     -- phase in degree
+        `start`:
+            onset time of pulse in ms
+        `stop`:
+            end of pulse in ms
+        `amplitude`:
+            sine amplitude in nA
+        `offset`:
+            sine offset in nA
+        `frequency`:
+            frequency in Hz
+        `phase`:
+            phase in degrees
     """
 
     default_parameters = {
@@ -50,9 +59,9 @@ class StepCurrentSource(StandardCurrentSource):
     """A step-wise time-varying current source.
 
     Arguments:
-        times:
+        `times`:
             list/array of times at which the injected current changes.
-        amplitudes:
+        `amplitudes`:
             list/array of current amplitudes to be injected at the times
             specified in `times`.
 
@@ -71,22 +80,27 @@ class NoisyCurrentSource(StandardCurrentSource):
     intervals, with the new value drawn from a Gaussian distribution.
 
     Required arguments:
-            mean  -- mean current amplitude in nA
-            stdev -- standard deviation of the current amplitude in nA
+        `mean`:
+            mean current amplitude in nA
+        `stdev`:
+            standard deviation of the current amplitude in nA
 
-        Optional arguments:
-            dt    -- interval between updates of the current amplitude. Must be
-                     a multiple of the simulation time step. If not specified,
-                     the simulation time step will be used.
-            start -- onset of the current injection in ms. If not specified, the
-                     current will begin at the start of the simulation.
-            stop  -- end of the current injection in ms. If not specified, the
-                     current will continue until the end of the simulation.
-            rng   -- an RNG object from the `pyNN.random` module. For speed,
-                     this should be a `NativeRNG` instance (uses the simulator's
-                     internal random number generator). For reproducibility
-                     across simulators, use one of the other RNG types. If not
-                     specified, a NumpyRNG is used.
+    Optional arguments:
+        `dt`:
+            interval between updates of the current amplitude. Must be a
+            multiple of the simulation time step. If not specified, the
+            simulation time step will be used.
+        `start`:
+            onset of the current injection in ms. If not specified, the current
+            will begin at the start of the simulation.
+        `stop`:
+            end of the current injection in ms. If not specified, the current
+            will continue until the end of the simulation.
+        `rng`:
+            an RNG object from the `pyNN.random` module. For speed, this should
+            be a `NativeRNG` instance (uses the simulator's internal random
+            number generator). For reproducibility across simulators, use one of
+            the other RNG types. If not specified, a NumpyRNG is used.
      """
 
     default_parameters = {

@@ -174,7 +174,7 @@ class IzhikevichNeuronGroup(BaseNeuronGroup):
     def __init__(self, n, equations, **parameters):
         threshold = brian.SimpleFunThreshold(self.check_threshold)
         reset = brian.SimpleCustomRefractoriness(
-                    IzikevichReset(parameters['v_reset']* mV,
+                    IzhikevichReset(parameters['v_reset']* mV,
                                   parameters['d']),
                     period=parameters['tau_refrac'].max()*ms)
         refractory = None
@@ -446,7 +446,7 @@ class AdaptiveReset(object):
         P.w[spikes] += self.b
 
 
-class IzikevichReset(object):
+class IzhikevichReset(object):
 
     def __init__(self, Vr= -65 * mV, d=0.2 * mV/ms):
         self.Vr = Vr

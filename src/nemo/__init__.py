@@ -181,7 +181,7 @@ class Population(common.Population, common.BasePopulation):
                         list(params['e_rev_E']*i1),  
                         list(params['e_rev_I']*i1),                      
                         list(init['v']*i1), i0, i0, list(1000.*i1))
-        elif isinstance(celltype, cells.Izikevich):            
+        elif isinstance(celltype, cells.Izhikevich):            
             simulator.state.net.add_neuron(ntype, self.all_cells.tolist(), 
                         list(params['a']*i1), 
                         list(params['b']*i1), 

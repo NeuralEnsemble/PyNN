@@ -60,7 +60,7 @@ class BrianCurrentSource(StandardCurrentSource):
             self._generate()
 
     def inject_into(self, cell_list):
-        """Inject this current source into some cells."""
+        __doc__ = StandardCurrentSource.inject_into.__doc__
         for cell in cell_list:
             if not cell.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")

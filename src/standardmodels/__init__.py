@@ -5,7 +5,7 @@ that are available in multiple simulators:
 
 Functions:
     build_translations()
-    
+
 Classes:
     StandardModelType
     StandardCellType
@@ -15,7 +15,7 @@ Classes:
     STDPMechanism
     STDPWeightDependence
     STDPTimingDependence
-   
+
 :copyright: Copyright 2006-2012 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
@@ -57,14 +57,14 @@ def build_translations(*translation_list):
 
 class StandardModelType(models.BaseModelType):
     """Base class for standardized cell model and synapse model classes."""
-    
+
     translations = {}
     extra_parameters = {}
-    
+
     @property
     def translated_parameters(self):
         return self.translate(self.parameter_space)
-    
+
     @classmethod
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
@@ -85,7 +85,7 @@ class StandardModelType(models.BaseModelType):
                 #pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
         return ParameterSpace(native_parameters, schema=None, size=parameters.size)
-    
+
     @classmethod
     def reverse_translate(cls, native_parameters):
         """Translate simulator-specific model parameters to standardized parameters."""
@@ -111,13 +111,13 @@ class StandardModelType(models.BaseModelType):
         """Return a list of parameters for which there is a unit change between
         standard and native parameter values."""
         return [name for name in cls.translations if "float" in cls.translations[name]['forward_transform']]
-    
+
     @classmethod
     def computed_parameters(cls):
         """Return a list of parameters whose values must be computed from
         more than one other parameter."""
         return [name for name in cls.translations if name not in cls.simple_parameters()+cls.scaled_parameters()]
-    
+
     @classmethod
     def get_translated_names(cls, *names):
         if names:
@@ -128,7 +128,7 @@ class StandardModelType(models.BaseModelType):
 
 #    def update_parameters(self, parameters):
 #        """
-#        update self.parameters with those in parameters 
+#        update self.parameters with those in parameters
 #        """
 #        self.parameters.update(self.translate(parameters))
 
@@ -141,10 +141,16 @@ class StandardCellType(StandardModelType, models.BaseCellType):
 
 
 class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
-    """Base class for standardized current source model classes."""             
-    
+    """Base class for standardized current source model classes."""
+
     def inject_into(self, cells):
-        raise Exception("Should be redefined in the local simulator electrodes")
+        """
+        Inject the current from this source into the supplied group of cells.
+
+        `cells` may be a :class:`Population`, :class:`PopulationView`,
+        :class:`Assembly` or a list of :class:`ID` objects.
+        """
+        raise NotImplementedError("Should be redefined in the local simulator electrodes")
 
     def __getattr__(self, name):
         try:
@@ -189,13 +195,13 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
     def set_native_parameters(self, parameters):
         pass
 
-    def get_native_parameters(self):    
+    def get_native_parameters(self):
         pass
 
 
 class ModelNotAvailable(object):
     """Not available for this simulator."""
-    
+
     def __init__(self, *args, **kwargs):
         raise NotImplementedError("The %s model is not available for this simulator." % self.__class__.__name__)
 
@@ -208,9 +214,16 @@ class SynapseDynamics(models.BaseSynapseDynamics):
     """
     For specifying synapse short-term (faciliation, depression) and long-term
     (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
-    `Projection.__init__()` or `connect()`.
+    `Projection.__init__()` or to the `connect()` function.
+
+    Arguments:
+        `fast`:
+            a short-term plasticity mechanism, e.g.
+            :class:`TsodyksMarkramMechanism`, or `None`.
+        `slow`:
+            an :class:`STDPMechanism` object, or `None`.
     """
-    
+
     def __init__(self, fast=None, slow=None):
         """
         Create a new specification for a dynamic synapse, combining a `fast`
@@ -224,14 +237,14 @@ class SynapseDynamics(models.BaseSynapseDynamics):
             assert 0 <= slow.dendritic_delay_fraction <= 1.0
         self.fast = fast
         self.slow = slow
-    
+
     def describe(self, template='synapsedynamics_default.txt', engine='default'):
         """
         Returns a human-readable description of the synapse dynamics.
-        
+
         The output may be customized by specifying a different template
         togther with an associated template engine (see ``pyNN.descriptions``).
-        
+
         If template is None, then a dictionary containing the template context
         will be returned.
         """
@@ -242,7 +255,7 @@ class SynapseDynamics(models.BaseSynapseDynamics):
 
 class ShortTermPlasticityMechanism(StandardModelType):
     """Abstract base class for models of short-term synaptic dynamics."""
-    
+
     def __init__(self, **parameters):
         StandardModelType.__init__(self, parameters)
 
@@ -259,28 +272,32 @@ class ShortTermPlasticityMechanism(StandardModelType):
 
 
 class STDPMechanism(object):
-    """Specification of STDP models."""
-    
+    """
+    A specification for an STDP mechanism, combining a weight-dependence, a
+    timing-dependence, and, optionally, a voltage-dependence of the synaptic
+    change.
+
+    For point neurons, the synaptic delay `d` can be interpreted either as
+    occurring purely in the pre-synaptic axon + synaptic cleft, in which
+    case the synaptic plasticity mechanism 'sees' the post-synaptic spike
+    immediately and the pre-synaptic spike after a delay `d`
+    (`dendritic_delay_fraction = 0`) or as occurring purely in the post-
+    synaptic dendrite, in which case the pre-synaptic spike is seen
+    immediately, and the post-synaptic spike after a delay `d`
+    (`dendritic_delay_fraction = 1`), or as having both pre- and post-
+    synaptic components (`dendritic_delay_fraction` between 0 and 1).
+
+    In a future version of the API, we will allow the different
+    components of the synaptic delay to be specified separately in
+    milliseconds.
+    """
+
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0):
         """
         Create a new specification for an STDP mechanism, by combining a
         weight-dependence, a timing-dependence, and, optionally, a voltage-
         dependence.
-        
-        For point neurons, the synaptic delay `d` can be interpreted either as
-        occurring purely in the pre-synaptic axon + synaptic cleft, in which
-        case the synaptic plasticity mechanism 'sees' the post-synaptic spike
-        immediately and the pre-synaptic spike after a delay `d`
-        (`dendritic_delay_fraction = 0`) or as occurring purely in the post-
-        synaptic dendrite, in which case the pre-synaptic spike is seen
-        immediately, and the post-synaptic spike after a delay `d`
-        (`dendritic_delay_fraction = 1`), or as having both pre- and post-
-        synaptic components (`dendritic_delay_fraction` between 0 and 1).
-        
-        In a future version of the API, we will allow the different
-        components of the synaptic delay to be specified separately in
-        milliseconds.
         """
         if timing_dependence:
             assert isinstance(timing_dependence, STDPTimingDependence)
@@ -292,9 +309,14 @@ class STDPMechanism(object):
         self.weight_dependence = weight_dependence
         self.voltage_dependence = voltage_dependence
         self.dendritic_delay_fraction = dendritic_delay_fraction
-    
+
     @property
     def possible_models(self):
+        """
+        A list of available synaptic plasticity models for the current
+        configuration (weight dependence, timing dependence, ...) in the
+        current simulator.
+        """
         td = self.timing_dependence
         wd = self.weight_dependence
         pm = td.possible_models.intersection(wd.possible_models)
@@ -305,9 +327,13 @@ class STDPMechanism(object):
         elif len(pm) > 1 :
             # we pass the set of models back to the simulator-specific module for it to deal with
             return pm
-    
+
     @property
     def all_parameters(self):
+        """
+        A dictionary containing the combination of parameters from the different
+        components of the STDP model.
+        """
         timing_parameters = self.timing_dependence.translated_parameters
         weight_parameters = self.weight_dependence.translated_parameters
         for parameter_space in (timing_parameters, weight_parameters):
@@ -320,14 +346,14 @@ class STDPMechanism(object):
         parameters.update(self.timing_dependence.extra_parameters)
         parameters.update(self.weight_dependence.extra_parameters)
         return parameters
-    
+
     def describe(self, template='stdpmechanism_default.txt', engine='default'):
         """
         Returns a human-readable description of the STDP mechanism.
-        
+
         The output may be customized by specifying a different template
         togther with an associated template engine (see ``pyNN.descriptions``).
-        
+
         If template is None, then a dictionary containing the template context
         will be returned.
         """
@@ -347,6 +373,6 @@ class STDPWeightDependence(StandardModelType):
 
 class STDPTimingDependence(StandardModelType):
     """Base class for models of STDP timing dependence (triplets, etc)"""
-    
+
     def __init__(self, **parameters):
         StandardModelType.__init__(self, parameters)

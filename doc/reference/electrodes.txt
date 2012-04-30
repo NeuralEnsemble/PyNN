@@ -2,32 +2,39 @@
 Current sources
 ===============
 
-.. autoclass:: pyNN.neuron.DCSource
+.. currentmodule:: pyNN.neuron.standardmodels.electrodes
+
+.. autoclass:: DCSource
    :members:
-   :undoc-members:
-   :special-members:
-   :inherited-members:
    :show-inheritance:
 
-.. autoclass:: pyNN.neuron.ACSource
+   .. automethod:: inject_into
+   .. automethod:: get_parameters
+   .. automethod:: set_parameters
+
+
+.. autoclass:: ACSource
    :members:
-   :undoc-members:
-   :special-members:
-   :inherited-members:
-   :show-inheritance:
-   
-.. autoclass:: pyNN.neuron.StepCurrentSource
-   :members:
-   :undoc-members:
-   :special-members:
-   :inherited-members:
-   :show-inheritance:
-   
-.. autoclass:: pyNN.neuron.NoisyCurrentSource
-   :members:
-   :undoc-members:
-   :special-members:
-   :inherited-members:
    :show-inheritance:
 
-writing your own current source class....
+   .. automethod:: inject_into
+   .. automethod:: get_parameters
+   .. automethod:: set_parameters
+
+
+.. autoclass:: StepCurrentSource
+   :members:
+   :show-inheritance:
+
+   .. automethod:: inject_into
+   .. automethod:: get_parameters
+   .. automethod:: set_parameters
+
+
+.. autoclass:: NoisyCurrentSource
+   :members:
+   :show-inheritance:
+
+   .. automethod:: inject_into
+   .. automethod:: get_parameters
+   .. automethod:: set_parameters

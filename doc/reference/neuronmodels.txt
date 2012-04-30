@@ -2,9 +2,133 @@
 Neuron models
 =============
 
-.. autoclass:: pyNN.standardmodels.StandardCellType
+
+Standard cell types
+===================
+
+All standard cell types inherit from the following base class, and have the
+same methods, as listed below.
+
+.. currentmodule:: pyNN.standardmodels
+
+.. autoclass:: StandardCellType
+   :show-inheritance:
+
+   .. automethod:: get_schema
+   .. automethod:: get_parameter_names
+   .. automethod:: get_translated_names
+   .. automethod:: has_parameter
+   .. automethod:: translate
+   .. automethod:: reverse_translate
+   .. automethod:: simple_parameters
+   .. automethod:: scaled_parameters
+   .. automethod:: computed_parameters
+   .. automethod:: describe
+
+
+Simple integrate-and-fire neurons
+---------------------------------
+
+.. currentmodule:: pyNN.standardmodels.cells
+
+.. autoclass:: IF_cond_exp
    :members:
    :undoc-members:
-   :special-members:
-   :inherited-members:
    :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: IF_cond_alpha
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: IF_curr_exp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: IF_curr_alpha
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+
+Integrate-and-fire neurons with adaptation
+------------------------------------------
+
+.. autoclass:: Izhikevich
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: EIF_cond_exp_isfa_ista
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: EIF_cond_alpha_isfa_ista
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: IF_cond_exp_gsfa_grr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+
+Spike sources
+-------------
+
+.. autoclass:: SpikeSourcePoisson
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: SpikeSourceArray
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: SpikeSourceInhGamma
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+
+
+Native cell types
+=================
+

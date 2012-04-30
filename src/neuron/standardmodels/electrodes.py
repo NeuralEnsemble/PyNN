@@ -18,9 +18,10 @@ import numpy
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.neuron import simulator
+from pyNN.core import inherits_docstring
 
 class NeuronCurrentSource(StandardCurrentSource):
-    """Base class for a source of current to be injected into a neuron."""  
+    """Base class for a source of current to be injected into a neuron."""
 
     def __init__(self, parameters):
         self._devices    = []
@@ -41,7 +42,7 @@ class NeuronCurrentSource(StandardCurrentSource):
         if self._amplitudes == None:
             assert isinstance(self.amplitudes, Sequence)
             self._amplitudes = h.Vector(self.amplitudes.value)
-        return self._amplitudes        
+        return self._amplitudes
 
     @property
     def _h_times(self):
@@ -53,16 +54,16 @@ class NeuronCurrentSource(StandardCurrentSource):
     def _reset(self):
         if self._is_computed:
             self._amplitudes = None
-            self._times      = None        
+            self._times      = None
             self._generate()
         for iclamp in self._h_iclamps.values():
-            self._update_iclamp(iclamp)            
+            self._update_iclamp(iclamp)
 
     def _update_iclamp(self, iclamp):
         if not self._is_playable:
             iclamp.delay = max(0, self.start - simulator.state.t)
             iclamp.dur   = self.stop-self.start
-            iclamp.amp   = self.amplitude                    
+            iclamp.amp   = self.amplitude
 
         if self._is_playable:
             iclamp.delay = 0.0
@@ -75,16 +76,17 @@ class NeuronCurrentSource(StandardCurrentSource):
             object.__setattr__(self, name, value)
         self._reset()
 
-    def get_native_parameters(self):    
+    def get_native_parameters(self):
         raise NotImplementedError
 
-    def inject_into(self, cell_list):   
-        for id in cell_list:
+    def inject_into(self, cells):
+        __doc__ = StandardCurrentSource.inject_into.__doc__
+        for id in cells:
             if id.local:
                 if not id.celltype.injectable:
                     raise TypeError("Can't inject current into a spike source.")
                 if not self._h_iclamps.has_key(id):
-                    self.cell_list += [id]                
+                    self.cell_list += [id]
                     self._h_iclamps[id] = h.IClamp(0.5, sec=id._cell.source_section)
                     self._devices.append(self._h_iclamps[id])
                 self._update_iclamp(self._h_iclamps[id])
@@ -92,7 +94,7 @@ class NeuronCurrentSource(StandardCurrentSource):
 
 class DCSource(NeuronCurrentSource, electrodes.DCSource):
 
-    __doc__ = electrodes.DCSource.__doc__    
+    __doc__ = electrodes.DCSource.__doc__
 
     translations = build_translations(
         ('amplitude',  'amplitude'),
@@ -106,7 +108,7 @@ class DCSource(NeuronCurrentSource, electrodes.DCSource):
 
 class StepCurrentSource(NeuronCurrentSource, electrodes.StepCurrentSource):
 
-    __doc__ = electrodes.StepCurrentSource.__doc__ 
+    __doc__ = electrodes.StepCurrentSource.__doc__
 
     translations = build_translations(
         ('amplitudes',  'amplitudes'),
@@ -120,9 +122,9 @@ class StepCurrentSource(NeuronCurrentSource, electrodes.StepCurrentSource):
         pass
 
 class ACSource(NeuronCurrentSource, electrodes.ACSource):
-    
-    __doc__ = electrodes.ACSource.__doc__    
-    
+
+    __doc__ = electrodes.ACSource.__doc__
+
     translations = build_translations(
         ('amplitude',  'amplitude'),
         ('start',      'start'),
@@ -148,9 +150,9 @@ class ACSource(NeuronCurrentSource, electrodes.ACSource):
 
 
 class NoisyCurrentSource(NeuronCurrentSource, electrodes.NoisyCurrentSource):
-    
+
     __doc__ = electrodes.NoisyCurrentSource.__doc__
-    
+
     translations = build_translations(
         ('mean',  'mean'),
         ('start', 'start'),
@@ -170,6 +172,5 @@ class NoisyCurrentSource(NeuronCurrentSource, electrodes.NoisyCurrentSource):
         ## Not efficient at all... Is there a way to have those vectors computed on the fly ?
         ## Otherwise should have a buffer mechanism
         self.times      = numpy.arange(self.start, self.stop, simulator.state.dt)
-        tmp             = numpy.arange(0, self.stop - self.start, simulator.state.dt)          
+        tmp             = numpy.arange(0, self.stop - self.start, simulator.state.dt)
         self.amplitudes = self.mean + (self.stdev*self.dt)*numpy.random.randn(len(tmp))
-

@@ -341,8 +341,8 @@ class IF_cond_exp_gsfa_grr(ModelNotAvailable):
     pass
 
 
-class Izikevich(cells.Izikevich):
-    __doc__ = cells.Izikevich.__doc__
+class Izhikevich(cells.Izhikevich):
+    __doc__ = cells.Izhikevich.__doc__
 
     translations = build_translations(
         ('a',    'a', 1/ms),

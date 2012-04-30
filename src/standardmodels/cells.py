@@ -285,11 +285,11 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
     }
 
 
-class Izikevich(StandardCellType):
+class Izhikevich(StandardCellType):
     """
-    Izikevich spiking model with a quadratic non-linearity according to:
+    Izhikevich spiking model with a quadratic non-linearity according to:
 
-    E. Izikevich (2003), IEEE transactions on neural networks, 14(6) 
+    E. Izhikevich (2003), IEEE transactions on neural networks, 14(6) 
 
     Synapses are modeled as dirac, as in the original model
     """

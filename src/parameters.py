@@ -44,6 +44,9 @@ class Sequence(object):
     def __eq__(self, other):
         return (self.value == other.value).all()
 
+    def __repr__(self):
+        return "Sequence(%s)" % self.value
+
 
 class ParameterSpace(object):
     """

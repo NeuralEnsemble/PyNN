@@ -13,9 +13,9 @@ from pyNN import errors
 import numpy
 
 
-class Izikevich(cells.Izikevich):
+class Izhikevich(cells.Izhikevich):
     
-    __doc__ = cells.Izikevich.__doc__ 
+    __doc__ = cells.Izhikevich.__doc__ 
 
     translations = build_translations(
         ('a',    'a'),
