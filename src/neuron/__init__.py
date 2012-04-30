@@ -41,7 +41,8 @@ def list_standard_models():
 def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     Should be called at the very beginning of a script.
-    extra_params contains any keyword arguments that are required by a given
+
+    `extra_params` contains any keyword arguments that are required by a given
     simulator but not by others.
 
     NEURON specific extra_params:

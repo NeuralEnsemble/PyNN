@@ -2,34 +2,29 @@
 Random numbers
 ==============
 
+.. module:: pyNN.random
 
-.. autoclass:: pyNN.random.RandomDistribution
+.. autoclass:: RandomDistribution
    :members:
    :undoc-members:
-   :special-members:
-   :inherited-members:
-   :show-inheritance:
-   
-   
-.. autoclass:: pyNN.random.NumpyRNG
+
+
+.. autoclass:: NumpyRNG
    :members:
    :undoc-members:
-   :special-members:
    :inherited-members:
    :show-inheritance:
 
-   
-.. autoclass:: pyNN.random.GSLRNG
+
+.. autoclass:: GSLRNG
    :members:
    :undoc-members:
-   :special-members:
    :inherited-members:
    :show-inheritance:
-   
 
-.. autoclass:: pyNN.random.NativeRNG
+
+.. autoclass:: NativeRNG
    :members:
    :undoc-members:
-   :special-members:
    :inherited-members:
    :show-inheritance:

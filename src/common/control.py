@@ -26,7 +26,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     Initialises/reinitialises the simulator. Any existing network structure is
     destroyed.
 
-    extra_params contains any keyword arguments that are required by a given
+    `extra_params` contains any keyword arguments that are required by a given
     simulator but not by others.
     """
     invalid_extra_params = ('mindelay', 'maxdelay', 'dt')
@@ -45,7 +45,7 @@ def end(compatible_output=True):
 
 
 def run(simtime):
-    """Run the simulation for simtime ms."""
+    """Run the simulation for `simtime` ms."""
     raise NotImplementedError
 
 

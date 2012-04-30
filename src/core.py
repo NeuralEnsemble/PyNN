@@ -25,13 +25,27 @@ class LazyArray(larray):
     """
     Optimises storage of arrays in various ways:
       - stores only a single value if all the values in the array are the same
-      - if the array is created from a RandomDistribution or a function f(i,j),
-        then elements are only evaluated when they are accessed. Any operations
-        performed on the array are also queued up to be executed on access.
+      - if the array is created from a :class:`~pyNN.random.RandomDistribution`
+        or a function `f(i,j)`, then elements are only evaluated when they are
+        accessed. Any operations performed on the array are also queued up to
+        be executed on access.
 
     The main intention of the latter is to save memory for very large arrays by
     accessing them one row or column at a time: the entire array need never be
     in memory.
+
+    Arguments:
+        `value`:
+            may be an int, long, float, bool, NumPy array, iterator, generator
+            or a function, `f(i)` or `f(i,j)`, depending on the dimensions of
+            the array. `f(i,j)` should return a single number when `i` and `j`
+            are integers, and a 1D array when either `i` or `j` or both is a
+            NumPy array (in the latter case the two arrays must have equal
+            lengths).
+        `shape`:
+            a tuple giving the shape of the array, or `None`
+        `dtype`:
+            the NumPy `dtype`.
     """
     # most of the implementation moved to external lazyarray package
     # the plan is ultimately to move everything to lazyarray
@@ -50,8 +64,7 @@ class LazyArray(larray):
         Iterate over the columns of the array. Columns will be yielded either
         as a 1D array or as a single value (for a flat array).
 
-        `mask`: either None or a boolean array indicating which columns should
-                be included.
+        `mask`: either `None` or a boolean array indicating which columns should be included.
         """
         column_indices = numpy.arange(self.ncols)
         if mask is not None:

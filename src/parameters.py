@@ -19,6 +19,11 @@ class Sequence(object):
     to avoid the ambiguity of "is a given array a single parameter value (e.g.
     a spike train for one cell) or an array of parameter values (e.g. one number
     per cell)?".
+
+    Arguments:
+        `value`:
+            anything which can be converted to a NumPy array, or another
+            :class:`Sequence` object.
     """
 
     def __init__(self, value):
@@ -31,9 +36,11 @@ class Sequence(object):
     #    This must not be defined, otherwise Sequence is insufficiently different from NumPy array
 
     def max(self):
+        """docstring goes here"""
         return self.value.max()
 
     def __mul__(self, val):
+        """docstring goes here"""
         if hasattr(val, '__len__'):
             return numpy.array([Sequence(self.value * x) for x in val], dtype=Sequence) # reshape if necessary?
         else:
@@ -55,16 +62,23 @@ class ParameterSpace(object):
     i.e. represents one or more parameter sets, where each parameter set has
     the same parameter names and types but the parameters may have different
     values.
+
+    Arguments:
+        `parameters`:
+            a dict containing values of any type that may be used to construct a
+            `lazy array`_, i.e. `int`, `float`, NumPy array,
+            :class:`~pyNN.random.RandomDistribution`, function that accepts a
+            single argument.
+        `schema`:
+            a dict whose keys are the expected parameter names and whose values
+            are the expected parameter types
+
+    .. _`lazy array`: http://readthedocs.org/docs/lazyarray/en/latest/index.html
     """
 
     def __init__(self, parameters, schema=None, size=None):
         """
-        `parameters` - a dict containing values of any type that may be used to
-                       construct a lazy array, i.e. int, float, NumPy array,
-                       RandomDistribution, function that accepts a single
-                       argument.
-        `schema` - a dict whose keys are the expected parameter names and whose
-                   values are the expected parameter types
+
         """
         self._parameters = {}
         self.schema = schema
@@ -79,15 +93,24 @@ class ParameterSpace(object):
     size = property(fget=lambda self: self._size, fset=_set_size)
 
     def keys(self):
+        """
+        docstring goes here
+        """
         return self._parameters.keys()
 
     def items(self):
+        """
+        docstring goes here
+        """
         return self._parameters.iteritems()
 
     def __repr__(self):
         return "<ParameterSpace %s, size=%s>" % (", ".join(self.keys()), self.size)
 
     def update(self, **parameters):
+        """
+        docstring goes here
+        """
         if self._size is None:
             array_shape = None
         else:
@@ -115,6 +138,9 @@ class ParameterSpace(object):
 
     @property
     def is_homogeneous(self):
+        """
+        docstring goes here
+        """
         return all(value.is_homogeneous for value in self._parameters.values())
 
     def evaluate(self, mask=None, simplify=False):
@@ -137,6 +163,9 @@ class ParameterSpace(object):
         # should possibly update self.size according to mask?
 
     def as_dict(self):
+        """
+        docstring goes here
+        """
         if not self._evaluated:
             raise Exception("Must call evaluate() method before calling ParameterSpace.as_dict()")
         D = {}
@@ -147,6 +176,9 @@ class ParameterSpace(object):
         return D
 
     def __iter__(self):
+        """
+        docstring goes here
+        """
         if not self._evaluated:
             raise Exception("Must call evaluate() method before iterating over a ParameterSpace")
         for i in range(self._evaluated_size):

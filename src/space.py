@@ -129,6 +129,7 @@ class BaseStructure(object):
                              for attr in self.parameter_names))
 
     def get_parameters(self):
+        """Return a dict containing the parameters of the :class:`Structure`."""
         P = {}
         for name in self.parameter_names:
             P[name] = getattr(self, name)
@@ -148,10 +149,25 @@ class BaseStructure(object):
                    'parameters': self.get_parameters()}
         return descriptions.render(engine, template, context)
 
+    def generate_positions(self, n):
+        """
+        Calculate and return the positions of `n` neurons positioned according
+        to this structure.
+        """
+        raise NotImplementedError
+
 
 class Line(BaseStructure):
     """
     Represents a structure with neurons distributed evenly on a straight line.
+
+    Arguments:
+        `dx`:
+            distance between points in the line.
+        `y`, `z`,:
+            y- and z-coordinates of all points in the line.
+        `x0`:
+            x-coordinate of the first point in the line.
     """
     parameter_names = ("dx", "x0", "y", "z")
 
@@ -166,26 +182,37 @@ class Line(BaseStructure):
         y = numpy.zeros(n) + self.y
         z = numpy.zeros(n) + self.z
         return numpy.array((x,y,z))
+    generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 
 class Grid2D(BaseStructure):
     """
     Represents a structure with neurons distributed on a 2D grid.
+
+    Arguments:
+        `dx`, `dy`:
+            distances between points in the x, y directions.
+        `x0`, `y0`:
+            coordinates of the starting corner of the grid.
+        `z`:
+            the z-coordinate of all points in the grid.
+        `aspect_ratio`:
+            ratio of the number of grid points per side (not the ratio of the
+            side lengths, unless ``dx == dy``)
+        `fill_order`:
+            may be 'sequential' or 'random'
     """
-    parameter_names = ("aspect_ratio", "dx", "dy", "x0", "y0", "fill_order")
+    parameter_names = ("aspect_ratio", "dx", "dy", "x0", "y0", "z", "fill_order")
 
     def __init__(self, aspect_ratio=1.0, dx=1.0, dy=1.0, x0=0.0, y0=0.0, z=0,
                  fill_order="sequential"):
-        """
-        aspect_ratio - ratio of the number of grid points per side (not the ratio
-                       of the side lengths, unless dx == dy)
-        """
         self.aspect_ratio = aspect_ratio
         assert fill_order in ('sequential', 'random')
         self.fill_order = fill_order
         self.dx = dx; self.dy = dy; self.x0 = x0; self.y0 = y0; self.z = z
 
     def calculate_size(self, n):
+        """docstring goes here"""
         nx = math.sqrt(n*self.aspect_ratio)
         if n%nx != 0:
             raise Exception("Invalid size: n=%g, nx=%d" % (n, nx))
@@ -203,21 +230,32 @@ class Grid2D(BaseStructure):
             return positions
         else: # random
             return numpy.random.permutation(positions.T).T
+    generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 
 class Grid3D(BaseStructure):
     """
     Represents a structure with neurons distributed on a 3D grid.
+
+    Arguments:
+        `dx`, `dy`, `dz`:
+            distances between points in the x, y, z directions.
+        `x0`, `y0`. `z0`:
+            coordinates of the starting corner of the grid.
+        `aspect_ratioXY`, `aspect_ratioXZ`:
+            ratios of the number of grid points per side (not the ratio of the
+            side lengths, unless ``dx == dy == dz``)
+        `fill_order`:
+            may be 'sequential' or 'random'.
+
+    If `fill_order` is 'sequential', the z-index will be filled first, then y
+    then x, i.e. the first cell will be at (0,0,0) (given default values for
+    the other arguments), the second at (0,0,1), etc.
     """
     parameter_names = ("aspect_ratios", "dx", "dy", "dz", "x0", "y0", "z0", "fill_order")
 
     def __init__(self, aspect_ratioXY=1.0, aspect_ratioXZ=1.0, dx=1.0, dy=1.0,
                  dz=1.0, x0=0.0, y0=0.0, z0=0, fill_order="sequential"):
-        """
-        If fill_order is 'sequential', the z-index will be filled first, then y then x, i.e.
-        the first cell will be at (0,0,0) (given default values for the other arguments),
-        the second at (0,0,1), etc.
-        """
         self.aspect_ratios = (aspect_ratioXY, aspect_ratioXZ)
         assert fill_order in ('sequential', 'random')
         self.fill_order = fill_order
@@ -225,6 +263,7 @@ class Grid3D(BaseStructure):
         self.x0 = x0; self.y0 = y0; self.z0 = z0
 
     def calculate_size(self, n):
+        """docstring goes here"""
         a,b = self.aspect_ratios
         nx = int(round(math.pow(n*a*b, 1/3.0)))
         ny = int(round(nx/a))
@@ -242,6 +281,7 @@ class Grid3D(BaseStructure):
             return numpy.array((x,y,z))
         else:
             raise NotImplementedError
+        generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 
 class Shape(object):
@@ -251,14 +291,13 @@ class Shape(object):
 class Cuboid(Shape):
     """
     Represents a cuboidal volume within which neurons may be distributed.
-    """
 
-    def __init__(self, width, height, depth):
-        """
         height: extent in y direction
         width: extent in x direction
         depth: extent in z direction
-        """
+    """
+
+    def __init__(self, width, height, depth):
         self.height = height
         self.width = width
         self.depth = depth
@@ -293,14 +332,14 @@ class RandomStructure(BaseStructure):
     """
     Represents a structure with neurons distributed randomly within a given
     volume.
+
+    Arguments:
+        `boundary` - a subclass of :class:`Shape`.
+        `origin` - the coordinates (x,y,z) of the centre of the volume.
     """
     parameter_names = ('boundary', 'origin', 'rng')
 
     def __init__(self, boundary, origin=(0.0,0.0,0.0), rng=None):
-        """
-        `boundary` - a subclass of Shape
-        `origin` - the coordinates (x,y,z) of the centre of the volume.
-        """
         assert isinstance(boundary, Shape)
         assert len(origin) == 3
         self.boundary = boundary
@@ -309,5 +348,6 @@ class RandomStructure(BaseStructure):
 
     def generate_positions(self, n):
         return (numpy.array(self.origin) + self.boundary.sample(n, self.rng)).T
+    generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 # what about rotations?
