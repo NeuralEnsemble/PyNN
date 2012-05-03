@@ -15,4 +15,5 @@ current           nA
 conductance       µS
 capacitance       nF
 firing rate       /s
+phase/angle       deg
 ================= =====
