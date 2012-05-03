@@ -17,6 +17,7 @@ PyNN: documentation
    random_numbers
    backends
    parallel
+   units
    logging
    descriptions
    examples

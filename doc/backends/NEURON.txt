@@ -1,3 +1,8 @@
 ======
 NEURON
 ======
+
+
+
+
+If your model relies on other NMODL mechanisms, call the ``load_mechanisms()`` function with the path to the directory containing the ``.mod`` files.

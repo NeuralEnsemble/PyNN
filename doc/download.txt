@@ -5,18 +5,46 @@ Downloads
 Source distributions
 --------------------
 
-PyNN may be downloaded from the Python Package Index: http://pypi.python.org/pypi/PyNN/ or from the INCF Software Centre http://software.incf.org/software/pynn/download
+The `latest version of PyNN`_ (0.8.0) may be downloaded from the `Python Package Index`_ or from the `INCF Software Centre`_.
 
-Older versions: .....
+Older versions:
+
+    * `0.7.3 <http://pypi.python.org/pypi/PyNN/0.7.3>`_
+    * `0.7.2 <http://pypi.python.org/pypi/PyNN/0.7.2>`_
+    * `0.7.1 <http://pypi.python.org/pypi/PyNN/0.7.1>`_
+    * `0.7.0 <http://pypi.python.org/pypi/PyNN/0.7.0>`_
+    * `0.6.0 <http://pypi.python.org/pypi/PyNN/0.6.0>`_
+    * `0.5.0 <http://pypi.python.org/pypi/PyNN/0.5.0>`_
+    * `0.4.1 <http://neuralensemble.org/trac/PyNN/attachment/wiki/Download/PyNN-0.4.1.tar.gz>`_
+    * `0.4.0 <http://neuralensemble.org/trac/PyNN/attachment/wiki/Download/PyNN-0.4.0.tar.gz>`_
+    * `0.3.0 <http://neuralensemble.org/trac/PyNN/attachment/wiki/Download/PyNN-0.3.0.tar.gz>`_
+
+Linux packages
+--------------
+
+    * `Debian Sid`_ (0.7.2)
+    * `Ubuntu 11.10 (Oneiric)`_ (0.7.0)
+    * `Ubuntu 12.04 (Precise)`_ (0.7.0)
+
+(many thanks to the  NeuroDebian_ guys)
 
 
 Subversion access
 -----------------
 
-Latest stable version (0.7.1)::
+Latest stable version (0.7.x)::
 
-    svn co https://neuralensemble.org/svn/PyNN/tags/0.7.1 pyNN
+    svn co https://neuralensemble.org/svn/PyNN/branches/0.7 pyNN
 
 Latest development version::
 
     svn co https://neuralensemble.org/svn/PyNN/trunk pyNN
+
+
+.. _`latest version of PyNN`: http://pypi.python.org/pypi/PyNN/
+.. _`Python Package Index`: http://pypi.python.org/pypi/PyNN/
+.. _`INCF Software Centre`: http://software.incf.org/software/pynn/download
+.. _`Debian Sid`: http://packages.debian.org/sid/python-pynn
+.. _`Ubuntu 11.10 (Oneiric)`: http://packages.ubuntu.com/source/oneiric/python/pynn
+.. _`Ubuntu 12.04 (Precise)`: http://packages.ubuntu.com/source/precise/python/pynn
+.. _NeuroDebian: http://neuro.debian.net/

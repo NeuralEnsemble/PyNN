@@ -2,6 +2,7 @@
 Building networks: neurons
 ==========================
 
+.. _section-cell-types:
 
 Cell types
 ==========
@@ -18,7 +19,7 @@ PyNN (see :doc:`nonstandardmodels`).
 It should be noted that these "cell types" are *mathematical* cell types. Two or
 more different *biological* cell types may be represented by the same
 mathematical cell type, but with different parameterizations. For example, in
-the thalamocortical model of Destexhe (200?), thalamocortical relay neurons and
+the thalamocortical model of `Destexhe (2009)`_, thalamocortical relay neurons and
 cortical neurons are both modelled with the adaptive exponential I&F neuron
 model (AdExp)::
 
@@ -33,7 +34,7 @@ method::
 
     >>> IF_cond_exp.get_parameter_names()
     [....]
-    
+
 while the default values for the parameters are in the :attr:`default_values`
 attribute::
 
@@ -77,9 +78,18 @@ specified:
     ...                        structure=Grid2D(dx=10.0, dy=10.0),
     ...                        initial_values={'v': v_init},
     ...                        label="Cortical neurons")
-    
+
 (see :doc:`space` for more detail on spatial structure and :doc:`parameters` for
 more on specifying initial values.)
+
+For backwards compatibility and for ease of transitioning from other simulator
+languages, the :func:`create` function is available as an alias for
+:class:`Population`. The following two lines are equivalent::
+
+    >>> cells = create(my_cell_type, n=1000)
+    >>> cells = Population(1000, my_cell_type)
+
+(Note the different argument order).
 
 
 Views
@@ -128,7 +138,7 @@ An :class:`Assembly` can be created by adding together :class:`Population` and
 
     >>> all_cells = tc_cells + ctx_cells
     >>> cells_for_plotting = tc_cells[:100] + ctx_cells[:500]
-    
+
 or by using the :class:`Assembly` constructor::
 
     >>> all_cells = Assembly(tc_cells, ctx_cells)
@@ -193,7 +203,7 @@ To modify parameter values, use the :class:`set()` method. To set the same
 value for all neurons, pass a single number as the parameter value::
 
     >>> ctx_cells.set(a=2.0, b=0.2)
-    
+
 To set different values for different neurons there are several options - see
 :doc:`parameters` for more details.
 
@@ -228,8 +238,8 @@ or the :meth:`inject()` method of the :class:`Population`,
     >>> cortical_neurons[800:900].inject(sine_wave)
 
 See :doc:`injecting_current` for more about injecting currents.
-    
-    
+
+
 Recording variables and retrieving recorded data
 ================================================
 
@@ -242,7 +252,7 @@ the times of action potentials::
 
     >>> ctx_cells.celltype.recordable
     ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
-    
+
 The :meth:`record()` method specifies which variables should be recorded::
 
     >>> all_cells.record('spikes')
@@ -258,7 +268,7 @@ At the end of a simulation, the recorded data can be retrieved using the
 :meth:`get_data()` method::
 
     >>> data_block = all_cells.get_data()
-    
+
 or written to file using :meth:`write_data()`::
 
     >>> from neo.io import HDF5IO
@@ -294,7 +304,7 @@ neurons, represented as an :class:`ID` object::
 
     >>> tc_cells[479]
     5480
-    
+
 For the simulator backends shipped with PyNN, the :class:`ID` class is a
 subclass of :class:`int`, and in the case of NEURON and NEST matches the global
 ID (gid) used internally by the simulator. There is no requirement that IDs be
@@ -329,5 +339,6 @@ To change several parameters at once for a single neuron, use the
     0.5
 
 
+.. _`Destexhe (2009)`: http://cns.iaf.cnrs-gif.fr/abstracts/TCX2008.html
 .. _MPI: http://en.wikipedia.org/wiki/Message_Passing_Interface
 .. _Neo: http://neuralensemble.org/neo

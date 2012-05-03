@@ -258,3 +258,7 @@ epub_copyright = u'2006-2012, the PyNN community'
 # -- autodoc options -----------------------------------------------------------
 
 autodoc_member_order = 'bysource'
+
+# -- todo options --------------------------------------------------------------
+
+todo_include_todos = True
