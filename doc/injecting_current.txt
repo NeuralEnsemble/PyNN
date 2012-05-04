@@ -16,23 +16,32 @@ There are two ways to inject a current waveform into the cells of a
 
 .. plot:: pyplots/dc_source.py
 
+
 ::
 
-    >>> sine = ACSource(start=50.0, stop=450.0, amplitude=0.1, offset=0.1,
+    >>> sine = ACSource(start=50.0, stop=450.0, amplitude=1.0, offset=1.0,
     ...                 frequency=10.0, phase=180.0)
     >>> population.inject(sine)
 
-.. todo:: figure
+.. plot:: pyplots/ac_source.py
+
+
+::
 
     >>> steps = StepCurrentSource({'times' : [50.0, 110.0, 150.0, 210.0],
                                    'amplitudes' : [0.4, 0.6, -0.2, 0.2]})
     >>> steps.inject_into(population[(6,11,27)])
 
-.. todo:: figure
+.. plot:: pyplots/step_source.py
 
-    >>> noise = NoisyCurrentSource(mean=0.2, stdev=1.0, start=50.0, stop=450.0,
-    ...                            dt=0.2)
+
+::
+
+    >>> noise = NoisyCurrentSource(mean=1.5, stdev=1.0, start=50.0, stop=450.0, dt=1.0)
     >>> population.inject(noise)
+
+.. plot:: pyplots/noise_source.py
+
 
 For a full description of all the built-in current source classes, see the
 :doc:`API reference <reference/electrodes>`.

@@ -55,6 +55,7 @@ class ACSource(StandardCurrentSource):
         'phase'         : 0.
     }
 
+
 class StepCurrentSource(StandardCurrentSource):
     """A step-wise time-varying current source.
 

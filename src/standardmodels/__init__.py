@@ -193,10 +193,10 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         return parameters
 
     def set_native_parameters(self, parameters):
-        pass
+        raise NotImplementedError
 
     def get_native_parameters(self):
-        pass
+        raise NotImplementedError
 
 
 class ModelNotAvailable(object):
