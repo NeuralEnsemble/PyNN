@@ -33,15 +33,13 @@ input_population  = Population(1, SpikeSourceArray, {'spike_times': spike_times}
 projection = Projection(input_population, output_population, AllToAllConnector())
 projection.setWeights(1.0)
 
-input_population.record()
-output_population.record()
-output_population.record_v()
+input_population.record('spikes')
+output_population.record(('spikes', 'v'))
 
 run(tstop)
 
-output_population.printSpikes("Results/simpleNetwork_output_%s.ras" % simulator_name)
-input_population.printSpikes("Results/simpleNetwork_input_%s.ras" % simulator_name)
-output_population.print_v("Results/simpleNetwork_%s.v" % simulator_name)
+output_population.write_data("Results/simpleNetwork_output_%s.h5" % simulator_name)
+input_population.write_data("Results/simpleNetwork_input_%s.h5" % simulator_name)
 
 end()
 

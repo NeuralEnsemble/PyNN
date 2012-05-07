@@ -14,6 +14,7 @@ class MockSimulator(object):
     def __init__(self):
         self.reset_called = False
         self.state = MockState()
+        self.recorders = []
     def reset(self):
         self.reset_called = True
 

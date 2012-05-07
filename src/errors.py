@@ -78,4 +78,7 @@ class RecordingError(Exception): # subclass AttributeError?
         self.cell_type = cell_type
 
     def __str__(self):
-        return "Cannot record %s from cell type %s" % (self.variable, self.cell_type.__class__.__name__)
+        msg = "Cannot record %s from cell type %s. Available variables are %s"
+        return msg % (self.variable,
+                      self.cell_type.__class__.__name__,
+                      ",".join(self.celltype.recordable))

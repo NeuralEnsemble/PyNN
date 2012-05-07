@@ -38,29 +38,26 @@ def test_set():
     
 def test_build_record():
     simulator = Mock()
-    simulator.recorder_list = []
+    simulator.write_on_end = []
     record_function = common.build_record("foo", simulator)
     assert isfunction(record_function)
     
     source = BasePopulation()
-    source._record = Mock()
-    source.recorders = {'foo': Mock()}
+    source.record = Mock()
     record_function(source, "filename")
-    source._record.assert_called_with("foo", to_file="filename")
-    assert_equal(simulator.recorder_list, [source.recorders['foo']])
+    source.record.assert_called_with(["foo"]) #, to_file="filename")
+    assert_equal(simulator.write_on_end, [(source, ['foo'], "filename")])
 
 def test_build_record_with_assembly():
     simulator = Mock()
-    simulator.recorder_list = []
+    simulator.write_on_end = []
     record_function = common.build_record("foo", simulator)
     assert isfunction(record_function)
     
     p1 = BasePopulation()
     p2 = BasePopulation()
     source = common.Assembly(p1, p2)
-    source._record = Mock()
-    for p in p1, p2:
-        p.recorders = {'foo': Mock()}
+    source.record = Mock()
     record_function(source, "filename")
-    source._record.assert_called_with("foo", to_file="filename")
-    assert_equal(simulator.recorder_list, [p1.recorders['foo'], p2.recorders['foo']])
+    source.record.assert_called_with(["foo"]) #, to_file="filename")
+    assert_equal(simulator.write_on_end, [(p1, ['foo'], "filename"), (p2, ['foo'], "filename")]) # not sure this is what we want - won't file get over-written?

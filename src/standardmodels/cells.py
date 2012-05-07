@@ -97,9 +97,11 @@ class IF_cond_alpha(StandardCellType):
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
         'i_offset'   : 0.0,     # Offset current in nA
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0, #'v_rest',
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
     
 class IF_cond_exp(StandardCellType):
@@ -121,9 +123,11 @@ class IF_cond_exp(StandardCellType):
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
         'i_offset'   : 0.0,     # Offset current in nA
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0, #'v_rest',
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
 
 class IF_cond_exp_gsfa_grr(StandardCellType):
@@ -158,9 +162,11 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
         'e_rev_rr'   : -75.0,   # relative refractory mechanism conductance reversal potential in mV
         'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS   
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0, #'v_rest',
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
     
 class IF_facets_hardware1(StandardCellType):
@@ -183,9 +189,11 @@ class IF_facets_hardware1(StandardCellType):
         'v_rest'    :  -65.0,     # mV
         'v_thresh'  :  -55.0      # mV
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0, #'v_rest',
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
 
 class HH_cond_exp(StandardCellType):
@@ -209,9 +217,11 @@ class HH_cond_exp(StandardCellType):
         'tau_syn_I' : 2.0,
         'i_offset'  : 0.0, # nA
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0, #'v_rest',
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
 
 class EIF_cond_alpha_isfa_ista(StandardCellType):
@@ -243,10 +253,12 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
         'e_rev_I'   : -80.0,  # Inhibitory reversal potential in mV.
         'tau_syn_I' : 5.0,    # Rise time of the inhibitory synaptic conductance in ms (alpha function).
     }
-    recordable = ['spikes', 'v', 'w', 'gsyn']
+    recordable = ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -70.6, #'v_rest',
         'w': 0.0,
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
 
 class EIF_cond_exp_isfa_ista(StandardCellType):
@@ -278,10 +290,12 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
         'e_rev_I'   : -80.0,  # Inhibitory reversal potential in mV.
         'tau_syn_I' : 5.0,    # Decay time constant of the inhibitory synaptic conductance in ms.
     }
-    recordable = ['spikes', 'v', 'w', 'gsyn']
+    recordable = ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -70.6, #'v_rest',
         'w': 0.0,
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
 
 

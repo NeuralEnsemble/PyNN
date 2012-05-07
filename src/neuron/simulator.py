@@ -12,12 +12,10 @@ Functions:
 
 Classes:
     ID
-    Recorder
     Connection
 
 Attributes:
     state -- a singleton instance of the _State class.
-    recorder_list
 
 All other functions and classes are private, and should not be used by other
 modules.
@@ -37,8 +35,9 @@ from neuron import h, load_mechanisms
 
 # Global variables
 nrn_dll_loaded = []
-recorder_list = []
+write_on_end = []
 gid_sources = []
+recorders = set([])
 logger = logging.getLogger("PyNN")
 
 # --- Internal NEURON functionality --------------------------------------------
@@ -150,7 +149,8 @@ class _State(object):
         h('objref plastic_connections')
         self.clear()
         self.default_maxstep=10.0
-
+        self.t_start = 0.0
+    
     t = h_property('t')
     def __get_dt(self):
         return h.dt
@@ -174,6 +174,7 @@ def reset():
     state.running = False
     state.t = 0
     state.tstop = 0
+    state.t_start = 0
     h.finitialize()
 
 def run(simtime):

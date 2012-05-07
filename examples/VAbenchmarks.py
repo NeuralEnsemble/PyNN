@@ -26,6 +26,7 @@ usage = """Usage: python VAbenchmarks.py <simulator> <benchmark>
 simulator_name, benchmark = get_script_args(2, usage)  
 exec("from pyNN.%s import *" % simulator_name)
 from pyNN.random import NumpyRNG, RandomDistribution
+from neo.io import PyNNTextIO
 
 timer = Timer()
 
@@ -42,7 +43,7 @@ stim_dur = 50.   # (ms) duration of random stimulation
 rate     = 100.  # (Hz) frequency of the random stimulation
 
 dt       = 0.1   # (ms) simulation timestep
-tstop    = 1000  # (ms) simulaton duration
+tstop    = 200 #1000  # (ms) simulaton duration
 delay    = 0.2
 
 # Cell parameters
@@ -147,9 +148,9 @@ if (benchmark == "COBA"):
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id
-exc_cells.record()
-inh_cells.record()
-exc_cells[[0, 1]].record_v()
+exc_cells.record('spikes')
+inh_cells.record('spikes')
+exc_cells[[0, 1]].record('v')
 
 buildCPUTime = timer.diff()
 
@@ -176,9 +177,8 @@ print "%d Writing data to file..." % node_id
 if not(os.path.isdir('Results')):
     os.mkdir('Results')
 
-exc_cells.printSpikes("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator_name, np))
-inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator_name, np))
-exc_cells[[0, 1]].print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator_name, np))
+exc_cells.write_data("Results/VAbenchmark_%s_exc_%s_np%d.txt" % (benchmark, simulator_name, np))
+inh_cells.write_data("Results/VAbenchmark_%s_inh_%s_np%d.txt" % (benchmark, simulator_name, np))
 writeCPUTime = timer.diff()
 
 connections = "%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].size(),

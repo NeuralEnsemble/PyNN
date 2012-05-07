@@ -74,5 +74,3 @@ class Recorder(recording.Recorder):
         for id in self.filter_recorded(filter):
             N[int(id)] = len(id._cell.spike_table)
         return N
-
-simulator.Recorder = Recorder

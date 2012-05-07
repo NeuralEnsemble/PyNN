@@ -53,7 +53,7 @@ assert generate_spike_times(0).max() > simtime
 spike_source = Population(n, SpikeSourceArray, {'spike_times': generate_spike_times})
 
 spike_source.record()
-cells.record()
+cells.record('spikes')
 cells[0:1].record_v()
 
 input_conns = Projection(spike_source, cells, AllToAllConnector())
@@ -64,9 +64,9 @@ input_conns.setDelays(syn_delay)
 
 run(simtime)
 
-spike_source.printSpikes("Results/small_network_input_%s.ras" % simulator_name)
-cells.printSpikes("Results/small_network_%s.ras" % simulator_name)
-cells.print_v("Results/small_network_%s.v" % simulator_name)
+spike_source.printSpikes("Results/small_network_input_%s_np%d.ras" % (simulator_name, num_processes()))
+cells.printSpikes("Results/small_network_%s_np%d.ras" % (simulator_name, num_processes()))
+cells.print_v("Results/small_network_%s_np%d.v" % (simulator_name, num_processes()))
 
 print "Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz"
 

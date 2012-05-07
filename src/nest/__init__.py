@@ -18,7 +18,6 @@ import numpy
 import shutil
 import logging
 import tempfile
-from pyNN.recording import files
 from pyNN.nest.cells import NativeCellType, native_cell_type
 from pyNN.nest.synapses import NativeSynapseDynamics, NativeSynapseMechanism
 from pyNN.nest.standardmodels.cells import *
@@ -34,7 +33,8 @@ Set = set
 tempdirs       = []
 NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')
 
-STATE_VARIABLE_MAP = {"v": "V_m", "w": "w"}
+STATE_VARIABLE_MAP = {"v": "V_m", "w": "w", "gsyn_exc": "g_ex",
+                      "gsyn_inh": "g_in"}
 logger = logging.getLogger("PyNN")
 
 try:
@@ -139,17 +139,17 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
 
     return rank()
 
-def end(compatible_output=True):
+
+def end():
     """Do any necessary cleaning up before exiting."""
     global tempdirs
-    # And we postprocess the low level files opened by record()
-    # and record_v() method
-    for recorder in simulator.recorder_list:
-        recorder.write(gather=True, compatible_output=compatible_output)
+    for (population, variables, filename) in simulator.write_on_end:
+        io = recording.get_io(filename)
+        population.write_data(io, variables)
     for tempdir in tempdirs:
         shutil.rmtree(tempdir)
     tempdirs = []
-    simulator.recorder_list = []
+    simulator.write_on_end = []
 
 def run(simtime):
     """Run the simulation for simtime ms."""
@@ -246,7 +246,11 @@ class Population(common.Population, PopulationMixin):
     _recorder_class = Recorder
     _assembly_class = Assembly
 
-
+    def __init__(self, size, cellclass, cellparams=None, structure=None,
+                 initial_values={}, label=None):
+        __doc__ = common.Population.__doc__
+        super(Population, self).__init__(size, cellclass, cellparams, structure, initial_values, label)
+        self._simulator.populations.append(self)
 
     def _create_cells(self):
         """
@@ -281,9 +285,11 @@ class Population(common.Population, PopulationMixin):
                 gid.source = source
 
     def _set_initial_value_array(self, variable, value):
-        if variable in STATE_VARIABLE_MAP:
-            variable = STATE_VARIABLE_MAP[variable]
-        nest.SetStatus(self.local_cells.tolist(), variable, value)
+        variable = STATE_VARIABLE_MAP.get(variable, variable)
+        try:
+            nest.SetStatus(self.local_cells.tolist(), variable, value)
+        except nest.NESTError, e:
+            logger.warning("NEST does not allow setting an initial value for %s" % variable) # assuming this is an "Unused dictionary items" error - should really check
 
 
 class Projection(common.Projection):
@@ -420,7 +426,6 @@ class Projection(common.Projection):
                 nest.Connect([source], [target], {'weight': w, 'delay': d, 'receptor_type': target.celltype.get_receptor_type(self.synapse_type)})
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.append(source)
-        
 
     def _convergent_connect(self, sources, target, weights, delays):
         """

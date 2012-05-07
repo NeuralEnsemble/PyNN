@@ -53,7 +53,6 @@ def test_instantiate():
     m = M(P1)
     assert_equal(m.parameter_space._parameters, ParameterSpace(P1, None, None)._parameters)
 
-
 def _parameter_space_to_dict(parameter_space, size):
     parameter_space.size = size
     parameter_space.evaluate(simplify=True)
@@ -147,7 +146,6 @@ def test_computed_parameters():
             ('c', 'C', 'c + a', 'C - A'),
         )
     assert_equal(M.computed_parameters(), ['c'])
-
 
 def test_describe():
     M = StandardModelType

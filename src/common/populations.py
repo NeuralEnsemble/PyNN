@@ -370,154 +370,117 @@ class BasePopulation(object):
         """Determine whether `variable` can be recorded from this population."""
         return (variable in self.celltype.recordable)
 
-    def _add_recorder(self, variable, to_file):
-        """Create a new Recorder for the supplied variable."""
-        assert variable not in self.recorders
-        if hasattr(self, "parent"):
-            population = self.grandparent
-        else:
-            population = self
-        logger.debug("Adding recorder for %s to %s" % (variable, self.label))
-        population.recorders[variable] = population._recorder_class(variable,
-                                                                   population=population, file=to_file)
-
-    def _record(self, variable, to_file=True):
+    def record(self, variables=None, to_file=None):
         """
-        Private method called by record() and record_v().
+        Record the specified variable or variables for all cells in the
+        Population or view.
+        
+        `variables` may be either a single variable name or a list of variable
+        names. For a given celltype class, `celltype.recordable` contains a list of
+        variables that can be recorded for that celltype.
+        
+        If specified, `to_file` should be a Neo IO instance and `write_data()`
+        will be automatically called when `end()` is called.
         """
-        if variable is None: # reset the list of things to record
-                             # note that if _record(None) is called on a view of a population
-                             # recording will be reset for the entire population, not just the view
-            for recorder in self.recorders.values():
-                recorder.reset()
-            self.recorders = {}
-        else:
-            if not self.can_record(variable):
-                raise errors.RecordingError(variable, self.celltype)
-            logger.debug("%s.record('%s')", self.label, variable)
-            if variable not in self.recorders:
-                self._add_recorder(variable, to_file)
-            if self._record_filter is not None:
-                self.recorders[variable].record(self._record_filter)
+        if variables is None: # reset the list of things to record
+                              # note that if record(None) is called on a view of a population
+                              # recording will be reset for the entire population, not just the view
+            self.recorder.reset()
+        elif variables in (True, False, None): # catch use of previous API
+            msg = "Use of the record() method has changed. Use record('spikes') instead."
+            warnings.warn(msg, category=DeprecationWarning)
+            if variables is not None:
+                to_file = variables
+            self.record('spikes', to_file)
+        else:        
+            logger.debug("%s.record('%s')", self.label, variables)
+            if self.record_filter is None:
+                self.recorder.record(variables, self.all_cells)
             else:
-                self.recorders[variable].record(self.all_cells)
-            #if isinstance(to_file, basestring):
-            #    self.recorders[variable].file = to_file
+                self.recorder.record(variables, self.record_filter)  
+        if isinstance(to_file, basestring):
+            self.recorder.file = to_file
 
-    def record(self, to_file=True):
-        """
-        Record spikes from all cells in the Population.
-        """
-        self._record('spikes', to_file)
-
+    @deprecated("record('v')")
     def record_v(self, to_file=True):
         """
         Record the membrane potential for all cells in the Population.
         """
-        self._record('v', to_file)
+        self.record('v', to_file)
 
+    @deprecated("record(['gsyn_exc', 'gsyn_inh'])")
     def record_gsyn(self, to_file=True):
         """
         Record synaptic conductances for all cells in the Population.
         """
-        self._record('gsyn', to_file)
+        self.record(['gsyn_exc', 'gsyn_inh'], to_file)
 
+    def write_data(self, io, variables='all', gather=True, clear=False):
+        """
+        Write recorded data to file, using one of the file formats supported by
+        Neo.
+        
+        `ìo` - a Neo IO instance
+        `variables` - either a single variable name or a list of variable names
+                      Variables must have been previously recorded, otherwise an
+                      Exception will be raised.
+                      
+        For parallel simulators, if `gather` is True, all data will be gathered
+        to the master node and a single output file created there. Otherwise, a
+        file will be written on each node, containing only data from the cells
+        simulated on that node.
+        
+        If `clear` is True, recorded data will be deleted from the `Population`.
+        """
+        self.recorder.write(variables, io, gather, self.record_filter)
+
+    def get_data(self, variables='all', gather=True, clear=False):
+        """
+        Return a Neo `Block` containing the data (spikes, state variables)
+        recorded from the Population.
+        
+        `variables` - either a single variable name or a list of variable names
+                      Variables must have been previously recorded, otherwise an
+                      Exception will be raised.
+        
+        For parallel simulators, if `gather` is True, all data will be gathered
+        to all nodes and the Neo `Block` will contain data from all nodes.
+        Otherwise, the Neo `Block` will contain only data from the cells
+        simulated on the local node.
+        
+        If `clear` is True, recorded data will be deleted from the `Population`.
+        """
+        return self.recorder.get(variables, gather, self.record_filter, clear)
+
+    @deprecated("write_data(file, 'spikes')")
     def printSpikes(self, file, gather=True, compatible_output=True):
-        """
-        Write spike times to file.
+        self.write_data(file, 'spikes', gather)
 
-        file should be either a filename or a PyNN File object.
-
-        If compatible_output is True, the format is "spiketime cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        This allows easy plotting of a 'raster' plot of spiketimes, with one
-        line for each cell.
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        spike files.
-
-        For parallel simulators, if gather is True, all data will be gathered
-        to the master node and a single output file created there. Otherwise, a
-        file will be written on each node, containing only the cells simulated
-        on that node.
-        """
-        self.recorders['spikes'].write(file, gather, compatible_output, self._record_filter)
-
+    @deprecated("get_data('spikes')")
     def getSpikes(self, gather=True, compatible_output=True):
-        """
-        Return a 2-column numpy array containing cell ids and spike times for
-        recorded cells.
+        return self.get_data('spikes', gather)
 
-        Useful for small populations, for example for single neuron Monte-Carlo.
-        """
-        return self.recorders['spikes'].get(gather, compatible_output, self._record_filter)
-        # if we haven't called record(), this will give a KeyError. A more
-        # informative error message would be nice.
-
+    @deprecated("write_data(file, 'v')")
     def print_v(self, file, gather=True, compatible_output=True):
-        """
-        Write membrane potential traces to file.
+        self.write_data(file, 'v', gather)
 
-        file should be either a filename or a PyNN File object.
-
-        If compatible_output is True, the format is "v cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        voltage files.
-
-        For parallel simulators, if gather is True, all data will be gathered
-        to the master node and a single output file created there. Otherwise, a
-        file will be written on each node, containing only the cells simulated
-        on that node.
-        """
-        self.recorders['v'].write(file, gather, compatible_output, self._record_filter)
-
+    @deprecated("get_data('v')")
     def get_v(self, gather=True, compatible_output=True):
-        """
-        Return a 2-column numpy array containing cell ids and Vm for
-        recorded cells.
-        """
-        return self.recorders['v'].get(gather, compatible_output, self._record_filter)
+        return self.get_data('v', gather)
 
+    @deprecated("write_data(file, ['gsyn_exc', 'gsyn_inh'])")
     def print_gsyn(self, file, gather=True, compatible_output=True):
-        """
-        Write synaptic conductance traces to file.
+        self.write_data(file, ['gsyn_exc', 'gsyn_inh'], gather)
 
-        file should be either a filename or a PyNN File object.
-
-        If compatible_output is True, the format is "t g cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        voltage files.
-        """
-        self.recorders['gsyn'].write(file, gather, compatible_output, self._record_filter)
-
+    @deprecated("get_data(['gsyn_exc', 'gsyn_inh'])")
     def get_gsyn(self, gather=True, compatible_output=True):
-        """
-        Return a 3-column numpy array containing cell ids and synaptic
-        conductances for recorded cells.
-        """
-        return self.recorders['gsyn'].get(gather, compatible_output, self._record_filter)
+        return self.get_data(['gsyn_exc', 'gsyn_inh'], gather)
 
     def get_spike_counts(self, gather=True):
         """
         Returns the number of spikes for each neuron.
         """
-        return self.recorders['spikes'].count(gather, self._record_filter)
+        return self.recorder.count('spikes', gather, self.record_filter)
 
     @deprecated("mean_spike_count()")
     def meanSpikeCount(self, gather=True):
@@ -545,6 +508,7 @@ class BasePopulation(object):
             raise TypeError("Can't inject current into a spike source.")
         current_source.inject_into(self)
 
+    # name should be consistent with saving/writing data, i.e. save_data() and save_positions() or write_data() and write_positions()
     def save_positions(self, file):
         """
         Save positions to file. The output format is ``id x y z``
@@ -623,6 +587,7 @@ class Population(BasePopulation):
         self._positions = None
         self._is_sorted = True
         self.celltype = cellclass(cellparams)
+        self.annotations = {}
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
@@ -631,7 +596,7 @@ class Population(BasePopulation):
         self.initial_values = {}
         for variable, default in self.celltype.default_initial_values.items():
             self.initialize(variable, initial_values.get(variable, default))
-        self.recorders = {}
+        self.recorder = self.recorder_class(self)
         Population._nPop += 1
 
     @property
@@ -712,6 +677,9 @@ class Population(BasePopulation):
                          giving the x,y,z coordinates of all the neurons (soma, in the
                          case of non-point models).""")
 
+    def annotate(self, **annotations):
+        self.annotations.update(annotations)
+
     def describe(self, template='population_default.txt', engine='default'):
         """
         Returns a human-readable description of the population.
@@ -731,6 +699,7 @@ class Population(BasePopulation):
             "first_id": self.first_id,
             "last_id": self.last_id,
         }
+        context.update(self.annotations)
         if len(self.local_cells) > 0:
             first_id = self.local_cells[0]
             context.update({
@@ -796,7 +765,7 @@ class PopulationView(BasePopulation):
         self.local_cells  = self.all_cells[self._mask_local]
         self.first_id     = numpy.min(self.all_cells) # only works if we assume all_cells is sorted, otherwise could use min()
         self.last_id      = numpy.max(self.all_cells)
-        self.recorders    = self.parent.recorders
+        self.recorder    = self.parent.recorder
         self._record_filter= self.all_cells
 
     @property
@@ -881,7 +850,6 @@ class PopulationView(BasePopulation):
         return descriptions.render(engine, template, context)
 
 
-# =============================================================================
 
 class Assembly(object):
     """

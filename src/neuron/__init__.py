@@ -10,21 +10,23 @@ $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
+from pyNN import common, core, space, __doc__, standardmodels
+from pyNN.recording import get_io
 from pyNN.neuron import simulator
-from pyNN import common, core, space, __doc__
-
 from pyNN.neuron.standardmodels.cells import *
 from pyNN.neuron.connectors import *
 from pyNN.neuron.standardmodels.synapses import *
 from pyNN.neuron.standardmodels.electrodes import *
 from pyNN.neuron.recording import Recorder
-from pyNN import standardmodels
+
 import numpy
 import logging
 
 from neuron import h
 
 logger = logging.getLogger("PyNN")
+
+
 
 # ==============================================================================
 #   Utility functions
@@ -73,19 +75,19 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
             simulator.state.cvode.atol(float(extra_params['atol']))
 
     if extra_params.has_key('native_rng_baseseed'):
-        simulator.state.native_rng_baseseed=int(extra_params['native_rng_baseseed'])
+        simulator.state.native_rng_baseseed = int(extra_params['native_rng_baseseed'])
     else:
-        simulator.state.native_rng_baseseed=0
-
+        simulator.state.native_rng_baseseed = 0
     if extra_params.has_key('default_maxstep'):
         simulator.state.default_maxstep=float(extra_params['default_maxstep'])
     return rank()
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    for recorder in simulator.recorder_list:
-        recorder.write(gather=True, compatible_output=compatible_output)
-    simulator.recorder_list = []
+    for (population, variables, filename) in simulator.write_on_end:
+        io = get_io(filename)
+        population.write_data(io, variables)
+    simulator.write_on_end = []
     #simulator.finalize()
 
 def run(simtime):

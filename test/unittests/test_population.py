@@ -1,4 +1,4 @@
-from pyNN import errors, random, standardmodels, space
+from pyNN import errors, random, standardmodels, space, recording
 from pyNN.common import populations
 from nose.tools import assert_equal, assert_raises
 import numpy
@@ -64,7 +64,6 @@ def test_create_population_standard_cell_simple():
     params = _parameter_space_to_dict(p.celltype.translated_parameters, p.size)
     assert_equal(params, {'A': 20.0, 'B': -34.9})
     assert_equal(p.initial_values, {})
-    assert isinstance(p.recorders, dict)
     p.initialize.assert_called_with('m', -1.23)
     
 def test_create_population_standard_cell_with_params():

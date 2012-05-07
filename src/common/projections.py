@@ -11,7 +11,6 @@ import numpy
 import logging
 import operator
 from pyNN import random, recording, errors, models, core, descriptions
-from pyNN.recording import files
 from populations import BasePopulation, Assembly, is_conductance
 
 logger = logging.getLogger("PyNN")
@@ -283,7 +282,7 @@ class Projection(object):
         """
         
         if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
+            file = recording.files.StandardTextFile(file, mode='w')
         
         lines = []
         if not compatible_output:
@@ -316,7 +315,7 @@ class Projection(object):
         weights = self.get('weight', format=format, gather=gather)
         
         if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
+            file = recording.files.StandardTextFile(file, mode='w')
         
         if format == 'array':
             weights = numpy.where(numpy.isnan(weights), 0.0, weights)

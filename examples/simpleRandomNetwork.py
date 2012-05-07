@@ -52,18 +52,18 @@ projection = Projection(input_population, output_population, connector, rng=rng)
 file_stem = "Results/simpleRandomNetwork_np%d_%s" % (num_processes(), simulator_name)
 projection.saveConnections('%s.conn' % file_stem)
 
-input_population.record()
-output_population.record()
-output_population.sample(n_record, rng).record_v()
+input_population.record('spikes')
+output_population.record('spikes')
+output_population.sample(n_record, rng).record('v')
 
 print "[%d] Running simulation" % node
 run(tstop)
 
 print "[%d] Writing spikes to disk" % node
-output_population.printSpikes('%s_output.ras' % file_stem)
-input_population.printSpikes('%s_input.ras' % file_stem)
+output_population.write_data('%s_output.ras' % file_stem, 'spikes')
+input_population.write_data('%s_input.ras' % file_stem)
 print "[%d] Writing Vm to disk" % node
-output_population.print_v('%s.v' % file_stem)
+output_population.write_data('%s.v' % file_stem, 'v')
 
 print "[%d] Finishing" % node
 end()

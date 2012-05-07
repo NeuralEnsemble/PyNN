@@ -15,7 +15,6 @@ Classes:
 
 Attributes:
     state -- a singleton instance of the _State class.
-    recorder_list
 
 All other functions and classes are private, and should not be used by other
 modules.
@@ -32,8 +31,10 @@ from pyNN import common
 import logging
 
 CHECK_CONNECTIONS = False
-recorder_list = []
+write_on_end = [] # a list of (population, variable, filename) combinations that should be written to file on end()
 recording_devices = []
+recorders = set([])
+populations = [] # needed for reset
 
 global net
 net    = None
@@ -53,6 +54,7 @@ class _State(object):
         self.default_recording_precision = 3
         self._cache_num_processes = nest.GetKernelStatus()['num_processes'] # avoids blocking if only some nodes call num_processes
                                                                             # do the same for rank?
+        self.t_start = 0.0
 
     @property
     def t(self):
@@ -86,16 +88,22 @@ class _State(object):
 def run(simtime):
     """Advance the simulation for a certain time."""
     for device in recording_devices:
-        device.connect_to_cells()
+        if not device._connected:
+            device.connect_to_cells()
     if not state.running:
         simtime += state.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
         state.running = True
     nest.Simulate(simtime)
 
 def reset():
+    global populations
     nest.ResetNetwork()
     nest.SetKernelStatus({'time': 0.0})
+    for p in populations:
+        for variable, initial_value in p.initial_values.items():
+            p._set_initial_value_array(variable, initial_value)
     state.running = False
+    state.t_start = 0.0
 
 # --- For implementation of access to individual neurons' parameters -----------
 
@@ -119,8 +127,8 @@ class Connection(object):
     def __init__(self, parent, index):
         """
         Create a new connection interface.
-
-        `parent` -- a ConnectionManager instance.
+        
+        `parent` -- a Projection instance.
         `index` -- the index of this connection in the parent.
         """
         self.parent = parent
@@ -135,14 +143,14 @@ class Connection(object):
     def source(self):
         """The ID of the pre-synaptic neuron."""
         src = ID(nest.GetStatus([self.id()], 'source')[0])
-        src.parent = self.parent.parent.pre
+        src.parent = self.parent.pre
         return src
 
     @property
     def target(self):
         """The ID of the post-synaptic neuron."""
         tgt = ID(nest.GetStatus([self.id()], 'target')[0])
-        tgt.parent = self.parent.parent.post
+        tgt.parent = self.parent.post
         return tgt
 
     def _set_weight(self, w):
