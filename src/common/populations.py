@@ -81,7 +81,8 @@ class IDMixin(object):
     def get_parameters(self):
         """Return a dict of all cell parameters."""
         if self.local:
-            return dict((k, v[0]) for k,v in self.as_view().get(self.celltype.get_parameter_names()).items())
+            parameter_names = self.celltype.get_parameter_names()
+            return dict((k, v[0]) for k,v in zip(parameter_names, self.as_view().get(parameter_names)))
         else:
             raise errors.NotLocalError("Cannot obtain parameters for a cell that does not exist on this node.")
 
@@ -275,11 +276,8 @@ class BasePopulation(object):
                     indices = reduce(operator.add, all_indices.values())
                 idx    = numpy.argsort(indices)
                 values = numpy.array(values)[idx]
-            parameters[name] = values
-        if len(parameter_names) == 1:
-            return parameters[parameter_names[0]]
-        else:
-            return parameters
+            parameters[name] = valuess
+        return [parameters[name] for name in parameter_names]
 
     def set(self, **parameters):
         """
@@ -370,7 +368,7 @@ class BasePopulation(object):
         """Determine whether `variable` can be recorded from this population."""
         return (variable in self.celltype.recordable)
 
-    def record(self, variables=None, to_file=None):
+    def record(self, variables, to_file=None):
         """
         Record the specified variable or variables for all cells in the
         Population or view.
@@ -386,18 +384,12 @@ class BasePopulation(object):
                               # note that if record(None) is called on a view of a population
                               # recording will be reset for the entire population, not just the view
             self.recorder.reset()
-        elif variables in (True, False, None): # catch use of previous API
-            msg = "Use of the record() method has changed. Use record('spikes') instead."
-            warnings.warn(msg, category=DeprecationWarning)
-            if variables is not None:
-                to_file = variables
-            self.record('spikes', to_file)
         else:        
             logger.debug("%s.record('%s')", self.label, variables)
-            if self.record_filter is None:
+            if self._record_filter is None:
                 self.recorder.record(variables, self.all_cells)
             else:
-                self.recorder.record(variables, self.record_filter)  
+                self.recorder.record(variables, self._record_filter)  
         if isinstance(to_file, basestring):
             self.recorder.file = to_file
 
@@ -420,7 +412,7 @@ class BasePopulation(object):
         Write recorded data to file, using one of the file formats supported by
         Neo.
         
-        `ìo` - a Neo IO instance
+        `io` - a Neo IO instance
         `variables` - either a single variable name or a list of variable names
                       Variables must have been previously recorded, otherwise an
                       Exception will be raised.
@@ -432,7 +424,7 @@ class BasePopulation(object):
         
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
-        self.recorder.write(variables, io, gather, self.record_filter)
+        self.recorder.write(variables, io, gather, self._record_filter)
 
     def get_data(self, variables='all', gather=True, clear=False):
         """
@@ -450,7 +442,7 @@ class BasePopulation(object):
         
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
-        return self.recorder.get(variables, gather, self.record_filter, clear)
+        return self.recorder.get(variables, gather, self._record_filter, clear)
 
     @deprecated("write_data(file, 'spikes')")
     def printSpikes(self, file, gather=True, compatible_output=True):
@@ -480,7 +472,7 @@ class BasePopulation(object):
         """
         Returns the number of spikes for each neuron.
         """
-        return self.recorder.count('spikes', gather, self.record_filter)
+        return self.recorder.count('spikes', gather, self._record_filter)
 
     @deprecated("mean_spike_count()")
     def meanSpikeCount(self, gather=True):
@@ -596,7 +588,7 @@ class Population(BasePopulation):
         self.initial_values = {}
         for variable, default in self.celltype.default_initial_values.items():
             self.initialize(variable, initial_values.get(variable, default))
-        self.recorder = self.recorder_class(self)
+        self.recorder = self._recorder_class(self)
         Population._nPop += 1
 
     @property
@@ -1119,22 +1111,29 @@ class Assembly(object):
         for p in self.populations:
             p.rset(parametername, rand_distr)
 
-    def _record(self, variable, to_file=True):
-        # need to think about record_from
+    def record(self, variables, to_file=None):
+        """
+        Record the specified variable or variables for all cells in the Assembly.
+        
+        `variables` may be either a single variable name or a list of variable
+        names. For a given celltype class, `celltype.recordable` contains a list of
+        variables that can be recorded for that celltype.
+        
+        If specified, `to_file` should be a Neo IO instance and `write_data()`
+        will be automatically called when `end()` is called.
+        """
         for p in self.populations:
-            p._record(variable, to_file)
+            p.record(variables, to_file)
 
-    def record(self, to_file=True):
-        """Record spikes from all cells in the Assembly."""
-        self._record('spikes', to_file)
-
+    @deprecated("record('v')")
     def record_v(self, to_file=True):
         """Record the membrane potential from all cells in the Assembly."""
-        self._record('v', to_file)
+        self.record('v', to_file)
 
+    @deprecated("record(['gsyn_exc', 'gsyn_inh'])")
     def record_gsyn(self, to_file=True):
         """Record synaptic conductances from all cells in the Assembly."""
-        self._record('gsyn', to_file)
+        self.record(['gsyn_exc', 'gsyn_inh'], to_file)
 
     def get_population(self, label):
         """
@@ -1167,35 +1166,47 @@ class Assembly(object):
             return self.positions[:,i]
         return gen
 
-    def _get_recorded_variable(self, variable, gather=True, compatible_output=True, size=1):
-        try:
-            result = self.populations[0].recorders[variable].get(gather, compatible_output, self.populations[0]._record_filter)
-        except errors.NothingToWriteError:
-            result = numpy.zeros((0, size+2))
-        count = self.populations[0].size
-        for p in self.populations[1:]:
-            try:
-                data = p.recorders[variable].get(gather, compatible_output, p._record_filter)
-                data[:,0] += count # map index-in-population to index-in-assembly
-                result = numpy.vstack((result, data))
-            except errors.NothingToWriteError:
-                pass
-            count += p.size
-        return result
+    def get_data(self, variables='all', gather=True, clear=False):
+        """
+        Return a Neo `Block` containing the data (spikes, state variables)
+        recorded from the Population.
+        
+        `variables` - either a single variable name or a list of variable names
+                      Variables must have been previously recorded, otherwise an
+                      Exception will be raised.
+        
+        For parallel simulators, if `gather` is True, all data will be gathered
+        to all nodes and the Neo `Block` will contain data from all nodes.
+        Otherwise, the Neo `Block` will contain only data from the cells
+        simulated on the local node.
+        
+        If `clear` is True, recorded data will be deleted from the `Population`.
+        """
+        name = self.label
+        description = self.describe()
+        blocks = [p.get_data(variables, gather, clear) for p in self.populations]
+        for block in blocks:
+            for segment in block.segments:
+                segment.name = name
+                segment.description = description
+        merged_block = blocks[0]
+        for block in blocks[1:]:
+            merged_block.merge(block)
+        merged_block.name = name
+        merged_block.description = description
+        return merged_block
 
+    @deprecated("get_data('spikes')")
+    def getSpikes(self, gather=True, compatible_output=True):
+        return self.get_data('spikes', gather)
+
+    @deprecated("get_data('v')")
     def get_v(self, gather=True, compatible_output=True):
-        """
-        Return a 2-column numpy array containing cell ids and Vm for
-        recorded cells.
-        """
-        return self._get_recorded_variable('v', gather, compatible_output, size=1)
+        return self.get_data('v', gather)
 
+    @deprecated("get_data(['gsyn_exc', 'gsyn_inh'])")
     def get_gsyn(self, gather=True, compatible_output=True):
-        """
-        Return a 3-column numpy array containing cell ids and synaptic
-        conductances for recorded cells.
-        """
-        return self._get_recorded_variable('gsyn', gather, compatible_output, size=2)
+        return self.get_data(['gsyn_exc', 'gsyn_inh'])
 
     def mean_spike_count(self, gather=True):
         """
@@ -1223,128 +1234,45 @@ class Assembly(object):
                 pass
         return spike_counts
 
-    def _print(self, file, variable, format, gather=True, compatible_output=True):
-
-        ## First, we write all the individual data for the heterogeneous populations
-        ## embedded within the Assembly. To speed things up, we write them in temporary
-        ## folders as Numpy Binary objects
-        tempdir   = tempfile.mkdtemp()
-        filenames = {}
-        filename  = '%s/%s.%s' %(tempdir, self.populations[0].label, variable)
-        p_file    = files.NumpyBinaryFile(filename, mode='w')
-        try:
-            self.populations[0].recorders[variable].write(p_file, gather, compatible_output, self.populations[0]._record_filter)
-            filenames[self.populations[0]] = (filename, True)
-        except errors.NothingToWriteError:
-            filenames[self.populations[0]] = (filename, False)
-        for p in self.populations[1:]:
-            filename = '%s/%s.%s' %(tempdir, p.label, variable)
-            p_file = files.NumpyBinaryFile(filename, mode='w')
-            try:
-                p.recorders[variable].write(p_file, gather, compatible_output, p._record_filter)
-                filenames[p] = (filename, True)
-            except errors.NothingToWriteError:
-                filenames[p] = (filename, False)
-
-        ## Then we need to merge the previsouly written files into a single one, to be consistent
-        ## with a Population object. Note that the header should be better considered.
-        metadata = {'variable'    : variable,
-                    'size'        : self.size,
-                    'label'       : self.label,
-                    'populations' : ", ".join(["%s[%d-%d]" %(p.label, p.first_id, p.last_id) for p in self.populations]),
-                    'first_id'    : self.first_id,
-                    'last_id'     : self.last_id}
-
-        metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
-        data = numpy.zeros(format)
-        for pop in filenames.keys():
-            if filenames[pop][1] is True:
-                name     = filenames[pop][0]
-                if gather==False and self._simulator.state.num_processes > 1:
-                    name += '.%d' % self._simulator.state.mpi_rank
-                p_file   = files.NumpyBinaryFile(name, mode='r')
-                tmp_data = p_file.read()
-                if compatible_output:
-                    tmp_data[:, -1] = self.id_to_index(tmp_data[:,-1] + pop.first_id)
-                data = numpy.vstack((data, tmp_data))
-            os.remove(name)
-        metadata['n'] = data.shape[0]
-        os.rmdir(tempdir)
-
-        if isinstance(file, basestring):
-            if gather==False and self._simulator.state.num_processes > 1:
-                file += '.%d' % self._simulator.state.mpi_rank
-            file = files.StandardTextFile(file, mode='w')
-
+    def write_data(self, io, variables='all', gather=True, clear=False):
+        """
+        Write recorded data to file, using one of the file formats supported by
+        Neo.
+        
+        `io` - a Neo IO instance
+        `variables` - either a single variable name or a list of variable names
+                      Variables must have been previously recorded, otherwise an
+                      Exception will be raised.
+                      
+        For parallel simulators, if `gather` is True, all data will be gathered
+        to the master node and a single output file created there. Otherwise, a
+        file will be written on each node, containing only data from the cells
+        simulated on that node.
+        
+        If `clear` is True, recorded data will be deleted from the `Population`.
+        """
+        if isinstance(io, basestring):
+            io = recording.get_io(io)
+        if gather == False and self._simulator.state.num_processes > 1:
+            io.filename += '.%d' % self._simulator.state.mpi_rank
+        logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
+                                               variables, io.filename, gather))
+        data = self.get_data(variables, gather, clear)
         if self._simulator.state.mpi_rank == 0 or gather == False:
-            file.write(data, metadata)
-            file.close()
+            logger.debug("Writing data to file %s" % io)
+            io.write(data)
 
+    @deprecated("write_data(file, 'spikes')")
     def printSpikes(self, file, gather=True, compatible_output=True):
-        """
-        Write spike times to file.
+        self.write_data(file, 'spikes', gather)
 
-        file should be either a filename or a PyNN File object.
-
-        If compatible_output is True, the format is "spiketime cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        This allows easy plotting of a 'raster' plot of spiketimes, with one
-        line for each cell.
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        spike files.
-
-        For parallel simulators, if gather is True, all data will be gathered
-        to the master node and a single output file created there. Otherwise, a
-        file will be written on each node, containing only the cells simulated
-        on that node.
-        """
-        self._print(file, 'spikes', (0, 2), gather, compatible_output)
-
+    @deprecated("write_data(file, 'v')")
     def print_v(self, file, gather=True, compatible_output=True):
-        """
-        Write membrane potential traces to file.
+        self.write_data(file, 'v', gather)
 
-        file should be either a filename or a PyNN File object.
-
-        If compatible_output is True, the format is "v cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        voltage files.
-
-        For parallel simulators, if gather is True, all data will be gathered
-        to the master node and a single output file created there. Otherwise, a
-        file will be written on each node, containing only the cells simulated
-        on that node.
-        """
-        self._print(file, 'v', (0, 2), gather, compatible_output)
-
+    @deprecated("write_data(['gsyn_exc', 'gsyn_inh'])")
     def print_gsyn(self, file, gather=True, compatible_output=True):
-        """
-        Write synaptic conductance traces to file.
-
-        file should be either a filename or a PyNN File object.
-
-        If compatible_output is True, the format is "t g cell_id",
-        where cell_id is the index of the cell counting along rows and down
-        columns (and the extension of that for 3-D).
-        The timestep, first id, last id, and number of data points per cell are
-        written in a header, indicated by a '#' at the beginning of the line.
-
-        If compatible_output is False, the raw format produced by the simulator
-        is used. This may be faster, since it avoids any post-processing of the
-        voltage files.
-        """
-        self._print(file, 'gsyn', (0, 3), gather, compatible_output)
+        self.write_data(file, ['gsyn_exc', 'gsyn_inh'], gather)
 
     def inject(self, current_source):
         """

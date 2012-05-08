@@ -18,6 +18,7 @@ from pyNN.neuron.connectors import *
 from pyNN.neuron.standardmodels.synapses import *
 from pyNN.neuron.standardmodels.electrodes import *
 from pyNN.neuron.recording import Recorder
+from pyNN.parameters import Sequence
 
 import numpy
 import logging
@@ -127,7 +128,10 @@ class PopulationMixin(object):
         """
         parameter_dict = {}
         for name in names:
-            parameter_dict[name] = [getattr(id._cell, name) for id in self]
+            if name == 'spike_times': # hack
+                parameter_dict[name] = [Sequence(getattr(id._cell, name)) for id in self]
+            else:
+                parameter_dict[name] = [getattr(id._cell, name) for id in self]
         return ParameterSpace(parameter_dict, size=self.size) # or local size?
 
 

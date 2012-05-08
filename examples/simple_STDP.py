@@ -26,11 +26,10 @@ prj = Projection(p1, p2, method=connection_method,
                  synapse_dynamics=SynapseDynamics(slow=stdp_model))
 
 
-p1.record()
-p2.record()
-p2.record_v()
+p1.record('spikes')
+p2.record(('spikes', 'v'))
 try:
-    p2.record_gsyn()
+    p2.record(('gsyn_exc', 'gsyn_inh'))
 except Exception:
     pass
 
@@ -41,13 +40,8 @@ w = []
 for i in range(60):
     t.append(run(1.0))
     w.extend(prj.getWeights())
-p1.printSpikes("Results/simple_STDP_1_%s.ras" % sim_name)
-p2.printSpikes("Results/simple_STDP_2_%s.ras" % sim_name)
-p2.print_v("Results/simple_STDP_%s.v" % sim_name)
-try:
-    p2.print_gsyn("Results/simple_STDP_%s.gsyn" % sim_name)
-except Exception:
-    pass
+p1.write_data("Results/simple_STDP_1_%s.pkl" % sim_name)
+p2.write_data("Results/simple_STDP_2_%s.pkl" % sim_name)
 
 print w
 f = open("Results/simple_STDP_%s.w" % sim_name, 'w')

@@ -65,7 +65,7 @@ def build_record(variable, simulator):
         # whether to write to a file.
         if not isinstance(source, (BasePopulation, Assembly)):
             source = source.parent
-        source.record(variable_list) #, to_file=filename)
+        source.record(variable_list, to_file=filename)
         # recorders_autowrite is used by end()
         if isinstance(source, BasePopulation):
             populations = [source]

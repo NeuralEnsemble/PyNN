@@ -52,7 +52,7 @@ assert generate_spike_times(0).max() > simtime
 
 spike_source = Population(n, SpikeSourceArray, {'spike_times': generate_spike_times})
 
-spike_source.record()
+spike_source.record('spikes')
 cells.record('spikes')
 cells[0:1].record_v()
 

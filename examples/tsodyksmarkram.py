@@ -39,7 +39,7 @@ for label in 'static', 'depressing', 'facilitating':
                                         target='inhibitory',
                                         synapse_dynamics=synapse_dynamics[label])
     
-spike_source.record()
+spike_source.record('spikes')
 
 sim.run(200.0)
 

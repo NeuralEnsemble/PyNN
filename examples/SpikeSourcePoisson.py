@@ -17,17 +17,16 @@ setup(timestep=0.01, min_delay=0.1)
 
 poissonsource = Population(10, SpikeSourcePoisson,
                            {'rate': 100.0, 'duration': 100.0, 'start': 100.0})
-poissonsource.record()
+poissonsource.record('spikes')
 
 run(300.0)
 
 print "Mean spike count:", poissonsource.mean_spike_count()
 print "First few spikes:"
-all_spikes = poissonsource.getSpikes()
-first_id = all_spikes[0,0]
-for i, cell in enumerate(poissonsource):
-    print "cell #%d: %s" % (cell, all_spikes[all_spikes[:,0]==i][:,1][:5])
+all_spikes = poissonsource.get_data()
+for spiketrain in all_spikes.segments[0].spiketrains:
+    print "cell #%d: %s" % (spiketrain.annotations['source_id'], spiketrain[:5])
 
-poissonsource.printSpikes("Results/SpikeSourcePoisson_%s.ras" % simulator_name)
+poissonsource.write_data("Results/SpikeSourcePoisson_%s.h5" % simulator_name)
 
 end()

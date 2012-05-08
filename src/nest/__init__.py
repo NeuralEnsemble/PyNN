@@ -198,6 +198,8 @@ class PopulationMixin(object):
         parameter_array = numpy.array(nest.GetStatus(ids, names))
         parameter_dict = dict((name, parameter_array[:, col])
                               for col, name in enumerate(names))
+        if "spike_times" in parameter_dict: # hack
+            parameter_dict["spike_times"] = [Sequence(value) for value in parameter_dict["spike_times"]]
         return ParameterSpace(parameter_dict, size=self.size)
 
 
@@ -540,7 +542,7 @@ class Projection(common.Projection):
         import operator
 
         if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
+            file = recording.files.StandardTextFile(file, mode='w')
 
         lines   = nest.GetStatus(self.connections, ('source', 'target', 'weight', 'delay'))
 

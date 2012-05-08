@@ -49,7 +49,7 @@ var_names = {
 if simulator_name in var_names:
     hhcell.can_record = lambda x: True # hack
     for native_name in var_names[simulator_name].values():
-        hhcell._record(native_name)
+        hhcell.record(native_name)
 
 run(20.0)
 

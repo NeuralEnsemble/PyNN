@@ -93,14 +93,14 @@ class Recorder(recording.Recorder):
                                    source_population=self.population.label,
                                    source_id=int(id)) # index?
                     for id in self.filter_recorded('spikes', filter_ids)]
-                    else:
+            else:
                 if variable == 'v':
                     get_signal = lambda id: id._cell.vtrace
                 elif variable == 'gsyn_exc':
                     get_signal = lambda id: id._cell.gsyn_trace['excitatory']
                 elif variable == 'gsyn_inh':
                     get_signal = lambda id: id._cell.gsyn_trace['inhibitory']
-                    else:
+                else:
                     get_signal = lambda id: id._cell.traces[variable]
                 ids = self.filter_recorded(variable, filter_ids)
                 signal_array = numpy.vstack((get_signal(id) for id in ids))
@@ -122,7 +122,7 @@ class Recorder(recording.Recorder):
         N = {}
         if variable == 'spikes':
             for id in self.filter_recorded(variable, filter_ids):
-            N[int(id)] = id._cell.spike_times.size()
+                N[int(id)] = id._cell.spike_times.size()
         else:
             raise Exception("Only implemented for spikes")
         return N

@@ -121,6 +121,8 @@ def get_io(filename):
         return neo.io.PyNNTextIO(filename=filename)
     elif extension in ('.h5',):
         return neo.io.NeoHdf5IO(filename=filename)
+    elif extension in ('.pkl', '.pickle'):
+        return neo.io.PickleIO(filename=filename)
     else: # function to be improved later
         raise Exception("file extension %s not supported" % extension)
 
