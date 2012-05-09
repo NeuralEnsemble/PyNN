@@ -56,4 +56,4 @@ for array in data_out.segments[0].analogsignalarrays:
 plt.xlabel("time (%s)" % array.times.units._dimensionality.string)
 plt.setp(plt.gca().get_xticklabels(), visible=True)
 
-plt.savefig("neo_example.png")
+plt.show()

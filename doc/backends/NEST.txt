@@ -2,3 +2,125 @@
 NEST
 ====
 
+Configuration options
+=====================
+
+Continuous time spiking
+-----------------------
+
+In traditional simulation schemes spikes are constrained to an equidistant time
+grid. However, for some neuron models, NEST has the capability to represent
+spikes in continuous time.
+
+At setup the user can choose the continuous time scheme
+
+.. code-block:: python
+
+    setup(spike_precision='off_grid')
+
+or the conventional grid-constrained scheme
+
+.. code-block:: python
+
+    setup(spike_precision='on_grid')
+
+where `'on_grid'` is the default.
+
+.. todo:: consider changing the default to off_grid, since PyNN's defaults are
+          supposed to prefer accuracy/comparability over performance.
+
+As of NEST 2.0.0, the following PyNN standard models have an off-grid
+implementation: :class:`IF_curr_alpha` (in preparation), :class:`IF_curr_exp`,
+:class:`EIF_cond_alpha_isfa_ista`.
+
+.. todo:: check the accuracy of the above list before release
+
+.. todo:: add a list of native NEST models with off-grid capability
+
+Here is an example showing how to specify the option in a PyNN script
+and an illustration of the different outcomes:
+
+.. plot:: pyplots/continuous_time_spiking.py
+   :include-source:
+
+
+The gray curve shows the membrane potential excursion in response to an
+input spike arriving at the neuron at *t* = 1.5 ms (left panel, the right panel
+shows an enlargement at low voltages). The amplitude of the post-current
+has an unrealistically high value such that the threshold voltage for spike generation is
+crossed. The membrane potential is recorded in intervals of 1 ms. Therefore the first
+non-zero value is measured at *t* = 2 ms. The threshold is crossed somewhere in the
+interval (3 ms, 4 ms], resulting in a voltage of 0 at *t* = 4 ms. The membrane potential
+is clamped to 0 for 2 ms, the refractory period. Therefore, the neuron recovers
+from refractoriness somewhere in the interval (5 ms, 6 ms] and the next non-zero
+voltage is observed at *t* = 6 ms. The black curve shows the results of the same model
+now integrated with a grid constrained simulation scheme with a computation step size
+of 1 ms. The input spike is mapped to the next grid position and therefore arrives at
+*t* = 2 ms. The first non-zero voltage is observed at *t* = 3 ms. The output spike is emitted
+at *t* = 4 ms and this is the time at which the membrane potential is reset. Consequently, the
+model neuron returns from refractoriness at exactly *t* = 6 ms. The next non-zero
+membrane potential value is observed at *t* = 7 ms.
+
+The following publication describes how the continuous time mode is implemented
+in NEST and compares the performance of different approaches:
+
+Hanuschkin A, Kunkel S, Helias M, Morrison A and Diesmann M (2010) A general and
+efficient method for incorporating precise spike times in globally time-driven
+simulations. *Front. Neuroinform.* **4**:113.
+`doi:10.3389/fninf.2010.00113 <http://dx.doi.org/10.3389/fninf.2010.00113>`_
+
+
+Using native cell models
+========================
+
+To use a NEST neuron model with PyNN, we wrap the NEST model with a PyNN
+``NativeCellType`` class, e.g.::
+
+    >>> from pyNN.nest import native_cell_type, Population, run, setup
+    >>> setup()
+    >>> ht_neuron = native_cell_type('ht_neuron')
+    >>> poisson = native_cell_type('poisson_generator')
+    >>> p1 = Population(10, ht_neuron, {'Tau_m': 20.0})
+    >>> p2 = Population(1, poisson, {'rate': 200.0})
+
+We can now initialize state variables, set/get parameter values, and record from
+these neurons as from standard cells::
+
+    >>> p1.get('Tau_m')
+    [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]
+    >>> p1.get('Tau_theta')
+    [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    >>> p1.get('C_m')
+    NonExistentParameterError: C_m (valid parameters for ht_neuron are:
+      AMPA_E_rev, AMPA_Tau_1, AMPA_Tau_2, AMPA_g_peak, E_K, E_Na, GABA_A_E_rev,
+      GABA_A_Tau_1, GABA_A_Tau_2, GABA_A_g_peak, GABA_B_E_rev, GABA_B_Tau_1,
+      GABA_B_Tau_2, GABA_B_g_peak, KNa_E_rev, KNa_g_peak, NMDA_E_rev, NMDA_Sact,
+      NMDA_Tau_1, NMDA_Tau_2, NMDA_Vact, NMDA_g_peak, NaP_E_rev, NaP_g_peak,
+      T_E_rev, T_g_peak, Tau_m, Tau_spike, Tau_theta, Theta_eq, g_KL, g_NaL,
+      h_E_rev, h_g_peak, spike_duration)
+
+    >>> p1.initialize('V_m', -70.0)
+    >>> p1.initialize('Theta', -50.0)
+    >>> p1.record('V_m')
+    >>> run(250.0)
+    >>> output = p1.get_data()
+
+To connect populations of native cells, you need to know the available
+synaptic receptor types::
+
+    >>> ht_neuron.synapse_types
+    {'AMPA': 1, 'GABA_A': 3, 'GABA_B': 4, 'NMDA': 2}
+    >>> from pyNN.nest import Projection, AllToAllConnector
+    >>> connector = AllToAllConnector()
+    >>> prj_ampa = Projection(p2, p1, connector, target='AMPA')
+    >>> prj_nmda = Projection(p2, p1, connector, target='NMDA')
+
+
+Using native synaptic plasticity models
+=======================================
+
+To use a NEST STDP model with PyNN, we use the ``NativeSynapseDynamics`` class::
+
+    >>> from pyNN.nest import NativeSynapseDynamics
+    >>> stdp = NativeSynapseDynamics("stdp_synapse", {'Wmax': 50.0, 'lambda': 0.015})
+    >>> prj_plastic = Projection(p1, p1, connector, target='AMPA', synapse_dynamics=stdp)

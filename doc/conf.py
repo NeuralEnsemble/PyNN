@@ -29,6 +29,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.todo',
               'sphinx.ext.viewcode',
+              'sphinx.ext.intersphinx',
               'matplotlib.sphinxext.only_directives',
               'matplotlib.sphinxext.plot_directive']
 
@@ -267,3 +268,7 @@ autodoc_member_order = 'bysource'
 # -- todo options --------------------------------------------------------------
 
 todo_include_todos = True
+
+# -- inter-Sphinx mapping options ----------------------------------------------
+
+intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None)}

@@ -28,3 +28,9 @@ Random numbers
    :undoc-members:
    :inherited-members:
    :show-inheritance:
+
+
+Adapting a different random number generator to work with PyNN
+--------------------------------------------------------------
+
+.. todo:: write this

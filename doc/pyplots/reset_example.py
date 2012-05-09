@@ -1,11 +1,11 @@
-import pyNN.nest as sim  # can of course replace `nest` with `neuron`, `brian`, etc.
+import pyNN.neuron as sim  # can of course replace `nest` with `neuron`, `brian`, etc.
 import matplotlib.pyplot as plt
 from quantities import nA
 
 sim.setup()
 
 cell = sim.Population(1, sim.HH_cond_exp)
-step_current = sim.DCSource(start=20.0, stop=80.0)
+step_current = sim.DCSource(dict(start=20.0, stop=80.0))
 step_current.inject_into(cell)
 
 cell.record('v')
@@ -26,4 +26,5 @@ for segment in data.segments:
 plt.legend(loc="upper left")
 plt.xlabel("Time (%s)" % vm.times.units._dimensionality)
 plt.ylabel("Membrane potential (%s)" % vm.units._dimensionality)
-plt.savefig("reset_example.png")
+
+plt.show()

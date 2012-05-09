@@ -3,7 +3,7 @@ PyNN: documentation
 ===================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    introduction
    installation
@@ -22,14 +22,31 @@ PyNN: documentation
    descriptions
    examples
    contributors
+
+
+Developers' Guide
+=================
+
+.. toctree::
+   :maxdepth: 2
+
    developers_guide
+
+
+API reference
+=============
+
+.. toctree::
+   :maxdepth: 2
+
    api_reference
+
 
 Old documents
 =============
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    highlevelapi
    standardmodels

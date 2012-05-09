@@ -1,3 +1,58 @@
 ==================
 Simulation control
 ==================
+
+Initialising the simulator
+==========================
+
+Before using any other functions or classes from PyNN, the user must call the
+:func:`setup()` function::
+
+    >>> setup()
+
+:func:`setup()` takes various optional arguments: setting the simulation
+timestep (there is currently no support in the API for variable timestep methods
+although native simulator code can be used to select this option where the
+simulator supports it) and setting the minimum and maximum synaptic delays, e.g.::
+
+    >>> setup(timestep=0.1, min_delay=0.1, max_delay=10.0)
+
+Calling :func:`setup()` a second time resets the simulator entirely, destroying
+any network that may have been created in the meantime.
+
+.. todo:: add links to documentation on simulator-specific options to setup()
+
+Getting information about the simulation state
+==============================================
+
+Several functions are available for obtaining information about the simulation
+state:
+
+    * :func:`get_current_time` - the time within the simulation
+    * :func:`get_time_step` - the integration time step
+    * :func:`get_min_delay` - the minimum allowed synaptic delay
+    * :func:`get_max_delay` - the maximum allowed synaptic delay
+    * :func:`num_processes` - the number of MPI processes
+    * :func:`rank` - the MPI rank of the current node
+
+Running a simulation
+====================
+
+The :meth:`run()` function advances the simulation for a given number of milliseconds, e.g.::
+
+    >>> run(1000.0)
+
+Repeating a simulation
+======================
+
+If you wish to reset network time to zero to run a new simulation with the same
+network (with different parameter values, perhaps), use the :func:`reset()` function.
+Note that this does not change the network structure, nor the choice of which
+neurons to record (from previous :meth:`record()` calls).
+
+Finishing up
+============
+
+Just as a simulation must be begun with a call to ``setup()``, it should be
+ended with a call to ``end()``. This is not always necessary, but it is safest
+to always use it.

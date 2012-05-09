@@ -15,12 +15,12 @@ Solver options
 
 PyNN is a simulator independent language for the specification of neuronal network
 simulations. The language primarily specifies the network model and leaves the task of
-choosing an appropriate integration method to the simulator backends. 
+choosing an appropriate integration method to the simulator backends.
 
 For certain model it is however useful to provide the backend with an instruction
 of how to integrate the dynamics. For example, the researcher may require a certain
-accuracy of the membrane potential or requires a solver where spikes times are represented 
-in continuous time and are not constrained to the temporal grid spanned by the computation 
+accuracy of the membrane potential or requires a solver where spikes times are represented
+in continuous time and are not constrained to the temporal grid spanned by the computation
 step size.
 
 At present `pyNN.nest` accepts the following solver options:
@@ -32,7 +32,7 @@ Continuous time spike interaction
 
 In traditional simulation schemes spikes are constrained to an
 equidistant time grid. However, some simulators have the capability
-to represent spikes in continuous time or to switch between the 
+to represent spikes in continuous time or to switch between the
 two modes.
 
 At setup the user can choose the continuous time scheme
@@ -63,10 +63,10 @@ The following continuous time implementations are available:
 Model                    Status
 ======================== ========
 IF_curr_alpha            in prep.
-IF_curr_exp              x       
-IF_cond_alpha                    
-IF_cond_exp                      
-HH_cond_exp                      
+IF_curr_exp              x
+IF_cond_alpha
+IF_cond_exp
+HH_cond_exp
 EIF_cond_alpha_isfa_ista in prep.
 ======================== ========
 
@@ -128,17 +128,17 @@ and an illustration of the different outcomes:
  show()
 
 
-.. image:: ../images/ongridoffgrid.png
+.. image:: images/ongridoffgrid.png
 
 The gray curve shows the membrane potential excursion in response to an
-input spike arriving at the neuron at t=1.5ms (left panel, the right panel 
+input spike arriving at the neuron at t=1.5ms (left panel, the right panel
 shows an enlargement at low voltages). The amplitude of the post-current
 has an unrealistically high value such that the threshold voltage for spike generation is
 crossed. The membrane potential is recorded in intervals of 1ms. Therefore the first
-non-zero value is measured at t=2ms. The threshold is crossed somewhere in the 
+non-zero value is measured at t=2ms. The threshold is crossed somewhere in the
 interval (3ms,4ms], resulting in a voltage of 0 at t=4ms. The membrane potential
-is clamped to 0 for 2ms, the refractory period. Therefore, the neuron recovers 
-from refractoriness somewhere in the interval (5ms,6ms] and the next non-zero 
+is clamped to 0 for 2ms, the refractory period. Therefore, the neuron recovers
+from refractoriness somewhere in the interval (5ms,6ms] and the next non-zero
 voltage is observed at t=6ms. The black curve shows the results of the same model
 now integrated with a grid constrained simulation scheme with a computation step size
 of 1ms. The input spike is mapped to the next grid position and therefore arrives at
@@ -151,4 +151,3 @@ The following publication describes how the continuous time mode is implemented
 in NEST and compares the performance of different approaches:
 
 Hanuschkin A, Kunkel S, Helias M, Morrison A and Diesmann M (2010) A general and efficient method for incorporating precise spike times in globally time-driven simulations. *Front. Neuroinform.* **4**:113. `doi:10.3389/fninf.2010.00113 <http://dx.doi.org/10.3389/fninf.2010.00113>`_
-

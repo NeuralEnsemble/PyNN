@@ -42,14 +42,12 @@ Shape classes
 .. autoclass:: Cuboid
    :members:
    :undoc-members:
-   :special-members:
    :inherited-members:
    :show-inheritance:
 
 .. autoclass:: Sphere
    :members:
    :undoc-members:
-   :special-members:
    :inherited-members:
    :show-inheritance:
 
@@ -59,9 +57,16 @@ The Space class
 .. autoclass:: Space
    :members:
    :undoc-members:
-   :special-members:
    :inherited-members:
-   :show-inheritance:
 
-implementing your own Shape
-implementing your own Structure
+Implementing your own Shape
+---------------------------
+
+.. todo:: write this
+
+
+Implementing your own Structure
+-------------------------------
+
+.. todo:: write this
+

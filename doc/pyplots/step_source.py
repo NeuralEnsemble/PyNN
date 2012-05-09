@@ -18,7 +18,7 @@ steps._record()
 sim.run(250.0)
 
 t, i_inj = steps._get_data()
-id, t, v = population.get_v().T
+v = population.get_data().segments[0].analogsignalarrays[0]
 
 plot_current_source(t, i_inj, v,
                     #v_range=(-66, -49),

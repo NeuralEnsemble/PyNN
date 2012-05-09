@@ -18,11 +18,11 @@ different types:
 a single number
     sets the same value for all cells in the :class:`Population` or connections
     in the :class:`Projection`
-    
+
 a :class:`RandomDistribution` object (see :doc:`random_numbers`)
     each item in the group will have the parameter set to a value drawn from
     the distribution
-    
+
 a list or 1D NumPy array
     of the same size as the :class:`Population` or the number of connections in
     the :class:`Projection`
@@ -34,7 +34,7 @@ a function
     neuron. For a :class:`Projection`, the function should take two integer
     arguments, and for every connection will be called with the indices of the
     pre- and post-synaptic neurons.
-    
+
 Examples
 ========
 
@@ -44,7 +44,7 @@ Setting the same value for all neurons in a population
 ::
 
     >>> p = Population(5, sim.IF_cond_exp, {'tau_m': 15.0})
-    
+
 or, equivalently::
 
     >>> p = Population(5, sim.IF_cond_exp)
@@ -83,7 +83,7 @@ Setting parameters from an array
     >>> p = Population(6, SpikeSourcePoisson, {'rate': np.linspace(10.0, 20.0, num=6)})
     >>> p.get('rate')
     array([ 10.,  12.,  14.,  16.,  18.,  20.])
-    
+
 The array of course has to have the same size as the population::
 
     >>> p = Population(6, SpikeSourcePoisson, {'rate': np.linspace(10.0, 20.0, num=7)})
@@ -115,7 +115,7 @@ Setting parameters as a function of spatial position
     >>> p.get('v_thresh').reshape((4,4))
     array([[-50., -52., -54., -56.],
            [-45., -47., -49., -51.],
-           [-40., -42., -44., -46.],    
+           [-40., -42., -44., -46.],
            [-35., -37., -39., -41.]])
 
 .. todo: Another example, using Space
@@ -134,18 +134,18 @@ the same time::
     ...     'cm':    0.85,
     ...     'v_rest': lambda i: numpy.cos(i*pi*10/n),
     ...     'v_reset': numpy.linspace(-75.0: -65.0, num=n)}
-    >>> p = sim.Population(n, IF_cond_alpha, parameters)        
+    >>> p = sim.Population(n, IF_cond_alpha, parameters)
     >>> p.set(v_thresh=lambda i: -65 + i/n, tau_refrac=5.0)
 
-.. todo: in the above, give current source examples, and Projection examples
+.. todo:: in the above, give current source examples, and Projection examples
 
 Time series parameters
 ======================
 
-.. todo: discuss spike trains, current sources, Sequence class
+.. todo:: discuss spike trains, current sources, Sequence class
 
 
 Setting initial values
 ======================
 
-.. todo: complete
+.. todo:: complete

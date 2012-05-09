@@ -31,7 +31,7 @@ addition they carry metadata about units, sampling interval, etc.
 Here is a complete example of recording and plotting data from a simulation:
 
 .. plot:: pyplots/neo_example.py
-   :include_source:
+   :include-source:
 
 
 The adoption of Neo as an output representation also makes it easier to handle
@@ -46,7 +46,7 @@ below.
           just call `get_data(clear=True)`
 
 .. plot:: pyplots/reset_example.py
-   :include_source:
+   :include-source:
 
 
 Writing data to file

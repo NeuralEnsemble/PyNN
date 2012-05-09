@@ -54,6 +54,25 @@ class Space(object):
     Class representing a space within distances can be calculated. The space
     is Cartesian, may be 1-, 2- or 3-dimensional, and may have periodic
     boundaries in any of the dimensions.
+
+    Arguments:
+        axes:
+            if not supplied, then the 3D distance is calculated. If supplied,
+            axes should be a string containing the axes to be used, e.g. 'x', or
+            'yz'. axes='xyz' is the same as axes=None.
+        scale_factor:
+            it may be that the pre and post populations use
+            different units for position, e.g. degrees and µm. In this case,
+            `scale_factor` can be specified, which is applied to the positions
+            in the post-synaptic population.
+        offset:
+            if the origins of the coordinate systems of the pre- and post-
+            synaptic populations are different, `offset` can be used to adjust
+            for this difference. The offset is applied before any scaling.
+        periodic_boundaries:
+            either `None`, or a tuple giving the boundaries for each dimension,
+            e.g. `((x_min, x_max), None, (z_min, z_max))`.
+
     """
 
     AXES = {'x' : [0],    'y': [1],    'z': [2],
@@ -62,18 +81,7 @@ class Space(object):
     def __init__(self, axes=None, scale_factor=1.0, offset=0.0,
                  periodic_boundaries=None):
         """
-        axes -- if not supplied, then the 3D distance is calculated. If supplied,
-            axes should be a string containing the axes to be used, e.g. 'x', or
-            'yz'. axes='xyz' is the same as axes=None.
-        scale_factor -- it may be that the pre and post populations use
-            different units for position, e.g. degrees and µm. In this case,
-            `scale_factor` can be specified, which is applied to the positions
-            in the post-synaptic population.
-        offset -- if the origins of the coordinate systems of the pre- and post-
-            synaptic populations are different, `offset` can be used to adjust
-            for this difference. The offset is applied before any scaling.
-        periodic_boundaries -- either `None`, or a tuple giving the boundaries
-            for each dimension, e.g. `((x_min, x_max), None, (z_min, z_max))`.
+
         """
         self.periodic_boundaries = periodic_boundaries
         self.axes = numpy.array(Space.AXES[axes])
@@ -292,9 +300,13 @@ class Cuboid(Shape):
     """
     Represents a cuboidal volume within which neurons may be distributed.
 
-        height: extent in y direction
-        width: extent in x direction
-        depth: extent in z direction
+    Arguments:
+        height:
+            extent in y direction
+        width:
+            extent in x direction
+        depth:
+            extent in z direction
     """
 
     def __init__(self, width, height, depth):
@@ -303,6 +315,7 @@ class Cuboid(Shape):
         self.depth = depth
 
     def sample(self, n, rng):
+        """Return `n` points distributed randomly with uniform density within the cuboid."""
         return 0.5*rng.uniform(-1, 1, size=(n,3)) * (self.width, self.height, self.depth)
 
 
@@ -316,6 +329,7 @@ class Sphere(Shape):
         self.radius = radius
 
     def sample(self, n, rng):
+        """Return `n` points distributed randomly with uniform density within the sphere."""
         # this implementation is wasteful, as it throws away a lot of numbers,
         # but simple. More efficient implementations welcome.
         positions = numpy.empty((n,3))

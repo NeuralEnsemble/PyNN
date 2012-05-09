@@ -294,7 +294,7 @@ class BasePopulation(object):
         numbers (e.g. for spike times).
 
         Examples::
-        
+
             p.set(tau_m=20.0, v_rest=-65).
             p.set(spike_times=[0.3, 0.7, 0.9, 1.4])
             p.set(cm=rand_distr, tau_m=lambda i: 10 + i/10.0)
@@ -372,11 +372,11 @@ class BasePopulation(object):
         """
         Record the specified variable or variables for all cells in the
         Population or view.
-        
+
         `variables` may be either a single variable name or a list of variable
         names. For a given celltype class, `celltype.recordable` contains a list of
         variables that can be recorded for that celltype.
-        
+
         If specified, `to_file` should be a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
         """
@@ -384,12 +384,12 @@ class BasePopulation(object):
                               # note that if record(None) is called on a view of a population
                               # recording will be reset for the entire population, not just the view
             self.recorder.reset()
-        else:        
+        else:
             logger.debug("%s.record('%s')", self.label, variables)
             if self._record_filter is None:
                 self.recorder.record(variables, self.all_cells)
             else:
-                self.recorder.record(variables, self._record_filter)  
+                self.recorder.record(variables, self._record_filter)
         if isinstance(to_file, basestring):
             self.recorder.file = to_file
 
@@ -411,17 +411,19 @@ class BasePopulation(object):
         """
         Write recorded data to file, using one of the file formats supported by
         Neo.
-        
-        `io` - a Neo IO instance
-        `variables` - either a single variable name or a list of variable names
-                      Variables must have been previously recorded, otherwise an
-                      Exception will be raised.
-                      
+
+        `io`:
+            a Neo IO instance
+        `variables`:
+            either a single variable name or a list of variable names.
+            Variables must have been previously recorded, otherwise an
+            Exception will be raised.
+
         For parallel simulators, if `gather` is True, all data will be gathered
         to the master node and a single output file created there. Otherwise, a
         file will be written on each node, containing only data from the cells
         simulated on that node.
-        
+
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
         self.recorder.write(variables, io, gather, self._record_filter)
@@ -430,16 +432,16 @@ class BasePopulation(object):
         """
         Return a Neo `Block` containing the data (spikes, state variables)
         recorded from the Population.
-        
+
         `variables` - either a single variable name or a list of variable names
                       Variables must have been previously recorded, otherwise an
                       Exception will be raised.
-        
+
         For parallel simulators, if `gather` is True, all data will be gathered
         to all nodes and the Neo `Block` will contain data from all nodes.
         Otherwise, the Neo `Block` will contain only data from the cells
         simulated on the local node.
-        
+
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
         return self.recorder.get(variables, gather, self._record_filter, clear)
@@ -531,19 +533,19 @@ class Population(BasePopulation):
 
         `cellclass`:
             a cell type (a class inheriting from :class:`pyNN.models.BaseCellType`).
-    
+
         `cellparams`:
             a dict, or other mapping, containing parameters, which is passed to
             the neuron model constructor.
-    
+
         `structure`:
             a :class:`pyNN.space.Structure` instance, used to specify the
             positions of neurons in space.
-    
+
         `initial_values`:
             a dict, or other mapping, containing initial values for the neuron
             state variables.
-    
+
         `label`:
             a name for the population. One will be auto-generated if this is not
             supplied.
@@ -602,7 +604,7 @@ class Population(BasePopulation):
         """
         Given the ID(s) of cell(s) in the Population, return its (their) index
         (order in the Population).
-        
+
             >>> assert p.id_to_index(p[5]) == 5
             >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
         """
@@ -713,17 +715,17 @@ class PopulationView(BasePopulation):
     parent Population and vice versa.
 
     It is possible to have views of views.
-    
+
     Arguments:
         selector:
             a slice or numpy mask array. The mask array should either be a
             boolean array of the same size as the parent, or an integer array
             containing cell indices, i.e. if p.size == 5::
-            
+
                 PopulationView(p, array([False, False, True, False, True]))
                 PopulationView(p, array([2,4]))
                 PopulationView(p, slice(2,5,2))
-            
+
             will all create the same view.
     """
 
@@ -781,7 +783,7 @@ class PopulationView(BasePopulation):
         """
         Given the ID(s) of cell(s) in the PopulationView, return its/their
         index/indices (order in the PopulationView).
-        
+
             >>> assert id_to_index(p.index(5)) == 5
             >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
         """
@@ -847,7 +849,7 @@ class Assembly(object):
     """
     A group of neurons, may be heterogeneous, in contrast to a Population where
     all the neurons are of the same type.
-    
+
     Arguments:
         *populations:
             Populations or PopulationViews
@@ -955,7 +957,7 @@ class Assembly(object):
         """
         Given the ID(s) of cell(s) in the Assembly, return its (their) index
         (order in the Assembly)::
-        
+
             >>> assert p.id_to_index(p[5]) == 5
             >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
         """
@@ -1089,36 +1091,34 @@ class Assembly(object):
         for p in self.populations:
             p.initialize(variable, value)
 
-    def set(self, param, val=None):
+    def set(self, **parameters):
         """
-        Set one or more parameters for every cell in the Assembly. param
-        can be a dict, in which case val should not be supplied, or a string
-        giving the parameter name, in which case val is the parameter value.
-        val can be a numeric value, or list of such (e.g. for setting spike
-        times). Example::
-        
-            p.set("tau_m",20.0).
-            p.set({'tau_m':20,'v_rest':-65})
-        """
-        for p in self.populations:
-            p.set(param=val)
+        Set one or more parameters for every cell in the Assembly.
 
-    def rset(self, parametername, rand_distr):
-        """
-        'Random' set. Set the value of parametername to a value taken from
-        rand_distr, which should be a RandomDistribution object.
+        Values passed to set() may be:
+            (1) single values
+            (2) RandomDistribution objects
+            (3) mapping functions, where a mapping function accepts a single
+                argument (the cell index) and returns a single value.
+
+        Here, a "single value" may be either a single number or a list/array of
+        numbers (e.g. for spike times).
         """
         for p in self.populations:
-            p.rset(parametername, rand_distr)
+            p.set(**parameters)
+
+    @deprecated("set(parametername=rand_distr)")
+    def rset(self, parametername, rand_distr):
+        self.set(parametername=rand_distr)
 
     def record(self, variables, to_file=None):
         """
         Record the specified variable or variables for all cells in the Assembly.
-        
+
         `variables` may be either a single variable name or a list of variable
         names. For a given celltype class, `celltype.recordable` contains a list of
         variables that can be recorded for that celltype.
-        
+
         If specified, `to_file` should be a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
         """
@@ -1170,16 +1170,16 @@ class Assembly(object):
         """
         Return a Neo `Block` containing the data (spikes, state variables)
         recorded from the Population.
-        
+
         `variables` - either a single variable name or a list of variable names
                       Variables must have been previously recorded, otherwise an
                       Exception will be raised.
-        
+
         For parallel simulators, if `gather` is True, all data will be gathered
         to all nodes and the Neo `Block` will contain data from all nodes.
         Otherwise, the Neo `Block` will contain only data from the cells
         simulated on the local node.
-        
+
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
         name = self.label
@@ -1238,17 +1238,19 @@ class Assembly(object):
         """
         Write recorded data to file, using one of the file formats supported by
         Neo.
-        
-        `io` - a Neo IO instance
-        `variables` - either a single variable name or a list of variable names
-                      Variables must have been previously recorded, otherwise an
-                      Exception will be raised.
-                      
+
+        `io`:
+            a Neo IO instance
+        `variables`:
+            either a single variable name or a list of variable names.
+            Variables must have been previously recorded, otherwise an
+            Exception will be raised.
+
         For parallel simulators, if `gather` is True, all data will be gathered
         to the master node and a single output file created there. Otherwise, a
         file will be written on each node, containing only data from the cells
         simulated on that node.
-        
+
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
         if isinstance(io, basestring):
