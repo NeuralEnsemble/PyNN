@@ -150,7 +150,7 @@ class _State(object):
         self.clear()
         self.default_maxstep=10.0
         self.t_start = 0.0
-    
+
     t = h_property('t')
     def __get_dt(self):
         return h.dt
@@ -162,12 +162,14 @@ class _State(object):
     min_delay = h_property('min_delay') # } can interact with the GUI
 
     def clear(self):
-        global gid_sources
+        global gid_sources, recorders
         self.parallel_context.gid_clear()
         gid_sources = []
+        recorders = set([])
         self.gid_counter = 0
         self.running = False
         h.plastic_connections = []
+
 
 def reset():
     """Reset the state of the current network to time t = 0."""

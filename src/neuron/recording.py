@@ -100,7 +100,7 @@ class Recorder(recording.Recorder):
                                    units='ms',
                                    source_population=self.population.label,
                                    source_id=int(id)) # index?
-                    for id in self.filter_recorded('spikes', filter_ids)]
+                    for id in sorted(self.filter_recorded('spikes', filter_ids))]
             else:
                 if variable == 'v':
                     get_signal = lambda id: id._cell.vtrace
@@ -110,7 +110,7 @@ class Recorder(recording.Recorder):
                     get_signal = lambda id: id._cell.gsyn_trace['inhibitory']
                 else:
                     get_signal = lambda id: id._cell.traces[variable]
-                ids = self.filter_recorded(variable, filter_ids)
+                ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = numpy.vstack((get_signal(id) for id in ids))
                 channel_indices = [self.population.id_to_index(id) for id in ids]
                 segment.analogsignalarrays.append(

@@ -433,9 +433,9 @@ def test_setup(sim):
     assert len(data) == n
     for block in data:
         assert len(block.segments) == 1
-        signals = block.segments[0].analogsignals
+        signals = block.segments[0].analogsignalarrays
         assert len(signals) == 1
-        assert_arrays_equal(signals[0], data[0].segments[0].analogsignals[0])
+        assert_arrays_equal(signals[0], data[0].segments[0].analogsignalarrays[0])
 
 
 @register(exclude=['pcsim', 'moose', 'nemo'])
@@ -443,12 +443,16 @@ def test_EIF_cond_alpha_isfa_ista(sim):
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
     ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista,
                         {'i_offset': 1.0, 'tau_refrac': 2.0, 'v_spike': -40})
-    ifcell.record('spikes')
+    ifcell.record(['spikes', 'v'])
+    ifcell.initialize('v', -65)
     sim.run(200.0)
+    data = ifcell.get_data().segments[0]
     expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67,  113.13, 142.69, 174.79]) * pq.ms
-    diff = (ifcell.get_data().segments[0].spiketrains[0] - expected_spike_times)/expected_spike_times
+    diff = (data.spiketrains[0] - expected_spike_times)/expected_spike_times
     assert abs(diff).max() < 0.001
     sim.end()
+    return data
+
 
 @register(exclude=['pcsim', 'nemo'])
 def test_HH_cond_exp(sim):

@@ -1187,10 +1187,14 @@ class Assembly(object):
         name = self.label
         description = self.describe()
         blocks = [p.get_data(variables, gather, clear) for p in self.populations]
-        for block in blocks:
+        offset = 0
+        for block,p in zip(blocks, self.populations):
             for segment in block.segments:
                 segment.name = name
                 segment.description = description
+                for signal_array in segment.analogsignalarrays:
+                    signal_array.channel_indexes = numpy.array(signal_array.channel_indexes) + offset  # hack
+            offset += p.size
         merged_block = blocks[0]
         for block in blocks[1:]:
             merged_block.merge(block)
