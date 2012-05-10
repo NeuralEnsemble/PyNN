@@ -16,13 +16,21 @@ from copy import copy
 
 recordable_pattern = re.compile(r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.)?(?P<var>\w+)')
 
-# --- For implementation of record_X()/get_X()/print_X() -----------------------
+
+def find_units(variable):
+    if variable in recording.UNITS_MAP:
+        return recording.UNITS_MAP[variable]
+    else:
+        # works with NEURON 7.3, not with 7.1, 7.2 not tested
+        nrn_units = h.units(variable.split('.')[-1])
+        pq_units = nrn_units.replace("2", "**2").replace("3", "**3")
+        return pq_units
 
 
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
-    _simulator = simulator 
-    
+    _simulator = simulator
+
     def _record(self, variable, new_ids):
         """Add the cells in `new_ids` to the set of recorded cells."""
         if variable == 'spikes':
@@ -44,15 +52,15 @@ class Recorder(recording.Recorder):
         else:
             for id in new_ids:
                self._native_record(variable, id)
-    
+
     def _reset(self):
-        for id in self.recorded:
+        for id in set.union(*self.recorded.values()):
             id._cell.traces = {}
             id._cell.record(active=False)
             id._cell.record_v(active=False)
             for syn_name in id._cell.gsyn_trace:
                 id._cell.record_gsyn(syn_name, active=False)
-    
+
     def _native_record(self, variable, id):
         match = recordable_pattern.match(variable)
         if match:
@@ -73,7 +81,7 @@ class Recorder(recording.Recorder):
                 id._cell.recording_time += 1
         else:
             raise Exception("Recording of %s not implemented." % variable)
-    
+
     def _get_current_segment(self, filter_ids=None, variables='all'):
         segment = neo.Segment(name=self.population.label,
                               description=self.population.describe(),
@@ -104,20 +112,22 @@ class Recorder(recording.Recorder):
                     get_signal = lambda id: id._cell.traces[variable]
                 ids = self.filter_recorded(variable, filter_ids)
                 signal_array = numpy.vstack((get_signal(id) for id in ids))
+                channel_indices = [self.population.id_to_index(id) for id in ids]
                 segment.analogsignalarrays.append(
                     neo.AnalogSignalArray(
                         signal_array.T, # assuming not using cvode, otherwise need to use IrregularlySampledAnalogSignal
-                        units=recording.UNITS_MAP.get(variable, 'dimensionless'),
+                        units=find_units(variable),
                         t_start=simulator.state.t_start*pq.ms,
                         sampling_period=simulator.state.dt*pq.ms,
                         name=variable,
                         source_population=self.population.label,
+                        channel_indexes=channel_indices,
                         source_ids=numpy.fromiter(ids, dtype=int))
                 )
                 assert segment.analogsignalarrays[0].t_stop - simulator.state.t*pq.ms < 2*simulator.state.dt*pq.ms
                 # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
-        
+
     def _local_count(self, variable, filter_ids=None):
         N = {}
         if variable == 'spikes':

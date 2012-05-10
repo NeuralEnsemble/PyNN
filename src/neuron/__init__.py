@@ -10,7 +10,8 @@ $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 __version__ = "$Rev: 191 $"
 
 from pyNN.random import *
-from pyNN import common, core, space, __doc__, standardmodels
+from pyNN import common, core, space, __doc__
+from pyNN.standardmodels import StandardCellType
 from pyNN.recording import get_io
 from pyNN.neuron import simulator
 from pyNN.neuron.standardmodels.cells import *
@@ -35,7 +36,7 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, standardmodels.StandardCellType)]
+    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -174,14 +175,18 @@ class Population(common.Population, PopulationMixin):
         self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id+1)], simulator.ID)
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
         self._mask_local = self.all_cells%simulator.state.num_processes==simulator.state.mpi_rank # round-robin distribution of cells between nodes
-        parameter_space = self.celltype.translated_parameters
+        if isinstance(self.celltype, StandardCellType):
+            parameter_space = self.celltype.translated_parameters
+        else:
+            parameter_space = self.celltype.parameter_space
         parameter_space.size = self.size
         parameter_space.evaluate(mask=None)
         for i, (id, is_local, params) in enumerate(zip(self.all_cells, self._mask_local, parameter_space)):
             self.all_cells[i] = simulator.ID(id)
             self.all_cells[i].parent = self
             if is_local:
-                params.update(self.celltype.extra_parameters)
+                if hasattr(self.celltype, "extra_parameters"):
+                    params.update(self.celltype.extra_parameters)
                 self.all_cells[i]._build_cell(self.celltype.model, params)
         simulator.initializer.register(*self.all_cells[self._mask_local])
         simulator.state.gid_counter += self.size

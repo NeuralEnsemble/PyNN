@@ -3,6 +3,7 @@ from scenarios import scenarios
 from nose.tools import assert_equal, assert_almost_equal
 from pyNN.random import RandomDistribution
 from pyNN.utility import init_logging
+import quantities as pq
 
 try:
     import pyNN.neuron
@@ -12,7 +13,7 @@ try:
 except ImportError:
     have_neuron = False
 
-   
+
 
 def test_scenarios():
     for scenario in scenarios:
@@ -41,7 +42,7 @@ def test_ticket168():
 
 
 class SimpleNeuron(object):
-    
+
     def __init__(self, **parameters):
         # define ion channel parameters
         leak = Mechanism('pas', e=-65, g=parameters['g_leak'])
@@ -62,7 +63,7 @@ class SimpleNeuron(object):
         self.parameter_names = ('g_leak', 'gnabar', 'gkbar')
         self.traces = {}
         self.recording_time = False
-        
+
     def _set_g_leak(self, value):
         for sec in (self.apical, self.basilar):
             for seg in sec:
@@ -106,7 +107,7 @@ class SimpleNeuronType(NativeCellType):
 
 def test_record_native_model():
     nrn = pyNN.neuron
-    
+
     init_logging(logfile=None, debug=True)
     nrn.setup()
 
@@ -123,14 +124,21 @@ def test_record_native_model():
 
     p2 = nrn.Population(1, nrn.SpikeSourcePoisson, {'rate': 100.0})
 
-    p1._record('apical(1.0).v')
-    p1._record('soma(0.5).ina')
+    p1.record(['apical(1.0).v', 'soma(0.5).ina'])
 
     connector = nrn.AllToAllConnector(weights=0.1)
     prj_alpha = nrn.Projection(p2, p1, connector, target='apical.ampa')
-    
+
     nrn.run(250.0)
-    
-    assert_equal(p1.recorders['apical(1.0).v'].get().shape, (25010, 3))
-    id, t, v = p1.recorders['apical(1.0).v'].get().T
-    return id, t, v
+
+    data = p1.get_data().segments[0].analogsignalarrays
+    assert_equal(len(data), 2) # one array per variable
+    assert_equal(data[0].name, 'apical(1.0).v')
+    assert_equal(data[1].name, 'soma(0.5).ina')
+    assert_equal(data[0].sampling_rate, 10.0*pq.kHz)
+    assert_equal(data[0].units, pq.mV)
+    assert_equal(data[1].units, pq.mA/pq.cm**2)
+    assert_equal(data[0].t_start, 0.0*pq.ms)
+    assert_equal(data[0].t_stop, 250.1*pq.ms) # would prefer if it were 250.0, but this is a fundamental Neo issue
+    assert_equal(data[0].shape, (2501, 10))
+    return data

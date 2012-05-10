@@ -258,8 +258,10 @@ class BasePopulation(object):
                 native_names = self.celltype.get_translated_names() # need all parameters in order to calculate values
             else:
                 native_names = self.celltype.get_translated_names(*parameter_names)
-        native_parameter_space = self._get_parameters(*native_names)
-        parameter_space = self.celltype.reverse_translate(native_parameter_space)
+            native_parameter_space = self._get_parameters(*native_names)
+            parameter_space = self.celltype.reverse_translate(native_parameter_space)
+        else:
+            parameter_space = self._get_parameters(*self.celltype.get_parameter_names())
         parameter_space.evaluate(simplify=True)
 
         parameters = dict(parameter_space.items())
