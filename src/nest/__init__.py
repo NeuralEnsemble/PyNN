@@ -7,6 +7,8 @@ NEST v2 implementation of the PyNN API.
 
 $Id$
 """
+
+import numpy
 import nest
 from pyNN.nest import simulator
 from pyNN import common, recording, errors, space, __doc__
@@ -14,7 +16,6 @@ from pyNN import common, recording, errors, space, __doc__
 if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
     raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
 
-import numpy
 import shutil
 import logging
 import tempfile
@@ -26,11 +27,11 @@ from pyNN.nest.standardmodels.synapses import *
 from pyNN.nest.standardmodels.electrodes import *
 from pyNN.nest.recording import *
 from pyNN.random import NumpyRNG
-from pyNN import standardmodels
+from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import Sequence
 
 Set = set
-tempdirs       = []
+tempdirs = []
 NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')
 
 STATE_VARIABLE_MAP = {"v": "V_m", "w": "w", "gsyn_exc": "g_ex",
@@ -100,6 +101,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     if "recording_precision" in extra_params:
         simulator.state.default_recording_precision = extra_params["recording_precision"]
 
+    simulator.populations = []
+    simulator.recording_devices = []
+    simulator.recorders = Set([])
 
     # clear the sli stack, if this is not done --> memory leak cause the stack increases
     nest.sr('clear')
@@ -261,10 +265,15 @@ class Population(common.Population, PopulationMixin):
         # this method should never be called more than once
         # perhaps should check for that
         nest_model = self.celltype.nest_name[simulator.state.spike_precision]
-        params = _build_params(self.celltype.translated_parameters,
-                               None,
-                               size=self.size,
-                               extra_parameters=self.celltype.extra_parameters)
+        if isinstance(self.celltype, StandardCellType):
+            params = _build_params(self.celltype.translated_parameters,
+                                   None,
+                                   size=self.size,
+                                   extra_parameters=self.celltype.extra_parameters)
+        else:
+            params = _build_params(self.celltype.parameter_space,
+                                   None,
+                                   size=self.size)
         try:
             self.all_cells = nest.Create(nest_model, self.size, params=params)
         except nest.NESTError, err:
@@ -288,10 +297,16 @@ class Population(common.Population, PopulationMixin):
 
     def _set_initial_value_array(self, variable, value):
         variable = STATE_VARIABLE_MAP.get(variable, variable)
+        value = value.evaluate(simplify=True)
         try:
             nest.SetStatus(self.local_cells.tolist(), variable, value)
         except nest.NESTError, e:
-            logger.warning("NEST does not allow setting an initial value for %s" % variable) # assuming this is an "Unused dictionary items" error - should really check
+            if "Unused dictionary items" in e.message:
+                logger.warning("NEST does not allow setting an initial value for %s" % variable)
+                # should perhaps check whether value-to-be-set is the same as current value,
+                # and raise an Exception if not, rather than just emit a warning.
+            else:
+                raise
 
 
 class Projection(common.Projection):

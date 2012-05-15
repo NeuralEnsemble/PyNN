@@ -135,6 +135,16 @@ class PopulationMixin(object):
                 parameter_dict[name] = [getattr(id._cell, name) for id in self]
         return ParameterSpace(parameter_dict, size=self.size) # or local size?
 
+    def _set_initial_value_array(self, variable, initial_values):
+        # should convert to use ParameterSpace
+        if initial_values.is_homogeneous:
+            value = initial_values.evaluate(simplify=True)
+            for cell in self:  # only on local node
+                setattr(cell._cell, "%s_init" % variable, value)
+        else:
+            for cell, value in zip(self, initial_values.evaluate(simplify=False)):
+                setattr(cell._cell, "%s_init" % variable, value)
+
 
 class Assembly(common.Assembly):
     _simulator = simulator

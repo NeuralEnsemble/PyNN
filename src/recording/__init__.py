@@ -116,6 +116,7 @@ def get_io(filename):
     """
     Return a Neo IO instance, guessing the type based on the filename suffix.
     """
+    logger.debug("Creating Neo IO for filename %s" % filename)
     extension = os.path.splitext(filename)[1]
     if extension in ('.txt', '.ras', '.v', '.gsyn'):
         return neo.io.PyNNTextIO(filename=filename)
@@ -164,7 +165,7 @@ class Recorder(object):
     def __init__(self, population, file=None):
         """
         Create a recorder.
-        
+
         `population` -- the Population instance which is being recorded by the
                         recorder
         `file` -- one of:

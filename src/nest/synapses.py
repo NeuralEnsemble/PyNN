@@ -24,7 +24,7 @@ def get_defaults(model_name):
 
 
 class NativeSynapseDynamics(BaseSynapseDynamics):
-    
+
     def __init__(self, model_name, parameters={}):
         cls = type(model_name, (NativeSynapseMechanism,),
                    {'nest_model': model_name})
@@ -35,7 +35,7 @@ class NativeSynapseDynamics(BaseSynapseDynamics):
     def _get_nest_synapse_model(self, suffix):
         defaults = self.parameters.copy()
         defaults.pop("tau_minus")
-        label = "%s_%s" % (self.mechanism.nest_model, suffix) 
+        label = "%s_%s" % (self.mechanism.nest_model, suffix)
         nest.CopyModel(self.mechanism.nest_model,
                        label,
                        defaults)
@@ -44,7 +44,8 @@ class NativeSynapseDynamics(BaseSynapseDynamics):
     def _set_tau_minus(self, cells):
         if len(cells) > 0:
             if 'tau_minus' in nest.GetStatus([cells[0]])[0]:
-                tau_minus = self.mechanism.parameters["tau_minus"]
+                self.mechanism.parameter_space["tau_minus"].shape = (1,) # temporary hack
+                tau_minus = self.mechanism.parameter_space["tau_minus"].evaluate(simplify=True)
                 nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
             else:
                 raise Exception("Postsynaptic cell model %s does not support STDP."
@@ -52,7 +53,7 @@ class NativeSynapseDynamics(BaseSynapseDynamics):
 
 
 class NativeSynapseMechanism(BaseModelType):
-    
+
     def __new__(cls, parameters):
         cls.default_parameters = get_defaults(cls.nest_model)
         return super(NativeSynapseMechanism, cls).__new__(cls)

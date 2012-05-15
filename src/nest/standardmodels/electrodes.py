@@ -31,8 +31,7 @@ class NestCurrentSource(StandardCurrentSource):
                                          size=1)
         parameter_space.update(**parameters)
         parameter_space = self.translate(parameter_space)
-        parameter_space.evaluate(simplify=True)
-        self.set_native_parameters(parameter_space.as_dict())
+        self.set_native_parameters(parameter_space)
 
     def inject_into(self, cells):
         __doc__ = StandardCurrentSource.inject_into.__doc__
@@ -46,6 +45,7 @@ class NestCurrentSource(StandardCurrentSource):
         nest.DivergentConnect(self._device, self.cell_list)
 
     def set_native_parameters(self, parameters):
+        parameters.evaluate(simplify=True)
         for key, value in parameters.items():
             if key == "amplitude_values":
                 assert isinstance(value, Sequence)
@@ -54,7 +54,9 @@ class NestCurrentSource(StandardCurrentSource):
                 nest.SetStatus([self._device], {key : float(value)})
 
     def get_native_parameters(self):
-        return nest.GetStatus([self._device])[0]
+        all_params = nest.GetStatus([self._device])[0]
+        return ParameterSpace(dict((k,v) for k,v in all_params.items()
+                                   if k in self.get_translated_names()))
 
 
 class DCSource(NestCurrentSource, electrodes.DCSource):

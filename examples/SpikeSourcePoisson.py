@@ -7,11 +7,12 @@ September 2006
 $Id$
 """
 
-from pyNN.utility import get_script_args
+from pyNN.utility import get_script_args, init_logging
 
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
+init_logging(None, debug=True)
 
 setup(timestep=0.01, min_delay=0.1)
 

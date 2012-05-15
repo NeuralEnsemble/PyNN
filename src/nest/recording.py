@@ -384,21 +384,15 @@ class Recorder(recording.Recorder):
             self._multimeter.add_variable(variable)
             self._multimeter.add_ids(new_ids)
 
-    #def _reset(self):
-    #    """ """
-    #    try:
-    #        simulator.recording_devices.remove(self._device)
-    #    except ValueError:
-    #        pass
-    #
-    #    if self._device != None:
-    #          recorders_to_reset=[]
-    #          for recorder in self.population.recorders.values():
-    #              if hasattr(recorder, "_device") and recorder._device == self._device:
-    #                 recorders_to_reset.append(recorder)
-    #          for recorder in recorders_to_reset:
-    #              recorder._device = None
-    #    self._create_device()
+    def _reset(self):
+        """ """
+        simulator.recording_devices.remove(self._multimeter)
+        simulator.recording_devices.remove(self._spike_detector)
+        # I guess the existing devices still exist in NEST, can we delete them
+        # or at least turn them off?
+        # Maybe we can reset them, rather than create new ones?
+        self._multimeter = Multimeter()
+        self._spike_detector = SpikeDetector()
 
     def _get_current_segment(self, filter_ids=None, variables='all'):
         segment = neo.Segment(name=self.population.label,
@@ -424,6 +418,7 @@ class Recorder(recording.Recorder):
                 signal_array = numpy.vstack(data.values())
                 t_start=simulator.state.t_start*pq.ms
                 sampling_period=simulator.state.dt*pq.ms # must run on all MPI nodes
+                channel_indices = [self.population.id_to_index(id) for id in ids]
                 segment.analogsignalarrays.append(
                     neo.AnalogSignalArray(
                         signal_array.T,
@@ -432,6 +427,7 @@ class Recorder(recording.Recorder):
                         sampling_period=sampling_period,
                         name=variable,
                         source_population=self.population.label,
+                        channel_indexes=channel_indices,
                         source_ids=numpy.array(data.keys()))
                 )
         return segment

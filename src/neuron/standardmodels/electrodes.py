@@ -33,8 +33,7 @@ class NeuronCurrentSource(StandardCurrentSource):
                                          size=1)
         parameter_space.update(**parameters)
         parameter_space = self.translate(parameter_space)
-        parameter_space.evaluate(simplify=True)
-        self.set_native_parameters(parameter_space.as_dict())
+        self.set_native_parameters(parameter_space)
 
     @property
     def _h_amplitudes(self):
@@ -75,12 +74,13 @@ class NeuronCurrentSource(StandardCurrentSource):
             self._h_amplitudes.play(iclamp._ref_amp, self._h_times)
 
     def set_native_parameters(self, parameters):
+        parameters.evaluate(simplify=True)
         for name, value in parameters.items():
             object.__setattr__(self, name, value)
         self._reset()
 
     def get_native_parameters(self):
-        raise NotImplementedError
+        return ParameterSpace(dict((k, self.__getattribute__(k)) for k in self.get_translated_names()))
 
     def inject_into(self, cells):
         __doc__ = StandardCurrentSource.inject_into.__doc__

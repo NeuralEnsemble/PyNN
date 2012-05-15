@@ -40,9 +40,9 @@ try:
         """
         Add ANSI colour codes to the given text to make it coloured when printed
         to the terminal.
-    
+
         Examples::
-        
+
             >>> from pyNN.utility import colour, red, blue, bright
             >>> print colour(red, "Hello world")
             Hello world
@@ -126,7 +126,7 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
         log_level = level
 
     logging.basicConfig(level=log_level,
-                        format=mpi_prefix+'%(asctime)s %(levelname)s %(message)s',
+                        format=mpi_prefix+'%(asctime)s %(levelname)s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',
                         filename=logfile,
                         filemode='w')
 
@@ -178,7 +178,7 @@ def load_population(filename, sim):
 class Timer(object):
     """
     For timing script execution.
-    
+
     Timing starts on creation of the timer.
     """
 
@@ -193,10 +193,10 @@ class Timer(object):
     def elapsed_time(self, format=None):
         """
         Return the elapsed time in seconds but keep the clock running.
-        
+
         If called with ``format="long"``, return a text representation of the
         time. Examples::
-        
+
             >>> timer.elapsed_time()
             987
             >>> timer.elapsed_time(format='long')
@@ -221,7 +221,7 @@ class Timer(object):
         """
         Return the time since the last time :meth:`elapsed_time()` or
         :meth:`diff()` was called.
-        
+
         If called with ``format='long'``, return a text representation of the
         time.
         """
@@ -237,7 +237,7 @@ class Timer(object):
         """
         Formats a time in seconds as a string containing the time in days,
         hours, minutes, seconds. Examples::
-        
+
             >>> Timer.time_in_words(1)
             1 second
             >>> Timer.time_in_words(123)

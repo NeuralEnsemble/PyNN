@@ -253,6 +253,9 @@ class BasePopulation(object):
         # we return just the number, rather than an array?
         if isinstance(parameter_names, basestring):
             parameter_names = (parameter_names,)
+            return_list = False
+        else:
+            return_list = True
         if isinstance(self.celltype, standardmodels.StandardCellType):
             if any(name in self.celltype.computed_parameters() for name in parameter_names):
                 native_names = self.celltype.get_translated_names() # need all parameters in order to calculate values
@@ -278,8 +281,13 @@ class BasePopulation(object):
                     indices = reduce(operator.add, all_indices.values())
                 idx    = numpy.argsort(indices)
                 values = numpy.array(values)[idx]
-            parameters[name] = valuess
-        return [parameters[name] for name in parameter_names]
+            parameters[name] = values
+        values = [parameters[name] for name in parameter_names]
+        if return_list:
+            return values
+        else:
+            assert len(parameter_names) == 1
+            return values[0]
 
     def set(self, **parameters):
         """
@@ -348,23 +356,10 @@ class BasePopulation(object):
             `RandomDistribution` object (each neuron gets a different value)
         """
         logger.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
-        if isinstance(value, random.RandomDistribution):
-            initial_value = value.next(n=self.all_cells.size, mask_local=self._mask_local)
-            if not hasattr(initial_value, "__len__"):
-                initial_value = [initial_value]
-            assert len(initial_value) == self.local_size, "%d != %d" % (len(initial_value), self.local_size)
-        else:
-            initial_value = value
-        self.initial_values[variable] = core.LazyArray(initial_value, shape=(self.local_size,))
-        if hasattr(self, "_set_initial_value_array"):
-            self._set_initial_value_array(variable, initial_value)
-        else:
-            if isinstance(value, random.RandomDistribution):
-                for cell, val in zip(self, initial_value):
-                    cell.set_initial_value(variable, val)
-            else:
-                for cell in self:  # only on local node
-                    cell.set_initial_value(variable, initial_value)
+        initial_value = core.LazyArray(value, shape=(self.local_size,),
+                                       dtype=float)
+        self._set_initial_value_array(variable, initial_value)
+        self.initial_values[variable] = initial_value
 
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
@@ -428,6 +423,7 @@ class BasePopulation(object):
 
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
+        logger.debug("Writing %s to %s [gather=%s, clear=%s]" % (variables, io, gather, clear))
         self.recorder.write(variables, io, gather, self._record_filter)
 
     def get_data(self, variables='all', gather=True, clear=False):
