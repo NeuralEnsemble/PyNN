@@ -440,10 +440,10 @@ connect = common.build_connect(Projection, FixedProbabilityConnector)
 
 set = common.set
 
-record = common.build_record('spikes', simulator)
+record = common.build_record(simulator)
 
-record_v = common.build_record('v', simulator)
+record_v = lambda source, filename: record(['v'], source, filename)
 
-record_gsyn = common.build_record('gsyn', simulator)
+record_gsyn = lambda source, filename: record(['gsyn_exc', 'gsyn_inh'], source, filename)
 
 # ==============================================================================

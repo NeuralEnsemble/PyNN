@@ -51,41 +51,25 @@ def set(cells, param, val=None):
     cells.set(param, val)
 
 
-def build_record(variable, simulator):
-    if variable == "gsyn": # will be removed in PyNN 0.9
-        variable_list = ['gsyn_exc', 'gsyn_inh']
-    else:
-        variable_list = [variable]
-    def record(source, filename):
+def build_record(simulator):
+    def record(variables, source, filename):
         """
-        Record spikes to a file. source can be an individual cell, a Population,
-        PopulationView or Assembly.
+        Record variables to a file. source can be an individual cell, a
+        Population, PopulationView or Assembly.
         """
         # would actually like to be able to record to an array and choose later
         # whether to write to a file.
         if not isinstance(source, (BasePopulation, Assembly)):
             source = source.parent
-        source.record(variable_list, to_file=filename)
+        source.record(variables, to_file=filename)
         # recorders_autowrite is used by end()
         if isinstance(source, BasePopulation):
             populations = [source]
         elif isinstance(source, Assembly):
             populations = source.populations
         for population in populations:
-            simulator.write_on_end.append((population, variable_list, filename))
-# NEED TO HANDLE DEPRECATION OF record_v() and record_gsyn()
-    if variable == 'v':
-        record.__name__ = "record_v"
-        record.__doc__ = """
-            Record membrane potential to a file. source can be an individual
-            cell, a Population, PopulationView or Assembly."""
-    elif variable == 'gsyn':
-        record.__name__ = "record_gsyn"
-        record.__doc__ = """
-            Record synaptic conductances to a file. source can be an individual
-            cell, a Population, PopulationView or Assembly."""
+            simulator.write_on_end.append((population, variables, filename))
     return record
-
 
 def initialize(cells, variable, value):
     assert isinstance(cells, (BasePopulation, Assembly)), type(cells)
