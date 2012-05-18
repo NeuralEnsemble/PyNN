@@ -32,9 +32,6 @@ n_record = 5
 node = setup(timestep=0.025, min_delay=1.0, max_delay=1.0, debug=True, quit_on_end=False)
 print "Process with rank %d running on %s" % (node, socket.gethostname())
 
-
-
-
 print "[%d] Creating populations" % node
 n_spikes = int(2*tstop*input_rate/1000.0)
 spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential',
@@ -59,11 +56,9 @@ output_population.sample(n_record, rng).record('v')
 print "[%d] Running simulation" % node
 run(tstop)
 
-print "[%d] Writing spikes to disk" % node
-output_population.write_data('%s_output.ras' % file_stem, 'spikes')
-input_population.write_data('%s_input.ras' % file_stem)
-print "[%d] Writing Vm to disk" % node
-output_population.write_data('%s.v' % file_stem, 'v')
+print "[%d] Writing spikes and Vm to disk" % node
+output_population.write_data('%s_output.h5' % file_stem)
+input_population.write_data('%s_input.h5' % file_stem)
 
 print "[%d] Finishing" % node
 end()

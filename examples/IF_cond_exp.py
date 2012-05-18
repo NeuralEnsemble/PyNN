@@ -34,11 +34,8 @@ spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in rang
 connE = connect(spike_sourceE, ifcell, weight=0.006, synapse_type='excitatory',delay=2.0)
 connI = connect(spike_sourceI, ifcell, weight=0.02, synapse_type ='inhibitory',delay=4.0)
     
-record_v(ifcell, "Results/IF_cond_exp_%s_v.pkl" % simulator_name)
-try:
-    record_gsyn(ifcell, "Results/IF_cond_exp_%s_gsyn.pkl" % simulator_name)
-except (NotImplementedError, RecordingError):
-    pass
+record(['v', 'gsyn_exc', 'gsyn_inh'], ifcell, "Results/IF_cond_exp_%s.pkl" % simulator_name)
+
 run(200.0)
 
 end()

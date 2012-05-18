@@ -19,7 +19,7 @@ current_source = StepCurrentSource({'times' : [50.0, 110.0, 150.0, 210.0],
                                     'amplitudes' : [0.4, 0.6, -0.2, 0.2]})
 cell.inject(current_source)
 
-record_v(cell, "Results/StepCurrentSource_%s.v" % simulator_name)
+record('v', cell, "Results/StepCurrentSource_%s.txt" % simulator_name)
 run(250.0)
   
 end()

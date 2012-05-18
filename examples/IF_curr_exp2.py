@@ -35,10 +35,9 @@ spike_source = create(SpikeSourceArray, {'spike_times': spike_times})
  
 conn = connect(spike_source, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)
     
-record(ifcell, "Results/IF_curr_exp2_%s.ras" % simulator_name)
-record_v(ifcell, "Results/IF_curr_exp2_%s.v" % simulator_name)
-
+record(('spikes', 'v'), ifcell, "Results/IF_curr_exp2_%s.pkl" % simulator_name)
 initialize(ifcell, 'v', -53.2)
+
 run(simtime)
   
 end()

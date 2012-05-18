@@ -40,7 +40,7 @@ cellparams = {
 
 hhcell = create(HH_cond_exp, cellparams=cellparams)
 initialize(hhcell, 'v', -64.0)
-record_v(hhcell, "Results/HH_cond_exp2_%s.v" % simulator_name)
+record('v', hhcell, "Results/HH_cond_exp2_%s.txt" % simulator_name)
 
 var_names = {
     'neuron': {'m': "seg.m_hh_traub", 'h': "seg.h_hh_traub", 'n': "seg.n_hh_traub"},

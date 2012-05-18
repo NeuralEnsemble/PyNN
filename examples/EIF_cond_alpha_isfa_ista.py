@@ -19,7 +19,7 @@ ifcell = create(EIF_cond_alpha_isfa_ista,
                 {'i_offset': 1.0, 'tau_refrac': 2.0, 'v_spike': -40})
 print ifcell[0].get_parameters()
     
-record_v(ifcell,"Results/EIF_cond_alpha_isfa_ista_%s.v" % simulator_name)
+record('v', ifcell,"Results/EIF_cond_alpha_isfa_ista_%s.txt" % simulator_name)
 run(200.0)
 
 end()

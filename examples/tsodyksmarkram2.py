@@ -42,6 +42,6 @@ spike_source.record('spikes')
 sim.run(200.0)
 
 for label,p in populations.items():
-    p.print_v("Results/tsodyksmarkram2_%s_%s.v" % (label, simulator_name))
+    p.write_data("Results/tsodyksmarkram2_%s_%s.v" % (label, simulator_name))
     
 sim.end()

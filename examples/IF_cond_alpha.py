@@ -33,7 +33,7 @@ spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in rang
 connE = connect(spike_sourceE, ifcell, weight=0.006, synapse_type='excitatory',delay=2.0)
 connI = connect(spike_sourceI, ifcell, weight=0.02, synapse_type='inhibitory',delay=4.0)
     
-record_v(ifcell, "Results/IF_cond_alpha_%s.v" % simulator_name)
+record('v', ifcell, "Results/IF_cond_alpha_%s.txt" % simulator_name)
 
 run(200.0)
 

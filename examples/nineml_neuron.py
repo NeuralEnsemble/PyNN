@@ -56,25 +56,11 @@ connector = sim.OneToOneConnector(weights=1.0)#, delays=0.5)
 conn = [sim.Projection(input[0:1], cells, connector, target='excitatory'),
         sim.Projection(input[1:2], cells, connector, target='inhibitory')]
 
-cells._record('V')
-cells._record('excitatory_g')
-cells._record('inhibitory_g')
-cells.record()
+cells.record(('spikes', 'V', 'excitatory_g', 'inhibitory_g'))
 
 sim.run(100.0)
 
-cells.recorders['V'].write("Results/nineml_neuron.V", filter=[cells[0]])
-cells.recorders['excitatory_g'].write("Results/nineml_neuron.g_exc", filter=[cells[0]])
-cells.recorders['inhibitory_g'].write("Results/nineml_neuron.g_inh", filter=[cells[0]])
-
-t = cells.recorders['V'].get()[:,1]
-v = cells.recorders['V'].get()[:,2]
-g_exc = cells.recorders['excitatory_g'].get()[:,2]
-g_inh = cells.recorders['inhibitory_g'].get()[:,2]
-
-
-#plot(t,v)
-
+cells.write_data("Results/nineml_neuron.h5")
 
 
 sim.end()

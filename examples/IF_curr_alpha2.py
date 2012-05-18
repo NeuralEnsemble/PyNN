@@ -22,7 +22,7 @@ spike_source = create(SpikeSourceArray, {'spike_times': [0.1*float(i) for i in r
 
 conn = connect(spike_source,ifcells,weight=1.5)
 
-record_v(ifcells[0:1], "Results/IF_curr_alpha2_%s.v" % simulator_name)
+record('v', ifcells[0:1], "Results/IF_curr_alpha2_%s.txt" % simulator_name)
 run(100.0)
 
 end()

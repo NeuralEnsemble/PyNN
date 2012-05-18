@@ -142,19 +142,19 @@ E_net.initialize('v', uniformDistr)
 I_net.initialize('v', uniformDistr)
 
 print "%d Creating excitatory Poisson generator with rate %g spikes/s." % (rank, p_rate)
-expoisson = Population(NE, SpikeSourcePoisson, {'rate': p_rate}, "expoisson")
+expoisson = Population(NE, SpikeSourcePoisson, {'rate': p_rate}, label="expoisson")
 
 print "%d Creating inhibitory Poisson generator with the same rate." % rank
-inpoisson = Population(NI, SpikeSourcePoisson, {'rate': p_rate}, "inpoisson")
+inpoisson = Population(NI, SpikeSourcePoisson, {'rate': p_rate}, label="inpoisson")
 
 # Record spikes
 print "%d Setting up recording in excitatory population." % rank
-E_net.record(Nrec)
-E_net[[0, 1]].record_v()
+E_net.sample(Nrec).record('spikes')
+E_net[0:2].record('v')
 
 print "%d Setting up recording in inhibitory population." % rank
-I_net.record(Nrec)
-I_net[[0, 1]].record_v()
+I_net.sample(Nrec).record('spikes')
+I_net[0:2].record('v')
 
 E_Connector = FixedProbabilityConnector(epsilon, weights=JE, delays=delay, verbose=True)
 I_Connector = FixedProbabilityConnector(epsilon, weights=JI, delays=delay, verbose=True)
@@ -186,17 +186,9 @@ print "%d Running simulation for %g ms." % (rank, simtime)
 run(simtime)
 simCPUTime = timer.elapsedTime()
 
-print "%d Writing data to file." % rank
-exfilename  = "Results/Brunel_exc_np%d_%s.ras" % (np, simulator_name) # output file for excit. population  
-infilename  = "Results/Brunel_inh_np%d_%s.ras" % (np, simulator_name) # output file for inhib. population  
-vexfilename = "Results/Brunel_exc_np%d_%s.v"   % (np, simulator_name) # output file for membrane potential traces
-vinfilename = "Results/Brunel_inh_np%d_%s.v"   % (np, simulator_name) # output file for membrane potential traces
-
 # write data to file
-E_net.printSpikes(exfilename)
-I_net.printSpikes(infilename)
-E_net[[0, 1]].print_v(vexfilename)
-I_net[[0, 1]].print_v(vinfilename)
+print "%d Writing data to file." % rank
+(E_net + I_net).write_data("Results/brunel_%s_np%d_.h5" % (simulator_name, np))
 
 E_rate = E_net.mean_spike_count()*1000.0/simtime
 I_rate = I_net.mean_spike_count()*1000.0/simtime

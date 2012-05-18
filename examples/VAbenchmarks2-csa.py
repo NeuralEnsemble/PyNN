@@ -148,9 +148,8 @@ if (benchmark == "COBA"):
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id
-all_cells.record()
-vrecord_list = [exc_cells[0],exc_cells[1]]
-exc_cells.record_v(vrecord_list)
+all_cells.record('spikes')
+exc_cells[0:2].record('v')
 
 buildCPUTime = timer.diff()
 
@@ -178,9 +177,7 @@ print "%d Writing data to file..." % node_id
 if not(os.path.isdir('Results')):
     os.mkdir('Results')
 
-exc_cells.printSpikes("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator_name, np))
-inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator_name, np))
-exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator_name, np))
+all_cells.write_data("Results/VAbenchmark_%s%s_np%d.ras" % (benchmark, simulator_name, np))
 writeCPUTime = timer.diff()
 
 connections = "%d e→e,i  %d i→e,i" % (connections['exc'].size(),
