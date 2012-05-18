@@ -153,6 +153,7 @@ class DataCache(object):
 
     def store(self, obj):
         if obj not in self._data:
+            logger.debug("Adding %s to cache" % obj)
             self._data.append(obj)
 
     def clear(self):
@@ -244,8 +245,8 @@ class Recorder(object):
                 'size': self.population.size,
                 'first_index': 0,
                 'last_index': len(self.population),
-                'first_id': self.population.first_id,
-                'last_id': self.population.last_id,
+                'first_id': int(self.population.first_id),
+                'last_id': int(self.population.last_id),
                 'label': self.population.label,
             }
         metadata.update(self.population.annotations)

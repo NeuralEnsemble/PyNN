@@ -16,7 +16,7 @@ Classes:
 
 Attributes:
     state -- a singleton instance of the _State class.
-    recorder_list
+    recorders
 
 All other functions and classes are private, and should not be used by other
 modules.
@@ -42,7 +42,8 @@ Hz = brian.Hz
 ampere = brian.amp
 
 # Global variables
-recorder_list = []
+recorders = set([])
+write_on_end = [] # a list of (population, variable, filename) combinations that should be written to file on end()
 ZERO_WEIGHT = 1e-99
 
 logger = logging.getLogger("PyNN")
@@ -95,7 +96,7 @@ class BaseNeuronGroup(brian.NeuronGroup):
         except Exception:
             raise Exception("Simulation timestep not yet set. Need to call setup()")
         if "tau_refrac" in parameters:
-            max_refractory = parameters["tau_refrac"].max()
+            max_refractory = parameters["tau_refrac"].max() * ms
         else:
             max_refractory = None
         brian.NeuronGroup.__init__(self, n,
@@ -268,6 +269,8 @@ class _State(object):
         self.min_delay     = min_delay
         self.max_delay     = max_delay
         self.gid           = 0
+        self.running       = False
+        self.t_start = 0
 
     def _get_dt(self):
         if self.network.clock is None:
@@ -290,6 +293,7 @@ class _State(object):
         return self.simclock.t/ms
 
     def run(self, simtime):
+        self.running = True
         self.network.run(simtime * ms)
 
     def add(self, obj):
@@ -305,7 +309,10 @@ class _State(object):
 def reset():
     """Reset the state of the current network to time t = 0."""
     state.network.reinit()
+    state.running = False
+    state.t_start = 0
     for group in state.network.groups:
+        logger.debug("Re-initalizing %s" % group)
         group.initialize()
 
 # --- For implementation of access to individual neurons' parameters -----------

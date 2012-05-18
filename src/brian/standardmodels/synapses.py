@@ -7,8 +7,8 @@ Synapse Dynamics classes for the brian module.
 $Id$
 """
 
-from pyNN.standardmodels import synapses, SynapseDynamics, STDPMechanism
-
+from pyNN.standardmodels import build_translations, synapses, SynapseDynamics, STDPMechanism
+from brian import ms
 
 class STDPMechanism(STDPMechanism):
     """Specification of STDP models."""
@@ -24,6 +24,15 @@ class STDPMechanism(STDPMechanism):
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     __doc__ = synapses.TsodyksMarkramMechanism.__doc__
+
+    translations = build_translations(
+        ('U', 'U'),
+        ('tau_rec', 'tau_rec', ms),
+        ('tau_facil', 'tau_facil', ms),
+        ('u0', 'u0'), 
+        ('x0', 'x0' ),
+        ('y0', 'y0')
+    )
 
     def reset(population, spikes, v_reset):
         population.R_[spikes] -= U_SE*population.R_[spikes]

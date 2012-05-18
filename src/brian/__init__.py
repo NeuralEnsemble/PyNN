@@ -12,7 +12,7 @@ import logging
 #import brian_no_units_no_warnings
 from pyNN.brian import simulator
 from pyNN import common, recording, space, core, __doc__
-from pyNN.recording import files
+from pyNN.recording import files, get_io
 from pyNN.brian.standardmodels.cells import *
 from pyNN.brian.standardmodels.electrodes import *
 from pyNN.brian.connectors import *
@@ -60,9 +60,10 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    for recorder in simulator.recorder_list:
-        recorder.write(gather=True, compatible_output=compatible_output)
-    simulator.recorder_list = []
+    for (population, variables, filename) in simulator.write_on_end:
+        io = get_io(filename)
+        population.write_data(io, variables)
+    simulator.write_on_end = []
     electrodes.current_sources = []
     for item in simulator.state.network.groups + simulator.state.network._all_operations:
         del item
@@ -73,7 +74,7 @@ def run(simtime):
     simulator.state.run(simtime)
     return get_current_time()
 
-reset = simulator.reset
+reset = common.build_reset(simulator)
 
 initialize = common.initialize
 
@@ -107,9 +108,21 @@ class PopulationView(common.PopulationView):
         """
         params = {}
         for name in names:
-            params[name] = getattr(self.parent.brian_cells, name)[self.mask]
-            assert isinstance(params[name], numpy.ndarray)
+            if name == "spiketimes":
+                params[name] = [Sequence(st) for st in getattr(self.parent.brian_cells, name)[self.mask]]
+            else:
+                params[name] = getattr(self.parent.brian_cells, name)[self.mask]
+                assert isinstance(params[name], numpy.ndarray)
         return ParameterSpace(params, size=self.size)
+
+    def _set_parameters(self, parameter_space):
+        """
+        parameter_space should contain native parameters
+        """
+        parameter_space.evaluate(simplify=False)
+        assert self.mask.step in (1, None)
+        for name, value in parameter_space.items():
+            setattr(self.parent.brian_cells[self.mask.start:self.mask.stop], name, value)
 
 
 class Population(common.Population):
@@ -158,8 +171,11 @@ class Population(common.Population):
         """
         params = {}
         for name in names:
-            params[name] = getattr(self.brian_cells, name)
-            assert isinstance(params[name], numpy.ndarray)
+            if name == "spiketimes":
+                params[name] = [Sequence(st) for st in getattr(self.brian_cells, name)]
+            else:
+                params[name] = getattr(self.brian_cells, name)
+                assert isinstance(params[name], numpy.ndarray)
         return ParameterSpace(params, size=self.size)
 
     def _set_parameters(self, parameter_space):
@@ -171,10 +187,9 @@ class Population(common.Population):
             setattr(self.brian_cells, name, value)
 
     def _set_initial_value_array(self, variable, value):
+        value = value.evaluate(simplify=False)
         if variable is 'v':
             value = value*mV
-        if not hasattr(value, "__len__"):
-            value = value*numpy.ones((len(self),))
         self.brian_cells.initial_values[variable] = value
         self.brian_cells.initialize()
 
@@ -258,8 +273,8 @@ class Projection(common.Projection):
                     simulator.state.add(stdp)
                 elif self._plasticity_model is "tsodyks_markram_synapse":
                     parameters   = self.synapse_dynamics.fast.parameters
-                    stp = brian.STP(synapses, parameters['tau_rec'] * ms,
-                                            parameters['tau_facil'] * ms,
+                    stp = brian.STP(synapses, parameters['tau_rec'],
+                                            parameters['tau_facil'],
                                             parameters['U'])
                     simulator.state.add(stp)
 
@@ -568,10 +583,10 @@ connect = common.build_connect(Projection, FixedProbabilityConnector)
 
 set = common.set
 
-record = common.build_record('spikes', simulator)
+record = common.build_record(simulator)
 
-record_v = common.build_record('v', simulator)
+record_v = lambda source, filename: record(['v'], source, filename)
 
-record_gsyn = common.build_record('gsyn', simulator)
+record_gsyn = lambda source, filename: record(['gsyn_exc', 'gsyn_inh'], source, filename)
 
 # ==============================================================================

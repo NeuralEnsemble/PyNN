@@ -48,6 +48,13 @@ class Sequence(object):
 
     __rmul__ = __mul__
 
+    def __div__(self, val):
+        """docstring goes here"""
+        if hasattr(val, '__len__'):
+            return numpy.array([Sequence(self.value/x) for x in val], dtype=Sequence) # reshape if necessary?
+        else:
+            return Sequence(self.value/val)
+
     def __eq__(self, other):
         return (self.value == other.value).all()
 
