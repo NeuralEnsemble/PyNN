@@ -12,7 +12,7 @@ import socket, os
 import csa
 from pyNN.utility import get_script_args, Timer
 
-simulator_name = get_script_args(1)[0]  
+simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
 from pyNN.random import NumpyRNG
@@ -50,7 +50,7 @@ connector = CSAConnector(csa.random(0.5), weights=0.1)
 projection = Projection(input_population, output_population, connector, rng=rng)
 print connector.describe(), timer.elapsedTime()
 
-file_stem = "Results/simpleRandomNetwork_np%d_%s" % (num_processes(), simulator_name)
+file_stem = "Results/simpleRandomNetwork_csa_np%d_%s" % (num_processes(), simulator_name)
 
 projection.saveConnections('%s.conn' % file_stem)
 
@@ -62,10 +62,9 @@ print "[%d] Running simulation" % node
 run(tstop)
 
 print "[%d] Writing spikes and Vm to disk" % node
-output_population.write_data('%s_output.txt' % file_stem)
-input_population.write_data('%s_input.txt' % file_stem)
+output_population.write_data('%s_output.pkl' % file_stem)
+#input_population.write_data('%s_input.pkl' % file_stem)
 
 print "[%d] Finishing" % node
 end()
 print "[%d] Done" % node
-

@@ -17,7 +17,7 @@ logger = logging.getLogger("PyNN")
 deprecated = core.deprecated
 DEFAULT_WEIGHT = 0.0
 
-def check_weight(weight, synapse_type, is_conductance):
+def check_weight(weight, synapse_type, is_conductance): # remove? essentially duplicates code in connectors.py from line 157
     if weight is None:
         weight = DEFAULT_WEIGHT
     if core.is_listlike(weight):
@@ -50,7 +50,7 @@ class Projection(object):
     plasticity mechanisms) between two populations, together with methods to
     set the parameters of those connections, including the parameters of
     plasticity mechanisms.
-    
+
     Arguments:
         `presynaptic_neurons` and `postsynaptic_neurons`:
             Population, PopulationView or Assembly objects.
@@ -85,11 +85,11 @@ class Projection(object):
                                (presynaptic_neurons, postsynaptic_neurons)):
             if not isinstance(pop, (BasePopulation, Assembly)):
                 raise errors.ConnectionError("%ssynaptic_neurons must be a Population, PopulationView or Assembly, not a %s" % (prefix, type(pop)))
-        
+
         if isinstance(postsynaptic_neurons, Assembly):
             if not postsynaptic_neurons._homogeneous_synapses:
                 raise Exception('Projection to an Assembly object can be made only with homogeneous synapses types')
-            
+
         self.pre    = presynaptic_neurons  #  } these really
         self.source = source               #  } should be
         self.post   = postsynaptic_neurons #  } read-only
@@ -146,9 +146,9 @@ class Projection(object):
     def set(self, name, value):
         """
         Set connection attributes for all connections on the local MPI node.
-        
+
         `name`:
-            attribute name 
+            attribute name
         `value`:
             the attribute numeric value, or a list/1D array of such values of
             the same length as the number of local connections, or a 2D array
@@ -220,20 +220,20 @@ class Projection(object):
         """
         Get the values of a given attribute (weight or delay) for all
         connections in this Projection.
-        
+
         `parameter_name`:
             name of the attribute whose values are wanted.
         `format`:
             "list" or "array". Array format implicitly assumes that all
             connections belong to a single Projection.
-        
+
         Return a list or a 2D Numpy array. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
         synaptic Population to the jth neuron in the post-synaptic Population,
         if a single such connection exists. If there are no such connections,
         X_ij will be NaN. If there are multiple such connections, the summed
         value will be given, which makes some sense for weights, but is
-        pretty meaningless for delays. 
+        pretty meaningless for delays.
         """
         raise NotImplementedError
 
@@ -280,18 +280,18 @@ class Projection(object):
         Save connections to file in a format suitable for reading in with a
         FromFileConnector.
         """
-        
+
         if isinstance(file, basestring):
             file = recording.files.StandardTextFile(file, mode='w')
-        
+
         lines = []
         if not compatible_output:
             for c in self.connections:
                 lines.append([c.source, c.target, c.weight, c.delay])
         else:
-            for c in self.connections: 
+            for c in self.connections:
                 lines.append([self.pre.id_to_index(c.source), self.post.id_to_index(c.target), c.weight, c.delay])
-        
+
         if gather == True and self._simulator.state.num_processes > 1:
             all_lines = { self._simulator.state.mpi_rank: lines }
             all_lines = recording.gather_dict(all_lines)
@@ -299,9 +299,9 @@ class Projection(object):
                 lines = reduce(operator.add, all_lines.values())
         elif self._simulator.state.num_processes > 1:
             file.rename('%s.%d' % (file.name, self._simulator.state.mpi_rank))
-        
+
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
-        
+
         if gather == False or self._simulator.state.mpi_rank == 0:
             file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
             file.close()
@@ -313,14 +313,14 @@ class Projection(object):
         for non-existent connections.
         """
         weights = self.get('weight', format=format, gather=gather)
-        
+
         if isinstance(file, basestring):
             file = recording.files.StandardTextFile(file, mode='w')
-        
+
         if format == 'array':
             weights = numpy.where(numpy.isnan(weights), 0.0, weights)
         file.write(weights, {})
-        file.close()    
+        file.close()
 
     @deprecated("save('delay', file, format, gather)")
     def printDelays(self, file, format='list', gather=True):
@@ -329,14 +329,14 @@ class Projection(object):
         for non-existent connections.
         """
         delays = self.getDelays(format=format, gather=gather)
-        
+
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
-        
+
         if format == 'array':
             delays = numpy.where(numpy.isnan(delays), 0.0, delays)
         file.write(delays, {})
-        file.close()  
+        file.close()
 
     @deprecated("numpy.histogram()")
     def weightHistogram(self, min=None, max=None, nbins=10):

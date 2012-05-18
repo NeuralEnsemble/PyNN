@@ -16,26 +16,46 @@ import os
 import matplotlib.pyplot as plt
 import numpy
 import warnings
+import glob
 from pyNN.recording import get_io
-pylab.rcParams['interactive'] = True
+
+plt.ion() #.rcParams['interactive'] = True
 
 example = sys.argv[1]
 
 blocks = {}
-for simulator in 'PCSIM', 'NEST', 'NEURON', 'Brian':
-    datafiles = glob.glob("Results/%s_*_%s.*" % (example, simulator.lower()))
-    assert len(datafiles) == 1
-    blocks[simulator] = get_io(datafiles[0]).read()
+for simulator in 'PCSIM', 'NEST', 'NEURON', 'Brian', 'MOOSE', 'Nemo':
+    pattern = "Results/%s_*%s.*" % (example, simulator.lower())
+    datafiles = glob.glob(pattern)
+    if datafiles:
+        for datafile in datafiles:
+            base = os.path.basename(datafile)
+            root = base[:base.find(simulator.lower())-1]
+            if root not in blocks:
+                blocks[root] = {}
+            blocks[root][simulator] = get_io(datafile).read_block()
+    else:
+        print "No data found for pattern %s" % pattern
 
-for simulator, block in blocks.items():
-    vm = block.segments[0].filter(name="v")
-    plt.plot(vm.times, vm[:, 0], label=simulator)
-plt.legend()
-plt.title(example)
-plt.xlabel("Time (ms)")
-plt.ylabel("Vm (mV)")
+print "-"*79
+print example
+from pprint import pprint
+pprint(blocks)
 
-plt.savefig("Results/%s.png" % example)
+if len(blocks) > 0:
+    for name in blocks:
+        plt.figure()
+        lw = 2*len(blocks[name]) - 1
+        for simulator, block in blocks[name].items():
+            vm = block.segments[0].filter(name="v")[0]
+            plt.plot(vm.times, vm[:, 0], label=simulator, linewidth=lw)
+            lw -= 2
+        plt.legend()
+        plt.title(name)
+        plt.xlabel("Time (ms)")
+        plt.ylabel("Vm (mV)")
+
+        plt.savefig("Results/%s.png" % name)
 
 #if gsyn_data:
 #    pylab.figure(2)

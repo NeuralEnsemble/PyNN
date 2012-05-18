@@ -28,6 +28,6 @@ all_spikes = poissonsource.get_data()
 for spiketrain in all_spikes.segments[0].spiketrains:
     print "cell #%d: %s" % (spiketrain.annotations['source_id'], spiketrain[:5])
 
-poissonsource.write_data("Results/SpikeSourcePoisson_%s.h5" % simulator_name)
+poissonsource.write_data("Results/SpikeSourcePoisson_%s.pkl" % simulator_name)
 
 end()

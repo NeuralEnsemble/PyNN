@@ -11,7 +11,7 @@ $Id$
 import numpy
 from pyNN.utility import get_script_args
 
-simulator_name = get_script_args(1)[0]  
+simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
 tstop = 1000.0 # all times in milliseconds
@@ -29,12 +29,11 @@ spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/rate, size=nu
 assert spike_times.max() > tstop
 
 spike_source = create(SpikeSourceArray, {'spike_times': spike_times })
- 
+
 conn1 = connect(spike_source, ifcell1, weight=1.0)
 conn2 = connect(spike_source, ifcell2, weight=1.0)
-    
-record('v', ifcell1+ifcell2, "Results/simpleNetworkL_%s_v.pkl" % simulator_name)
-run(tstop)
-    
-end()
 
+record('v', ifcell1+ifcell2, "Results/simpleNetworkL_%s.pkl" % simulator_name)
+run(tstop)
+
+end()

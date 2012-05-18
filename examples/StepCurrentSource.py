@@ -9,7 +9,7 @@ $Id$
 
 from pyNN.utility import get_script_args
 
-simulator_name = get_script_args(1)[0]  
+simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
 setup()
@@ -19,7 +19,7 @@ current_source = StepCurrentSource({'times' : [50.0, 110.0, 150.0, 210.0],
                                     'amplitudes' : [0.4, 0.6, -0.2, 0.2]})
 cell.inject(current_source)
 
-record('v', cell, "Results/StepCurrentSource_%s.txt" % simulator_name)
+record('v', cell, "Results/StepCurrentSource_%s.pkl" % simulator_name)
 run(250.0)
-  
+
 end()

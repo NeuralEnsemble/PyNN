@@ -977,9 +977,9 @@ class Assembly(object):
                 for item in id:
                     data = numpy.where(all_cells == item)[0]
                     if len(data) == 0:
-                        raise IndexError("ID %s not present in the View" %item)
+                        raise IndexError("ID %s not present in the Assembly" %item)
                     elif len(data) > 1:
-                        raise Exception("ID %s is duplicated in the View" %item)
+                        raise Exception("ID %s is duplicated in the Assembly" %item)
                     else:
                         result = numpy.append(result, data)
                 return result

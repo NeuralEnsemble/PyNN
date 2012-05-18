@@ -16,7 +16,7 @@ $Id$
 
 from pyNN.utility import get_script_args
 
-simulator_name = get_script_args(1)[0] 
+simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
 
@@ -28,15 +28,14 @@ ifcell = create(IF_curr_alpha, {'i_offset' : 0.1,   'tau_refrac' : 3.0,
 
 spike_sourceE = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(5,105,10)]})
 spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(100,255,10)]})
- 
+
 connE = connect(spike_sourceE, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)
 connI = connect(spike_sourceI, ifcell, weight=-1.5, synapse_type='inhibitory', delay=4.0)
 
-record('v', ifcell, "Results/IF_curr_alpha_%s.txt" % simulator_name)
+record('v', ifcell, "Results/IF_curr_alpha_%s.pkl" % simulator_name)
 
 initialize(ifcell, 'v', -54.2)
 
 run(200.0)
 
 end()
-

@@ -10,7 +10,7 @@ $Id$
 import numpy
 from pyNN.utility import get_script_args
 
-simulator_name = get_script_args(1)[0]  
+simulator_name = get_script_args(1)[0]
 exec("import pyNN.%s as sim" % simulator_name)
 
 sim.setup(quit_on_end=False)
@@ -38,14 +38,14 @@ for label in 'static', 'depressing', 'facilitating':
     projections[label] = sim.Projection(spike_source, populations[label], connector,
                                         target='inhibitory',
                                         synapse_dynamics=synapse_dynamics[label])
-    
+
 spike_source.record('spikes')
 
 sim.run(200.0)
 
 for label,p in populations.items():
-    p.write_data("Results/tsodyksmarkram_%s_%s.txt" % (label, simulator_name))
-    
+    p.write_data("Results/tsodyksmarkram_%s_%s.pkl" % (label, simulator_name))
+
 print spike_source.get_data('spikes')
-    
+
 sim.end()

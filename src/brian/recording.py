@@ -89,7 +89,7 @@ class Recorder(recording.Recorder):
                 sampling_period=simulator.state.dt*pq.ms # must run on all MPI nodes
                 segment.analogsignalarrays.append(
                     neo.AnalogSignalArray(
-                        signal_array.T,
+                        signal_array,
                         units=recording.UNITS_MAP.get(variable, 'dimensionless'),
                         t_start=t_start,
                         sampling_period=sampling_period,

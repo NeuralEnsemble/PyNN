@@ -237,7 +237,7 @@ class Recorder(object):
         if self._simulator.state.mpi_rank == 0 or gather == False:
             # Open the output file, if necessary and write the data
             logger.debug("Writing data to file %s" % io)
-            io.write(data)
+            io.write_block(data)
 
     @property
     def metadata(self):

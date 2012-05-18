@@ -64,8 +64,8 @@ input_conns.setDelays(syn_delay)
 
 run(simtime)
 
-spike_source.write_data("Results/small_network_input_%s_np%d.ras" % (simulator_name, num_processes()))
-cells.write_data("Results/small_network_%s_np%d.pkl" % (simulator_name, num_processes()))
+#spike_source.write_data("Results/small_network_input_np%d_%s.pkl" % (num_processes(), simulator_name))
+cells.write_data("Results/small_network_np%d_%s.pkl" % (num_processes(), simulator_name))
 
 print "Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz"
 

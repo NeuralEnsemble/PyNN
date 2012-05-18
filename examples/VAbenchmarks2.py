@@ -26,7 +26,7 @@ from pyNN.utility import get_script_args, Timer
 usage = """Usage: python VAbenchmarks.py <simulator> <benchmark>
            <simulator> is either neuron, nest, brian or pcsim
            <benchmark> is either CUBA or COBA."""
-simulator_name, benchmark = get_script_args(2, usage)  
+simulator_name, benchmark = get_script_args(2, usage)
 exec("from pyNN.%s import *" % simulator_name)
 from pyNN.random import NumpyRNG, RandomDistribution
 
@@ -82,7 +82,7 @@ area  = area*1e-8                     # convert to cm²
 cm    = cm*area*1000                  # convert to nF
 Rm    = 1e-6/(g_leak*area)            # membrane resistance in MΩ
 assert tau_m == cm*Rm                 # just to check
-n_exc = int(round((n*r_ei/(1+r_ei)))) # number of excitatory cells   
+n_exc = int(round((n*r_ei/(1+r_ei)))) # number of excitatory cells
 n_inh = n - n_exc                     # number of inhibitory cells
 if benchmark == "COBA":
     celltype = IF_cond_exp
@@ -109,7 +109,7 @@ host_name = socket.gethostname()
 print "Host #%d is on %s" % (node_id+1, host_name)
 
 print "%s Initialising the simulator with %d thread(s)..." % (node_id, extra['threads'])
-    
+
 cell_params = {
     'tau_m'      : tau_m,    'tau_syn_E'  : tau_exc,  'tau_syn_I'  : tau_inh,
     'v_rest'     : E_leak,   'v_reset'    : v_reset,  'v_thresh'   : v_thresh,
@@ -118,7 +118,7 @@ cell_params = {
 if (benchmark == "COBA"):
     cell_params['e_rev_E'] = Erev_exc
     cell_params['e_rev_I'] = Erev_inh
-    
+
 timer.start()
 
 print "%s Creating cell populations..." % node_id
@@ -176,7 +176,7 @@ print "%d Writing data to file..." % node_id
 if not(os.path.isdir('Results')):
     os.mkdir('Results')
 
-all_cells.write_data("Results/VAbenchmark_%s_%s_np%d.txt" % (benchmark, simulator_name, np))
+all_cells.write_data("Results/VAbenchmarks2_%s_np%d_%s.pkl" % (benchmark, np, simulator_name))
 
 writeCPUTime = timer.diff()
 

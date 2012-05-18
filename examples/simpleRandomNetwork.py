@@ -10,12 +10,14 @@ $Id$
 
 import socket, os
 
-from pyNN.utility import get_script_args
+from pyNN.utility import get_script_args, init_logging
 
-simulator_name = get_script_args(1)[0]  
+simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
 from pyNN.random import NumpyRNG, RandomDistribution
+
+init_logging(None, debug=True)
 
 seed = 764756387
 rng = NumpyRNG(seed=seed, parallel_safe=True)
@@ -47,7 +49,7 @@ connector = FixedProbabilityConnector(0.5, weights=1.0)
 projection = Projection(input_population, output_population, connector, rng=rng)
 
 file_stem = "Results/simpleRandomNetwork_np%d_%s" % (num_processes(), simulator_name)
-projection.saveConnections('%s.conn' % file_stem)
+##projection.saveConnections('%s.conn' % file_stem)
 
 input_population.record('spikes')
 output_population.record('spikes')
@@ -57,10 +59,9 @@ print "[%d] Running simulation" % node
 run(tstop)
 
 print "[%d] Writing spikes and Vm to disk" % node
-output_population.write_data('%s_output.h5' % file_stem)
-input_population.write_data('%s_input.h5' % file_stem)
+output_population.write_data('%s_output.pkl' % file_stem)
+##input_population.write_data('%s_input.h5' % file_stem)
 
 print "[%d] Finishing" % node
 end()
 print "[%d] Done" % node
-
