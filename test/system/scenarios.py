@@ -1,6 +1,7 @@
 # encoding: utf-8
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN import common, recording
+from pyNN.space import Space, Grid3D, RandomStructure, Cuboid
 from nose.tools import assert_equal
 import glob, os
 import numpy
@@ -125,8 +126,8 @@ def scenario1a(sim):
                 synapse_type='inhibitory', p=pconn_recurr)
     sim.connect(inputs, all_cells, weight=w_input, delay=delay,
                 synapse_type='excitatory', p=pconn_input)
-    sim.record(all_cells, "scenario1a_%s_spikes.pkl" % sim.__name__)
-    sim.record_v(excitatory_cells[0:2], "scenario1a_%s_v.pkl" % sim.__name__)
+    sim.record('spikes', all_cells, "scenario1a_%s_spikes.pkl" % sim.__name__)
+    sim.record('v', excitatory_cells[0:2], "scenario1a_%s_v.pkl" % sim.__name__)
 
     sim.run(tstop)
 
@@ -571,3 +572,51 @@ def ticket195(sim):
     post.record('spikes')
     sim.run(100.0)
     assert_arrays_almost_equal(post.get_data().segments[0].spiketrains[0], numpy.array([13.4])*pq.ms, 0.5)
+
+
+@register(exclude=["nemo"])
+def scenario4(sim):
+    """
+    Network with spatial structure
+    """
+    sim.setup()
+    rng = NumpyRNG(seed=76454, parallel_safe=False)
+    
+    input_layout = RandomStructure(boundary=Cuboid(width=500.0, height=500.0, depth=100.0),
+                                   origin=(0, 0, 0), rng=rng)
+    inputs = sim.Population(100, sim.SpikeSourcePoisson, {'rate': RandomDistribution('uniform', [3.0, 7.0], rng=rng)},
+                            structure=input_layout, label="inputs")
+    output_layout = Grid3D(aspect_ratioXY=1.0, aspect_ratioXZ=5.0, dx=10.0, dy=10.0, dz=10.0,
+                           x0=0.0, y0=0.0, z0=200.0)
+    outputs = sim.Population(200, sim.EIF_cond_exp_isfa_ista,
+                             initial_values = {'v': RandomDistribution('normal', [-65.0, 5.0], rng=rng),
+                                               'w': RandomDistribution('normal', [0.0, 1.0], rng=rng)},
+                             structure=output_layout,
+                             label="outputs")
+    DDPC = sim.DistanceDependentProbabilityConnector
+    input_connectivity = DDPC("0.5*exp(-d/100.0)", 
+                             weights=RandomDistribution('normal', (0.1, 0.02), rng=rng),
+                             delays="0.5 + d/100.0",
+                             space=Space(axes='xy'))
+    recurrent_connectivity = DDPC("sin(pi*d/250.0)**2",
+                                  weights=0.05,
+                                  delays="0.2 + d/100.0",
+                                  space=Space(periodic_boundaries=((-100.0, 100.0), (-100.0, 100.0), None))) # should add "calculate_boundaries" method to Structure classes
+    depressing = sim.SynapseDynamics(fast=sim.TsodyksMarkramMechanism(U=0.5, tau_rec=800.0, tau_facil=0.0))
+    facilitating = sim.SynapseDynamics(fast=sim.TsodyksMarkramMechanism(U=0.04, tau_rec=100.0, tau_facil=1000.0))
+    input_connections = sim.Projection(inputs, outputs, input_connectivity,
+                                       target='excitatory',
+                                       synapse_dynamics=depressing,
+                                       label="input connections",
+                                       rng=rng)
+    recurrent_connections = sim.Projection(outputs, outputs, recurrent_connectivity,
+                                           target='inhibitory',
+                                           synapse_dynamics=facilitating,
+                                           label="recurrent connections",
+                                           rng=rng)
+    outputs.record('spikes')
+    outputs.sample(10, rng=rng).record('v')
+    sim.run(1000.0)
+    data = outputs.get_data()
+    sim.end()
+    return data
