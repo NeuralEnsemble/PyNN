@@ -591,8 +591,8 @@ def ticket226(sim):
     cell.record_v()
     sim.run(30.0)
     v = cell.get_data().segments[0].filter(name='v')[0][:, 0]
-    assert abs(v[abs(v.times-10.0*pq.ms)<0.01][0] - -60.0*pq.mV) < 1e-10
-    assert v[abs(v.times-10.1*pq.ms)<0.01][0] > -59.99*pq.mV
+    assert abs(v[abs(v.times-10.0*pq.ms)<0.01*pq.ms][0] - -60.0*pq.mV) < 1e-10
+    assert v[abs(v.times-10.1*pq.ms)<0.01*pq.ms][0] > -59.99*pq.mV
 
 
 @register(exclude=["nemo", "brian"])

@@ -18,6 +18,7 @@ import nest
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.common import Population, PopulationView, Assembly
 from pyNN.parameters import ParameterSpace, Sequence
+from pyNN.nest.simulator import state
 
 
 class NestCurrentSource(StandardCurrentSource):
@@ -44,14 +45,25 @@ class NestCurrentSource(StandardCurrentSource):
             self.cell_list = cells
         nest.DivergentConnect(self._device, self.cell_list)
 
+    def _delay_correction(self, value): 
+        # use dt or min_delay? 
+        return value - state.min_delay
+
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for key, value in parameters.items():
             if key == "amplitude_values":
                 assert isinstance(value, Sequence)
-                nest.SetStatus([self._device], {key : value.value, 'amplitude_times' : parameters["amplitude_times"].value})
+                times = self._delay_correction(parameters["amplitude_times"].value)
+                times.append(1e12)
+                amplitudes = value.value
+                amplitudes.append(amplitudes[-1])
+                nest.SetStatus([self._device], {key: amplitudes,
+                                                'amplitude_times': times})
+            elif key in ("start", "stop"):
+                nest.SetStatus([self._device], {key: self._delay_correction(value)})
             elif not key == "amplitude_times":
-                nest.SetStatus([self._device], {key : float(value)})
+                nest.SetStatus([self._device], {key: value})
 
     def get_native_parameters(self):
         all_params = nest.GetStatus([self._device])[0]

@@ -49,7 +49,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     brian.set_global_preferences(**extra_params)
     simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.state.add(update_currents) # from electrodes
-    ## We need to reset the clock of the update_currents function, for the electrodes
+    update_currents.clock = simulator.state.simclock
     simulator.state.network._all_operations[0].clock = brian.Clock(t=0*ms, dt=timestep*ms)
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
