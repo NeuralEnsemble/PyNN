@@ -19,6 +19,9 @@ from pyNN.brian import simulator
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.core import larray
+import logging
+
+logger = logging.getLogger("PyNN")
 
 current_sources = []
 
@@ -71,6 +74,7 @@ class BrianCurrentSource(StandardCurrentSource):
 
     def _update_current(self):
         if self.running and simulator.state.t >= self.times[self.i]*1e3:
+            logger.debug("Updating current at time %f" % simulator.state.t)
             for cell, idx in zip(self.cell_list, self.indices):
                 if not self._is_playable:
                     cell.parent_group.i_inj[idx] = self.amplitudes[self.i] * ampere

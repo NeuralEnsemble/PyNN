@@ -19,8 +19,6 @@ uS = brian.uS
 
 logger = logging.getLogger("PyNN")
 
-# --- For implementation of record_X()/get_X()/print_X() -----------------------
-
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
     _simulator = simulator
@@ -32,6 +30,10 @@ class Recorder(recording.Recorder):
 
     def _create_device(self, group, variable):
         """Create a Brian recording device."""
+        # By default, StateMonitor has when='end', i.e. the value recorded at 
+        # the end of the timestep is associated with the time at the start of the step, 
+        # This is different to the PyNN semantics (i.e. the value at the end of 
+        # the step is associated with the time at the end of the step.) 
         clock = simulator.state.simclock
         if variable == 'spikes':
             self._devices[variable] = brian.SpikeMonitor(group, record=self.recorded)
@@ -43,7 +45,9 @@ class Recorder(recording.Recorder):
             elif variable == 'gsyn_inh':
                 varname = self.population.celltype.synapses['inhibitory']
             self._devices[variable] = brian.StateMonitor(group, varname,
-                                                   record=self.recorded, clock=clock)
+                                                         record=self.recorded,
+                                                         clock=clock,
+                                                         when='start')
         simulator.state.add(self._devices[variable])
 
     def _record(self, variable, new_ids):
@@ -60,6 +64,14 @@ class Recorder(recording.Recorder):
 
     def _reset(self):
         raise NotImplementedError("Recording reset is not currently supported for pyNN.brian")
+
+    def _get_all_values(self, variable):
+        device = self._devices[variable]
+        units = mV  # TODO detect & scale units properly
+        # because we use `when='start'`, need to add the value at the end of the final time step.
+        values = numpy.array(device._values)/units
+        current_values = device.P.state_(device.varname)[device.record]/units
+        return numpy.vstack((values, current_values[numpy.newaxis, :]))
 
     def _get_current_segment(self, filter_ids=None, variables='all'):
         segment = neo.Segment(name=self.population.label,
@@ -84,7 +96,7 @@ class Recorder(recording.Recorder):
                                    source_id=int(i + padding)) # index?
                     for i in indices]
             else:
-                signal_array = numpy.array(self._devices[variable]._values)/mV # TODO detect & scale units properly
+                signal_array = self._get_all_values(variable)
                 t_start=simulator.state.t_start*pq.ms
                 sampling_period=simulator.state.dt*pq.ms # must run on all MPI nodes
                 segment.analogsignalarrays.append(
@@ -95,7 +107,7 @@ class Recorder(recording.Recorder):
                         sampling_period=sampling_period,
                         name=variable,
                         source_population=self.population.label,
-                        channel_indexes=indices,
+                        channel_indexes=list(sorted(indices)),
                         source_ids=indices+padding)
                 )
         return segment
