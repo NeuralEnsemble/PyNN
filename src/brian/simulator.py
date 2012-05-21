@@ -129,6 +129,7 @@ class BiophysicalNeuronGroup(BaseNeuronGroup):
                                  threshold, reset, refractory,
                                  implicit=True,
                                  **parameters)
+        self._S0 = self._S[:, 0]
 
 
 class ThresholdNeuronGroup(BaseNeuronGroup):
@@ -141,6 +142,7 @@ class ThresholdNeuronGroup(BaseNeuronGroup):
                                  threshold, reset, refractory,
                                  **parameters)
         self._variable_refractory_time = True
+        self._S0 = self._S[:, 0]
 
     tau_refrac = _new_property('', '_refractory_array', ms)
     v_reset    = _new_property('_resetfun', 'resetvalue', mV)
@@ -162,6 +164,7 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
                                  **parameters)
         self._variable_refractory_time = True
         self._refractory_variable = None
+        self._S0 = self._S[:, 0]
 
     tau_refrac = _new_property('', '_refractory_array', ms)
     v_reset    = _new_property('_resetfun.resetfun', 'Vr', mV)
@@ -184,6 +187,7 @@ class IzhikevichNeuronGroup(BaseNeuronGroup):
                                  **parameters)
         self._variable_refractory_time = True
         self._refractory_variable = None
+        self._S0 = self._S[:, 0]
 
     tau_refrac = _new_property('', '_refractory_array', ms)
     v_reset    = _new_property('_resetfun.resetfun', 'Vr', mV)
@@ -271,6 +275,8 @@ class _State(object):
         self.gid           = 0
         self.running       = False
         self.t_start = 0
+        global recorders
+        recorders = set([])
 
     def _get_dt(self):
         if self.network.clock is None:
@@ -314,6 +320,7 @@ def reset():
     for group in state.network.groups:
         logger.debug("Re-initalizing %s" % group)
         group.initialize()
+    assert state.t == state.t_start
 
 # --- For implementation of access to individual neurons' parameters -----------
 
@@ -444,13 +451,13 @@ class STDP(brian.STDP):
 
 class AdaptiveReset(object):
 
-    def __init__(self, Vr= -70.6 * mV, b=0.0805 * nA):
+    def __init__(self, Vr=-70.6*mV, b=0.0805*nA):
         self.Vr = Vr
         self.b  = b
 
     def __call__(self, P, spikes):
-        P.v[spikes] = self.Vr
-        P.w[spikes] += self.b
+        P.v[spikes] = self.Vr[spikes]
+        P.w[spikes] += self.b[spikes]
 
 
 class IzhikevichReset(object):
@@ -460,8 +467,8 @@ class IzhikevichReset(object):
         self.d  = d
 
     def __call__(self, P, spikes):
-        P.v[spikes]  = self.Vr
-        P.u[spikes] += self.d
+        P.v[spikes]  = self.Vr[spikes]
+        P.u[spikes] += self.d[spikes]
 
 
 # --- For implementation of connect() and Connector classes --------------------
