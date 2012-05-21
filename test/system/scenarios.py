@@ -455,7 +455,7 @@ def test_EIF_cond_alpha_isfa_ista(sim):
     return data
 
 
-@register(exclude=['pcsim', 'nemo'])
+@register(exclude=['pcsim', 'nemo', 'brian'])
 def test_HH_cond_exp(sim):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
@@ -574,7 +574,28 @@ def ticket195(sim):
     assert_arrays_almost_equal(post.get_data().segments[0].spiketrains[0], numpy.array([13.4])*pq.ms, 0.5)
 
 
-@register(exclude=["nemo"])
+@register()
+def ticket226(sim):
+    """
+    Check that the start time of DCSources is correctly taken into account
+    http://neuralensemble.org/trac/PyNN/ticket/226)
+    """
+    sim.setup(timestep=0.1)
+
+    cell = sim.Population(1, sim.IF_curr_alpha,
+                          {'tau_m': 20.0, 'cm': 1.0, 'v_rest': -60.0,
+                           'v_reset': -60.0})
+    cell.initialize('v', -60.0)
+    inj = sim.DCSource(dict(amplitude=1.0, start=10.0, stop=20.0))
+    cell.inject(inj)
+    cell.record_v()
+    sim.run(30.0)
+    v = cell.get_data().segments[0].filter(name='v')[0][:, 0]
+    assert abs(v[abs(v.times-10.0*pq.ms)<0.01][0] - -60.0*pq.mV) < 1e-10
+    assert v[abs(v.times-10.1*pq.ms)<0.01][0] > -59.99*pq.mV
+
+
+@register(exclude=["nemo", "brian"])
 def scenario4(sim):
     """
     Network with spatial structure

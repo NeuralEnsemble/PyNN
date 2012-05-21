@@ -18,6 +18,7 @@ import numpy
 from pyNN.brian import simulator
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
+from pyNN.core import larray
 
 current_sources = []
 
@@ -43,10 +44,10 @@ class BrianCurrentSource(StandardCurrentSource):
                                          size=1)
         parameter_space.update(**parameters)
         parameter_space = self.translate(parameter_space)
-        parameter_space.evaluate(simplify=True)
-        self.set_native_parameters(parameter_space.as_dict())
+        self.set_native_parameters(parameter_space)
 
     def set_native_parameters(self, parameters):
+        parameters.evaluate(simplify=True)
         for name, value in parameters.items():
             if isinstance(value, Sequence):
                 value = value.value
@@ -75,7 +76,6 @@ class BrianCurrentSource(StandardCurrentSource):
                     cell.parent_group.i_inj[idx] = self.amplitudes[self.i] * ampere
                 else:
                     cell.parent_group.i_inj[idx] = self._compute(self.times[self.i]) * ampere
-            print simulator.state.t, self.i, self.times[self.i], self.cell_list[0].parent_group.i_inj[0]
             self.i += 1
             if self.i >= len(self.times):
                 self.running = False
