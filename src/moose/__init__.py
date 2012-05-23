@@ -50,10 +50,7 @@ def end(compatible_output=True):
     shutil.rmtree(temporary_directory, ignore_errors=True)
     moose.PyMooseBase.endSimulation()
 
-def run(simtime):
-    """Run the simulation for simtime"""
-    simulator.run(simtime)
-    return get_current_time()
+run = common.build_run(simulator)
 
 reset = common.build_reset(simulator)
 

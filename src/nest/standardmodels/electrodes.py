@@ -14,6 +14,7 @@ Classes:
 $Id: electrodes.py 991 2011-09-30 13:05:02Z apdavison $
 """
 
+import numpy
 import nest
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.common import Population, PopulationView, Assembly
@@ -55,9 +56,9 @@ class NestCurrentSource(StandardCurrentSource):
             if key == "amplitude_values":
                 assert isinstance(value, Sequence)
                 times = self._delay_correction(parameters["amplitude_times"].value)
-                times.append(1e12)
+                numpy.append(times, 1e12)
                 amplitudes = value.value
-                amplitudes.append(amplitudes[-1])
+                numpy.append(amplitudes, amplitudes[-1])
                 nest.SetStatus([self._device], {key: amplitudes,
                                                 'amplitude_times': times})
             elif key in ("start", "stop"):

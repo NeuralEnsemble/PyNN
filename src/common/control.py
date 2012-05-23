@@ -16,8 +16,20 @@ DEFAULT_MAX_DELAY = 10.0
 DEFAULT_TIMESTEP = 0.1
 DEFAULT_MIN_DELAY = DEFAULT_TIMESTEP
 
-if not 'simulator' in locals():
-    simulator = None  # should be set by simulator-specific modules
+##if not 'simulator' in locals():
+##    simulator = None  # should be set by simulator-specific modules
+assert 'simulator' not in locals() ##
+
+
+class BaseState(object):
+    """Base class for simulator _State classes."""
+    
+    def __init__(self):
+        """Initialize the simulator."""
+        self.running = False
+        self.t_start = 0
+        self.write_on_end = [] # a list of (population, variable, filename) combinations that should be written to file on end()
+        self.recorders = set([])
 
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
@@ -44,10 +56,12 @@ def end(compatible_output=True):
     raise NotImplementedError
 
 
-def run(simtime):
-    """Run the simulation for `simtime` ms."""
-    raise NotImplementedError
-
+def build_run(simulator):
+    def run(simtime):
+        """Run the simulation for `simtime` ms."""
+        simulator.state.run(simtime)
+        return simulator.state.t
+    return run
 
 def build_reset(simulator):
     def reset(annotations={}):
@@ -56,9 +70,9 @@ def build_reset(simulator):
         their initial values, and delete any recorded data. The network structure
         is not changed, nor is the specification of which neurons to record from.
         """
-        for recorder in simulator.recorders:
+        for recorder in simulator.state.recorders:
             recorder.store_to_cache(annotations)
-        simulator.reset()
+        simulator.state.reset()
     return reset
 
 def build_state_queries(simulator):

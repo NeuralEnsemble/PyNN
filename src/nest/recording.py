@@ -42,7 +42,7 @@ class RecordingDevice(object):
             device_parameters.update(to_file=True, to_memory=False)
         self._all_ids = set([])
         self._connected = False
-        simulator.recording_devices.append(self)
+        simulator.state.recording_devices.append(self)
         _set_status(self.device, device_parameters)
 
     def add_ids(self, new_ids):
@@ -157,7 +157,7 @@ class Multimeter(RecordingDevice):
 #        self._gathered = False
 #        self._connected = False
 #        self._all_ids = set([])
-#        simulator.recording_devices.append(self)
+#        simulator.state.recording_devices.append(self)
 #        logger.debug("Created %s with parameters %s" % (device_type, device_parameters))
 #
 #    def __del__(self):
@@ -386,8 +386,8 @@ class Recorder(recording.Recorder):
 
     def _reset(self):
         """ """
-        simulator.recording_devices.remove(self._multimeter)
-        simulator.recording_devices.remove(self._spike_detector)
+        simulator.state.recording_devices.remove(self._multimeter)
+        simulator.state.recording_devices.remove(self._spike_detector)
         # I guess the existing devices still exist in NEST, can we delete them
         # or at least turn them off?
         # Maybe we can reset them, rather than create new ones?

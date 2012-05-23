@@ -48,4 +48,4 @@ $Id: $
 from populations import IDMixin, BasePopulation, Population, PopulationView, Assembly, is_conductance
 from projections import Projection, check_weight, DEFAULT_WEIGHT
 from procedural_api import build_create, build_connect, set, build_record, initialize
-from control import setup, end, run, build_reset, build_state_queries
+from control import setup, end, build_run, build_reset, build_state_queries

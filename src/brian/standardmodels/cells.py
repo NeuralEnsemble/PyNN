@@ -1,7 +1,6 @@
 """
 Standard cells for the brian module
 
-
 :copyright: Copyright 2006-2012 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
@@ -9,12 +8,11 @@ $Id$
 """
 
 from pyNN.standardmodels import cells, build_translations, ModelNotAvailable
-#from brian.library.synapses import *
 import brian
-from pyNN.brian.simulator import PoissonGroupWithDelays, ThresholdNeuronGroup, \
-                                 AdaptiveNeuronGroup, BiophysicalNeuronGroup, \
-                                 MultipleSpikeGeneratorGroupWithDelays, \
-                                 IzhikevichNeuronGroup
+from pyNN.brian.cells import PoissonGroupWithDelays, ThresholdNeuronGroup, \
+                             AdaptiveNeuronGroup, BiophysicalNeuronGroup, \
+                             MultipleSpikeGeneratorGroupWithDelays, \
+                             IzhikevichNeuronGroup
 
 from brian import mV, ms, nF, nA, uS, Hz
 

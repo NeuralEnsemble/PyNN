@@ -13,12 +13,16 @@ import nest
 from pyNN.nest import simulator
 from pyNN import common, recording, errors, space, __doc__
 
+try:
+    nest.GetStatus([numpy.int64(0)])
+except NESTError:
+    raise Exception("NEST built without NumPy support. Try rebuilding NEST after installing NumPy.")
+
 if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
     raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
 
 import shutil
 import logging
-import tempfile
 from pyNN.nest.cells import NativeCellType, native_cell_type
 from pyNN.nest.synapses import NativeSynapseDynamics, NativeSynapseMechanism
 from pyNN.nest.standardmodels.cells import *
@@ -30,18 +34,10 @@ from pyNN.random import NumpyRNG
 from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import Sequence
 
-Set = set
-tempdirs = []
-NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')
-
 STATE_VARIABLE_MAP = {"v": "V_m", "w": "w", "gsyn_exc": "g_ex",
                       "gsyn_inh": "g_in"}
 logger = logging.getLogger("PyNN")
 
-try:
-    nest.GetStatus([numpy.int64(0)])
-except NESTError:
-    raise Exception("NEST built without NumPy support. Try rebuilding NEST after installing NumPy.")
 
 # ==============================================================================
 #   Utility functions
@@ -80,85 +76,57 @@ def _discrepancy_due_to_rounding(parameters, output_values):
 def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     Should be called at the very beginning of a script.
-    extra_params contains any keyword arguments that are required by a given
+    
+    `extra_params` contains any keyword arguments that are required by a given
     simulator but not by others.
+    
+    NEST-specific extra_params:
+    
+    `spike_precision`:
+        should be "on_grid" (default) or "off_grid"
+    `verbosity`:
+        INSERT DESCRIPTION OF POSSIBLE VALUES
+    `recording_precision`:
+        number of decimal places (OR SIGNIFICANT FIGURES?) in recorded data
+    `threads`:
+        number of threads to use
+    `rng_seeds`:
+        a list of seeds, one for each thread on each MPI process
+    `rng_seeds_seed`:
+        a single seed that will be used to generate random values for `rng_seeds`
     """
-    global tempdir
-
     common.setup(timestep, min_delay, max_delay, **extra_params)
-
-    if 'verbosity' in extra_params:
-        nest_verbosity = extra_params['verbosity'].upper()
-    else:
-        nest_verbosity = "WARNING"
-    nest.sli_run("M_%s setverbosity" % nest_verbosity)
-
-    if "spike_precision" in extra_params:
-        simulator.state.spike_precision = extra_params["spike_precision"]
-        if extra_params["spike_precision"] == 'off_grid':
-            simulator.state.default_recording_precision = 15
-    nest.SetKernelStatus({'off_grid_spiking': simulator.state.spike_precision=='off_grid'})
-    if "recording_precision" in extra_params:
-        simulator.state.default_recording_precision = extra_params["recording_precision"]
-
-    simulator.populations = []
-    simulator.recording_devices = []
-    simulator.recorders = Set([])
-
-    # clear the sli stack, if this is not done --> memory leak cause the stack increases
-    nest.sr('clear')
-
-    # reset the simulation kernel
-    nest.ResetKernel()
-
-    # all NEST to erase previously written files (defaut with all the other simulators)
-    nest.SetKernelStatus({'overwrite_files' : True})
-
-    # set tempdir
-    tempdir = tempfile.mkdtemp()
-    tempdirs.append(tempdir) # append tempdir to tempdirs list
-    nest.SetKernelStatus({'data_path': tempdir,})
-
+    simulator.state.clear()
+    for key in ("verbosity", "spike_precision", "recording_precision",
+                "threads"):
+        if key in extra_params:
+            setattr(simulator.state, key, extra_params[key])
     # set kernel RNG seeds
-    num_threads = extra_params.get('threads') or 1
+    simulator.state.num_threads = extra_params.get('threads') or 1
     if 'rng_seeds' in extra_params:
-        rng_seeds = extra_params['rng_seeds']
+        simulator.state.rng_seeds = extra_params['rng_seeds']
     else:
-        rng_seeds_seed = extra_params.get('rng_seeds_seed') or 42
-        rng = NumpyRNG(rng_seeds_seed)
-        rng_seeds = (rng.rng.uniform(size=num_threads*num_processes())*100000).astype('int').tolist()
-    logger.debug("rng_seeds = %s" % rng_seeds)
-    nest.SetKernelStatus({'local_num_threads': num_threads,
-                          'rng_seeds'        : rng_seeds})
-
+        rng = NumpyRNG(extra_params.get('rng_seeds_seed', 42))
+        n = simulator.state.num_processes * simulator.state.threads
+        simulator.state.rng_seeds = rng.next(n, 'randint', (100000,)).tolist()
     # set resolution
-    nest.SetKernelStatus({'resolution': float(timestep)})
-
+    simulator.state.dt = timestep
     # Set min_delay and max_delay for all synapse models
-    for synapse_model in NEST_SYNAPSE_TYPES:
-        nest.SetDefaults(synapse_model, {'delay'    : float(min_delay),
-                                         'min_delay': float(min_delay),
-                                         'max_delay': float(max_delay)})
-    simulator.reset()
-
+    simulator.state.set_delays(min_delay, max_delay)
     return rank()
 
 
 def end():
     """Do any necessary cleaning up before exiting."""
-    global tempdirs
-    for (population, variables, filename) in simulator.write_on_end:
+    for (population, variables, filename) in simulator.state.write_on_end:
         io = recording.get_io(filename)
         population.write_data(io, variables)
-    for tempdir in tempdirs:
+    for tempdir in simulator.state.tempdirs:
         shutil.rmtree(tempdir)
-    tempdirs = []
-    simulator.write_on_end = []
+    simulator.state.tempdirs = []
+    simulator.state.write_on_end = []
 
-def run(simtime):
-    """Run the simulation for simtime ms."""
-    simulator.run(simtime)
-    return get_current_time()
+run = common.build_run(simulator)
 
 reset = common.build_reset(simulator)
 
@@ -256,7 +224,7 @@ class Population(common.Population, PopulationMixin):
                  initial_values={}, label=None):
         __doc__ = common.Population.__doc__
         super(Population, self).__init__(size, cellclass, cellparams, structure, initial_values, label)
-        self._simulator.populations.append(self)
+        self._simulator.state.populations.append(self)
 
     def _create_cells(self):
         """

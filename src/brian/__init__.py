@@ -9,7 +9,6 @@ $Id$
 """
 
 import logging
-#import brian_no_units_no_warnings
 from pyNN.brian import simulator
 from pyNN import common, recording, space, core, __doc__
 from pyNN.recording import files, get_io
@@ -60,19 +59,17 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    for (population, variables, filename) in simulator.write_on_end:
+    for (population, variables, filename) in simulator.state.write_on_end:
         io = get_io(filename)
         population.write_data(io, variables)
-    simulator.write_on_end = []
+    simulator.state.write_on_end = []
     electrodes.current_sources = []
     for item in simulator.state.network.groups + simulator.state.network._all_operations:
         del item
     del simulator.state
 
-def run(simtime):
-    """Run the simulation for simtime ms."""
-    simulator.state.run(simtime)
-    return get_current_time()
+
+run = common.build_run(simulator)
 
 reset = common.build_reset(simulator)
 

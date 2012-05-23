@@ -1,16 +1,12 @@
 # encoding: utf-8
 """
 Implementation of the "low-level" functionality used by the common
-implementation of the API.
+implementation of the API, for the NEST simulator.
 
-Functions and classes usable by the common implementation:
-
-Functions:
-    run()
+Classes and attributes usable by the common implementation:
 
 Classes:
     ID
-    Recorder
     Connection
 
 Attributes:
@@ -27,49 +23,68 @@ $Id$
 """
 
 import nest
-from pyNN import common
 import logging
+import tempfile
+from pyNN import common, random
+from pyNN.core import reraise
 
-CHECK_CONNECTIONS = False
-write_on_end = [] # a list of (population, variable, filename) combinations that should be written to file on end()
-recording_devices = []
-recorders = set([])
-populations = [] # needed for reset
-
-global net
-net    = None
 logger = logging.getLogger("PyNN")
 
 # --- For implementation of get_time_step() and similar functions --------------
 
-class _State(object):
+def nest_property(name, dtype):
+    """Return a property that accesses a NEST kernel parameter"""
+    def _get(self):
+        return nest.GetKernelStatus(name)
+    def _set(self, val):
+        try:
+            nest.SetKernelStatus({name: dtype(val)})
+        except nest.NESTError as e:
+            reraise(e, "%s = %s (%s)" % (name, val, type(val)))
+    return property(fget=_get, fset=_set)
+
+
+class _State(common.control.BaseState):
     """Represent the simulator state."""
 
     def __init__(self):
-
+        super(_State, self).__init__()
         self.initialized = False
-        self.running     = False
-        self.optimize    = False
+        self.optimize = False
         self.spike_precision = "on_grid"
+        self.verbosity = "warning"
         self.default_recording_precision = 3
         self._cache_num_processes = nest.GetKernelStatus()['num_processes'] # avoids blocking if only some nodes call num_processes
                                                                             # do the same for rank?
-        self.t_start = 0.0
+        # allow NEST to erase previously written files (defaut with all the other simulators)
+        nest.SetKernelStatus({'overwrite_files' : True})
+        self.tempdirs = []
+        self.recording_devices = []
+        self.populations = [] # needed for reset
 
     @property
     def t(self):
-        return nest.GetKernelStatus()['time']
+        return nest.GetKernelStatus('time')
 
-    dt = property(fget=lambda self: nest.GetKernelStatus()['resolution'],
-                  fset=lambda self, timestep: nest.SetKernelStatus({'resolution': timestep}))
+    dt = nest_property('resolution', float)
+
+    threads = nest_property('local_num_threads', int)
+    
+    rng_seeds = nest_property('rng_seeds', list)
 
     @property
     def min_delay(self):
+        # any reason why not nest.GetKernelStatus('min_delay')?
         return nest.GetDefaults('static_synapse')['min_delay']
+    
+    def set_delays(self, min_delay, max_delay):
+        for synapse_model in nest.Models(mtype='synapses'):
+            nest.SetDefaults(synapse_model, {'delay'    : float(min_delay),
+                                             'min_delay': float(min_delay),
+                                             'max_delay': float(max_delay)})
 
     @property
     def max_delay(self):
-        # any reason why not nest.GetKernelStatus()['min_delay']?
         return nest.GetDefaults('static_synapse')['max_delay']
 
     @property
@@ -79,31 +94,58 @@ class _State(object):
     @property
     def mpi_rank(self):
         return nest.Rank()
+    
+    def _get_spike_precision(self):
+        ogs = nest.GetKernelStatus('off_grid_spiking')
+        return ogs and "off_grid" or "on_grid"
+    def _set_spike_precision(self, precision):
+        if precision == 'off_grid':
+            nest.SetKernelStatus({'off_grid_spiking': True})
+            self.default_recording_precision = 15
+        elif precision == 'on_grid':
+            nest.SetKernelStatus({'off_grid_spiking': False})
+            self.default_recording_precision = 3
+        else:
+            raise ValueError("spike_precision must be 'on_grid' or 'off_grid'")
+    spike_precision = property(fget=_get_spike_precision, fset=_set_spike_precision)
 
-    @property
-    def num_threads(self):
-        return nest.GetKernelStatus()['local_num_threads']
+    def _set_verbosity(self, verbosity):
+        nest.sli_run("M_%s setverbosity" % verbosity.upper())
+    verbosity = property(fset=_set_verbosity)
 
+    def run(self, simtime):
+        """Advance the simulation for a certain time."""
+        for device in self.recording_devices:
+            if not device._connected:
+                device.connect_to_cells()
+        if not self.running:
+            simtime += self.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
+            self.running = True
+        nest.Simulate(simtime)
 
-def run(simtime):
-    """Advance the simulation for a certain time."""
-    for device in recording_devices:
-        if not device._connected:
-            device.connect_to_cells()
-    if not state.running:
-        simtime += state.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
-        state.running = True
-    nest.Simulate(simtime)
+    def reset(self):
+        nest.ResetNetwork()
+        nest.SetKernelStatus({'time': 0.0})
+        for p in self.populations:
+            for variable, initial_value in p.initial_values.items():
+                p._set_initial_value_array(variable, initial_value)
+        self.running = False
+        self.t_start = 0.0
 
-def reset():
-    global populations
-    nest.ResetNetwork()
-    nest.SetKernelStatus({'time': 0.0})
-    for p in populations:
-        for variable, initial_value in p.initial_values.items():
-            p._set_initial_value_array(variable, initial_value)
-    state.running = False
-    state.t_start = 0.0
+    def clear(self):
+        self.populations = []
+        self.recording_devices = []
+        self.recorders = set()
+        # clear the sli stack, if this is not done --> memory leak cause the stack increases
+        nest.sr('clear')
+        # reset the simulation kernel
+        nest.ResetKernel()
+        # set tempdir
+        tempdir = tempfile.mkdtemp()
+        self.tempdirs.append(tempdir) # append tempdir to tempdirs list
+        nest.SetKernelStatus({'data_path': tempdir,})
+        self.reset()
+
 
 # --- For implementation of access to individual neurons' parameters -----------
 

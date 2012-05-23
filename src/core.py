@@ -106,3 +106,9 @@ class deprecated(object):
         new_func.__doc__ = "*Deprecated*. Use ``%s`` instead." % self.replacement
         new_func.__dict__.update(func.__dict__)
         return new_func
+
+def reraise(exception, message):
+    args = list(exception.args)
+    args[0] += message
+    exception.args = args
+    raise

@@ -20,15 +20,11 @@ from pyNN.neuron.standardmodels.synapses import *
 from pyNN.neuron.standardmodels.electrodes import *
 from pyNN.neuron.recording import Recorder
 from pyNN.parameters import Sequence
-
 import numpy
 import logging
-
 from neuron import h
 
 logger = logging.getLogger("PyNN")
-
-
 
 # ==============================================================================
 #   Utility functions
@@ -65,7 +61,6 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     common.setup(timestep, min_delay, max_delay, **extra_params)
     simulator.initializer.clear()
     simulator.state.clear()
-    simulator.reset()
     simulator.state.dt = timestep
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
@@ -75,27 +70,21 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
             simulator.state.cvode.rtol(float(extra_params['rtol']))
         if extra_params.has_key('atol'):
             simulator.state.cvode.atol(float(extra_params['atol']))
-
     if extra_params.has_key('native_rng_baseseed'):
         simulator.state.native_rng_baseseed = int(extra_params['native_rng_baseseed'])
-    else:
-        simulator.state.native_rng_baseseed = 0
     if extra_params.has_key('default_maxstep'):
         simulator.state.default_maxstep=float(extra_params['default_maxstep'])
     return rank()
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    for (population, variables, filename) in simulator.write_on_end:
+    for (population, variables, filename) in simulator.state.write_on_end:
         io = get_io(filename)
         population.write_data(io, variables)
-    simulator.write_on_end = []
-    #simulator.finalize()
+    simulator.state.write_on_end = []
+    #simulator.state.finalize()
 
-def run(simtime):
-    """Run the simulation for simtime ms."""
-    simulator.run(simtime)
-    return get_current_time()
+run = common.build_run(simulator)
 
 reset = common.build_reset(simulator)
 

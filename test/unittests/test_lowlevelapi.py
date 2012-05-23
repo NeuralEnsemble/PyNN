@@ -38,7 +38,7 @@ def test_set():
     
 def test_build_record():
     simulator = Mock()
-    simulator.write_on_end = []
+    simulator.state.write_on_end = []
     record_function = common.build_record("foo", simulator)
     assert isfunction(record_function)
     
@@ -46,11 +46,11 @@ def test_build_record():
     source.record = Mock()
     record_function(source, "filename")
     source.record.assert_called_with(["foo"]) #, to_file="filename")
-    assert_equal(simulator.write_on_end, [(source, ['foo'], "filename")])
+    assert_equal(simulator.state.write_on_end, [(source, ['foo'], "filename")])
 
 def test_build_record_with_assembly():
     simulator = Mock()
-    simulator.write_on_end = []
+    simulator.state.write_on_end = []
     record_function = common.build_record("foo", simulator)
     assert isfunction(record_function)
     
@@ -60,4 +60,4 @@ def test_build_record_with_assembly():
     source.record = Mock()
     record_function(source, "filename")
     source.record.assert_called_with(["foo"]) #, to_file="filename")
-    assert_equal(simulator.write_on_end, [(p1, ['foo'], "filename"), (p2, ['foo'], "filename")]) # not sure this is what we want - won't file get over-written?
+    assert_equal(simulator.state.write_on_end, [(p1, ['foo'], "filename"), (p2, ['foo'], "filename")]) # not sure this is what we want - won't file get over-written?

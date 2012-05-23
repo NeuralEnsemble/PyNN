@@ -41,10 +41,10 @@ class MockState(object):
         self.num_processes = 9
         self.dt = 0.123
         self.running = True
+        self.recorders = set([])
 class MockSimulator(object):
     def __init__(self, mpi_rank):
         self.state = MockState(mpi_rank)
-        self.recorders = set([])
 
 class MockNeoIO(object):
     filename = "fake_file"

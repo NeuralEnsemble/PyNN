@@ -178,7 +178,7 @@ class Recorder(object):
         self.population = population # needed for writing header information
         self.recorded = defaultdict(set)
         self.cache = DataCache()
-        self._simulator.recorders.add(self)
+        self._simulator.state.recorders.add(self)
         self.clear_flag = False
 
     def record(self, variables, ids):

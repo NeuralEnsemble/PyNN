@@ -3,12 +3,7 @@
 Implementation of the "low-level" functionality used by the common
 implementation of the API, for the NEURON simulator.
 
-Functions and classes useable by the common implementation:
-
-Functions:
-    reset()
-    run()
-    finalize()
+Classes and attributes useable by the common implementation:
 
 Classes:
     ID
@@ -33,11 +28,6 @@ import numpy
 import os.path
 from neuron import h, load_mechanisms
 
-# Global variables
-nrn_dll_loaded = []
-write_on_end = []
-gid_sources = []
-recorders = set([])
 logger = logging.getLogger("PyNN")
 
 # --- Internal NEURON functionality --------------------------------------------
@@ -46,22 +36,6 @@ def is_point_process(obj):
     """Determine whether a particular object is a NEURON point process."""
     return hasattr(obj, 'loc')
 
-def register_gid(gid, source, section=None):
-    """Register a global ID with the global `ParallelContext` instance."""
-    ###print "registering gid %s to %s (section=%s)" % (gid, source, section)
-    state.parallel_context.set_gid2node(gid, state.mpi_rank) # assign the gid to this node
-    if is_point_process(source):
-        nc = h.NetCon(source, None)                          # } associate the cell spike source
-    else:
-        nc = h.NetCon(source, None, sec=section)
-    state.parallel_context.cell(gid, nc)              # } with the gid (using a temporary NetCon)
-    gid_sources.append(source) # gid_clear (in _State.reset()) will cause a
-                               # segmentation fault if any of the sources
-                               # registered using pc.cell() no longer exist, so
-                               # we keep a reference to all sources in the
-                               # global gid_sources list. It would be nicer to
-                               # be able to unregister a gid and have a __del__
-                               # method in ID, but this will do for now.
 
 def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
     """
@@ -74,6 +48,7 @@ def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
     rarr.extend([native_rng.repick() for j in xrange(n-1)])
     return numpy.array(rarr)
 
+
 def h_property(name):
     """Return a property that accesses a global variable in Hoc."""
     def _get(self):
@@ -81,6 +56,7 @@ def h_property(name):
     def _set(self, val):
         setattr(h, name, val)
     return property(fget=_get, fset=_set)
+
 
 class _Initializer(object):
     """
@@ -133,11 +109,12 @@ class _Initializer(object):
 
 # --- For implementation of get_time_step() and similar functions --------------
 
-class _State(object):
+class _State(common.control.BaseState):
     """Represent the simulator state."""
 
     def __init__(self):
         """Initialize the simulator."""
+        super(_State, self).__init__()
         h('min_delay = 0')
         h('tstop = 0')
         h('steps_per_ms = 1/dt')
@@ -148,8 +125,8 @@ class _State(object):
         self.cvode = h.CVode()
         h('objref plastic_connections')
         self.clear()
-        self.default_maxstep=10.0
-        self.t_start = 0.0
+        self.default_maxstep = 10.0
+        self.native_rng_baseseed  = 0
 
     t = h_property('t')
     def __get_dt(self):
@@ -161,47 +138,63 @@ class _State(object):
     tstop = h_property('tstop')         # } these are stored in hoc so that we
     min_delay = h_property('min_delay') # } can interact with the GUI
 
+    def register_gid(self, gid, source, section=None):
+        """Register a global ID with the global `ParallelContext` instance."""
+        ###print "registering gid %s to %s (section=%s)" % (gid, source, section)
+        self.parallel_context.set_gid2node(gid, self.mpi_rank) # assign the gid to this node
+        if is_point_process(source):
+            nc = h.NetCon(source, None)                          # } associate the cell spike source
+        else:
+            nc = h.NetCon(source, None, sec=section)
+        self.parallel_context.cell(gid, nc)                     # } with the gid (using a temporary NetCon)
+        self.gid_sources.append(source) # gid_clear (in _State.reset()) will cause a
+                                        # segmentation fault if any of the sources
+                                        # registered using pc.cell() no longer exist, so
+                                        # we keep a reference to all sources in the
+                                        # global gid_sources list. It would be nicer to
+                                        # be able to unregister a gid and have a __del__
+                                        # method in ID, but this will do for now.
+
     def clear(self):
-        global gid_sources, recorders
         self.parallel_context.gid_clear()
-        gid_sources = []
-        recorders = set([])
+        self.gid_sources = []
+        self.recorders = set([])
         self.gid_counter = 0
         self.running = False
         h.plastic_connections = []
+        self.reset()
 
-
-def reset():
-    """Reset the state of the current network to time t = 0."""
-    state.running = False
-    state.t = 0
-    state.tstop = 0
-    state.t_start = 0
-    h.finitialize()
-
-def run(simtime):
-    """Advance the simulation for a certain time."""
-    if not state.running:
-        state.running = True
-        local_minimum_delay = state.parallel_context.set_maxstep(state.default_maxstep)
+    def reset(self):
+        """Reset the state of the current network to time t = 0."""
+        self.running = False
+        self.t = 0
+        self.tstop = 0
+        self.t_start = 0
         h.finitialize()
-        state.tstop = 0
-        logger.debug("default_maxstep on host #%d = %g" % (state.mpi_rank, state.default_maxstep ))
-        logger.debug("local_minimum_delay on host #%d = %g" % (state.mpi_rank, local_minimum_delay))
-        if state.num_processes > 1:
-            assert local_minimum_delay >= state.min_delay, \
-                   "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, state.min_delay)
-    state.tstop += simtime
-    logger.info("Running the simulation for %g ms" % simtime)
-    state.parallel_context.psolve(state.tstop)
 
-def finalize(quit=False):
-    """Finish using NEURON."""
-    state.parallel_context.runworker()
-    state.parallel_context.done()
-    if quit:
-        logger.info("Finishing up with NEURON.")
-        h.quit()
+    def run(self, simtime):
+        """Advance the simulation for a certain time."""
+        if not self.running:
+            self.running = True
+            local_minimum_delay = self.parallel_context.set_maxstep(self.default_maxstep)
+            h.finitialize()
+            self.tstop = 0
+            logger.debug("default_maxstep on host #%d = %g" % (self.mpi_rank, self.default_maxstep ))
+            logger.debug("local_minimum_delay on host #%d = %g" % (self.mpi_rank, local_minimum_delay))
+            if self.num_processes > 1:
+                assert local_minimum_delay >= self.min_delay, \
+                       "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, self.min_delay)
+        self.tstop += simtime
+        logger.info("Running the simulation for %g ms" % simtime)
+        self.parallel_context.psolve(self.tstop)
+
+    def finalize(self, quit=False):
+        """Finish using NEURON."""
+        self.parallel_context.runworker()
+        self.parallel_context.done()
+        if quit:
+            logger.info("Finishing up with NEURON.")
+            h.quit()
 
 
 # --- For implementation of access to individual neurons' parameters -----------
@@ -227,7 +220,7 @@ class ID(int, common.IDMixin):
         """
         gid = int(self)
         self._cell = cell_model(**cell_parameters)          # create the cell object
-        register_gid(gid, self._cell.source, section=self._cell.source_section)
+        state.register_gid(gid, self._cell.source, section=self._cell.source_section)
         if hasattr(self._cell, "get_threshold"):            # this is not adequate, since the threshold may be changed after cell creation
             state.parallel_context.threshold(int(self), self._cell.get_threshold()) # the problem is that self._cell does not know its own gid
 

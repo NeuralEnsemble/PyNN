@@ -1,6 +1,6 @@
 # encoding: utf-8
 """
-Standard cells for the neuron module.
+Definition of cell classes for the neuron module.
 
 :copyright: Copyright 2006-2012 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
