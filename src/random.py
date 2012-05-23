@@ -58,12 +58,12 @@ class AbstractRNG(object):
         self.random = self.next
         self.sample = self.next
 
-    def next(self, n=1, distribution='uniform', parameters=[], mask_local=None):
+    def next(self, n=None, distribution='uniform', parameters=[], mask_local=None):
         """Return `n` random numbers from the specified distribution.
 
         If:
-            * `n` is 1, return a float,
-            * `n` > 1, return a Numpy array,
+            * `n` is None, return a float,
+            * `n` >= 1, return a Numpy array,
             * `n` < 0, raise an Exception,
             * `n` is 0, return an empty array.
             """
@@ -81,7 +81,7 @@ class WrappedRNG(AbstractRNG):
             if mpi_rank != 0:
                 logger.warning("Changing the seed to %s on node %d" % (self.seed, mpi_rank))
 
-    def next(self, n=1, distribution='uniform', parameters=[], mask_local=None):
+    def next(self, n=None, distribution='uniform', parameters=[], mask_local=None):
         if n == 0:
             rarr = numpy.random.rand(0) # We return an empty array
         elif n > 0:
@@ -95,6 +95,8 @@ class WrappedRNG(AbstractRNG):
                 elif mask_local is not False:
                     n = mask_local.sum()
             rarr = self._next(distribution, n, parameters)
+        elif n is None:
+            rarr = self._next(distribution, 1, parameters)
         else:
             raise ValueError, "The sample number must be positive"
         if self.parallel_safe and num_processes > 1:
@@ -106,7 +108,7 @@ class WrappedRNG(AbstractRNG):
                 rarr = rarr[mask_local]
             else:
                 raise Exception("For a parallel-safe RNG, mask_local must be either an array or False, not %s" % mask_local)
-        if hasattr(rarr, '__len__') and len(rarr) == 1:
+        if n is None:
             return rarr[0]
         else:
             return rarr
@@ -231,7 +233,7 @@ class RandomDistribution(VectorizedIterable):
         else: # use numpy.random.RandomState() by default
             self.rng = NumpyRNG()
 
-    def next(self, n=1, mask_local=None):
+    def next(self, n=None, mask_local=None):
         """Return `n` random numbers from the distribution."""
         res = self.rng.next(n=n,
                             distribution=self.name,
