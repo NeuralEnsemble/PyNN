@@ -63,7 +63,7 @@ class SingleCompartmentNeuron(nrn.Section):
         # insert synapses
         assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
         assert syn_shape in ('alpha', 'exp'), "syn_type must be either 'alpha' or 'exp'"
-        synapse_model = StandardIF.synapse_models[syn_type][syn_shape]
+        synapse_model = self.synapse_models[syn_type][syn_shape]
         self.esyn = synapse_model(0.5, sec=self)
         self.isyn = synapse_model(0.5, sec=self)
         if self.syn_shape == 'exp':
@@ -83,7 +83,6 @@ class SingleCompartmentNeuron(nrn.Section):
         # for recording
         self.spike_times = h.Vector(0)
         self.traces = {}
-        self.gsyn_trace = {}
         self.recording_time = 0
 
         self.v_init = None
@@ -148,43 +147,6 @@ class SingleCompartmentNeuron(nrn.Section):
         if hasattr(self, 'isyn_TM'):
             self.isyn_TM.e = value
     e_i = property(fget=_get_e_i, fset=_set_e_i)
-
-    def record(self, active):
-        if active:
-            rec = h.NetCon(self.source, None)
-            rec.record(self.spike_times)
-        else:
-            self.spike_times = h.Vector(0)
-
-    def record_v(self, active):
-        if active:
-            self.vtrace = h.Vector()
-            self.vtrace.record(self(0.5)._ref_v)
-            if not self.recording_time:
-                self.record_times = h.Vector()
-                self.record_times.record(h._ref_t)
-                self.recording_time += 1
-        else:
-            self.vtrace = None
-            self.recording_time -= 1
-            if self.recording_time == 0:
-                self.record_times = None
-
-    def record_gsyn(self, syn_name, active):
-        # how to deal with static and T-M synapses?
-        # record both and sum?
-        if active:
-            self.gsyn_trace[syn_name] = h.Vector()
-            self.gsyn_trace[syn_name].record(getattr(self, syn_name)._ref_g)
-            if not self.recording_time:
-                self.record_times = h.Vector()
-                self.record_times.record(h._ref_t)
-                self.recording_time += 1
-        else:
-            self.gsyn_trace[syn_name] = None
-            self.recording_time -= 1
-            if self.recording_time == 0:
-                self.record_times = None
 
     def memb_init(self):
         assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
@@ -258,6 +220,7 @@ class StandardIF(LeakySingleCompartmentNeuron):
         self.spike_reset = h.ResetRefrac(0.5, sec=self)
         self.spike_reset.vspike = 40 # (mV) spike height
         self.source = self.spike_reset
+        self.rec = h.NetCon(self.source, None)
 
         # process arguments
         self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',   # 'c_m' must come before 'tau_m'
@@ -287,6 +250,9 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
         # insert Brette-Gerstner spike mechanism
         self.adexp = h.AdExpIF(0.5, sec=self)
         self.source = self.adexp
+        self.rec = h.NetCon(self.seg._ref_v, None,
+                            self.get_threshold(), 0.0, 0.0,
+                            sec=self)
 
         self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',
                                 'i_offset', 'v_reset', 'tau_e', 'tau_i',
@@ -401,6 +367,7 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
                                          tau_e, tau_i, e_e, e_i)
         self.source = self.seg._ref_v
+        self.rec = h.NetCon(self.source, None, sec=self)
         self.insert('k_ion')
         self.insert('na_ion')
         self.insert('hh_traub')
@@ -412,6 +379,7 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
         self.set_parameters(locals())
         self.v_init = e_leak # default value
 
+
     # not sure ena and ek are handled correctly
 
     e_leak   = _new_property('seg.hh_traub', 'el')
@@ -422,12 +390,6 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
 
     def get_threshold(self):
         return 10.0
-
-    def record(self, active):
-        if active:
-            rec = h.NetCon(self.source, None, sec=self)
-            rec.record(self.spike_times)
-
 
 
 class RandomSpikeSource(hclass(h.NetStimFD)):
@@ -441,6 +403,7 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
         self.noise = 1
         self.spike_times = h.Vector(0)
         self.source = self
+        self.rec = h.NetCon(self, None)
         self.switch = h.NetCon(None, self)
         self.source_section = None
         self.seed(state.mpi_rank+state.native_rng_baseseed) # should allow user to set specific seeds somewhere, e.g. in setup()
@@ -455,11 +418,6 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
         return self.interval
     _interval = property(fget=_get_interval, fset=_set_interval)
 
-    def record(self, active):
-        if active:
-            self.rec = h.NetCon(self, None)
-            self.rec.record(self.spike_times)
-
 
 class VectorSpikeSource(hclass(h.VecStim)):
 
@@ -469,6 +427,7 @@ class VectorSpikeSource(hclass(h.VecStim)):
         self.spike_times = spike_times
         self.source = self
         self.source_section = None
+        self.rec = None
 
     def _set_spike_times(self, spike_times):
         # spike_times should be a Sequence object
@@ -483,10 +442,3 @@ class VectorSpikeSource(hclass(h.VecStim)):
 
     spike_times = property(fget=_get_spike_times,
                            fset=_set_spike_times)
-
-    def record(self, active):
-        """
-        Since spike_times are specified by user, recording is meaningless, but
-        we need to provide a stub for consistency with other models.
-        """
-        pass

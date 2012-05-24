@@ -35,52 +35,56 @@ class Recorder(recording.Recorder):
         """Add the cells in `new_ids` to the set of recorded cells."""
         if variable == 'spikes':
             for id in new_ids:
-                id._cell.record(1)
-        elif variable == 'v':
-            for id in new_ids:
-                id._cell.record_v(1)
-        elif variable == 'gsyn_exc':
-            for id in new_ids:
-                id._cell.record_gsyn("excitatory", 1)
-                if id._cell.excitatory_TM is not None:
-                    id._cell.record_gsyn("excitatory_TM", 1)
-        elif variable == 'gsyn_inh':
-             for id in new_ids:
-                id._cell.record_gsyn("inhibitory", 1)
-                if id._cell.inhibitory_TM is not None:
-                    id._cell.record_gsyn("inhibitory_TM", 1)
+                id._cell.rec.record(id._cell.spike_times)
         else:
             for id in new_ids:
-               self._native_record(variable, id)
+                self._record_state_variable(id._cell, variable)
+
+    def _record_state_variable(self, cell, variable):
+        if variable == 'v':
+            hoc_var = cell(0.5)._ref_v  # or use "seg.v"?
+        elif variable == 'gsyn_exc':
+            if cell.excitatory_TM is None:
+                hoc_var = cell.esyn._ref_g
+            else:
+                hoc_var = cell.esyn_TM._ref_g
+        elif variable == 'gsyn_inh':
+            if cell.inhibitory_TM is None:
+                hoc_var = cell.isyn._ref_g
+            else:
+                hoc_var = cell.isyn_TM._ref_g
+        else:
+            source, var_name = self._resolve_variable(cell, variable)
+            hoc_var = getattr(source, "_ref_%s" % var_name)
+        cell.traces[variable] = vec = h.Vector()
+        vec.record(hoc_var)
+        if not cell.recording_time:
+            cell.record_times = h.Vector()
+            cell.record_times.record(h._ref_t)
+            cell.recording_time += 1
+
+    def _resolve_variable(self, cell, variable_path):
+        match = recordable_pattern.match(variable_path)
+        if match:
+            parts = match.groupdict()
+            if parts['section']:
+                section = getattr(cell, parts['section'])
+                if parts['location']:
+                    source = section(float(parts['location']))
+                else:
+                    source = section
+            else:
+                source = cell.source
+            return source, parts['var']
+        else:
+            raise AttributeError("Recording of %s not implemented." % variable_path)
 
     def _reset(self):
         for id in set.union(*self.recorded.values()):
             id._cell.traces = {}
-            id._cell.record(active=False)
-            id._cell.record_v(active=False)
-            for syn_name in id._cell.gsyn_trace:
-                id._cell.record_gsyn(syn_name, active=False)
-
-    def _native_record(self, variable, id):
-        match = recordable_pattern.match(variable)
-        if match:
-            parts = match.groupdict()
-            if parts['section']:
-                section = getattr(id._cell, parts['section'])
-                if parts['location']:
-                    segment = section(float(parts['location']))
-                else:
-                    segment = section
-            else:
-                segment = id._cell.source
-            id._cell.traces[variable] = vec = h.Vector()
-            vec.record(getattr(segment, "_ref_%s" % parts['var']))
-            if not id._cell.recording_time:
-                id._cell.record_times = h.Vector()
-                id._cell.record_times.record(h._ref_t)
-                id._cell.recording_time += 1
-        else:
-            raise Exception("Recording of %s not implemented." % variable)
+            id._cell.spike_times = h.Vector(0)
+        id._cell.recording_time == 0
+        id._cell.record_times = None
 
     def _get_current_segment(self, filter_ids=None, variables='all'):
         segment = neo.Segment(name=self.population.label,
@@ -102,16 +106,8 @@ class Recorder(recording.Recorder):
                                    source_id=int(id)) # index?
                     for id in sorted(self.filter_recorded('spikes', filter_ids))]
             else:
-                if variable == 'v':
-                    get_signal = lambda id: id._cell.vtrace
-                elif variable == 'gsyn_exc':
-                    get_signal = lambda id: id._cell.gsyn_trace['excitatory']
-                elif variable == 'gsyn_inh':
-                    get_signal = lambda id: id._cell.gsyn_trace['inhibitory']
-                else:
-                    get_signal = lambda id: id._cell.traces[variable]
                 ids = sorted(self.filter_recorded(variable, filter_ids))
-                signal_array = numpy.vstack((get_signal(id) for id in ids))
+                signal_array = numpy.vstack((id._cell.traces[variable] for id in ids))
                 channel_indices = [self.population.id_to_index(id) for id in ids]
                 segment.analogsignalarrays.append(
                     neo.AnalogSignalArray(
