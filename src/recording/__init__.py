@@ -18,7 +18,9 @@ import os
 from copy import copy
 from collections import defaultdict
 from pyNN import errors
-import neo.io
+import neo
+from datetime import datetime
+import quantities as pq
 try:
     from mpi4py import MPI
 except ImportError:
@@ -204,6 +206,46 @@ class Recorder(object):
             return set(filter_ids).intersection(self.recorded[variable])
         else:
             return self.recorded[variable]
+
+    def _get_current_segment(self, filter_ids=None, variables='all'):
+        segment = neo.Segment(name=self.population.label,
+                              description=self.population.describe(),
+                              rec_datetime=datetime.now()) # would be nice to get the time at the start of the recording, not the end
+        variables_to_include = set(self.recorded.keys())
+        if variables is not 'all':
+            variables_to_include = variables_to_include.intersection(set(variables))
+        for variable in variables_to_include:
+            if variable == 'spikes':
+                t_stop = self._simulator.state.t*pq.ms # must run on all MPI nodes
+                segment.spiketrains = [
+                    neo.SpikeTrain(self._get_spiketimes(id),
+                                   t_stop=t_stop,
+                                   units='ms',
+                                   source_population=self.population.label,
+                                   source_id=int(id)) # index?
+                    for id in sorted(self.filter_recorded('spikes', filter_ids))]
+            else:
+                ids = sorted(self.filter_recorded(variable, filter_ids))
+                signal_array = self._get_all_signals(variable, ids)
+                t_start = self._simulator.state.t_start*pq.ms
+                sampling_period = self._simulator.state.dt*pq.ms # must run on all MPI nodes
+                channel_indices = [self.population.id_to_index(id) for id in ids]
+                units = self.find_units(variable)
+                source_ids = numpy.fromiter(ids, dtype=int)
+                segment.analogsignalarrays.append(
+                    neo.AnalogSignalArray(
+                        signal_array,
+                        units=units,
+                        t_start=t_start,
+                        sampling_period=sampling_period,
+                        name=variable,
+                        source_population=self.population.label,
+                        channel_indexes=channel_indices,
+                        source_ids=source_ids)
+                )
+                assert segment.analogsignalarrays[0].t_stop - self._simulator.state.t*pq.ms < 2*self._simulator.state.dt*pq.ms
+                # need to add `Unit` and `RecordingChannelGroup` objects
+        return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False):
         """Return the recorded data as a Neo `Block`."""

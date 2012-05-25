@@ -11,20 +11,9 @@ from pyNN.neuron import simulator
 import re
 from neuron import h
 import neo
-import quantities as pq
 from copy import copy
 
 recordable_pattern = re.compile(r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.)?(?P<var>\w+)')
-
-
-def find_units(variable):
-    if variable in recording.UNITS_MAP:
-        return recording.UNITS_MAP[variable]
-    else:
-        # works with NEURON 7.3, not with 7.1, 7.2 not tested
-        nrn_units = h.units(variable.split('.')[-1])
-        pq_units = nrn_units.replace("2", "**2").replace("3", "**3")
-        return pq_units
 
 
 class Recorder(recording.Recorder):
@@ -86,43 +75,23 @@ class Recorder(recording.Recorder):
         id._cell.recording_time == 0
         id._cell.record_times = None
 
-    def _get_current_segment(self, filter_ids=None, variables='all'):
-        segment = neo.Segment(name=self.population.label,
-                              description=self.population.describe(),
-                              rec_datetime=datetime.now()) # would be nice to get the time at the start of the recording, not the end
-        variables_to_include = set(self.recorded.keys())
-        if variables is not 'all':
-            variables_to_include = variables_to_include.intersection(set(variables))
-        def trim_spikes(spikes):
-            return spikes[spikes<=simulator.state.t+1e-9]
-        #import pdb; pdb.set_trace()
-        for variable in variables_to_include:
-            if variable == 'spikes':
-                segment.spiketrains = [
-                    neo.SpikeTrain(trim_spikes(numpy.array(id._cell.spike_times)),
-                                   t_stop=simulator.state.t*pq.ms,
-                                   units='ms',
-                                   source_population=self.population.label,
-                                   source_id=int(id)) # index?
-                    for id in sorted(self.filter_recorded('spikes', filter_ids))]
-            else:
-                ids = sorted(self.filter_recorded(variable, filter_ids))
-                signal_array = numpy.vstack((id._cell.traces[variable] for id in ids))
-                channel_indices = [self.population.id_to_index(id) for id in ids]
-                segment.analogsignalarrays.append(
-                    neo.AnalogSignalArray(
-                        signal_array.T, # assuming not using cvode, otherwise need to use IrregularlySampledAnalogSignal
-                        units=find_units(variable),
-                        t_start=simulator.state.t_start*pq.ms,
-                        sampling_period=simulator.state.dt*pq.ms,
-                        name=variable,
-                        source_population=self.population.label,
-                        channel_indexes=channel_indices,
-                        source_ids=numpy.fromiter(ids, dtype=int))
-                )
-                assert segment.analogsignalarrays[0].t_stop - simulator.state.t*pq.ms < 2*simulator.state.dt*pq.ms
-                # need to add `Unit` and `RecordingChannelGroup` objects
-        return segment
+    @staticmethod
+    def find_units(variable):
+        if variable in recording.UNITS_MAP:
+            return recording.UNITS_MAP[variable]
+        else:
+            # works with NEURON 7.3, not with 7.1, 7.2 not tested
+            nrn_units = h.units(variable.split('.')[-1])
+            pq_units = nrn_units.replace("2", "**2").replace("3", "**3")
+            return pq_units
+
+    def _get_spiketimes(self, id):
+        spikes = numpy.array(id._cell.spike_times)
+        return spikes[spikes <= simulator.state.t + 1e-9]
+
+    def _get_all_signals(self, variable, ids):
+        # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
+        return numpy.vstack((id._cell.traces[variable] for id in ids)).T
 
     def _local_count(self, variable, filter_ids=None):
         N = {}

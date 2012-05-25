@@ -11,13 +11,14 @@ from pyNN.brian import simulator
 import logging
 import neo
 import quantities as pq
-from datetime import datetime
 
 mV = brian.mV
 ms = brian.ms
 uS = brian.uS
+pq.uS = pq.UnitQuantity('microsiemens', 1e-6*pq.S, 'uS')
 
 logger = logging.getLogger("PyNN")
+
 
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
@@ -30,10 +31,10 @@ class Recorder(recording.Recorder):
 
     def _create_device(self, group, variable):
         """Create a Brian recording device."""
-        # By default, StateMonitor has when='end', i.e. the value recorded at 
-        # the end of the timestep is associated with the time at the start of the step, 
-        # This is different to the PyNN semantics (i.e. the value at the end of 
-        # the step is associated with the time at the end of the step.) 
+        # By default, StateMonitor has when='end', i.e. the value recorded at
+        # the end of the timestep is associated with the time at the start of the step,
+        # This is different to the PyNN semantics (i.e. the value at the end of
+        # the step is associated with the time at the end of the step.)
         clock = simulator.state.simclock
         if variable == 'spikes':
             self._devices[variable] = brian.SpikeMonitor(group, record=self.recorded)
@@ -65,52 +66,23 @@ class Recorder(recording.Recorder):
     def _reset(self):
         raise NotImplementedError("Recording reset is not currently supported for pyNN.brian")
 
-    def _get_all_values(self, variable):
+    @staticmethod
+    def find_units(variable):
+        return recording.UNITS_MAP.get(variable, "dimensionless")
+
+    def _get_spiketimes(self, id):
+        i = id - self.population.first_id
+        return self._devices['spikes'].spiketimes[i]/ms
+
+    def _get_all_signals(self, variable, ids):
+        # need to filter according to ids
         device = self._devices[variable]
-        units = mV  # TODO detect & scale units properly
         # because we use `when='start'`, need to add the value at the end of the final time step.
-        values = numpy.array(device._values)/units
-        current_values = device.P.state_(device.varname)[device.record]/units
+        values = numpy.array(device._values)
+        print ids
+        print device.record
+        current_values = device.P.state_(device.varname)[device.record]
         return numpy.vstack((values, current_values[numpy.newaxis, :]))
-
-    def _get_current_segment(self, filter_ids=None, variables='all'):
-        segment = neo.Segment(name=self.population.label,
-                              description=self.population.describe(),
-                              rec_datetime=datetime.now()) # would be nice to get the time at the start of the recording, not the end
-        variables_to_include = set(self.recorded.keys())
-        if variables is not 'all':
-            variables_to_include = variables_to_include.intersection(set(variables))
-        padding = self.population.first_id
-
-        for variable in variables_to_include:
-            filtered_ids = self.filter_recorded(variable, filter_ids)
-            indices = numpy.fromiter(filtered_ids, dtype=int) - padding
-            if variable == 'spikes':
-                spike_times = self._devices['spikes'].spiketimes
-                t_stop = simulator.state.t*pq.ms # must run on all MPI nodes
-                segment.spiketrains = [
-                    neo.SpikeTrain(spike_times[i]/ms,
-                                   t_stop=t_stop,
-                                   units='ms',
-                                   source_population=self.population.label,
-                                   source_id=int(i + padding)) # index?
-                    for i in indices]
-            else:
-                signal_array = self._get_all_values(variable)
-                t_start=simulator.state.t_start*pq.ms
-                sampling_period=simulator.state.dt*pq.ms # must run on all MPI nodes
-                segment.analogsignalarrays.append(
-                    neo.AnalogSignalArray(
-                        signal_array,
-                        units=recording.UNITS_MAP.get(variable, 'dimensionless'),
-                        t_start=t_start,
-                        sampling_period=sampling_period,
-                        name=variable,
-                        source_population=self.population.label,
-                        channel_indexes=list(sorted(indices)),
-                        source_ids=indices+padding)
-                )
-        return segment
 
     def _local_count(self, variable, filter_ids=None):
         N = {}

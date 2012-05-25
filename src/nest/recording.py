@@ -11,9 +11,6 @@ import logging
 import nest
 from pyNN import recording, errors
 from pyNN.nest import simulator
-import neo
-from datetime import datetime
-import quantities as pq
 
 VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in'}
 REVERSE_VARIABLE_MAP = dict((v,k) for k,v in VARIABLE_MAP.items())
@@ -394,43 +391,15 @@ class Recorder(recording.Recorder):
         self._multimeter = Multimeter()
         self._spike_detector = SpikeDetector()
 
-    def _get_current_segment(self, filter_ids=None, variables='all'):
-        segment = neo.Segment(name=self.population.label,
-                              description=self.population.describe(),
-                              rec_datetime=datetime.now()) # would be nice to get the time at the start of the recording, not the end
-        variables_to_include = set(self.recorded.keys())
-        if variables is not 'all':
-            variables_to_include = variables_to_include.intersection(set(variables))
-        for variable in variables_to_include:
-            if variable == 'spikes':
-                spike_times = self._spike_detector.get_spiketimes(self.filter_recorded('spikes', filter_ids))
-                t_stop = simulator.state.t*pq.ms # must run on all MPI nodes
-                segment.spiketrains = [
-                    neo.SpikeTrain(spike_times[id],
-                                   t_stop=t_stop,
-                                   units='ms',
-                                   source_population=self.population.label,
-                                   source_id=int(id)) # index?
-                    for id in self.filter_recorded('spikes', filter_ids)]
-            else:
-                ids = self.filter_recorded(variable, filter_ids)
-                data = self._multimeter.get_data(variable, ids)
-                signal_array = numpy.vstack(data.values())
-                t_start=simulator.state.t_start*pq.ms
-                sampling_period=simulator.state.dt*pq.ms # must run on all MPI nodes
-                channel_indices = [self.population.id_to_index(id) for id in ids]
-                segment.analogsignalarrays.append(
-                    neo.AnalogSignalArray(
-                        signal_array.T,
-                        units=recording.UNITS_MAP.get(variable, 'dimensionless'),
-                        t_start=t_start,
-                        sampling_period=sampling_period,
-                        name=variable,
-                        source_population=self.population.label,
-                        channel_indexes=channel_indices,
-                        source_ids=numpy.array(data.keys()))
-                )
-        return segment
+    @staticmethod
+    def find_units(variable):
+        return recording.UNITS_MAP.get(variable, "dimensionless")
+
+    def _get_spiketimes(self, id):
+        return self._spike_detector.get_spiketimes([id])[id] # hugely inefficient - to be optimized later
+
+    def _get_all_signals(self, variable, ids):
+        return numpy.vstack(self._multimeter.get_data(variable, ids).values()).T
 
     def _local_count(self, variable, filter_ids):
         assert variable == 'spikes'
