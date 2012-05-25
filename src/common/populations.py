@@ -345,21 +345,29 @@ class BasePopulation(object):
         # provided that the same rng with the same seed is used on each node.
         self.set(**{parametername: rand_distr})
 
-    def initialize(self, variable, value):
+    def initialize(self, **initial_values):
         """
         Set initial values of state variables, e.g. the membrane potential.
 
-        `variable`:
-            the name of the variable
-        `value`:
-            either a numeric value (all neurons set to the same value) or a
-            `RandomDistribution` object (each neuron gets a different value)
+        Values passed to initialize() may be:
+            (1) single numeric values (all neurons set to the same value)
+            (2) RandomDistribution objects
+            (3) lists/arrays of numbers of the same size as the population
+            (4) mapping functions, where a mapping function accepts a single
+                argument (the cell index) and returns a single number.
+
+        Examples::
+
+            p.initialize(v=-70.0)
+            p.initialize(v=rand_distr, gsyn_exc=0.0)
+            p.initialize(v=lambda i: -65 + i/10.0)
         """
-        logger.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
-        initial_value = core.LazyArray(value, shape=(self.local_size,),
-                                       dtype=float)
-        self._set_initial_value_array(variable, initial_value)
-        self.initial_values[variable] = initial_value
+        for variable, value in initial_values.items():
+            logger.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
+            initial_value = core.LazyArray(value, shape=(self.local_size,),
+                                           dtype=float)
+            self._set_initial_value_array(variable, initial_value)
+            self.initial_values[variable] = initial_value
 
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
@@ -586,8 +594,9 @@ class Population(BasePopulation):
         # The local cells are also stored in a list, for easy iteration
         self._create_cells()
         self.initial_values = {}
-        for variable, default in self.celltype.default_initial_values.items():
-            self.initialize(variable, initial_values.get(variable, default))
+        all_initial_values = self.celltype.default_initial_values.copy()
+        all_initial_values.update(initial_values)
+        self.initialize(**all_initial_values)
         self.recorder = self._recorder_class(self)
         Population._nPop += 1
 
@@ -1077,17 +1086,13 @@ class Assembly(object):
         logger.debug("%s.sample(%s)", self.label, n)
         return self[indices]
 
-    def initialize(self, variable, value):
+    def initialize(self, **initial_values):
         """
-        Set the initial value of one of the state variables of the neurons in
+        Set the initial values of the state variables of the neurons in
         this assembly.
-
-       `value` may either be a numeric value (all neurons set to the same
-        value) or a `RandomDistribution` object (each neuron gets a
-        different value)
         """
         for p in self.populations:
-            p.initialize(variable, value)
+            p.initialize(**initial_values)
 
     def set(self, **parameters):
         """

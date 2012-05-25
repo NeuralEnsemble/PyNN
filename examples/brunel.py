@@ -138,8 +138,8 @@ I_net = Population(NI, IF_curr_alpha, cell_params, label="I_net")
 
 print "%d Initialising membrane potential to random values between %g mV and %g mV." % (rank, U0, theta)
 uniformDistr = RandomDistribution('uniform', [U0, theta], rng)
-E_net.initialize('v', uniformDistr)
-I_net.initialize('v', uniformDistr)
+E_net.initialize(v=uniformDistr)
+I_net.initialize(v=uniformDistr)
 
 print "%d Creating excitatory Poisson generator with rate %g spikes/s." % (rank, p_rate)
 expoisson = Population(NE, SpikeSourcePoisson, {'rate': p_rate}, label="expoisson")

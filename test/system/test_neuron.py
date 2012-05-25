@@ -116,7 +116,7 @@ def test_record_native_model():
     print p1.get('g_leak')
     p1.rset('gnabar', RandomDistribution('uniform', [0.10, 0.14]))
     print p1.get('gnabar')
-    p1.initialize('v', -63.0)
+    p1.initialize(v=-63.0)
 
     current_source = nrn.StepCurrentSource({'times': [50.0, 110.0, 150.0, 210.0],
                                             'amplitudes': [0.4, 0.6, -0.2, 0.2]})

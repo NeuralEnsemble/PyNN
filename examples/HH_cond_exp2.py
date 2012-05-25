@@ -39,7 +39,7 @@ cellparams = {
     }
 
 hhcell = create(HH_cond_exp, cellparams=cellparams)
-initialize(hhcell, 'v', -64.0)
+initialize(hhcell, v=-64.0)
 record('v', hhcell, "Results/HH_cond_exp2_%s.pkl" % simulator_name)
 
 var_names = {

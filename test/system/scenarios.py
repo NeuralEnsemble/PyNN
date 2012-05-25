@@ -61,7 +61,7 @@ def scenario1(sim):
                         'uniform',
                         [cell_params['v_reset'], cell_params['v_thresh']],
                         rng=rng)
-    all_cells.initialize('v', uniform_distr)
+    all_cells.initialize(v=uniform_distr)
 
     connections = {}
     for name, pconn, target in (
@@ -118,7 +118,7 @@ def scenario1a(sim):
     inhibitory_cells = sim.create(sim.IF_cond_alpha, cell_params, n=n_inh)
     inputs = sim.create(sim.SpikeSourcePoisson, stimulation_params, n=n_input)
     all_cells = excitatory_cells + inhibitory_cells
-    sim.initialize(all_cells, 'v', cell_params['v_rest'])
+    sim.initialize(all_cells, v=cell_params['v_rest'])
 
     sim.connect(excitatory_cells, all_cells, weight=w_exc, delay=delay,
                 synapse_type='excitatory', p=pconn_recurr)
@@ -166,7 +166,7 @@ def scenario2(sim):
     I0 = (v_thresh*cm)/tau_m
     sim.setup(timestep=0.01, spike_precision="off_grid")
     neurons = sim.Population(n, sim.IF_curr_exp, cell_params)
-    neurons.initialize('v', 0.0)
+    neurons.initialize(v=0.0)
     I = numpy.arange(I0, I0+1.0, 1.0/n)
     currents = [sim.DCSource({"start" : t_start, "stop" : t_start+duration, "amplitude" :amp})
                 for amp in I]
@@ -238,7 +238,7 @@ def scenario3(sim):
     assert_equal(pre[49].rate, r1)
     assert_equal(pre[50].rate, r2)
     post.set(**cell_parameters)
-    post.initialize('v', RandomDistribution('normal', (v_reset, 5.0)))
+    post.initialize(v=RandomDistribution('normal', (v_reset, 5.0)))
 
     stdp = sim.SynapseDynamics(
                 slow=sim.STDPMechanism(
@@ -445,7 +445,7 @@ def test_EIF_cond_alpha_isfa_ista(sim):
     ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista,
                         {'i_offset': 1.0, 'tau_refrac': 2.0, 'v_spike': -40})
     ifcell.record(['spikes', 'v'])
-    ifcell.initialize('v', -65)
+    ifcell.initialize(v=-65)
     sim.run(200.0)
     data = ifcell.get_data().segments[0]
     expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67,  113.13, 142.69, 174.79]) * pq.ms
@@ -474,7 +474,7 @@ def test_HH_cond_exp(sim):
         'i_offset'  : 1.0,
     }
     hhcell = sim.create(sim.HH_cond_exp, cellparams=cellparams)
-    sim.initialize(hhcell, 'v', -64.0)
+    sim.initialize(hhcell, v=-64.0)
     hhcell.record('v')
     sim.run(20.0)
     v = hhcell.get_data().segments[0].filter(name='v')[0]
@@ -585,7 +585,7 @@ def ticket226(sim):
     cell = sim.Population(1, sim.IF_curr_alpha,
                           {'tau_m': 20.0, 'cm': 1.0, 'v_rest': -60.0,
                            'v_reset': -60.0})
-    cell.initialize('v', -60.0)
+    cell.initialize(v=-60.0)
     inj = sim.DCSource(dict(amplitude=1.0, start=10.0, stop=20.0))
     cell.inject(inj)
     cell.record_v()
@@ -604,7 +604,7 @@ def scenario4(sim):
     """
     sim.setup()
     rng = NumpyRNG(seed=76454, parallel_safe=False)
-    
+
     input_layout = RandomStructure(boundary=Cuboid(width=500.0, height=500.0, depth=100.0),
                                    origin=(0, 0, 0), rng=rng)
     inputs = sim.Population(100, sim.SpikeSourcePoisson, {'rate': RandomDistribution('uniform', [3.0, 7.0], rng=rng)},
@@ -617,7 +617,7 @@ def scenario4(sim):
                              structure=output_layout,
                              label="outputs")
     DDPC = sim.DistanceDependentProbabilityConnector
-    input_connectivity = DDPC("0.5*exp(-d/100.0)", 
+    input_connectivity = DDPC("0.5*exp(-d/100.0)",
                              weights=RandomDistribution('normal', (0.1, 0.02), rng=rng),
                              delays="0.5 + d/100.0",
                              space=Space(axes='xy'))

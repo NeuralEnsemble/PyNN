@@ -7,7 +7,7 @@ from mock import Mock, patch
 from pyNN.utility import assert_arrays_equal
 from pyNN import core
 from lazyarray import VectorizedIterable
-    
+
 builtin_open = open
 id_map = {'larry': 0, 'curly': 1, 'moe': 2, 'joe': 3, 'william': 4, 'jack': 5, 'averell': 6}
 
@@ -49,7 +49,7 @@ class MockPopulation(populations.BasePopulation):
             return id_map[id.label]
         else:
             raise Exception("Invalid ID")
-        
+
     def id_to_local_index(self, id):
         if id.label in id_map:
             global_index = id_map[id.label]
@@ -71,7 +71,7 @@ def test__getitem__int():
     assert_equal(p[12], 112)
     assert_raises(IndexError, p.__getitem__, 13)
     assert_equal(p[-1], 112)
-    
+
 def test__getitem__slice():
     orig_PV = populations.PopulationView
     populations.PopulationView = Mock()
@@ -118,7 +118,7 @@ def test_is_local():
     assert p1.is_local(id_local)
     assert not p1.is_local(id_nonlocal)
     assert_raises(AssertionError, p2.is_local, id_local)
-    
+
 def test_all():
     p = MockPopulation()
     itr = p.all()
@@ -131,14 +131,14 @@ def test_add():
     assembly = p1 + p2
     assert isinstance(assembly, populations.Assembly)
     assert_equal(assembly.populations, [p1, p2])
-    
+
 def test_get_cell_position():
     p = MockPopulation()
     id = MockID("larry", parent=p)
     assert_arrays_equal(p._get_cell_position(id), numpy.array([0,1,2]))
     id = MockID("moe", parent=p)
     assert_arrays_equal(p._get_cell_position(id), numpy.array([6,7,8]))
-    
+
 def test_set_cell_position():
     p = MockPopulation()
     id = MockID("larry", parent=p)
@@ -193,7 +193,7 @@ def test_get_with_gather():
         D[1] = [i-1 for i in D[0]] + [D[0][-1] + 1]
         return D
     recording.gather_dict = mock_gather_dict
-    
+
     p = MockPopulation()
     ps = Mock()
     ps.evaluate = Mock(return_value=numpy.arange(11.0, 23.0, 2.0))
@@ -222,7 +222,7 @@ def test_set_with_list():
     p.set(spike_times=range(10))
     p._set_parameters.assert_called_with(
         ParameterSpace({'spike_times': range(10)}, p.celltype.get_schema(), size=p.size))
-    
+
 def test_tset_with_numeric_values():
     p = MockPopulation()
     p._set_parameters = Mock()
@@ -240,7 +240,7 @@ def test_tset_with_array_values():
     assert_equal(param.shape[0], len(spike_times))
     assert_arrays_equal(param[p._mask_local],
                         numpy.array(spike_times)[p._mask_local])
-    
+
 def test_tset_invalid_dimensions_2D():
     """Population.tset(): If the size of the valueArray does not match that of the Population, should raise an InvalidDimensionsError."""
     p = MockPopulation()
@@ -280,9 +280,9 @@ def test_initialize():
     p = MockPopulation()
     p.initial_values = {}
     p._set_initial_value_array = Mock()
-    p.initialize('v', -65.0)
+    p.initialize(v=-65.0)
     assert_equal(p.initial_values['v'].evaluate(simplify=True), -65.0)
-    p._set_initial_value_array.assert_called_with('v', -65.0)    
+    p._set_initial_value_array.assert_called_with('v', -65.0)
 
 def test_initialize_random_distribution():
     p = MockPopulation()
@@ -291,16 +291,16 @@ def test_initialize_random_distribution():
     class MockRandomDistribution(random.RandomDistribution):
         def next(self, n, mask_local):
             return 42*numpy.ones(n)[mask_local]
-    p.initialize('v', MockRandomDistribution())
+    p.initialize(v=MockRandomDistribution())
     assert_arrays_equal(p.initial_values['v'].evaluate(simplify=True), 42*numpy.ones(p.local_size))
-    #p._set_initial_value_array.assert_called_with('v', 42*numpy.ones(p.size)) 
+    #p._set_initial_value_array.assert_called_with('v', 42*numpy.ones(p.size))
 
 def test_can_record():
     p = MockPopulation()
     p.celltype = MockStandardCell({})
     assert p.can_record('v')
     assert not p.can_record('foo')
-    
+
 def test_record_with_single_variable():
     p = MockPopulation()
     p.recorder = Mock()
@@ -320,7 +320,7 @@ def test_record_with_multiple_variables():
     assert_equal(meth, 'record')
     assert_equal(variables, ['v', 'gsyn_exc', 'spikes'])
     assert_arrays_equal(id_arr, p.all_cells)
-    
+
 def test_record_v():
     p = MockPopulation()
     p.record = Mock()
@@ -341,7 +341,7 @@ def test_printSpikes():
     meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'write')
     assert_equal(args, ("spikes", "file", "gather", "filter"))
-    
+
 def test_getSpikes():
     p = MockPopulation()
     p.recorder = Mock()
@@ -359,7 +359,7 @@ def test_print_v():
     meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'write')
     assert_equal(args, ("v", "file", "gather", "filter"))
-    
+
 def test_get_v():
     p = MockPopulation()
     p.recorder = Mock()
@@ -368,7 +368,7 @@ def test_get_v():
     meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'get')
     assert_equal(args, ("v", "gather", "filter", False))
-    
+
 def test_print_gsyn():
     p = MockPopulation()
     p.recorder = Mock()
@@ -377,7 +377,7 @@ def test_print_gsyn():
     meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'write')
     assert_equal(args, (["gsyn_exc", "gsyn_inh"], "file", "gather", "filter"))
-    
+
 def test_get_gsyn():
     p = MockPopulation()
     p.recorder = Mock()
@@ -386,7 +386,7 @@ def test_get_gsyn():
     meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'get')
     assert_equal(args, (["gsyn_exc", "gsyn_inh"], "gather", "filter", False))
-    
+
 def test_get_spike_counts():
     p = MockPopulation()
     p.recorder = Mock()
@@ -394,7 +394,7 @@ def test_get_spike_counts():
     meth, args, kwargs = p.recorder.method_calls[0]
     assert_equal(meth, 'count')
     assert_equal(args, ("spikes", "gather", None))
-    
+
 def test_mean_spike_count():
     orig_rank = MockPopulation._simulator.state.mpi_rank
     MockPopulation._simulator.state.mpi_rank = 0
@@ -412,7 +412,7 @@ def test_mean_spike_count_on_slave_node():
     p.recorder.count = Mock(return_value={0: 2, 1: 5})
     assert p.mean_spike_count() is numpy.NaN
     MockPopulation._simulator.state.mpi_rank = orig_rank
-    
+
 def test_inject():
     p = MockPopulation()
     cs = Mock()

@@ -70,6 +70,10 @@ def build_record(simulator):
             simulator.state.write_on_end.append((population, variables, filename))
     return record
 
-def initialize(cells, variable, value):
+
+def initialize(cells, **initial_values):
+    """
+    MISSING DOCSTRING
+    """
     assert isinstance(cells, (BasePopulation, Assembly)), type(cells)
-    cells.initialize(variable, value)
+    cells.initialize(**initial_values)

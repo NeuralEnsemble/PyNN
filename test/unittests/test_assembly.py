@@ -4,7 +4,7 @@ from nose.tools import assert_equal, assert_raises
 import numpy
 from pyNN.utility import assert_arrays_equal
 from mock import Mock
-    
+
 
 class MockSimulator(object):
     class MockState(object):
@@ -107,7 +107,7 @@ def test_add_inplace_population():
     a = Assembly(p1)
     a += p2
     assert_equal(a.populations, [p1, p2])
-    
+
 def test_add_inplace_assembly():
     p1 = MockPopulation()
     p2 = MockPopulation()
@@ -128,10 +128,10 @@ def test_initialize():
     p1 = MockPopulation()
     p2 = MockPopulation()
     a = Assembly(p1, p2)
-    a.initialize("v", -54.3)
+    a.initialize(v=-54.3)
     p1.initialize.assert_called_with("v", -54.3)
     p2.initialize.assert_called_with("v", -54.3)
-    
+
 def test_describe():
     p1 = MockPopulation()
     p2 = MockPopulation()
@@ -159,7 +159,7 @@ def test_all_cells():
     assert_equal(a.all_cells[0], p1.all_cells[0])
     assert_equal(a.all_cells[-1], p3.all_cells[-1])
     assert_arrays_equal(a.all_cells, numpy.append(p1.all_cells, (p2.all_cells, p3.all_cells)))
-    
+
 def test_local_cells():
     p1 = MockPopulation()
     p2 = MockPopulation()

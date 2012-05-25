@@ -99,8 +99,7 @@ these neurons as from standard cells::
       T_E_rev, T_g_peak, Tau_m, Tau_spike, Tau_theta, Theta_eq, g_KL, g_NaL,
       h_E_rev, h_g_peak, spike_duration)
 
-    >>> p1.initialize('V_m', -70.0)
-    >>> p1.initialize('Theta', -50.0)
+    >>> p1.initialize(V_m=-70.0, Theta=-50.0)
     >>> p1.record('V_m')
     >>> run(250.0)
     >>> output = p1.get_data()

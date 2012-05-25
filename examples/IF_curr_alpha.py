@@ -34,7 +34,7 @@ connI = connect(spike_sourceI, ifcell, weight=-1.5, synapse_type='inhibitory', d
 
 record('v', ifcell, "Results/IF_curr_alpha_%s.pkl" % simulator_name)
 
-initialize(ifcell, 'v', -54.2)
+initialize(ifcell, v=-54.2)
 
 run(200.0)
 

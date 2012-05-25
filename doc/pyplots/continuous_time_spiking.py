@@ -17,7 +17,7 @@ def test_sim(on_or_off_grid, sim_time):
                                                  'v_rest':      0.0,
                                                  'v_reset':     0.0,
                                                  'i_offset':    0.0})
-    nrn.initialize('v', 0.0)
+    nrn.initialize(v=0.0)
     prj = Projection(src, nrn, OneToOneConnector(weights=weight))
     nrn.record('v')
     run(sim_time)

@@ -30,7 +30,7 @@ spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in rang
 connE = connect(spike_sourceE, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)
 connI = connect(spike_sourceI, ifcell, weight=-1.5, synapse_type='inhibitory', delay=4.0)
 record('v', ifcell, "Results/Izhikevich_%s.pkl" % simulator_name)
-initialize(ifcell, 'v', -53.2)
+initialize(ifcell, v=-53.2)
 run(200)
 
 end()

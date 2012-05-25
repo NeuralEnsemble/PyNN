@@ -46,9 +46,9 @@ parameters = {
 }
 
 cells = sim.Population(1, celltype_cls, parameters)
-cells.initialize('V', parameters['vL'])
-cells.initialize('t_spike', -1e99) # neuron not refractory at start
-cells.initialize('regime', 1002) # temporary hack
+cells.initialize(V=parameters['vL'])
+cells.initialize(t_spike=-1e99) # neuron not refractory at start
+cells.initialize(regime=1002) # temporary hack
 
 input = sim.Population(2, sim.SpikeSourcePoisson, {'rate': 100})
 

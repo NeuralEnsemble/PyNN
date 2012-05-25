@@ -31,8 +31,7 @@ def test_record_native_model():
     parameters = {'Tau_m': 17.0}
     n_cells = 10
     p1 = nest.Population(n_cells, nest.native_cell_type("ht_neuron"), parameters)
-    p1.initialize('V_m', -70.0)
-    p1.initialize('Theta', -50.0)
+    p1.initialize(V_m=-70.0, Theta=-50.0)
     p1.set(Theta_eq=-51.5)
     assert_arrays_equal(p1.get('Theta_eq'), -51.5*numpy.ones((10,)))
     print p1.get('Tau_m')
