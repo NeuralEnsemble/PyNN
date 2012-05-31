@@ -21,6 +21,7 @@ from pyNN.neuron.standardmodels.electrodes import *
 from pyNN.neuron.recording import Recorder
 from pyNN.parameters import Sequence
 import numpy
+from itertools import izip, repeat
 import logging
 from neuron import h
 
@@ -328,31 +329,30 @@ class Projection(common.Projection):
         """
         Connect a neuron to one or more other neurons with a static connection.
 
-        `sources`  -- a list/1D array of pre-synaptic cell IDs, or a single ID.
-        `target` -- the ID of the post-synaptic cell.
-        `weight`  -- a list/1D array of connection weights, or a single weight.
-                     Must have the same length as `targets`.
-        `delays`  -- a list/1D array of connection delays, or a single delay.
-                     Must have the same length as `targets`.
+        `sources`  -- a 1D array of pre-synaptic cell IDs
+        `target`   -- the ID of the post-synaptic cell.
+        `weight`   -- a 1D array of connection weights, of the same length as
+                      `sources`, or a single weight value.
+        `delays`   -- a 1D array of connection delays, of the same length as
+                      `sources`, or a single delay value.
         """
         if not isinstance(target, int) or target > simulator.state.gid_counter or target < 0:
             errmsg = "Invalid target ID: %s (gid_counter=%d)" % (target, simulator.state.gid_counter)
             raise errors.ConnectionError(errmsg)
-        if not core.is_listlike(sources):
-            sources = [sources]
+        
         if isinstance(weights, float):
-            weights = [weights]
+            weights = repeat(weights)
+        else:
+            assert len(sources) == len(weights)
         if isinstance(delays, float):
-            delays = [delays]
-        assert len(sources) > 0
-        for source in sources:
-            if not isinstance(source, common.IDMixin):
-                raise errors.ConnectionError("Invalid source ID: %s" % source)
+            delays = repeat(delays)
+        else:
+            assert len(sources) == len(delays)
 
-        assert len(sources) == len(weights) == len(delays), "%s %s %s" % (len(sources),len(weights),len(delays))
-
-        if target.local:
-            for source, weight, delay in zip(sources, weights, delays):
+        if target.local:  # can perhaps assert target.local ?
+            for source, weight, delay in izip(sources, weights, delays):
+                if not isinstance(source, common.IDMixin):
+                    raise errors.ConnectionError("Invalid source ID: %s" % source)
                 if self.synapse_type is None:
                     self.synapse_type = weight >= 0 and 'excitatory' or 'inhibitory'
                 if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:

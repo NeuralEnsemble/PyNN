@@ -652,7 +652,7 @@ class Population(BasePopulation):
     # arguably structure should be read-only, i.e. it is not possible to change it after Population creation
 
     @property
-    def position_generator(self):
+    def position_generator(self):  # "generator" is a misleading name, has no yield statement
         def gen(i):
             return self.positions[:,i]
         return gen

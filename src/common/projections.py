@@ -129,6 +129,10 @@ class Projection(object):
         else:
             return len(self)
 
+    @property
+    def shape(self):
+        return (self.pre.size, self.post.size)
+
     def __repr__(self):
         return 'Projection("%s")' % self.label
 
