@@ -76,12 +76,12 @@ def _discrepancy_due_to_rounding(parameters, output_values):
 def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     Should be called at the very beginning of a script.
-    
+
     `extra_params` contains any keyword arguments that are required by a given
     simulator but not by others.
-    
+
     NEST-specific extra_params:
-    
+
     `spike_precision`:
         should be "on_grid" (default) or "off_grid"
     `verbosity`:
@@ -414,42 +414,39 @@ class Projection(common.Projection):
 
     def _convergent_connect(self, sources, target, weights, delays):
         """
-        Connect one or more neurons to a single post-synaptic neuron.
-        `sources` -- a list/1D array of pre-synaptic cell IDs, or a single ID.
-        `target`  -- the ID of the post-synaptic cell.
-        `weight`  -- a list/1D array of connection weights, or a single weight.
-                     Must have the same length as `targets`.
-        `delays`  -- a list/1D array of connection delays, or a single delay.
-                     Must have the same length as `targets`.
+        Connect a neuron to one or more other neurons with a static connection.
+
+        `sources`  -- a 1D array of pre-synaptic cell IDs
+        `target`   -- the ID of the post-synaptic cell.
+        `weight`   -- a 1D array of connection weights, of the same length as
+                      `sources`, or a single weight value.
+        `delays`   -- a 1D array of connection delays, of the same length as
+                      `sources`, or a single delay value.
         """
-        # are we sure the targets are all on the current node?
-        if core.is_listlike(target):
-            assert len(target) == 1
-            target = target[0]
-        if not core.is_listlike(sources):
-            sources = [sources]
         assert len(sources) > 0, sources
-        if self.synapse_type not in ('excitatory', 'inhibitory', None):
-            raise errors.ConnectionError("synapse_type must be 'excitatory', 'inhibitory', or None (equivalent to 'excitatory')")
-        weights = numpy.array(weights)*1000.0# weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
-                                 # Using convention in this way is not ideal. We should
-                                 # be able to look up the units used by each model somewhere.
+        if self.synapse_type not in target.celltype.synapse_types:
+            assert len(target.celltype.synapse_types) > 0
+            valid_types = "', '".join(target.celltype.synapse_types)
+            raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: '%s'" % (self.synapse_type,  valid_types))
+        weights *= 1000.0   # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+                            # Using convention in this way is not ideal. We should
+                            # be able to look up the units used by each model somewhere.
         if self.synapse_type == 'inhibitory' and common.is_conductance(target):
-            weights = -1*weights # NEST wants negative values for inhibitory weights, even if these are conductances
+            weights *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()
-        elif isinstance(weights, float):
-            weights = [weights]
         if isinstance(delays, numpy.ndarray):
             delays = delays.tolist()
-        elif isinstance(delays, float):
-            delays = [delays]
 
-        try:
-            nest.ConvergentConnect(sources, [target], weights, delays, self.synapse_model)
-        except nest.NESTError, e:
-            raise errors.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                                         e, sources, target, weights, delays, self.synapse_model))
+        if target.celltype.standard_receptor_type:
+            try:
+                nest.ConvergentConnect(sources.astype(int).tolist(), [target], weights, delays, self.synapse_model)
+            except nest.NESTError, e:
+                raise errors.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                                             e, sources, target, weights, delays, self.synapse_model))
+        else:
+            for target, w, d in zip(targets, weights, delays): # need to handle case where weights, delays are floats
+                nest.Connect([source], [target], {'weight': w, 'delay': d, 'receptor_type': target.celltype.get_receptor_type(self.synapse_type)})
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.extend(sources)
 

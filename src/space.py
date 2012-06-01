@@ -28,6 +28,10 @@ import math
 from operator import and_
 from pyNN.random import NumpyRNG
 from pyNN import descriptions
+import logging
+
+logger = logging.getLogger("PyNN")
+
 
 def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
              periodic_boundaries=None): # may need to add an offset parameter
@@ -94,6 +98,7 @@ class Space(object):
         the topology of the current space.
         From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
         """
+        logger.debug("Calculating distance between A (shape=%s) and B (shape=%s)" % (A.shape, B.shape))
         if len(A.shape) == 1:
             A = A.reshape(3, 1)
         if len(B.shape) == 1:

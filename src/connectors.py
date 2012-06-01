@@ -15,9 +15,10 @@ import numpy
 from itertools import izip
 import logging
 
-from numpy import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, e, exp, \
-                  fabs, floor, fmod, hypot, ldexp, log, log10, modf, pi, power, \
-                  sin, sinh, sqrt, tan, tanh, maximum, minimum
+from lazyarray import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, exp, \
+                      fabs, floor, fmod, hypot, ldexp, log, log10, modf, power, \
+                      sin, sinh, sqrt, tan, tanh, maximum, minimum
+from numpy import e, pi
 
 try:
     import csa
@@ -33,7 +34,7 @@ DEFAULT_WEIGHT = 0.0
 class Connector(object):
     """
     Base class for connectors.
-    
+
     All connector sub-classes have the following optional keyword arguments:
         `weights`:
             may either be a float, a RandomDistribution object, a list/1D array
@@ -96,52 +97,58 @@ class Connector(object):
 
 class MapConnector(Connector):
     """
-    
+
     """
     # abstract base class
-    
+
     def _generate_distance_map(self, projection):
         position_generators = (projection.pre.position_generator, projection.post.position_generator)
         return LazyArray(self.space.distance_generator(*position_generators),
                          shape=projection.shape)
-    
+
+    def _generate_attribute_map(self, attribute_name, projection, distance_map):
+        attr = getattr(self, attribute_name)
+        if isinstance(attr, (int, long, float, numpy.ndarray, RandomDistribution)):
+            # attr is constant, an array, a random distribution
+            map = LazyArray(attr, projection.shape)
+        elif isinstance(attr, basestring):
+            # attr is an expression for d
+            f_a = eval("lambda d: %s" % attr)
+            map = f_a(distance_map)
+        elif callable(attr):
+            # attr is a function of distance
+            map = attr(distance_map)
+        return map
+
     def _connect_with_map(self, projection, connection_map, distance_map=None):
         if distance_map is None:
             distance_map = self._generate_distance_map(projection)
-
-        # if self.weights is constant, an array, a random distribution
-        if isinstance(self.weights, (int, long, float, numpy.ndarray, RandomDistribution)):
-            weight_map = LazyArray(self.weights, projection.shape)
-        elif isinstance(self.weights, str):
-            f_w = lambda d: eval(self.weights)
-            weight_map = f_w(distance_map)
-        elif callable(self.weights):
-        # if self.weights is a function of d or a d_expr
-            weight_map = self.weights(distance_map)
-
+        weight_map = self._generate_attribute_map('weights', projection, distance_map)
         if self.delays is None:
             self.delays = projection._simulator.state.min_delay
-        delay_map = LazyArray(self.delays, projection.shape) # TODO: delays, and potentially plasticity model parameters, can be of the same types as weights
+        delay_map = self._generate_attribute_map('delays', projection, distance_map)
+        # TODO: where appropriate, will also need to generate maps for plasticity model parameters
 
         mask = projection.post._mask_local
-        for tgt, source_mask, weights, delays in izip(projection.post.local_cells, # for plastic synapses, may also need to iterate over connection parameters
-                                                      connection_map.by_column(mask),
-                                                      weight_map.by_column(mask),
-                                                      delay_map.by_column(mask)):
+        column_indices = numpy.arange(projection.post.size)[mask]
+        for col, tgt, source_mask in izip(column_indices,
+                                          projection.post.local_cells,
+                                          connection_map.by_column(mask)):
             if source_mask is True:
                 sources = projection.pre.all_cells
+                source_mask = slice(None)
             else:
                 sources = projection.pre.all_cells[source_mask]
-            if not isinstance(weights, float):
-                weights = weights[source_mask]
-            if not isinstance(delays, float):
-                delays = delays[source_mask]
-            print tgt, sources, weights, delays
+            if weight_map.is_homogeneous:
+                weights = weight_map.evaluate(simplify=True)
+            else:
+                weights = weight_map[source_mask, col]
+            if delay_map.is_homogeneous:
+                delays = delay_map.evaluate(simplify=True)
+            else:
+                delays = delay_map[source_mask, col]
+            #print tgt, sources, weights, delays
             projection._convergent_connect(sources, tgt, weights, delays)
-# comment: for a sparse connection array, it will be inefficient to calculate distances
-# for all possible connections in a column before applying the mask
-# rather, LazyArray.by_column() should have an option to return a 1D lazy array
-# instead of a full array, so that we can lazily evaluate each column of the weight, delay, etc. arrays
 
 
 
@@ -149,7 +156,7 @@ class AllToAllConnector(MapConnector):
     """
     Connects all cells in the presynaptic population to all cells in the
     postsynaptic population.
-    
+
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
         `allow_self_connections`:
@@ -179,7 +186,7 @@ class AllToAllConnector(MapConnector):
 class FixedProbabilityConnector(MapConnector):
     """
     For each pair of pre-post cells, the connection probability is constant.
-    
+
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
         `p_connect`:
@@ -215,12 +222,12 @@ class FixedProbabilityConnector(MapConnector):
     ##onetoone
     ## pointless to use a LazyArray
     #
-    
-    
+
+
 class DistanceDependentProbabilityConnector(MapConnector):
     """
     For each pair of pre-post cells, the connection probability depends on distance.
-    
+
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
         `d_expression`:
@@ -229,7 +236,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
         `allow_self_connections`:
             if the connector is used to connect a Population to itself, this
             flag determines whether a neuron is allowed to connect to itself,
-            or only to other neurons in the Population.    
+            or only to other neurons in the Population.
     """
     parameter_names = ('allow_self_connections', 'd_expression')
 
@@ -249,7 +256,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
-        self.distance_function = lambda d: eval(self.d_expression)
+        self.distance_function = eval("lambda d: %s" % self.d_expression)
 
     def connect(self, projection):
         distance_map  = self._generate_distance_map(projection)
@@ -265,7 +272,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
 class FromListConnector(Connector):
     """
     Make connections according to a list.
-    
+
     Arguments:
         `conn_list`:
             a list of tuples, one tuple for each connection. Each tuple should contain:
@@ -311,11 +318,11 @@ class FromListConnector(Connector):
                 raise errors.ConnectionError("invalid target index %d" % tgt)
             projection._convergent_connect(srcs, tgt, weights, delays)
 
-    
+
 class FromFileConnector(FromListConnector):
     """
     Make connections according to a list read from a file.
-    
+
     Arguments:
         `file`:
             either an open file object or the filename of a file containing a
@@ -350,12 +357,12 @@ class FromFileConnector(FromListConnector):
         self.conn_list = self.file.read()
         FromListConnector.connect(self, projection)
 
-    
+
 def shuffle(axis, arr, rng):
     if axis == 'rows':
         return rng.permutation(arr)  # what if rng is a GSLRNG or NativeRNG?
     elif axis == 'columns':
-        return rng.permutation(arr.T).T 
+        return rng.permutation(arr.T).T
 
 
 class FixedNumberConnector(MapConnector):
@@ -391,7 +398,7 @@ class FixedNumberPostConnector(FixedNumberConnector):
     multiply connected. If `n` is greater than the size of the post-synaptic
     population, all possible single connections are made before starting to add
     duplicate connections.
-    
+
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
         `n`:
@@ -428,7 +435,7 @@ class FixedNumberPreConnector(FixedNumberConnector):
     multiply connected. If `n` is greater than the size of the pre-synaptic
     population, all possible single connections are made before starting to add
     duplicate connections.
-    
+
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
         `n`:
@@ -453,14 +460,14 @@ class FixedNumberPreConnector(FixedNumberConnector):
         if not self.allow_self_connections and projection.pre == projection.post:
             connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
-    
-    
+
+
 class OneToOneConnector(MapConnector):
     """
     Where the pre- and postsynaptic populations have the same size, connect
     cell *i* in the presynaptic population to cell *i* in the postsynaptic
     population for all *i*.
-    
+
     Takes any of the standard :class:`Connector` optional arguments.
     """
     parameter_names = tuple()
@@ -474,7 +481,7 @@ class OneToOneConnector(MapConnector):
 class SmallWorldConnector(Connector):
     """
     Connect cells so as to create a small-world network.
-    
+
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
         `degree`:
@@ -512,7 +519,7 @@ class SmallWorldConnector(Connector):
 class CSAConnector(Connector):
     """
     Use the Connection Set Algebra (Djurfeldt, 2012) to connect cells.
-    
+
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
         `cset`:
