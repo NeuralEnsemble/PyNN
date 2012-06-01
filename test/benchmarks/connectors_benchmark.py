@@ -1,5 +1,5 @@
 from pylab import *
-from pyNN.utility import Timer, init_logging
+from pyNN.utility import Timer, init_logging, ProgressBar
 import os
 
 simulator_name = sys.argv[1]
@@ -10,6 +10,7 @@ from pyNN.recording import files
 from pyNN.space import *
 
 timer = Timer()
+progress_bar = ProgressBar(mode='fixed', width=20)
 init_logging("connectors_benchmark_%s.log" % simulator_name, debug=True)
 
 def draw_rf(cell, positions, connections, color='k'):
@@ -41,7 +42,7 @@ def test(cases=[2, 7]):
 
     sp            = Space(periodic_boundaries=((0,1), (0,1), None), axes='xy')
     safe          = False
-    verbose       = True
+    callback      = progress_bar.set_level
     autapse       = False
     parallel_safe = True
     render        = False
@@ -66,28 +67,28 @@ def test(cases=[2, 7]):
         np      = num_processes()
         timer.start()
         if case is 1:
-            conn  = DistanceDependentProbabilityConnector(d_expression, delays=delay, weights=w, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
+            conn  = DistanceDependentProbabilityConnector(d_expression, delays=delay, weights=w, space=sp, safe=safe, callback=callback, allow_self_connections=autapse)
             fig_name = "DistanceDependent_%s_np_%d.png" %(simulator_name, np)
         elif case is 2:
-            conn  = FixedProbabilityConnector(0.02, weights=w, delays=delay, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
+            conn  = FixedProbabilityConnector(0.02, weights=w, delays=delay, space=sp, safe=safe, callback=callback, allow_self_connections=autapse)
             fig_name = "FixedProbability_%s_np_%d.png" %(simulator_name, np)
         elif case is 3:
-            conn  = AllToAllConnector(delays=delay, weights=w, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
+            conn  = AllToAllConnector(delays=delay, weights=w, space=sp, safe=safe, callback=callback, allow_self_connections=autapse)
             fig_name = "AllToAll_%s_np_%d.png" %(simulator_name, np)
         elif case is 4:
-            conn  = FixedNumberPostConnector(50, weights=w, delays=delay, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
+            conn  = FixedNumberPostConnector(50, weights=w, delays=delay, space=sp, safe=safe, callback=callback, allow_self_connections=autapse)
             fig_name = "FixedNumberPost_%s_np_%d.png" %(simulator_name, np)
         elif case is 5:
-            conn  = FixedNumberPreConnector(50, weights=w, delays=delay, space=sp, safe=safe, verbose=verbose, allow_self_connections=autapse)
+            conn  = FixedNumberPreConnector(50, weights=w, delays=delay, space=sp, safe=safe, callback=callback, allow_self_connections=autapse)
             fig_name = "FixedNumberPre_%s_np_%d.png" %(simulator_name, np)
         elif case is 6:
-            conn  = OneToOneConnector(safe=safe, weights=w, delays=delay, verbose=verbose)
+            conn  = OneToOneConnector(safe=safe, weights=w, delays=delay, callback=callback)
             fig_name = "OneToOne_%s_np_%d.png" %(simulator_name, np)
         elif case is 7:
-            conn  = FromFileConnector(files.NumpyBinaryFile('Results/connections.dat', mode='r'), safe=safe, verbose=verbose, distributed=True)
+            conn  = FromFileConnector(files.NumpyBinaryFile('Results/connections.dat', mode='r'), safe=safe, callback=callback, distributed=True)
             fig_name = "FromFile_%s_np_%d.png" %(simulator_name, np)
         elif case is 8:
-            conn  = SmallWorldConnector(degree=0.1, rewiring=0., weights=w, delays=delay, safe=safe, verbose=verbose, allow_self_connections=autapse, space=sp)
+            conn  = SmallWorldConnector(degree=0.1, rewiring=0., weights=w, delays=delay, safe=safe, callback=callback, allow_self_connections=autapse, space=sp)
             fig_name = "SmallWorld_%s_np_%d.png" %(simulator_name, np)
 
 

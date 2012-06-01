@@ -11,7 +11,7 @@ $Id$
 
 """
 
-from pyNN.utility import get_script_args, Timer
+from pyNN.utility import get_script_args, Timer, ProgressBar
 
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
@@ -156,9 +156,10 @@ print "%d Setting up recording in inhibitory population." % rank
 I_net.sample(Nrec).record('spikes')
 I_net[0:2].record('v')
 
-E_Connector = FixedProbabilityConnector(epsilon, weights=JE, delays=delay, verbose=True)
-I_Connector = FixedProbabilityConnector(epsilon, weights=JI, delays=delay, verbose=True)
-ext_Connector = OneToOneConnector(weights=JE, delays=dt, verbose=True)
+progress_bar = ProgressBar(width=20)
+E_Connector = FixedProbabilityConnector(epsilon, weights=JE, delays=delay, callback=progress_bar.set_level)
+I_Connector = FixedProbabilityConnector(epsilon, weights=JI, delays=delay, callback=progress_bar.set_level)
+ext_Connector = OneToOneConnector(weights=JE, delays=dt, callback=progress_bar.set_level)
 
 print "%d Connecting excitatory population with connection probability %g, weight %g nA and delay %g ms." % (rank, epsilon, JE, delay)
 E_to_E = Projection(E_net, E_net, E_Connector, rng=rng, target="excitatory")

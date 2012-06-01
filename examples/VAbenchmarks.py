@@ -19,7 +19,7 @@ import os
 import socket
 from math import *
 
-from pyNN.utility import get_script_args, Timer
+from pyNN.utility import get_script_args, Timer, ProgressBar
 usage = """Usage: python VAbenchmarks.py <simulator> <benchmark>
            <simulator> is either neuron, nest, brian or pcsim
            <benchmark> is either CUBA or COBA."""
@@ -134,8 +134,9 @@ exc_cells.initialize(v=uniformDistr)
 inh_cells.initialize(v=uniformDistr)
 
 print "%s Connecting populations..." % node_id
-exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay, verbose=True)
-inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay, verbose=True)
+progress_bar = ProgressBar(width=20)
+exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay, callback=progressbar.set_level)
+inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay, callback=progressbar.set_level)
 
 connections={}
 connections['e2e'] = Projection(exc_cells, exc_cells, exc_conn, target='excitatory', rng=rng)

@@ -8,6 +8,7 @@ for improved performance.
 :license: CeCILL, see LICENSE for details.
 """
 
+from __future__ import division
 from pyNN.space import Space
 from pyNN.core import LazyArray
 from pyNN.random import RandomDistribution
@@ -48,8 +49,9 @@ class Connector(object):
         `safe`:
             if True, check that weights and delays have valid values. If False,
             this check is skipped.
-        `verbose`:
-            if True, display a progress bar on the terminal.
+        `callback`:
+            a function that will be called with the fractional progress of the
+            connection routine. An example would be `progress_bar.set_level`.
 
     In addition, if the synapses being created are plastic ones, any of the
     parameters of the plasticity model may be given as an additional keyword
@@ -57,7 +59,7 @@ class Connector(object):
     """
 
     def __init__(self, weights=None, delays=None, space=Space(), safe=True,
-                 verbose=False, **plasticity_parameters):
+                 callback=None, **plasticity_parameters):
         """
         docstring needed
         """
@@ -67,7 +69,9 @@ class Connector(object):
         self.delays = delays
         self.space   = space
         self.safe    = safe
-        self.verbose = verbose
+        self.callback = callback
+        if callback is not None:
+            assert callable(callback)
 
     def connect(self, projection):
         raise NotImplementedError()
@@ -131,9 +135,9 @@ class MapConnector(Connector):
 
         mask = projection.post._mask_local
         column_indices = numpy.arange(projection.post.size)[mask]
-        for col, tgt, source_mask in izip(column_indices,
-                                          projection.post.local_cells,
-                                          connection_map.by_column(mask)):
+        for count, (col, tgt, source_mask) in enumerate(izip(column_indices,
+                                                             projection.post.local_cells,
+                                                             connection_map.by_column(mask))):
             if source_mask is True:
                 sources = projection.pre.all_cells
                 source_mask = slice(None)
@@ -149,7 +153,8 @@ class MapConnector(Connector):
                 delays = delay_map[source_mask, col]
             #print tgt, sources, weights, delays
             projection._convergent_connect(sources, tgt, weights, delays)
-
+            if self.callback:
+                self.callback(count/projection.post.local_size)
 
 
 class AllToAllConnector(MapConnector):
@@ -167,11 +172,11 @@ class AllToAllConnector(MapConnector):
     parameter_names = ('allow_self_connections',)
 
     def __init__(self, allow_self_connections=True, weights=None, delays=None,
-                 space=Space(), safe=True, verbose=False, **plasticity_parameters):
+                 space=Space(), safe=True, callback=None, **plasticity_parameters):
         """
         Create a new connector.
         """
-        Connector.__init__(self, weights, delays, space, safe, verbose)
+        Connector.__init__(self, weights, delays, space, safe, callback)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
 
@@ -200,12 +205,12 @@ class FixedProbabilityConnector(MapConnector):
     parameter_names = ('allow_self_connections', 'p_connect')
 
     def __init__(self, p_connect, allow_self_connections=True, weights=None,
-                 delays=None, space=Space(), safe=True, verbose=False,
+                 delays=None, space=Space(), safe=True, callback=None,
                  **plasticity_parameters):
         """
         Create a new connector.
         """
-        Connector.__init__(self, weights, delays, space, safe, verbose)
+        Connector.__init__(self, weights, delays, space, safe, callback)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
@@ -242,11 +247,11 @@ class DistanceDependentProbabilityConnector(MapConnector):
 
     def __init__(self, d_expression, allow_self_connections=True,
                  weights=None, delays=None, space=Space(), safe=True,
-                 verbose=False, **plasticity_parameters):
+                 callback=None, **plasticity_parameters):
         """
         Create a new connector.
         """
-        Connector.__init__(self, weights, delays, space, safe, verbose)
+        Connector.__init__(self, weights, delays, space, safe, callback)
         assert isinstance(d_expression, str)
         assert isinstance(allow_self_connections, bool)
         try:
@@ -282,17 +287,17 @@ class FromListConnector(Connector):
         `safe`:
             if True, check that weights and delays have valid values. If False,
             this check is skipped.
-        `verbose`:
+        `callback`:
             if True, display a progress bar on the terminal.
     """
     parameter_names = ('conn_list',)
 
-    def __init__(self, conn_list, safe=True, verbose=False):
+    def __init__(self, conn_list, safe=True, callback=None):
         """
         Create a new connector.
         """
         # needs extending for dynamic synapses.
-        Connector.__init__(self, None, None, safe=safe, verbose=verbose)
+        Connector.__init__(self, None, None, safe=safe, callback=callback)
         self.conn_list  = numpy.array(conn_list)
 
     def connect(self, projection):
@@ -334,16 +339,16 @@ class FromFileConnector(FromListConnector):
         `safe`:
             if True, check that weights and delays have valid values. If False,
             this check is skipped.
-        `verbose`:
+        `callback`:
             if True, display a progress bar on the terminal.
     """
     parameter_names = ('filename', 'distributed')
 
-    def __init__(self, file, distributed=False, safe=True, verbose=False):
+    def __init__(self, file, distributed=False, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, None, None, safe=safe, verbose=verbose)
+        Connector.__init__(self, None, None, safe=safe, callback=callback)
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='r')
         self.file = file
@@ -370,11 +375,11 @@ class FixedNumberConnector(MapConnector):
     parameter_names = ('allow_self_connections', 'n')
 
     def __init__(self, n, allow_self_connections=True, weights=None, delays=None,
-                 space=Space(), safe=True, verbose=False):
+                 space=Space(), safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, weights, delays, space, safe, verbose)
+        Connector.__init__(self, weights, delays, space, safe, callback)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         if isinstance(n, int):
@@ -499,11 +504,11 @@ class SmallWorldConnector(Connector):
 
     def __init__(self, degree, rewiring, allow_self_connections=True,
                  n_connections=None, weights=None, delays=None, space=Space(),
-                 safe=True, verbose=False):
+                 safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, weights, delays, space, safe, verbose)
+        Connector.__init__(self, weights, delays, space, safe, callback)
         assert 0 <= rewiring <= 1
         assert isinstance(allow_self_connections, bool)
         self.rewiring               = rewiring
@@ -528,10 +533,10 @@ class CSAConnector(Connector):
     parameter_names = ('cset',)
 
     if haveCSA:
-        def __init__ (self, cset, weights=None, delays=None, safe=True, verbose=False):
+        def __init__ (self, cset, weights=None, delays=None, safe=True, callback=None):
             """
             """
-            Connector.__init__(self, weights, delays, safe=safe, verbose=verbose)
+            Connector.__init__(self, weights, delays, safe=safe, callback=callback)
             self.cset = cset
             if csa.arity(cset) == 0:
                 pass
@@ -540,7 +545,7 @@ class CSAConnector(Connector):
                 assert weights is None and delays is None, \
                        "weights or delays specified both in connection-set and as CSAConnector argument"
     else:
-        def __init__ (self, cset, safe=True, verbose=False):
+        def __init__ (self, cset, safe=True, callback=None):
             raise RuntimeError, "CSAConnector not available---couldn't import csa module"
 
     @staticmethod
