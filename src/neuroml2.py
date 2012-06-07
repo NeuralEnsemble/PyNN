@@ -1,30 +1,36 @@
 """
 PyNN-->NeuroML v2
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2012 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 This file is based on neuroml.py written by Andrew Davison & has been updated for
-NeuuroML v2.0 by Padraig Gleeson
+NeuroML v2.0 by Padraig Gleeson
 
 """
 
 '''
 
-This script is intended to map PyNN scripts on to the equivalent representation in
+For an overview of PyNN & NeuroML interoperability see http://www.neuroml.org/pynn.php
+
+This script is intended to map models sprcified in PyNN on to the equivalent representation in
 NeuroML v2.0. A valid NML2 file will be produced containing the cells, populations,
 etc. and a LEMS file will be created which imports this file and can run a simple
-simulation using the LEMS interpreter, see http://www.neuroml.org/lems/interpreter.html
+simulation using the LEMS interpreter, see http://www.neuroml.org/neuroml2.php#libNeuroML
 
 Ideally... this will produce equivalent simulation results when a script is run using:
+
     python myPyNN.py nest
     python myPyNN.py neuron
-    python myPyNN.py neuroml2 (followed by nml2 LEMS_PyNN2NeuroMLv2.xml)
+    python myPyNN.py neuroml2   (followed by nml2 LEMS_PyNN2NeuroMLv2.xml)
 
         WORK IN PROGRESS! REQUIRES PyNN at tags/0.7.2/
 
-To test this out get the full PyNN tree from SVN using: svn co https://neuralensemble.org/svn/PyNN/
-then go to tags/0.7.2/src, copy neuroml2.py there, and install using setup.py in tags/0.7.2
+To test this out get the 0.7 PyNN branch from SVN using:
+
+    svn co https://neuralensemble.org/svn/PyNN/branch/0.7 pyNN
+    cd pyNN
+    sudo python setup.py install
 
 Contact p.gleeson@ucl.ac.uk for more details 
 
@@ -493,7 +499,8 @@ def end(compatible_output=True):
     lemsfile.write(lemsdoc.toprettyxml())
     lemsfile.close()
     print("\nThe file: "+lemsfile.name+" has been generated. This can be executed with libNeuroML utility nml2 (which wraps the LEMS Interpreter), i.e.")
-    print("\n    nml2 "+lemsfile.name+"\n")
+    print("\n    nml2 "+lemsfile.name)
+    print("\nFor more details see: http://www.neuroml.org/neuroml2.php#libNeuroML\n")
 
 
 def run(simtime):
