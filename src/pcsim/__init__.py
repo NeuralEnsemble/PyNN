@@ -620,7 +620,7 @@ class Projection(common.Projection, WDManager):
         ##    self.setDelays(delay)
 
         ##self.synapse_type = self.syn_factory #target or 'excitatory'
-        self.synapse_type = target or 'excitatory'
+        ##self.synapse_type = target or 'excitatory' # too soon - if weight is negative for current-based, target=None implies synapse_type is negative
         self.connections = []
         method.connect(self)
         

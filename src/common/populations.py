@@ -82,7 +82,7 @@ class IDMixin(object):
         """Return a dict of all cell parameters."""
         if self.local:
             parameter_names = self.celltype.get_parameter_names()
-            return dict((k, v[0]) for k,v in zip(parameter_names, self.as_view().get(parameter_names)))
+            return dict((k, v) for k,v in zip(parameter_names, self.as_view().get(parameter_names)))
         else:
             raise errors.NotLocalError("Cannot obtain parameters for a cell that does not exist on this node.")
 
@@ -210,6 +210,12 @@ class BasePopulation(object):
         index = self.id_to_index(id)
         self.positions[:, index] = pos
 
+    @property
+    def position_generator(self):  # "generator" is a misleading name, has no yield statement
+        def gen(i):
+            return self.positions[:,i]
+        return gen
+
     def _get_cell_initial_value(self, id, variable):
         assert isinstance(self.initial_values[variable], core.LazyArray)
         index = self.id_to_local_index(id)
@@ -319,7 +325,8 @@ class BasePopulation(object):
         else:
             parameter_space = ParameterSpace(parameters,
                                              self.celltype.get_schema(),
-                                             self.size)
+                                             self.size,
+                                             self.celltype.__class__)
         if isinstance(self.celltype, standardmodels.StandardCellType):
             parameter_space = self.celltype.translate(parameter_space)
         assert parameter_space.size == self.size
@@ -593,6 +600,8 @@ class Population(BasePopulation):
         # All are stored in a single numpy array for easy lookup by address
         # The local cells are also stored in a list, for easy iteration
         self._create_cells()
+        self.first_id = self.all_cells[0]
+        self.last_id = self.all_cells[-1]
         self.initial_values = {}
         all_initial_values = self.celltype.default_initial_values.copy()
         all_initial_values.update(initial_values)
@@ -650,12 +659,6 @@ class Population(BasePopulation):
             self._structure = structure
     structure = property(fget=_get_structure, fset=_set_structure)
     # arguably structure should be read-only, i.e. it is not possible to change it after Population creation
-
-    @property
-    def position_generator(self):  # "generator" is a misleading name, has no yield statement
-        def gen(i):
-            return self.positions[:,i]
-        return gen
 
     def _get_positions(self):
         """

@@ -62,12 +62,7 @@ def build_record(simulator):
         if not isinstance(source, (BasePopulation, Assembly)):
             source = source.parent
         source.record(variables, to_file=filename)
-        if isinstance(source, BasePopulation):
-            populations = [source]
-        elif isinstance(source, Assembly):
-            populations = source.populations
-        for population in populations:
-            simulator.state.write_on_end.append((population, variables, filename))
+        simulator.state.write_on_end.append((source, variables, filename))
     return record
 
 

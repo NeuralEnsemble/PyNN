@@ -43,7 +43,8 @@ UNITS_MAP = {
     'spikes': 'ms',
     'v': 'mV',
     'gsyn_exc': 'uS',
-    'gsyn_inh': 'uS'
+    'gsyn_inh': 'uS',
+    'w': 'nA',
 }
 
 def rename_existing(filename):

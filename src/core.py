@@ -52,7 +52,9 @@ class LazyArray(larray):
 
     def __setitem__(self, addr, new_value):
         self.check_bounds(addr)
-        if self.is_homogeneous and self.evaluate(simplify=True) == new_value:
+        if (self.is_homogeneous
+            and isinstance(new_value, (int, long, float, bool))
+            and self.evaluate(simplify=True) == new_value):
             pass
         else:
             self.base_value = self.evaluate()
@@ -77,7 +79,7 @@ class LazyArray(larray):
                                                  (slice(None), j))
             else:
                 column_indices = numpy.arange(self.ncols)
-                for j,local in zip(column_indices, mask):
+                for j,local in zip(column_indices, mask):  # this assumes that self.base_value.parallel_safe=True ?
                     col = self.base_value.next(self.nrows, mask_local=False)
                     if local:
                         yield self._apply_operations(col, (slice(None), j))

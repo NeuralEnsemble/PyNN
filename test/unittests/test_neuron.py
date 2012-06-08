@@ -87,9 +87,6 @@ def test_native_rng_pick():
     assert -3 <= rarr.min() < -2.5
     assert 5.5 < rarr.max() < 6
 
-def test_register_gid():
-    cell = MockCell()
-    simulator.register_gid(84568345, cell.source, cell.source_section)
 
 class TestInitializer(object):
 
@@ -131,42 +128,46 @@ class TestInitializer(object):
 
 class TestState(object):
     
+    def test_register_gid(self):
+        cell = MockCell()
+        simulator.state.register_gid(84568345, cell.source, cell.source_section)
+
+    
     def test_dt_property(self):
         simulator.state.dt = 0.01
         assert_equal(h.dt, 0.01)
         assert_equal(h.steps_per_ms, 100.0)
         assert_equal(simulator.state.dt, 0.01)
 
-
-def test_reset():
-    simulator.state.running = True
-    simulator.state.t = 17
-    simulator.state.tstop = 123
-    init = simulator.initializer
-    orig_initialize = init._initialize
-    init._initialize = Mock()
-    simulator.reset()
-    assert_equal(simulator.state.running, False)
-    assert_equal(simulator.state.t, 0.0)
-    assert_equal(simulator.state.tstop, 0.0)
-    init._initialize.assert_called()
-    init._initialize = orig_initialize
-
-
-def test_run():
-    simulator.reset()
-    simulator.run(12.3)
-    assert_almost_equal(h.t, 12.3, places=11)
-    simulator.run(7.7)
-    assert_almost_equal(h.t, 20.0, places=11)
-
-def test_finalize():
-    orig_pc = simulator.state.parallel_context
-    simulator.state.parallel_context = Mock()
-    simulator.finalize()
-    simulator.state.parallel_context.runworker.assert_called()
-    simulator.state.parallel_context.done.assert_called()
-    simulator.state.parallel_context = orig_pc
+    def test_reset(self):
+        simulator.state.running = True
+        simulator.state.t = 17
+        simulator.state.tstop = 123
+        init = simulator.initializer
+        orig_initialize = init._initialize
+        init._initialize = Mock()
+        simulator.state.reset()
+        assert_equal(simulator.state.running, False)
+        assert_equal(simulator.state.t, 0.0)
+        assert_equal(simulator.state.tstop, 0.0)
+        init._initialize.assert_called()
+        init._initialize = orig_initialize
+    
+    
+    def test_run(self):
+        simulator.state.reset()
+        simulator.state.run(12.3)
+        assert_almost_equal(h.t, 12.3, places=11)
+        simulator.state.run(7.7)
+        assert_almost_equal(h.t, 20.0, places=11)
+    
+    def test_finalize(self):
+        orig_pc = simulator.state.parallel_context
+        simulator.state.parallel_context = Mock()
+        simulator.state.finalize()
+        simulator.state.parallel_context.runworker.assert_called()
+        simulator.state.parallel_context.done.assert_called()
+        simulator.state.parallel_context = orig_pc
 
 
 class TestID(object):
@@ -267,27 +268,27 @@ class TestRecorder(object):
     def teardown(self):
         pass
     
-    def test__record(self):
-        self.rv._record('v', self.cells)
-        self.rg._record('gsyn_inh', self.cells)
-        self.rs._record('spikes', self.cells)
-        for cell in self.cells:
-            cell._cell.record.assert_called_with(1)
-            cell._cell.record_v.assert_called_with(1)
-            cell._cell.record_gsyn.assert_called_with('inhibitory', 1)
-        assert_raises(Exception, self.rf._record, self.cells)
-        
-    def test__get_v(self):
-        self.rv.recorded['v'] = self.cells
-        self.cells[0]._cell.vtrace = numpy.arange(-65.0, -64.0, 0.1)
-        self.cells[1]._cell.vtrace = numpy.arange(-64.0, -65.0, -0.1)
-        self.cells[0]._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
-        simulator.state.t = simulator.state.dt * len(self.cells[0]._cell.vtrace)
-        vdata = self.rv._get_current_segment(variables=['v'], filter_ids=None)
-        assert_equal(len(vdata.analogsignalarrays), 1)
-        assert_arrays_equal(numpy.array(vdata.analogsignalarrays[0]),
-                            numpy.vstack((self.cells[0]._cell.vtrace, self.cells[1]._cell.vtrace)).T)
-        
+    #def test__record(self):
+    #    self.rv._record('v', self.cells)
+    #    self.rg._record('gsyn_inh', self.cells)
+    #    self.rs._record('spikes', self.cells)
+    #    for cell in self.cells:
+    #        cell._cell.record.assert_called_with(1)
+    #        cell._cell.record_v.assert_called_with(1)
+    #        cell._cell.record_gsyn.assert_called_with('inhibitory', 1)
+    #    assert_raises(Exception, self.rf._record, self.cells)
+    #    
+    #def test__get_v(self):
+    #    self.rv.recorded['v'] = self.cells
+    #    self.cells[0]._cell.vtrace = numpy.arange(-65.0, -64.0, 0.1)
+    #    self.cells[1]._cell.vtrace = numpy.arange(-64.0, -65.0, -0.1)
+    #    self.cells[0]._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
+    #    simulator.state.t = simulator.state.dt * len(self.cells[0]._cell.vtrace)
+    #    vdata = self.rv._get_current_segment(variables=['v'], filter_ids=None)
+    #    assert_equal(len(vdata.analogsignalarrays), 1)
+    #    assert_arrays_equal(numpy.array(vdata.analogsignalarrays[0]),
+    #                        numpy.vstack((self.cells[0]._cell.vtrace, self.cells[1]._cell.vtrace)).T)
+    #    
     def test__get_spikes(self):
         self.rs.recorded['spikes'] = self.cells
         self.cells[0]._cell.spike_times = numpy.arange(101.0, 111.0)
@@ -297,24 +298,24 @@ class TestRecorder(object):
         assert_equal(len(sdata.spiketrains), 2)
         assert_arrays_equal(numpy.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times)
         
-    def test__get_gsyn(self):
-        self.rg.recorded['gsyn_exc'] = self.cells
-        self.rg.recorded['gsyn_inh'] = self.cells
-        for cell in self.cells:
-            cell._cell.gsyn_trace = {}
-            cell._cell.gsyn_trace['excitatory'] = numpy.arange(0.01, 0.0199, 0.001)
-            cell._cell.gsyn_trace['inhibitory'] = numpy.arange(1.01, 1.0199, 0.001)
-            cell._cell.gsyn_trace['excitatory_TM'] = numpy.arange(2.01, 2.0199, 0.001)
-            cell._cell.gsyn_trace['inhibitory_TM'] = numpy.arange(4.01, 4.0199, 0.001)
-            cell._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
-        simulator.state.t = simulator.state.dt * len(cell._cell.gsyn_trace['excitatory'])
-        gdata = self.rg._get_current_segment(variables=['gsyn_exc', 'gsyn_inh'], filter_ids=None)
-        assert_equal(len(gdata.analogsignalarrays), 2)
-        assert_arrays_equal(numpy.array(gdata.analogsignalarrays[0][:,0]),
-                            cell._cell.gsyn_trace['excitatory'])
-        assert_arrays_equal(numpy.array(gdata.analogsignalarrays[1][:,0]),
-                            cell._cell.gsyn_trace['inhibitory'])
-    
+    #def test__get_gsyn(self):
+    #    self.rg.recorded['gsyn_exc'] = self.cells
+    #    self.rg.recorded['gsyn_inh'] = self.cells
+    #    for cell in self.cells:
+    #        cell._cell.gsyn_trace = {}
+    #        cell._cell.gsyn_trace['excitatory'] = numpy.arange(0.01, 0.0199, 0.001)
+    #        cell._cell.gsyn_trace['inhibitory'] = numpy.arange(1.01, 1.0199, 0.001)
+    #        cell._cell.gsyn_trace['excitatory_TM'] = numpy.arange(2.01, 2.0199, 0.001)
+    #        cell._cell.gsyn_trace['inhibitory_TM'] = numpy.arange(4.01, 4.0199, 0.001)
+    #        cell._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
+    #    simulator.state.t = simulator.state.dt * len(cell._cell.gsyn_trace['excitatory'])
+    #    gdata = self.rg._get_current_segment(variables=['gsyn_exc', 'gsyn_inh'], filter_ids=None)
+    #    assert_equal(len(gdata.analogsignalarrays), 2)
+    #    assert_arrays_equal(numpy.array(gdata.analogsignalarrays[0][:,0]),
+    #                        cell._cell.gsyn_trace['excitatory'])
+    #    assert_arrays_equal(numpy.array(gdata.analogsignalarrays[1][:,0]),
+    #                        cell._cell.gsyn_trace['inhibitory'])
+    #
     def test__local_count(self):
         self.rs.recorded['spikes'] = self.cells
         self.cells[0]._cell.spike_times = h.Vector(numpy.arange(101.0, 111.0))

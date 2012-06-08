@@ -39,25 +39,25 @@ def test_set():
 def test_build_record():
     simulator = Mock()
     simulator.state.write_on_end = []
-    record_function = common.build_record("foo", simulator)
+    record_function = common.build_record(simulator)
     assert isfunction(record_function)
     
     source = BasePopulation()
     source.record = Mock()
-    record_function(source, "filename")
-    source.record.assert_called_with(["foo"]) #, to_file="filename")
-    assert_equal(simulator.state.write_on_end, [(source, ['foo'], "filename")])
+    record_function(('v', 'spikes'), source, "filename")
+    source.record.assert_called_with(('v', 'spikes'), to_file="filename")
+    assert_equal(simulator.state.write_on_end, [(source, ('v', 'spikes'), "filename")])
 
 def test_build_record_with_assembly():
     simulator = Mock()
     simulator.state.write_on_end = []
-    record_function = common.build_record("foo", simulator)
+    record_function = common.build_record(simulator)
     assert isfunction(record_function)
     
     p1 = BasePopulation()
     p2 = BasePopulation()
     source = common.Assembly(p1, p2)
     source.record = Mock()
-    record_function(source, "filename")
-    source.record.assert_called_with(["foo"]) #, to_file="filename")
-    assert_equal(simulator.state.write_on_end, [(p1, ['foo'], "filename"), (p2, ['foo'], "filename")]) # not sure this is what we want - won't file get over-written?
+    record_function('foo', source, "filename")
+    source.record.assert_called_with('foo', to_file="filename")
+    assert_equal(simulator.state.write_on_end, [(source, 'foo', "filename")]) # not sure this is what we want - won't file get over-written?

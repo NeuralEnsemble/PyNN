@@ -12,6 +12,9 @@ from __future__ import division
 from pyNN.space import Space
 from pyNN.core import LazyArray
 from pyNN.random import RandomDistribution
+from pyNN.common.populations import is_conductance
+from pyNN import errors
+from pyNN.recording import files
 import numpy
 from itertools import izip
 import logging
@@ -30,6 +33,46 @@ except ImportError:
 logger = logging.getLogger("PyNN")
 
 DEFAULT_WEIGHT = 0.0
+
+
+def check_weights(weights, synapse_sign, is_conductance):
+    # if projection.post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
+    # consider moving checks inside the lazyarray module?
+    if weights is None:
+        weights = DEFAULT_WEIGHT
+    if isinstance(weights, numpy.ndarray):
+        all_negative = (weights <= 0).all()
+        all_positive = (weights >= 0).all()
+        if not (all_negative or all_positive):
+            raise errors.ConnectionError("Weights must be either all positive or all negative")
+    elif numpy.isreal(weights):
+        all_positive = weights >= 0
+        all_negative = weights < 0
+    else:
+        raise errors.ConnectionError("Weights must be a number or an array of numbers.")
+    if is_conductance or synapse_sign == 'excitatory':
+        if not all_positive:
+            raise errors.ConnectionError("Weights must be positive for conductance-based and/or excitatory synapses")
+    elif is_conductance == False and synapse_sign == 'inhibitory':
+        if not all_negative:
+            raise errors.ConnectionError("Weights must be negative for current-based, inhibitory synapses")
+    else:  # This should never happen.
+        raise Exception("Can't check weight, conductance status unknown.")
+    return weights
+
+
+def check_delays(delays, min_delay, max_delay):
+    if isinstance(delays, numpy.ndarray):
+        below_max = (delays <= max_delay).all()
+        above_min = (delays >= min_delay).all()
+        in_range = below_max and above_min
+    elif numpy.isreal(delays):
+        in_range = min_delay <= delays <= max_delay
+    else:
+        raise errors.ConnectionError("Delays must be a number or an array of numbers.")
+    if not in_range:
+        raise errors.ConnectionError("Delay (%s) is out of range [%s, %s]" % (delays, min_delay, max_delay))
+    return delays
 
 
 class Connector(object):
@@ -112,9 +155,9 @@ class MapConnector(Connector):
 
     def _generate_attribute_map(self, attribute_name, projection, distance_map):
         attr = getattr(self, attribute_name)
-        if isinstance(attr, (int, long, float, numpy.ndarray, RandomDistribution)):
+        if isinstance(attr, (int, long, float, numpy.ndarray, list, RandomDistribution)):
             # attr is constant, an array, a random distribution
-            map = LazyArray(attr, projection.shape)
+            map = LazyArray(attr, projection.shape, dtype=float)
         elif isinstance(attr, basestring):
             # attr is an expression for d
             f_a = eval("lambda d: %s" % attr)
@@ -125,6 +168,7 @@ class MapConnector(Connector):
         return map
 
     def _connect_with_map(self, projection, connection_map, distance_map=None):
+        logger.debug("Connecting %s using a connection map" % projection.label)
         if distance_map is None:
             distance_map = self._generate_distance_map(projection)
         weight_map = self._generate_attribute_map('weights', projection, distance_map)
@@ -133,11 +177,28 @@ class MapConnector(Connector):
         delay_map = self._generate_attribute_map('delays', projection, distance_map)
         # TODO: where appropriate, will also need to generate maps for plasticity model parameters
 
-        mask = projection.post._mask_local
-        column_indices = numpy.arange(projection.post.size)[mask]
-        for count, (col, tgt, source_mask) in enumerate(izip(column_indices,
-                                                             projection.post.local_cells,
-                                                             connection_map.by_column(mask))):
+        # If any of the maps are based on parallel-safe random number generators,
+        # we need to iterate over all post-synaptic cells, so we can generate then
+        # throw away the random numbers for the non-local nodes.
+        # Otherwise, we only need to iterate over local post-synaptic cells.
+        def parallel_safe(map):
+            return (isinstance(map.base_value, RandomDistribution) and 
+                    map.base_value.rng.parallel_safe)
+        column_indices = numpy.arange(projection.post.size)
+        if parallel_safe(weight_map) or parallel_safe(delay_map):
+            logger.debug("Parallel-safe iteration.")
+            components = (
+                column_indices,
+                projection.post.all_cells,
+                connection_map.by_column())
+        else:
+            mask = projection.post._mask_local
+            components = (
+                column_indices[mask],
+                projection.post.local_cells,
+                connection_map.by_column(mask))
+
+        for count, (col, tgt, source_mask) in enumerate(izip(*components)):
             if source_mask is True:
                 sources = projection.pre.all_cells
                 source_mask = slice(None)
@@ -151,10 +212,18 @@ class MapConnector(Connector):
                 delays = delay_map.evaluate(simplify=True)
             else:
                 delays = delay_map[source_mask, col]
-            #print tgt, sources, weights, delays
-            projection._convergent_connect(sources, tgt, weights, delays)
-            if self.callback:
-                self.callback(count/projection.post.local_size)
+            if self.safe:
+                # (might be cheaper to do the weight and delay check before evaluating the larray)
+                weights = check_weights(weights, projection.synapse_type, is_conductance(projection.post.local_cells[0]))
+                delays = check_delays(delays,
+                                      projection._simulator.state.min_delay,
+                                      projection._simulator.state.max_delay)
+            logger.debug("mask: %s, w: %s, d: %s", source_mask, weights, delays)
+            logger.debug("Convergent connect %d neurons to #%s" % (sources.size, tgt))
+            if tgt.local:
+                projection._convergent_connect(sources, tgt, weights, delays)
+                if self.callback:
+                    self.callback(count/projection.post.local_size)
 
 
 class AllToAllConnector(MapConnector):
@@ -223,10 +292,6 @@ class FixedProbabilityConnector(MapConnector):
         if not self.allow_self_connections and projection.pre == projection.post:
             connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
-
-    ##onetoone
-    ## pointless to use a LazyArray
-    #
 
 
 class DistanceDependentProbabilityConnector(MapConnector):
@@ -302,17 +367,30 @@ class FromListConnector(Connector):
 
     def connect(self, projection):
         """Connect-up a Projection."""
+        logger.debug("self.conn_list = \n%s", self.conn_list)
+        # need to do some profiling, to figure out the best way to do this:
+        #  - order of sorting/filtering by local
+        #  - use numpy.unique, or just do in1d(self.conn_list)?
         idx  = numpy.argsort(self.conn_list[:, 1])
-        self.targets = numpy.unique(self.conn_list[:, 1]).astype(numpy.int)
-        self.candidates = projection.pre.all_cells
+        targets = numpy.unique(self.conn_list[:, 1]).astype(numpy.int)
+        local = numpy.in1d(targets,
+                           numpy.arange(projection.post.size)[projection.post._mask_local],
+                           assume_unique=True)
+        local_targets = targets[local]
         self.conn_list = self.conn_list[idx]
-        left  = numpy.searchsorted(self.conn_list[:, 1], self.targets, 'left')
-        right = numpy.searchsorted(self.conn_list[:, 1], self.targets, 'right')
-        for tgt, l, r in zip(self.targets, left, right):
+        left  = numpy.searchsorted(self.conn_list[:, 1], local_targets, 'left')
+        right = numpy.searchsorted(self.conn_list[:, 1], local_targets, 'right')
+        logger.debug("idx = %s", idx)
+        logger.debug("targets = %s", targets)
+        logger.debug("local_targets = %s", local_targets)
+        logger.debug("self.conn_list = \n%s", self.conn_list)
+        logger.debug("left = %s", left)
+        logger.debug("right = %s", right)
+    
+        for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
             weights = self.conn_list[l:r, 2]
             delays  = self.conn_list[l:r, 3]
-            srcs = projection.pre.all_cells[sources]
             try:
                 srcs = projection.pre.all_cells[sources]
             except IndexError:
@@ -363,13 +441,6 @@ class FromFileConnector(FromListConnector):
         FromListConnector.connect(self, projection)
 
 
-def shuffle(axis, arr, rng):
-    if axis == 'rows':
-        return rng.permutation(arr)  # what if rng is a GSLRNG or NativeRNG?
-    elif axis == 'columns':
-        return rng.permutation(arr.T).T
-
-
 class FixedNumberConnector(MapConnector):
     # base class - should not be instantiated
     parameter_names = ('allow_self_connections', 'n')
@@ -418,13 +489,16 @@ class FixedNumberPostConnector(FixedNumberConnector):
     """
 
     def connect(self, projection):
+        assert projection.rng.parallel_safe
+        # this is probably very inefficient, would be better to use
+        # divergent connect
+        shuffle = numpy.array([projection.rng.permutation(numpy.arange(projection.post.size))
+                               for i in range(projection.pre.size)])
+        n = self.n
         if hasattr(self, "rand_distr"):
-            f_ij = lambda i,j: i < self.rand_distr.next()
-        else:
-            f_ij = lambda i,j: i < self.n
-        connection_map = shuffle('columns',
-                                 LazyArray(f_ij, projection.shape),
-                                 rng=projection.rng)
+            n = self.rand_distr.next(projection.pre.size)
+        f_ij = lambda i,j: shuffle[:, j] < n
+        connection_map = LazyArray(f_ij, projection.shape)
         if not self.allow_self_connections and projection.pre == projection.post:
             connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
@@ -455,13 +529,13 @@ class FixedNumberPreConnector(FixedNumberConnector):
     """
 
     def connect(self, projection):
+        assert projection.rng.parallel_safe
+        shuffle = projection.rng.permutation(numpy.arange(projection.pre.size))
+        n = self.n
         if hasattr(self, "rand_distr"):
-            f_ij = lambda i,j: i < self.rand_distr.next()
-        else:
-            f_ij = lambda i,j: i < self.n
-        connection_map = shuffle('columns',
-                                 LazyArray(f_ij, projection.shape),
-                                 rng=projection.rng)
+            n = self.rand_distr.next(projection.pre.size)
+        f_ij = lambda i,j: shuffle[i] < n
+        connection_map = LazyArray(f_ij, projection.shape)
         if not self.allow_self_connections and projection.pre == projection.post:
             connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
         self._connect_with_map(projection, connection_map)

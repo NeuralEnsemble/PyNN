@@ -11,38 +11,10 @@ import numpy
 import logging
 import operator
 from pyNN import random, recording, errors, models, core, descriptions
-from populations import BasePopulation, Assembly, is_conductance
+from populations import BasePopulation, Assembly
 
 logger = logging.getLogger("PyNN")
 deprecated = core.deprecated
-DEFAULT_WEIGHT = 0.0
-
-def check_weight(weight, synapse_type, is_conductance): # remove? essentially duplicates code in connectors.py from line 157
-    if weight is None:
-        weight = DEFAULT_WEIGHT
-    if core.is_listlike(weight):
-        weight = numpy.array(weight)
-        nan_filter = (1 - numpy.isnan(weight)).astype(bool)  # weight arrays may contain NaN, which should be ignored
-        filtered_weight = weight[nan_filter]
-        all_negative = (filtered_weight <= 0).all()
-        all_positive = (filtered_weight >= 0).all()
-        if not (all_negative or all_positive):
-            raise errors.InvalidWeightError("Weights must be either all positive or all negative")
-    elif numpy.isreal(weight):
-        all_positive = weight >= 0
-        all_negative = weight < 0
-    else:
-        raise errors.InvalidWeightError("Weight must be a number or a list/array of numbers.")
-    if is_conductance or synapse_type == 'excitatory':
-        if not all_positive:
-            raise errors.InvalidWeightError("Weights must be positive for conductance-based and/or excitatory synapses")
-    elif is_conductance == False and synapse_type == 'inhibitory':
-        if not all_negative:
-            raise errors.InvalidWeightError("Weights must be negative for current-based, inhibitory synapses")
-    else:  # is_conductance is None. This happens if the cell does not exist on the current node.
-        logger.debug("Can't check weight, conductance status unknown.")
-    return weight
-
 
 class Projection(object):
     """
@@ -103,6 +75,7 @@ class Projection(object):
             raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
         self._method = method
         self.synapse_dynamics = synapse_dynamics
+        self.synapse_type = target or 'excitatory' # FIX: if weights are negative, default synapse_type should be 'inhibitory'
         #self.connection = None # access individual connections. To be defined by child, simulator-specific classes
         self.weights = []
         if label is None:
@@ -172,8 +145,6 @@ class Projection(object):
         synapses.
         """
         # should perhaps add a "distribute" argument, for symmetry with "gather" in getWeights()
-        # if post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
-        w = check_weight(w, self.synapse_type, is_conductance(self.post.local_cells[0]))
         self.set('weight', w)
 
     @deprecated("set('weight', rand_distr)")

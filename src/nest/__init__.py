@@ -253,8 +253,6 @@ class Population(common.Population, PopulationMixin):
             self.all_cells_source = numpy.array(self.all_cells)  # we put the parrots into all_cells, since this will
             self.all_cells = nest.Create("parrot_neuron", self.size)     # be used for connections and recording. all_cells_source
             nest.Connect(self.all_cells_source, self.all_cells)  # should be used for setting parameters
-        self.first_id = self.all_cells[0]
-        self.last_id = self.all_cells[-1]
         self._mask_local = numpy.array(nest.GetStatus(self.all_cells, 'local'))
         self.all_cells = numpy.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
         for gid in self.all_cells:
@@ -310,7 +308,6 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    method, source, target,
                                    synapse_dynamics, label, rng)
-        self.synapse_type = target or 'excitatory'
         if self.synapse_dynamics:
             synapse_dynamics = self.synapse_dynamics
             self.synapse_dynamics._set_tau_minus(self.post.local_cells)
@@ -445,7 +442,7 @@ class Projection(common.Projection):
                 raise errors.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                              e, sources, target, weights, delays, self.synapse_model))
         else:
-            for target, w, d in zip(targets, weights, delays): # need to handle case where weights, delays are floats
+            for source, w, d in zip(sources, weights, delays): # need to handle case where weights, delays are floats
                 nest.Connect([source], [target], {'weight': w, 'delay': d, 'receptor_type': target.celltype.get_receptor_type(self.synapse_type)})
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.extend(sources)

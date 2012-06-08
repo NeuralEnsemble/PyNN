@@ -122,11 +122,10 @@ class PopulationMixin(object):
             if name == 'spike_times': # hack
                 parameter_dict[name] = [Sequence(getattr(id._cell, name)) for id in self]
             else:
-                parameter_dict[name] = [getattr(id._cell, name) for id in self]
+                parameter_dict[name] = [getattr(id._cell, name) for id in self] # should be lazy array?
         return ParameterSpace(parameter_dict, size=self.size) # or local size?
 
     def _set_initial_value_array(self, variable, initial_values):
-        # should convert to use ParameterSpace
         if initial_values.is_homogeneous:
             value = initial_values.evaluate(simplify=True)
             for cell in self:  # only on local node
@@ -170,9 +169,9 @@ class Population(common.Population, PopulationMixin):
         """
         # this method should never be called more than once
         # perhaps should check for that
-        self.first_id = simulator.state.gid_counter
-        self.last_id = simulator.state.gid_counter + self.size - 1
-        self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id+1)], simulator.ID)
+        first_id = simulator.state.gid_counter
+        last_id = simulator.state.gid_counter + self.size - 1
+        self.all_cells = numpy.array([id for id in range(first_id, last_id+1)], simulator.ID)
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
         self._mask_local = self.all_cells%simulator.state.num_processes==simulator.state.mpi_rank # round-robin distribution of cells between nodes
         if isinstance(self.celltype, StandardCellType):
@@ -213,7 +212,6 @@ class Projection(common.Projection):
         __doc__ = common.Projection.__init__.__doc__
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population, method,
                                    source, target, synapse_dynamics, label, rng)
-        self.synapse_type = target or 'excitatory'
 
         ## Deal with short-term synaptic plasticity
         if self.synapse_dynamics and self.synapse_dynamics.fast:
@@ -339,7 +337,7 @@ class Projection(common.Projection):
         if not isinstance(target, int) or target > simulator.state.gid_counter or target < 0:
             errmsg = "Invalid target ID: %s (gid_counter=%d)" % (target, simulator.state.gid_counter)
             raise errors.ConnectionError(errmsg)
-        
+
         if isinstance(weights, float):
             weights = repeat(weights)
         else:
@@ -349,17 +347,26 @@ class Projection(common.Projection):
         else:
             assert len(sources) == len(delays)
 
+        if self.synapse_type is None:
+            self.synapse_type = weight >= 0 and 'excitatory' or 'inhibitory'
+        if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
+            self.synapse_type += '_TM'
         if target.local:  # can perhaps assert target.local ?
+            if "." in self.synapse_type:
+                section, synapse_type = self.synapse_type.split(".")
+                synapse_object = getattr(getattr(target._cell, section), synapse_type)
+            else:
+                synapse_object = getattr(target._cell, self.synapse_type)
             for source, weight, delay in izip(sources, weights, delays):
+                logging.debug("Connecting neuron #%s to neuron #%s with synapse type %s, weight %g, delay %g", source, target, self.synapse_type, weight, delay)
                 if not isinstance(source, common.IDMixin):
                     raise errors.ConnectionError("Invalid source ID: %s" % source)
-                if self.synapse_type is None:
-                    self.synapse_type = weight >= 0 and 'excitatory' or 'inhibitory'
-                if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
-                    self.synapse_type += '_TM'
-                synapse_object = getattr(target._cell, self.synapse_type)
                 nc = simulator.state.parallel_context.gid_connect(int(source), synapse_object)
                 nc.weight[0] = weight
+                # if we have a mechanism (e.g. from 9ML) that includes multiple
+                # synaptic channels, need to set nc.weight[1] here
+                if nc.wcnt() > 1 and hasattr(target._cell, "type"):
+                    nc.weight[1] = target._cell.type.synapse_types.index(self.synapse_type)
                 nc.delay  = delay
                 # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
                 self.connections.append(simulator.Connection(source, target, nc))

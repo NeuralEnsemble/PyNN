@@ -24,7 +24,8 @@ class Recorder(recording.Recorder):
         """Add the cells in `new_ids` to the set of recorded cells."""
         if variable == 'spikes':
             for id in new_ids:
-                id._cell.rec.record(id._cell.spike_times)
+                if id._cell.rec is not None:
+                    id._cell.rec.record(id._cell.spike_times)
         else:
             for id in new_ids:
                 self._record_state_variable(id._cell, variable)

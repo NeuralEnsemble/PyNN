@@ -5,7 +5,10 @@ $Id: rngtests.py 698 2010-01-26 15:47:04Z apdavison $
 
 import pyNN.random as random
 import numpy
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 def assert_arrays_almost_equal(a, b, threshold):
     if not (abs(a-b) < threshold).all():
@@ -22,13 +25,18 @@ class SimpleTests(unittest.TestCase):
         self.rnglist = [random.NumpyRNG(seed=987)]
         if random.have_gsl:
             self.rnglist.append(random.GSLRNG(seed=654))
+
+    def testNextNone(self):
+        """Calling next() with no arguments should return a float."""
+        for rng in self.rnglist:
+            self.assertIsInstance(rng.next(), float)
     
     def testNextOne(self):
-        """Calling next() with no arguments or with n=1 should return a float."""
+        """Calling next() with n=1 should return an array."""
         for rng in self.rnglist:
-            assert isinstance(rng.next(),float)
-            assert isinstance(rng.next(1),float)
-            assert isinstance(rng.next(n=1),float)
+            self.assertIsInstance(rng.next(1), numpy.ndarray)
+            self.assertIsInstance(rng.next(n=1), numpy.ndarray)
+            self.assertEqual(rng.next(1).shape, (1,))
     
     def testNextTwoPlus(self):
         """Calling next(n=m) where m > 1 should return an array."""
@@ -81,12 +89,6 @@ class ParallelTests(unittest.TestCase):
             self.assertEqual(len(draw0), 3)
             self.assertEqual(len(draw1), 2)
             self.assertNotEqual(draw0.tolist(), draw1.tolist())
-            
-    def test_parallel_safe_with_mask_local_None(self):
-        for rng_type in self.rng_types:
-            random.mpi_rank=0; random.num_processes=2
-            rng0 = rng_type(seed=1000, parallel_safe=True)
-            self.assertRaises(Exception, rng0.next, 5, mask_local=None)
 
     def test_parallel_safe_with_mask_local_False(self):
         for rng_type in self.rng_types:
@@ -178,7 +180,7 @@ class RandomDistributionTests(unittest.TestCase):
         assert vals.min() >= 0
         assert vals.max() < 1.0
         assert abs(vals.mean() - 0.5) < 0.05, vals.mean()
-        val = rd.next()
+        val = rd.next(1)
         rd = random.RandomDistribution(distribution='uniform', parameters=[-1.0, 1.0],
                                        rng=self.rnglist[0], boundaries=[0.0, 1.0],
                                        constrain=None)
@@ -187,8 +189,4 @@ class RandomDistributionTests(unittest.TestCase):
 # ==============================================================================            
 if __name__ == "__main__":
     unittest.main()      
-            
-            
-            
-            
-            
+  

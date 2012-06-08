@@ -15,7 +15,6 @@ $Id$
 """
 
 from pyNN.utility import get_script_args
-from pyNN.errors import RecordingError
 
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)

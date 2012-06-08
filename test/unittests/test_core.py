@@ -5,17 +5,7 @@ from nose.tools import assert_raises, assert_equal
 from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal
 import operator
 
-class MockRNG(random.WrappedRNG):
-    rng = None
-    
-    def __init__(self, parallel_safe):
-        random.WrappedRNG.__init__(self, parallel_safe=parallel_safe)
-        self.start = 0.0
-    
-    def _next(self, distribution, n, parameters):
-        s = self.start
-        self.start += n*0.1
-        return numpy.arange(s, s+n*0.1, 0.1)
+from .mocks import MockRNG
 
 def test_is_list_like_with_tuple():
     assert is_listlike((1,2,3))    

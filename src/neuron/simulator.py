@@ -26,11 +26,41 @@ from pyNN import common
 import logging
 import numpy
 import os.path
-from neuron import h, load_mechanisms
+from neuron import h, nrn_dll_loaded
 
 logger = logging.getLogger("PyNN")
 
 # --- Internal NEURON functionality --------------------------------------------
+
+def load_mechanisms(path):
+    """
+    Search for and load NMODL mechanisms from the path given.
+
+    This a stricter version of NEURON's own load_mechanisms function, which will
+    raise an IOError if no mechanisms are found at the given path. This function
+    will not load a mechanism path twice.
+
+    The path should specify the directory in which nrnivmodl was run, and in
+    which the directory 'i686' (or 'x86_64' or 'powerpc' depending on your
+    platform) was created.
+    """
+    import platform
+
+    global nrn_dll_loaded
+    if path in nrn_dll_loaded:
+        logger.warning("Mechanisms already loaded from path: %s" % path)
+        return
+    # in case NEURON is assuming a different architecture to Python,
+    # we try multiple possibilities
+    arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc', 'umac']
+    for arch in arch_list:
+        lib_path = os.path.join(path, arch, '.libs', 'libnrnmech.so')
+        if os.path.exists(lib_path):
+            h.nrn_load_dll(lib_path)
+            nrn_dll_loaded.append(path)
+            return
+    raise IOError("NEURON mechanisms not found in %s." % path)
+
 
 def is_point_process(obj):
     """Determine whether a particular object is a NEURON point process."""
@@ -160,7 +190,6 @@ class _State(common.control.BaseState):
         self.gid_sources = []
         self.recorders = set([])
         self.gid_counter = 0
-        self.running = False
         h.plastic_connections = []
         self.reset()
 

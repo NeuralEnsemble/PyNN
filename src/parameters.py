@@ -25,6 +25,7 @@ class Sequence(object):
             anything which can be converted to a NumPy array, or another
             :class:`Sequence` object.
     """
+    # should perhaps use neo.SpikeTrain and neo.EventArray instead of this class?
 
     def __init__(self, value):
         if isinstance(value, Sequence):
@@ -79,17 +80,21 @@ class ParameterSpace(object):
         `schema`:
             a dict whose keys are the expected parameter names and whose values
             are the expected parameter types
+        `component`:
+            optional - class for which the parameters are destined. Used in
+            error messages.
 
     .. _`lazy array`: http://readthedocs.org/docs/lazyarray/en/latest/index.html
     """
 
-    def __init__(self, parameters, schema=None, size=None):
+    def __init__(self, parameters, schema=None, size=None, component=None):
         """
 
         """
         self._parameters = {}
         self.schema = schema
         self._size = size
+        self.component = component
         self.update(**parameters)
         self._evaluated = False
 
@@ -124,7 +129,12 @@ class ParameterSpace(object):
             array_shape = (self._size,)
         if self.schema:
             for name, value in parameters.items():
-                expected_dtype = self.schema[name]
+                try:
+                    expected_dtype = self.schema[name]
+                except KeyError:
+                    raise errors.NonExistentParameterError(name,
+                                                           self.component.__name__,
+                                                           valid_parameter_names=self.schema.keys())
                 if (expected_dtype == Sequence
                     and isinstance(value, collections.Sized)
                     and not isinstance(value[0], Sequence)): # may be a more generic way to do it, but for now this special-casing seems like the most robust approach
