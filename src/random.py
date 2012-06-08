@@ -100,14 +100,9 @@ class WrappedRNG(AbstractRNG):
         else:
             raise ValueError, "The sample number must be positive"
         if self.parallel_safe and num_processes > 1:
-            if mask_local is False: # return all the numbers on all nodes
-                pass
-            elif mask_local is not None: # strip out the random numbers that
-                                         # should be used on other processors.
-                assert mask_local.size == n
+            if hasattr(mask_local, 'size'):      # strip out the random numbers that
+                assert mask_local.size == n      # should be used on other processors.
                 rarr = rarr[mask_local]
-            else:
-                raise Exception("For a parallel-safe RNG, mask_local must be either an array or False, not %s" % mask_local)
         if n is None:
             return rarr[0]
         else:
