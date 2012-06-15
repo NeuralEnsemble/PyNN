@@ -51,7 +51,7 @@ class AbstractRNG(object):
     simply to read externally-generated numbers from files."""
 
     def __init__(self, seed=None):
-        if seed:
+        if seed is not None:
             assert isinstance(seed, int), "`seed` must be an int (< %d), not a %s" % (sys.maxint, type(seed).__name__)
         self.seed = seed
         # define some aliases
@@ -76,7 +76,7 @@ class WrappedRNG(AbstractRNG):
     def __init__(self, seed=None, parallel_safe=True):
         AbstractRNG.__init__(self, seed)
         self.parallel_safe = parallel_safe
-        if self.seed and not parallel_safe:
+        if self.seed is not None and not parallel_safe:
             self.seed += mpi_rank # ensure different nodes get different sequences
             if mpi_rank != 0:
                 logger.warning("Changing the seed to %s on node %d" % (self.seed, mpi_rank))
@@ -99,6 +99,8 @@ class WrappedRNG(AbstractRNG):
             rarr = self._next(distribution, 1, parameters)
         else:
             raise ValueError, "The sample number must be positive"
+        if not isinstance(rarr, numpy.ndarray):
+            rarr = numpy.array(rarr)
         if self.parallel_safe and num_processes > 1:
             if hasattr(mask_local, 'size'):      # strip out the random numbers that
                 assert mask_local.size == n      # should be used on other processors.
@@ -127,7 +129,7 @@ class NumpyRNG(WrappedRNG):
     def __init__(self, seed=None, parallel_safe=True):
         WrappedRNG.__init__(self, seed, parallel_safe)
         self.rng = numpy.random.RandomState()
-        if self.seed:
+        if self.seed is not None:
             self.rng.seed(self.seed)
         else:
             self.rng.seed()
@@ -151,7 +153,7 @@ class GSLRNG(WrappedRNG):
             raise ImportError, "GSLRNG: Cannot import pygsl"
         WrappedRNG.__init__(self, seed, parallel_safe)
         self.rng = getattr(pygsl.rng, type)()
-        if self.seed:
+        if self.seed is not None:
             self.rng.set(self.seed)
         else:
             self.seed = int(time.time())
@@ -163,7 +165,10 @@ class GSLRNG(WrappedRNG):
 
     def _next(self, distribution, n, parameters):
         p = parameters + [n]
-        return getattr(self.rng, distribution)(*p)
+        values = getattr(self.rng, distribution)(*p)
+        if n == 1:
+            values = [values]  # to be consistent with NumpyRNG
+        return values
 
 
 # should add a wrapper for the built-in Python random module.
