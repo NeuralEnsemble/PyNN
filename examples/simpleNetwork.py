@@ -20,7 +20,7 @@ setup(timestep=0.1, min_delay=0.2, max_delay=1.0)
 
 cell_params = {'tau_refrac': 2.0, 'v_thresh': [-50.0, -48.0] ,
                'tau_syn_E': 2.0, 'tau_syn_I': 2.0}
-output_population = Population(2, IF_curr_alpha, cell_params, label="output")
+output_population = Population(2, IF_curr_alpha(**cell_params), label="output")
 
 number = int(2*tstop*rate/1000.0)
 numpy.random.seed(26278342)
@@ -28,10 +28,10 @@ spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/rate, size=nu
 assert spike_times.max() > tstop
 print spike_times.min()
 
-input_population  = Population(1, SpikeSourceArray, {'spike_times': spike_times}, label="input")
+input_population  = Population(1, SpikeSourceArray(spike_times=spike_times), label="input")
 
 projection = Projection(input_population, output_population, AllToAllConnector())
-projection.setWeights(1.0)
+projection.set(weights=1.0)
 
 input_population.record('spikes')
 output_population.record(('spikes', 'v'))

@@ -38,8 +38,8 @@ n_spikes = int(2*tstop*input_rate/1000.0)
 spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential',
                                             [1000.0/input_rate], mask_local=False))
 
-input_population  = Population(100, SpikeSourceArray, {'spike_times': spike_times }, label="input")
-output_population = Population(10, IF_curr_exp, cell_params, label="output")
+input_population  = Population(100, SpikeSourceArray(spike_times=spike_times), label="input")
+output_population = Population(10, IF_curr_exp(**cell_params), label="output")
 print "[%d] input_population cells: %s" % (node, input_population.local_cells)
 print "[%d] output_population cells: %s" % (node, output_population.local_cells)
 
@@ -52,7 +52,7 @@ print connector.describe(), timer.elapsedTime()
 
 file_stem = "Results/simpleRandomNetwork_csa_np%d_%s" % (num_processes(), simulator_name)
 
-projection.saveConnections('%s.conn' % file_stem)
+projection.save('all', '%s.conn' % file_stem)
 
 input_population.record('spikes')
 output_population.record('spikes')

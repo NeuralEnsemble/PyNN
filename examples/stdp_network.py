@@ -4,11 +4,11 @@ Network of integrate-and-fire neurons with distance-dependent connectivity and S
 
 from pyNN.utility import get_script_args
 usage = """Usage: python stdp_network.py <simulator>"""
-simulator_name, = get_script_args(1, usage)  
+simulator_name, = get_script_args(1, usage)
 exec("import pyNN.%s as sim" % simulator_name)
 from pyNN import space
 
-n_exc = 80  
+n_exc = 80
 n_inh = 20
 n_stim = 20
 cell_parameters = {
@@ -26,7 +26,7 @@ stimulation_parameters = {
 }
 stdp_parameters = {
     'timing_dependence': {'tau_plus': 20.0, 'tau_minus': 20.0},
-    'weight_dependence': {'w_min':0, 'w_max': 0.04, 'A_plus': 0.01, 'A_minus': 0.012}    
+    'weight_dependence': {'w_min':0, 'w_max': 0.04, 'A_plus': 0.01, 'A_minus': 0.012}
 }
 connectivity_parameters = {
     'gaussian': {'d_expression': 'exp(-d**2/1e4)', 'weights': 0.01, 'delays': '0.1+0.001*d'},
@@ -36,13 +36,13 @@ connectivity_parameters = {
 
 sim.setup()
 
-all_cells = sim.Population(n_exc+n_inh, sim.IF_cond_exp, cell_parameters,
+all_cells = sim.Population(n_exc+n_inh, sim.IF_cond_exp(**cell_parameters),
                            structure=space.Grid2D(**grid_parameters),
                            label="All Cells")
 exc_cells = all_cells[:n_exc]; exc_cells.label = "Excitatory cells"
 inh_cells = all_cells[n_exc:]; inh_cells.label = "Inhibitory cells"
 
-ext_stim = sim.Population(n_stim, sim.SpikeSourcePoisson, stimulation_parameters,
+ext_stim = sim.Population(n_stim, sim.SpikeSourcePoisson(**stimulation_parameters),
                           label="External Poisson stimulation")
 
 stdp_mechanism = sim.STDPMechanism(

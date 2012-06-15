@@ -15,8 +15,7 @@ exec("import pyNN.%s as sim" % simulator_name)
 
 sim.setup(quit_on_end=False)
 
-spike_source = sim.Population(1, sim.SpikeSourceArray,
-                              {'spike_times': numpy.arange(10, 100, 10)})
+spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
 
 connector = sim.AllToAllConnector(weights=0.01, delays=0.5)
 
@@ -31,7 +30,7 @@ synapse_dynamics = {
 populations = {}
 projections = {}
 for label in 'static', 'depressing', 'facilitating':
-    populations[label] = sim.Population(1, sim.IF_cond_exp, {'e_rev_I': -75}, label=label)
+    populations[label] = sim.Population(1, sim.IF_cond_exp(e_rev_I=-75), label=label)
     populations[label].record('v')
     if populations[label].can_record('gsyn'):
         populations[label].record(['gsyn_exc', 'gsyn_inh'])

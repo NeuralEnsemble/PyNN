@@ -28,7 +28,7 @@ class NativeSynapseDynamics(BaseSynapseDynamics):
     def __init__(self, model_name, parameters={}):
         cls = type(model_name, (NativeSynapseMechanism,),
                    {'nest_model': model_name})
-        self.mechanism = cls(parameters)
+        self.mechanism = cls(**parameters)
         self.parameters = self.mechanism.default_parameters
         self.parameters.update(**parameters)
 
@@ -54,6 +54,6 @@ class NativeSynapseDynamics(BaseSynapseDynamics):
 
 class NativeSynapseMechanism(BaseModelType):
 
-    def __new__(cls, parameters):
+    def __new__(cls, **parameters):
         cls.default_parameters = get_defaults(cls.nest_model)
         return super(NativeSynapseMechanism, cls).__new__(cls)

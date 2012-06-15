@@ -38,7 +38,7 @@ cellparams = {
         'i_offset'  : 1.0,
     }
 
-hhcell = create(HH_cond_exp, cellparams=cellparams)
+hhcell = create(HH_cond_exp(**cellparams))
 initialize(hhcell, v=-64.0)
 record('v', hhcell, "Results/HH_cond_exp2_%s.pkl" % simulator_name)
 

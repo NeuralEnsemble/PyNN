@@ -30,7 +30,7 @@ rng = NumpyRNG(seed=seed)
 n_spikes = input_rate*simtime/1000.0
 spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential', [1000.0/input_rate]))
 
-spike_source = create(SpikeSourceArray, {'spike_times': spike_times})
+spike_source = create(SpikeSourceArray(spike_times=spike_times))
 
 
 conn = connect(spike_source, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)

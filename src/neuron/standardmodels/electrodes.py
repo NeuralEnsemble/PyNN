@@ -22,7 +22,7 @@ from pyNN.neuron import simulator
 class NeuronCurrentSource(StandardCurrentSource):
     """Base class for a source of current to be injected into a neuron."""
 
-    def __init__(self, parameters):
+    def __init__(self, **parameters):
         self._devices    = []
         self.cell_list   = []
         self._amplitudes = None
@@ -150,8 +150,8 @@ class ACSource(NeuronCurrentSource, electrodes.ACSource):
     _is_playable = True
     _is_computed = True
 
-    def __init__(self, parameters):
-        NeuronCurrentSource.__init__(self, parameters)
+    def __init__(self, **parameters):
+        NeuronCurrentSource.__init__(self, **parameters)
         self._generate()
 
     def _generate(self):
@@ -177,8 +177,8 @@ class NoisyCurrentSource(NeuronCurrentSource, electrodes.NoisyCurrentSource):
     _is_playable = True
     _is_computed = True
 
-    def __init__(self, parameters):
-        NeuronCurrentSource.__init__(self, parameters)
+    def __init__(self, **parameters):
+        NeuronCurrentSource.__init__(self, **parameters)
         self._generate()
 
     def _generate(self):

@@ -38,7 +38,7 @@ simtime    = 1000.0      # (ms)
 
 setup(timestep=dt, max_delay=syn_delay)
 
-cells = Population(n, IF_curr_alpha, cell_params, initial_values={'v': 0.0}, label="cells")
+cells = Population(n, IF_curr_alpha(**cell_params), initial_values={'v': 0.0}, label="cells")
 
 number = int(2*simtime*input_rate/1000.0)
 numpy.random.seed(26278342)
@@ -50,7 +50,7 @@ def generate_spike_times(i):
         return gen()
 assert generate_spike_times(0).max() > simtime
 
-spike_source = Population(n, SpikeSourceArray, {'spike_times': generate_spike_times})
+spike_source = Population(n, SpikeSourceArray(spike_times=generate_spike_times))
 
 spike_source.record('spikes')
 cells.record('spikes')

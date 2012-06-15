@@ -16,7 +16,7 @@ def build_create(population_class):
 
         Returns a Population object.
         """
-        return population_class(n, cellclass, cellparams)  # return the Population or Population.all_cells?
+        return population_class(n, cellclass, cellparams=cellparams)
     return create
 
 

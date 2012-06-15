@@ -21,11 +21,11 @@ exec("from pyNN.%s import *" % simulator_name)
 
 setup(timestep=1.0, min_delay=1.0, max_delay=4.0)
 
-ifcell = create(Izhikevich , {'a': 0.015, 'd': 1.5})
+ifcell = create(Izhikevich(a=0.015, d=1.5))
 
-spike_sourceE = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(5,105,10)]})
-#spike_sourceE = create(SpikeSourcePoisson, {'rate': 100.})
-spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(155,255,10)]})
+spike_sourceE = create(SpikeSourceArray(spike_times=[float(i) for i in range(5,105,10)]))
+#spike_sourceE = create(SpikeSourcePoisson(rate=100.0)
+spike_sourceI = create(SpikeSourceArray(spike_times=[float(i) for i in range(155,255,10)]))
 
 connE = connect(spike_sourceE, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)
 connI = connect(spike_sourceI, ifcell, weight=-1.5, synapse_type='inhibitory', delay=4.0)

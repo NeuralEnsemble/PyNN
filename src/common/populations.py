@@ -14,6 +14,7 @@ import logging
 import operator
 import tempfile
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions
+from pyNN.models import BaseCellType
 from pyNN.parameters import ParameterSpace
 from pyNN.recording import files
 from itertools import chain
@@ -593,7 +594,12 @@ class Population(BasePopulation):
         self._structure = structure or space.Line()
         self._positions = None
         self._is_sorted = True
-        self.celltype = cellclass(cellparams)
+        if isinstance(cellclass, BaseCellType):
+            self.celltype = cellclass
+            assert cellparams is None   # cellparams being retained for backwards compatibility, but use is deprecated
+        elif issubclass(cellclass, BaseCellType):
+            self.celltype = cellclass(**cellparams)
+            # emit deprecation warning
         self.annotations = {}
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
@@ -1096,6 +1102,18 @@ class Assembly(object):
         """
         for p in self.populations:
             p.initialize(**initial_values)
+
+    def get(self, parameter_names, gather=False):
+        """
+        Get the values of the given parameters for every local cell in the
+        Assembly, or, if gather=True, for all cells in the Assembly.
+        """
+        if isinstance(parameter_names, basestring):
+            parameter_names = (parameter_names,)
+        values = []
+        for p in self.populations:
+            values.extend(p.get(parameter_names, gather))
+        return values
 
     def set(self, **parameters):
         """

@@ -25,7 +25,7 @@ from pyNN.nest.simulator import state
 class NestCurrentSource(StandardCurrentSource):
     """Base class for a nest source of current to be injected into a neuron."""
 
-    def __init__(self, parameters):
+    def __init__(self, **parameters):
         self._device   = nest.Create(self.nest_name)
         self.cell_list = []
         parameter_space = ParameterSpace(self.default_parameters,
@@ -46,8 +46,8 @@ class NestCurrentSource(StandardCurrentSource):
             self.cell_list = cells
         nest.DivergentConnect(self._device, self.cell_list)
 
-    def _delay_correction(self, value): 
-        # use dt or min_delay? 
+    def _delay_correction(self, value):
+        # use dt or min_delay?
         return value - state.min_delay
 
     def set_native_parameters(self, parameters):

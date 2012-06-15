@@ -120,10 +120,10 @@ if (benchmark == "COBA"):
 timer.start()
 
 print "%s Creating cell populations..." % node_id
-exc_cells = Population(n_exc, celltype, cell_params, label="Excitatory_Cells")
-inh_cells = Population(n_inh, celltype, cell_params, label="Inhibitory_Cells")
+exc_cells = Population(n_exc, celltype(**cell_params), label="Excitatory_Cells")
+inh_cells = Population(n_inh, celltype(**cell_params), label="Inhibitory_Cells")
 if benchmark == "COBA":
-    ext_stim = Population(20, SpikeSourcePoisson, {'rate' : rate, 'duration' : stim_dur}, label="expoisson")
+    ext_stim = Population(20, SpikeSourcePoisson(rate=rate, duration=stim_dur), label="expoisson")
     rconn = 0.01
     ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
 
@@ -135,8 +135,8 @@ inh_cells.initialize(v=uniformDistr)
 
 print "%s Connecting populations..." % node_id
 progress_bar = ProgressBar(width=20)
-exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay, callback=progressbar.set_level)
-inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay, callback=progressbar.set_level)
+exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay, callback=progress_bar)
+inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay, callback=progress_bar)
 
 connections={}
 connections['e2e'] = Projection(exc_cells, exc_cells, exc_conn, target='excitatory', rng=rng)
@@ -151,7 +151,7 @@ if (benchmark == "COBA"):
 print "%s Setting up recording..." % node_id
 exc_cells.record('spikes')
 inh_cells.record('spikes')
-exc_cells[[0, 1]].record('v')
+exc_cells[0, 1].record('v')
 
 buildCPUTime = timer.diff()
 

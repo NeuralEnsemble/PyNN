@@ -122,12 +122,12 @@ if (benchmark == "COBA"):
 timer.start()
 
 print "%s Creating cell populations..." % node_id
-exc_cells = Population(n_exc, celltype, cell_params, label="Excitatory cells")
-inh_cells = Population(n_inh, celltype, cell_params, label="Inhibitory cells")
+exc_cells = Population(n_exc, celltype(**cell_params), label="Excitatory cells")
+inh_cells = Population(n_inh, celltype(**cell_params), label="Inhibitory cells")
 all_cells = exc_cells + inh_cells
 
 if benchmark == "COBA":
-    ext_stim = Population((20,), SpikeSourcePoisson,{'rate' : rate, 'duration' : stim_dur}, label="expoisson")
+    ext_stim = Population((20,), SpikeSourcePoisson(rate=rate, duration=stim_dur), label="expoisson")
     rconn = 0.01
     ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
 
@@ -149,7 +149,7 @@ if (benchmark == "COBA"):
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id
 all_cells.record('spikes')
-exc_cells[[0, 1]].record('v')
+exc_cells[0, 1].record('v')
 
 buildCPUTime = timer.diff()
 

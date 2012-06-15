@@ -259,7 +259,7 @@ class ShortTermPlasticityMechanism(StandardModelType):
     """Abstract base class for models of short-term synaptic dynamics."""
 
     def __init__(self, **parameters):
-        StandardModelType.__init__(self, parameters)
+        StandardModelType.__init__(self, **parameters)
 
     @property
     def parameters(self):
@@ -370,11 +370,11 @@ class STDPWeightDependence(StandardModelType):
     """Base class for models of STDP weight dependence."""
 
     def __init__(self, **parameters):
-        StandardModelType.__init__(self, parameters)
+        StandardModelType.__init__(self, **parameters)
 
 
 class STDPTimingDependence(StandardModelType):
     """Base class for models of STDP timing dependence (triplets, etc)"""
 
     def __init__(self, **parameters):
-        StandardModelType.__init__(self, parameters)
+        StandardModelType.__init__(self, **parameters)

@@ -16,8 +16,8 @@ init_logging(None, debug=True)
 
 setup(timestep=0.01, min_delay=0.1)
 
-poissonsource = Population(10, SpikeSourcePoisson,
-                           {'rate': 100.0, 'duration': 100.0, 'start': 100.0})
+poissonsource = Population(10, SpikeSourcePoisson(rate=100.0, duration=100.0,
+                                                  start=100.0))
 poissonsource.record('spikes')
 
 run(300.0)

@@ -148,7 +148,7 @@ class Projection(object):
 
     @deprecated("set(weights=rand_distr)")
     def randomizeWeights(self, rand_distr):
-        self.set('weights', rand_distr.next(len(self)))
+        self.set(weights=rand_distr)
 
     @deprecated("set(delays=d)")
     def setDelays(self, d):

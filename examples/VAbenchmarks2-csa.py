@@ -121,11 +121,11 @@ if (benchmark == "COBA"):
 timer.start()
 
 print "%s Creating cell populations..." % node_id
-all_cells = Population(n_exc+n_inh, celltype, cell_params, label="All_Cells")
+all_cells = Population(n_exc+n_inh, celltype(**cell_params), label="All_Cells")
 exc_cells = all_cells[:n_exc]
 inh_cells = all_cells[n_exc:]
 if benchmark == "COBA":
-    ext_stim = Population(20, SpikeSourcePoisson, {'rate' : rate, 'duration' : stim_dur}, label="expoisson")
+    ext_stim = Population(20, SpikeSourcePoisson(rate=rate, duration=stim_dur), label="expoisson")
     rconn = 0.01
     ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
 

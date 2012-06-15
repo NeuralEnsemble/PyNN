@@ -15,7 +15,7 @@ class BaseModelType(object):
     default_parameters = {}
     default_initial_values = {}
 
-    def __init__(self, parameters):
+    def __init__(self, **parameters):
         """
         `parameters` should be a mapping object, e.g. a dict
         """
