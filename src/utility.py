@@ -129,6 +129,7 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
                         format=mpi_prefix+'%(asctime)s %(levelname)s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',
                         filename=logfile,
                         filemode='w')
+    return logging.getLogger("PyNN")
 
 
 def save_population(population, filename, variables=[]):
@@ -263,7 +264,7 @@ class ProgressBar(object):
     Create a progress bar in the shell.
     """
 
-    def __init__(self, width=77, char="#", mode="dynamic"):
+    def __init__(self, width=77, char="#", mode="fixed"):
         self.char = char
         self.mode = mode
         if not self.mode in ['fixed', 'dynamic']:
@@ -295,6 +296,9 @@ class ProgressBar(object):
         bar = '[ %s ] %3.0f%%' % (bar, 100*level)
         print bar, "\r",
         sys.stdout.flush()
+
+    def __call__(self, level):
+        self.set_level(level)
 
 
 def assert_arrays_equal(a, b):
