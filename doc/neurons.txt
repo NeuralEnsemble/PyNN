@@ -4,6 +4,13 @@ Building networks: neurons
 
 .. _section-cell-types:
 
+.. testsetup::
+
+    from pyNN.mock import *
+    from pyNN.utility import init_logging
+    log = init_logging("doctest_neurons.log", debug=True)
+
+
 Cell types
 ==========
 
@@ -21,24 +28,35 @@ more different *biological* cell types may be represented by the same
 mathematical cell type, but with different parameterizations. For example, in
 the thalamocortical model of `Destexhe (2009)`_, thalamocortical relay neurons and
 cortical neurons are both modelled with the adaptive exponential I&F neuron
-model (AdExp)::
+model (AdExp):
 
-    >>> thalamocortical_type = EIF_cond_exp_isfa_ista({...})
-    >>> cortical_type = EIF_cond_exp_isfa_ista({...})
+.. testcode::
+   :hide:
+
+   log.info("========== create cell types =========")
+
+.. doctest::
+
+    >>> thalamocortical_type = EIF_cond_exp_isfa_ista()
+    >>> cortical_type = EIF_cond_exp_isfa_ista()
 
 .. todo: check details + parameters of Destexhe model
 
 (see :doc:`parameters` for more on specifying parameter values). To see the list
 of parameter names for a given cell type, use the :meth:`get_parameter_names()`
-method::
+method:
+
+.. doctest::
 
     >>> IF_cond_exp.get_parameter_names()
-    [....]
+    ['tau_refrac', 'cm', 'tau_syn_E', 'v_rest', 'tau_syn_I', 'tau_m', 'e_rev_E', 'i_offset', 'e_rev_I', 'v_thresh', 'v_reset']
 
-while the default values for the parameters are in the :attr:`default_values`
-attribute::
+while the default values for the parameters are in the :attr:`default_parameters`
+attribute:
 
-    >>> IF_cond_exp.default_values
+.. doctest::
+
+    >>> print IF_cond_exp.default_parameters
     {...}
 
 Note that what we have created here are *neuron type* objects. These can be
@@ -52,7 +70,14 @@ Populations
 Since PyNN is designed for modelling networks containing many neurons,
 the default level of abstraction in PyNN is not the single neuron but a
 population of neurons of a given type, represented by the :class:`Population`
-class::
+class:
+
+.. testcode::
+   :hide:
+
+   log.info("========== create populations =========")
+
+.. doctest::
 
     >>> tc_cells = Population(1000, thalamocortical_type)
     >>> ctx_cells = Population(5000, cortical_type)
@@ -65,11 +90,16 @@ specified:
     * initial values for the neuron state variables;
     * a label.
 
-::
+.. testcode::
+   :hide:
+
+   log.info("========== create populations with structure =========")
+
+.. doctest::
 
     >>> from pyNN.space import Grid2D, RandomStructure, Sphere
     >>> tc_cells = Population(1000, thalamocortical_type,
-    ...                       structure=RandomStructure(boundary=Sphere(radius=200.0)))
+    ...                       structure=RandomStructure(boundary=Sphere(radius=200.0)),
     ...                       initial_values={'v': -70.0},
     ...                       label="Thalamocortical neurons")
     >>> from pyNN.random import RandomDistribution
@@ -98,17 +128,26 @@ Views
 It is common to work with only a subset of the neurons in a :class:`Population`
 - to modify their parameters, make connections or record from them. Any subset
 of neurons in a population may be addressed using the usual Python indexing
-and slicing notation, for example::
+and slicing notation, for example:
 
-    >>> ctx_cells[457]   # the 458th neuron in a Population
-    >>> ctx_cells[:100]  # the first hundred neurons
-    >>> ctx_cells[::2]   # every second neuron
-    >>> ctx_cells[45, 91, 3459]  # a specific set of neurons
+.. doctest::
+
+   >>> ctx_cells[457]   # the 458th neuron in a Population
+   7499
+   >>> ctx_cells[:100]  # the first hundred neurons
+   <PopulationView ...>
+   >>> ctx_cells[::2]   # every second neuron
+   <PopulationView ...>
+   >>> ctx_cells[45, 91, 3459]  # a specific set of neurons
+   <PopulationView ...>
 
 It is also possible to address a random sample of neurons within a population
-using the :meth:`sample()` method::
+using the :meth:`sample()` method:
 
-    >>> ctx_cells.sample(100)  # select 100 neurons at random
+.. doctest::
+
+  >>> ctx_cells.sample(100)  # select 100 neurons at random
+  <PopulationView ...>
 
 In the first of these examples, the object that is returned is an :class:`ID`
 object, representing a single neuron. :class:`ID` objects are discussed below.
@@ -134,12 +173,16 @@ neurons, in the sense that all neurons have the same cell type. An
 collection of neurons, of multiple cell types.
 
 An :class:`Assembly` can be created by adding together :class:`Population` and
-:class:`PopulationView` objects::
+:class:`PopulationView` objects:
+
+.. doctest::
 
     >>> all_cells = tc_cells + ctx_cells
     >>> cells_for_plotting = tc_cells[:100] + ctx_cells[:500]
 
-or by using the :class:`Assembly` constructor::
+or by using the :class:`Assembly` constructor:
+
+.. doctest::
 
     >>> all_cells = Assembly(tc_cells, ctx_cells)
 
@@ -152,19 +195,24 @@ specified (with the :attr:`target` argument), an Exception will be raised if not
 all component neuron types possess that synapse type).
 
 Individual populations within an :class:`Assembly` may be accessed via their
-labels, e.g.::
+labels, e.g.:
 
-    >>> all_cells.get_population("tc_cells")
+.. doctest::
+
+    >>> all_cells.get_population("Thalamocortical neurons")
+    <Population ...>
 
 Iterating over an assembly returns individual IDs, ordered by population.
 Similarly, the :attr:`size` attribute of an :class:`Assembly` gives the total
 number of neurons it contains. To iterate over or count populations, use the
-:attr:`populations` attribute::
+:attr:`populations` attribute:
+
+.. doctest::
 
     >>> for p in all_cells.populations:
-    ...    print p.label, p.size, p.celltype
-    Thalamocortical neurons 1000 EIF_cond_exp_isfa_ista
-    Cortical neurons 5000 EIF_cond_exp_isfa_ista
+    ...    print "%-23s %5d %s" % (p.label, p.size, p.celltype.__class__.__name__)
+    Thalamocortical neurons  1000 EIF_cond_exp_isfa_ista
+    Cortical neurons         5000 EIF_cond_exp_isfa_ista
 
 
 Inspecting and modifying parameter values and initial conditions
@@ -175,32 +223,43 @@ creating a :class:`Population` (and this is generally the most efficient place
 to do it), it is also possible to modify them later.
 
 The :meth:`get()` method of :class:`Population`, :class:`PopulationView` and
-:class:`Assembly` returns the current value(s) of one or more parameters::
+:class:`Assembly` returns the current value(s) of one or more parameters:
+
+.. doctest::
 
     >>> ctx_cells.get('tau_m')
-    20.0
-    >>> all_cells.get('v_reset')
+    9.3667
+    >>> all_cells[0:10].get('v_reset')
     70.6
 
 If the parameter is homogeneous across the group, a single number will be
 returned, otherwise :meth:`get()` will return a NumPy array containing the
-parameter values for all neurons::
+parameter values for all neurons:
 
-    >>> ctx_cells[:5].get('tau_refrac')
-    LIST OF RANDOM NUMBERS HERE
+.. doctest::
+
+    >>> ctx_cells.get('tau_refrac')
+    array([ 0.1,  0.1,  0.1,  0.1,  0.1])
+
+.. todo: this is supposed to give an array, but we haven't set tau_refrac to be heterogeneous
 
 It is also possible to ask for multiple parameters at once, in which case a
-:class:`dict` will be returned.
+list of values in the same order as the list of parameter names will be
+returned.
+
+.. doctest::
 
     >>> ctx_cells.get(['tau_m', 'cm'])
-    {'tau_m': 20.0, 'cm': 1.0}
+    [9.3667, 0.281]
 
 When running a distributed simulation using MPI_, :meth:`get()` will by default
 return values for only those neurons that exist on the current MPI node. To get
 the values for all neurons, use ``get(parameter_name, gather=True)``.
 
 To modify parameter values, use the :class:`set()` method. To set the same
-value for all neurons, pass a single number as the parameter value::
+value for all neurons, pass a single number as the parameter value:
+
+.. doctest::
 
     >>> ctx_cells.set(a=2.0, b=0.2)
 
@@ -208,34 +267,42 @@ To set different values for different neurons there are several options - see
 :doc:`parameters` for more details.
 
 To modify the initial values of model variables, use the :meth:`initialize()`
-method::
+method:
+
+.. doctest::
 
     >>> ctx_cells.initialize(v=RandomDistribution('normal', (-65.0, 2.0)),
     ...                      w=0.0)
 
-The default initial values may be inspected as follows::
+The default initial values may be inspected as follows:
+
+.. doctest::
 
     >>> ctx_cells.celltype.default_initial_values
-    {....}
+    {'gsyn_exc': 0.0, 'gsyn_inh': 0.0, 'w': 0.0, 'v': -70.6}
 
 
 Injecting current into neurons
 ==============================
 
 Static or time-varying currents may be injected into neurons using either the
-:meth:`inject_into()` method of the :class:`CurrentSource`::
+:meth:`inject_into()` method of the :class:`CurrentSource`:
+
+.. doctest::
 
     >>> pulse = DCSource(amplitude=0.5, start=20.0, stop=80.0)
-    >>> pulse.inject_into(thalamocortical_neurons)
+    >>> pulse.inject_into(tc_cells)
 
 or the :meth:`inject()` method of the :class:`Population`,
-:class:`PopulationView` or :class:`Assembly`::
+:class:`PopulationView` or :class:`Assembly`:
+
+.. doctest::
 
     >>> import numpy
     >>> times = numpy.arange(0.0, 100.0, 1.0)
     >>> amplitudes = 0.1*numpy.sin(times*numpy.pi/100.0)
-    >>> sine_wave = StepCurrentSource(times, amplitudes)
-    >>> cortical_neurons[800:900].inject(sine_wave)
+    >>> sine_wave = StepCurrentSource(times=times, amplitudes=amplitudes)
+    >>> ctx_cells[800:900].inject(sine_wave)
 
 See :doc:`injecting_current` for more about injecting currents.
 
@@ -248,12 +315,16 @@ constant over time), so it has a well-defined set of state variables, such as
 the membrane potential, whose values change over the course of a simulation. The
 :attr:`recordable` attribute of a :class:`CellType` class contains a list of
 these variables, as well as the 'spikes' variable, which is used to record
-the times of action potentials::
+the times of action potentials:
+
+.. doctest::
 
     >>> ctx_cells.celltype.recordable
     ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
 
-The :meth:`record()` method specifies which variables should be recorded::
+The :meth:`record()` method specifies which variables should be recorded:
+
+.. doctest::
 
     >>> all_cells.record('spikes')
     >>> ctx_cells.sample(100).record(('v', 'w'), sampling_interval=0.2)
@@ -265,14 +336,18 @@ integration methods).
 .. todo: discuss specifying filename in record()
 
 At the end of a simulation, the recorded data can be retrieved using the
-:meth:`get_data()` method::
+:meth:`get_data()` method:
+
+.. doctest::
 
     >>> data_block = all_cells.get_data()
 
-or written to file using :meth:`write_data()`::
+or written to file using :meth:`write_data()`:
 
-    >>> from neo.io import HDF5IO
-    >>> h5file = HDF5IO("my_data.h5")
+.. doctest::
+
+    >>> from neo.io import NeoHdf5IO
+    >>> h5file = NeoHdf5IO("my_data.h5")
     >>> ctx_cells.write_data(h5file)
 
 :meth:`get_data()` returns a Neo_ :class:`Block` object. For more information on
@@ -300,10 +375,12 @@ Working with individual neurons
 
 Although it is usually more convenient and more efficient to work with
 populations of neurons, it is occasionally convienient to work with individual
-neurons, represented as an :class:`ID` object::
+neurons, represented as an :class:`ID` object:
+
+.. doctest::
 
     >>> tc_cells[479]
-    5480
+    6521
 
 For the simulator backends shipped with PyNN, the :class:`ID` class is a
 subclass of :class:`int`, and in the case of NEURON and NEST matches the global
@@ -312,25 +389,33 @@ integers, however, nor that they have the same value across different
 simulators.
 
 The :attr:`parent` attribute contains a reference to the parent
-:class:`population`::
+:class:`population`:
+
+.. doctest::
 
     >>> a_cell = tc_cells[479]
     >>> a_cell.parent.label
-    Thalamocortical neurons
+    'Thalamocortical neurons'
 
 To recover the index of a neuron within its parent given the :class:`ID`, use
-:meth:`Population.id_to_index()`, e.g.::
+:meth:`Population.id_to_index()`, e.g.:
+
+.. doctest::
 
     >>> tc_cells.id_to_index(a_cell)
     479
 
-The ``ID`` object allows direct access to the parameters of individual neurons, e.g.::
+The ``ID`` object allows direct access to the parameters of individual neurons, e.g.:
+
+.. doctest::
 
     >>> a_cell.tau_m
-    10.0
+    9.3667
 
 To change several parameters at once for a single neuron, use the
-:meth:`set_parameters()` method::
+:meth:`set_parameters()` method:
+
+.. doctest::
 
     >>> a_cell.set_parameters(tau_m=10.0, cm=0.5)
     >>> a_cell.tau_m

@@ -2,6 +2,12 @@
 Injecting current
 =================
 
+.. testsetup::
+
+   from pyNN.mock import *
+   setup()
+   population = Population(30, IF_cond_exp())
+
 Current waveforms are represented in PyNN by :class:`CurrentSource` classes.
 There are four built-in source types, and it is straightforward to
 implement your own.
@@ -9,7 +15,9 @@ implement your own.
 There are two ways to inject a current waveform into the cells of a
 :class:`Population`, :class:`PopulationView` or :class:`Assembly`: either the
 :meth:`inject_into()` method of the :class:`CurrentSource` or the
-:meth:`inject()` method of the :class:`Population`, :class:`Assembly`, etc.::
+:meth:`inject()` method of the :class:`Population`, :class:`Assembly`, etc.
+
+.. doctest::
 
     >>> pulse = DCSource(amplitude=0.5, start=20.0, stop=80.0)
     >>> pulse.inject_into(population[3:7])
@@ -17,7 +25,7 @@ There are two ways to inject a current waveform into the cells of a
 .. plot:: pyplots/dc_source.py
 
 
-::
+.. doctest::
 
     >>> sine = ACSource(start=50.0, stop=450.0, amplitude=1.0, offset=1.0,
     ...                 frequency=10.0, phase=180.0)
@@ -26,16 +34,16 @@ There are two ways to inject a current waveform into the cells of a
 .. plot:: pyplots/ac_source.py
 
 
-::
+.. doctest::
 
-    >>> steps = StepCurrentSource({'times' : [50.0, 110.0, 150.0, 210.0],
-                                   'amplitudes' : [0.4, 0.6, -0.2, 0.2]})
+    >>> steps = StepCurrentSource(times=[50.0, 110.0, 150.0, 210.0],
+    ...                           amplitudes=[0.4, 0.6, -0.2, 0.2])
     >>> steps.inject_into(population[(6,11,27)])
 
 .. plot:: pyplots/step_source.py
 
 
-::
+.. doctest::
 
     >>> noise = NoisyCurrentSource(mean=1.5, stdev=1.0, start=50.0, stop=450.0, dt=1.0)
     >>> population.inject(noise)

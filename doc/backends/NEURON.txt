@@ -2,6 +2,11 @@
 NEURON
 ======
 
+.. testsetup:: cvode
+
+    from pyNN.neuron import *
+
+
 Configuration options
 =====================
 
@@ -13,15 +18,19 @@ fixed time step, specified by the *timestep* argument to the :func:`setup`
 function.
 
 NEURON also supports use of variable time step methods, which can improve
-simulation speed::
+simulation speed:
 
-    >>> setup(use_cvode=True)
+.. testcode:: cvode
 
-If using *cvode*, there are two more optional parameters::
+    setup(use_cvode=True)
 
-    >>> setup(cvode=True,
-    ...       rtol=0.001, # specify relative error tolerance
-    ...       atol=1e-4)  # specify absolute error tolerance
+If using *cvode*, there are two more optional parameters:
+
+.. testcode:: cvode
+
+    setup(cvode=True,
+          rtol=0.001, # specify relative error tolerance
+          atol=1e-4)  # specify absolute error tolerance
 
 If not specified, the default values are *rtol = 0* and *atol = 0.001*. For full
 details, see the `CVode documentation`_
@@ -51,7 +60,9 @@ requirements:
 
     - there must be a :meth:`memb_init` method, taking no arguments.
 
-Here is an example, which uses the nrnutils_ package for conciseness::
+Here is an example, which uses the nrnutils_ package for conciseness:
+
+.. testcode:: nativemodel
 
     from nrnutils import Mechanism, Section
 
@@ -83,8 +94,18 @@ Here is an example, which uses the nrnutils_ package for conciseness::
             for seg in self.soma:
                 seg.v = self.v_init
 
+.. testcode:: nativemodel
+   :hide:
 
-For each cell model, you must also define a cell type::
+   SimpleNeuron.gkbar = 0.0
+   SimpleNeuron.g_leak = 0.0
+
+
+For each cell model, you must also define a cell type:
+
+.. testcode:: nativemodel
+
+    from pyNN.neuron import NativeCellType
 
     class SimpleNeuronType(NativeCellType):
         default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}
@@ -98,13 +119,15 @@ a future version.
 
 It is now straightforward to use this cell type in PyNN:
 
-    >>> from pyNN.neuron import setup, run, Population, Projection, AllToAllConnector
-    >>> setup()
-    >>> p1 = Population(10, SimpleNeuronType, {'g_leak': 0.0003})
-    >>> p1.record('soma(0.5).ina')
-    >>> prj = Projection(p1, p1, AllToAllConnector(), target='soma.ampa')
-    >>> run(100.0)
-    >>> output = p1.get_data()
+.. testcode:: nativemodel
+
+    from pyNN.neuron import setup, run, Population, Projection, AllToAllConnector
+    setup()
+    p1 = Population(10, SimpleNeuronType(g_leak=0.0003))
+    p1.record('soma(0.5).ina')
+    prj = Projection(p1, p1, AllToAllConnector(), target='soma.ampa')
+    run(100.0)
+    output = p1.get_data()
 
 
 If your model relies on other NMODL mechanisms, call the

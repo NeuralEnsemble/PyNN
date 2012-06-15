@@ -7,11 +7,11 @@ import pyNN.neuron as sim
 
 sim.setup()
 
-population = sim.Population(30, sim.IF_cond_exp, {'tau_m': 10.0})
+population = sim.Population(30, sim.IF_cond_exp(tau_m=10.0))
 population[0:1].record_v()
 
-noise = sim.NoisyCurrentSource(dict(mean=1.5, stdev=1.0, start=50.0, stop=450.0,
-                               dt=1.0))
+noise = sim.NoisyCurrentSource(mean=1.5, stdev=1.0, start=50.0, stop=450.0,
+                               dt=1.0)
 population.inject(noise)
 noise._record()
 

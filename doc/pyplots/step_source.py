@@ -7,11 +7,11 @@ import pyNN.neuron as sim
 
 sim.setup()
 
-population = sim.Population(30, sim.IF_cond_exp, {'tau_m': 10.0})
+population = sim.Population(30, sim.IF_cond_exp(tau_m=10.0))
 population[27:28].record_v()
 
-steps = sim.StepCurrentSource({'times' : [50.0, 110.0, 150.0, 210.0],
-                               'amplitudes' : [0.4, 0.6, -0.2, 0.2]})
+steps = sim.StepCurrentSource(times=[50.0, 110.0, 150.0, 210.0],
+                              amplitudes=[0.4, 0.6, -0.2, 0.2])
 steps.inject_into(population[(6,11,27)])
 steps._record()
 
