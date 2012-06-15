@@ -120,182 +120,124 @@ class Projection(object):
 
     # --- Methods for setting connection parameters ---------------------------
 
-    def set(self, name, value):
+    def set(self, **attributes):
         """
         Set connection attributes for all connections on the local MPI node.
 
-        `name`:
-            attribute name
-        `value`:
-            the attribute numeric value, or a list/1D array of such values of
-            the same length as the number of local connections, or a 2D array
-            with the same dimensions as the connectivity matrix (as returned by
-            `get(format='array')`).
+        Attribute names may be 'weights', 'delays', or the name of any parameter
+        of a synapse dynamics model (e.g. 'U' for TsodyksMarkramMechanism).
+
+        Each attribute value may be:
+            (1) a single number
+            (2) a RandomDistribution object
+            (3) a list/1D array of the same length as the number of local connections
+            (4) a 2D array with the same dimensions as the connectivity matrix
+                (as returned by `get(format='array')`
+            (5) a mapping function, which accepts two integer arguments (i, j)
+                and returns a single value.
+
+        Weights should be in nA for current-based and µS for conductance-based
+        synapses. Delays should be in milliseconds.
         """
+        # should perhaps add a "distribute" argument, for symmetry with "gather" in get()
         raise NotImplementedError
 
-    @deprecated("set('weight', w)")
+    @deprecated("set(weights=w)")
     def setWeights(self, w):
-        """
-        w can be a single number, in which case all weights are set to this
-        value, or a list/1D array of length equal to the number of connections
-        in the projection, or a 2D array with the same dimensions as the
-        connectivity matrix (as returned by `getWeights(format='array')`).
-        Weights should be in nA for current-based and µS for conductance-based
-        synapses.
-        """
-        # should perhaps add a "distribute" argument, for symmetry with "gather" in getWeights()
-        self.set('weight', w)
+        self.set(weights=w)
 
-    @deprecated("set('weight', rand_distr)")
+    @deprecated("set(weights=rand_distr)")
     def randomizeWeights(self, rand_distr):
-        """
-        Set weights to random values taken from rand_distr.
-        """
-        # Arguably, we could merge this with set_weights just by detecting the
-        # argument type. It could make for easier-to-read simulation code to
-        # give it a separate name, though. Comments?
-        self.set('weight', rand_distr.next(len(self)))
+        self.set('weights', rand_distr.next(len(self)))
 
-    @deprecated("set('delay', d)")
+    @deprecated("set(delays=d)")
     def setDelays(self, d):
-        """
-        d can be a single number, in which case all delays are set to this
-        value, or a list/1D array of length equal to the number of connections
-        in the projection, or a 2D array with the same dimensions as the
-        connectivity matrix (as returned by `getDelays(format='array')`).
-        """
-        self.set('delay', d)
+        self.set(delays=d)
 
-    @deprecated("set('delay', rand_distr)")
+    @deprecated("set(delays=rand_distr)")
     def randomizeDelays(self, rand_distr):
-        """
-        Set delays to random values taken from rand_distr.
-        """
-        self.set('delay', rand_distr.next(len(self)))
+        self.set(delays=rand_distr)
 
-    @deprecated("set(param, value)")
-    def setSynapseDynamics(self, param, value):
-        """
-        Set parameters of the dynamic synapses for all connections in this
-        projection.
-        """
-        self.set(param, value)
+    @deprecated("set(parameter_name=value)")
+    def setSynapseDynamics(self, parameter_name, value):
+        self.set(parameter_name=value)
 
-    @deprecated("set(param, value)")
-    def randomizeSynapseDynamics(self, param, rand_distr):
-        """
-        Set parameters of the synapse dynamics to values taken from rand_distr
-        """
-        self.set(param, rand_distr.next(len(self)))
+    @deprecated("set(name=rand_distr)")
+    def randomizeSynapseDynamics(self, parameter_name, rand_distr):
+        self.set(parameter_name=rand_distr)
 
     # --- Methods for writing/reading information to/from file. ---------------
 
-    def get(self, parameter_name, format, gather=True):
+    def get(self, attribute_names, format, gather=True):
         """
         Get the values of a given attribute (weight or delay) for all
         connections in this Projection.
 
-        `parameter_name`:
-            name of the attribute whose values are wanted.
+        `attribute_names`:
+            name of the attributes whose values are wanted, or a list of such
+            names.
         `format`:
-            "list" or "array". Array format implicitly assumes that all
-            connections belong to a single Projection.
+            "list" or "array".
 
-        Return a list or a 2D Numpy array. The array element X_ij contains the
+        With list format, returns a list of tuples. Each tuple contains the
+        indices of the pre- and post-synaptic cell followed by the attribute
+        values in the order given in `attribute_names`. Example::
+
+            >>> prj.get(["weights", "delays"], format="list")[:5]
+            [(TODO)]
+
+        With array format, returns a tuple of 2D NumPy arrays, one for each
+        name in `attribute_names`. The array element X_ij contains the
         attribute value for the connection from the ith neuron in the pre-
         synaptic Population to the jth neuron in the post-synaptic Population,
         if a single such connection exists. If there are no such connections,
         X_ij will be NaN. If there are multiple such connections, the summed
         value will be given, which makes some sense for weights, but is
-        pretty meaningless for delays.
+        pretty meaningless for delays. Example::
+
+            >>> weights, delays = prj.get(["weights", "delays"], format="array")
+            >>> weights.shape
+            TODO
         """
+        # consider adding a "with_address" arg, to allow suppressing inclusion of
+        # the pre- and post-synaptic cell indices
         raise NotImplementedError
 
-    @deprecated("get('weight', format, gather)")
+    @deprecated("get('weights', format, gather)")
     def getWeights(self, format='list', gather=True):
-        """
-        Get synaptic weights for all connections in this Projection.
+        return self.get('weights', format, gather)
 
-        Possible formats are: a list of length equal to the number of connections
-        in the projection, a 2D weight array (with NaN for non-existent
-        connections). Note that for the array format, if there is more than
-        one connection between two cells, the summed weight will be given.
-        """
-        if gather:
-            logger.error("getWeights() with gather=True not yet implemented")
-        return self.get('weight', format)
-
-    @deprecated("get('delay', format, gather)")
+    @deprecated("get('delays', format, gather)")
     def getDelays(self, format='list', gather=True):
-        """
-        Get synaptic delays for all connections in this Projection.
-
-        Possible formats are: a list of length equal to the number of connections
-        in the projection, a 2D delay array (with NaN for non-existent
-        connections).
-        """
-        if gather:
-            logger.error("getDelays() with gather=True not yet implemented")
-        return self.get('delay', format)
+        return self.get('delays', format, gather)
 
     @deprecated("get(parameter_name, format, gather)")
     def getSynapseDynamics(self, parameter_name, format='list', gather=True):
-        """
-        Get parameters of the dynamic synapses for all connections in this
-        Projection.
-        """
-        if gather:
-            logger.error("getSynapseDynamics() with gather=True not yet implemented")
-        return self.get(parameter_name, format)
+        return self.get(parameter_name, format, gather)
 
-    @deprecated("save('all', file, format, gather)")
-    def saveConnections(self, file, gather=True, compatible_output=True):
+    def save(self, attribute_names, file, format='list', gather=True):
         """
-        Save connections to file in a format suitable for reading in with a
-        FromFileConnector.
+        Print synaptic attributes (weights, delays, etc.) to file. In the array
+        format, zeros are printed for non-existent connections.
         """
-
+        if attribute_names in ('all', 'connections'):
+            attribute_names = ['weights', 'delays'] # need to add synapse dynamics parameter names, if applicable
         if isinstance(file, basestring):
             file = recording.files.StandardTextFile(file, mode='w')
+        all_values = self.get(attribute_names, format=format, gather=gather)
+        if format == 'array':
+            all_values = [numpy.where(numpy.isnan(values), 0.0, values)
+                          for values in all_values]
+        file.write(all_values, {})
+        file.close()
 
-        lines = []
-        if not compatible_output:
-            for c in self.connections:
-                lines.append([c.source, c.target, c.weight, c.delay])
-        else:
-            for c in self.connections:
-                lines.append([self.pre.id_to_index(c.source), self.post.id_to_index(c.target), c.weight, c.delay])
-
-        if gather == True and self._simulator.state.num_processes > 1:
-            all_lines = { self._simulator.state.mpi_rank: lines }
-            all_lines = recording.gather_dict(all_lines)
-            if self._simulator.state.mpi_rank == 0:
-                lines = reduce(operator.add, all_lines.values())
-        elif self._simulator.state.num_processes > 1:
-            file.rename('%s.%d' % (file.name, self._simulator.state.mpi_rank))
-
-        logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
-
-        if gather == False or self._simulator.state.mpi_rank == 0:
-            file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
-            file.close()
+    @deprecated("save('all', file, format='list', gather=gather)")
+    def saveConnections(self, file, gather=True, compatible_output=True):
+        self.save('all', file, format='list', gather=gather)
 
     @deprecated("save('weight', file, format, gather)")
     def printWeights(self, file, format='list', gather=True):
-        """
-        Print synaptic weights to file. In the array format, zeros are printed
-        for non-existent connections.
-        """
-        weights = self.get('weight', format=format, gather=gather)
-
-        if isinstance(file, basestring):
-            file = recording.files.StandardTextFile(file, mode='w')
-
-        if format == 'array':
-            weights = numpy.where(numpy.isnan(weights), 0.0, weights)
-        file.write(weights, {})
-        file.close()
+        self.save('weight', file, format, gather)
 
     @deprecated("save('delay', file, format, gather)")
     def printDelays(self, file, format='list', gather=True):
@@ -303,15 +245,7 @@ class Projection(object):
         Print synaptic weights to file. In the array format, zeros are printed
         for non-existent connections.
         """
-        delays = self.getDelays(format=format, gather=gather)
-
-        if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
-
-        if format == 'array':
-            delays = numpy.where(numpy.isnan(delays), 0.0, delays)
-        file.write(delays, {})
-        file.close()
+        self.save('delays', file, format, gather)
 
     @deprecated("numpy.histogram()")
     def weightHistogram(self, min=None, max=None, nbins=10):
@@ -320,9 +254,7 @@ class Projection(object):
         If min and max are not given, the minimum and maximum weights are
         calculated automatically.
         """
-        # it is arguable whether functions operating on the set of weights
-        # should be put here or in an external module.
-        weights = self.getWeights(format='list', gather=True)
+        weights = numpy.array(self.get('weights', format='list', gather=True))[:,2] # take third column
         if min is None:
             min = weights.min()
         if max is None:

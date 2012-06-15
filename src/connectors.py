@@ -13,7 +13,7 @@ from pyNN.space import Space
 from pyNN.core import LazyArray
 from pyNN.random import RandomDistribution
 from pyNN.common.populations import is_conductance
-from pyNN import errors
+from pyNN import errors, descriptions
 from pyNN.recording import files
 import numpy
 from itertools import izip
@@ -182,7 +182,7 @@ class MapConnector(Connector):
         # throw away the random numbers for the non-local nodes.
         # Otherwise, we only need to iterate over local post-synaptic cells.
         def parallel_safe(map):
-            return (isinstance(map.base_value, RandomDistribution) and 
+            return (isinstance(map.base_value, RandomDistribution) and
                     map.base_value.rng.parallel_safe)
         column_indices = numpy.arange(projection.post.size)
         if parallel_safe(weight_map) or parallel_safe(delay_map):
@@ -212,14 +212,14 @@ class MapConnector(Connector):
                 delays = delay_map.evaluate(simplify=True)
             else:
                 delays = delay_map[source_mask, col]
+            #logger.debug("Convergent connect %d neurons to #%s, delays in range (%g, %g)" % (sources.size, tgt, delays.min(), delays.max()))
             if self.safe:
                 # (might be cheaper to do the weight and delay check before evaluating the larray)
                 weights = check_weights(weights, projection.synapse_type, is_conductance(projection.post.local_cells[0]))
                 delays = check_delays(delays,
                                       projection._simulator.state.min_delay,
                                       projection._simulator.state.max_delay)
-            logger.debug("mask: %s, w: %s, d: %s", source_mask, weights, delays)
-            logger.debug("Convergent connect %d neurons to #%s" % (sources.size, tgt))
+            #logger.debug("mask: %s, w: %s, d: %s", source_mask, weights, delays)
             if tgt.local:
                 projection._convergent_connect(sources, tgt, weights, delays)
                 if self.callback:
@@ -233,6 +233,7 @@ class AllToAllConnector(MapConnector):
 
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
+
         `allow_self_connections`:
             if the connector is used to connect a Population to itself, this
             flag determines whether a neuron is allowed to connect to itself,
@@ -263,6 +264,7 @@ class FixedProbabilityConnector(MapConnector):
 
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
+
         `p_connect`:
             a float between zero and one. Each potential connection is created
             with this probability.
@@ -300,6 +302,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
 
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
+
         `d_expression`:
             the right-hand side of a valid Python expression for probability,
             involving 'd', e.g. "exp(-abs(d))", or "d<3"
@@ -386,7 +389,7 @@ class FromListConnector(Connector):
         logger.debug("self.conn_list = \n%s", self.conn_list)
         logger.debug("left = %s", left)
         logger.debug("right = %s", right)
-    
+
         for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
             weights = self.conn_list[l:r, 2]
@@ -456,7 +459,7 @@ class FixedNumberConnector(MapConnector):
         if isinstance(n, int):
             self.n = n
             assert n >= 0
-        elif isinstance(n, random.RandomDistribution):
+        elif isinstance(n, RandomDistribution):
             self.rand_distr = n
             # weak check that the random distribution is ok
             assert numpy.all(numpy.array(n.next(100)) >= 0), "the random distribution produces negative numbers"
@@ -477,6 +480,7 @@ class FixedNumberPostConnector(FixedNumberConnector):
 
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
+
         `n`:
             either a positive integer, or a `RandomDistribution` that produces
             positive integers. If `n` is a `RandomDistribution`, then the
@@ -517,6 +521,7 @@ class FixedNumberPreConnector(FixedNumberConnector):
 
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
+
         `n`:
             either a positive integer, or a `RandomDistribution` that produces
             positive integers. If `n` is a `RandomDistribution`, then the
@@ -563,6 +568,7 @@ class SmallWorldConnector(Connector):
 
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
+
         `degree`:
             the region length where nodes will be connected locally.
         `rewiring`:
@@ -601,6 +607,7 @@ class CSAConnector(Connector):
 
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
+
         `cset`:
             a connection set object.
     """

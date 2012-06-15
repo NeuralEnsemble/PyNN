@@ -340,6 +340,19 @@ class Connection(object):
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
 
+    def as_tuple(self, *attribute_names):
+        # should return indices, not IDs for source and target
+        addr = [self.source, self.target]
+        attributes = []
+        for name in attribute_names:
+            if name == "weights":
+                name = "weight"
+            elif name == "delays":
+                name = "delay"
+            attributes.append(getattr(self, name))
+        return tuple(addr + attributes)
+
+
 def generate_synapse_property(name):
     def _get(self):
         synapse = self.nc.syn()

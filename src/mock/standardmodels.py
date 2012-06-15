@@ -6,7 +6,7 @@ Standard cells for the mock module.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN.standardmodels import cells, build_translations
+from pyNN.standardmodels import cells, synapses, electrodes, build_translations, StandardCurrentSource
 import logging
 
 logger = logging.getLogger("PyNN")
@@ -59,7 +59,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         ('e_rev_E',    'E_REV_E'),
         ('e_rev_I',    'E_REV_I')
     )
-    
+
 class IF_cond_exp(cells.IF_cond_exp):
     __doc__ = cells.IF_cond_exp.__doc__
 
@@ -140,4 +140,119 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         ('tau_syn_E',  'TAU_SYN_E'),
         ('e_rev_I',    'E_REV_I'),
         ('tau_syn_I',  'TAU_SYN_I'),
+    )
+
+
+class MockCurrentSource(object):
+    def inject_into(self, cells):
+        __doc__ = StandardCurrentSource.inject_into.__doc__
+        pass
+
+class DCSource(MockCurrentSource, electrodes.DCSource):
+    __doc__ = electrodes.DCSource.__doc__
+
+    translations = build_translations(
+        ('amplitude',  'amplitude'),
+        ('start',      'start'),
+        ('stop',       'stop')
+    )
+
+
+class StepCurrentSource(MockCurrentSource, electrodes.StepCurrentSource):
+    __doc__ = electrodes.StepCurrentSource.__doc__
+
+    translations = build_translations(
+        ('amplitudes',  'amplitudes'),
+        ('times',       'times')
+    )
+
+
+class ACSource(MockCurrentSource, electrodes.ACSource):
+    __doc__ = electrodes.ACSource.__doc__
+
+    translations = build_translations(
+        ('amplitude',  'amplitude'),
+        ('start',      'start'),
+        ('stop',       'stop'),
+        ('frequency',  'frequency'),
+        ('offset',     'offset'),
+        ('phase',      'phase')
+    )
+
+
+class NoisyCurrentSource(MockCurrentSource, electrodes.NoisyCurrentSource):
+
+    translations = build_translations(
+        ('mean',  'mean'),
+        ('start', 'start'),
+        ('stop',  'stop'),
+        ('stdev', 'stdev'),
+        ('dt',    'dt')
+    )
+
+class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
+    __doc__ = synapses.TsodyksMarkramMechanism.__doc__
+
+    translations = build_translations(
+        ('U', 'U'),
+        ('tau_rec', 'tau_rec'),
+        ('tau_facil', 'tau_facil'),
+        ('u0', 'u0'),
+        ('x0', 'x' ), # } note that these two values
+        ('y0', 'y')   # } are not used
+    )
+
+
+class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
+    __doc__ = synapses.AdditiveWeightDependence.__doc__
+
+    translations = build_translations(
+        ('w_max',     'wmax'),
+        ('w_min',     'wmin'),
+        ('A_plus',    'aLTP'),
+        ('A_minus',   'aLTD'),
+    )
+
+
+class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
+    __doc__ = synapses.MultiplicativeWeightDependence.__doc__
+
+    translations = build_translations(
+        ('w_max',     'wmax'),
+        ('w_min',     'wmin'),
+        ('A_plus',    'aLTP'),
+        ('A_minus',   'aLTD'),
+    )
+
+
+class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
+    __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
+
+    translations = build_translations(
+        ('w_max',     'wmax'),
+        ('w_min',     'wmin'),
+        ('A_plus',    'aLTP'),
+        ('A_minus',   'aLTD'),
+    )
+
+
+class GutigWeightDependence(synapses.GutigWeightDependence):
+    __doc__ = synapses.GutigWeightDependence.__doc__
+
+    translations = build_translations(
+        ('w_max',     'wmax'),
+        ('w_min',     'wmin'),
+        ('A_plus',    'aLTP'),
+        ('A_minus',   'aLTD'),
+        ('mu_plus',   'muLTP'),
+        ('mu_minus',  'muLTD'),
+    )
+
+
+class SpikePairRule(synapses.SpikePairRule):
+    __doc__ = synapses.SpikePairRule.__doc__
+
+    translations = build_translations(
+        ('tau_plus',  'tauLTP'),
+        ('tau_minus', 'tauLTD'),
     )

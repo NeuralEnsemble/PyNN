@@ -13,12 +13,12 @@ import numpy
 from pyNN import common, recording
 from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace
-from pyNN.standardmodels import SynapseDynamics
+from pyNN.standardmodels import SynapseDynamics, STDPMechanism
 from pyNN.connectors import *
 from .standardmodels import *
 from itertools import repeat
 
-    
+
 logger = logging.getLogger("PyNN")
 
 
@@ -119,7 +119,7 @@ class Assembly(common.Assembly):
 class PopulationView(common.PopulationView):
     _assembly_class = Assembly
     _simulator = simulator
-    
+
     def _get_parameters(self, *names):
         """
         return a ParameterSpace containing native parameters
@@ -146,7 +146,7 @@ class Population(common.Population):
     _simulator = simulator
     _recorder_class = Recorder
     _assembly_class = Assembly
-    
+
     def _create_cells(self):
         if isinstance(self.celltype, StandardCellType):
             self._parameter_space = self.celltype.translated_parameters
@@ -164,7 +164,7 @@ class Population(common.Population):
         for id in self.all_cells:
             id.parent = self
         simulator.state.id_counter += self.size
-    
+
     def _set_initial_value_array(self, variable, initial_values):
         pass
 
@@ -176,7 +176,7 @@ class Population(common.Population):
         return a ParameterSpace containing native parameters
         """
         return self._parameter_space
-    
+
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
         self._parameter_space.update(**parameter_space)
@@ -184,7 +184,7 @@ class Population(common.Population):
 
 class Projection(common.Projection):
     _simulator = simulator
-    
+
     def __init__(self, presynaptic_population, postsynaptic_population, method,
                  source=None, target=None, synapse_dynamics=None, label=None,
                  rng=None):
@@ -205,9 +205,12 @@ class Projection(common.Projection):
 
     def __len__(self):
         return len(self.connections)
-    
-    def set(self, name, value):
+
+    def set(self, **attributes):
         pass
+
+    def get(self, parameter_name, format, gather=True):
+        raise NotImplementedError
 
     def _convergent_connect(self, sources, target, weights, delays):
         """
@@ -220,7 +223,7 @@ class Projection(common.Projection):
         `delays`   -- a 1D array of connection delays, of the same length as
                       `sources`, or a single delay value.
         """
-        
+
         if isinstance(weights, float):
             weights = repeat(weights)
         if isinstance(delays, float):
@@ -241,4 +244,3 @@ record = common.build_record(simulator)
 record_v = lambda source, filename: record(['v'], source, filename)
 
 record_gsyn = lambda source, filename: record(['gsyn_exc', 'gsyn_inh'], source, filename)
-

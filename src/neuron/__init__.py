@@ -20,6 +20,7 @@ from pyNN.neuron.standardmodels.synapses import *
 from pyNN.neuron.standardmodels.electrodes import *
 from pyNN.neuron.recording import Recorder
 from pyNN.parameters import Sequence
+from pyNN.neuron.cells import NativeCellType
 import numpy
 from itertools import izip, repeat
 import logging
@@ -358,7 +359,7 @@ class Projection(common.Projection):
             else:
                 synapse_object = getattr(target._cell, self.synapse_type)
             for source, weight, delay in izip(sources, weights, delays):
-                logging.debug("Connecting neuron #%s to neuron #%s with synapse type %s, weight %g, delay %g", source, target, self.synapse_type, weight, delay)
+                #logging.debug("Connecting neuron #%s to neuron #%s with synapse type %s, weight %g, delay %g", source, target, self.synapse_type, weight, delay)
                 if not isinstance(source, common.IDMixin):
                     raise errors.ConnectionError("Invalid source ID: %s" % source)
                 nc = simulator.state.parallel_context.gid_connect(int(source), synapse_object)
@@ -374,54 +375,67 @@ class Projection(common.Projection):
 
     # --- Methods for setting connection parameters ----------------------------
 
-    def set(self, name, value):
+    def set(self, **attributes):
         __doc__ = common.Projection.set.__doc__
-        if numpy.isscalar(value):
-            for c in self:
-                setattr(c, name, value)
-        elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
-            for c in self.connections:
-                addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
-                try:
-                    val = value[addr]
-                except IndexError, e:
-                    raise IndexError("%s. addr=%s" % (e, addr))
-                if numpy.isnan(val):
-                    raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
-                else:
+        for name, value in attributes.items():
+            if numpy.isscalar(value):
+                for c in self:
+                    setattr(c, name, value)
+            elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
+                for c in self.connections:
+                    addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
+                    try:
+                        val = value[addr]
+                    except IndexError, e:
+                        raise IndexError("%s. addr=%s" % (e, addr))
+                    if numpy.isnan(val):
+                        raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
+                    else:
+                        setattr(c, name, val)
+            elif core.is_listlike(value):
+                for c,val in zip(self.connections, value):
                     setattr(c, name, val)
-        elif core.is_listlike(value):
-            for c,val in zip(self.connections, value):
-                setattr(c, name, val)
-        elif isinstance(value, RandomDistribution):
-            if isinstance(value.rng, NativeRNG):
-                rarr = simulator.nativeRNG_pick(len(self),
-                                                value.rng,
-                                                value.name,
-                                                value.parameters)
-            else:
-                rarr = value.next(len(self))
-            for c,val in zip(self.connections, rarr):
-                setattr(c, name, val)
-        else:
-            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-
-    def get(self, parameter_name, format, gather=True):
-        __doc__ = common.Projection.get.__doc__
-        if format == 'list':
-            values = [getattr(c, parameter_name) for c in self.connections]
-        elif format == 'array':
-            values = numpy.nan * numpy.ones((self.pre.size, self.post.size))
-            for c in self.connections:
-                value = getattr(c, parameter_name)
-                addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
-                if numpy.isnan(values[addr]):
-                    values[addr] = value
+            elif isinstance(value, RandomDistribution):
+                if isinstance(value.rng, NativeRNG):
+                    rarr = simulator.nativeRNG_pick(len(self),
+                                                    value.rng,
+                                                    value.name,
+                                                    value.parameters)
                 else:
-                    values[addr] += value
+                    rarr = value.next(len(self))
+                for c,val in zip(self.connections, rarr):
+                    setattr(c, name, val)
+            else:
+                raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+
+    def get(self, parameter_names, format, gather=True):
+        __doc__ = common.Projection.get.__doc__
+        if isinstance(parameter_names, basestring):
+            parameter_names = (parameter_names,)
+            return_single = True
+        else:
+            return_single = False
+        if format == 'list':
+            return [c.as_tuple(*parameter_names) for c in self.connections]
+        elif format == 'array':
+            all_values = []
+            for parameter_name in parameter_names:
+                values = numpy.nan * numpy.ones((self.pre.size, self.post.size))
+                for c in self.connections:
+                    value = getattr(c, parameter_name)
+                    addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
+                    if numpy.isnan(values[addr]):
+                        values[addr] = value
+                    else:
+                        values[addr] += value
+                all_values.append(values)
+            if return_single:
+                assert len(all_values) == 1
+                return all_values[0]
+            else:
+                return all_values
         else:
             raise Exception("format must be 'list' or 'array'")
-        return values
 
 
 Space = space.Space
