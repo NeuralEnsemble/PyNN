@@ -40,9 +40,6 @@ class MockPopulation(common.BasePopulation):
     celltype = MockCellClass()
     local_cells = [MockID(44), MockID(33)]
 
-# simulator
-def test_load_mechanisms():
-    assert_raises(Exception, simulator.load_mechanisms, "/tmp") # not found
     
 def test_is_point_process():
     section = h.Section()

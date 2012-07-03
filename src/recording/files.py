@@ -191,17 +191,21 @@ class NumpyBinaryFile(BaseFile):
     arrays.
     """
     
+    def _check_open(self):
+        if not hasattr(self, "fileobj") or self.fileobj.closed:
+            self.fileobj = open(self.name, self.mode, DEFAULT_BUFFER_SIZE)
+            self.fileobj.seek(0)
+    
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
         self._check_open()
-        metadata_array = numpy.array(metadata.items())
+        metadata_array = numpy.array(metadata.items(), dtype=(str, float))
         savez(self.fileobj, data=data, metadata=metadata_array)
         
     def read(self):
         __doc__ = BaseFile.read.__doc__
         self._check_open()
         data = numpy.load(self.fileobj)['data']
-        self.fileobj.seek(0)
         return data
     
     def get_metadata(self):
@@ -213,7 +217,6 @@ class NumpyBinaryFile(BaseFile):
                 D[name] = eval(value)
             except Exception:
                 D[name] = value
-        self.fileobj.seek(0)
         return D
     
     

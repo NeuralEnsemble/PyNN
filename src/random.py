@@ -220,7 +220,7 @@ class RandomDistribution(object):
                             parameters=self.parameters,
                             mask_local=mask_local)
         if self.boundaries:
-            if type(res) == numpy.float:
+            if isinstance(res, numpy.float):
                 res = numpy.array([res])
             if self.constrain == "clip":
                 return numpy.maximum(numpy.minimum(res, self.max_bound), self.min_bound)

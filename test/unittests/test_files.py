@@ -46,14 +46,14 @@ def test_close():
 def test_StandardTextFile_write():
     files.open = Mock()
     stf = files.StandardTextFile("filename", "w")
-    data=[(0, 2.3),(1, 3.4),(2, 4.3)]
+    data=[(0, 2.25),(1, 3.5),(2, 4.125)]
     metadata = {'a': 1, 'b': 9.99}
-    target = [(('# a = 1\n# b = 9.99\n',), {}),
-              (('0.0\t2.3\n',), {}),
-              (('1.0\t3.4\n',), {}),
-              (('2.0\t4.3\n',), {})]
+    target = [('# a = 1\n# b = 9.99\n',),
+              ('0.0\t2.25\n',),
+              ('1.0\t3.5\n',),
+              ('2.0\t4.125\n',)]
     stf.write(data, metadata)
-    assert_equal(stf.fileobj.write.call_args_list,
+    assert_equal([call[0] for call in stf.fileobj.write.call_args_list],
                  target)
     files.open = builtin_open
     

@@ -166,10 +166,11 @@ def test_get_should_call_get_array_if_it_exists():
 
 def test_get_with_no_get_array():
     orig_iter = MockPopulation.__iter__
-    MockPopulation.__iter__ = Mock(return_value=iter([Mock()]))
+    mock_cell = Mock()
+    MockPopulation.__iter__ = Mock(return_value=iter([mock_cell]))
     p = MockPopulation()
     values = p.get("i_offset")
-    assert_equal(values[0]._name, "i_offset")
+    assert hasattr(mock_cell, "i_offset")
     MockPopulation.__iter__ = orig_iter
 
 def test_get_with_gather():

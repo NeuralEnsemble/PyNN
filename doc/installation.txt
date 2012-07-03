@@ -2,15 +2,15 @@
 Installation
 ============
 
-Use of PyNN_ requires that you have Python (version 2.5, 2.6or 2.7) and a recent version of the numpy_ package installed, plus at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
+Use of PyNN_ requires that you have Python (version 2.5, 2.6 or 2.7) and a recent version of the numpy_ package installed, plus at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
 
 Installing PyNN
 ===============
 
 The easiest way to get PyNN is to download the latest source distribution from the `PyNN download page`_, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.7.0.tar.gz
-    $ cd PyNN-0.7.0
+    $ tar xzf PyNN-0.7.4.tar.gz
+    $ cd PyNN-0.7.4
     $ python setup.py install
     
 This will install it to your python ``site-packages`` directory, and may require root privileges. If you wish to install it elsewhere use the ``--prefix`` or ``--home`` option, and set the ``PYTHONPATH`` environment variable accordingly (see above). We assume you have already installed the simulator(s) you wish to use it with. If this is not the case, see below for installation instructions.
