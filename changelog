@@ -1,4 +1,11 @@
 =====================
+Release 0.7.4 (r1195)
+=====================
+
+* Some small fixes to the `random` module (see ticket:231)
+* NumpyBinaryFile now works with NumPy 1.6
+
+=====================
 Release 0.7.3 (r1124)
 =====================
 
