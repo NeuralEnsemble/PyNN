@@ -25,6 +25,9 @@ class BaseModelType(object):
         if parameters:
             self.parameter_space.update(**parameters)
 
+    def __repr__(self):
+        return "%s(<parameters>)" % self.__class__.__name__ # should really include the parameters explicitly, to be unambiguous
+
     @classmethod
     def has_parameter(cls, name):
         return name in cls.default_parameters

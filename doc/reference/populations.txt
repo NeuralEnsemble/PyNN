@@ -9,10 +9,12 @@ Populations
 ===========
 
 .. testsetup::
+
    import pyNN.mock as sim
    sim.setup()
    p = sim.Population(10, sim.IF_cond_exp())
-   
+   pv = p[::2]
+
 
 .. autoclass:: Population
    :members:

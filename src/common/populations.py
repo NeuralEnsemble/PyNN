@@ -615,6 +615,9 @@ class Population(BasePopulation):
         self.recorder = self._recorder_class(self)
         Population._nPop += 1
 
+    def __repr__(self):
+        return "Population(%d, %r, structure=%r, label=%r)" % (self.size, self.celltype, self.structure, self.label)
+
     @property
     def local_cells(self):
         """
@@ -628,7 +631,6 @@ class Population(BasePopulation):
         (order in the Population).
 
             >>> assert p.id_to_index(p[5]) == 5
-            >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
         """
         if not numpy.iterable(id):
             if not self.first_id <= id <= self.last_id:
@@ -752,7 +754,6 @@ class PopulationView(BasePopulation):
         """
         self.parent = parent
         self.mask = selector # later we can have fancier selectors, for now we just have numpy masks
-        self.label  = label or "view of %s with mask %s" % (parent.label, self.mask)
         # maybe just redefine __getattr__ instead of the following...
         self.celltype     = self.parent.celltype
         # If the mask is a slice, IDs will be consecutives without duplication.
@@ -771,12 +772,16 @@ class PopulationView(BasePopulation):
         idx = numpy.argsort(self.all_cells)
         self._is_sorted =  numpy.all(idx == numpy.arange(len(self.all_cells)))
         self.size         = len(self.all_cells)
+        self.label  = label or "view of '%s' with size %s" % (parent.label, self.size)
         self._mask_local  = self.parent._mask_local[self.mask]
         self.local_cells  = self.all_cells[self._mask_local]
         self.first_id     = numpy.min(self.all_cells) # only works if we assume all_cells is sorted, otherwise could use min()
         self.last_id      = numpy.max(self.all_cells)
         self.recorder    = self.parent.recorder
         self._record_filter= self.all_cells
+
+    def __repr__(self):
+        return "PopulationView(parent=%r, selector=%r, label=%r)" % (self.parent, self.mask, self.label)
 
     @property
     def initial_values(self):
@@ -800,8 +805,7 @@ class PopulationView(BasePopulation):
         Given the ID(s) of cell(s) in the PopulationView, return its/their
         index/indices (order in the PopulationView).
 
-            >>> assert id_to_index(p.index(5)) == 5
-            >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
+            >>> assert pv.id_to_index(pv[3]) == 3
         """
         if not numpy.iterable(id):
             if self._is_sorted:
@@ -886,6 +890,9 @@ class Assembly(object):
         self.label = kwargs.get('label', 'assembly%d' % Assembly._count)
         assert isinstance(self.label, basestring), "label must be a string or unicode"
         Assembly._count += 1
+
+    def __repr__(self):
+        return "Assembly(*%r, label=%r)" % (self.populations, self.label)
 
     def _insert(self, element):
         if not isinstance(element, BasePopulation):

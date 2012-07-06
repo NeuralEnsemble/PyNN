@@ -137,6 +137,10 @@ class Space(object):
 
 class BaseStructure(object):
 
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__,
+                           ", ".join("%s=%r" % item for item in self.get_parameters().items()))
+
     def __eq__(self, other):
         return reduce(and_, (getattr(self, attr) == getattr(other, attr)
                              for attr in self.parameter_names))
@@ -319,6 +323,9 @@ class Cuboid(Shape):
         self.width = width
         self.depth = depth
 
+    def __repr__(self):
+        return "Cuboid(width=%r, height=%r, depth=%r)" % (self.width, self.height, self.depth)
+
     def sample(self, n, rng):
         """Return `n` points distributed randomly with uniform density within the cuboid."""
         return 0.5*rng.uniform(-1, 1, size=(n,3)) * (self.width, self.height, self.depth)
@@ -332,6 +339,9 @@ class Sphere(Shape):
     def __init__(self, radius):
         Shape.__init__(self)
         self.radius = radius
+
+    def __repr__(self):
+        return "Sphere(radius=%r)" % self.radius
 
     def sample(self, n, rng):
         """Return `n` points distributed randomly with uniform density within the sphere."""

@@ -58,6 +58,9 @@ class AbstractRNG(object):
         self.random = self.next
         self.sample = self.next
 
+    def __repr__(self):
+        return "%s(seed=%r)" % (self.__class__.__name__, self.seed)
+
     def next(self, n=None, distribution='uniform', parameters=[], mask_local=None):
         """Return `n` random numbers from the specified distribution.
 

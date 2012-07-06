@@ -9,6 +9,12 @@ Parameter sets
           your backend conforms to the API.
 
 
+.. testsetup::
+
+   from lazyarray import larray
+   import numpy
+
+
 .. autoclass:: ParameterSpace
    :members:
    :undoc-members:
