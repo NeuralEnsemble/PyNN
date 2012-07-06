@@ -21,25 +21,25 @@ from pyNN import random, errors, space
 from pyNN.parameters import Sequence
 
 class ProjectionTest(unittest.TestCase):
-    
+
     def setUp(self):
         sim.setup()
-        self.p1 = sim.Population(7, sim.IF_cond_exp)
-        self.p2 = sim.Population(4, sim.IF_cond_exp)
+        self.p1 = sim.Population(7, sim.IF_cond_exp())
+        self.p2 = sim.Population(4, sim.IF_cond_exp())
         self.random_connect = sim.FixedNumberPostConnector(n=2, weights=0.123, delays=0.5)
         self.all2all = sim.AllToAllConnector(weights=0.456, delays=0.4)
-    
+
     def test_create_simple(self):
         prj = sim.Projection(self.p1, self.p2, method=self.all2all)
-        
+
     def test_create_with_synapse_dynamics(self):
         prj = sim.Projection(self.p1, self.p2, method=self.all2all,
                              synapse_dynamics=sim.SynapseDynamics())
-        
+
     def test_size_with_gather(self):
         prj = sim.Projection(self.p1, self.p2, method=self.all2all)
         self.assertEqual(prj.size(gather=True), self.p1.size * self.p2.size)
-    
+
     #def test_set_weights(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
@@ -49,7 +49,7 @@ class ProjectionTest(unittest.TestCase):
     #    prj.set = Mock()
     #    prj.setWeights(0.5)
     #    prj.set.assert_called_with('weight', 0.5)
-        
+
     #def test_randomize_weights(self):
     #    orig_len = sim.Projection.__len__
     #    sim.Projection.__len__ = Mock(return_value=42)
@@ -63,7 +63,7 @@ class ProjectionTest(unittest.TestCase):
     #    rd.next.assert_called_with(len(prj))
     #    prj.set.assert_called_with('weight', 777)
     #    sim.Projection.__len__ = orig_len
-    #    
+    #
     #def test_set_delays(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
@@ -71,7 +71,7 @@ class ProjectionTest(unittest.TestCase):
     #    prj.set = Mock()
     #    prj.setDelays(0.5)
     #    prj.set.assert_called_with('delay', 0.5)
-    #    
+    #
     #def test_randomize_delays(self):
     #    orig_len = sim.Projection.__len__
     #    sim.Projection.__len__ = Mock(return_value=42)
@@ -85,7 +85,7 @@ class ProjectionTest(unittest.TestCase):
     #    rd.next.assert_called_with(len(prj))
     #    prj.set.assert_called_with('delay', 777)
     #    sim.Projection.__len__ = orig_len
-    #    
+    #
     #def test_set_synapse_dynamics_param(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
@@ -93,7 +93,7 @@ class ProjectionTest(unittest.TestCase):
     #    prj.set = Mock()
     #    prj.setSynapseDynamics('U', 0.5)
     #    prj.set.assert_called_with('U', 0.5)
-    #    
+    #
     #def test_get_weights(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
@@ -101,7 +101,7 @@ class ProjectionTest(unittest.TestCase):
     #    prj.get = Mock()
     #    prj.getWeights(format='list', gather=False)
     #    prj.get.assert_called_with('weight', 'list')
-    #    
+    #
     #def test_get_delays(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
@@ -134,7 +134,7 @@ class ProjectionTest(unittest.TestCase):
     #    prj.get.assert_called_with('weight', format='list', gather=False)
     #    assert os.path.exists(filename)
     #    os.remove(filename)
-    #    
+    #
     #def test_print_weights_as_array(self):
     #    filename = "test.weights"
     #    if os.path.exists(filename):

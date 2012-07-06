@@ -34,7 +34,7 @@ class MockCell(object):
 
 class MockStepCurrentSource(object):
     parameter_names = ['amplitudes', 'times']
-    def __init__(self, parameters):
+    def __init__(self, **parameters):
         self._devices = []
 
     def inject_into(self, cell_list):
@@ -44,7 +44,7 @@ class MockStepCurrentSource(object):
 
 class MockDCSource(object):
     parameter_names = ['amplitude', 'start', 'stop']
-    def __init__(self, parameters):
+    def __init__(self, **parameters):
         self._devices = []
 
     def inject_into(self, cell_list):
@@ -70,7 +70,7 @@ class MockPopulation(populations.BasePopulation):
 # simulator
 def test_load_mechanisms():
     assert_raises(Exception, simulator.load_mechanisms, "/tmp") # not found
-    
+
 def test_is_point_process():
     section = h.Section()
     clamp = h.SEClamp(section(0.5))
@@ -97,7 +97,7 @@ class TestInitializer(object):
         h.finitialize(-65)
         init._initialize.assert_called()
         init._initialize = orig_initialize
-    
+
     def test_register(self):
         init = simulator.initializer
         cell = MockID(22)
@@ -127,12 +127,12 @@ class TestInitializer(object):
 
 
 class TestState(object):
-    
+
     def test_register_gid(self):
         cell = MockCell()
         simulator.state.register_gid(84568345, cell.source, cell.source_section)
 
-    
+
     def test_dt_property(self):
         simulator.state.dt = 0.01
         assert_equal(h.dt, 0.01)
@@ -152,15 +152,15 @@ class TestState(object):
         assert_equal(simulator.state.tstop, 0.0)
         init._initialize.assert_called()
         init._initialize = orig_initialize
-    
-    
+
+
     def test_run(self):
         simulator.state.reset()
         simulator.state.run(12.3)
         assert_almost_equal(h.t, 12.3, places=11)
         simulator.state.run(7.7)
         assert_almost_equal(h.t, 20.0, places=11)
-    
+
     def test_finalize(self):
         orig_pc = simulator.state.parallel_context
         simulator.state.parallel_context = Mock()
@@ -171,7 +171,7 @@ class TestState(object):
 
 
 class TestID(object):
-    
+
     def setup(self):
         self.id = simulator.ID(984329856)
         self.id.parent = MockPopulation()
@@ -187,12 +187,12 @@ class TestID(object):
     def test_get_initial_value(self):
         foo_init = self.id.get_initial_value('foo')
         assert_equal(foo_init, -99.9)
-        
+
     #def test_set_initial_value(self):
-        
-        
+
+
 class TestConnection(object):
-    
+
     def setup(self):
         self.source = MockID(252)
         self.target = MockID(539)
@@ -201,12 +201,12 @@ class TestConnection(object):
                            sec=self.source._cell.source_section)
         self.nc.delay = 1.0
         self.c = simulator.Connection(self.source, self.target, self.nc)
-    
+
     def test_create(self):
         c = self.c
         assert_equal(c.source, self.source)
         assert_equal(c.target, self.target)
-    
+
     def test_useSTDP(self):
         self.c.useSTDP("StdwaSA", {'wmax': 0.04}, ddf=0)
 
@@ -215,7 +215,7 @@ class TestConnection(object):
         assert_equal(self.c.weight, 0.123)
         self.c.weight = 0.234
         assert_equal(self.nc.weight[0], 0.234)
-        
+
     def test_delay_property(self):
         self.nc.delay = 12.3
         assert_equal(self.c.delay, 12.3)
@@ -242,21 +242,21 @@ class TestCurrentSources(object):
         self.cells = [MockID(n) for n in range(5)]
 
     def test_inject_dc(self):
-        cs = electrodes.DCSource({})
+        cs = electrodes.DCSource()
         cs.inject_into(self.cells)
         assert_equal(cs.stop, 1e12)
-        assert_equal(len(cs._devices), 2) 
+        assert_equal(len(cs._devices), 2)
 
     def test_inject_step_current(self):
-        cs = MockStepCurrentSource({'amplitudes' : [1,2,3], 'times' : [0.5, 1.5, 2.5]})
+        cs = MockStepCurrentSource(amplitudes=[1,2,3], times=[0.5, 1.5, 2.5])
         cs.inject_into(self.cells)
         assert_equal(len(cs._devices), 2)# 2 local cells
         # need more assertions about iclamps, vectors
-        
-        
+
+
 # recording
 class TestRecorder(object):
-    
+
     def setup(self):
         p = MockPopulation()
         self.rv = recording.Recorder(p)
@@ -264,10 +264,10 @@ class TestRecorder(object):
         self.rs = recording.Recorder(p)
         self.rf = recording.Recorder(p)
         self.cells = [MockID(22), MockID(29)]
-    
+
     def teardown(self):
         pass
-    
+
     #def test__record(self):
     #    self.rv._record('v', self.cells)
     #    self.rg._record('gsyn_inh', self.cells)
@@ -277,7 +277,7 @@ class TestRecorder(object):
     #        cell._cell.record_v.assert_called_with(1)
     #        cell._cell.record_gsyn.assert_called_with('inhibitory', 1)
     #    assert_raises(Exception, self.rf._record, self.cells)
-    #    
+    #
     #def test__get_v(self):
     #    self.rv.recorded['v'] = self.cells
     #    self.cells[0]._cell.vtrace = numpy.arange(-65.0, -64.0, 0.1)
@@ -288,7 +288,7 @@ class TestRecorder(object):
     #    assert_equal(len(vdata.analogsignalarrays), 1)
     #    assert_arrays_equal(numpy.array(vdata.analogsignalarrays[0]),
     #                        numpy.vstack((self.cells[0]._cell.vtrace, self.cells[1]._cell.vtrace)).T)
-    #    
+    #
     def test__get_spikes(self):
         self.rs.recorded['spikes'] = self.cells
         self.cells[0]._cell.spike_times = numpy.arange(101.0, 111.0)
@@ -297,7 +297,7 @@ class TestRecorder(object):
         sdata = self.rs._get_current_segment(variables=['spikes'], filter_ids=None)
         assert_equal(len(sdata.spiketrains), 2)
         assert_arrays_equal(numpy.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times)
-        
+
     #def test__get_gsyn(self):
     #    self.rg.recorded['gsyn_exc'] = self.cells
     #    self.rg.recorded['gsyn_inh'] = self.cells
@@ -321,4 +321,3 @@ class TestRecorder(object):
         self.cells[0]._cell.spike_times = h.Vector(numpy.arange(101.0, 111.0))
         self.cells[1]._cell.spike_times = h.Vector(numpy.arange(13.0, 33.0))
         assert_equal(self.rs._local_count('spikes', filter_ids=None), {22: 10, 29: 20})
-    

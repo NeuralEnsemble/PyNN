@@ -58,7 +58,8 @@ attribute:
 .. doctest::
 
     >>> print IF_cond_exp.default_parameters
-    {...}
+    {'tau_refrac': 0.1, 'cm': 1.0, 'tau_syn_E': 5.0, 'v_rest': -65.0, 'tau_syn_I': 5.0, 'tau_m': 20.0, 'e_rev_E': 0.0, 'i_offset': 0.0, 'e_rev_I': -70.0, 'v_thresh': -50.0, 'v_reset': -65.0}
+
 
 Note that what we have created here are *neuron type* objects. These can be
 regarded as templates, from which we will construct the actual neurons in our
@@ -133,38 +134,24 @@ and slicing notation, for example:
 
 .. doctest::
 
-   >>> ctx_cells[457]   # the 458th neuron in a Population
-   7519
-   >>> ctx_cells[:100]  # the first hundred neurons
-   PopulationView(parent=Population(5000, EIF_cond_exp_isfa_ista(<parameters>), structure=Grid2D(fill_order='sequential', dx=10.0, dy=10.0, aspect_ratio=1.0, y0=0.0, x0=0.0, z=0), label='Cortical neurons'), selector=slice(None, 100, None), label="view of 'Cortical neurons' with size 100")
-   >>> ctx_cells[::2]   # every second neuron
-   PopulationView(parent=Population(5000, EIF_cond_exp_isfa_ista(<parameters>), structure=Grid2D(fill_order='sequential', dx=10.0, dy=10.0, aspect_ratio=1.0, y0=0.0, x0=0.0, z=0), label='Cortical neurons'), selector=slice(None, None, 2), label="view of 'Cortical neurons' with size 2500")
-   >>> ctx_cells[45, 91, 3459]  # a specific set of neurons
-   PopulationView(parent=Population(5000, EIF_cond_exp_isfa_ista(<parameters>), structure=Grid2D(fill_order='sequential', dx=10.0, dy=10.0, aspect_ratio=1.0, y0=0.0, x0=0.0, z=0), label='Cortical neurons'), selector=array([  45,   91, 3459]), label="view of 'Cortical neurons' with size 3")
+   >>> id = ctx_cells[457]             # the 458th neuron in a Population
+   >>> view = ctx_cells[:100]          # the first hundred neurons
+   >>> view = ctx_cells[::2]           # every second neuron
+   >>> view = ctx_cells[45, 91, 3459]  # a specific set of neurons
 
 It is also possible to address a random sample of neurons within a population
 using the :meth:`sample()` method:
 
 .. doctest::
 
-   >>> ctx_cells.sample(100, rng=NumpyRNG(seed=6538))  # select 100 neurons at random
-   PopulationView(parent=Population(5000, EIF_cond_exp_isfa_ista(<parameters>), structure=Grid2D(fill_order='sequential', dx=10.0, dy=10.0, aspect_ratio=1.0, y0=0.0, x0=0.0, z=0), label='Cortical neurons'), selector=array([2801, 3742, 3442, 2459, 4932, 3731, 1724, 1709, 2654, 3916, 4522,
-          3995, 4593, 1746, 4444, 2506, 1584, 4263, 3305,  743,   91, 3004,
-          3349, 2690, 3334, 1796, 1568, 1144,  521, 2893, 4268,  503, 3896,
-             8, 4025, 2940, 2667, 1132,  657, 2722, 4525, 4371, 2223,  515,
-           563, 4395, 4039, 1087,  393,  176, 1425, 4483,  754, 2505, 2397,
-          2967, 4721, 2618, 2934, 1164, 4696,  608, 2566,  526, 2349, 4813,
-          4101, 2489, 2987,  769, 1969, 3933, 1522, 1480, 1260, 4348, 4880,
-           656,  367, 3216,  633, 1316,  718, 1875, 4868, 3909, 2063, 1131,
-            47, 4141, 4002, 2201, 3610, 2444,  475,  804,  836, 2988, 1395,
-          4536]), label="view of 'Cortical neurons' with size 100")
+   >>> view = ctx_cells.sample(50, rng=NumpyRNG(seed=6538))  # select 50 neurons at random
 
 In the first of these examples, the object that is returned is an :class:`ID`
 object, representing a single neuron. :class:`ID` objects are discussed below.
 
 In all of these examples except the first, the object that is returned is a
-:class:`PopulationView`. A ``PopulationView`` holds references to a subset of
-neurons in a ``Population``, which means that any changes in the view are also
+:class:`PopulationView`. A :class:`PopulationView` holds references to a subset of
+neurons in a :class:`Population`, which means that any changes in the view are also
 reflected in the real population (and vice versa).
 
 :class:`PopulationView` objects behave in most ways as real :class:`Population`
@@ -172,6 +159,20 @@ objects, notably, they can be used in a :class:`Projection` (see
 :doc:`connections`) and combined with other :class:`Population` or
 :class:`PopulationView` objects to create an :class:`Assembly`.
 
+The :attr:`parent` attribute of a :class:`PopulationView` has a reference to the
+:class:`Population` that is being viewed, and the :attr:`mask` attribute
+contains the indices of the neurons that are in the view.
+
+.. doctest::
+
+   >>> view.parent.label
+   'Cortical neurons'
+   >>> view.mask
+   array([2801, 3742, 3442, 2459, 4932, 3731, 1724, 1709, 2654, 3916, 4522,
+          3995, 4593, 1746, 4444, 2506, 1584, 4263, 3305,  743,   91, 3004,
+          3349, 2690, 3334, 1796, 1568, 1144,  521, 2893, 4268,  503, 3896,
+             8, 4025, 2940, 2667, 1132,  657, 2722, 4525, 4371, 2223,  515,
+           563, 4395, 4039, 1087,  393,  176])
 
 Assemblies
 ==========

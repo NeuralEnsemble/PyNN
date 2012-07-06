@@ -27,7 +27,7 @@ def test_build_translations():
     assert_equal(t['c']['reverse_transform'], 'C - A')
 
 
-    
+
 ##test StandardModelType
 
 def test_has_parameter():
@@ -50,7 +50,7 @@ def test_instantiate():
     M = StandardModelType
     M.default_parameters = {'a': 0.0, 'b': 0.0}
     P1 = {'a': 22.2, 'b': 33.3}
-    m = M(P1)
+    m = M(**P1)
     assert_equal(m.parameter_space._parameters, ParameterSpace(P1, None, None)._parameters)
 
 def _parameter_space_to_dict(parameter_space, size):
@@ -155,7 +155,7 @@ def test_describe():
             ('b', 'B', 1000.0),
             ('c', 'C', 'c + a', 'C - A'),
         )
-    m = M({})
+    m = M()
     assert isinstance(m.describe(), basestring)
 
 # test StandardCellType
@@ -196,4 +196,3 @@ def test_STDPMechanism_create_invalid_types():
 ## test STDPWeightDependence
 
 ## test STDPTimingDependence
-

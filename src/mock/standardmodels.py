@@ -108,6 +108,11 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     __doc__ = cells.SpikeSourcePoisson.__doc__
 
+    translations = build_translations(
+        ('start',    'START'),
+        ('rate',     'INTERVAL',  "1000.0/rate",  "1000.0/INTERVAL"),
+        ('duration', 'DURATION'),
+    )
 
 class SpikeSourceArray(cells.SpikeSourceArray):
     __doc__ = cells.SpikeSourceArray.__doc__
