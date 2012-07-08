@@ -372,13 +372,14 @@ Here is a minimal example:
 
 .. testcode::
 
-    excitatory_connections = Projection(pre, post, AllToAllConnector())
+    excitatory_connections = Projection(pre, post, AllToAllConnector(weights=0.123))
 
 and here is a full example:
 
 .. testcode::
 
-    sparse_connectivity = FixedProbabilityConnector(0.1, weights=0.01, delays=0.5)
+    weight_distr = RandomDistribution('normal', [0.01, 1e-3], rng=NumpyRNG(seed=64754))
+    sparse_connectivity = FixedProbabilityConnector(0.1, weights=weight_distr, delays=lambda d: 0.1+d/100.0)
     facilitating = SynapseDynamics(fast=TsodyksMarkramMechanism(U=0.04, tau_rec=100.0, tau_facil=1000.0))
     rng = NumpyRNG(seed=42)
     inhibitory_connections = Projection(pre, post,
@@ -394,9 +395,9 @@ classes contains a list of the possible values of ``target`` for that cell type:
 .. doctest::
 
     >>> post
-    <Population ...>
+    Population(10, IF_cond_exp(<parameters>), structure=Line(y=0.0, x0=0.0, z=0.0, dx=1.0), label='population1')
     >>> post.celltype
-    <IF_cond_exp ...>
+    IF_cond_exp(<parameters>)
     >>> post.celltype.synapse_types
     ('excitatory', 'inhibitory')
 
@@ -412,11 +413,19 @@ returns a 2D weight array (with NaN for non-existent connections):
 .. doctest::
 
     >>> excitatory_connections.get('weights', format='list')[3:7]
-    [0.20000000000000001, 0.20000000000000001, 0.10000000000000001, 0.10000000000000001]
-    >>> excitatory_connections.get('delays', format='array')[:3,:3]
-    array([[ 0.2,  0.2,  0.2],
-           [ 0.1,  0.1,  0.1],
-           [ 0.1,  0.1,  0.1]])
+    [(45, 52, 0.123), (46, 52, 0.123), (47, 52, 0.123), (48, 52, 0.123)]
+    >>> inhibitory_connections.get('delays', format='array')[:3,:5]
+    array([[  nan,  0.11,   nan,   nan,   nan],
+           [  nan,   nan,   nan,   nan,   nan],
+           [  nan,   nan,   nan,  0.11,  0.12]])
+
+To suppress the coordinates of the connection in ``'list'``, view, set the
+*with_address* option to ``False``:
+
+.. doctest::
+
+    >>> excitatory_connections.get('weights', format='list', with_address=False)[3:7]
+    [0.123, 0.123, 0.123, 0.123]
 
 As well as weight and delay, :meth:`Projection.get` can also retrieve the
 parameters of synapse dynamics models:
@@ -431,15 +440,26 @@ either a list of tuples or a tuple of arrays:
 
 .. doctest::
 
-    >>> connection_data = excitatory_connections.get(['weights', 'delays'], format='list')
+    >>> connection_data = inhibitory_connections.get(['weights', 'delays'], format='list')
     >>> for connection in connection_data[:5]:
-    ...    w, d = connection
-    ...    print "weight = ", w, "delay = ", d
-    blah
-    >>> weights, delays = excitatory_connections.get(['weights', 'delays'], format='array')
-    >>> for w, d in zip(weights, delays):
-    ...    print "weight = ", w, "delay = ", d
-    blah
+    ...    src, tgt, w, d = connection
+    ...    print "weight = %.4f  delay = %4.2f" % (w, d)
+    weight = 0.0094  delay = 0.16
+    weight = 0.0113  delay = 0.11
+    weight = 0.0102  delay = 0.17
+    weight = 0.0097  delay = 0.11
+    weight = 0.0127  delay = 0.14
+    >>> weights, delays = inhibitory_connections.get(['weights', 'delays'], format='array')
+    >>> exists = ~numpy.isnan(weights)
+    >>> for w, d in zip(weights[exists].flat, delays[exists].flat)[:5]:
+    ...    print "weight = %.4f  delay = %4.2f" % (w, d)
+    weight = 0.0094  delay = 0.16
+    weight = 0.0113  delay = 0.11
+    weight = 0.0102  delay = 0.17
+    weight = 0.0097  delay = 0.11
+    weight = 0.0127  delay = 0.14
+
+Note that in this last example we have filtered out the non-existent connections using :func:`numpy.isnan()`.
 
 
 The :meth:`Projection.save` method saves connection attributes to disk.
@@ -452,10 +472,10 @@ Access to the weights and delays of individual connections is by the
 
 .. doctest::
 
-    >>> excitatory_connections.connections[0].weight
-    0.2
-    >>> excitatory_connections.connections[10].weight
-    0.1
+    >>> inhibitory_connections.connections[0].weight
+    0.0094460775218037779
+    >>> inhibitory_connections.connections[10].weight
+    0.0086313719119562281
 
 
 Modifying weights and delays

@@ -1117,6 +1117,7 @@ class Assembly(object):
         """
         if isinstance(parameter_names, basestring):
             parameter_names = (parameter_names,)
+        # this is broken. Need to (1) separate out parameters (2) handle a potential mix of homogeneous and inhomogeneous values
         values = []
         for p in self.populations:
             values.extend(p.get(parameter_names, gather))

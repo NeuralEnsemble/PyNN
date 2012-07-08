@@ -38,8 +38,16 @@ model (AdExp):
 
 .. doctest::
 
-    >>> thalamocortical_type = EIF_cond_exp_isfa_ista()
-    >>> cortical_type = EIF_cond_exp_isfa_ista()
+    >>> refractory_period = RandomDistribution('uniform', [2.0, 3.0], rng=NumpyRNG(seed=4242))
+    >>> ctx_parameters = {
+    ...     'cm': 0.2, 'tau_m': 20.0, 'v_rest': -60, 'v_thresh': -50, 'tau_refrac': refractory_period,
+    ...     'v_reset': -60, 'v_spike': -50.0, 'a': 1.0, 'b': 0.005, 'tau_w': 600, 'delta_T': 2.5,
+    ...     'tau_syn_E': 5.0, 'e_rev_E': 0.0, 'tau_syn_I': 10.0, 'e_rev_I': -80 }
+    >>> tc_parameters = ctx_parameters.copy()
+    >>> tc_parameters.update({'a': 20.0, 'b': 0.0})
+
+    >>> thalamocortical_type = EIF_cond_exp_isfa_ista(**tc_parameters)
+    >>> cortical_type = EIF_cond_exp_isfa_ista(**ctx_parameters)
 
 .. todo: check details + parameters of Destexhe model
 
@@ -81,8 +89,8 @@ class:
 
 .. doctest::
 
-    >>> tc_cells = Population(1000, thalamocortical_type)
-    >>> ctx_cells = Population(5000, cortical_type)
+    >>> tc_cells = Population(100, thalamocortical_type)
+    >>> ctx_cells = Population(500, cortical_type)
 
 To create a :class:`Population`, we need to specify at minimum the number of
 neurons and the cell type. Three additional arguments may optionally be
@@ -100,13 +108,13 @@ specified:
 .. doctest::
 
     >>> from pyNN.space import Grid2D, RandomStructure, Sphere
-    >>> tc_cells = Population(1000, thalamocortical_type,
+    >>> tc_cells = Population(100, thalamocortical_type,
     ...                       structure=RandomStructure(boundary=Sphere(radius=200.0)),
     ...                       initial_values={'v': -70.0},
     ...                       label="Thalamocortical neurons")
     >>> from pyNN.random import RandomDistribution
     >>> v_init = RandomDistribution('uniform', (-70.0, -60.0))
-    >>> ctx_cells = Population(5000, cortical_type,
+    >>> ctx_cells = Population(500, cortical_type,
     ...                        structure=Grid2D(dx=10.0, dy=10.0),
     ...                        initial_values={'v': v_init},
     ...                        label="Cortical neurons")
@@ -118,8 +126,8 @@ For backwards compatibility and for ease of transitioning from other simulator
 languages, the :func:`create` function is available as an alias for
 :class:`Population`. The following two lines are equivalent::
 
-    >>> cells = create(my_cell_type, n=1000)
-    >>> cells = Population(1000, my_cell_type)
+    >>> cells = create(my_cell_type, n=100)
+    >>> cells = Population(100, my_cell_type)
 
 (Note the different argument order).
 
@@ -134,10 +142,10 @@ and slicing notation, for example:
 
 .. doctest::
 
-   >>> id = ctx_cells[457]             # the 458th neuron in a Population
-   >>> view = ctx_cells[:100]          # the first hundred neurons
+   >>> id = ctx_cells[47]             # the 48th neuron in a Population
+   >>> view = ctx_cells[:80]          # the first eighty neurons
    >>> view = ctx_cells[::2]           # every second neuron
-   >>> view = ctx_cells[45, 91, 3459]  # a specific set of neurons
+   >>> view = ctx_cells[45, 91, 7]  # a specific set of neurons
 
 It is also possible to address a random sample of neurons within a population
 using the :meth:`sample()` method:
@@ -168,11 +176,10 @@ contains the indices of the neurons that are in the view.
    >>> view.parent.label
    'Cortical neurons'
    >>> view.mask
-   array([2801, 3742, 3442, 2459, 4932, 3731, 1724, 1709, 2654, 3916, 4522,
-          3995, 4593, 1746, 4444, 2506, 1584, 4263, 3305,  743,   91, 3004,
-          3349, 2690, 3334, 1796, 1568, 1144,  521, 2893, 4268,  503, 3896,
-             8, 4025, 2940, 2667, 1132,  657, 2722, 4525, 4371, 2223,  515,
-           563, 4395, 4039, 1087,  393,  176])
+   array([150, 181,  53, 149, 496, 499, 240, 444,  13, 100,  28,  19, 101,
+          122, 143, 486, 467, 492, 406,  90, 136, 173,   8, 341,   5, 348,
+          188,  63, 129, 416, 307, 298,  60, 180, 382,  47, 484, 370, 223,
+          147,  72,  32, 261, 193, 249, 212,  58,  87,  86, 456])
 
 Assemblies
 ==========
@@ -189,7 +196,7 @@ An :class:`Assembly` can be created by adding together :class:`Population` and
 .. doctest::
 
     >>> all_cells = tc_cells + ctx_cells
-    >>> cells_for_plotting = tc_cells[:100] + ctx_cells[:500]
+    >>> cells_for_plotting = tc_cells[:10] + ctx_cells[:50]
 
 or by using the :class:`Assembly` constructor:
 
@@ -211,7 +218,7 @@ labels, e.g.:
 .. doctest::
 
     >>> all_cells.get_population("Thalamocortical neurons")
-    Population(1000, EIF_cond_exp_isfa_ista(<parameters>), structure=RandomStructure(origin=(0.0, 0.0, 0.0), boundary=Sphere(radius=200.0), rng=NumpyRNG(seed=None)), label='Thalamocortical neurons')
+    Population(100, EIF_cond_exp_isfa_ista(<parameters>), structure=RandomStructure(origin=(0.0, 0.0, 0.0), boundary=Sphere(radius=200.0), rng=NumpyRNG(seed=None)), label='Thalamocortical neurons')
 
 Iterating over an assembly returns individual IDs, ordered by population.
 Similarly, the :attr:`size` attribute of an :class:`Assembly` gives the total
@@ -221,9 +228,9 @@ number of neurons it contains. To iterate over or count populations, use the
 .. doctest::
 
     >>> for p in all_cells.populations:
-    ...    print "%-23s %5d %s" % (p.label, p.size, p.celltype.__class__.__name__)
-    Thalamocortical neurons  1000 EIF_cond_exp_isfa_ista
-    Cortical neurons         5000 EIF_cond_exp_isfa_ista
+    ...    print "%-23s %4d %s" % (p.label, p.size, p.celltype.__class__.__name__)
+    Thalamocortical neurons  100 EIF_cond_exp_isfa_ista
+    Cortical neurons         500 EIF_cond_exp_isfa_ista
 
 
 Inspecting and modifying parameter values and initial conditions
@@ -239,9 +246,9 @@ The :meth:`get()` method of :class:`Population`, :class:`PopulationView` and
 .. doctest::
 
     >>> ctx_cells.get('tau_m')
-    9.3667
+    20.0
     >>> all_cells[0:10].get('v_reset')
-    70.6
+    -60.0
 
 If the parameter is homogeneous across the group, a single number will be
 returned, otherwise :meth:`get()` will return a NumPy array containing the
@@ -250,9 +257,7 @@ parameter values for all neurons:
 .. doctest::
 
     >>> ctx_cells.get('tau_refrac')
-    array([ 0.1,  0.1,  0.1,  0.1,  0.1])
-
-.. todo: this is supposed to give an array, but we haven't set tau_refrac to be heterogeneous
+    array([ 2.53559708,  2.01269358,  2.91766156, ...
 
 It is also possible to ask for multiple parameters at once, in which case a
 list of values in the same order as the list of parameter names will be
@@ -261,7 +266,7 @@ returned.
 .. doctest::
 
     >>> ctx_cells.get(['tau_m', 'cm'])
-    [9.3667, 0.281]
+    [20.0, 0.2]
 
 When running a distributed simulation using MPI_, :meth:`get()` will by default
 return values for only those neurons that exist on the current MPI node. To get
@@ -313,7 +318,7 @@ or the :meth:`inject()` method of the :class:`Population`,
     >>> times = numpy.arange(0.0, 100.0, 1.0)
     >>> amplitudes = 0.1*numpy.sin(times*numpy.pi/100.0)
     >>> sine_wave = StepCurrentSource(times=times, amplitudes=amplitudes)
-    >>> ctx_cells[800:900].inject(sine_wave)
+    >>> ctx_cells[80:90].inject(sine_wave)
 
 See :doc:`injecting_current` for more about injecting currents.
 
@@ -338,11 +343,13 @@ The :meth:`record()` method specifies which variables should be recorded:
 .. doctest::
 
     >>> all_cells.record('spikes')
-    >>> ctx_cells.sample(100).record(('v', 'w'), sampling_interval=0.2)
+    >>> ctx_cells.sample(10).record(('v', 'w')) #, sampling_interval=0.2)
 
 Note that the sampling interval must be an integer multiple of the simulation
 time step (except for simulators which allow use of variable time-step
 integration methods).
+
+.. todo: implement sampling_interval
 
 .. todo: discuss specifying filename in record()
 
@@ -351,6 +358,7 @@ At the end of a simulation, the recorded data can be retrieved using the
 
 .. doctest::
 
+    >>> t = run(1.0)
     >>> data_block = all_cells.get_data()
 
 or written to file using :meth:`write_data()`:
@@ -390,8 +398,8 @@ neurons, represented as an :class:`ID` object:
 
 .. doctest::
 
-    >>> tc_cells[479]
-    6521
+    >>> tc_cells[47]
+    709
 
 For the simulator backends shipped with PyNN, the :class:`ID` class is a
 subclass of :class:`int`, and in the case of NEURON and NEST matches the global
@@ -404,7 +412,7 @@ The :attr:`parent` attribute contains a reference to the parent
 
 .. doctest::
 
-    >>> a_cell = tc_cells[479]
+    >>> a_cell = tc_cells[47]
     >>> a_cell.parent.label
     'Thalamocortical neurons'
 
@@ -414,14 +422,14 @@ To recover the index of a neuron within its parent given the :class:`ID`, use
 .. doctest::
 
     >>> tc_cells.id_to_index(a_cell)
-    479
+    47
 
 The ``ID`` object allows direct access to the parameters of individual neurons, e.g.:
 
 .. doctest::
 
     >>> a_cell.tau_m
-    9.3667
+    20.0
 
 To change several parameters at once for a single neuron, use the
 :meth:`set_parameters()` method:

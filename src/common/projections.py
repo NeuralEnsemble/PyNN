@@ -168,7 +168,7 @@ class Projection(object):
 
     # --- Methods for writing/reading information to/from file. ---------------
 
-    def get(self, attribute_names, format, gather=True):
+    def get(self, attribute_names, format, gather=True, with_address=True):
         """
         Get the values of a given attribute (weight or delay) for all
         connections in this Projection.
@@ -198,22 +198,55 @@ class Projection(object):
             >>> weights, delays = prj.get(["weights", "delays"], format="array")
             >>> weights.shape
             TODO
+
+        TODO: document "with_address"
         """
-        # consider adding a "with_address" arg, to allow suppressing inclusion of
-        # the pre- and post-synaptic cell indices
-        raise NotImplementedError
+        if isinstance(attribute_names, basestring):
+            attribute_names = (attribute_names,)
+            return_single = True
+        else:
+            return_single = False
+        if format == 'list':
+            names = list(attribute_names)
+            if with_address:
+                names = ["source", "target"] + names
+            values = [c.as_tuple(*names) for c in self.connections]
+            if not with_address and return_single:
+                values = [val[0] for val in values]
+            return values
+        elif format == 'array':
+            all_values = []
+            for attribute_name in attribute_names:
+                values = numpy.nan * numpy.ones((self.pre.size, self.post.size))
+                if attribute_name[-1] == "s":  # weights --> weight, delays --> delay
+                    attribute_name = attribute_name[:-1]
+                for c in self.connections:
+                    value = getattr(c, attribute_name)
+                    addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
+                    if numpy.isnan(values[addr]):
+                        values[addr] = value
+                    else:
+                        values[addr] += value
+                all_values.append(values)
+            if return_single:
+                assert len(all_values) == 1
+                return all_values[0]
+            else:
+                return all_values
+        else:
+            raise Exception("format must be 'list' or 'array'")
 
     @deprecated("get('weights', format, gather)")
     def getWeights(self, format='list', gather=True):
-        return self.get('weights', format, gather)
+        return self.get('weights', format, gather, with_address=False)
 
     @deprecated("get('delays', format, gather)")
     def getDelays(self, format='list', gather=True):
-        return self.get('delays', format, gather)
+        return self.get('delays', format, gather, with_address=False)
 
     @deprecated("get(parameter_name, format, gather)")
     def getSynapseDynamics(self, parameter_name, format='list', gather=True):
-        return self.get(parameter_name, format, gather)
+        return self.get(parameter_name, format, gather, with_address=False)
 
     def save(self, attribute_names, file, format='list', gather=True):
         """

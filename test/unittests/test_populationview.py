@@ -229,18 +229,30 @@ class PopulationViewTest(unittest.TestCase):
         assert_array_equal(pv2.all_cells,
                            p.all_cells[[10, 3, 0]])
 
-    def test_get_multiple_params_with_gather(self):
+    def test_get_multiple_homogeneous_params_with_gather(self):
         p = sim.Population(10, sim.IF_cond_exp, {'tau_m': 12.3, 'cm': 0.987, 'i_offset': -0.21})
         pv = p[3:7]
         cm, tau_m = pv.get(('cm', 'tau_m'), gather=True)
-        assert_array_equal(cm, 0.987*numpy.ones((4,)))
-        assert_array_equal(tau_m, 12.3*numpy.ones((4,)))
+        self.assertEqual(cm, 0.987)
+        self.assertEqual(tau_m, 12.3)
 
-    def test_get_single_param_with_gather(self):
+    def test_get_single_homogeneous_param_with_gather(self):
         p = sim.Population(4, sim.IF_cond_exp, {'tau_m': 12.3, 'cm': 0.987, 'i_offset': -0.21})
         pv = p[:]
-        cm = p.get('cm', gather=True)
-        assert_array_equal(cm, 0.987*numpy.ones((4,)))
+        cm = pv.get('cm', gather=True)
+        self.assertEqual(cm, 0.987)
+
+    def test_get_multiple_inhomogeneous_params_with_gather(self):
+        p = sim.Population(4, sim.IF_cond_exp(tau_m=12.3,
+                                              cm=[0.987, 0.988, 0.989, 0.990],
+                                              i_offset=lambda i: -0.2*i))
+        pv = p[0, 1, 3]
+        cm, tau_m, i_offset = pv.get(('cm', 'tau_m', 'i_offset'), gather=True)
+        self.assertIsInstance(tau_m, float)
+        self.assertIsInstance(cm, numpy.ndarray)
+        assert_array_equal(cm, numpy.array([0.987, 0.988, 0.990]))
+        self.assertEqual(tau_m, 12.3)
+        assert_array_almost_equal(i_offset, numpy.array([-0.0, -0.2, -0.6]), decimal=12)
 
     ##def test_get_multiple_params_no_gather(self):
 

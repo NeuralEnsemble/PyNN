@@ -408,35 +408,6 @@ class Projection(common.Projection):
             else:
                 raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
 
-    def get(self, parameter_names, format, gather=True):
-        __doc__ = common.Projection.get.__doc__
-        if isinstance(parameter_names, basestring):
-            parameter_names = (parameter_names,)
-            return_single = True
-        else:
-            return_single = False
-        if format == 'list':
-            return [c.as_tuple(*parameter_names) for c in self.connections]
-        elif format == 'array':
-            all_values = []
-            for parameter_name in parameter_names:
-                values = numpy.nan * numpy.ones((self.pre.size, self.post.size))
-                for c in self.connections:
-                    value = getattr(c, parameter_name)
-                    addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
-                    if numpy.isnan(values[addr]):
-                        values[addr] = value
-                    else:
-                        values[addr] += value
-                all_values.append(values)
-            if return_single:
-                assert len(all_values) == 1
-                return all_values[0]
-            else:
-                return all_values
-        else:
-            raise Exception("format must be 'list' or 'array'")
-
 
 Space = space.Space
 

@@ -44,7 +44,7 @@ class PopulationTest(unittest.TestCase):
                                                  'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
         cm, tau_m, i_offset = p.get(('cm', 'tau_m', 'i_offset'), gather=True)
         assert_array_equal(cm, numpy.array([0.987, 0.997, 1.007, 1.017]))
-        assert_array_equal(tau_m, 12.3*numpy.ones((4,)))
+        self.assertEqual(tau_m, 12.3)
         assert_array_equal(i_offset, numpy.array([-0.21, -0.20, -0.19, -0.18]))
 
     # test create native cell
@@ -223,15 +223,27 @@ class PopulationTest(unittest.TestCase):
                            p.all_cells[[7,4,8,12,0]])
 
     def test_get_multiple_homogeneous_params_with_gather(self):
-        p = sim.Population(4, sim.IF_cond_exp, {'tau_m': 12.3, 'cm': 0.987, 'i_offset': -0.21})
+        p = sim.Population(4, sim.IF_cond_exp(**{'tau_m': 12.3, 'cm': 0.987, 'i_offset': -0.21}))
         cm, tau_m = p.get(('cm', 'tau_m'), gather=True)
-        assert_array_equal(cm, 0.987*numpy.ones((4,)))
-        assert_array_equal(tau_m, 12.3*numpy.ones((4,)))
+        self.assertIsInstance(cm, float)
+        self.assertEqual(cm, 0.987)
+        self.assertEqual(tau_m, 12.3)
 
     def test_get_single_param_with_gather(self):
-        p = sim.Population(4, sim.IF_cond_exp, {'tau_m': 12.3, 'cm': 0.987, 'i_offset': -0.21})
+        p = sim.Population(4, sim.IF_cond_exp(tau_m=12.3, cm=0.987, i_offset=0.21))
         cm = p.get('cm', gather=True)
-        assert_array_equal(cm, 0.987*numpy.ones((4,)))
+        self.assertEqual(cm, 0.987)
+
+    def test_get_multiple_inhomogeneous_params_with_gather(self):
+        p = sim.Population(4, sim.IF_cond_exp(tau_m=12.3,
+                                              cm=[0.987, 0.988, 0.989, 0.990],
+                                              i_offset=lambda i: -0.2*i))
+        cm, tau_m, i_offset = p.get(('cm', 'tau_m', 'i_offset'), gather=True)
+        self.assertIsInstance(tau_m, float)
+        self.assertIsInstance(cm, numpy.ndarray)
+        assert_array_equal(cm, numpy.array([0.987, 0.988, 0.989, 0.990]))
+        self.assertEqual(tau_m, 12.3)
+        assert_array_almost_equal(i_offset, numpy.array([-0.0, -0.2, -0.4, -0.6]), decimal=12)
 
     ##def test_get_multiple_params_no_gather(self):
 

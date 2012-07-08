@@ -12,7 +12,7 @@ import logging
 import numpy
 from pyNN import common, recording
 from pyNN.standardmodels import StandardCellType
-from pyNN.parameters import ParameterSpace
+from pyNN.parameters import ParameterSpace, simplify
 from pyNN.standardmodels import SynapseDynamics, STDPMechanism
 from pyNN.connectors import *
 from .standardmodels import *
@@ -126,7 +126,7 @@ class PopulationView(common.PopulationView):
         """
         parameter_dict = {}
         for name in names:
-            parameter_dict[name] = self.parent._parameter_space[name][self.mask]
+            parameter_dict[name] = simplify(self.parent._parameter_space[name][self.mask])
         return ParameterSpace(parameter_dict, size=self.size) # or local size?
 
     def _set_parameters(self, parameter_space):
@@ -182,6 +182,33 @@ class Population(common.Population):
         self._parameter_space.update(**parameter_space)
 
 
+class Connection(object):
+    """
+    Store an individual plastic connection and information about it. Provide an
+    interface that allows access to the connection's weight, delay and other
+    attributes.
+    """
+
+    def __init__(self, source, target, weight, delay, **other_attributes):
+        self.source = source
+        self.target = target
+        self.weight = weight
+        self.delay = delay
+        for name, value in other_attributes.items():
+            setattr(self, name, value)
+
+    def as_tuple(self, *attribute_names):
+        # should return indices, not IDs for source and target
+        attributes = []
+        for name in attribute_names:
+            if name == "weights":
+                name = "weight"
+            elif name == "delays":
+                name = "delay"
+            attributes.append(getattr(self, name))
+        return tuple(attributes)
+
+
 class Projection(common.Projection):
     _simulator = simulator
 
@@ -209,9 +236,6 @@ class Projection(common.Projection):
     def set(self, **attributes):
         pass
 
-    def get(self, parameter_name, format, gather=True):
-        raise NotImplementedError
-
     def _convergent_connect(self, sources, target, weights, delays):
         """
         Connect a neuron to one or more other neurons with a static connection.
@@ -230,7 +254,7 @@ class Projection(common.Projection):
             delays = repeat(delays)
         for source, weight, delay in zip(sources, weights, delays):
             self.connections.append(
-                (source, target, weight, delay)
+                Connection(source, target, weight=weight, delay=delay)
             )
 
 create = common.build_create(Population)

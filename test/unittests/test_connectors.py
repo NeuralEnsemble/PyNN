@@ -40,7 +40,7 @@ class TestOneToOneConnector(unittest.TestCase):
     def test_connect_with_scalar_weights_and_delays(self):
         C = connectors.OneToOneConnector(weights=5.0, delays=0.5, safe=False)
         prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[1], self.p2[1], 5.0, 0.5),
                           (self.p1[3], self.p2[3], 5.0, 0.5)])
 
@@ -48,7 +48,7 @@ class TestOneToOneConnector(unittest.TestCase):
         rd = random.RandomDistribution(rng=MockRNG(delta=1.0))
         C = connectors.OneToOneConnector(weights=rd, delays=0.5, safe=False)
         prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[1], self.p2[1], 1.0, 0.5),
                           (self.p1[3], self.p2[3], 3.0, 0.5)])
 
@@ -66,7 +66,7 @@ class TestAllToAllConnector(unittest.TestCase):
     def test_connect_with_scalar_weights_and_delays(self):
         C = connectors.AllToAllConnector(weights=5.0, delays=0.5, safe=False)
         prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=0.1, parallel_safe=True))
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[1], 5.0, 0.5),
                           (self.p1[1], self.p2[1], 5.0, 0.5),
                           (self.p1[2], self.p2[1], 5.0, 0.5),
@@ -80,7 +80,7 @@ class TestAllToAllConnector(unittest.TestCase):
         rd = random.RandomDistribution(rng=MockRNG(delta=1.0, parallel_safe=True))
         C = connectors.AllToAllConnector(weights=rd, delays=0.5, safe=False)
         prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[1], 4.0, 0.5),
                           (self.p1[1], self.p2[1], 5.0, 0.5),
                           (self.p1[2], self.p2[1], 6.0, 0.5),
@@ -94,7 +94,7 @@ class TestAllToAllConnector(unittest.TestCase):
         d_expr = "d+100"
         C = connectors.AllToAllConnector(weights=d_expr, delays=0.5, safe=False)
         prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[1], 101.0, 0.5),
                           (self.p1[1], self.p2[1], 100.0, 0.5),
                           (self.p1[2], self.p2[1], 101.0, 0.5),
@@ -109,7 +109,7 @@ class TestAllToAllConnector(unittest.TestCase):
         assert C.safe
         assert C.allow_self_connections
         prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.connections[0][3], prj._simulator.state.min_delay)
+        self.assertEqual(prj.get(["weights", "delays"], format='list')[0][3], prj._simulator.state.min_delay)
 
     def test_connect_with_delays_too_small(self):
         C = connectors.AllToAllConnector(weights=0.1, delays=0.0)
@@ -139,7 +139,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
         # 20 possible connections. Due to the mock RNG, only the
         # first 8 are created (0,0), (1,0), (2,0), (3,0), (0,1), (1,1), (2,1), (3,1)
         # of these, (0,1), (1,1), (2,1), (3,1) are created on this node
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[1], 0.0, 0.123),
                           (self.p1[1], self.p2[1], 0.0, 0.123),
                           (self.p1[2], self.p2[1], 0.0, 0.123),
@@ -148,7 +148,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
     def test_connect_with_weight_function(self):
         C = connectors.FixedProbabilityConnector(p_connect=0.75, weights=lambda d: 0.1*d)
         prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=0.1))
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[1], 0.1, 0.123),
                           (self.p1[1], self.p2[1], 0.0, 0.123),
                           (self.p1[2], self.p2[1], 0.1, 0.123),
@@ -158,7 +158,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
         rd = random.RandomDistribution('uniform', [0.1, 1.1], rng=MockRNG(start=1.0, delta=0.2, parallel_safe=True))
         C = connectors.FixedProbabilityConnector(p_connect=0.75, delays=rd)
         prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=0.1))
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[1], 0.0, 1.0+0.2*4),
                           (self.p1[1], self.p2[1], 0.0, 1.0+0.2*5),
                           (self.p1[2], self.p2[1], 0.0, 1.0+0.2*6),
@@ -180,7 +180,7 @@ class TestDistanceDependentProbabilityConnector(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=0.01))
         # 20 possible connections. Only those with a sufficiently small distance
         # are created
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[1], 0.0, 0.123),
                           (self.p1[1], self.p2[1], 0.0, 0.123),
                           (self.p1[2], self.p2[1], 0.0, 0.123),
@@ -208,7 +208,7 @@ class TestFromListConnector(unittest.TestCase):
             ]
         C = connectors.FromListConnector(connection_list)
         prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[1], 0.5, 0.14),
                           (self.p1[2], self.p2[3], 0.3, 0.12)])
 
@@ -250,7 +250,7 @@ class TestFromFileConnector(unittest.TestCase):
         numpy.savetxt("test.connections", self.connection_list)
         C = connectors.FromFileConnector("test.connections", distributed=False)
         prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[1], 0.5, 0.14),
                           (self.p1[2], self.p2[3], 0.3, 0.12)])
 
@@ -259,7 +259,7 @@ class TestFromFileConnector(unittest.TestCase):
         numpy.savetxt("test.connections.1", local_connection_list)
         C = connectors.FromFileConnector("test.connections", distributed=True)
         prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[1], 0.5, 0.14),
                           (self.p1[2], self.p2[3], 0.3, 0.12)])
 
@@ -277,7 +277,7 @@ class TestFixedNumberPostConnector(unittest.TestCase):
     def test_with_n_smaller_than_population_size(self):
         C = connectors.FixedNumberPostConnector(n=3)
         prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=1))
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[0], self.p2[3], 0.0, 0.123),
                           (self.p1[1], self.p2[3], 0.0, 0.123),
                           (self.p1[2], self.p2[3], 0.0, 0.123),
@@ -297,7 +297,7 @@ class TestFixedNumberPreConnector(unittest.TestCase):
     def test_with_n_smaller_than_population_size(self):
         C = connectors.FixedNumberPreConnector(n=3)
         prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=1))
-        self.assertEqual(prj.connections,
+        self.assertEqual(prj.get(["weights", "delays"], format='list'),
                          [(self.p1[1], self.p2[1], 0.0, 0.123),
                           (self.p1[2], self.p2[1], 0.0, 0.123),
                           (self.p1[3], self.p2[1], 0.0, 0.123),

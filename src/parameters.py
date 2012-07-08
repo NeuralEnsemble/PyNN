@@ -212,3 +212,13 @@ class ParameterSpace(object):
         return (all(a==b for a,b in zip(self._parameters.items(), other._parameters.items()))
                 and self.schema == other.schema
                 and self._size == other._size)
+
+def simplify(value):
+    """
+    If `value` is a homogeneous array, return the single value that all elements
+    share. Otherwise, pass the value through.
+    """
+    if isinstance(value, numpy.ndarray) and (value==value[0]).all():
+        return value[0]
+    else:
+        return value
