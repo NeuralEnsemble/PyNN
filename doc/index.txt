@@ -48,12 +48,8 @@ Old documents
 .. toctree::
    :maxdepth: 1
 
-   highlevelapi
    standardmodels
-   dynamicsynapses
-   nonstandardmodels
    fileformats
-   lowlevelapi
    simulatorspecificoptions
 
 Indices and tables
