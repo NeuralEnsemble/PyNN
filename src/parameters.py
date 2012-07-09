@@ -57,7 +57,12 @@ class Sequence(object):
             return Sequence(self.value/val)
 
     def __eq__(self, other):
-        return (self.value == other.value).all()
+        if isinstance(other, Sequence):
+            return self.value.size == other.value.size and (self.value == other.value).all()
+        elif isinstance(other, numpy.ndarray) and other.size > 0 and isinstance(other[0], Sequence):
+            return numpy.array([(self == seq).all() for seq in other])
+        else:
+            return False
 
     def __repr__(self):
         return "Sequence(%s)" % self.value

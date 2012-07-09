@@ -40,7 +40,7 @@ model (AdExp):
 
     >>> refractory_period = RandomDistribution('uniform', [2.0, 3.0], rng=NumpyRNG(seed=4242))
     >>> ctx_parameters = {
-    ...     'cm': 0.2, 'tau_m': 20.0, 'v_rest': -60, 'v_thresh': -50, 'tau_refrac': refractory_period,
+    ...     'cm': 0.25, 'tau_m': 20.0, 'v_rest': -60, 'v_thresh': -50, 'tau_refrac': refractory_period,
     ...     'v_reset': -60, 'v_spike': -50.0, 'a': 1.0, 'b': 0.005, 'tau_w': 600, 'delta_T': 2.5,
     ...     'tau_syn_E': 5.0, 'e_rev_E': 0.0, 'tau_syn_I': 10.0, 'e_rev_I': -80 }
     >>> tc_parameters = ctx_parameters.copy()
@@ -266,7 +266,7 @@ returned.
 .. doctest::
 
     >>> ctx_cells.get(['tau_m', 'cm'])
-    [20.0, 0.2]
+    [20.0, 0.25]
 
 When running a distributed simulation using MPI_, :meth:`get()` will by default
 return values for only those neurons that exist on the current MPI node. To get

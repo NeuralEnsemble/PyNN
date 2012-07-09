@@ -134,11 +134,12 @@ class PopulationView(common.PopulationView):
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        ps = self.parent._get_parameters(*self.celltype.get_translated_names())
+        #ps = self.parent._get_parameters(*self.celltype.get_translated_names())
         for name, value in parameter_space.items():
-            ps[name][self.mask] = value.evaluate(simplify=True)
-        ps.evaluate(simplify=True)
-        self.parent._parameters = ps.as_dict()
+            self.parent._parameters[name][self.mask] = value.evaluate(simplify=True)
+            #ps[name][self.mask] = value.evaluate(simplify=True)
+        #ps.evaluate(simplify=True)
+        #self.parent._parameters = ps.as_dict()
 
     def _set_initial_value_array(self, variable, initial_values):
         pass
@@ -159,7 +160,7 @@ class Population(common.Population):
         else:
             parameter_space = self.celltype.parameter_space
         parameter_space.size = self.size
-        parameter_space.evaluate(simplify=True)
+        parameter_space.evaluate(simplify=False)
         self._parameters = parameter_space.as_dict()
         id_range = numpy.arange(simulator.state.id_counter,
                                 simulator.state.id_counter + self.size)
@@ -184,15 +185,18 @@ class Population(common.Population):
         """
         parameter_dict = {}
         for name in names:
-            parameter_dict[name] = self._parameters[name]
+            parameter_dict[name] = simplify(self._parameters[name])
         return ParameterSpace(parameter_dict, size=self.size)
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        ps = self._get_parameters(*self.celltype.get_translated_names())
-        ps.update(**parameter_space)
-        ps.evaluate(simplify=True)
-        self._parameters = ps.as_dict()
+        #ps = self._get_parameters(*self.celltype.get_translated_names())
+        #ps.update(**parameter_space)
+        #ps.evaluate(simplify=True)
+        #self._parameters = ps.as_dict()
+        parameter_space.evaluate(simplify=False)
+        for name, value in parameter_space.items():
+            self._parameters[name] = value
 
 
 class Connection(object):
