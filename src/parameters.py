@@ -187,7 +187,6 @@ class ParameterSpace(object):
             raise Exception("Must call evaluate() method before calling ParameterSpace.as_dict()")
         D = {}
         for name, value in self._parameters.items():
-            assert not is_listlike(value)
             D[name] = value
             assert not isinstance(D[name], LazyArray) # should all have been evaluated by now
         return D

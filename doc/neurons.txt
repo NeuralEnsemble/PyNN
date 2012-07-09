@@ -2,8 +2,6 @@
 Building networks: neurons
 ==========================
 
-.. _section-cell-types:
-
 .. testsetup::
 
     from pyNN.mock import *
@@ -11,6 +9,8 @@ Building networks: neurons
     from pyNN.random import NumpyRNG
     log = init_logging("doctest_neurons.log", debug=True)
 
+
+.. _section-cell-types:
 
 Cell types
 ==========
@@ -22,7 +22,7 @@ an example is the :class:`IF_cond_exp` model - an integrate-and-fire (I&F)
 neuron with conductance-based, exponential-decay synapses.
 For any given simulator, it is also possible to wrap a native model - a NEST or
 NEURON model, for example - in a :class:`CellType` class so that it works in
-PyNN (see :doc:`nonstandardmodels`).
+PyNN (see documentation for individual :doc:`backends`).
 
 It should be noted that these "cell types" are *mathematical* cell types. Two or
 more different *biological* cell types may be represented by the same
@@ -257,7 +257,7 @@ parameter values for all neurons:
 .. doctest::
 
     >>> ctx_cells.get('tau_refrac')
-    array([ 2.53559708,  2.01269358,  2.91766156, ...
+    array([ 2.64655001,  2.15914942,  2.53500179, ...
 
 It is also possible to ask for multiple parameters at once, in which case a
 list of values in the same order as the list of parameter names will be
@@ -358,7 +358,7 @@ At the end of a simulation, the recorded data can be retrieved using the
 
 .. doctest::
 
-    >>> t = run(1.0)
+    >>> t = run(0.2)
     >>> data_block = all_cells.get_data()
 
 or written to file using :meth:`write_data()`:
@@ -368,6 +368,13 @@ or written to file using :meth:`write_data()`:
     >>> from neo.io import NeoHdf5IO
     >>> h5file = NeoHdf5IO("my_data.h5")
     >>> ctx_cells.write_data(h5file)
+    >>> h5file.close()
+
+.. testcleanup::
+
+    import os
+    if os.path.exists("my_data.h5"):
+        os.remove("my_data.h5")
 
 :meth:`get_data()` returns a Neo_ :class:`Block` object. For more information on
 Neo see the documentation at http://packages.python.org/neo. Here, it will

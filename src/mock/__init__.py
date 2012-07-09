@@ -126,13 +126,19 @@ class PopulationView(common.PopulationView):
         """
         parameter_dict = {}
         for name in names:
-            parameter_dict[name] = simplify(self.parent._parameter_space[name][self.mask])
+            value = self.parent._parameters[name]
+            if isinstance(value, numpy.ndarray):
+                value = value[self.mask]
+            parameter_dict[name] = simplify(value)
         return ParameterSpace(parameter_dict, size=self.size) # or local size?
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
+        ps = self.parent._get_parameters(*self.celltype.get_translated_names())
         for name, value in parameter_space.items():
-            self.parent._parameter_space[name][self.mask] = value.evaluate(simplify=True)
+            ps[name][self.mask] = value.evaluate(simplify=True)
+        ps.evaluate(simplify=True)
+        self.parent._parameters = ps.as_dict()
 
     def _set_initial_value_array(self, variable, initial_values):
         pass
@@ -149,11 +155,12 @@ class Population(common.Population):
 
     def _create_cells(self):
         if isinstance(self.celltype, StandardCellType):
-            self._parameter_space = self.celltype.translated_parameters
+            parameter_space = self.celltype.translated_parameters
         else:
-            self._parameter_space = self.celltype.parameter_space
-        self._parameter_space.size = self.size
-        # should do something with parameter_space
+            parameter_space = self.celltype.parameter_space
+        parameter_space.size = self.size
+        parameter_space.evaluate(simplify=True)
+        self._parameters = parameter_space.as_dict()
         id_range = numpy.arange(simulator.state.id_counter,
                                 simulator.state.id_counter + self.size)
         self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
@@ -175,11 +182,17 @@ class Population(common.Population):
         """
         return a ParameterSpace containing native parameters
         """
-        return self._parameter_space
+        parameter_dict = {}
+        for name in names:
+            parameter_dict[name] = self._parameters[name]
+        return ParameterSpace(parameter_dict, size=self.size)
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        self._parameter_space.update(**parameter_space)
+        ps = self._get_parameters(*self.celltype.get_translated_names())
+        ps.update(**parameter_space)
+        ps.evaluate(simplify=True)
+        self._parameters = ps.as_dict()
 
 
 class Connection(object):

@@ -222,10 +222,11 @@ class Grid2D(BaseStructure):
     parameter_names = ("aspect_ratio", "dx", "dy", "x0", "y0", "z", "fill_order")
 
     def __init__(self, aspect_ratio=1.0, dx=1.0, dy=1.0, x0=0.0, y0=0.0, z=0,
-                 fill_order="sequential"):
+                 fill_order="sequential", rng=None):
         self.aspect_ratio = aspect_ratio
         assert fill_order in ('sequential', 'random')
         self.fill_order = fill_order
+        self.rng = rng
         self.dx = dx; self.dy = dy; self.x0 = x0; self.y0 = y0; self.z = z
 
     def calculate_size(self, n):
@@ -246,7 +247,9 @@ class Grid2D(BaseStructure):
         if self.fill_order == 'sequential':
             return positions
         else: # random
-            return numpy.random.permutation(positions.T).T
+            if self.rng is None:
+                self.rng = NumpyRNG()
+            return self.rng.permutation(positions.T).T
     generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 
@@ -272,10 +275,11 @@ class Grid3D(BaseStructure):
     parameter_names = ("aspect_ratios", "dx", "dy", "dz", "x0", "y0", "z0", "fill_order")
 
     def __init__(self, aspect_ratioXY=1.0, aspect_ratioXZ=1.0, dx=1.0, dy=1.0,
-                 dz=1.0, x0=0.0, y0=0.0, z0=0, fill_order="sequential"):
+                 dz=1.0, x0=0.0, y0=0.0, z0=0, fill_order="sequential", rng=None):
         self.aspect_ratios = (aspect_ratioXY, aspect_ratioXZ)
         assert fill_order in ('sequential', 'random')
         self.fill_order = fill_order
+        self.rng = rng
         self.dx = dx; self.dy = dy; self.dz = dz
         self.x0 = x0; self.y0 = y0; self.z0 = z0
 

@@ -115,6 +115,7 @@ def normalize_variables_arg(variables):
     else:
         return variables
 
+
 def get_io(filename):
     """
     Return a Neo IO instance, guessing the type based on the filename suffix.
@@ -127,8 +128,11 @@ def get_io(filename):
         return neo.io.NeoHdf5IO(filename=filename)
     elif extension in ('.pkl', '.pickle'):
         return neo.io.PickleIO(filename=filename)
+    elif extension == '.mat':
+        return neo.io.NeoMatlabIO(filename=filename)
     else: # function to be improved later
         raise Exception("file extension %s not supported" % extension)
+
 
 def filter_by_variables(segment, variables):
     """

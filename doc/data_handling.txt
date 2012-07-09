@@ -55,39 +55,65 @@ Writing data to file
 Neo provides support for writing to a `variety of different file formats`_,
 notably an assortment of text-based formats, NumPy binary format,
 Matlab :file:`.mat` files, and HDF5. To write to a given format, we create a Neo
-:class:`IO` object and pass it to the meth:`write_data` method::
+:class:`IO` object and pass it to the meth:`write_data` method:
 
-    >>> from neo.io import NeoHDF5IO
-    >>> io = NeoHDF5IO(filename="my_data.h5")
+.. testsetup::
+
+    import os
+    import pyNN.mock as sim
+    sim.setup()
+    population = sim.Population(10, sim.IF_cond_exp())
+    population.record(['spikes', 'v'])
+    sim.run(0.2)
+    if os.path.exists("my_data.h5"):
+        os.remove("my_data.h5")
+
+.. doctest::
+
+    >>> from neo.io import NeoHdf5IO
+    >>> io = NeoHdf5IO(filename="my_data.h5")
     >>> population.write_data(io)
 
 .. todo: check whether we need to close the `io` object.
 
 As a shortcut, for file formats with a well-defined file extension, it is
 possible to pass just the filename, and PyNN will create the appropriate
-:class:`IO` object for you::
+:class:`IO` object for you:
+
+.. doctest::
 
     >>> population.write_data("my_data.mat")  # writes to a Matlab file
 
 By default, all the variables that were specified in the :meth:`record` call
 will be saved to file, but it is also possible to save only a subset of the
-recorded data::
+recorded data:
+
+.. doctest::
 
     >>> population.write_data(io, variables=('v', 'gsyn_exc'))
 
 When running distributed simulations using MPI (see :doc:`parallel`), by default
 the data is gathered from all MPI nodes to the master node, and only saved to
 file on the master node. If you would prefer that each node saves its own
-local subset of the data to disk separately, use *gather=False*::
+local subset of the data to disk separately, use *gather=False*:
+
+.. doctest::
 
     >>> population.write_data(io, gather=False)
 
 Saving data to a file does not delete the data from the :class:`Population`
-object. If you wish to do so (for example to release memory), use *clear=True*::
+object. If you wish to do so (for example to release memory), use *clear=True*:
+
+.. doctest::
 
     >>> population.write_data(io, clear=True)
 
+.. testcleanup::
 
+    import os
+    for filename in ("my_data.h5", "my_data.mat"):
+        if os.path.exists(filename):
+            os.remove(filename)
 
 
 .. _Neo: http://neuralensemble.org/neo

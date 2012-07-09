@@ -15,50 +15,63 @@ A number of different structures are available in :mod:`space`. It is simple to
 define your own :class:`Structure` sub-class if you need something that is not
 already provided.
 
-The simplest structure is a grid, whether 1D, 2D or 3D, e.g.::
+The simplest structure is a grid, whether 1D, 2D or 3D, e.g.:
+
+.. testsetup::
+
+    from pyNN.random import NumpyRNG
+
+.. doctest::
+   :options: +NORMALIZE_WHITESPACE
 
     >>> from pyNN.space import *
     >>> line = Line(dx=100.0, x0=0.0, y=200.0, z=500.0)
     >>> line.generate_positions(7)
-    array([[   0., 100., 200., 300., 400., 500., 600.],
-           [ 200., 200., 200., 200., 200., 200., 200.],
-           [ 500., 500., 500., 500., 500., 500., 500.]])
+    array([[   0.,  100.,  200.,  300.,  400.,  500.,  600.],
+           [ 200.,  200.,  200.,  200.,  200.,  200.,  200.],
+           [ 500.,  500.,  500.,  500.,  500.,  500.,  500.]])
     >>> grid = Grid2D(aspect_ratio=3, dx=10.0, dy=25.0, z=-3.0)
     >>> grid.generate_positions(3)
-    array([[  0., 10., 20.],
-           [  0.,  0.,  0.],
-           [ -3., -3., -3.]])
+    array([[  0.,  10.,  20.],
+           [  0.,   0.,   0.],
+           [ -3.,  -3.,  -3.]])
     >>> grid.generate_positions(12)
-    array([[  0.,  0., 10., 10., 20., 20., 30., 30., 40., 40., 50., 50.],
-           [  0., 25.,  0., 25.,  0., 25.,  0., 25.,  0., 25.,  0., 25.],
-           [ -3., -3., -3., -3., -3., -3., -3., -3., -3., -3., -3., -3.]])
+    array([[  0.,   0.,  10.,  10.,  20.,  20.,  30.,  30.,  40.,  40.,  50.,  50.],
+           [  0.,  25.,   0.,  25.,   0.,  25.,   0.,  25.,   0.,  25.,   0.,  25.],
+           [ -3.,  -3.,  -3.,  -3.,  -3.,  -3.,  -3.,  -3.,  -3.,  -3.,  -3.,  -3.]])
 
 Here we have specified an *x*:*y* ratio of 3, so if we ask the grid to
 generate positions for 3 neurons, we get a 3x1 grid, 12 neurons a 6x2 grid,
 27 neurons 9x3, etc.
 
 BY default, grid positions are filled sequentially, iterating first over the *z*
-dimension, then *y*, then *x*, but we can also fill the grid randomly::
+dimension, then *y*, then *x*, but we can also fill the grid randomly:
 
-    >>> rgrid = Grid2D(aspect_ratio=1, dx=10.0, dy=10.0, fill_order='random')
+.. doctest::
+
+    >>> rgrid = Grid2D(aspect_ratio=1, dx=10.0, dy=10.0, fill_order='random', rng=NumpyRNG(seed=13886))
     >>> rgrid.generate_positions(9)
-    array([[ 20., 20., 20.,  0., 10.,  0., 10.,  0., 10.],
-           [ 10.,  0., 20., 10.,  0., 20., 10.,  0., 20.],
-           [  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.]])
+    array([[ 10.,  10.,  10.,   0.,   0.,   0.,  20.,  20.,  20.],
+           [  0.,  10.,  20.,  10.,  20.,   0.,   0.,  10.,  20.],
+           [  0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.]])
 
 The :mod:`space` module also provides the :class:`RandomStructure` class, which
-distributes neurons randomly and uniformly within a given volume::
+distributes neurons randomly and uniformly within a given volume:
 
-    >>> glomerulus = RandomStructure(boundary=Sphere(radius=200.0))
+.. doctest::
+   :options: +NORMALIZE_WHITESPACE
+
+    >>> glomerulus = RandomStructure(boundary=Sphere(radius=200.0), rng=NumpyRNG(seed=34534))
     >>> glomerulus.generate_positions(5)
-    array([[  4.81853231e+01, -2.49317729e+01,  1.08294461e+02,  1.72125819e-01,  -1.25552649e+02],
-           [  3.96588073e+01,  1.75426143e+02,  3.19290169e+01,  1.65050459e+02,  -1.32092198e+00],
-           [ -1.00801053e+02, -8.51701627e+01, -1.39804442e+02, -4.97765369e+01,   3.94241050e+01]])
+    array([[ -19.78455022,   33.21412264,  -79.4314059 ,  143.39033263,  -63.18242977],
+           [  56.17281502,  -23.15159309,  131.89071845,  -73.73583484,  -8.86422999],
+           [ -78.88348228,   -3.97408513,  -95.03056844,   45.13969087,  -111.67070498]])
 
 The volume classes currently available are :class:`Sphere` and :class:`Cuboid`.
 
 Defining your own :class:`Structure` classes is straightforward, just inherit
 from :class:`BaseStructure` and implement a :meth:`generate_positions` method::
+
 
     class MyStructure(BaseStructure):
         parameter_names = ("spam", "eggs")

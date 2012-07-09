@@ -124,6 +124,24 @@ class SpikeSourceArray(cells.SpikeSourceArray):
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__
 
+    translations = build_translations(
+        ('cm',         'CM'),
+        ('tau_refrac', 'TAU_REFRAC'),
+        ('v_spike',    'V_SPIKE'),
+        ('v_reset',    'V_RESET'),
+        ('v_rest',     'V_REST'),
+        ('tau_m',      'TAU_M'),
+        ('i_offset',   'I_OFFSET'),
+        ('a',          'A'),
+        ('b',          'B'),
+        ('delta_T',    'DELTA_T'),
+        ('tau_w',      'TAU_W'),
+        ('v_thresh',   'V_THRESH'),
+        ('e_rev_E',    'E_REV_E'),
+        ('tau_syn_E',  'TAU_SYN_E'),
+        ('e_rev_I',    'E_REV_I'),
+        ('tau_syn_I',  'TAU_SYN_I'),
+    )
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
