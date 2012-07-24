@@ -102,7 +102,7 @@ class ConnectionAttributeGenerator(object):
             return values
         elif callable(self.source):
             assert distance_matrix is not None
-            d      = distance_matrix.as_array(sub_mask, expand=True)
+            d      = distance_matrix.as_array(sub_mask)
             values = self.source(d)
             return values
         elif numpy.isscalar(self.source):
@@ -448,9 +448,9 @@ class DistanceDependentProbabilityConnector(Connector):
                      to the global minimum delay.
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
-        assert isinstance(d_expression, str)
+        assert isinstance(d_expression, str) or callable(d_expression)
         try:
-            if not expand_distances(d_expression):                       
+            if isinstance(d_expression, str) and not expand_distances(d_expression):                       
                 d = 0; assert 0 <= eval(d_expression), eval(d_expression)
                 d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
         except ZeroDivisionError, err:
