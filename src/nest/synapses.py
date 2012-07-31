@@ -13,7 +13,8 @@ DEFAULT_TAU_MINUS = 20.0
 def get_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
     ignore = ['delay', 'max_delay', 'min_delay', 'num_connections',
-              'num_connectors', 'receptor_type', 'synapsemodel', 'weight']
+              'num_connectors', 'receptor_type', 'synapsemodel', 'weight',
+              'property_object']
     default_params = {}
     for name,value in defaults.items():
         if name not in ignore:
@@ -25,7 +26,7 @@ def get_defaults(model_name):
 
 
 class NativeSynapseDynamics(BaseSynapseDynamics):
-    
+
     def __init__(self, model_name, parameters={}):
         cls = type(model_name, (NativeSynapseMechanism,),
                    {'nest_model': model_name})
@@ -34,7 +35,7 @@ class NativeSynapseDynamics(BaseSynapseDynamics):
     def _get_nest_synapse_model(self, suffix):
         defaults = self.mechanism.parameters.copy()
         defaults.pop("tau_minus")
-        label = "%s_%s" % (self.mechanism.nest_model, suffix) 
+        label = "%s_%s" % (self.mechanism.nest_model, suffix)
         nest.CopyModel(self.mechanism.nest_model,
                        label,
                        defaults)
@@ -51,7 +52,7 @@ class NativeSynapseDynamics(BaseSynapseDynamics):
 
 
 class NativeSynapseMechanism(BaseModelType):
-    
+
     def __new__(cls, parameters):
         cls.default_parameters = get_defaults(cls.nest_model)
         return super(NativeSynapseMechanism, cls).__new__(cls)
