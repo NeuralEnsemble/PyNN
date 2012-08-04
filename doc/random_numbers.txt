@@ -65,14 +65,20 @@ The :meth:`next` method
 
 Apart from the constructor, :class:`RNG` classes have only one important method:
 :meth:`next`, which returns a NumPy array containing random numbers from the
-requested distribution::
+requested distribution:
+
+.. testsetup::
+
+   from pyNN.random import NumpyRNG, GSLRNG, RandomDistribution
+
+.. doctest::
 
     >>> rng = NumpyRNG(seed=824756)
     >>> rng.next(5, 'normal', [1.0, 0.2])
     array([ 0.65866423,  0.87500017,  0.90755753,  0.93793779,  0.94839735])
     >>> rng = GSLRNG(seed=824756, type='ranlxd2') # RANLUX algorithm of Lüscher
     >>> rng.next(5, 'gaussian', [0.2]) + 1.0
-    array([ 0.95750289,  0.74556217,  0.84417652,  1.2444472 ,  0.9836508 ])
+    array([ 0.61104097,  0.83086026,  0.87072741,  0.7513628 ,  1.12875371])
 
 Note that we have not so far made any effort to harmonise distribution names
 and parameters across generators. If someone would like to work on this, please
@@ -83,14 +89,18 @@ The :class:`~pyNN.random.RandomDistribution` class
 
 The :class:`~pyNN.random.RandomDistribution` class encapsulates a choice of
 random number generator and a choice of distribution, so that its :meth:`next`
-method requires only the number of values required as argument::
+method requires only the number of values required as argument:
+
+.. doctest::
 
     >>> gamma = RandomDistribution('gamma', [2.0, 0.3], rng=NumpyRNG(seed=72386))
     >>> gamma.next(5)
     array([ 0.4325809 ,  0.12952503,  1.58510406,  0.81182457,  0.07577787])
 
 Note that :meth:`~pyNN.random.RandomDistribution.next` called without any
-arguments returns a single number, not an array::
+arguments returns a single number, not an array:
+
+.. doctest::
 
     >>> gamma.next()
     0.52020946027308368

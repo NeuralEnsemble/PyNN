@@ -74,22 +74,27 @@ Using native cell models
 ========================
 
 To use a NEST neuron model with PyNN, we wrap the NEST model with a PyNN
-``NativeCellType`` class, e.g.::
+``NativeCellType`` class, e.g.:
+
+.. doctest::
 
     >>> from pyNN.nest import native_cell_type, Population, run, setup
     >>> setup()
+    0
     >>> ht_neuron = native_cell_type('ht_neuron')
     >>> poisson = native_cell_type('poisson_generator')
-    >>> p1 = Population(10, ht_neuron, {'Tau_m': 20.0})
-    >>> p2 = Population(1, poisson, {'rate': 200.0})
+    >>> p1 = Population(10, ht_neuron(Tau_m=20.0))
+    >>> p2 = Population(1, poisson(rate=200.0))
 
 We can now initialize state variables, set/get parameter values, and record from
-these neurons as from standard cells::
+these neurons as from standard cells:
+
+.. doctest::
 
     >>> p1.get('Tau_m')
-    [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]
+    array([ 20.,  20.,  20.,  20.,  20.,  20.,  20.,  20.,  20.,  20.])
     >>> p1.get('Tau_theta')
-    [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    array([ 2.,  2.,  2.,  2.,  2.,  2.,  2.,  2.,  2.,  2.])
     >>> p1.get('C_m')
     NonExistentParameterError: C_m (valid parameters for ht_neuron are:
       AMPA_E_rev, AMPA_Tau_1, AMPA_Tau_2, AMPA_g_peak, E_K, E_Na, GABA_A_E_rev,
@@ -98,17 +103,19 @@ these neurons as from standard cells::
       NMDA_Tau_1, NMDA_Tau_2, NMDA_Vact, NMDA_g_peak, NaP_E_rev, NaP_g_peak,
       T_E_rev, T_g_peak, Tau_m, Tau_spike, Tau_theta, Theta_eq, g_KL, g_NaL,
       h_E_rev, h_g_peak, spike_duration)
-
     >>> p1.initialize(V_m=-70.0, Theta=-50.0)
     >>> p1.record('V_m')
     >>> run(250.0)
+    250.0
     >>> output = p1.get_data()
 
 To connect populations of native cells, you need to know the available
-synaptic receptor types::
+synaptic receptor types:
+
+.. doctest::
 
     >>> ht_neuron.synapse_types
-    {'AMPA': 1, 'GABA_A': 3, 'GABA_B': 4, 'NMDA': 2}
+    {'GABA_B': 4, 'AMPA': 1, 'GABA_A': 3, 'NMDA': 2}
     >>> from pyNN.nest import Projection, AllToAllConnector
     >>> connector = AllToAllConnector()
     >>> prj_ampa = Projection(p2, p1, connector, target='AMPA')
@@ -118,7 +125,9 @@ synaptic receptor types::
 Using native synaptic plasticity models
 =======================================
 
-To use a NEST STDP model with PyNN, we use the ``NativeSynapseDynamics`` class::
+To use a NEST STDP model with PyNN, we use the ``NativeSynapseDynamics`` class:
+
+.. doctest::
 
     >>> from pyNN.nest import NativeSynapseDynamics
     >>> stdp = NativeSynapseDynamics("stdp_synapse", {'Wmax': 50.0, 'lambda': 0.015})

@@ -45,10 +45,10 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, standardmodels.StandardCellType)]
+    standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType) and obj is not StandardCellType]
     for cell_class in standard_cell_types:
         try:
-            create(cell_class)
+            create(cell_class())
         except Exception, e:
             print "Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e)
             standard_cell_types.remove(cell_class)
@@ -145,6 +145,16 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 #   neurons.
 # ==============================================================================
 
+def _simplify(arr):
+    """
+    If all the values in arr are identical, return the single value,
+    otherwise return the original array
+    """
+    if numpy.any(arr != arr[0]):
+        return arr
+    else:
+        return arr[0]
+
 class PopulationMixin(object):
 
     def _get_view(self, selector, label=None):
@@ -168,7 +178,7 @@ class PopulationMixin(object):
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             ids = [id.source for id in ids]
         parameter_array = numpy.array(nest.GetStatus(ids, names))
-        parameter_dict = dict((name, parameter_array[:, col])
+        parameter_dict = dict((name, _simplify(parameter_array[:, col]))
                               for col, name in enumerate(names))
         if "spike_times" in parameter_dict: # hack
             parameter_dict["spike_times"] = [Sequence(value) for value in parameter_dict["spike_times"]]
@@ -313,12 +323,7 @@ class Projection(common.Projection):
             self.synapse_dynamics._set_tau_minus(self.post.local_cells)
         else:
             synapse_dynamics = NativeSynapseDynamics("static_synapse")
-        synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection._nProj)
-        if synapse_model is None:
-            self.synapse_model = 'static_synapse_%s' % id(self)
-            nest.CopyModel('static_synapse', self.synapse_model)
-        else:
-            self.synapse_model = synapse_model
+        self.synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection._nProj)
         self._sources = []
         self._connections = None
 
@@ -540,24 +545,6 @@ class Projection(common.Projection):
                 lines[:,1] = self.post.id_to_index(lines[:,1])
             file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
             file.close()
-
-    def randomizeWeights(self, rand_distr):
-        """
-        Set weights to random values taken from rand_distr.
-        """
-        # Arguably, we could merge this with set_weights just by detecting the
-        # argument type. It could make for easier-to-read simulation code to
-        # give it a separate name, though. Comments?
-        self.setWeights(rand_distr.next(len(self), mask_local=False))
-
-    def randomizeDelays(self, rand_distr):
-        """
-        Set weights to random values taken from rand_distr.
-        """
-        # Arguably, we could merge this with set_weights just by detecting the
-        # argument type. It could make for easier-to-read simulation code to
-        # give it a separate name, though. Comments?
-        self.setDelays(rand_distr.next(len(self), mask_local=False))
 
     def get(self, parameter_name, format, gather=True):
         """

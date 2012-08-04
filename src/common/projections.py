@@ -60,7 +60,7 @@ class Projection(object):
 
         if isinstance(postsynaptic_neurons, Assembly):
             if not postsynaptic_neurons._homogeneous_synapses:
-                raise Exception('Projection to an Assembly object can be made only with homogeneous synapses types')
+                raise errors.ConnectionError('Projection to an Assembly object can be made only with homogeneous synapses types')
 
         self.pre    = presynaptic_neurons  #  } these really
         self.source = source               #  } should be
@@ -287,7 +287,7 @@ class Projection(object):
         If min and max are not given, the minimum and maximum weights are
         calculated automatically.
         """
-        weights = numpy.array(self.get('weights', format='list', gather=True))[:,2] # take third column
+        weights = numpy.array(self.get('weights', format='list', gather=True, with_address=False))
         if min is None:
             min = weights.min()
         if max is None:

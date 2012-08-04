@@ -190,4 +190,4 @@ Instructions for downloading and installing Brian_ are available from `<http://w
 .. _`distutils`: http://docs.python.org/inst/inst.html
 .. _`GNU Scientific Library`: http://www.gnu.org/software/gsl/
 .. _`NEURON Forum`: http://www.neuron.yale.edu/phpBB/index.php
-.. _Neo:: http://neuralensemble.org/neo
+.. _Neo: http://neuralensemble.org/neo

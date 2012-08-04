@@ -14,13 +14,13 @@ Setting up a development environment
 Requirements
 ------------
 
-In addition to the requirements listed in :doc:`installation`, you will need to
+In addition to the requirements listed in :doc:`../installation`, you will need to
 install:
 
     * nose_
     * mock_
     * coverage_
-    
+
 to run tests, and:
 
     * Sphinx_
@@ -34,7 +34,7 @@ Subversion checkout
 To work on the development version::
 
     svn co https://neuralensemble.org/svn/PyNN/trunk pyNN_trunk
-    
+
 To work on the latest stable release (for bug-fixes):
 
     svn co https://neuralensemble.org/svn/PyNN/branches/0.8 pyNN_0.8
@@ -47,7 +47,7 @@ To get PyNN onto your :envvar:`PYTHONPATH` there are many options, such as:
       to the :file:`pyNN_trunk/src` directory.
 
 If you are developing with NEURON, don't forget to compile the NMODL files in
-:file:`src/neuron/nmodl` by running :cmd:`nrnivmodl`, and to recompile any time
+:file:`src/neuron/nmodl` by running :command:`nrnivmodl`, and to recompile any time
 you modify any of them.
 
 
@@ -75,11 +75,11 @@ optionally the *coverage_* package. To run the entire test suite, in the
 ``test`` subdirectory of the source tree::
 
     $ nosetests
-    
+
 To see how well the codebase is covered by the tests, run::
 
     $ nosetests --with-coverage --cover-package=pyNN --cover-erase
-    
+
 There are currently two sorts of tests, unit tests, which aim to exercise
 small pieces of code such as individual functions and methods, and system tests
 which aim to test that all the pieces of the system work together as expected.
@@ -113,14 +113,14 @@ that you have not introduced any new bugs**. Then you can commit them to the
 central repository, provided you have a NeuralEnsemble account::
 
     $ svn commit -m 'informative commit message'
-    
+
 If this is your first commit to the project, please add your name and
 affiliation/employer to :file:`AUTHORS`.
 
 If you do not have a NeuralEnsemble account, you can create a patch::
 
     $ svn diff > descriptive_name.patch
-    
+
 and attach it to a ticket in the `issue tracker`_. If you have made more than
 one commit, determine the revision number of when you checked out or last updated
 from the central repository (using ``svn log``), and then give a range of
@@ -133,7 +133,7 @@ review your patch.
 
 To apply a patch to the source tree::
 
-    $ patch -p0 < /path/to/site.descriptive_name.diff    
+    $ patch -p0 < /path/to/site.descriptive_name.diff
 
 
 Documentation
@@ -182,15 +182,15 @@ last time::
     * have you updated the changelog?
 
 Once you've confirmed all the above, create a source package using::
-    
+
     $ python setup.py sdist
-    
+
 and check that it installs properly.
 
 Now you should commit any changes, then tag with the release number as follows::
 
     $ svn cp https://neuralensemble.org/svn/PyNN/trunk https://neuralensemble.org/svn/PyNN/tags/x.y.z
-    
+
 where ``x.y.z`` is the release number. You should now upload the documentation
 to http://neuralensemble.org/PyNN/docs.
 
@@ -209,19 +209,19 @@ If this is a final release, there are a few more steps:
         $ svn cp https://neuralensemble.org/svn/PyNN/trunk https://neuralensemble.org/svn/PyNN/branches/x.y
 
     * upload the source package to PyPI::
-    
+
         $ python setup.py sdist upload
-        
+
     * upload the source package to the INCF Software Center [more instructions needed here]
-    
+
     * make an announcement on the `mailing list`_
-    
+
     * if it is a major release, write a blog post about it with a focus on the
       new features and major changes
-      
+
     * go home, take a headache pill and lie down for a while in a darkened room (-;
-    
-    
+
+
 
 .. _Sphinx: http://sphinx.pocoo.org/
 .. _PEP8: http://www.python.org/dev/peps/pep-0008/

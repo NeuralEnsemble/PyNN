@@ -69,19 +69,21 @@ class _State(common.control.BaseState):
     dt = nest_property('resolution', float)
 
     threads = nest_property('local_num_threads', int)
-    
+
     rng_seeds = nest_property('rng_seeds', list)
 
     @property
     def min_delay(self):
         # any reason why not nest.GetKernelStatus('min_delay')?
         return nest.GetDefaults('static_synapse')['min_delay']
-    
+
     def set_delays(self, min_delay, max_delay):
+        min_delay = float(min_delay)
+        max_delay = float(max_delay)
         for synapse_model in nest.Models(mtype='synapses'):
-            nest.SetDefaults(synapse_model, {'delay'    : float(min_delay),
-                                             'min_delay': float(min_delay),
-                                             'max_delay': float(max_delay)})
+            nest.SetDefaults(synapse_model, {'delay'    : min_delay,
+                                             'min_delay': min_delay,
+                                             'max_delay': max_delay})
 
     @property
     def max_delay(self):
@@ -94,7 +96,7 @@ class _State(common.control.BaseState):
     @property
     def mpi_rank(self):
         return nest.Rank()
-    
+
     def _get_spike_precision(self):
         ogs = nest.GetKernelStatus('off_grid_spiking')
         return ogs and "off_grid" or "on_grid"
@@ -169,7 +171,7 @@ class Connection(object):
     def __init__(self, parent, index):
         """
         Create a new connection interface.
-        
+
         `parent` -- a Projection instance.
         `index` -- the index of this connection in the parent.
         """

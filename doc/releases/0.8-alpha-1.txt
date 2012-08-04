@@ -62,15 +62,15 @@ which already use keyword arguments.
 To give an example::
 
     p = Population(1000, IF_cond_exp, {'tau_m'=12.0, 'cm': 0.8})  # PyNN 0.7
-    
+
 should be rewritten as::
 
     p = Population(1000, IF_cond_exp(tau_m=12.0, cm=0.8))  # PyNN 0.8
-    
+
 or::
 
     p = Population(1000, IF_cond_exp(**{'tau_m'=12.0, 'cm': 0.8}))  # PyNN 0.8
-    
+
 or::
 
     cell_type = IF_cond_exp(tau_m=12.0, cm=0.8)   # PyNN 0.8
@@ -103,14 +103,14 @@ any of the following:
         called with the index of every cell in the :class:`Population` to return
         the parameter value for that cell.
 
-See :doc:`parameters` for more details and examples.
+See :doc:`../parameters` for more details and examples.
 
 The call signature of the :meth:`Population.set` method has also been changed;
 now parameters should be specified as keyword arguments. For example, instead
 of::
 
     p.set("tau_m": 20.0)  # PyNN 0.7
-    
+
 use::
 
     p.set(tau_m=20.0)  # PyNN 0.8
@@ -118,7 +118,7 @@ use::
 and instead of::
 
     p.set({"tau_m": 20.0, "v_rest": -65})  # PyNN 0.7
-    
+
 use::
 
     p.set(tau_m=20.0, v_rest=-65)  # PyNN 0.8
@@ -130,7 +130,7 @@ be deleted in the next version of PyNN. Their use can be replaced as follows::
 
     p.tset("i_offset", arr)  # PyNN 0.7
     p.set(i_offset=arr)      # PyNN 0.8
-    
+
     p.rset("tau_m": rand_distr)  # PyNN 0.7
     p.set(tau_m=rand_distr)      # PyNN 0.8
 
@@ -139,7 +139,7 @@ Setting spike times
 -------------------
 
 .. todo:: write about use of the Sequence object
-    
+
 
 Recording
 =========
@@ -157,13 +157,13 @@ method, which takes the variable to record as its first argument, e.g.::
     p.record()  # PyNN 0.7
     p.record_v()
     p.record_gsyn()
-    
+
 becomes::
 
     p.record('spikes')  # PyNN 0.8
     p.record('v')
     p.record(['gsyn_exc', 'gsyn_inh'])
-    
+
 Note that (1) you can now choose to record the excitatory and inhibitory
 synaptic conductances separately, (2) you can give a list of variables to
 record, so, for example, you can record all the variables for the
@@ -175,7 +175,7 @@ Note that the :meth:`record_v` and :meth:`record_gsyn` methods still exist,
 but their use is deprecated, and they will be removed in the next version of
 PyNN.
 
-See :doc:`recording` for more details.
+See :doc:`../recording` for more details.
 
 Retrieving recorded data
 ========================
@@ -221,15 +221,15 @@ STUFF
     >>> s17.t_start
     ???
     >>> s17.t_stop
-    
+
     >>> assert spikes.annotations['index'] == 17
-    
+
 .. this is rather unsatisfactory, this only works if spikes have been recorded
 .. from all neurons - better to filter by metadata (but slow) or use Units
 
 DO THE SAME FOR get_v()
 
-See :doc:`data_handling` for more details.
+See :doc:`../data_handling` for more details.
 
 
 Accessing and setting properties of synaptic connections

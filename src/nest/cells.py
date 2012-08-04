@@ -35,20 +35,23 @@ def native_cell_type(model_name):
     Return a new NativeCellType subclass.
     """
     assert isinstance(model_name, str)
-    return type(model_name, (NativeCellType,), {'nest_model' : model_name})
-    
+    default_parameters, default_initial_values = get_defaults(model_name)
+    synapse_types = get_receptor_types(model_name)
+    recordable = get_recordables(model_name) + ['spikes']
+    return type(model_name,
+                (NativeCellType,),
+                {'nest_model': model_name,
+                 'default_parameters': default_parameters,
+                 'synapse_types': synapse_types,
+                 'injectable': ("V_m" in default_initial_values),
+                 'recordable': recordable,
+                 'standard_receptor_type': (synapse_types == ('excitatory', 'inhibitory')),
+                 'nest_name': {"on_grid": model_name, "off_grid": model_name},
+                 'conductance_based': ("g" in (s[0] for s in recordable)),
+                 })
+
 
 class NativeCellType(BaseCellType):
-
-    def __new__(cls, parameters):
-        cls.default_parameters, cls.default_initial_values = get_defaults(cls.nest_model)
-        cls.synapse_types = get_receptor_types(cls.nest_model)
-        cls.injectable = ("V_m" in cls.default_initial_values)
-        cls.recordable = get_recordables(cls.nest_model) + ['spikes']
-        cls.standard_receptor_type = (cls.synapse_types == ('excitatory', 'inhibitory'))
-        cls.nest_name  = {"on_grid": cls.nest_model, "off_grid": cls.nest_model}
-        cls.conductance_based = ("g" in (s[0] for s in cls.recordable))
-        return super(NativeCellType, cls).__new__(cls)
 
     def get_receptor_type(self, name):
         return nest.GetDefaults(self.nest_model)["receptor_types"][name]
