@@ -272,7 +272,7 @@ class BasePopulation(object):
             parameter_space = self.celltype.reverse_translate(native_parameter_space)
         else:
             parameter_space = self._get_parameters(*self.celltype.get_parameter_names())
-        parameter_space.evaluate(simplify=True)
+        parameter_space.evaluate(simplify=True) # what if parameter space is homogeneous on some nodes but not on others?
 
         parameters = dict(parameter_space.items())
         if gather == True and self._simulator.state.num_processes > 1:
@@ -280,7 +280,7 @@ class BasePopulation(object):
             for name in parameter_names:
                 values = parameter_space[name]
                 all_values  = { self._simulator.state.mpi_rank: values.tolist() }
-                all_indices = { self._simulator.state.mpi_rank: self.local_cells.tolist()}
+                all_indices = { self._simulator.state.mpi_rank: self.local_cells.tolist() }
                 all_values  = recording.gather_dict(all_values)
                 all_indices = recording.gather_dict(all_indices)
                 if self._simulator.state.mpi_rank == 0:
@@ -941,17 +941,8 @@ class Assembly(object):
 
     @property
     def _homogeneous_synapses(self):
-        syn   = None
-        for count, p in enumerate(self.populations):
-             if len(p.all_cells) > 0:
-                syn = is_conductance(p.all_cells[0])
-
-        if syn is not None:
-            for p in self.populations[count:]:
-                if len(p.all_cells) > 0:
-                    if syn != is_conductance(p.all_cells[0]):
-                        return False
-        return True
+        cb = [p.celltype.conductance_based for p in self.populations]
+        return all(cb) or not any(cb)
 
     @property
     def conductance_based(self):
@@ -1035,7 +1026,7 @@ class Assembly(object):
     def __getitem__(self, index):
         """
         Where `index` is an integer, return an ID.
-        Where `index` is a slice, list or numpy array, return a new Assembly
+        Where `index` is a slice, tuple, list or numpy array, return a new Assembly
         consisting of appropriate populations and (possibly newly created)
         population views.
         """
@@ -1048,13 +1039,13 @@ class Assembly(object):
         if isinstance(index, int): # return an ID
             pindex = boundaries[1:].searchsorted(index, side='right')
             return self.populations[pindex][index-boundaries[pindex]]
-        elif isinstance(index, (slice, list, numpy.ndarray)):
+        elif isinstance(index, (slice, tuple, list, numpy.ndarray)):
             if isinstance(index, slice):
                 indices = numpy.arange(self.size)[index]
             else:
-                indices = index
+                indices = numpy.array(index)
             pindices = boundaries[1:].searchsorted(indices, side='right')
-            views = (self.populations[i][indices[pindices==i] - boundaries[i]] for i in numpy.unique(pindices))
+            views = [self.populations[i][indices[pindices==i] - boundaries[i]] for i in numpy.unique(pindices)]
             return self.__class__(*views)
         else:
             raise TypeError("indices must be integers, slices, lists, arrays, not %s" % type(index).__name__)
@@ -1220,11 +1211,17 @@ class Assembly(object):
         offset = 0
         for block,p in zip(blocks, self.populations):
             for segment in block.segments:
-                segment.name = name
-                segment.description = description
+                #segment.name = name
+                #segment.description = description
                 for signal_array in segment.analogsignalarrays:
                     signal_array.channel_indexes = numpy.array(signal_array.channel_indexes) + offset  # hack
             offset += p.size
+        for i,block in enumerate(blocks): ##
+            logger.debug("%d: %s", i, block.name)
+            for j,segment in enumerate(block.segments):
+                logger.debug("  %d: %s", j, segment.name)
+                for arr in segment.analogsignalarrays:
+                    logger.debug("    %s %s", arr.shape, arr.name)
         merged_block = blocks[0]
         for block in blocks[1:]:
             merged_block.merge(block)
@@ -1242,7 +1239,7 @@ class Assembly(object):
 
     @deprecated("get_data(['gsyn_exc', 'gsyn_inh'])")
     def get_gsyn(self, gather=True, compatible_output=True):
-        return self.get_data(['gsyn_exc', 'gsyn_inh'])
+        return self.get_data(['gsyn_exc', 'gsyn_inh'], gather)
 
     def mean_spike_count(self, gather=True):
         """

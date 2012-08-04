@@ -25,7 +25,6 @@ import numpy
 from itertools import izip, repeat
 import logging
 from neuron import h
-
 logger = logging.getLogger("PyNN")
 
 # ==============================================================================

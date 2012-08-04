@@ -213,7 +213,7 @@ class Recorder(object):
             return self.recorded[variable]
 
     def _get_current_segment(self, filter_ids=None, variables='all'):
-        segment = neo.Segment(name=self.population.label,
+        segment = neo.Segment(name="segment%03d" % self._simulator.state.segment_counter,
                               description=self.population.describe(),
                               rec_datetime=datetime.now()) # would be nice to get the time at the start of the recording, not the end
         variables_to_include = set(self.recorded.keys())

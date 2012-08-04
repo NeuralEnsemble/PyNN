@@ -1,11 +1,16 @@
+# encoding: utf-8
 from neuron import h
 from pyNN.common import populations
 from pyNN.neuron.standardmodels import electrodes
-from pyNN.neuron import recording, simulator
+from pyNN.neuron import recording, simulator, cells
 from mock import Mock
-from nose.tools import assert_equal, assert_raises, assert_almost_equal
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 import numpy
-from pyNN.utility import assert_arrays_equal
+from numpy.testing import assert_array_equal
+
 
 class MockCellClass(object):
     recordable = ['v', 'spikes', 'gsyn_exc', 'gsyn_inh', 'spam']
@@ -68,27 +73,29 @@ class MockPopulation(populations.BasePopulation):
         return "mock population"
 
 # simulator
-def test_load_mechanisms():
-    assert_raises(Exception, simulator.load_mechanisms, "/tmp") # not found
+class TestFunctions(unittest.TestCase):
 
-def test_is_point_process():
-    section = h.Section()
-    clamp = h.SEClamp(section(0.5))
-    assert simulator.is_point_process(clamp)
-    section.insert('hh')
-    assert not simulator.is_point_process(section(0.5).hh)
+    def test_load_mechanisms(self):
+        self.assertRaises(Exception, simulator.load_mechanisms, "/tmp") # not found
+    
+    def test_is_point_process(self):
+        section = h.Section()
+        clamp = h.SEClamp(section(0.5))
+        assert simulator.is_point_process(clamp)
+        section.insert('hh')
+        assert not simulator.is_point_process(section(0.5).hh)
 
-def test_native_rng_pick():
-    rng = Mock()
-    rng.seed = 28754
-    rarr = simulator.nativeRNG_pick(100, rng, 'uniform', [-3,6])
-    assert isinstance(rarr, numpy.ndarray)
-    assert_equal(rarr.shape, (100,))
-    assert -3 <= rarr.min() < -2.5
-    assert 5.5 < rarr.max() < 6
+    def test_native_rng_pick(self):
+        rng = Mock()
+        rng.seed = 28754
+        rarr = simulator.nativeRNG_pick(100, rng, 'uniform', [-3,6])
+        assert isinstance(rarr, numpy.ndarray)
+        self.assertEqual(rarr.shape, (100,))
+        assert -3 <= rarr.min() < -2.5
+        assert 5.5 < rarr.max() < 6
 
 
-class TestInitializer(object):
+class TestInitializer(unittest.TestCase):
 
     def test_initializer_initialize(self):
         init = simulator.initializer
@@ -104,8 +111,8 @@ class TestInitializer(object):
         pop = MockPopulation()
         init.clear()
         init.register(cell, pop)
-        assert_equal(init.cell_list, [cell])
-        assert_equal(init.population_list, [pop])
+        self.assertEqual(init.cell_list, [cell])
+        self.assertEqual(init.population_list, [pop])
 
     def test_initialize(self):
         init = simulator.initializer
@@ -122,11 +129,11 @@ class TestInitializer(object):
         init.cell_list = range(10)
         init.population_list = range(10)
         init.clear()
-        assert_equal(init.cell_list, [])
-        assert_equal(init.population_list, [])
+        self.assertEqual(init.cell_list, [])
+        self.assertEqual(init.population_list, [])
 
 
-class TestState(object):
+class TestState(unittest.TestCase):
 
     def test_register_gid(self):
         cell = MockCell()
@@ -135,9 +142,9 @@ class TestState(object):
 
     def test_dt_property(self):
         simulator.state.dt = 0.01
-        assert_equal(h.dt, 0.01)
-        assert_equal(h.steps_per_ms, 100.0)
-        assert_equal(simulator.state.dt, 0.01)
+        self.assertEqual(h.dt, 0.01)
+        self.assertEqual(h.steps_per_ms, 100.0)
+        self.assertEqual(simulator.state.dt, 0.01)
 
     def test_reset(self):
         simulator.state.running = True
@@ -147,9 +154,9 @@ class TestState(object):
         orig_initialize = init._initialize
         init._initialize = Mock()
         simulator.state.reset()
-        assert_equal(simulator.state.running, False)
-        assert_equal(simulator.state.t, 0.0)
-        assert_equal(simulator.state.tstop, 0.0)
+        self.assertEqual(simulator.state.running, False)
+        self.assertEqual(simulator.state.t, 0.0)
+        self.assertEqual(simulator.state.tstop, 0.0)
         init._initialize.assert_called()
         init._initialize = orig_initialize
 
@@ -157,9 +164,9 @@ class TestState(object):
     def test_run(self):
         simulator.state.reset()
         simulator.state.run(12.3)
-        assert_almost_equal(h.t, 12.3, places=11)
+        self.assertAlmostEqual(h.t, 12.3, places=11)
         simulator.state.run(7.7)
-        assert_almost_equal(h.t, 20.0, places=11)
+        self.assertAlmostEqual(h.t, 20.0, places=11)
 
     def test_finalize(self):
         orig_pc = simulator.state.parallel_context
@@ -170,15 +177,15 @@ class TestState(object):
         simulator.state.parallel_context = orig_pc
 
 
-class TestID(object):
+class TestID(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         self.id = simulator.ID(984329856)
         self.id.parent = MockPopulation()
         self.id._cell = MockCell()
 
     def test_create(self):
-        assert_equal(self.id, 984329856)
+        self.assertEqual(self.id, 984329856)
 
     def test_build_cell(self):
         parameters = {'judeans': 1, 'romans': 0}
@@ -186,14 +193,14 @@ class TestID(object):
 
     def test_get_initial_value(self):
         foo_init = self.id.get_initial_value('foo')
-        assert_equal(foo_init, -99.9)
+        self.assertEqual(foo_init, -99.9)
 
     #def test_set_initial_value(self):
 
 
-class TestConnection(object):
+class TestConnection(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         self.source = MockID(252)
         self.target = MockID(539)
         self.nc = h.NetCon(self.source._cell.source,
@@ -204,60 +211,60 @@ class TestConnection(object):
 
     def test_create(self):
         c = self.c
-        assert_equal(c.source, self.source)
-        assert_equal(c.target, self.target)
+        self.assertEqual(c.source, self.source)
+        self.assertEqual(c.target, self.target)
 
     def test_useSTDP(self):
         self.c.useSTDP("StdwaSA", {'wmax': 0.04}, ddf=0)
 
     def test_weight_property(self):
         self.nc.weight[0] = 0.123
-        assert_equal(self.c.weight, 0.123)
+        self.assertEqual(self.c.weight, 0.123)
         self.c.weight = 0.234
-        assert_equal(self.nc.weight[0], 0.234)
+        self.assertEqual(self.nc.weight[0], 0.234)
 
     def test_delay_property(self):
         self.nc.delay = 12.3
-        assert_equal(self.c.delay, 12.3)
+        self.assertEqual(self.c.delay, 12.3)
         self.c.delay = 23.4
-        assert_equal(self.nc.delay, 23.4)
+        self.assertEqual(self.nc.delay, 23.4)
 
     def test_U_property(self):
         self.target._cell.synapse.U = 0.1
-        assert_equal(self.c.U, 0.1)
+        self.assertEqual(self.c.U, 0.1)
         self.c.U = 0.2
-        assert_equal(self.target._cell.synapse.U, 0.2)
+        self.assertEqual(self.target._cell.synapse.U, 0.2)
 
     def test_w_max_property(self):
         self.c.useSTDP("StdwaSA", {'wmax': 0.04}, ddf=0)
-        assert_equal(self.c.w_max, 0.04)
+        self.assertEqual(self.c.w_max, 0.04)
         self.c.w_max = 0.05
-        assert_equal(self.c.weight_adjuster.wmax, 0.05)
+        self.assertEqual(self.c.weight_adjuster.wmax, 0.05)
 
 
 # electrodes
-class TestCurrentSources(object):
+class TestCurrentSources(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         self.cells = [MockID(n) for n in range(5)]
 
     def test_inject_dc(self):
         cs = electrodes.DCSource()
         cs.inject_into(self.cells)
-        assert_equal(cs.stop, 1e12)
-        assert_equal(len(cs._devices), 2)
+        self.assertEqual(cs.stop, 1e12)
+        self.assertEqual(len(cs._devices), 2)
 
     def test_inject_step_current(self):
         cs = MockStepCurrentSource(amplitudes=[1,2,3], times=[0.5, 1.5, 2.5])
         cs.inject_into(self.cells)
-        assert_equal(len(cs._devices), 2)# 2 local cells
+        self.assertEqual(len(cs._devices), 2)# 2 local cells
         # need more assertions about iclamps, vectors
 
 
 # recording
-class TestRecorder(object):
+class TestRecorder(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         p = MockPopulation()
         self.rv = recording.Recorder(p)
         self.rg = recording.Recorder(p)
@@ -265,7 +272,7 @@ class TestRecorder(object):
         self.rf = recording.Recorder(p)
         self.cells = [MockID(22), MockID(29)]
 
-    def teardown(self):
+    def tearDown(self):
         pass
 
     #def test__record(self):
@@ -276,7 +283,7 @@ class TestRecorder(object):
     #        cell._cell.record.assert_called_with(1)
     #        cell._cell.record_v.assert_called_with(1)
     #        cell._cell.record_gsyn.assert_called_with('inhibitory', 1)
-    #    assert_raises(Exception, self.rf._record, self.cells)
+    #    self.assertRaises(Exception, self.rf._record, self.cells)
     #
     #def test__get_v(self):
     #    self.rv.recorded['v'] = self.cells
@@ -285,8 +292,8 @@ class TestRecorder(object):
     #    self.cells[0]._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
     #    simulator.state.t = simulator.state.dt * len(self.cells[0]._cell.vtrace)
     #    vdata = self.rv._get_current_segment(variables=['v'], filter_ids=None)
-    #    assert_equal(len(vdata.analogsignalarrays), 1)
-    #    assert_arrays_equal(numpy.array(vdata.analogsignalarrays[0]),
+    #    self.assertEqual(len(vdata.analogsignalarrays), 1)
+    #    assert_array_equal(numpy.array(vdata.analogsignalarrays[0]),
     #                        numpy.vstack((self.cells[0]._cell.vtrace, self.cells[1]._cell.vtrace)).T)
     #
     def test__get_spikes(self):
@@ -295,8 +302,8 @@ class TestRecorder(object):
         self.cells[1]._cell.spike_times = numpy.arange(13.0, 23.0)
         simulator.state.t = 111.0
         sdata = self.rs._get_current_segment(variables=['spikes'], filter_ids=None)
-        assert_equal(len(sdata.spiketrains), 2)
-        assert_arrays_equal(numpy.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times)
+        self.assertEqual(len(sdata.spiketrains), 2)
+        assert_array_equal(numpy.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times)
 
     #def test__get_gsyn(self):
     #    self.rg.recorded['gsyn_exc'] = self.cells
@@ -310,14 +317,31 @@ class TestRecorder(object):
     #        cell._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
     #    simulator.state.t = simulator.state.dt * len(cell._cell.gsyn_trace['excitatory'])
     #    gdata = self.rg._get_current_segment(variables=['gsyn_exc', 'gsyn_inh'], filter_ids=None)
-    #    assert_equal(len(gdata.analogsignalarrays), 2)
-    #    assert_arrays_equal(numpy.array(gdata.analogsignalarrays[0][:,0]),
+    #    self.assertEqual(len(gdata.analogsignalarrays), 2)
+    #    assert_array_equal(numpy.array(gdata.analogsignalarrays[0][:,0]),
     #                        cell._cell.gsyn_trace['excitatory'])
-    #    assert_arrays_equal(numpy.array(gdata.analogsignalarrays[1][:,0]),
+    #    assert_array_equal(numpy.array(gdata.analogsignalarrays[1][:,0]),
     #                        cell._cell.gsyn_trace['inhibitory'])
     #
     def test__local_count(self):
         self.rs.recorded['spikes'] = self.cells
         self.cells[0]._cell.spike_times = h.Vector(numpy.arange(101.0, 111.0))
         self.cells[1]._cell.spike_times = h.Vector(numpy.arange(13.0, 33.0))
-        assert_equal(self.rs._local_count('spikes', filter_ids=None), {22: 10, 29: 20})
+        self.assertEqual(self.rs._local_count('spikes', filter_ids=None), {22: 10, 29: 20})
+
+
+class TestStandardIF(unittest.TestCase):
+    
+    def test_create_cond_exp(self):
+        cell = cells.StandardIF("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
+        self.assertAlmostEqual(cell.area(), 1e5, places=10) # µm²
+        self.assertEqual(cell(0.5).cm, 0.246)
+        self.assertEqual(cell(0.5).pas.g, 2e-5)
+
+    def test_get_attributes(self):
+        cell = cells.StandardIF("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
+        self.assertAlmostEqual(cell.tau_m, 12.3, places=10)
+        self.assertAlmostEqual(cell.c_m, 0.246, places=10)
+
+if __name__ == '__main__':
+    unittest.main()

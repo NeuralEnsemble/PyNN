@@ -191,6 +191,7 @@ class _State(common.control.BaseState):
         self.recorders = set([])
         self.gid_counter = 0
         h.plastic_connections = []
+        self.segment_counter = -1
         self.reset()
 
     def reset(self):
@@ -199,6 +200,7 @@ class _State(common.control.BaseState):
         self.t = 0
         self.tstop = 0
         self.t_start = 0
+        self.segment_counter += 1
         h.finitialize()
 
     def run(self, simtime):
