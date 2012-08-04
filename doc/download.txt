@@ -9,6 +9,7 @@ The `latest version of PyNN`_ (0.8.0) may be downloaded from the `Python Package
 
 Older versions:
 
+    * `0.7.4 <http://pypi.python.org/pypi/PyNN/0.7.4>`_
     * `0.7.3 <http://pypi.python.org/pypi/PyNN/0.7.3>`_
     * `0.7.2 <http://pypi.python.org/pypi/PyNN/0.7.2>`_
     * `0.7.1 <http://pypi.python.org/pypi/PyNN/0.7.1>`_
@@ -22,7 +23,7 @@ Older versions:
 Linux packages
 --------------
 
-    * `Debian Sid`_ (0.7.2)
+    * `Debian Sid`_ (0.7.4)
     * `Ubuntu 11.10 (Oneiric)`_ (0.7.0)
     * `Ubuntu 12.04 (Precise)`_ (0.7.0)
 

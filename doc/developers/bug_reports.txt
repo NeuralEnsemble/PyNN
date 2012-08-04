@@ -2,8 +2,6 @@
 Bug reports and feature requests
 ================================
 
-.. Discussions about PyNN take place in the `NeuralEnsemble Google Group`_.
-
 If you find a bug or would like to add a new feature to PyNN, the first thing to
 do is to create a ticket for it at http://neuralensemble.org/trac/PyNN/newticket.
 You do not need an account, but it is better if you do have one since then we
@@ -15,4 +13,4 @@ patch is applied. If you would like commit rights for the Subversion repository,
 please contact us.
 
 If you do have commit rights, please make sure *all* the tests pass before you
-make a commit (see below).
+make a commit.

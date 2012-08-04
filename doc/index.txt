@@ -22,6 +22,7 @@ PyNN: documentation
    descriptions
    examples
    contributors
+   release_notes
 
 
 Developers' Guide

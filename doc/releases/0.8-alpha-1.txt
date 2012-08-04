@@ -1,0 +1,250 @@
+============================
+PyNN 0.8 alpha release notes
+============================
+
+July 31st 2012
+
+Welcome to PyNN 0.8 alpha! This is the first time there has been an alpha or
+beta release of PyNN. In the past it hasn't seemed necessary, at first
+because few people were using PyNN for their research and those that were
+understood well that PyNN was in an early stage of development, more recently
+because most of the changes were either extensions to the API or due to internal
+refactoring.
+
+For PyNN 0.8 we have taken the opportunity to make significant, backward-incompatible
+changes to the API. The aim was fourfold:
+
+  * to simplify it, making it more consistent and easier to remember;
+  * to make it more powerful, so more complex models can be expressed with less code;
+  * to allow a number of internal simplifications so it is easier for new developers to contribute;
+  * to prepare for planned future extensions, notably support for multi-compartmental models.
+
+Since there have been so many changes, it seemed prudent to have a number of
+development releases before the final release of 0.8.0, to get as much testing
+from users as possible. There may be more alpha releases, and there will be at
+least one beta release.
+
+This alpha release of PyNN is *not* intended for use in your research. If you
+have existing PyNN scripts, please install PyNN 0.8 alpha separately to your
+current PyNN installation (for example using virtualenv_) and update your
+scripts, as outlined below, in a separate branch of your version control
+repository. If you find a bug, or if PyNN 0.8 alpha gives different results to
+PyNN 0.7, please let us know using the `bug tracker`_ or on the `mailing list`_.
+
+.. include suggested installation, using virtualenv and pip?
+
+
+Creating populations
+====================
+
+In previous versions of PyNN, the :class:`Population` constructor was called
+with the population size, a :class:`BaseCellType` sub-class such as
+:class:`IF_cond_exp` and a dictionary of parameter values. This dictionary was
+passed to the cell-type class constructor within the :class:`Population`
+constructor to create a cell-type instance.
+
+The reason for doing this was that in early versions of PyNN, use of native
+NEST models was supported by passing a string, the model name, as the cell-type
+argument. Since PyNN 0.6, however, native models have been supported with the
+:class:`NativeCellType` class, and passing a string is no longer allowed.
+
+.. todo:: check in which version NativeCellType was introduced.
+
+It makes more sense, therefore, for the cell-type instance to be created by the
+user, and to pass a cell-type instance, rather than a cell-type class, to the
+:class:`Population` constructor.
+
+There is also a second change: specification of parameters for cell-type classes
+is now done via keyword arguments rather than a single parameter dictionary.
+This is for consistency with current sources and synaptic plasticity models,
+which already use keyword arguments.
+
+To give an example::
+
+    p = Population(1000, IF_cond_exp, {'tau_m'=12.0, 'cm': 0.8})  # PyNN 0.7
+    
+should be rewritten as::
+
+    p = Population(1000, IF_cond_exp(tau_m=12.0, cm=0.8))  # PyNN 0.8
+    
+or::
+
+    p = Population(1000, IF_cond_exp(**{'tau_m'=12.0, 'cm': 0.8}))  # PyNN 0.8
+    
+or::
+
+    cell_type = IF_cond_exp(tau_m=12.0, cm=0.8)   # PyNN 0.8
+    p = Population(1000, cell_type)
+
+The first form, with a separate parameter dictionary, is still supported for
+the time being, but is deprecated and may be removed in future versions.
+
+
+Setting heterogeneous parameter values
+======================================
+
+In previous versions of PyNN, the :class:`Population` constructor supported
+setting parameters to either homogeneous values (all cells in the population
+have the same value) or random values. After construction, it was possible to
+change parameters using the :meth:`Population.set`, :meth:`Population.tset`
+(for *topographic* set - parameters were set by using an array of the same
+size as the population) and :meth:`Population.rset` (for *random* set) methods.
+
+In PyNN 0.8, setting parameters is simpler and more consistent, in that both
+when constructing a cell type for use in the :class:`Population` constructor
+(see above) and in the :meth:`Population.set` method, parameter values can be
+any of the following:
+
+    * a single number - sets the same value for all cells in the :class:`Population`;
+    * a :class:`RandomDistribution` object - for each cell, sets a different
+      random value drawn from the distribution;
+    * a list or 1D NumPy array of the same size as the :class:`Population`;
+    * a function that takes a single integer argument; this function will be
+        called with the index of every cell in the :class:`Population` to return
+        the parameter value for that cell.
+
+See :doc:`parameters` for more details and examples.
+
+The call signature of the :meth:`Population.set` method has also been changed;
+now parameters should be specified as keyword arguments. For example, instead
+of::
+
+    p.set("tau_m": 20.0)  # PyNN 0.7
+    
+use::
+
+    p.set(tau_m=20.0)  # PyNN 0.8
+
+and instead of::
+
+    p.set({"tau_m": 20.0, "v_rest": -65})  # PyNN 0.7
+    
+use::
+
+    p.set(tau_m=20.0, v_rest=-65)  # PyNN 0.8
+
+Now that :meth:`Population.set` accepts random distributions and arrays as
+arguments, the :meth:`Population.tset` and :meth:`Population.rset` methods are
+superfluous. As of version 0.8, their use is deprecated and they will probably
+be deleted in the next version of PyNN. Their use can be replaced as follows::
+
+    p.tset("i_offset", arr)  # PyNN 0.7
+    p.set(i_offset=arr)      # PyNN 0.8
+    
+    p.rset("tau_m": rand_distr)  # PyNN 0.7
+    p.set(tau_m=rand_distr)      # PyNN 0.8
+
+
+Setting spike times
+-------------------
+
+.. todo:: write about use of the Sequence object
+    
+
+Recording
+=========
+
+Previous versions of PyNN had three methods for recording from populations of
+neurons: :meth:`record`, :meth:`record_v` and :meth:`record_gsyn`, for
+recording spikes, membrane potentials, and synaptic conductances, respectively.
+There was no official way to record any other state variables, for example the
+*w* variable from the adaptive-exponential integrate-and-fire model, or when
+using native, non-standard models, although there were workarounds.
+
+In PyNN 0.8, we have replaced these three methods with a single :meth:`record`
+method, which takes the variable to record as its first argument, e.g.::
+
+    p.record()  # PyNN 0.7
+    p.record_v()
+    p.record_gsyn()
+    
+becomes::
+
+    p.record('spikes')  # PyNN 0.8
+    p.record('v')
+    p.record(['gsyn_exc', 'gsyn_inh'])
+    
+Note that (1) you can now choose to record the excitatory and inhibitory
+synaptic conductances separately, (2) you can give a list of variables to
+record, so, for example, you can record all the variables for the
+:class:`EIF_cond_exp_isfa_ista` model in a single command using::
+
+    p.record(['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh'])  # PyNN 0.8
+
+Note that the :meth:`record_v` and :meth:`record_gsyn` methods still exist,
+but their use is deprecated, and they will be removed in the next version of
+PyNN.
+
+See :doc:`recording` for more details.
+
+Retrieving recorded data
+========================
+
+Perhaps the biggest change in PyNN 0.8 is that handling of recorded data,
+whether retrieval as Python objects or saving to file, now uses the Neo_
+package, which provides a common Python data model for neurophysiology data
+(whether real or simulated).
+
+Using Neo provides several advantages:
+
+    * data objects contain essential metadata, such as units, sampling interval, etc.;
+    * data can be saved to any of the file formats supported by Neo, including HDF5 and Matlab files;
+    * it is easier to handle data when running multiple simulations with the same network (calling :meth:`reset` between each one);
+    * it is possible to save multiple signals to a single file;
+    * better interoperability with other Python packages using Neo (for data analysis, etc.).
+
+Note that Neo is based on NumPy, and most Neo data objects sub-class the NumPy
+:class:`ndarray` class, so much of your data handling code should work exactly
+the same as before.
+
+STUFF
+
+    >>> spikes = p.getSpikes()  # 0.7
+    >>> type(spikes)
+    numpy.ndarray
+    >>> spikes.shape
+    (700, 2)
+    >>> s17 = spikes[spikes[:, 0] == p[17]][:, 1]
+    >>> s17.shape
+    (35,)
+    >>> s17
+    array([...])
+
+    >>> data = p.get_data('spikes')  # 0.8
+    >>> spikes = data.segments[0].spiketrains
+    >>> s17 = spikes[17]
+    >>> type(spikes[17])
+    >>> s17
+    ???
+    >>> s17.units
+    ???
+    >>> s17.t_start
+    ???
+    >>> s17.t_stop
+    
+    >>> assert spikes.annotations['index'] == 17
+    
+.. this is rather unsatisfactory, this only works if spikes have been recorded
+.. from all neurons - better to filter by metadata (but slow) or use Units
+
+DO THE SAME FOR get_v()
+
+See :doc:`data_handling` for more details.
+
+
+Accessing and setting properties of synaptic connections
+========================================================
+
+todo
+
+
+Python compatibility
+====================
+
+.. todo:: check whether this works with Python 2.5
+
+
+.. _virtualenv: http://www.virtualenv.org/
+.. _`bug tracker`: https://neuralensemble.org/trac/PyNN/
+.. _`mailing list`: http://groups.google.com/group/neuralensemble
+.. _Neo: http://neuralensemble.org/neo

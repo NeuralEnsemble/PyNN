@@ -2,8 +2,6 @@
 Adding a new backend
 ====================
 
-..    description of the common implementation (sequence of interactions)
-
 
 Structure of the codebase
 =========================
@@ -86,15 +84,73 @@ the contents of all the other modules being imported into ``__init__.py``.
 
 __init__:
     list_standard_models()  [surely this could be in common?]
-    setup()
-    end(), run(), set(), reset(), initialize(), get_X(), num_processes(), rank() may be
-    imported from common provided common.simulator is set to the local
-    ``simulator`` module.
-    create -> common.build_create(Population)
+    setup() - should call common.setup() and then do whatever initialization is necessary for your backend
+    end() - should be in common
+    run = common.build_run(simulator)
+    reset = common.build_reset(simulator)
+    initialize = common.initialize
+    get_current_time, get_time_step, get_min_delay, get_max_delay, \
+                   num_processes, rank = common.build_state_queries(simulator)
+    create = common.build_create(Population)
     connect = common.build_connect(Projection, FixedProbabilityConnector)
-    record = common.build_record('spikes', simulator)
-    record_v = common.build_record('v', simulator)
-    record_gsyn = common.build_record('gsyn', simulator)
+    set = common.set ??
+    record = common.build_record(simulator)
+    record_v = lambda source, filename: record(['v'], source, filename)
+    record_gsyn = lambda source, filename: record(['gsyn_exc', 'gsyn_inh'], source, filename)
+
+simulator:
+    class State
+        run
+        clear
+        reset
+        properties: t, dt, ...
+
+standardmodels
+
+populations:
+    class ID
+    
+    class Population
+        _simulator = simulator
+        _recorder_class = Recorder
+        _assembly_class = Assembly
+        
+        _create_cells
+        _set_initial_value_array
+        _get_view
+        _get_parameters
+        _set_parameters
+    
+    class PopulationView
+        _assembly_class = Assembly
+        _simulator = simulator
+    
+        _set_initial_value_array
+        _get_view
+        _get_parameters
+        _set_parameters
+    
+    class Assembly
+        _simulator = simulator
+    
+projections
+    class Connection
+    
+    class Projection
+        _simulator = simulator
+        __init__
+        __len__
+        set
+        _convergent_connect
+
+recording
+    class Recorder(recording.Recorder):
+        _simulator = simulator
+        _record
+        _get_spiketimes
+        _get_all_signals
+        (staticmethod) find_units
+        _local_count
 
 
 A walk through the lifecycle of a simulation

@@ -10,6 +10,7 @@ Installing PyNN requires:
     * Python (version 2.5, 2.6 or 2.7)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
+    * the Neo_ package
     * at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
 
 Optional dependencies are:
@@ -27,13 +28,20 @@ The easiest way to get PyNN is to use pip_::
 
     $ pip install pyNN
 
-If you are running Debian or Ubuntu, there are :doc:`binary packages <download>` available. If you would prefer to install manually, :doc:`download the latest source distribution <download>`, then run the setup script, e.g.::
+If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
+available. If you would prefer to install manually, :doc:`download the latest
+source distribution <download>`, then run the setup script, e.g.::
 
     $ tar xzf PyNN-0.8.0.tar.gz
     $ cd PyNN-0.8.0
     $ python setup.py install
 
-This will install it to your Python :file:`site-packages` directory, and may require root privileges. If you wish to install it elsewhere use the :option:`--prefix` or :option:`--home` option, and set the :envvar:`PYTHONPATH` environment variable accordingly. We assume you have already installed the simulator(s) you wish to use it with. If this is not the case, see below for installation instructions.
+This will install it to your Python :file:`site-packages` directory, and may
+require root privileges. If you wish to install it elsewhere use the
+:option:`--prefix` or :option:`--home` option, and set the :envvar:`PYTHONPATH`
+environment variable accordingly. We assume you have already installed the
+simulator(s) you wish to use it with. If this is not the case, see below for
+installation instructions.
 
 Test it using something like the following::
 
@@ -182,3 +190,4 @@ Instructions for downloading and installing Brian_ are available from `<http://w
 .. _`distutils`: http://docs.python.org/inst/inst.html
 .. _`GNU Scientific Library`: http://www.gnu.org/software/gsl/
 .. _`NEURON Forum`: http://www.neuron.yale.edu/phpBB/index.php
+.. _Neo:: http://neuralensemble.org/neo

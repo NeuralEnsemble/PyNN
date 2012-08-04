@@ -2,18 +2,57 @@
 Contributing to PyNN
 ====================
 
-..    code checkout
-..    style
-..    running tests
-..    writing new tests
-..    coverage measurement
-..    writing tickets
-..    contributing code
-..    building the documentation    
-..    making a release
+Mailing list
+============
 
-Code style
-==========
+Discussions about PyNN take place in the `NeuralEnsemble Google Group`_.
+
+
+Setting up a development environment
+====================================
+
+Requirements
+------------
+
+In addition to the requirements listed in :doc:`installation`, you will need to
+install:
+
+    * nose_
+    * mock_
+    * coverage_
+    
+to run tests, and:
+
+    * Sphinx_
+    * matplotlib
+
+to build the documentation.
+
+Subversion checkout
+-------------------
+
+To work on the development version::
+
+    svn co https://neuralensemble.org/svn/PyNN/trunk pyNN_trunk
+    
+To work on the latest stable release (for bug-fixes):
+
+    svn co https://neuralensemble.org/svn/PyNN/branches/0.8 pyNN_0.8
+
+To get PyNN onto your :envvar:`PYTHONPATH` there are many options, such as:
+
+    * using virtualenv_
+    * creating a symbolic link named :file:`pyNN` from somewhere that is already
+      on your :envvar:`PYTHONPATH`, such as the :file:`site-packages` directory,
+      to the :file:`pyNN_trunk/src` directory.
+
+If you are developing with NEURON, don't forget to compile the NMODL files in
+:file:`src/neuron/nmodl` by running :cmd:`nrnivmodl`, and to recompile any time
+you modify any of them.
+
+
+Coding style
+============
 
 We try to stay fairly close to PEP8_. Please note in particular:
 
@@ -26,6 +65,7 @@ We try to stay fairly close to PEP8_. Please note in particular:
     - we currently target versions 2.5 to 2.7. The main consequence of this is
       that ``except Exception`` can't use the ``as`` statement, since this is
       not supported in 2.5.
+
 
 Testing
 =======
@@ -47,13 +87,14 @@ which aim to test that all the pieces of the system work together as expected.
 If you add a new feature to PyNN, you should write both unit and system tests.
 
 Unit tests should where necessary make use of mock/fake/stub/dummy objects to
-isolate the component under test as well as possible. Except when testing a
-specific simulator interface, unit tests should be able to run without a
-simulator installed.
+isolate the component under test as well as possible. The :mod:`pyNN.mock` is
+a complete mock simulator backend that may be used for this purpose. Except when
+testing a specific simulator interface, unit tests should be able to run without
+a simulator installed.
 
 System tests should be written so that they can run with any of the simulators.
-The suggested way to do this is to write test functions in a separate file that
-take a simulator module as an argument, and then call these functions from
+The suggested way to do this is to write test functions, in a separate file,
+that take a simulator module as an argument, and then call these functions from
 ``test_neuron.py``, ``test_nest.py``, etc.
 
 The ``test/unsorted`` directory contains a number of old tests that are either
@@ -61,7 +102,136 @@ no longer useful or have not yet been adapted to the nose framework. These are
 not part of the test suite, but we are gradually adapting those tests that are
 useful and deleting the others.
 
+
+Submitting code
+===============
+
+The best way to get started with contributing code to PyNN is to fix a small
+bug (`bugs marked "minor" or "trivial" in the bug tracker`_) in your checkout of
+the code. Once you are happy with your changes, **run the test suite again to check
+that you have not introduced any new bugs**. Then you can commit them to the
+central repository, provided you have a NeuralEnsemble account::
+
+    $ svn commit -m 'informative commit message'
+    
+If this is your first commit to the project, please add your name and
+affiliation/employer to :file:`AUTHORS`.
+
+If you do not have a NeuralEnsemble account, you can create a patch::
+
+    $ svn diff > descriptive_name.patch
+    
+and attach it to a ticket in the `issue tracker`_. If you have made more than
+one commit, determine the revision number of when you checked out or last updated
+from the central repository (using ``svn log``), and then give a range of
+revisions to include in the patch::
+
+    $ svn diff start-revision:HEAD > descriptive_name.diff
+
+You should then send an e-mail to the `mailing list`_, asking for someone to
+review your patch.
+
+To apply a patch to the source tree::
+
+    $ patch -p0 < /path/to/site.descriptive_name.diff    
+
+
+Documentation
+=============
+
+PyNN documentation is generated using Sphinx_.
+
+To build the documentation in HTML format, run::
+
+    $ make html
+
+in the ``doc`` subdirectory of the source tree. Many of the files contain
+examples of interactive Python sessions. The validity of this code can be tested
+by running::
+
+    $ make doctest
+
+PyNN documentation is hosted at http://neuralensemble.org/PyNN/docs/. In future,
+we may move the documentation to http://readthedocs.org.
+
+
+Making a release
+================
+
+To make a release of PyNN requires you to have permissions to upload PyNN
+packages to the `Python Package Index`_ and the INCF Software Center, and to
+upload documentation to the neuralensemble.org server. If you are interested
+in becoming release manager for PyNN, please contact us via the `mailing list`.
+
+When you think a release is ready, run through the following checklist one
+last time::
+
+    * do all the tests pass? This means running ``nosetests`` in
+      ``test/unittests`` and ``test/system`` and running ``make doctest`` in
+      ``doc``. You should do this on at least two Linux systems -- one a very
+      recent version and one at least a year old, and on at least one version of
+      Mac OS X. You should also do this with Python 2.5, 2.6 and 2.7.
+    * do all the example scripts generate the correct output? Run the
+      ``run_all_examples.py`` script in ``examples/tools`` and then visually
+      check the ``.png`` files generated in ``examples/tools/Results``. Again,
+      you should do this on at least two Linux systems and one Mac OS X system.
+    * does the documentation build without errors? You should then at least skim
+      the generated HTML pages to check for obvious problems.
+    * have you updated the version numbers in ``setup.py``, ``src/__init__.py``,
+      ``doc/conf.py`` and ``doc/installation.txt``?
+    * have you updated the changelog?
+
+Once you've confirmed all the above, create a source package using::
+    
+    $ python setup.py sdist
+    
+and check that it installs properly.
+
+Now you should commit any changes, then tag with the release number as follows::
+
+    $ svn cp https://neuralensemble.org/svn/PyNN/trunk https://neuralensemble.org/svn/PyNN/tags/x.y.z
+    
+where ``x.y.z`` is the release number. You should now upload the documentation
+to http://neuralensemble.org/PyNN/docs.
+
+.. todo:: more details on this
+
+If this is a development release (i.e. an *alpha* or *beta*), the final step is
+to upload the source package to http://neuralensemble.org/PyNN/download/.
+
+.. todo:: more details on this
+
+If this is a final release, there are a few more steps:
+
+    * if it is a major release (i.e. an ``x.y.0`` release), create a new bug-fix
+      branch::
+
+        $ svn cp https://neuralensemble.org/svn/PyNN/trunk https://neuralensemble.org/svn/PyNN/branches/x.y
+
+    * upload the source package to PyPI::
+    
+        $ python setup.py sdist upload
+        
+    * upload the source package to the INCF Software Center [more instructions needed here]
+    
+    * make an announcement on the `mailing list`_
+    
+    * if it is a major release, write a blog post about it with a focus on the
+      new features and major changes
+      
+    * go home, take a headache pill and lie down for a while in a darkened room (-;
+    
+    
+
+.. _Sphinx: http://sphinx.pocoo.org/
 .. _PEP8: http://www.python.org/dev/peps/pep-0008/
 .. _nose: http://somethingaboutorange.com/mrl/projects/nose/
 .. _mock: http://www.voidspace.org.uk/python/mock/
 .. _coverage: http://nedbatchelder.com/code/coverage/
+.. _`Python Package Index`: http://pypi.python.org/
+.. _`mailing list`: http://groups.google.com/group/neuralensemble
+.. _`NeuralEnsemble Google Group`: http://groups.google.com/group/neuralensemble
+.. _matplotlib: http://matplotlib.sourceforge.net/
+.. _virtualenv: http://www.virtualenv.org/
+.. _`bugs marked "minor" or "trivial" in the bug tracker`: https://neuralensemble.org/trac/PyNN/report/10
+.. _`issue tracker`: https://neuralensemble.org/trac/PyNN
