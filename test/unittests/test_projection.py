@@ -134,6 +134,20 @@ class ProjectionTest(unittest.TestCase):
         target = 0.456*numpy.ones((self.p1.size, self.p2.size))
         assert_array_equal(weights, target)
 
+    def test_get_plasticity_attribute_as_list(self):
+        U_distr = random.RandomDistribution('uniform', [0.4, 0.6], rng=MockRNG(start=0.4, delta=0.01))
+        depressing = sim.TsodyksMarkramMechanism(U=U_distr, tau_rec=lambda i,j: 800.0+i+j, tau_facil=0.0)
+        prj = sim.Projection(self.p1, self.p2, method=self.all2all,
+                             synapse_dynamics=sim.SynapseDynamics(fast=depressing))
+        weights = prj.get("U", format="list")[:5]
+        target = numpy.array(
+            [(self.p1[0], self.p2[0], 0.4),
+             (self.p1[1], self.p2[0], 0.401),
+             (self.p1[2], self.p2[0], 0.402),
+             (self.p1[3], self.p2[0], 0.403),
+             (self.p1[4], self.p2[0], 0.404),])
+        assert_array_equal(weights, target)
+
     #def test_get_delays(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
