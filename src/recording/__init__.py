@@ -16,6 +16,7 @@ import logging
 import os.path
 import numpy
 import os
+import pickle
 from copy import copy
 from collections import defaultdict
 from pyNN import errors
@@ -61,7 +62,6 @@ def gather_array(data):
     sizes = mpi_comm.gather(size, root=MPI_ROOT) or []
     # now we pass the data
     displacements = [sum(sizes[:i]) for i in range(len(sizes))]
-    #print mpi_comm.rank, sizes, displacements, data
     gdata = numpy.empty(sum(sizes))
     mpi_comm.Gatherv([data.flatten(), size, MPI.DOUBLE],
                      [gdata, (sizes, displacements), MPI.DOUBLE],
@@ -82,19 +82,31 @@ def gather_dict(D):
             D.update(otherD)
     return D
 
-
 def gather_blocks(data):
     """Gather Neo Blocks"""
     if MPI is None:
         raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
     assert isinstance(data, neo.Block)
-    # for now, use gather_dict, which will probably be slow. Can optimize later
+    # for now, use gar_dict, which will probably be slow. Can optimize later
     D = {mpi_comm.rank: data}
     D = gather_dict(D)
     blocks = D.values()
+    
+    # we have to first ensure merging of annotations, particularly ['source_ids']
+    ann  = [[] for i in xrange(0,len(blocks[0].segments[0].analogsignalarrays))]
+    for block in blocks:
+	for i in xrange(0,len(blocks[0].segments[0].analogsignalarrays)):
+        	ann[i].extend(block.segments[0].analogsignalarrays[i].annotations['source_ids'])
+	
     merged = blocks[0]
+    
     for block in blocks[1:]:
         merged.merge(block)
+    
+    # set the merged annotations for 'source_ids'
+    for i in xrange(0,len(blocks[0].segments[0].analogsignalarrays)):
+    	merged.segments[0].analogsignalarrays[i].annotations['source_ids'] = numpy.array(ann[i])
+
     return merged
 
 
