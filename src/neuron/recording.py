@@ -53,6 +53,7 @@ class Recorder(recording.Recorder):
             cell.record_times.record(h._ref_t)
             cell.recording_time += 1
 
+    #could be staticmethod
     def _resolve_variable(self, cell, variable_path):
         match = recordable_pattern.match(variable_path)
         if match:

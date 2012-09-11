@@ -588,7 +588,7 @@ def ticket226(sim):
     sim.setup(timestep=0.1)
 
     cell = sim.Population(1, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=-60.0,
-                                               v_reset=60.0))
+                                               v_reset=-60.0))
     cell.initialize(v=-60.0)
     inj = sim.DCSource(amplitude=1.0, start=10.0, stop=20.0)
     cell.inject(inj)

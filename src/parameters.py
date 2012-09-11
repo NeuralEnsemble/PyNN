@@ -226,3 +226,8 @@ def simplify(value):
         return value[0]
     else:
         return value
+    # alternative - need to benchmark
+    #if numpy.any(arr != arr[0]):
+    #    return arr
+    #else:
+    #    return arr[0]

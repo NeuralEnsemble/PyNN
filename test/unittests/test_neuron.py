@@ -3,13 +3,14 @@ from neuron import h
 from pyNN.common import populations
 from pyNN.neuron.standardmodels import electrodes
 from pyNN.neuron import recording, simulator, cells
+import pyNN.neuron as sim
 from mock import Mock
 try:
     import unittest2 as unittest
 except ImportError:
     import unittest
 import numpy
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
 class MockCellClass(object):
@@ -36,6 +37,10 @@ class MockCell(object):
         self.judeans = judeans
         self.foo_init = -99.9
         self.traces = {}
+
+    def __call__(self, pos):
+        return Mock()
+
 
 class MockStepCurrentSource(object):
     parameter_names = ['amplitudes', 'times']
@@ -93,6 +98,23 @@ class TestFunctions(unittest.TestCase):
         self.assertEqual(rarr.shape, (100,))
         assert -3 <= rarr.min() < -2.5
         assert 5.5 < rarr.max() < 6
+
+    def test_list_standard_models(self):
+        cell_types = sim.list_standard_models()
+        self.assertTrue(len(cell_types) > 10)
+        self.assertIsInstance(cell_types[0], basestring)
+
+    def test_setup(self):
+        sim.setup(timestep=0.05, min_delay=0.1, max_delay=1.0)
+        self.assertEqual(h.dt, 0.05)
+        # many more things could be tested here
+
+    def test_setup_with_cvode(self):
+        sim.setup(timestep=0.05, min_delay=0.1, max_delay=1.0,
+                  use_cvode=True, rtol=1e-2, atol=2e-6)
+        self.assertEqual(h.dt, 0.05)
+        self.assertEqual(simulator.state.cvode.rtol(), 1e-2)
+        # many more things could be tested here
 
 
 class TestInitializer(unittest.TestCase):
@@ -160,7 +182,6 @@ class TestState(unittest.TestCase):
         init._initialize.assert_called()
         init._initialize = orig_initialize
 
-
     def test_run(self):
         simulator.state.reset()
         simulator.state.run(12.3)
@@ -175,6 +196,24 @@ class TestState(unittest.TestCase):
         simulator.state.parallel_context.runworker.assert_called()
         simulator.state.parallel_context.done.assert_called()
         simulator.state.parallel_context = orig_pc
+
+
+class TestPopulation(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup()
+        self.p = sim.Population(4, sim.IF_cond_exp(**{'tau_m': 12.3,
+                                                      'cm': lambda i: 0.987 + 0.01*i,
+                                                      'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
+
+    def test__get_parameters(self):
+        ps = self.p._get_parameters('c_m', 'tau_m', 'e_e', 'i_offset')
+        ps.evaluate(simplify=True)
+        assert_array_almost_equal(ps['c_m'], numpy.array([0.987, 0.997, 1.007, 1.017], float),
+                                  decimal=12)
+        assert_array_almost_equal(ps['i_offset'], numpy.array([-0.21, -0.2, -0.19, -0.18], float),
+                                  decimal=12)
+        self.assertEqual(ps['e_e'], 0.0)
 
 
 class TestID(unittest.TestCase):
@@ -242,6 +281,24 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(self.c.weight_adjuster.wmax, 0.05)
 
 
+class TestProjection(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup()
+        self.p1 = sim.Population(7, sim.IF_cond_exp())
+        self.p2 = sim.Population(4, sim.IF_cond_exp())
+        self.p3 = sim.Population(5, sim.IF_curr_alpha())
+        self.random_connect = sim.FixedNumberPostConnector(n=2, weights=0.123, delays=0.5)
+        self.all2all = sim.AllToAllConnector(weights=0.456, delays=0.4)
+
+    def test_create_simple(self):
+        prj = sim.Projection(self.p1, self.p2, method=self.all2all)
+
+    def test_create_with_fast_synapse_dynamics(self):
+        prj = sim.Projection(self.p1, self.p2, method=self.all2all,
+                             synapse_dynamics=sim.SynapseDynamics(fast=sim.TsodyksMarkramMechanism()))
+
+
 # electrodes
 class TestCurrentSources(unittest.TestCase):
 
@@ -265,26 +322,19 @@ class TestCurrentSources(unittest.TestCase):
 class TestRecorder(unittest.TestCase):
 
     def setUp(self):
-        p = MockPopulation()
-        self.rv = recording.Recorder(p)
-        self.rg = recording.Recorder(p)
-        self.rs = recording.Recorder(p)
-        self.rf = recording.Recorder(p)
-        self.cells = [MockID(22), MockID(29)]
+        self.p = sim.Population(2, sim.IF_cond_exp())
+        self.rec = recording.Recorder(self.p)
+        self.cells = self.p.all_cells #[MockID(22), MockID(29)]
 
     def tearDown(self):
         pass
 
-    #def test__record(self):
-    #    self.rv._record('v', self.cells)
-    #    self.rg._record('gsyn_inh', self.cells)
-    #    self.rs._record('spikes', self.cells)
-    #    for cell in self.cells:
-    #        cell._cell.record.assert_called_with(1)
-    #        cell._cell.record_v.assert_called_with(1)
-    #        cell._cell.record_gsyn.assert_called_with('inhibitory', 1)
-    #    self.assertRaises(Exception, self.rf._record, self.cells)
-    #
+    def test__record(self):
+        self.rec._record('v', self.cells)
+        self.rec._record('gsyn_inh', self.cells)
+        self.rec._record('spikes', self.cells)
+        self.assertRaises(Exception, self.rec._record, self.cells)
+    
     #def test__get_v(self):
     #    self.rv.recorded['v'] = self.cells
     #    self.cells[0]._cell.vtrace = numpy.arange(-65.0, -64.0, 0.1)
@@ -295,13 +345,13 @@ class TestRecorder(unittest.TestCase):
     #    self.assertEqual(len(vdata.analogsignalarrays), 1)
     #    assert_array_equal(numpy.array(vdata.analogsignalarrays[0]),
     #                        numpy.vstack((self.cells[0]._cell.vtrace, self.cells[1]._cell.vtrace)).T)
-    #
+
     def test__get_spikes(self):
-        self.rs.recorded['spikes'] = self.cells
+        self.rec.recorded['spikes'] = self.cells
         self.cells[0]._cell.spike_times = numpy.arange(101.0, 111.0)
         self.cells[1]._cell.spike_times = numpy.arange(13.0, 23.0)
         simulator.state.t = 111.0
-        sdata = self.rs._get_current_segment(variables=['spikes'], filter_ids=None)
+        sdata = self.rec._get_current_segment(variables=['spikes'], filter_ids=None)
         self.assertEqual(len(sdata.spiketrains), 2)
         assert_array_equal(numpy.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times)
 
@@ -324,10 +374,11 @@ class TestRecorder(unittest.TestCase):
     #                        cell._cell.gsyn_trace['inhibitory'])
     #
     def test__local_count(self):
-        self.rs.recorded['spikes'] = self.cells
+        self.rec.recorded['spikes'] = self.cells
         self.cells[0]._cell.spike_times = h.Vector(numpy.arange(101.0, 111.0))
         self.cells[1]._cell.spike_times = h.Vector(numpy.arange(13.0, 33.0))
-        self.assertEqual(self.rs._local_count('spikes', filter_ids=None), {22: 10, 29: 20})
+        self.assertEqual(self.rec._local_count('spikes', filter_ids=None),
+                         {self.cells[0]: 10, self.cells[1]: 20})
 
 
 class TestStandardIF(unittest.TestCase):

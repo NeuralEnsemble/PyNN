@@ -23,6 +23,7 @@ if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
 
 import shutil
 import logging
+from itertools import repeat
 from pyNN.nest.cells import NativeCellType, native_cell_type
 from pyNN.nest.synapses import NativeSynapseDynamics, NativeSynapseMechanism
 from pyNN.nest.standardmodels.cells import *
@@ -30,9 +31,9 @@ from pyNN.nest.connectors import *
 from pyNN.nest.standardmodels.synapses import *
 from pyNN.nest.standardmodels.electrodes import *
 from pyNN.nest.recording import *
-from pyNN.random import NumpyRNG
+from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN.standardmodels import StandardCellType
-from pyNN.parameters import Sequence
+from pyNN.parameters import Sequence, simplify
 
 STATE_VARIABLE_MAP = {"v": "V_m", "w": "w", "gsyn_exc": "g_ex",
                       "gsyn_inh": "g_in"}
@@ -145,16 +146,6 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 #   neurons.
 # ==============================================================================
 
-def _simplify(arr):
-    """
-    If all the values in arr are identical, return the single value,
-    otherwise return the original array
-    """
-    if numpy.any(arr != arr[0]):
-        return arr
-    else:
-        return arr[0]
-
 class PopulationMixin(object):
 
     def _get_view(self, selector, label=None):
@@ -178,7 +169,7 @@ class PopulationMixin(object):
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             ids = [id.source for id in ids]
         parameter_array = numpy.array(nest.GetStatus(ids, names))
-        parameter_dict = dict((name, _simplify(parameter_array[:, col]))
+        parameter_dict = dict((name, simplify(parameter_array[:, col]))
                               for col, name in enumerate(names))
         if "spike_times" in parameter_dict: # hack
             parameter_dict["spike_times"] = [Sequence(value) for value in parameter_dict["spike_times"]]
@@ -447,74 +438,73 @@ class Projection(common.Projection):
                 raise errors.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                              e, sources, target, weights, delays, self.synapse_model))
         else:
+            if numpy.isscalar(weights):
+                weights = repeat(weights)
+            if numpy.isscalar(delays):
+                delays = repeat(delays)
             for source, w, d in zip(sources, weights, delays): # need to handle case where weights, delays are floats
                 nest.Connect([source], [target], {'weight': w, 'delay': d, 'receptor_type': target.celltype.get_receptor_type(self.synapse_type)})
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.extend(sources)
 
-    def set(self, name, value):
-        """
-        Set connection attributes for all connections on the local MPI node.
+    def set(self, **attributes):
+        __doc__ = common.Projection.set.__doc__
+        for name, value in attributes.items():
+            if numpy.isscalar(value):
+                value = float(value)
+            elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
+                value_list = []
+                connection_parameters = nest.GetStatus(self.connections, ('source', 'target'))
+                for conn in connection_parameters:
+                    addr = self.pre.id_to_index(conn['source']), self.post.id_to_index(conn['target'])
+                    try:
+                        val = value[addr]
+                    except IndexError, e:
+                        raise IndexError("%s. addr=%s" % (e, addr))
+                    if numpy.isnan(val):
+                        raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
+                    else:
+                        value_list.append(val)
+                value = value_list
+            elif core.is_listlike(value):
+                value = numpy.array(value)
+            elif isinstance(value, RandomDistribution):
+                value = value.next(len(self))
+            else:
+                raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
 
-        `name`  -- attribute name
-
-        `value` -- the attribute numeric value, or a list/1D array of such
-                   values of the same length as the number of local connections,
-                   or a 2D array with the same dimensions as the connectivity
-                   matrix (as returned by `get(format='array')`).
-        """
-        if not (numpy.isscalar(value) or core.is_listlike(value)):
-            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-
-        if isinstance(value, numpy.ndarray) and len(value.shape) == 2:
-            value_list = []
-            connection_parameters = nest.GetStatus(self.connections, ('source', 'target'))
-            for conn in connection_parameters:
-                addr = self.pre.id_to_index(conn['source']), self.post.id_to_index(conn['target'])
-                try:
-                    val = value[addr]
-                except IndexError, e:
-                    raise IndexError("%s. addr=%s" % (e, addr))
-                if numpy.isnan(val):
-                    raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
-                else:
-                    value_list.append(val)
-            value = value_list
-        if core.is_listlike(value):
-            value = numpy.array(value)
-        else:
-            value = float(value)
-
-        if name == 'weight':
-            value *= 1000.0
-            if self.synapse_type == 'inhibitory' and common.is_conductance(self.post[0]):
-                value *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
-        elif name == 'delay':
-            pass
-        else:
-            #translation = self.synapse_dynamics.reverse_translate({name: value})
-            #name, value = translation.items()[0]
-            translated_name = None
-            if self.synapse_dynamics.fast:
-                if name in self.synapse_dynamics.fast.translations:
-                    translated_name = self.synapse_dynamics.fast.translations[name]["translated_name"] # a hack
-            if translated_name is None:
-                if self.synapse_dynamics.slow:
-                    for component_name in "timing_dependence", "weight_dependence", "voltage_dependence":
-                        component = getattr(self.synapse_dynamics.slow, component_name)
-                        if component and name in component.translations:
-                            translated_name = component.translations[name]["translated_name"]
-                            break
-            if translated_name:
-                name = translated_name
-
-        try:
-            nest.SetStatus(self.connections, name, value)
-        except nest.NESTError, e:
-            n = 1
-            if hasattr(value, '__len__'):
-                n = len(value)
-            raise Exception("%s. Trying to set %d values." % (e, n))
+    
+            if name == 'weights':
+                value *= 1000.0
+                if self.synapse_type == 'inhibitory' and common.is_conductance(self.post[0]):
+                    value *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
+                name = "weight"
+            elif name == 'delays':
+                name = "delay"
+            else:
+                #translation = self.synapse_dynamics.reverse_translate({name: value})
+                #name, value = translation.items()[0]
+                translated_name = None
+                if self.synapse_dynamics.fast:
+                    if name in self.synapse_dynamics.fast.translations:
+                        translated_name = self.synapse_dynamics.fast.translations[name]["translated_name"] # a hack
+                if translated_name is None:
+                    if self.synapse_dynamics.slow:
+                        for component_name in "timing_dependence", "weight_dependence", "voltage_dependence":
+                            component = getattr(self.synapse_dynamics.slow, component_name)
+                            if component and name in component.translations:
+                                translated_name = component.translations[name]["translated_name"]
+                                break
+                if translated_name:
+                    name = translated_name
+    
+            try:
+                nest.SetStatus(self.connections, name, value) # perhaps take this out of the loop, and set multiple values at once in a dict?
+            except nest.NESTError, e:
+                n = 1
+                if hasattr(value, '__len__'):
+                    n = len(value)
+                raise Exception("%s. Trying to set %d values." % (e, n))
 
     def saveConnections(self, file, gather=True, compatible_output=True):
         """
@@ -565,7 +555,9 @@ class Projection(common.Projection):
         pretty meaningless for delays.
         """
 
-        if parameter_name not in ('weight', 'delay'):
+        if parameter_name in ('weights', 'delays'):
+            parameter_name = parameter_name[:-1]  # remove 's'
+        else:
             translated_name = None
             if self.synapse_dynamics.fast and parameter_name in self.synapse_dynamics.fast.translations:
                 translated_name = self.synapse_dynamics.fast.translations[parameter_name]["translated_name"] # this is a hack that works because there are no units conversions

@@ -133,6 +133,7 @@ class _State(common.control.BaseState):
                 p._set_initial_value_array(variable, initial_value)
         self.running = False
         self.t_start = 0.0
+        self.segment_counter += 1
 
     def clear(self):
         self.populations = []
@@ -146,6 +147,7 @@ class _State(common.control.BaseState):
         tempdir = tempfile.mkdtemp()
         self.tempdirs.append(tempdir) # append tempdir to tempdirs list
         nest.SetKernelStatus({'data_path': tempdir,})
+        self.segment_counter = -1
         self.reset()
 
 

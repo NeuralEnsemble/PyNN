@@ -204,26 +204,27 @@ class MapConnector(Connector):
                 source_mask = slice(None)
             else:
                 sources = projection.pre.all_cells[source_mask]
-            if weight_map.is_homogeneous:
-                weights = weight_map.evaluate(simplify=True)
-            else:
-                weights = weight_map[source_mask, col]
-            if delay_map.is_homogeneous:
-                delays = delay_map.evaluate(simplify=True)
-            else:
-                delays = delay_map[source_mask, col]
-            #logger.debug("Convergent connect %d neurons to #%s, delays in range (%g, %g)" % (sources.size, tgt, delays.min(), delays.max()))
-            if self.safe:
-                # (might be cheaper to do the weight and delay check before evaluating the larray)
-                weights = check_weights(weights, projection.synapse_type, is_conductance(projection.post.local_cells[0]))
-                delays = check_delays(delays,
-                                      projection._simulator.state.min_delay,
-                                      projection._simulator.state.max_delay)
-            #logger.debug("mask: %s, w: %s, d: %s", source_mask, weights, delays)
-            if tgt.local:
-                projection._convergent_connect(sources, tgt, weights, delays)
-                if self.callback:
-                    self.callback(count/projection.post.local_size)
+            if len(sources) > 0:
+                if weight_map.is_homogeneous:
+                    weights = weight_map.evaluate(simplify=True)
+                else:
+                    weights = weight_map[source_mask, col]
+                if delay_map.is_homogeneous:
+                    delays = delay_map.evaluate(simplify=True)
+                else:
+                    delays = delay_map[source_mask, col]
+                #logger.debug("Convergent connect %d neurons to #%s, delays in range (%g, %g)" % (sources.size, tgt, delays.min(), delays.max()))
+                if self.safe:
+                    # (might be cheaper to do the weight and delay check before evaluating the larray)
+                    weights = check_weights(weights, projection.synapse_type, is_conductance(projection.post.local_cells[0]))
+                    delays = check_delays(delays,
+                                          projection._simulator.state.min_delay,
+                                          projection._simulator.state.max_delay)
+                #logger.debug("mask: %s, w: %s, d: %s", source_mask, weights, delays)
+                if tgt.local:
+                    projection._convergent_connect(sources, tgt, weights, delays)
+                    if self.callback:
+                        self.callback(count/projection.post.local_size)
 
 
 class AllToAllConnector(MapConnector):
