@@ -9,6 +9,7 @@ $Id$
 
 import nest
 from pyNN.standardmodels import synapses, build_translations, SynapseDynamics, STDPMechanism
+from pyNN.nest.synapses import get_defaults
 
 class SynapseDynamics(SynapseDynamics):
     __doc__ = SynapseDynamics.__doc__
@@ -32,12 +33,8 @@ class SynapseDynamics(SynapseDynamics):
         if base_model not in available_models:
             raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
                              "Possible models in your NEST build are: %s" % (base_model, available_models))
-            
-        synapse_defaults = nest.GetDefaults(base_model)
-        synapse_defaults.pop('synapsemodel')
-        synapse_defaults.pop('num_connections')
-        if 'num_connectors' in synapse_defaults:
-            synapse_defaults.pop('num_connectors')
+
+        synapse_defaults = get_defaults(base_model)
         if self.fast:
             synapse_defaults.update(self.fast.parameters)
         elif self.slow:
@@ -47,10 +44,9 @@ class SynapseDynamics(SynapseDynamics):
                 stdp_parameters.pop("w_min_always_zero_in_NEST")
             except Exception:
                 pass
-            # Tau_minus is a parameter of the post-synaptic cell, not of the connection
-            stdp_parameters.pop("tau_minus")
             synapse_defaults.update(stdp_parameters)                
-        
+        # Tau_minus is a parameter of the post-synaptic cell, not of the connection
+        synapse_defaults.pop("tau_minus")
         label = "%s_%s" % (base_model, suffix)
         nest.CopyModel(base_model, label, synapse_defaults)
         return label
