@@ -8,11 +8,15 @@ nrnpython implementation of the PyNN API.
 """
 
 import numpy
+import logging
 from pyNN import common
 from pyNN.parameters import Sequence, ParameterSpace
 from pyNN.standardmodels import StandardCellType
 from . import simulator
 from .recording import Recorder
+
+logger = logging.getLogger("PyNN")
+
 
 class PopulationMixin(object):
 
@@ -46,10 +50,12 @@ class PopulationMixin(object):
 
 
 class Assembly(common.Assembly):
+    __doc__ = common.Assembly.__doc__
     _simulator = simulator
 
 
 class PopulationView(common.PopulationView, PopulationMixin):
+    __doc__ = common.PopulationView.__doc__
     _simulator = simulator
     _assembly_class = Assembly
 
