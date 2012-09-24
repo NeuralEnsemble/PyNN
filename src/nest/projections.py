@@ -94,7 +94,7 @@ class Projection(common.Projection):
         """
         # are we sure the targets are all on the current node?
         if core.is_listlike(source):
-            assert len(source) == 1
+            assert len(source) == 1 
             source = source[0]
         if not core.is_listlike(targets):
             targets = [targets]
@@ -128,7 +128,7 @@ class Projection(common.Projection):
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.append(source)
 
-    def _convergent_connect(self, sources, target, weights, delays):
+    def _convergent_connect(self, sources, target, weights, delays, **plasticity_attributes):
         """
         Connect a neuron to one or more other neurons with a static connection.
 
@@ -153,7 +153,6 @@ class Projection(common.Projection):
             weights = weights.tolist()
         if isinstance(delays, numpy.ndarray):
             delays = delays.tolist()
-
         if target.celltype.standard_receptor_type:
             try:
                 nest.ConvergentConnect(sources.astype(int).tolist(), [target], weights, delays, self.synapse_model)
@@ -169,6 +168,10 @@ class Projection(common.Projection):
                 nest.Connect([source], [target], {'weight': w, 'delay': d, 'receptor_type': target.celltype.get_receptor_type(self.synapse_type)})
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.extend(sources)
+        if plasticity_attributes:
+            connections = nest.FindConnections(sources.astype(int), int(target), self.synapse_model)
+            for name, value in plasticity_attributes.items():
+                nest.SetStatus(connections, name, value)
 
     def set(self, **attributes):
         __doc__ = common.Projection.set.__doc__
@@ -196,7 +199,6 @@ class Projection(common.Projection):
             else:
                 raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
 
-    
             if name == 'weights':
                 value *= 1000.0
                 if self.synapse_type == 'inhibitory' and common.is_conductance(self.post[0]):
@@ -259,49 +261,30 @@ class Projection(common.Projection):
             file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
             file.close()
 
-    def get(self, parameter_name, format, gather=True):
-        """
-        Get the values of a given attribute (weight or delay) for all
-        connections in this Projection.
-
-        `parameter_name` -- name of the attribute whose values are wanted.
-
-        `format` -- "list" or "array". Array format implicitly assumes that all
-                    connections belong to a single Projection.
-
-        Return a list or a 2D Numpy array. The array element X_ij contains the
-        attribute value for the connection from the ith neuron in the pre-
-        synaptic Population to the jth neuron in the post-synaptic Population,
-        if a single such connection exists. If there are no such connections,
-        X_ij will be NaN. If there are multiple such connections, the summed
-        value will be given, which makes some sense for weights, but is
-        pretty meaningless for delays.
-        """
-
-        if parameter_name in ('weights', 'delays'):
-            parameter_name = parameter_name[:-1]  # remove 's'
-        else:
-            translated_name = None
-            if self.synapse_dynamics.fast and parameter_name in self.synapse_dynamics.fast.translations:
-                translated_name = self.synapse_dynamics.fast.translations[parameter_name]["translated_name"] # this is a hack that works because there are no units conversions
-            elif self.synapse_dynamics.slow:
-                for component_name in "timing_dependence", "weight_dependence", "voltage_dependence":
-                    component = getattr(self.synapse_dynamics.slow, component_name)
-                    if component and parameter_name in component.translations:
-                        translated_name = component.translations[parameter_name]["translated_name"]
-                        break
-            if translated_name:
-                parameter_name = translated_name
+    def _get_attributes_as_list(self, *names):
+        nest_names = []
+        for name in names:
+            if name[-1] == "s":  # weights --> weight, delays --> delay
+                nest_names.append(name[:-1])
             else:
-                raise Exception("synapse type does not have an attribute '%s', or else this attribute is not accessible." % parameter_name)
-        if format == 'list':
-            values = nest.GetStatus(self.connections, parameter_name)
-            if parameter_name == "weight":
-                values = [0.001*val for val in values]
-        elif format == 'array':
+                nest_names.append(name)
+        values = nest.GetStatus(self.connections, nest_names)
+        if 'weights' in names: # other attributes could also have scale factors - need to use translation mechanisms
+            values = numpy.array(values) # ought to preserve int type for source, target
+            scale_factors = numpy.ones(len(names))
+            scale_factors[names.index('weights')] = 0.001
+            values *= scale_factors
+            values = values.tolist()
+        return values        
+
+    def _get_attributes_as_arrays(self, *names):
+        all_values = []
+        for attribute_name in names:
+            if attribute_name[-1] == "s":  # weights --> weight, delays --> delay
+                attribute_name = attribute_name[:-1]
             value_arr = numpy.nan * numpy.ones((self.pre.size, self.post.size))
-            connection_parameters = nest.GetStatus(self.connections, ('source', 'target', parameter_name))
-            for conn in connection_parameters:
+            connection_attributes = nest.GetStatus(self.connections, ('source', 'target', attribute_name))
+            for conn in connection_attributes:
                 # (offset is always 0,0 for connections created with connect())
                 src, tgt, value = conn
                 addr = self.pre.id_to_index(src), self.post.id_to_index(tgt)
@@ -309,11 +292,10 @@ class Projection(common.Projection):
                     value_arr[addr] = value
                 else:
                     value_arr[addr] += value
-            if parameter_name == 'weight':
+            if attribute_name == 'weight':
                 value_arr *= 0.001
-                if self.synapse_type == 'inhibitory' and common.is_conductance(self[0].target):
+                if self.synapse_type == 'inhibitory' and self.post.conductance_based:
                     value_arr *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
-            values = value_arr
-        else:
-            raise Exception("format must be 'list' or 'array', actually '%s'" % format)
-        return values
+            all_values.append(value_arr)
+        return all_values
+        

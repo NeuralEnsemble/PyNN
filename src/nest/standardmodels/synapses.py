@@ -9,6 +9,7 @@ $Id$
 
 import nest
 from pyNN.standardmodels import synapses, build_translations, SynapseDynamics, STDPMechanism
+from pyNN.nest.synapses import get_defaults
 import logging
 
 logger = logging.getLogger("PyNN")
@@ -32,29 +33,24 @@ class SynapseDynamics(SynapseDynamics):
                 logger.warning(", ".join(model for model in base_model))
                 base_model = list(base_model)[0]
                 logger.warning("By default, %s is used" % base_model)
+        else:
+            base_model = "static_synapse"
         available_models = nest.Models(mtype='synapses')
         if base_model not in available_models:
             raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
                              "Possible models in your NEST build are: %s" % (base_model, available_models))
 
-        synapse_defaults = nest.GetDefaults(base_model)
-        synapse_defaults.pop('synapsemodel')
-        synapse_defaults.pop('num_connections')
-        if 'num_connectors' in synapse_defaults:
-            synapse_defaults.pop('num_connectors')
-        if self.fast:
-            synapse_defaults.update(self.fast.parameters)
-        elif self.slow:
-            stdp_parameters = self.slow.all_parameters
-            # NEST does not support w_min != 0
-            try:
-                stdp_parameters.pop("w_min_always_zero_in_NEST")
-            except Exception:
-                pass
-            # Tau_minus is a parameter of the post-synaptic cell, not of the connection
-            stdp_parameters.pop("tau_minus")
-            synapse_defaults.update(stdp_parameters)
-
+        # CopyModel defaults must be simple floats, so we use the NEST defaults
+        # for any inhomogeneous parameters, and set the inhomogeneous values
+        # later
+        synapse_defaults = get_defaults(base_model)
+        synapse_parameters = self.translated_parameters
+        for name, value in synapse_parameters.items():
+            if value.is_homogeneous:
+                value.shape = (1,)
+                synapse_defaults[name] = value.evaluate(simplify=True)
+        # Tau_minus is a parameter of the post-synaptic cell, not of the connection
+        synapse_defaults.pop("tau_minus")
         label = "%s_%s" % (base_model, suffix)
         nest.CopyModel(base_model, label, synapse_defaults)
         return label

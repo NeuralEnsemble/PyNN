@@ -102,7 +102,7 @@ class Connector(object):
     """
 
     def __init__(self, weights=None, delays=None, space=Space(), safe=True,
-                 callback=None, **plasticity_parameters):
+                 callback=None):
         """
         docstring needed
         """
@@ -154,7 +154,10 @@ class MapConnector(Connector):
                          shape=projection.shape)
 
     def _generate_attribute_map(self, attribute_name, projection, distance_map):
-        attr = getattr(self, attribute_name)
+        try:
+            attr = getattr(self, attribute_name)
+        except AttributeError:
+            attr = projection.synapse_dynamics.translated_parameters[attribute_name]  # need to handle case of attr being already an larray?
         if isinstance(attr, (int, long, float, numpy.ndarray, list, RandomDistribution)):
             # attr is constant, an array, a random distribution
             map = LazyArray(attr, projection.shape, dtype=float)
@@ -162,6 +165,12 @@ class MapConnector(Connector):
             # attr is an expression for d
             f_a = eval("lambda d: %s" % attr)
             map = f_a(distance_map)
+        elif isinstance(attr, LazyArray):
+            attr.shape = projection.shape
+            if callable(attr.base_value):
+                map = attr(distance_map)
+            else:
+                map = attr
         elif callable(attr):
             # attr is a function of distance
             map = attr(distance_map)
@@ -176,6 +185,10 @@ class MapConnector(Connector):
             self.delays = projection._simulator.state.min_delay
         delay_map = self._generate_attribute_map('delays', projection, distance_map)
         # TODO: where appropriate, will also need to generate maps for plasticity model parameters
+        plasticity_maps = {}
+        if projection.synapse_dynamics is not None:
+            for name in projection.synapse_dynamics.translated_parameters.keys():
+                plasticity_maps[name] = self._generate_attribute_map(name, projection, distance_map)
 
         # If any of the maps are based on parallel-safe random number generators,
         # we need to iterate over all post-synaptic cells, so we can generate then
@@ -185,7 +198,7 @@ class MapConnector(Connector):
             return (isinstance(map.base_value, RandomDistribution) and
                     map.base_value.rng.parallel_safe)
         column_indices = numpy.arange(projection.post.size)
-        if parallel_safe(weight_map) or parallel_safe(delay_map):
+        if parallel_safe(weight_map) or parallel_safe(delay_map): # TODO check all the plasticity maps as well
             logger.debug("Parallel-safe iteration.")
             components = (
                 column_indices,
@@ -213,6 +226,13 @@ class MapConnector(Connector):
                     delays = delay_map.evaluate(simplify=True)
                 else:
                     delays = delay_map[source_mask, col]
+                plasticity_attributes = {}
+                for name, map in plasticity_maps.items():
+                    if map.is_homogeneous:
+                        plasticity_attributes[name] = map.evaluate(simplify=True)
+                    else:
+                        plasticity_attributes[name] = map[source_mask, col]
+                        
                 #logger.debug("Convergent connect %d neurons to #%s, delays in range (%g, %g)" % (sources.size, tgt, delays.min(), delays.max()))
                 if self.safe:
                     # (might be cheaper to do the weight and delay check before evaluating the larray)
@@ -220,9 +240,10 @@ class MapConnector(Connector):
                     delays = check_delays(delays,
                                           projection._simulator.state.min_delay,
                                           projection._simulator.state.max_delay)
+                    # TODO: add checks for plasticity parameters
                 #logger.debug("mask: %s, w: %s, d: %s", source_mask, weights, delays)
                 if tgt.local:
-                    projection._convergent_connect(sources, tgt, weights, delays)
+                    projection._convergent_connect(sources, tgt, weights, delays, **plasticity_attributes)
                     if self.callback:
                         self.callback(count/projection.post.local_size)
 

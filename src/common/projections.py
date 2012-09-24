@@ -206,35 +206,44 @@ class Projection(object):
             return_single = True
         else:
             return_single = False
+        if self.synapse_dynamics:
+            attribute_names = self.synapse_dynamics.get_translated_names(*attribute_names)
         if format == 'list':
             names = list(attribute_names)
             if with_address:
                 names = ["source", "target"] + names
-            values = [c.as_tuple(*names) for c in self.connections]
+            values = self._get_attributes_as_list(*names)
             if not with_address and return_single:
                 values = [val[0] for val in values]
             return values
         elif format == 'array':
-            all_values = []
-            for attribute_name in attribute_names:
-                values = numpy.nan * numpy.ones((self.pre.size, self.post.size))
-                if attribute_name[-1] == "s":  # weights --> weight, delays --> delay
-                    attribute_name = attribute_name[:-1]
-                for c in self.connections:
-                    value = getattr(c, attribute_name)
-                    addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
-                    if numpy.isnan(values[addr]):
-                        values[addr] = value
-                    else:
-                        values[addr] += value
-                all_values.append(values)
+            values = self._get_attributes_as_arrays(*attribute_names)
             if return_single:
-                assert len(all_values) == 1
-                return all_values[0]
+                assert len(values) == 1
+                return values[0]
             else:
-                return all_values
+                return values
         else:
             raise Exception("format must be 'list' or 'array'")
+
+    def _get_attributes_as_list(self, *names):
+        return [c.as_tuple(*names) for c in self.connections]
+
+    def _get_attributes_as_arrays(self, *names):
+        all_values = []
+        for attribute_name in names:
+            values = numpy.nan * numpy.ones((self.pre.size, self.post.size))
+            if attribute_name[-1] == "s":  # weights --> weight, delays --> delay
+                attribute_name = attribute_name[:-1]
+            for c in self.connections:
+                value = getattr(c, attribute_name)
+                addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
+                if numpy.isnan(values[addr]):
+                    values[addr] = value
+                else:
+                    values[addr] += value
+            all_values.append(values)
+        return all_values
 
     @deprecated("get('weights', format, gather)")
     def getWeights(self, format='list', gather=True):

@@ -16,10 +16,18 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mock import Mock, patch
 from .mocks import MockRNG
-import pyNN.mock as sim
+#import pyNN.mock as sim
+import pyNN.neuron as sim
 
 from pyNN import random, errors, space
 from pyNN.parameters import Sequence
+
+
+def _sort_by_column(A, col):
+    A = numpy.array(A)
+    array_index = numpy.argsort(A[:, col], kind='mergesort')
+    return A[array_index]
+
 
 class ProjectionTest(unittest.TestCase):
 
@@ -44,9 +52,14 @@ class ProjectionTest(unittest.TestCase):
         self.assertRaises(errors.ConnectionError, sim.Projection,
                           self.p1, self.p1 + self.p3, method=self.all2all)
 
-    def test_create_with_synapse_dynamics(self):
+    def test_create_with_empty_synapse_dynamics(self):
         prj = sim.Projection(self.p1, self.p2, method=self.all2all,
                              synapse_dynamics=sim.SynapseDynamics())
+
+    def test_create_with_fast_synapse_dynamics(self):
+        depressing = sim.TsodyksMarkramMechanism(U=0.5, tau_rec=800.0, tau_facil=0.0)
+        prj = sim.Projection(self.p1, self.p2, method=self.all2all,
+                             synapse_dynamics=sim.SynapseDynamics(fast=depressing))
 
     def test_create_with_invalid_type(self):
         self.assertRaises(errors.ConnectionError, sim.Projection,
@@ -113,7 +126,8 @@ class ProjectionTest(unittest.TestCase):
     #
     def test_get_weights_as_list(self):
         prj = sim.Projection(self.p1, self.p2, method=self.all2all)
-        weights = prj.get("weights", format="list")[:5]
+        weights = prj.get("weights", format="list")
+        weights = _sort_by_column(weights, 1)[:5]
         target = numpy.array(
             [(self.p1[0], self.p2[0], 0.456),
              (self.p1[1], self.p2[0], 0.456),
@@ -135,18 +149,28 @@ class ProjectionTest(unittest.TestCase):
         assert_array_equal(weights, target)
 
     def test_get_plasticity_attribute_as_list(self):
-        U_distr = random.RandomDistribution('uniform', [0.4, 0.6], rng=MockRNG(start=0.4, delta=0.01))
-        depressing = sim.TsodyksMarkramMechanism(U=U_distr, tau_rec=lambda i,j: 800.0+i+j, tau_facil=0.0)
+        U_distr = random.RandomDistribution('uniform', [0.4, 0.6], rng=MockRNG(start=0.5, delta=0.001))
+        depressing = sim.TsodyksMarkramMechanism(U=U_distr, tau_rec=lambda d: 800.0+d, tau_facil=0.0)
         prj = sim.Projection(self.p1, self.p2, method=self.all2all,
                              synapse_dynamics=sim.SynapseDynamics(fast=depressing))
-        weights = prj.get("U", format="list")[:5]
-        target = numpy.array(
-            [(self.p1[0], self.p2[0], 0.4),
-             (self.p1[1], self.p2[0], 0.401),
-             (self.p1[2], self.p2[0], 0.402),
-             (self.p1[3], self.p2[0], 0.403),
-             (self.p1[4], self.p2[0], 0.404),])
-        assert_array_equal(weights, target)
+        U = prj.get("U", format="list")
+        U = _sort_by_column(U, 1)[:5]
+        U_target = numpy.array(
+            [(self.p1[0], self.p2[0], 0.5),
+             (self.p1[1], self.p2[0], 0.501),
+             (self.p1[2], self.p2[0], 0.502),
+             (self.p1[3], self.p2[0], 0.503),
+             (self.p1[4], self.p2[0], 0.504),])
+        assert_array_equal(U, U_target)
+        tau_rec = prj.get("tau_rec", format="list")
+        tau_rec = _sort_by_column(tau_rec, 1)[:5]
+        tau_rec_target = numpy.array(
+            [(self.p1[0], self.p2[0], 800),
+             (self.p1[1], self.p2[0], 801),
+             (self.p1[2], self.p2[0], 802),
+             (self.p1[3], self.p2[0], 803),
+             (self.p1[4], self.p2[0], 804),])
+        assert_array_equal(tau_rec, tau_rec_target)
 
     #def test_get_delays(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)

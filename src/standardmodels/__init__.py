@@ -240,6 +240,38 @@ class SynapseDynamics(models.BaseSynapseDynamics):
         self.fast = fast
         self.slow = slow
 
+
+    @property
+    def translated_parameters(self):
+        """
+        Return combined, translated parameter space from both fast and slow components
+        """
+        P = {}
+        if self.fast:
+            P = self.fast.translated_parameters
+        if self.slow:
+            P.update(self.slow.translated_parameters)
+        return P
+
+    def get_translated_names(self, *names):
+        translated_names = []
+        if self.fast:
+            names_fast = self.fast.get_parameter_names()
+        else:
+            names_fast = []
+        if self.slow:
+            names_slow = self.slow.get_parameter_names()
+        else:
+            names_slow = []
+        for name in names:
+            if name in names_fast:
+                translated_names.append(self.fast.get_translated_names(name)[0])
+            elif name in names_slow:
+                translated_names.append(self.slow.get_translated_names(name)[0])
+            else:
+                raise NameError("SynapseDynamics object does not have a parameter %s" % name)
+        return translated_names
+
     def describe(self, template='synapsedynamics_default.txt', engine='default'):
         """
         Returns a human-readable description of the synapse dynamics.
@@ -261,16 +293,16 @@ class ShortTermPlasticityMechanism(StandardModelType):
     def __init__(self, **parameters):
         StandardModelType.__init__(self, **parameters)
 
-    @property
-    def parameters(self):
-        parameter_space = self.translated_parameters
-        parameter_space.size = 1
-        if not parameter_space.is_homogeneous:
-            raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
-        parameter_space.evaluate(simplify=True)
-        p = parameter_space.as_dict()
-        p.update(self.extra_parameters)
-        return p
+    #@property
+    #def parameters(self):
+    #    parameter_space = self.translated_parameters
+    #    parameter_space.size = 1
+    #    if not parameter_space.is_homogeneous:
+    #        raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
+    #    parameter_space.evaluate(simplify=True)
+    #    p = parameter_space.as_dict()
+    #    p.update(self.extra_parameters)
+    #    return p
 
 
 class STDPMechanism(object):
@@ -330,21 +362,35 @@ class STDPMechanism(object):
             # we pass the set of models back to the simulator-specific module for it to deal with
             return pm
 
+    #@property
+    #def all_parameters(self):
+    #    """
+    #    A dictionary containing the combination of parameters from the different
+    #    components of the STDP model.
+    #    """
+    #    timing_parameters = self.timing_dependence.translated_parameters
+    #    weight_parameters = self.weight_dependence.translated_parameters
+    #    for parameter_space in (timing_parameters, weight_parameters):
+    #        parameter_space.size = 1
+    #        if not parameter_space.is_homogeneous:
+    #            raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
+    #        parameter_space.evaluate(simplify=True)
+    #    parameters = timing_parameters.as_dict()
+    #    parameters.update(weight_parameters.as_dict())  # should add a "join" or "merge" method to ParameterSpace
+    #    parameters.update(self.timing_dependence.extra_parameters)
+    #    parameters.update(self.weight_dependence.extra_parameters)
+    #    return parameters
+
     @property
-    def all_parameters(self):
+    def translated_parameters(self):
         """
         A dictionary containing the combination of parameters from the different
         components of the STDP model.
         """
         timing_parameters = self.timing_dependence.translated_parameters
         weight_parameters = self.weight_dependence.translated_parameters
-        for parameter_space in (timing_parameters, weight_parameters):
-            parameter_space.size = 1
-            if not parameter_space.is_homogeneous:
-                raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
-            parameter_space.evaluate(simplify=True)
-        parameters = timing_parameters.as_dict()
-        parameters.update(weight_parameters.as_dict())  # should add a "join" or "merge" method to ParameterSpace
+        parameters = ParameterSpace(timing_parameters)
+        parameters.update(weight_parameters)
         parameters.update(self.timing_dependence.extra_parameters)
         parameters.update(self.weight_dependence.extra_parameters)
         return parameters

@@ -1,4 +1,4 @@
-from itertools import repeat
+from itertools import repeat, izip
 from pyNN import common
 from . import simulator
 
@@ -56,7 +56,7 @@ class Projection(common.Projection):
     def set(self, **attributes):
         pass
 
-    def _convergent_connect(self, sources, target, weights, delays):
+    def _convergent_connect(self, sources, target, weights, delays, **plasticity_attributes):
         """
         Connect a neuron to one or more other neurons with a static connection.
 
@@ -66,13 +66,26 @@ class Projection(common.Projection):
                       `sources`, or a single weight value.
         `delays`   -- a 1D array of connection delays, of the same length as
                       `sources`, or a single delay value.
+        `plasticity_attributes` -- TO DOCUMENT
         """
-
         if isinstance(weights, float):
             weights = repeat(weights)
         if isinstance(delays, float):
             delays = repeat(delays)
-        for source, weight, delay in zip(sources, weights, delays):
-            self.connections.append(
-                Connection(source, target, weight=weight, delay=delay)
-            )
+        for name, value in plasticity_attributes.items():
+            if isinstance(value, float):
+                plasticity_attributes[name] = repeat(value)
+        def ezip(*args):
+            for items in zip(*args):
+                yield items[0], items[1], items[2], items[3:]
+        if plasticity_attributes:
+            for source, weight, delay, other in ezip(sources, weights, delays, *plasticity_attributes.values()):
+                other_attributes = dict(zip(plasticity_attributes.keys(), other))
+                self.connections.append(
+                    Connection(source, target, weight=weight, delay=delay, **other_attributes)
+                )
+        else:
+            for source, weight, delay in izip(sources, weights, delays):
+                self.connections.append(
+                    Connection(source, target, weight=weight, delay=delay)
+                )
