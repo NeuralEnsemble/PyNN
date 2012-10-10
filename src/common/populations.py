@@ -242,7 +242,7 @@ class BasePopulation(object):
         assert isinstance(n, int)
         if not rng:
             rng = random.NumpyRNG()
-        indices = rng.permutation(numpy.arange(len(self)), dtype=numpy.int)[0:n]
+        indices = rng.permutation(numpy.arange(len(self), dtype=numpy.int))[0:n]
         logger.debug("The %d cells recorded have indices %s" % (n, indices))
         logger.debug("%s.sample(%s)", self.label, n)
         return self._get_view(indices)
@@ -458,6 +458,7 @@ class BasePopulation(object):
         
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
+        logger.debug("Population %s is writing variables %s to %s" % (self.label, variables, io))
         self.recorder.write(variables, io, gather, self.record_filter)
 
     def get_data(self, variables='all', gather=True, clear=False):

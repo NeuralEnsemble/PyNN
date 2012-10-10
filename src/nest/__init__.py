@@ -7,6 +7,12 @@ NEST v2 implementation of the PyNN API.
 
 $Id$
 """
+
+import numpy
+try:
+    import tables  # due to freeze when importing nest before tables
+except ImportError:
+    pass
 import nest
 from pyNN.nest import simulator
 from pyNN import common, recording, errors, space, __doc__
@@ -14,7 +20,6 @@ from pyNN import common, recording, errors, space, __doc__
 if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
     raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
 
-import numpy
 import os
 import shutil
 import logging
@@ -137,7 +142,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
 def end():
     """Do any necessary cleaning up before exiting."""
     global tempdirs
+    logger.debug("Cleaning up")
     for (population, variables, filename) in simulator.write_on_end:
+        logger.debug("%s%s --> %s" % (population.label, variables, filename))
         io = recording.get_io(filename)
         population.write_data(io, variables)
     for tempdir in tempdirs:

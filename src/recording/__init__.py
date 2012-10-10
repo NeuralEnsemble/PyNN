@@ -87,25 +87,16 @@ def gather_blocks(data):
     if MPI is None:
         raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
     assert isinstance(data, neo.Block)
-    # for now, use gar_dict, which will probably be slow. Can optimize later
+    # for now, use gather_dict, which will probably be slow. Can optimize later
     D = {mpi_comm.rank: data}
     D = gather_dict(D)
     blocks = D.values()
     
-    # we have to first ensure merging of annotations, particularly ['source_ids']
-    ann  = [[] for i in xrange(0,len(blocks[0].segments[0].analogsignalarrays))]
-    for block in blocks:
-	for i in xrange(0,len(blocks[0].segments[0].analogsignalarrays)):
-        	ann[i].extend(block.segments[0].analogsignalarrays[i].annotations['source_ids'])
-	
-    merged = blocks[0]
-    
-    for block in blocks[1:]:
-        merged.merge(block)
-    
-    # set the merged annotations for 'source_ids'
-    for i in xrange(0,len(blocks[0].segments[0].analogsignalarrays)):
-    	merged.segments[0].analogsignalarrays[i].annotations['source_ids'] = numpy.array(ann[i])
+    merged = None    
+    if mpi_comm.rank == MPI_ROOT:    
+        merged = blocks[0]
+        for block in blocks[1:]:
+            merged.merge(block)
 
     return merged
 
@@ -133,6 +124,8 @@ def get_io(filename):
         return neo.io.PyNNTextIO(filename=filename)
     elif extension in ('.h5',):
         return neo.io.NeoHdf5IO(filename=filename)
+    elif extension in ('.pkl',):
+        return neo.io.PickleIO(filename=filename)
     else: # function to be improved later
         raise Exception("file extension %s not supported" % extension)
 
@@ -230,6 +223,7 @@ class Recorder(object):
         if clear:
             self.cache.clear()
         self.clear_flag = True
+        
         return data
 
     def write(self, variables, file=None, gather=False, filter_ids=None, clear=False):

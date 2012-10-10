@@ -104,6 +104,7 @@ class Recorder(recording.Recorder):
                     get_signal = lambda id: id._cell.traces[variable]
                 ids = self.filter_recorded(variable, filter_ids)
                 signal_array = numpy.vstack((get_signal(id) for id in ids))
+                source_ids = numpy.fromiter(ids, dtype=int)
                 segment.analogsignalarrays.append(
                     neo.AnalogSignalArray(
                         signal_array.T, # assuming not using cvode, otherwise need to use IrregularlySampledAnalogSignal
@@ -111,8 +112,9 @@ class Recorder(recording.Recorder):
                         t_start=simulator.state.t_start*pq.ms,
                         sampling_period=simulator.state.dt*pq.ms,
                         name=variable,
+                        channel_index=source_ids - self.population.first_id,
                         source_population=self.population.label,
-                        source_ids=numpy.fromiter(ids, dtype=int))
+                        source_ids=source_ids)
                 )
                 assert segment.analogsignalarrays[0].t_stop - simulator.state.t*pq.ms < 2*simulator.state.dt*pq.ms
                 # need to add `Unit` and `RecordingChannelGroup` objects

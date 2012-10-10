@@ -163,7 +163,7 @@ class Projection(object):
         """
         # should perhaps add a "distribute" argument, for symmetry with "gather" in getWeights()
         # if post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
-        w = check_weight(w, self.synapse_type, is_conductance(self.post.local_cells[0]))
+        w = check_weight(w, self.synapse_type, self.post.celltype.conductance_based)
         self.set('weight', w)
 
     @deprecated("set('weight', rand_distr)")

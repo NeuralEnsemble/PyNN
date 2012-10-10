@@ -11,7 +11,7 @@ $Id$
 
 """
 
-from pyNN.utility import get_script_args, Timer
+from pyNN.utility import get_script_args, Timer, init_logging
 
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
@@ -19,6 +19,8 @@ exec("from pyNN.%s import *" % simulator_name)
 from pyNN.random import NumpyRNG, RandomDistribution
 
 timer = Timer()
+
+init_logging(logfile=None, debug=False)
 
 # === Define parameters ========================================================
 
@@ -149,12 +151,12 @@ inpoisson = Population(NI, SpikeSourcePoisson, {'rate': p_rate}, "inpoisson")
 
 # Record spikes
 print "%d Setting up recording in excitatory population." % rank
-E_net.record(Nrec)
-E_net[[0, 1]].record_v()
+E_net.sample(Nrec).record('spikes')
+E_net[[0, 1]].record('v')
 
 print "%d Setting up recording in inhibitory population." % rank
-I_net.record(Nrec)
-I_net[[0, 1]].record_v()
+I_net.sample(Nrec).record('spikes')
+I_net[[0, 1]].record('v')
 
 E_Connector = FixedProbabilityConnector(epsilon, weights=JE, delays=delay, verbose=True)
 I_Connector = FixedProbabilityConnector(epsilon, weights=JI, delays=delay, verbose=True)

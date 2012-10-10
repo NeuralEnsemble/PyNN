@@ -16,8 +16,8 @@ exec("from pyNN.%s import *" % simulator_name)
 
 # === Define parameters ========================================================
 
-n = 5    # Number of cells
-w = 0.2   # synaptic weight (nA)
+n = 10     # Number of cells
+w = 0.1    # synaptic weight (nA)
 cell_params = {
     'tau_m'      : 20.0, # (ms)
     'tau_syn_E'  : 2.0,  # (ms)
@@ -37,6 +37,11 @@ simtime    = 1000.0      # (ms)
 setup(timestep=dt, max_delay=syn_delay)
 
 cells = Population(n, IF_curr_alpha, cell_params, initial_values={'v': 0.0}, label="cells")
+offset = 0.0
+for cell in cells.all():
+    if cell.local:
+        cell.i_offset = offset
+    offset += 0.5/n
 
 number = int(2*simtime*input_rate/1000.0)
 numpy.random.seed(26278342)
@@ -46,7 +51,7 @@ assert spike_times.max() > simtime
 spike_source = Population(n, SpikeSourceArray, {'spike_times': spike_times})
 
 cells.record('spikes')
-cells.record_v()
+cells[::2].record_v()  # record every 2nd cell
 
 input_conns = Projection(spike_source, cells, AllToAllConnector())
 input_conns.setWeights(w)
@@ -56,8 +61,7 @@ input_conns.setDelays(syn_delay)
 
 run(simtime)
 
-cells.printSpikes("Results/small_network_%s_np%d.ras" % (simulator_name, num_processes()))
-cells.print_v("Results/small_network_%s_np%d.v" % (simulator_name, num_processes()))
+cells.write_data("Results/small_network_%s_np%d.pkl" % (simulator_name, num_processes()))
 
 print "Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz"
 

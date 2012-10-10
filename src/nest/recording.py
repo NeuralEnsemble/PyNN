@@ -422,19 +422,23 @@ class Recorder(recording.Recorder):
             else:
                 ids = self.filter_recorded(variable, filter_ids)
                 data = self._multimeter.get_data(variable, ids)
-                signal_array = numpy.vstack(data.values())
-                t_start=simulator.state.t_start*pq.ms
-                sampling_period=simulator.state.dt*pq.ms # must run on all MPI nodes
-                segment.analogsignalarrays.append(
-                    neo.AnalogSignalArray(
-                        signal_array.T,
-                        units=recording.UNITS_MAP.get(variable, 'dimensionless'),
-                        t_start=t_start,
-                        sampling_period=sampling_period,
-                        name=variable,
-                        source_population=self.population.label,
-                        source_ids=numpy.array(data.keys()))
-                )
+                t_start = simulator.state.t_start*pq.ms
+                sampling_period = simulator.state.dt*pq.ms # must run on all MPI nodes
+                if data:  # may be empty if none of the recorded cells are on this MPI node
+                    signal_array = numpy.vstack(data.values())
+                    source_ids = numpy.array(data.keys())
+                    segment.analogsignalarrays.append(
+                        neo.AnalogSignalArray(
+                            signal_array.T,
+                            units=recording.UNITS_MAP.get(variable, 'dimensionless'),
+                            t_start=t_start,
+                            sampling_period=sampling_period,
+                            name=variable,
+                            channel_index=source_ids - self.population.first_id,
+                            source_population=self.population.label,
+                            source_ids=source_ids)
+                    )
+        #import pdb; pdb.set_trace()
         return segment
 
     def _local_count(self, variable, filter_ids):
