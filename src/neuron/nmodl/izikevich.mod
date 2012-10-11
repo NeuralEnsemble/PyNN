@@ -16,8 +16,8 @@ UNITS {
 }
 
 INITIAL {
-  v = -65
-  u = 0.2*v
+  vm = -65
+  u = 0.2*vm
   i = 0
   net_send(0,1)
 }
@@ -32,7 +32,7 @@ PARAMETER {
 
 STATE { 
   u (mV)
-  v 
+  vm
 }
 
 ASSIGNED {
@@ -44,17 +44,17 @@ BREAKPOINT {
 }
 
 DERIVATIVE states {
-  v' = 0.04*v*v + 5*v + 140 - u + i
-  u' = a*(b*v-u) 
+  vm' = 0.04*vm*vm + 5*vm + 140 - u + i
+  u' = a*(b*vm-u) 
   i  = 0
 }
 
 NET_RECEIVE (weight) {
   if (flag == 1) {
-    WATCH (v>vthresh) 2
+    WATCH (vm>vthresh) 2
   } else if (flag == 2) {
     net_event(t)
-    v = vreset
+    vm = vreset
     u = u+d
   } else { : synaptic activation
     i = weight
