@@ -235,7 +235,7 @@ class Recorder(object):
                 signal_array = self._get_all_signals(variable, ids)
                 t_start = self._simulator.state.t_start*pq.ms
                 sampling_period = self._simulator.state.dt*pq.ms # must run on all MPI nodes
-                if signal_array:  # may be empty if none of the recorded cells are on this MPI node
+                if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     channel_indices = [self.population.id_to_index(id) for id in ids]
                     units = self.find_units(variable)
                     source_ids = numpy.fromiter(ids, dtype=int)
