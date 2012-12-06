@@ -345,7 +345,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
         assert isinstance(d_expression, str) or callable(d_expression)
         assert isinstance(allow_self_connections, bool)
         try:
-            if isinstance(d_expression, str) and not expand_distances(d_expression):
+            if isinstance(d_expression, str):
                 d = 0; assert 0 <= eval(d_expression), eval(d_expression)
                 d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
         except ZeroDivisionError, err:

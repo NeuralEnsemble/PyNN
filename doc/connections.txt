@@ -433,7 +433,7 @@ parameters of synapse dynamics models:
 .. doctest::
 
     >>> inhibitory_connections.get('U', format='list')[0:4]
-    stuff
+    [(48, 52, 0.04), (42, 53, 0.04), (51, 54, 0.04), (44, 55, 0.04)]
 
 It is also possible to retrieve the values of multiple attributes at once, as
 either a list of tuples or a tuple of arrays:

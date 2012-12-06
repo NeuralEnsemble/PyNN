@@ -4,8 +4,8 @@ from quantities import nA
 
 sim.setup()
 
-cell = sim.Population(1, sim.HH_cond_exp)
-step_current = sim.DCSource(dict(start=20.0, stop=80.0))
+cell = sim.Population(1, sim.HH_cond_exp())
+step_current = sim.DCSource(start=20.0, stop=80.0)
 step_current.inject_into(cell)
 
 cell.record('v')

@@ -407,7 +407,7 @@ def test_reset_recording(sim):
     data = p.get_data()
     ti = lambda i: data.segments[i].analogsignalarrays[0].times
     assert_arrays_equal(ti(0), ti(1))
-    idx = lambda i: data.segments[i].analogsignalarrays[0].channel_indexes
+    idx = lambda i: data.segments[i].analogsignalarrays[0].channel_index
     assert idx(0) == [3]
     assert idx(1) == [4]
     vi = lambda i: data.segments[i].analogsignalarrays[0]
@@ -524,12 +524,12 @@ def test_record_vm_and_gsyn_from_assembly(sim):
 
     assert_arrays_equal(vm_p1[:,3], vm_all[:,8])
 
-    assert_equal(vm_p0.channel_indexes, range(5))
-    assert_equal(vm_p1.channel_indexes, range(6))
-    assert_equal(vm_all.channel_indexes, range(11))
-    assert_equal(gsyn_p0.channel_indexes, [ 2, 3, 4])
-    assert_equal(gsyn_p1.channel_indexes, [ 0, 1, 2, 3])
-    assert_equal(gsyn_all.channel_indexes, range(2,9))
+    assert_equal(vm_p0.channel_index, range(5))
+    assert_equal(vm_p1.channel_index, range(6))
+    assert_equal(vm_all.channel_index, range(11))
+    assert_equal(gsyn_p0.channel_index, [ 2, 3, 4])
+    assert_equal(gsyn_p1.channel_index, [ 0, 1, 2, 3])
+    assert_equal(gsyn_all.channel_index, range(2,9))
 
     sim.end()
 

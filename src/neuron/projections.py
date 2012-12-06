@@ -30,12 +30,11 @@ class Projection(common.Projection):
         ## Deal with short-term synaptic plasticity
         if self.synapse_dynamics and self.synapse_dynamics.fast:
             # need to check it is actually the Ts-M model, even though that is the only one at present!
-            U = self.synapse_dynamics.fast.parameters['U']
-            tau_rec = self.synapse_dynamics.fast.parameters['tau_rec']
-            tau_facil = self.synapse_dynamics.fast.parameters['tau_facil']
-            u0 = self.synapse_dynamics.fast.parameters['u0']
+            P = self.synapse_dynamics.fast.translated_parameters
             for cell in self.post:
-                cell._cell.set_Tsodyks_Markram_synapses(self.synapse_type, U, tau_rec, tau_facil, u0)
+                cell._cell.set_Tsodyks_Markram_synapses(self.synapse_type,
+                                                        P['U'], P['tau_rec'],
+                                                        P['tau_facil'], P['u0'])
             self.synapse_model = 'Tsodyks-Markram'
         else:
             self.synapse_model = None

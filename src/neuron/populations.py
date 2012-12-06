@@ -10,7 +10,7 @@ nrnpython implementation of the PyNN API.
 import numpy
 import logging
 from pyNN import common
-from pyNN.parameters import Sequence, ParameterSpace
+from pyNN.parameters import Sequence, ParameterSpace, simplify
 from pyNN.standardmodels import StandardCellType
 from . import simulator
 from .recording import Recorder
@@ -36,7 +36,7 @@ class PopulationMixin(object):
             if name == 'spike_times': # hack
                 parameter_dict[name] = [Sequence(getattr(id._cell, name)) for id in self]
             else:
-                parameter_dict[name] = [getattr(id._cell, name) for id in self] # should be lazy array?
+                parameter_dict[name] = simplify(numpy.array([getattr(id._cell, name) for id in self]))
         return ParameterSpace(parameter_dict, size=self.size) # or local size?
 
     def _set_initial_value_array(self, variable, initial_values):

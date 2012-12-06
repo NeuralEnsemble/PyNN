@@ -122,7 +122,7 @@ class Population(common.Population, PopulationMixin):
         except nest.NESTError, err:
             if "UnknownModelName" in err.message and "cond" in err.message:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
-            raise errors.InvalidModelError(err)
+            raise #errors.InvalidModelError(err)
         # create parrot neurons if necessary
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             self.all_cells_source = numpy.array(self.all_cells)  # we put the parrots into all_cells, since this will

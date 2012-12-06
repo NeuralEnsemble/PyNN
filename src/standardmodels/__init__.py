@@ -25,6 +25,7 @@ from pyNN import descriptions, errors, models
 from pyNN.parameters import ParameterSpace
 import numpy
 from pyNN.core import is_listlike
+from copy import deepcopy
 
 # ==============================================================================
 #   Standard cells
@@ -68,6 +69,7 @@ class StandardModelType(models.BaseModelType):
     @classmethod
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
+        _parameters = deepcopy(parameters)
         if parameters.schema != cls.get_schema():
             raise Exception("Schemas do not match: %s != %s" % (parameters.schema, cls.get_schema())) # should replace this with a PyNN-specific exception type
         native_parameters = {}
@@ -76,7 +78,7 @@ class StandardModelType(models.BaseModelType):
             D = cls.translations[name]
             pname = D['translated_name']
             try:
-                pval = eval(D['forward_transform'], globals(), parameters)
+                pval = eval(D['forward_transform'], globals(), _parameters)
             except NameError, errmsg:
                 raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
                                 % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))

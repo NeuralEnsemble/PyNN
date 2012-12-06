@@ -871,9 +871,9 @@ class Assembly(object):
     all the neurons are of the same type.
 
     Arguments:
-        *populations:
+        populations:
             Populations or PopulationViews
-        **kwargs:
+        kwargs:
             May contain a keyword argument 'label'
     """
     _count = 0
@@ -1214,7 +1214,7 @@ class Assembly(object):
                 #segment.name = name
                 #segment.description = description
                 for signal_array in segment.analogsignalarrays:
-                    signal_array.channel_indexes = numpy.array(signal_array.channel_indexes) + offset  # hack
+                    signal_array.channel_index = numpy.array(signal_array.channel_index) + offset  # hack
             offset += p.size
         for i,block in enumerate(blocks): ##
             logger.debug("%d: %s", i, block.name)

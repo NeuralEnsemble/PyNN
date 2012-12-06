@@ -38,4 +38,3 @@ record(['v', 'gsyn_exc', 'gsyn_inh'], ifcell, "Results/IF_cond_exp_%s.pkl" % sim
 run(200.0)
 
 end()
-

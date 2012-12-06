@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 sim.setup(timestep=0.01)
-p_in = sim.Population(10, sim.SpikeSourcePoisson, {'rate': 10.0}, label="input")
-p_out = sim.Population(10, sim.EIF_cond_exp_isfa_ista, label="AdExp neurons")
+p_in = sim.Population(10, sim.SpikeSourcePoisson(rate=10.0), label="input")
+p_out = sim.Population(10, sim.EIF_cond_exp_isfa_ista(), label="AdExp neurons")
 
 random = sim.FixedProbabilityConnector(p_connect=0.5, weights=0.05)
 connections = sim.Projection(p_in, p_out, method=random, target='excitatory')

@@ -247,7 +247,7 @@ class Recorder(object):
                             sampling_period=sampling_period,
                             name=variable,
                             source_population=self.population.label,
-                            channel_indexes=channel_indices,
+                            channel_index=channel_indices,
                             source_ids=source_ids)
                     )
                     assert segment.analogsignalarrays[0].t_stop - self._simulator.state.t*pq.ms < 2*self._simulator.state.dt*pq.ms
