@@ -9,6 +9,10 @@ $Id$
 """
 
 import numpy
+try:
+    import tables  # due to freeze when importing nest before tables
+except ImportError:
+    pass
 import nest
 from . import simulator
 from pyNN import common, recording, errors, space, __doc__
@@ -121,6 +125,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
 def end():
     """Do any necessary cleaning up before exiting."""
     for (population, variables, filename) in simulator.state.write_on_end:
+        logger.debug("%s%s --> %s" % (population.label, variables, filename))
         io = recording.get_io(filename)
         population.write_data(io, variables)
     for tempdir in simulator.state.tempdirs:

@@ -63,7 +63,6 @@ def gather_array(data):
     sizes = mpi_comm.gather(size, root=MPI_ROOT) or []
     # now we pass the data
     displacements = [sum(sizes[:i]) for i in range(len(sizes))]
-    #print mpi_comm.rank, sizes, displacements, data
     gdata = numpy.empty(sum(sizes))
     mpi_comm.Gatherv([data.flatten(), size, MPI.DOUBLE],
                      [gdata, (sizes, displacements), MPI.DOUBLE],
@@ -95,9 +94,11 @@ def gather_blocks(data):
     D = {mpi_comm.rank: data}
     D = gather_dict(D)
     blocks = D.values()
-    merged = blocks[0]
-    for block in blocks[1:]:
-        merged.merge(block)
+    merged = None    
+    if mpi_comm.rank == MPI_ROOT:    
+        merged = blocks[0]
+        for block in blocks[1:]:
+            merged.merge(block)
     return merged
 
 
@@ -234,22 +235,23 @@ class Recorder(object):
                 signal_array = self._get_all_signals(variable, ids)
                 t_start = self._simulator.state.t_start*pq.ms
                 sampling_period = self._simulator.state.dt*pq.ms # must run on all MPI nodes
-                channel_indices = [self.population.id_to_index(id) for id in ids]
-                units = self.find_units(variable)
-                source_ids = numpy.fromiter(ids, dtype=int)
-                segment.analogsignalarrays.append(
-                    neo.AnalogSignalArray(
-                        signal_array,
-                        units=units,
-                        t_start=t_start,
-                        sampling_period=sampling_period,
-                        name=variable,
-                        source_population=self.population.label,
-                        channel_indexes=channel_indices,
-                        source_ids=source_ids)
-                )
-                assert segment.analogsignalarrays[0].t_stop - self._simulator.state.t*pq.ms < 2*self._simulator.state.dt*pq.ms
-                # need to add `Unit` and `RecordingChannelGroup` objects
+                if signal_array:  # may be empty if none of the recorded cells are on this MPI node
+                    channel_indices = [self.population.id_to_index(id) for id in ids]
+                    units = self.find_units(variable)
+                    source_ids = numpy.fromiter(ids, dtype=int)
+                    segment.analogsignalarrays.append(
+                        neo.AnalogSignalArray(
+                            signal_array,
+                            units=units,
+                            t_start=t_start,
+                            sampling_period=sampling_period,
+                            name=variable,
+                            source_population=self.population.label,
+                            channel_indexes=channel_indices,
+                            source_ids=source_ids)
+                    )
+                    assert segment.analogsignalarrays[0].t_stop - self._simulator.state.t*pq.ms < 2*self._simulator.state.dt*pq.ms
+                    # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False):

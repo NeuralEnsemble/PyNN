@@ -105,7 +105,13 @@ class Projection(common.Projection):
         weights = numpy.array(weights)*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
-        if self.synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
+
+        # currently we cannot handle the case where `post` is an Assembly and all the synapses are not of the same type
+        # so we raise an Exception
+        if isinstance(self.post, Assembly) and not self.post._homogeneous_synapses:
+            raise errors.ConnectionError("%s. source=%s, targets=%s, weights=%s, delays=%s" % ("Cannot handle Assemblies with non-homogeneous synapse type", source, targets, weights, delays))
+
+        if self.synapse_type == 'inhibitory' and self.post.conductance_based:
             weights *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()
@@ -298,4 +304,3 @@ class Projection(common.Projection):
                     value_arr *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
             all_values.append(value_arr)
         return all_values
-        

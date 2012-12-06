@@ -342,11 +342,12 @@ class DistanceDependentProbabilityConnector(MapConnector):
         Create a new connector.
         """
         Connector.__init__(self, weights, delays, space, safe, callback)
-        assert isinstance(d_expression, str)
+        assert isinstance(d_expression, str) or callable(d_expression)
         assert isinstance(allow_self_connections, bool)
         try:
-            d = 0; assert 0 <= eval(d_expression), eval(d_expression)
-            d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
+            if isinstance(d_expression, str) and not expand_distances(d_expression):
+                d = 0; assert 0 <= eval(d_expression), eval(d_expression)
+                d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
         except ZeroDivisionError, err:
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression

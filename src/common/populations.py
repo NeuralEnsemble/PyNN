@@ -439,7 +439,7 @@ class BasePopulation(object):
 
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
-        logger.debug("Writing %s to %s [gather=%s, clear=%s]" % (variables, io, gather, clear))
+        logger.debug("Population %s is writing %s to %s [gather=%s, clear=%s]" % (self.label, variables, io, gather, clear))
         self.recorder.write(variables, io, gather, self._record_filter)
 
     def get_data(self, variables='all', gather=True, clear=False):
