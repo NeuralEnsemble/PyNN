@@ -326,11 +326,11 @@ class BasePopulation(object):
         else:
             parameter_space = ParameterSpace(parameters,
                                              self.celltype.get_schema(),
-                                             self.size,
+                                             (self.size,),
                                              self.celltype.__class__)
         if isinstance(self.celltype, standardmodels.StandardCellType):
             parameter_space = self.celltype.translate(parameter_space)
-        assert parameter_space.size == self.size
+        assert parameter_space.shape == (self.size,)
         self._set_parameters(parameter_space)
 
     @deprecated("set(parametername=value_array)")

@@ -54,7 +54,7 @@ def test_instantiate():
     assert_equal(m.parameter_space._parameters, ParameterSpace(P1, None, None)._parameters)
 
 def _parameter_space_to_dict(parameter_space, size):
-    parameter_space.size = size
+    parameter_space.shape = (size,)
     parameter_space.evaluate(simplify=True)
     return parameter_space.as_dict()
 

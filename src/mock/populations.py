@@ -25,7 +25,7 @@ class PopulationView(common.PopulationView):
             if isinstance(value, numpy.ndarray):
                 value = value[self.mask]
             parameter_dict[name] = simplify(value)
-        return ParameterSpace(parameter_dict, size=self.size) # or local size?
+        return ParameterSpace(parameter_dict, shape=(self.size,)) # or local size?
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
@@ -55,7 +55,7 @@ class Population(common.Population):
             parameter_space = self.celltype.translated_parameters
         else:
             parameter_space = self.celltype.parameter_space
-        parameter_space.size = self.size
+        parameter_space.shape = (self.size,)
         parameter_space.evaluate(simplify=False)
         self._parameters = parameter_space.as_dict()
         id_range = numpy.arange(simulator.state.id_counter,
@@ -82,7 +82,7 @@ class Population(common.Population):
         parameter_dict = {}
         for name in names:
             parameter_dict[name] = simplify(self._parameters[name])
-        return ParameterSpace(parameter_dict, size=self.size)
+        return ParameterSpace(parameter_dict, shape=(self.size,))
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""

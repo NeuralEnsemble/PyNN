@@ -30,7 +30,7 @@ class NestCurrentSource(StandardCurrentSource):
         self.cell_list = []
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
-                                         size=1)
+                                         shape=(1,))
         parameter_space.update(**parameters)
         parameter_space = self.translate(parameter_space)
         self.set_native_parameters(parameter_space)

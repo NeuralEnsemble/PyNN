@@ -9,6 +9,7 @@ import numpy
 import collections
 from pyNN.core import LazyArray, is_listlike
 from pyNN import errors
+from lazyarray import partial_shape
 
 
 class Sequence(object):
@@ -102,27 +103,29 @@ class ParameterSpace(object):
         `component`:
             optional - class for which the parameters are destined. Used in
             error messages.
+        `shape`:
+            the shape of the lazy arrays that will be constructed.
 
     .. _`lazy array`: http://readthedocs.org/docs/lazyarray/en/latest/index.html
     """
 
-    def __init__(self, parameters, schema=None, size=None, component=None):
+    def __init__(self, parameters, schema=None, shape=None, component=None):
         """
 
         """
         self._parameters = {}
         self.schema = schema
-        self._size = size
+        self._shape = shape
         self.component = component
         self.update(**parameters)
         self._evaluated = False
 
-    def _set_size(self, n):
+    def _set_shape(self, shape):
         for value in self._parameters.itervalues():
-            value.shape = (n,)
-        self._size = n
-    size = property(fget=lambda self: self._size, fset=_set_size,
-                    doc="Size of the lazy arrays contained within the parameter space")
+            value.shape = shape
+        self._shape = shape
+    shape = property(fget=lambda self: self._shape, fset=_set_shape,
+                     doc="Size of the lazy arrays contained within the parameter space")
 
     def keys(self):
         """
@@ -139,7 +142,7 @@ class ParameterSpace(object):
         return self._parameters.iteritems()
 
     def __repr__(self):
-        return "<ParameterSpace %s, size=%s>" % (", ".join(self.keys()), self.size)
+        return "<ParameterSpace %s, shape=%s>" % (", ".join(self.keys()), self.shape)
 
     def update(self, **parameters):
         """
@@ -150,10 +153,6 @@ class ParameterSpace(object):
         If the :class:`ParameterSpace` has a schema, the keys and the data types
         of the values will be checked against the schema.
         """
-        if self._size is None:
-            array_shape = None
-        else:
-            array_shape = (self._size,)
         if self.schema:
             for name, value in parameters.items():
                 try:
@@ -167,7 +166,7 @@ class ParameterSpace(object):
                     and not isinstance(value[0], Sequence)): # may be a more generic way to do it, but for now this special-casing seems like the most robust approach
                     value = Sequence(value)
                 try:
-                    self._parameters[name] = LazyArray(value, shape=array_shape,
+                    self._parameters[name] = LazyArray(value, shape=self._shape,
                                                        dtype=expected_dtype)
                 except TypeError:
                     raise errors.InvalidParameterValueError("For parameter %s expected %s, got %s" % (name, type(value), expected_dtype))
@@ -175,7 +174,7 @@ class ParameterSpace(object):
                     raise errors.InvalidDimensionsError(err) # maybe put the more specific error classes into lazyarray
         else:
             for name, value in parameters.items():
-                self._parameters[name] = LazyArray(value, shape=array_shape)
+                self._parameters[name] = LazyArray(value, shape=self._shape)
 
     def __getitem__(self, name):
         """x.__getitem__(y) <==> x[y]"""
@@ -193,22 +192,18 @@ class ParameterSpace(object):
         Evaluate all lazy arrays contained in the parameter space, using the
         given mask.
         """
-        if self._size is None:
-            raise Exception("Must set size of parameter space before evaluating")
+        if self._shape is None:
+            raise Exception("Must set shape of parameter space before evaluating")
         if mask is None:
             for name, value in self._parameters.items():
                 self._parameters[name] = value.evaluate(simplify=simplify)
-            self._evaluated_size = self._size
-        elif is_listlike(mask):
-            mask = numpy.array(mask)
-            if len(mask) > 0:
-                for name, value in self._parameters.items():
-                    self._parameters[name] = value[mask]
-            self._evaluated_size = len(mask)
+            self._evaluated_shape = self._shape
         else:
-            raise Exception("mask must be a list or array")  # should handle slice
+            for name, value in self._parameters.items():
+                self._parameters[name] = value[mask]
+            self._evaluated_shape = partial_shape(mask, self._shape)
         self._evaluated = True
-        # should possibly update self.size according to mask?
+        # should possibly update self.shape according to mask?
 
     def as_dict(self):
         """
@@ -234,7 +229,7 @@ class ParameterSpace(object):
 
         Example:
         
-        >>> ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3*i+2}, size=4)
+        >>> ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3*i+2}, shape=(4,))
         >>> ps.evaluate()
         >>> for D in ps:
         ...     print D
@@ -246,7 +241,7 @@ class ParameterSpace(object):
         """
         if not self._evaluated:
             raise Exception("Must call evaluate() method before iterating over a ParameterSpace")
-        for i in range(self._evaluated_size):
+        for i in range(self._evaluated_shape[0]):
             D = {}
             for name, value in self._parameters.items():
                 if is_listlike(value):
@@ -259,7 +254,7 @@ class ParameterSpace(object):
     def __eq__(self, other):
         return (all(a==b for a,b in zip(self._parameters.items(), other._parameters.items()))
                 and self.schema == other.schema
-                and self._size == other._size)
+                and self._shape == other._shape)
 
 
 def simplify(value):

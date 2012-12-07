@@ -37,7 +37,7 @@ class PopulationMixin(object):
                 parameter_dict[name] = [Sequence(getattr(id._cell, name)) for id in self]
             else:
                 parameter_dict[name] = simplify(numpy.array([getattr(id._cell, name) for id in self]))
-        return ParameterSpace(parameter_dict, size=self.size) # or local size?
+        return ParameterSpace(parameter_dict, shape=(self.size,)) # or local size?
 
     def _set_initial_value_array(self, variable, initial_values):
         if initial_values.is_homogeneous:
@@ -94,7 +94,7 @@ class Population(common.Population, PopulationMixin):
             parameter_space = self.celltype.translated_parameters
         else:
             parameter_space = self.celltype.parameter_space
-        parameter_space.size = self.size
+        parameter_space.shape = (self.size,)
         parameter_space.evaluate(mask=None)
         for i, (id, is_local, params) in enumerate(zip(self.all_cells, self._mask_local, parameter_space)):
             self.all_cells[i] = simulator.ID(id)

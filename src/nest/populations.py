@@ -48,7 +48,7 @@ class PopulationMixin(object):
                               for col, name in enumerate(names))
         if "spike_times" in parameter_dict: # hack
             parameter_dict["spike_times"] = [Sequence(value) for value in parameter_dict["spike_times"]]
-        return ParameterSpace(parameter_dict, size=self.size)
+        return ParameterSpace(parameter_dict, shape=(self.size,))
 
 
 class Assembly(common.Assembly):
@@ -68,7 +68,7 @@ def _build_params(parameter_space, mask_local, size=None, extra_parameters=None)
     in Create or SetStatus.
     """
     if size:
-        parameter_space.size = size
+        parameter_space.shape = (size,)
     if parameter_space.is_homogeneous:
         parameter_space.evaluate(simplify=True)
         cell_parameters = parameter_space.as_dict()

@@ -137,7 +137,7 @@ that allow operations on all the lazy arrays within it at once. For example:
 .. doctest::
 
     >>> from pyNN.parameters import ParameterSpace
-    >>> ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3*i+2}, size=4)
+    >>> ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3*i+2}, shape=(4,))
     >>> ps['c']
     <pyNN.core.LazyArray object at 0x15d3890>
     >>> ps.evaluate()
@@ -149,10 +149,25 @@ part of the lazy arrays:
 
 .. doctest::
 
-    >>> ps = ParameterSpace({'a': [2, 3, 5, 8, 13], 'b': 7, 'c': lambda i: 3*i+2}, size=5)
+    >>> ps = ParameterSpace({'a': [2, 3, 5, 8, 13], 'b': 7, 'c': lambda i: 3*i+2}, shape=(5,))
     >>> ps.evaluate(mask=[1, 3, 4])
     >>> ps.as_dict()
     {'a': array([ 3,  8, 13]), 'c': array([ 5, 11, 14]), 'b': array([7, 7, 7])}
+
+An example with two-dimensional arrays:
+
+.. doctest::
+
+    >>> ps2d = ParameterSpace({'a': [[2, 3, 5, 8, 13], [21, 34, 55, 89, 144]],
+    ...                        'b': 7,
+    ...                        'c': lambda i, j: 3*i-2*j}, shape=(2, 5))
+    >>> ps2d.evaluate(mask=(slice(None), [1, 3, 4]))
+    >>> print ps2d['a']
+    [[  3   8  13]
+     [ 34  89 144]]
+    >>> print ps2d['c']
+    [[-2 -6 -8]
+     [ 1 -3 -5]]
 
 There are also several methods to allow iterating over the parameter space in
 different ways. A :class:`ParameterSpace` can be viewed as both a :class:`dict`
@@ -178,7 +193,6 @@ unlike for a :class:`dict`, where iterating over it gives the keys.
     a = [ 3  8 13]
     c = [ 5 11 14]
     b = [7 7 7]
-
 
 Reference
 ~~~~~~~~~

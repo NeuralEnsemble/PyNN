@@ -35,6 +35,9 @@ extra_args = {
     "VAbenchmarks3.py": "CUBA",
 }
 
+if not os.path.exists("Results"):
+    os.mkdir("Results")
+
 for simulator in simulator_names:
     if simulator.lower() in simulators:
         print "\n\n\n================== Running examples with %s =================\n" % simulator

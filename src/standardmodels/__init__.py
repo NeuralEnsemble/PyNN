@@ -86,7 +86,7 @@ class StandardModelType(models.BaseModelType):
                 raise
                 #pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
-        return ParameterSpace(native_parameters, schema=None, size=parameters.size)
+        return ParameterSpace(native_parameters, schema=None, shape=parameters.shape)
 
     @classmethod
     def reverse_translate(cls, native_parameters):
@@ -100,7 +100,7 @@ class StandardModelType(models.BaseModelType):
                 except NameError, errmsg:
                     raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
                                     % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
-        return ParameterSpace(standard_parameters, schema=cls.get_schema(), size=native_parameters.size)
+        return ParameterSpace(standard_parameters, schema=cls.get_schema(), shape=native_parameters.shape)
 
     @classmethod
     def simple_parameters(cls):
@@ -186,7 +186,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
             all_parameters.update(parameters)
             parameters = all_parameters
         else:
-            parameters = ParameterSpace(parameters, self.get_schema(), 1)
+            parameters = ParameterSpace(parameters, self.get_schema(), (1,))
         parameters = self.translate(parameters)
         self.set_native_parameters(parameters)
 
@@ -298,7 +298,7 @@ class ShortTermPlasticityMechanism(StandardModelType):
     #@property
     #def parameters(self):
     #    parameter_space = self.translated_parameters
-    #    parameter_space.size = 1
+    #    parameter_space.shape = (1,)
     #    if not parameter_space.is_homogeneous:
     #        raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
     #    parameter_space.evaluate(simplify=True)
@@ -373,7 +373,7 @@ class STDPMechanism(object):
     #    timing_parameters = self.timing_dependence.translated_parameters
     #    weight_parameters = self.weight_dependence.translated_parameters
     #    for parameter_space in (timing_parameters, weight_parameters):
-    #        parameter_space.size = 1
+    #        parameter_space.shape = (1,)
     #        if not parameter_space.is_homogeneous:
     #            raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
     #        parameter_space.evaluate(simplify=True)

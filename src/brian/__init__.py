@@ -110,7 +110,7 @@ class PopulationView(common.PopulationView):
             else:
                 params[name] = getattr(self.parent.brian_cells, name)[self.mask]
                 assert isinstance(params[name], numpy.ndarray)
-        return ParameterSpace(params, size=self.size)
+        return ParameterSpace(params, shape=(self.size,))
 
     def _set_parameters(self, parameter_space):
         """
@@ -173,7 +173,7 @@ class Population(common.Population):
             else:
                 params[name] = getattr(self.brian_cells, name)
                 assert isinstance(params[name], numpy.ndarray)
-        return ParameterSpace(params, size=self.size)
+        return ParameterSpace(params, shape=(self.size,))
 
     def _set_parameters(self, parameter_space):
         """
