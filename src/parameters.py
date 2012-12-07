@@ -37,11 +37,18 @@ class Sequence(object):
     #    This must not be defined, otherwise Sequence is insufficiently different from NumPy array
 
     def max(self):
-        """docstring goes here"""
+        """Return the maximum value from the sequence."""
         return self.value.max()
 
     def __mul__(self, val):
-        """docstring goes here"""
+        """
+        Return a new :class:`Sequence` in which all values in the original
+        :class:`Sequence` have been multiplied by `val`.
+
+        If `val` is itself an array, return an array of :class:`Sequence`
+        objects, where sequence `i` is the original sequence multiplied by
+        element `i` of `val`.
+        """
         if hasattr(val, '__len__'):
             return numpy.array([Sequence(self.value * x) for x in val], dtype=Sequence) # reshape if necessary?
         else:
@@ -50,7 +57,14 @@ class Sequence(object):
     __rmul__ = __mul__
 
     def __div__(self, val):
-        """docstring goes here"""
+        """
+        Return a new :class:`Sequence` in which all values in the original
+        :class:`Sequence` have been divided by `val`.
+
+        If `val` is itself an array, return an array of :class:`Sequence`
+        objects, where sequence `i` is the original sequence divided by
+        element `i` of `val`.
+        """
         if hasattr(val, '__len__'):
             return numpy.array([Sequence(self.value/x) for x in val], dtype=Sequence) # reshape if necessary?
         else:
@@ -107,17 +121,20 @@ class ParameterSpace(object):
         for value in self._parameters.itervalues():
             value.shape = (n,)
         self._size = n
-    size = property(fget=lambda self: self._size, fset=_set_size)
+    size = property(fget=lambda self: self._size, fset=_set_size,
+                    doc="Size of the lazy arrays contained within the parameter space")
 
     def keys(self):
         """
-        docstring goes here
+        PS.keys() -> list of PS's keys.
         """
         return self._parameters.keys()
 
     def items(self):
         """
-        docstring goes here
+        PS.items() ->  an iterator over the (key, value) items of PS.
+
+        Note that the values will all be :class:`LazyArray` objects.
         """
         return self._parameters.iteritems()
 
@@ -126,7 +143,12 @@ class ParameterSpace(object):
 
     def update(self, **parameters):
         """
-        docstring goes here
+        Update the contents of the parameter space according to the
+        `(key, value)` pairs in ``**parameters``. All values will be turned into
+        lazy arrays.
+
+        If the :class:`ParameterSpace` has a schema, the keys and the data types
+        of the values will be checked against the schema.
         """
         if self._size is None:
             array_shape = None
@@ -156,12 +178,13 @@ class ParameterSpace(object):
                 self._parameters[name] = LazyArray(value, shape=array_shape)
 
     def __getitem__(self, name):
+        """x.__getitem__(y) <==> x[y]"""
         return self._parameters[name]
 
     @property
     def is_homogeneous(self):
         """
-        docstring goes here
+        True if all of the lazy arrays within are homogeneous.
         """
         return all(value.is_homogeneous for value in self._parameters.values())
 
@@ -176,17 +199,21 @@ class ParameterSpace(object):
             for name, value in self._parameters.items():
                 self._parameters[name] = value.evaluate(simplify=simplify)
             self._evaluated_size = self._size
-        else:
+        elif is_listlike(mask):
+            mask = numpy.array(mask)
             if len(mask) > 0:
                 for name, value in self._parameters.items():
                     self._parameters[name] = value[mask]
             self._evaluated_size = len(mask)
+        else:
+            raise Exception("mask must be a list or array")  # should handle slice
         self._evaluated = True
         # should possibly update self.size according to mask?
 
     def as_dict(self):
         """
-        docstring goes here
+        Return a plain dict containing the same keys and values as the
+        parameter space. The values must first have been evaluated.
         """
         if not self._evaluated:
             raise Exception("Must call evaluate() method before calling ParameterSpace.as_dict()")
@@ -197,8 +224,25 @@ class ParameterSpace(object):
         return D
 
     def __iter__(self):
-        """
-        docstring goes here
+        r"""
+        Return an array-element-wise iterator over the parameter space.
+
+        Each item in the iterator is a dict, containing the same keys as the
+        :class:`ParameterSpace`. For the `i`\th dict returned by the iterator,
+        each value is the `i`\th element of the corresponding lazy array in the
+        parameter space.
+
+        Example:
+        
+        >>> ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3*i+2}, size=4)
+        >>> ps.evaluate()
+        >>> for D in ps:
+        ...     print D
+        ...
+        {'a': 2, 'c': 2, 'b': 7}
+        {'a': 3, 'c': 5, 'b': 7}
+        {'a': 5, 'c': 8, 'b': 7}
+        {'a': 8, 'c': 11, 'b': 7}
         """
         if not self._evaluated:
             raise Exception("Must call evaluate() method before iterating over a ParameterSpace")
@@ -216,6 +260,7 @@ class ParameterSpace(object):
         return (all(a==b for a,b in zip(self._parameters.items(), other._parameters.items()))
                 and self.schema == other.schema
                 and self._size == other._size)
+
 
 def simplify(value):
     """
