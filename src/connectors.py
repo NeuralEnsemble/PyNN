@@ -116,7 +116,7 @@ class ConnectionAttributeGenerator(object):
                 values = self.source.next(N, mask_local=self.local_mask)
             else:
                 data  = self.source.next(N, mask_local=self.local_mask)
-                if type(data) == numpy.float:
+                if not numpy.iterable(data):
                     data = numpy.array([data])
                 values = data[sub_mask]
             return values
