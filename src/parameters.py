@@ -251,6 +251,22 @@ class ParameterSpace(object):
                 assert not isinstance(D[name], LazyArray) # should all have been evaluated by now
             yield D
 
+    def columns(self):
+        """
+        For a 2D space, return a column-wise iterator over the parameter space.
+        """
+        if not self._evaluated:
+            raise Exception("Must call evaluate() method before iterating over a ParameterSpace")
+        for j in range(self._evaluated_shape[1]):
+            D = {}
+            for name, value in self._parameters.items():
+                if is_listlike(value):
+                    D[name] = value[:, j]
+                else:
+                    D[name] = value
+                assert not isinstance(D[name], LazyArray) # should all have been evaluated by now
+            yield D
+
     def __eq__(self, other):
         return (all(a==b for a,b in zip(self._parameters.items(), other._parameters.items()))
                 and self.schema == other.schema
