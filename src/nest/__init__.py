@@ -96,7 +96,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     nest.SetKernelStatus({'off_grid_spiking': simulator.state.spike_precision=='off_grid'})
     if "recording_precision" in extra_params:
         simulator.state.default_recording_precision = extra_params["recording_precision"]
-    nest.SetDefaults('spike_generator', {'allow_offgrid_spikes': True})
+    if 'allow_offgrid_spikes' in nest.GetDefaults('spike_generator'):
+        nest.SetDefaults('spike_generator', {'allow_offgrid_spikes': True})
     
     # clear the sli stack, if this is not done --> memory leak cause the stack increases
     nest.sr('clear')
