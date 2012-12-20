@@ -14,7 +14,8 @@ def get_defaults(model_name):
     ignore = ['archiver_length', 'available', 'capacity', 'elementsize',
               'frozen', 'instantiations', 'local', 'model', 'recordables',
               'state', 't_spike', 'tau_minus', 'tau_minus_triplet',
-              'thread', 'vp', 'receptor_types', 'events']
+              'thread', 'vp', 'receptor_types', 'events' 'global_id',
+              'type', 'type_id']
     default_params = {}
     default_initial_values = {}
     for name,value in defaults.items():

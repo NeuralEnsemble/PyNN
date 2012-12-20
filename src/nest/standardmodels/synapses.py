@@ -34,10 +34,9 @@ class SynapseDynamics(SynapseDynamics):
                              "Possible models in your NEST build are: %s" % (base_model, available_models))
             
         synapse_defaults = nest.GetDefaults(base_model)
-        synapse_defaults.pop('synapsemodel')
-        synapse_defaults.pop('num_connections')
-        if 'num_connectors' in synapse_defaults:
-            synapse_defaults.pop('num_connectors')
+        for ignore in ('synapsemodel', 'num_connections', 'num_connectors',
+                       'type', 'property_object'):
+            synapse_defaults.pop(ignore, None)
         if self.fast:
             synapse_defaults.update(self.fast.parameters)
         elif self.slow:
@@ -202,4 +201,3 @@ class SpikePairRule(synapses.SpikePairRule):
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = self.translate(parameters)
-        
