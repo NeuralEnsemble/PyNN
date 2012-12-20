@@ -48,12 +48,12 @@ class NestCurrentSource(StandardCurrentSource):
         for key, value in parameters.items():
             self.parameters[key] = value
             if key == "amplitude_values": 
-                nest.SetStatus([self._device], {key : list(parameters[key]), 'amplitude_times' : list(parameters["amplitude_times"])})
+                nest.SetStatus(self._device, {key : list(parameters[key]), 'amplitude_times' : list(parameters["amplitude_times"])})
             elif not key == "amplitude_times":
-                nest.SetStatus([self._device], {key : float(value)})
+                nest.SetStatus(self._device, {key : float(value)})
 
     def get_native_parameters(self):
-        return nest.GetStatus([self._device])[0]
+        return nest.GetStatus(self._device)[0]
     
 
 class DCSource(NestCurrentSource, electrodes.DCSource):
@@ -109,5 +109,3 @@ class NoisyCurrentSource(NestCurrentSource, electrodes.NoisyCurrentSource):
     )
 
     nest_name = 'noise_generator'
-
-
