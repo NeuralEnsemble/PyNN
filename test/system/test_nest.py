@@ -90,3 +90,17 @@ def test_ticket244():
     nest.Projection(poisson_generator, p1.sample(3), conn, target="excitatory")
     nest.run(15)
     p1.getSpikes()
+
+def test_ticket236():
+    """Calling get_spike_counts() in the middle of a run should not stop spike recording"""
+    pynnn = pyNN.nest
+    pynnn.setup()
+    p1 = pynnn.Population(2, pynnn.IF_curr_alpha, structure=pynnn.space.Grid2D())
+    p1.record(to_file=False)
+    src = pynnn.DCSource(amplitude=70)
+    src.inject_into(p1[:])
+    pynnn.run(50)
+    s1 = p1.get_spike_counts() # as expected, {1: 124, 2: 124}
+    pynnn.run(50)
+    s2 = p1.get_spike_counts() # unexpectedly, still {1: 124, 2: 124}
+    assert s1[p1[0]] < s2[p1[0]]

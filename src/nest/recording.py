@@ -157,6 +157,7 @@ class RecordingDevice(object):
         # what if the method is called with different values of
         # `compatible_output`? Need to cache these separately.
         if self._local_files_merged:
+            logger.debug("Loading merged data from cache")
             self._merged_file.seek(0)
             data = numpy.load(self._merged_file)
         else:
@@ -183,7 +184,7 @@ class RecordingDevice(object):
                 data = self.add_initial_values(data)
             self._merged_file = tempfile.TemporaryFile()
             numpy.save(self._merged_file, data)
-            self._local_files_merged = True
+            self._local_files_merged = True  # this is set back to False by run()
         return data
     
     def read_data(self, gather, compatible_output, always_local=False):

@@ -92,6 +92,7 @@ def run(simtime):
     """Advance the simulation for a certain time."""
     for device in recording_devices:
         device.connect_to_cells()
+        device._local_files_merged = False
     if not state.running:
         simtime += state.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
         state.running = True
