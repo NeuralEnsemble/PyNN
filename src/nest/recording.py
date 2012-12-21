@@ -169,7 +169,8 @@ class RecordingDevice(object):
             logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
             non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
             if len(non_empty_nest_files) > 0:
-                data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files]
+                data_list = [numpy.atleast_2d(numpy.loadtxt(nest_file))
+                             for nest_file in non_empty_nest_files]
                 data = numpy.concatenate(data_list)
             if len(non_empty_nest_files) == 0 or data.size == 0:
                 if self.type is "spike_detector":
@@ -297,18 +298,18 @@ class Recorder(recording.Recorder):
             events = nest.GetStatus(self._device.device, 'events')[0]
             for id in filtered_ids:
                 mask = events['senders'] == int(id)
-                N[id] = len(events['times'][mask])
+                N[int(id)] = len(events['times'][mask])
         else:
             spikes = self._get(gather=False, compatible_output=False,
                                filter=filter)
             for id in self.filter_recorded(filter):
-                N[id] = 0
+                N[int(id)] = 0
             ids   = numpy.sort(spikes[:,0].astype(int))
             idx   = numpy.unique(ids)
             left  = numpy.searchsorted(ids, idx, 'left')
             right = numpy.searchsorted(ids, idx, 'right')
             for id, l, r in zip(idx, left, right):
-                N[id] = r-l
+                N[int(id)] = r-l
         return N
     
 simulator.Recorder = Recorder # very inelegant. Need to rethink the module structure
