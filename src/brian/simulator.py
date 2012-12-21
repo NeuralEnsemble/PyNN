@@ -719,7 +719,7 @@ class ConnectionManager(object):
                 assert len(value[padding:padding+N]) == N
                 if (name == 'delay') and not isinstance(bc, brian.DelayConnection):
                     raise Exception("FastConnector have been used: only fixed homogeneous delays are allowed")
-                M.alldata = value
+                M.alldata[:] = value
             else:
                 raise Exception("Values must be scalars or lists/arrays")
             padding += M.getnnz()
