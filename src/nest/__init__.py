@@ -7,6 +7,7 @@ NEST v2 implementation of the PyNN API.
 
 $Id$
 """
+
 import nest
 from pyNN.nest import simulator
 from pyNN import common, recording, errors, space, __doc__
@@ -129,6 +130,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     nest.SetKernelStatus({'resolution': timestep})
 
     # Set min_delay and max_delay for all synapse models
+    NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')  # need to rebuild after ResetKernel
     for synapse_model in NEST_SYNAPSE_TYPES:
         nest.SetDefaults(synapse_model, {'delay' : min_delay,
                                          'min_delay': min_delay,
