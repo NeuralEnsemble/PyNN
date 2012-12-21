@@ -173,7 +173,7 @@ class RecordingDevice(object):
             logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
             non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
             if len(non_empty_nest_files) > 0:
-                data = numpy.concatenate([numpy.loadtxt(nest_file, dtype=float) for nest_file in non_empty_nest_files])
+                data = numpy.concatenate([numpy.loadtxt(nest_file, dtype=float, ndmin=2) for nest_file in non_empty_nest_files])
             if len(non_empty_nest_files) == 0 or data.size == 0:
                 if self.type is "spike_detector":
                     ncol = 2

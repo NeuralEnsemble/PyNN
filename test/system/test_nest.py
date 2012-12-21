@@ -79,3 +79,14 @@ def test_native_stdp_model():
     
     prj = nest.Projection(p2, p1, connector, target='excitatory',
                           synapse_dynamics=stdp)
+
+def test_ticket244():
+    nest = pyNN.nest
+    nest.setup(threads=4)
+    p1 = nest.Population(4, nest.IF_curr_exp)
+    p1.record()
+    poisson_generator = nest.Population(3, nest.SpikeSourcePoisson, {'rate': 1000.})
+    conn = nest.OneToOneConnector(weights=1.)
+    nest.Projection(poisson_generator, p1.sample(3), conn, target="excitatory")
+    nest.run(15)
+    p1.getSpikes()
