@@ -53,8 +53,8 @@ cells.initialize(regime=1002) # temporary hack
 input = sim.Population(2, sim.SpikeSourcePoisson, {'rate': 100})
 
 connector = sim.OneToOneConnector(weights=1.0)#, delays=0.5)
-conn = [sim.Projection(input[0:1], cells, connector, target='excitatory'),
-        sim.Projection(input[1:2], cells, connector, target='inhibitory')]
+conn = [sim.Projection(input[0:1], cells, connector, receptor_type='excitatory'),
+        sim.Projection(input[1:2], cells, connector, receptor_type='inhibitory')]
 
 cells.record(('spikes', 'V', 'excitatory_g', 'inhibitory_g'))
 

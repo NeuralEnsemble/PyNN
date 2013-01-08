@@ -6,7 +6,7 @@ Definition of NativeSynapseType class for NEST
 """
 
 import nest
-from pyNN.models import BaseModelType, BaseSynapseDynamics
+from pyNN.models import BaseModelType, BaseSynapseType
 
 DEFAULT_TAU_MINUS = 20.0
 
@@ -24,7 +24,7 @@ def get_defaults(model_name):
     return default_params
 
 
-class NativeSynapseDynamics(BaseSynapseDynamics):
+class NativeSynapseType(BaseSynapseType):
 
     def __init__(self, model_name, parameters={}):
         cls = type(model_name, (NativeSynapseMechanism,),

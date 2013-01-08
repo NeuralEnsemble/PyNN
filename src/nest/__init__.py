@@ -29,7 +29,7 @@ import shutil
 import logging
 
 from pyNN.nest.cells import NativeCellType, native_cell_type
-from pyNN.nest.synapses import NativeSynapseDynamics, NativeSynapseMechanism
+from pyNN.nest.synapses import NativeSynapseType, NativeSynapseMechanism
 from pyNN.nest.standardmodels.cells import *
 from pyNN.nest.connectors import *
 from pyNN.nest.standardmodels.synapses import *
@@ -155,7 +155,7 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 
 create = common.build_create(Population)
 
-connect = common.build_connect(Projection, FixedProbabilityConnector)
+connect = common.build_connect(Projection, FixedProbabilityConnector, StaticSynapse)
 
 set = common.set
 

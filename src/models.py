@@ -67,14 +67,29 @@ class BaseModelType(object):
 class BaseCellType(BaseModelType):
     """Base class for cell model classes."""
     recordable = []
-    synapse_types = []
+    receptor_types = []
     conductance_based = True # override for cells with current-based synapses
     injectable = True # override for spike sources
 
 
 class BaseCurrentSource(BaseModelType):
     """Base class for current source model classes."""
-
-
-class BaseSynapseDynamics(object):
     pass
+
+
+class BaseSynapseType(BaseModelType):
+    """Base class for synapse model classes."""
+
+    def __init__(self, **parameters):
+        """
+        `parameters` should be a mapping object, e.g. a dict
+        """
+        all_parameters = self.default_parameters.copy()
+        if parameters:
+            all_parameters.update(**parameters)
+        if all_parameters['delay'] is None:
+            all_parameters['delay'] = self._get_minimum_delay()
+        self.parameter_space = ParameterSpace(all_parameters,
+                                              self.get_schema(),
+                                              shape=None)
+

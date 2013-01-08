@@ -30,8 +30,8 @@ print spike_times.min()
 
 input_population  = Population(1, SpikeSourceArray(spike_times=spike_times), label="input")
 
-projection = Projection(input_population, output_population, AllToAllConnector())
-projection.set(weights=1.0)
+projection = Projection(input_population, output_population,
+                        AllToAllConnector(), StaticSynapse(weight=1.0))
 
 input_population.record('spikes')
 output_population.record(('spikes', 'v'))

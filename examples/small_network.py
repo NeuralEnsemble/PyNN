@@ -9,7 +9,9 @@ $Id$
 """
 
 import numpy
-from pyNN.utility import get_script_args
+from pyNN.utility import get_script_args, init_logging
+
+init_logging(None, debug=True)
 
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
@@ -56,7 +58,7 @@ spike_source.record('spikes')
 cells.record('spikes')
 cells[0:1].record('v')
 
-input_conns = Projection(spike_source, cells, AllToAllConnector())
+input_conns = Projection(spike_source, cells, AllToAllConnector(), StaticSynapse())
 input_conns.setWeights(w)
 input_conns.setDelays(syn_delay)
 

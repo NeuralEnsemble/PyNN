@@ -36,16 +36,16 @@ def native_cell_type(model_name):
     """
     assert isinstance(model_name, str)
     default_parameters, default_initial_values = get_defaults(model_name)
-    synapse_types = get_receptor_types(model_name)
+    receptor_types = get_receptor_types(model_name)
     recordable = get_recordables(model_name) + ['spikes']
     return type(model_name,
                 (NativeCellType,),
                 {'nest_model': model_name,
                  'default_parameters': default_parameters,
-                 'synapse_types': synapse_types,
+                 'receptor_types': receptor_types,
                  'injectable': ("V_m" in default_initial_values),
                  'recordable': recordable,
-                 'standard_receptor_type': (synapse_types == ('excitatory', 'inhibitory')),
+                 'standard_receptor_type': (receptor_types == ('excitatory', 'inhibitory')),
                  'nest_name': {"on_grid": model_name, "off_grid": model_name},
                  'conductance_based': ("g" in (s[0] for s in recordable)),
                  })

@@ -45,8 +45,9 @@ print "[%d] input_population cells: %s" % (node, input_population.local_cells)
 print "[%d] output_population cells: %s" % (node, output_population.local_cells)
 
 print "[%d] Connecting populations" % node
-connector = FixedProbabilityConnector(0.5, weights=1.0)
-projection = Projection(input_population, output_population, connector, rng=rng)
+connector = FixedProbabilityConnector(0.5)
+syn = StaticSynapse(weight=1.0)
+projection = Projection(input_population, output_population, connector, syn, rng=rng)
 
 file_stem = "Results/simpleRandomNetwork_np%d_%s" % (num_processes(), simulator_name)
 projection.save('connections', '%s.conn' % file_stem)

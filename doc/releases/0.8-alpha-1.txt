@@ -238,6 +238,10 @@ Accessing and setting properties of synaptic connections
 todo
 
 
+Projection target must now be specified explicitly, will no longer be inferred
+based on whether weights are positive or negative
+
+
 Python compatibility
 ====================
 

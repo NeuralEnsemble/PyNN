@@ -159,24 +159,26 @@ I_net.sample(Nrec).record('spikes')
 I_net[0:2].record('v')
 
 progress_bar = ProgressBar(width=20)
-E_Connector = FixedProbabilityConnector(epsilon, weights=JE, delays=delay, callback=progress_bar)
-I_Connector = FixedProbabilityConnector(epsilon, weights=JI, delays=delay, callback=progress_bar)
-ext_Connector = OneToOneConnector(weights=JE, delays=dt, callback=progress_bar)
+connector = FixedProbabilityConnector(epsilon, callback=progress_bar)
+E_syn = StaticSynapse(weight=JE, delay=delay)
+I_syn = StaticSynapse(weight=JI, delay=delay)
+ext_Connector = OneToOneConnector(callback=progress_bar)
+ext_syn = StaticSynapse(weight=JE, delay=dt)
 
 print "%d Connecting excitatory population with connection probability %g, weight %g nA and delay %g ms." % (rank, epsilon, JE, delay)
-E_to_E = Projection(E_net, E_net, E_Connector, rng=rng, target="excitatory")
+E_to_E = Projection(E_net, E_net, connector, E_syn, rng=rng, receptor_type="excitatory")
 print "E --> E\t\t", len(E_to_E), "connections"
-I_to_E = Projection(I_net, E_net, I_Connector, rng=rng, target="inhibitory")
+I_to_E = Projection(I_net, E_net, connector, I_syn, rng=rng, receptor_type="inhibitory")
 print "I --> E\t\t", len(I_to_E), "connections"
-input_to_E = Projection(expoisson, E_net, ext_Connector, target="excitatory")
+input_to_E = Projection(expoisson, E_net, ext_Connector, ext_syn, receptor_type="excitatory")
 print "input --> E\t", len(input_to_E), "connections"
 
 print "%d Connecting inhibitory population with connection probability %g, weight %g nA and delay %g ms." % (rank, epsilon, JI, delay)
-E_to_I = Projection(E_net, I_net, E_Connector, rng=rng, target="excitatory")
+E_to_I = Projection(E_net, I_net, connector, E_syn, rng=rng, receptor_type="excitatory")
 print "E --> I\t\t", len(E_to_I), "connections"
-I_to_I = Projection(I_net, I_net, I_Connector, rng=rng, target="inhibitory")
+I_to_I = Projection(I_net, I_net, connector, I_syn, rng=rng, receptor_type="inhibitory")
 print "I --> I\t\t", len(I_to_I), "connections"
-input_to_I = Projection(inpoisson, I_net, ext_Connector, target="excitatory")
+input_to_I = Projection(inpoisson, I_net, ext_Connector, ext_syn, receptor_type="excitatory")
 print "input --> I\t", len(input_to_I), "connections"
 
 # read out time used for building

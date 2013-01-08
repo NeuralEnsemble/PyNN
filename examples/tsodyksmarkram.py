@@ -17,14 +17,18 @@ sim.setup(quit_on_end=False)
 
 spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
 
-connector = sim.AllToAllConnector(weights=0.01, delays=0.5)
+connector = sim.AllToAllConnector()
 
-synapse_dynamics = {
-    'static': None,
-    'depressing': sim.SynapseDynamics(
-        fast=sim.TsodyksMarkramMechanism(U=0.5, tau_rec=800.0, tau_facil=0.0)),
-    'facilitating': sim.SynapseDynamics(
-        fast=sim.TsodyksMarkramMechanism(U=0.04, tau_rec=100.0, tau_facil=1000.0)),
+synapse_types = {
+    'static': StaticSynapse(weight=0.01, delay=0.5),
+    'depressing': sim.ComposedSynapseType(
+        fast=sim.TsodyksMarkramMechanism(U=0.5, tau_rec=800.0, tau_facil=0.0),
+        initial_weight=0.01,
+        delay=0.5),
+    'facilitating': sim.ComposedSynapseType(
+        fast=sim.TsodyksMarkramMechanism(U=0.04, tau_rec=100.0, tau_facil=1000.0),
+        initial_weight=0.01,
+        delay=0.5),
 }
 
 populations = {}
@@ -35,8 +39,8 @@ for label in 'static', 'depressing', 'facilitating':
     if populations[label].can_record('gsyn'):
         populations[label].record(['gsyn_exc', 'gsyn_inh'])
     projections[label] = sim.Projection(spike_source, populations[label], connector,
-                                        target='inhibitory',
-                                        synapse_dynamics=synapse_dynamics[label])
+                                        receptor_type='inhibitory',
+                                        synapse_type=synapse_types[label])
 
 spike_source.record('spikes')
 

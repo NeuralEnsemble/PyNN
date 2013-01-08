@@ -23,7 +23,7 @@ stdp_model = STDPMechanism(timing_dependence=SpikePairRule(tau_plus=20.0, tau_mi
 
 connection_method = AllToAllConnector(weights=0.48, delays=0.2)
 prj = Projection(p1, p2, method=connection_method,
-                 synapse_dynamics=SynapseDynamics(slow=stdp_model))
+                 synapse_dynamics=ComposedSynapseType(slow=stdp_model))
 
 
 p1.record('spikes')

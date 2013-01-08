@@ -126,7 +126,7 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
         log_level = level
 
     logging.basicConfig(level=log_level,
-                        format=mpi_prefix+'%(asctime)s %(levelname)s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',
+                        format=mpi_prefix+'%(asctime)s %(levelname)-8s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',
                         filename=logfile,
                         filemode='w')
     return logging.getLogger("PyNN")

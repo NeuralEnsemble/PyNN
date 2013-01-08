@@ -22,7 +22,7 @@ import pyNN.space as space
 from pyNN.utility import init_logging
 from pyNN import standardmodels
 import nest
-from pyNN.nest.synapses import NativeSynapseDynamics
+from pyNN.nest.synapses import NativeSynapseType
 from mpi4py import MPI
 import logging
 
@@ -345,10 +345,10 @@ myConnectorE_I_silenced = sim.FixedNumberPreConnector(NumOfConE_I,weights=global
 #myConnectorI = sim.AllToAllConnector(weights=globalWeight, delays=0.1)
 
 # InhGamma Generators need "_S" (selective) type synapses
-# Passing this class to the Projection in a SynapseDynamics object
+# Passing this class to the Projection in a ComposedSynapseType object
 # is how to get them:
 
-#sd = NativeSynapseDynamics('static_synapse_S')
+#sd = NativeSynapseType('static_synapse_S')
 
 #prjE_E = sim.Projection(gammaE_E, popE, method=myConnectorE_E, target='excitatory', synapse_dynamics = sd)
 #prjE_I = sim.Projection(gammaE_I, popI, method=myConnectorE_I, target='excitatory', synapse_dynamics = sd)

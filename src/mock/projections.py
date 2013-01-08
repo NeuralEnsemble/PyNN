@@ -1,6 +1,9 @@
 from itertools import repeat, izip
 from pyNN import common
+from pyNN.core import ezip
+from pyNN.parameters import ParameterSpace
 from . import simulator
+
 
 class Connection(object):
     """
@@ -54,7 +57,7 @@ class Projection(common.Projection):
         return len(self.connections)
 
     def set(self, **attributes):
-        pass
+        parameter_space = ParameterSpace
 
     def _convergent_connect(self, sources, target, weights, delays, **plasticity_attributes):
         """
@@ -66,7 +69,9 @@ class Projection(common.Projection):
                       `sources`, or a single weight value.
         `delays`   -- a 1D array of connection delays, of the same length as
                       `sources`, or a single delay value.
-        `plasticity_attributes` -- TO DOCUMENT
+        `plasticity_attributes` -- each plasticity attribute should be either a
+                                   1D array of the same length as `sources`, or
+                                   a single value.
         """
         if isinstance(weights, float):
             weights = repeat(weights)
@@ -75,9 +80,6 @@ class Projection(common.Projection):
         for name, value in plasticity_attributes.items():
             if isinstance(value, float):
                 plasticity_attributes[name] = repeat(value)
-        def ezip(*args):
-            for items in zip(*args):
-                yield items[0], items[1], items[2], items[3:]
         if plasticity_attributes:
             for source, weight, delay, other in ezip(sources, weights, delays, *plasticity_attributes.values()):
                 other_attributes = dict(zip(plasticity_attributes.keys(), other))

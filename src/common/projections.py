@@ -11,6 +11,8 @@ import numpy
 import logging
 import operator
 from pyNN import random, recording, errors, models, core, descriptions
+from pyNN.parameters import ParameterSpace
+from pyNN.standardmodels import StandardSynapseType, ComposedSynapseType
 from populations import BasePopulation, Assembly
 
 logger = logging.getLogger("PyNN")
@@ -29,27 +31,26 @@ class Projection(object):
         `source`:
             string specifying which attribute of the presynaptic cell signals
             action potentials. This is only needed for multicompartmental cells
-            with branching axons or dendrodendriticsynapses. All standard cells
+            with branching axons or dendrodendritic synapses. All standard cells
             have a single source, and this is the default.
-        `target`:
-            string specifying which synapse on the postsynaptic cell to connect
+        `receptor_type`:
+            string specifying which synaptic receptor_type type on the postsynaptic cell to connect
             to. For standard cells, this can be 'excitatory' or 'inhibitory'.
-            For non-standard cells, it could be 'NMDA', etc. If target is not
+            For non-standard cells, it could be 'NMDA', etc. If receptor_type is not
             given, the default values of 'excitatory' is used.
-        `method`:
+        `connector`:
             a Connector object, encapsulating the algorithm to use for
             connecting the neurons.
-        `synapse_dynamics`:
-            a SynapseDynamics object specifying which synaptic plasticity
+        `synapse_type`:
+            a SynapseType object specifying which synaptic connection
             mechanisms to use.
         `rng`:
             specify an RNG object to be used by the Connector.
     """
     _nProj = 0
 
-    def __init__(self, presynaptic_neurons, postsynaptic_neurons, method,
-                 source=None, target=None, synapse_dynamics=None,
-                 label=None, rng=None):
+    def __init__(self, presynaptic_neurons, postsynaptic_neurons, connector,
+                 synapse_type, source=None, receptor_type=None, label=None, rng=None):
         """
         Create a new projection, connecting the pre- and post-synaptic neurons.
         """
@@ -65,7 +66,11 @@ class Projection(object):
         self.pre    = presynaptic_neurons  #  } these really
         self.source = source               #  } should be
         self.post   = postsynaptic_neurons #  } read-only
-        self.target = target               #  }
+        self.receptor_type = receptor_type or 'excitatory' # TO FIX: if weights are negative, default should be 'inhibitory'
+        if self.receptor_type not in postsynaptic_neurons.receptor_types:
+            valid_types = postsynaptic_neurons.receptor_types
+            assert len(valid_types) > 0
+            raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: '%s'" % (self.receptor_type, "', '".join(valid_types)))
         self.label  = label
         if isinstance(rng, random.AbstractRNG):
             self.rng = rng
@@ -73,17 +78,13 @@ class Projection(object):
             self.rng = random.NumpyRNG(seed=151985012)
         else:
             raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
-        self._method = method
-        self.synapse_dynamics = synapse_dynamics
-        self.synapse_type = target or 'excitatory' # FIX: if weights are negative, default synapse_type should be 'inhibitory'
-        #self.connection = None # access individual connections. To be defined by child, simulator-specific classes
-        self.weights = []
+        self._connector = connector
+        self.synapse_type = synapse_type
+        assert isinstance(self.synapse_type, models.BaseSynapseType), \
+              "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(synapse_dynamics)
         if label is None:
             if self.pre.label and self.post.label:
                 self.label = "%s→%s" % (self.pre.label, self.post.label)
-        if self.synapse_dynamics:
-            assert isinstance(self.synapse_dynamics, models.BaseSynapseDynamics), \
-              "The synapse_dynamics argument, if specified, must be a models.BaseSynapseDynamics object, not a %s" % type(synapse_dynamics)
         Projection._nProj += 1
 
     def __len__(self):
@@ -140,30 +141,35 @@ class Projection(object):
         synapses. Delays should be in milliseconds.
         """
         # should perhaps add a "distribute" argument, for symmetry with "gather" in get()
-        raise NotImplementedError
+        parameter_space = ParameterSpace(attributes,
+                                         self.synapse_type.get_schema(),
+                                         (self.pre.size, self.post.size))
+        if isinstance(self.synapse_type, ComposedSynapseType):
+            parameter_space = self.synapse_type.translate(parameter_space)
+        self._set_attributes(parameter_space)
 
-    @deprecated("set(weights=w)")
+    @deprecated("set(weight=w)")
     def setWeights(self, w):
-        self.set(weights=w)
+        self.set(weight=w)
 
-    @deprecated("set(weights=rand_distr)")
+    @deprecated("set(weight=rand_distr)")
     def randomizeWeights(self, rand_distr):
-        self.set(weights=rand_distr)
+        self.set(weight=rand_distr)
 
-    @deprecated("set(delays=d)")
+    @deprecated("set(delay=d)")
     def setDelays(self, d):
-        self.set(delays=d)
+        self.set(delay=d)
 
-    @deprecated("set(delays=rand_distr)")
+    @deprecated("set(delay=rand_distr)")
     def randomizeDelays(self, rand_distr):
-        self.set(delays=rand_distr)
+        self.set(delay=rand_distr)
 
     @deprecated("set(parameter_name=value)")
-    def setSynapseDynamics(self, parameter_name, value):
+    def setComposedSynapseType(self, parameter_name, value):
         self.set(parameter_name=value)
 
     @deprecated("set(name=rand_distr)")
-    def randomizeSynapseDynamics(self, parameter_name, rand_distr):
+    def randomizeComposedSynapseType(self, parameter_name, rand_distr):
         self.set(parameter_name=rand_distr)
 
     # --- Methods for writing/reading information to/from file. ---------------
@@ -206,8 +212,8 @@ class Projection(object):
             return_single = True
         else:
             return_single = False
-        if self.synapse_dynamics:
-            attribute_names = self.synapse_dynamics.get_translated_names(*attribute_names)
+        if isinstance(self.synapse_type, StandardSynapseType):
+            attribute_names = self.synapse_type.get_translated_names(*attribute_names)
         if format == 'list':
             names = list(attribute_names)
             if with_address:
@@ -237,7 +243,7 @@ class Projection(object):
                 attribute_name = attribute_name[:-1]
             for c in self.connections:
                 value = getattr(c, attribute_name)
-                addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.target))
+                addr = (self.pre.id_to_index(c.pre), self.post.id_to_index(c.post))
                 if numpy.isnan(values[addr]):
                     values[addr] = value
                 else:
@@ -247,14 +253,14 @@ class Projection(object):
 
     @deprecated("get('weights', format, gather)")
     def getWeights(self, format='list', gather=True):
-        return self.get('weights', format, gather, with_address=False)
+        return self.get('weight', format, gather, with_address=False)
 
     @deprecated("get('delays', format, gather)")
     def getDelays(self, format='list', gather=True):
-        return self.get('delays', format, gather, with_address=False)
+        return self.get('delay', format, gather, with_address=False)
 
     @deprecated("get(parameter_name, format, gather)")
-    def getSynapseDynamics(self, parameter_name, format='list', gather=True):
+    def getComposedSynapseType(self, parameter_name, format='list', gather=True):
         return self.get(parameter_name, format, gather, with_address=False)
 
     def save(self, attribute_names, file, format='list', gather=True):
@@ -263,7 +269,7 @@ class Projection(object):
         format, zeros are printed for non-existent connections.
         """
         if attribute_names in ('all', 'connections'):
-            attribute_names = ['weights', 'delays'] # need to add synapse dynamics parameter names, if applicable
+            attribute_names = ['weight', 'delay'] # need to add synapse dynamics parameter names, if applicable
         if isinstance(file, basestring):
             file = recording.files.StandardTextFile(file, mode='w')
         all_values = self.get(attribute_names, format=format, gather=gather)
@@ -287,7 +293,7 @@ class Projection(object):
         Print synaptic weights to file. In the array format, zeros are printed
         for non-existent connections.
         """
-        self.save('delays', file, format, gather)
+        self.save('delay', file, format, gather)
 
     @deprecated("numpy.histogram()")
     def weightHistogram(self, min=None, max=None, nbins=10):
@@ -319,10 +325,10 @@ class Projection(object):
             "pre": self.pre.describe(template=None),
             "post": self.post.describe(template=None),
             "source": self.source,
-            "target": self.target,
+            "receptor_type": self.receptor_type,
             "size_local": len(self),
             "size": self.size(gather=True),
-            "connector": self._method.describe(template=None),
+            "connector": self._connector.describe(template=None),
             "plasticity": None,
         }
         if self.synapse_dynamics:

@@ -74,7 +74,7 @@ class TestProjection(unittest.TestCase):
 
     def test_create_with_synapse_dynamics(self):
         prj = sim.Projection(self.p1, self.p2, method=self.all2all,
-                             synapse_dynamics=sim.SynapseDynamics(fast=sim.TsodyksMarkramMechanism()))
+                             synapse_dynamics=sim.ComposedSynapseType(fast=sim.TsodyksMarkramMechanism()))
 
 
 if __name__ == '__main__':

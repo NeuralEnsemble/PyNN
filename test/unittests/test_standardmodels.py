@@ -1,5 +1,5 @@
 from pyNN.standardmodels import build_translations, StandardModelType, \
-                                SynapseDynamics, STDPMechanism, \
+                                ComposedSynapseType, STDPMechanism, \
                                 STDPWeightDependence, STDPTimingDependence
 from pyNN import errors
 from pyNN.parameters import ParameterSpace
@@ -160,12 +160,12 @@ def test_describe():
 
 # test StandardCellType
 
-## test SynapseDynamics
+## test ComposedSynapseType
 
 # test create
 
 def test_describe_SD():
-    sd = SynapseDynamics()
+    sd = ComposedSynapseType()
     assert isinstance(sd.describe(), basestring)
     assert isinstance(sd.describe(template=None), dict)
 

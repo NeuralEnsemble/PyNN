@@ -275,7 +275,8 @@ class Connection(object):
     attributes.
     """
 
-    def __init__(self, source, target, nc):
+    def __init__(self, pre, post, post_synaptic_target, plasticity_mechanism,
+                 **parameters):
         """
         Create a new connection.
 
@@ -283,11 +284,27 @@ class Connection(object):
         `target` -- ID of post-synaptic neuron.
         `nc` -- a Hoc NetCon object.
         """
-        self.source = source
-        self.target = target
-        self.nc = nc
+        logger.debug("Creating connection from %d to %d, weight %g" % (pre, post, parameters['weight']))
+        self.pre = pre
+        self.post = post
+        if "." in post_synaptic_target:
+            section, target = post_synaptic_target.split(".")
+            synapse_object = getattr(getattr(post._cell, section), target)
+        else:
+            synapse_object = getattr(post._cell, post_synaptic_target)
+        self.nc = state.parallel_context.gid_connect(int(pre), synapse_object)
+        self.nc.weight[0] = parameters.pop('weight')
+        # if we have a mechanism (e.g. from 9ML) that includes multiple
+        # synaptic channels, need to set nc.weight[1] here
+        if self.nc.wcnt() > 1 and hasattr(post._cell, "type"):
+            self.nc.weight[1] = post._cell.type.receptor_types.index(post_synaptic_target)
+        self.nc.delay  = parameters.pop('delay')
+        if parameters:
+            parameters['allow_update_on_post'] = int(False) # for compatibility with NEST
+            self.useSTDP(plasticity_mechanism, parameters)
+        # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
 
-    def useSTDP(self, mechanism, parameters, ddf):
+    def useSTDP(self, mechanism, parameters):
         """
         Set this connection to use spike-timing-dependent plasticity.
 
@@ -295,25 +312,25 @@ class Connection(object):
                         weights based on the times of pre- and post-synaptic spikes.
         `parameters` -- a dictionary containing the parameters of the weight-
                         adjuster mechanism.
-        `ddf`        -- dendritic delay fraction. If ddf=1, the synaptic delay
-                        `d` is considered to occur entirely in the post-synaptic
-                        dendrite, i.e., the weight adjuster receives the pre-
-                        synaptic spike at the time of emission, and the post-
-                        synaptic spike a time `d` after emission. If ddf=0, the
-                        synaptic delay is considered to occur entirely in the
-                        pre-synaptic axon.
         """
-        self.ddf = ddf
+        self.ddf = parameters.pop('dendritic_delay_fraction')
+        # If ddf=1, the synaptic delay
+        # `d` is considered to occur entirely in the post-synaptic
+        # dendrite, i.e., the weight adjuster receives the pre-
+        # synaptic spike at the time of emission, and the post-
+        # synaptic spike a time `d` after emission. If ddf=0, the
+        # synaptic delay is considered to occur entirely in the
+        # pre-synaptic axon.
         self.weight_adjuster = getattr(h, mechanism)(0.5)
         self.pre2wa = state.parallel_context.gid_connect(int(self.source), self.weight_adjuster)
         self.pre2wa.threshold = self.nc.threshold
-        self.pre2wa.delay = self.nc.delay * (1-ddf)
+        self.pre2wa.delay = self.nc.delay * (1 - self.ddf)
         self.pre2wa.weight[0] = 1
         # directly create NetCon as wa is on the same machine as the post-synaptic cell
         self.post2wa = h.NetCon(self.target._cell.source, self.weight_adjuster,
                                 sec=self.target._cell.source_section)
         self.post2wa.threshold = 1
-        self.post2wa.delay = self.nc.delay * ddf
+        self.post2wa.delay = self.nc.delay * self.ddf
         self.post2wa.weight[0] = -1
         for name, value in parameters.items():
             setattr(self.weight_adjuster, name, value)

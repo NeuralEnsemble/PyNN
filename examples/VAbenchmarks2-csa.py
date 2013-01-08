@@ -141,10 +141,10 @@ exc_conn = CSAConnector(csa.cset (csa.random (pconn), w_exc, delay))
 inh_conn = CSAConnector(csa.cset (csa.random (pconn), w_inh, delay))
 
 connections={}
-connections['exc'] = Projection(exc_cells, all_cells, exc_conn, target='excitatory', rng=rng)
-connections['inh'] = Projection(inh_cells, all_cells, inh_conn, target='inhibitory', rng=rng)
+connections['exc'] = Projection(exc_cells, all_cells, exc_conn, receptor_type='excitatory', rng=rng)
+connections['inh'] = Projection(inh_cells, all_cells, inh_conn, receptor_type='inhibitory', rng=rng)
 if (benchmark == "COBA"):
-    connections['ext'] = Projection(ext_stim, all_cells, ext_conn, target='excitatory')
+    connections['ext'] = Projection(ext_stim, all_cells, ext_conn, receptor_type='excitatory')
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id

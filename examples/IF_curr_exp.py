@@ -28,8 +28,8 @@ ifcell = create(IF_curr_exp(i_offset=0.1, tau_refrac=3.0, v_thresh=-51.0,
 spike_sourceE = create(SpikeSourceArray(spike_times=[float(i) for i in range(5,105,10)]))
 spike_sourceI = create(SpikeSourceArray(spike_times=[float(i) for i in range(155,255,10)]))
 
-connE = connect(spike_sourceE, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)
-connI = connect(spike_sourceI, ifcell, weight=-1.5, synapse_type='inhibitory', delay=4.0)
+connE = connect(spike_sourceE, ifcell, weight=1.5, receptor_type='excitatory', delay=2.0)
+connI = connect(spike_sourceI, ifcell, weight=-1.5, receptor_type='inhibitory', delay=4.0)
 
 record('v', ifcell, "Results/IF_curr_exp_%s.pkl" % simulator_name)
 

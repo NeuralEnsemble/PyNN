@@ -33,7 +33,7 @@ spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential', [1000.0/inp
 spike_source = create(SpikeSourceArray(spike_times=spike_times))
 
 
-conn = connect(spike_source, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)
+conn = connect(spike_source, ifcell, weight=1.5, receptor_type='excitatory', delay=2.0)
 
 record(('spikes', 'v'), ifcell, "Results/IF_curr_exp2_%s.pkl" % simulator_name)
 initialize(ifcell, v=-53.2)

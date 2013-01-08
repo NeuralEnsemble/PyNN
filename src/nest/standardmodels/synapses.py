@@ -8,15 +8,40 @@ $Id$
 """
 
 import nest
-from pyNN.standardmodels import synapses, build_translations, SynapseDynamics, STDPMechanism
+from pyNN.standardmodels import synapses, build_translations, ComposedSynapseType, STDPMechanism
 from pyNN.nest.synapses import get_defaults
+from pyNN.nest.simulator import state
 import logging
 
 logger = logging.getLogger("PyNN")
 
 
-class SynapseDynamics(SynapseDynamics):
-    __doc__ = SynapseDynamics.__doc__
+class StaticSynapse(synapses.StaticSynapse):
+
+    translations = build_translations(
+        ('weight', 'weight', 1000.0),
+        ('delay', 'delay')
+    )
+    nest_name = 'static_synapse'
+
+    def _get_nest_synapse_model(self, suffix):
+        synapse_defaults = get_defaults(self.nest_name)
+        synapse_parameters = self.translated_parameters
+        for name, value in synapse_parameters.items():
+            if value.is_homogeneous:
+                value.shape = (1,)
+                synapse_defaults[name] = value.evaluate(simplify=True)
+        synapse_defaults.pop("tau_minus")
+        label = "%s_%s" % (self.nest_name, suffix)
+        nest.CopyModel(self.nest_name, label, synapse_defaults)
+        return label
+
+    def _get_minimum_delay(self):
+        return state.min_delay
+
+
+class ComposedSynapseType(ComposedSynapseType):
+    __doc__ = ComposedSynapseType.__doc__
 
     def _get_nest_synapse_model(self, suffix):
         # We create a particular synapse context for each projection, by copying
@@ -66,6 +91,9 @@ class SynapseDynamics(SynapseDynamics):
                 nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
             else:
                 raise Exception("Postsynaptic cell model does not support STDP.")
+
+    def _get_minimum_delay(self):
+        return state.min_delay
 
 
 class STDPMechanism(STDPMechanism):

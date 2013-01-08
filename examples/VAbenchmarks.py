@@ -100,7 +100,7 @@ extra = {'threads' : threads,
 if simulator_name == "neuroml":
     extra["file"] = "VAbenchmarks.xml"
 
-node_id = setup(timestep=dt, min_delay=delay, max_delay=delay, **extra)
+node_id = setup(timestep=dt, min_delay=delay, max_delay=1.0, **extra)
 np = num_processes()
 
 host_name = socket.gethostname()
@@ -125,7 +125,8 @@ inh_cells = Population(n_inh, celltype(**cell_params), label="Inhibitory_Cells")
 if benchmark == "COBA":
     ext_stim = Population(20, SpikeSourcePoisson(rate=rate, duration=stim_dur), label="expoisson")
     rconn = 0.01
-    ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
+    ext_conn = FixedProbabilityConnector(rconn)
+    ext_syn = StaticSynapse(weight=0.1)
 
 print "%s Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
@@ -135,17 +136,18 @@ inh_cells.initialize(v=uniformDistr)
 
 print "%s Connecting populations..." % node_id
 progress_bar = ProgressBar(width=20)
-exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay, callback=progress_bar)
-inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay, callback=progress_bar)
+connector = FixedProbabilityConnector(pconn, callback=progress_bar)
+exc_syn = StaticSynapse(weight=w_exc, delay=delay)
+inh_syn = StaticSynapse(weight=w_inh, delay=delay)
 
 connections={}
-connections['e2e'] = Projection(exc_cells, exc_cells, exc_conn, target='excitatory', rng=rng)
-connections['e2i'] = Projection(exc_cells, inh_cells, exc_conn, target='excitatory', rng=rng)
-connections['i2e'] = Projection(inh_cells, exc_cells, inh_conn, target='inhibitory', rng=rng)
-connections['i2i'] = Projection(inh_cells, inh_cells, inh_conn, target='inhibitory', rng=rng)
+connections['e2e'] = Projection(exc_cells, exc_cells, connector, exc_syn, receptor_type='excitatory', rng=rng)
+connections['e2i'] = Projection(exc_cells, inh_cells, connector, exc_syn, receptor_type='excitatory', rng=rng)
+connections['i2e'] = Projection(inh_cells, exc_cells, connector, inh_syn, receptor_type='inhibitory', rng=rng)
+connections['i2i'] = Projection(inh_cells, inh_cells, connector, inh_syn, receptor_type='inhibitory', rng=rng)
 if (benchmark == "COBA"):
-    connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, target='excitatory')
-    connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, target='excitatory')
+    connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, ext_syn, receptor_type='excitatory')
+    connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, ext_syn, receptor_type='excitatory')
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id

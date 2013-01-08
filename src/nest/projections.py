@@ -15,7 +15,7 @@ from itertools import repeat
 from pyNN import common, errors, core
 from pyNN.random import RandomDistribution
 from . import simulator
-from .synapses import NativeSynapseDynamics, NativeSynapseMechanism
+from .synapses import NativeSynapseType, NativeSynapseMechanism
 
 
 logger = logging.getLogger("PyNN")
@@ -26,18 +26,18 @@ class Projection(common.Projection):
     _simulator = simulator
 
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 method, source=None,
-                 target=None, synapse_dynamics=None, label=None, rng=None):
+                 method, synapse_type, source=None, receptor_type=None, label=None,
+                 rng=None):
         __doc__ = common.Projection.__init__.__doc__
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
-                                   method, source, target,
-                                   synapse_dynamics, label, rng)
-        if self.synapse_dynamics:
-            synapse_dynamics = self.synapse_dynamics
-            self.synapse_dynamics._set_tau_minus(self.post.local_cells)
-        else:
-            synapse_dynamics = NativeSynapseDynamics("static_synapse")
-        self.synapse_model = synapse_dynamics._get_nest_synapse_model("projection_%d" % Projection._nProj)
+                                   method, synapse_type, source, receptor_type, label,
+                                   rng)
+#        if self.synapse_dynamics:
+#            synapse_dynamics = self.synapse_dynamics
+#            self.synapse_dynamics._set_tau_minus(self.post.local_cells)
+#        else:
+#            synapse_dynamics = NativeSynapseType("static_synapse")
+        self.synapse_model = self.synapse_type._get_nest_synapse_model("projection_%d" % Projection._nProj)
         self._sources = []
         self._connections = None
 
@@ -100,8 +100,8 @@ class Projection(common.Projection):
             targets = [targets]
         assert len(targets) > 0
 
-        if self.synapse_type not in targets[0].celltype.synapse_types:
-            raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: %s" % ( self.synapse_type, "'"+"', '".join(st for st in targets[0].celltype.synapse_types or ['*No connections supported*']))+"'" )
+        if self.receptor_type not in targets[0].celltype.receptor_types:
+            raise errors.ConnectionError("User gave target_type=%s, target_type must be one of: %s" % ( self.receptor_type, "'"+"', '".join(st for st in targets[0].celltype.receptor_types or ['*No connections supported*']))+"'" )
         weights = numpy.array(weights)*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
@@ -134,50 +134,44 @@ class Projection(common.Projection):
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.append(source)
 
-    def _convergent_connect(self, sources, target, weights, delays, **plasticity_attributes):
+    def _convergent_connect(self, presynaptic_cells, postsynaptic_cell,
+                            **connection_parameters):
         """
         Connect a neuron to one or more other neurons with a static connection.
 
         `sources`  -- a 1D array of pre-synaptic cell IDs
         `target`   -- the ID of the post-synaptic cell.
-        `weight`   -- a 1D array of connection weights, of the same length as
-                      `sources`, or a single weight value.
-        `delays`   -- a 1D array of connection delays, of the same length as
-                      `sources`, or a single delay value.
+
+        TO UPDATE
         """
-        assert len(sources) > 0, sources
-        if self.synapse_type not in target.celltype.synapse_types:
-            assert len(target.celltype.synapse_types) > 0
-            valid_types = "', '".join(target.celltype.synapse_types)
-            raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: '%s'" % (self.synapse_type,  valid_types))
-        weights *= 1000.0   # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
-                            # Using convention in this way is not ideal. We should
-                            # be able to look up the units used by each model somewhere.
-        if self.synapse_type == 'inhibitory' and common.is_conductance(target):
+        assert len(presynaptic_cells) > 0, presynaptic_cells
+        weights = connection_parameters.pop('weight')
+        if self.receptor_type == 'inhibitory' and self.post.conductance_based:
             weights *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
-        if isinstance(weights, numpy.ndarray):
-            weights = weights.tolist()
-        if isinstance(delays, numpy.ndarray):
-            delays = delays.tolist()
-        if target.celltype.standard_receptor_type:
+        delays = connection_parameters.pop('delay')
+        if postsynaptic_cell.celltype.standard_receptor_type:
             try:
-                nest.ConvergentConnect(sources.astype(int).tolist(), [target], weights, delays, self.synapse_model)
+                nest.ConvergentConnect(presynaptic_cells.astype(int).tolist(),
+                                       [postsynaptic_cell],
+                                       weights,
+                                       delays,
+                                       self.synapse_model)
             except nest.NESTError, e:
-                raise errors.ConnectionError("%s. sources=%s, target=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                                             e, sources, target, weights, delays, self.synapse_model))
+                raise errors.ConnectionError("%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                                             e, presynaptic_cells, postsynaptic_cell, weights, delays, self.synapse_model))
         else:
-            if numpy.isscalar(weights):
-                weights = repeat(weights)
-            if numpy.isscalar(delays):
-                delays = repeat(delays)
-            for source, w, d in zip(sources, weights, delays): # need to handle case where weights, delays are floats
-                nest.Connect([source], [target], {'weight': w, 'delay': d, 'receptor_type': target.celltype.get_receptor_type(self.synapse_type)})
+            raise NotImplementedError("need to update")
+            #if numpy.isscalar(weights):
+            #    weights = repeat(weights)
+            #if numpy.isscalar(delays):
+            #    delays = repeat(delays)
+            #for source, w, d in zip(presynaptic_cells, weights, delays): # need to handle case where weights, delays are floats
+            #    nest.Connect([source], [postsynaptic_cell], {'weight': w, 'delay': d, 'receptor_type': postsynaptic_cell.celltype.get_receptor_type(self.synapse_type)})
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
-        self._sources.extend(sources)
-        if plasticity_attributes:
-            connections = nest.FindConnections(sources.astype(int), int(target), self.synapse_model)
-            for name, value in plasticity_attributes.items():
-                nest.SetStatus(connections, name, value)
+        self._sources.extend(presynaptic_cells)
+        connections = nest.FindConnections(presynaptic_cells.astype(int), int(postsynaptic_cell), self.synapse_model)
+        for name, value in connection_parameters.items():
+            nest.SetStatus(connections, name, value)
 
     def set(self, **attributes):
         __doc__ = common.Projection.set.__doc__

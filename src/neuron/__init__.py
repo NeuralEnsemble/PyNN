@@ -106,7 +106,7 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 
 create = common.build_create(Population)
 
-connect = common.build_connect(Projection, FixedProbabilityConnector)
+connect = common.build_connect(Projection, FixedProbabilityConnector, StaticSynapse)
 
 set = common.set
 

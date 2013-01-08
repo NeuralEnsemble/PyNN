@@ -183,6 +183,10 @@ class BasePopulation(object):
         """
         return self.celltype.conductance_based
 
+    @property
+    def receptor_types(self):
+        return self.celltype.receptor_types
+
     def is_local(self, id):
         """
         Indicates whether the cell with the given ID exists on the local MPI node.
@@ -951,6 +955,18 @@ class Assembly(object):
         in conductance, `False` if a change in current.
         """
         return all(p.celltype.conductance_based for p in self.populations)
+
+    @property
+    def receptor_types(self):
+        """
+        Return a list of receptor types that are common to all populations
+        within the assembly.
+        """
+        rts = set(self.populations[0].celltype.receptor_types)
+        if len(self.populations) > 1:
+            for p in self.populations[1:]:
+                rts = rts.intersection(set(p.celltype.receptor_types))
+        return rts
 
     @property
     def _mask_local(self):

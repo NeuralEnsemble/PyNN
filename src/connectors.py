@@ -80,12 +80,6 @@ class Connector(object):
     Base class for connectors.
 
     All connector sub-classes have the following optional keyword arguments:
-        `weights`:
-            may either be a float, a RandomDistribution object, a list/1D array
-            with at least as many items as connections to be created. Units nA.
-        `delays`:
-            as `weights`. If `None`, all synaptic delays will be set to the
-            global minimum delay.
         `space`:
             a `Space` object, needed if you wish to specify distance-dependent
             weights or delays.
@@ -95,21 +89,12 @@ class Connector(object):
         `callback`:
             a function that will be called with the fractional progress of the
             connection routine. An example would be `progress_bar.set_level`.
-
-    In addition, if the synapses being created are plastic ones, any of the
-    parameters of the plasticity model may be given as an additional keyword
-    argument, with the same allowed types as for *weight* and *delay*.
     """
 
-    def __init__(self, weights=None, delays=None, space=Space(), safe=True,
-                 callback=None):
+    def __init__(self, space=Space(), safe=True, callback=None):
         """
         docstring needed
         """
-        self.weights = weights
-        if self.weights is None:
-            self.weights = DEFAULT_WEIGHT
-        self.delays = delays
         self.space   = space
         self.safe    = safe
         self.callback = callback
@@ -136,9 +121,7 @@ class Connector(object):
         will be returned.
         """
         context = {'name': self.__class__.__name__,
-                   'parameters': self.get_parameters(),
-                   'weights': self.weights,
-                   'delays': self.delays}
+                   'parameters': self.get_parameters()}
         return descriptions.render(engine, template, context)
 
 
@@ -180,31 +163,32 @@ class MapConnector(Connector):
         logger.debug("Connecting %s using a connection map" % projection.label)
         if distance_map is None:
             distance_map = self._generate_distance_map(projection)
-        weight_map = self._generate_attribute_map('weights', projection, distance_map)
-        if self.delays is None:
-            self.delays = projection._simulator.state.min_delay
-        delay_map = self._generate_attribute_map('delays', projection, distance_map)
-        # TODO: where appropriate, will also need to generate maps for plasticity model parameters
-        plasticity_maps = {}
-        if projection.synapse_dynamics is not None:
-            for name in projection.synapse_dynamics.translated_parameters.keys():
-                plasticity_maps[name] = self._generate_attribute_map(name, projection, distance_map)
-
-        # If any of the maps are based on parallel-safe random number generators,
-        # we need to iterate over all post-synaptic cells, so we can generate then
-        # throw away the random numbers for the non-local nodes.
-        # Otherwise, we only need to iterate over local post-synaptic cells.
-        def parallel_safe(map):
-            return (isinstance(map.base_value, RandomDistribution) and
-                    map.base_value.rng.parallel_safe)
+#        weight_map = self._generate_attribute_map('weights', projection, distance_map)
+#        if self.delays is None:
+#            self.delays = projection._simulator.state.min_delay
+#        delay_map = self._generate_attribute_map('delays', projection, distance_map)
+#        # TODO: where appropriate, will also need to generate maps for plasticity model parameters
+#        plasticity_maps = {}
+#        if projection.synapse_dynamics is not None:
+#            for name in projection.synapse_dynamics.translated_parameters.keys():
+#                plasticity_maps[name] = self._generate_attribute_map(name, projection, distance_map)
+#
+#        # If any of the maps are based on parallel-safe random number generators,
+#        # we need to iterate over all post-synaptic cells, so we can generate then
+#        # throw away the random numbers for the non-local nodes.
+#        # Otherwise, we only need to iterate over local post-synaptic cells.
+#        def parallel_safe(map):
+#            return (isinstance(map.base_value, RandomDistribution) and
+#                    map.base_value.rng.parallel_safe)
         column_indices = numpy.arange(projection.post.size)
-        if parallel_safe(weight_map) or parallel_safe(delay_map): # TODO check all the plasticity maps as well
-            logger.debug("Parallel-safe iteration.")
-            components = (
-                column_indices,
-                projection.post.all_cells,
-                connection_map.by_column())
-        else:
+#        if parallel_safe(weight_map) or parallel_safe(delay_map): # TODO check all the plasticity maps as well
+#            logger.debug("Parallel-safe iteration.")
+#            components = (
+#                column_indices,
+#                projection.post.all_cells,
+#                connection_map.by_column())
+#        else:
+        if True: ###
             mask = projection.post._mask_local
             components = (
                 column_indices[mask],
@@ -218,32 +202,34 @@ class MapConnector(Connector):
             else:
                 sources = projection.pre.all_cells[source_mask]
             if len(sources) > 0:
-                if weight_map.is_homogeneous:
-                    weights = weight_map.evaluate(simplify=True)
-                else:
-                    weights = weight_map[source_mask, col]
-                if delay_map.is_homogeneous:
-                    delays = delay_map.evaluate(simplify=True)
-                else:
-                    delays = delay_map[source_mask, col]
-                plasticity_attributes = {}
-                for name, map in plasticity_maps.items():
+#                if weight_map.is_homogeneous:
+#                    weights = weight_map.evaluate(simplify=True)
+#                else:
+#                    weights = weight_map[source_mask, col]
+#                if delay_map.is_homogeneous:
+#                    delays = delay_map.evaluate(simplify=True)
+#                else:
+#                    delays = delay_map[source_mask, col]
+                connection_parameters = {}
+                for name, map in projection.synapse_type.translated_parameters.items():
+                    map.shape = (projection.pre.size, projection.post.size)
                     if map.is_homogeneous:
-                        plasticity_attributes[name] = map.evaluate(simplify=True)
+                        connection_parameters[name] = map.evaluate(simplify=True)
                     else:
-                        plasticity_attributes[name] = map[source_mask, col]
+                        connection_parameters[name] = map[source_mask, col]
                         
                 #logger.debug("Convergent connect %d neurons to #%s, delays in range (%g, %g)" % (sources.size, tgt, delays.min(), delays.max()))
-                if self.safe:
-                    # (might be cheaper to do the weight and delay check before evaluating the larray)
-                    weights = check_weights(weights, projection.synapse_type, is_conductance(projection.post.local_cells[0]))
-                    delays = check_delays(delays,
-                                          projection._simulator.state.min_delay,
-                                          projection._simulator.state.max_delay)
-                    # TODO: add checks for plasticity parameters
-                #logger.debug("mask: %s, w: %s, d: %s", source_mask, weights, delays)
-                if tgt.local:
-                    projection._convergent_connect(sources, tgt, weights, delays, **plasticity_attributes)
+#                if self.safe:
+#                    # (might be cheaper to do the weight and delay check before evaluating the larray)
+#                    weights = check_weights(weights, projection.synapse_type, is_conductance(projection.post.local_cells[0]))
+#                    delays = check_delays(delays,
+#                                          projection._simulator.state.min_delay,
+#                                          projection._simulator.state.max_delay)
+#                    # TODO: add checks for plasticity parameters
+#                #logger.debug("mask: %s, w: %s, d: %s", source_mask, weights, delays)
+                assert tgt.local
+                if True:
+                    projection._convergent_connect(sources, tgt, **connection_parameters)
                     if self.callback:
                         self.callback(count/projection.post.local_size)
 
@@ -263,12 +249,12 @@ class AllToAllConnector(MapConnector):
     """
     parameter_names = ('allow_self_connections',)
 
-    def __init__(self, allow_self_connections=True, weights=None, delays=None,
-                 space=Space(), safe=True, callback=None, **plasticity_parameters):
+    def __init__(self, allow_self_connections=True, space=Space(), safe=True,
+                 callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, weights, delays, space, safe, callback)
+        Connector.__init__(self, space, safe, callback)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
 
@@ -297,13 +283,12 @@ class FixedProbabilityConnector(MapConnector):
     """
     parameter_names = ('allow_self_connections', 'p_connect')
 
-    def __init__(self, p_connect, allow_self_connections=True, weights=None,
-                 delays=None, space=Space(), safe=True, callback=None,
-                 **plasticity_parameters):
+    def __init__(self, p_connect, allow_self_connections=True, space=Space(),
+                 safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, weights, delays, space, safe, callback)
+        Connector.__init__(self, space, safe, callback)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)

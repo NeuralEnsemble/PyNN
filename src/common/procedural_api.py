@@ -20,8 +20,8 @@ def build_create(population_class):
     return create
 
 
-def build_connect(projection_class, connector_class):
-    def connect(source, target, weight=0.0, delay=None, synapse_type=None,
+def build_connect(projection_class, connector_class, static_synapse_class):
+    def connect(pre, post, weight=0.0, delay=None, receptor_type=None,
                 p=1, rng=None):
         """
         Connect a source of spikes to a synaptic target.
@@ -31,12 +31,14 @@ def build_connect(projection_class, connector_class):
         with probability `p`, using either the random number generator supplied,
         or the default RNG otherwise. Weights should be in nA or µS.
         """
-        if isinstance(source, IDMixin):
-            source = source.as_view()
-        if isinstance(target, IDMixin):
-            target = target.as_view()
-        connector = connector_class(p_connect=p, weights=weight, delays=delay)
-        return projection_class(source, target, connector, target=synapse_type, rng=rng)
+        if isinstance(pre, IDMixin):
+            pre = pre.as_view()
+        if isinstance(post, IDMixin):
+            post = post.as_view()
+        connector = connector_class(p_connect=p)
+        synapse = static_synapse_class(weight=weight, delay=delay)
+        return projection_class(pre, post, connector, receptor_type=receptor_type,
+                                synapse_type=synapse, rng=rng)
     return connect
 
 

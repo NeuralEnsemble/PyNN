@@ -24,14 +24,21 @@ stimulation_parameters = {
     'rate': 100.0,
     'duration': 50.0
 }
-stdp_parameters = {
-    'timing_dependence': {'tau_plus': 20.0, 'tau_minus': 20.0},
-    'weight_dependence': {'w_min':0, 'w_max': 0.04, 'A_plus': 0.01, 'A_minus': 0.012}
-}
+
 connectivity_parameters = {
-    'gaussian': {'d_expression': 'exp(-d**2/1e4)', 'weights': 0.01, 'delays': '0.1+0.001*d'},
-    'global': {'p_connect': 0.1, 'weights': 0.05, 'delays': '0.1+0.001*d'},
-    'input': {'n': 10, 'weights': 0.01, 'delays': 0.1},
+    'gaussian': {'d_expression': 'exp(-d**2/1e4)'},
+    'global': {'p_connect': 0.1},
+    'input': {'n': 10},
+}
+
+synaptic_parameters = {
+    'excitatory': {
+        'timing_dependence': {'tau_plus': 20.0, 'tau_minus': 20.0},
+        'weight_dependence': {'w_min':0, 'w_max': 0.04, 'A_plus': 0.01, 'A_minus': 0.012},
+        'initial_weight': 0.01,
+        'delay': '0.1+0.001*d'},
+    'inhibitory': {'weight': 0.05, 'delay': '0.1+0.001*d'},
+    'input': {'weight': 0.01, 'delay': 0.1},
 }
 
 sim.setup()
@@ -46,8 +53,8 @@ ext_stim = sim.Population(n_stim, sim.SpikeSourcePoisson(**stimulation_parameter
                           label="External Poisson stimulation")
 
 stdp_mechanism = sim.STDPMechanism(
-                    timing_dependence=sim.SpikePairRule(**stdp_parameters['timing_dependence']),
-                    weight_dependence=sim.AdditiveWeightDependence(**stdp_parameters['weight_dependence']))
+                    timing_dependence=sim.SpikePairRule(**synaptic_parameters['excitatory']['timing_dependence']),
+                    weight_dependence=sim.AdditiveWeightDependence(**synaptic_parameters['excitatory']['weight_dependence']))
 
 gaussian_connectivity = sim.DistanceDependentProbabilityConnector(
                             **connectivity_parameters['gaussian'])
@@ -58,18 +65,23 @@ input_connectivity = sim.FixedNumberPostConnector(
 
 exc_connections = sim.Projection(exc_cells, all_cells,
                                  gaussian_connectivity,
-                                 target='excitatory',
-                                 synapse_dynamics=sim.SynapseDynamics(slow=stdp_mechanism),
+                                 receptor_type='excitatory',
+                                 synapse_type=sim.ComposedSynapseType(
+                                                    slow=stdp_mechanism,
+                                                    initial_weight=synaptic_parameters['excitatory']['initial_weight'],
+                                                    delay=synaptic_parameters['excitatory']['delay']),
                                  label='Excitatory connections')
 
 inh_connections = sim.Projection(inh_cells, all_cells,
                                  global_connectivity,
-                                 target='inhibitory',
+                                 receptor_type='inhibitory',
+                                 synapse_type=sim.StaticSynapse(**synaptic_parameters['inhibitory']),
                                  label='Inhibitory connections')
 
 stim_connections = sim.Projection(ext_stim, all_cells,
                                   input_connectivity,
-                                  target='excitatory',
+                                  receptor_type='excitatory',
+                                  synapse_type=sim.StaticSynapse(**synaptic_parameters['input']),
                                   label='Input connections')
 
 print __doc__

@@ -27,8 +27,8 @@ hhcell = create(HH_cond_exp())
 spike_sourceE = create(SpikeSourceArray(spike_times=[float(i) for i in range(1,100,1)]))
 spike_sourceI = create(SpikeSourceArray(spike_times=[float(i) for i in range(100,200,11)]))
 
-connE = connect(spike_sourceE, hhcell, weight=0.02, synapse_type='excitatory', delay=2.0)
-connI = connect(spike_sourceI, hhcell, weight=0.01, synapse_type='inhibitory', delay=4.0)
+connE = connect(spike_sourceE, hhcell, weight=0.02, receptor_type='excitatory', delay=2.0)
+connI = connect(spike_sourceI, hhcell, weight=0.01, receptor_type='inhibitory', delay=4.0)
 
 record(['v', 'gsyn_exc', 'gsyn_inh'], hhcell, "Results/HH_cond_exp_%s.pkl" % simulator_name)
 

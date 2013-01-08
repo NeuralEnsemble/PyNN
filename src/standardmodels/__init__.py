@@ -10,7 +10,7 @@ Classes:
     StandardModelType
     StandardCellType
     ModelNotAvailable
-    SynapseDynamics
+    ComposedSynapseType
     ShortTermPlasticityMechanism
     STDPMechanism
     STDPWeightDependence
@@ -138,7 +138,7 @@ class StandardModelType(models.BaseModelType):
 class StandardCellType(StandardModelType, models.BaseCellType):
     """Base class for standardized cell model classes."""
     recordable    = ['spikes', 'v', 'gsyn']
-    synapse_types = ('excitatory', 'inhibitory')
+    receptor_types = ('excitatory', 'inhibitory')
     always_local  = False # override for NEST spike sources
 
 
@@ -214,7 +214,11 @@ class ModelNotAvailable(object):
 #   Synapse Dynamics classes
 # ==============================================================================
 
-class SynapseDynamics(models.BaseSynapseDynamics):
+class StandardSynapseType(StandardModelType, models.BaseSynapseType):
+    pass
+
+
+class ComposedSynapseType(StandardSynapseType):
     """
     For specifying synapse short-term (faciliation, depression) and long-term
     (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
@@ -270,8 +274,10 @@ class SynapseDynamics(models.BaseSynapseDynamics):
                 translated_names.append(self.fast.get_translated_names(name)[0])
             elif name in names_slow:
                 translated_names.append(self.slow.get_translated_names(name)[0])
+            elif name in ('weights', 'delays'):  # not sure
+                translated_names.append(name)    # about this
             else:
-                raise NameError("SynapseDynamics object does not have a parameter %s" % name)
+                raise NameError("ComposedSynapseType object does not have a parameter '%s'" % name)
         return translated_names
 
     def describe(self, template='synapsedynamics_default.txt', engine='default'):
@@ -364,24 +370,9 @@ class STDPMechanism(object):
             # we pass the set of models back to the simulator-specific module for it to deal with
             return pm
 
-    #@property
-    #def all_parameters(self):
-    #    """
-    #    A dictionary containing the combination of parameters from the different
-    #    components of the STDP model.
-    #    """
-    #    timing_parameters = self.timing_dependence.translated_parameters
-    #    weight_parameters = self.weight_dependence.translated_parameters
-    #    for parameter_space in (timing_parameters, weight_parameters):
-    #        parameter_space.shape = (1,)
-    #        if not parameter_space.is_homogeneous:
-    #            raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
-    #        parameter_space.evaluate(simplify=True)
-    #    parameters = timing_parameters.as_dict()
-    #    parameters.update(weight_parameters.as_dict())  # should add a "join" or "merge" method to ParameterSpace
-    #    parameters.update(self.timing_dependence.extra_parameters)
-    #    parameters.update(self.weight_dependence.extra_parameters)
-    #    return parameters
+    def get_parameter_names(self):
+        assert self.voltage_dependence is None  # once we have some models with v-dep, need to update the following
+        return self.timing_dependence.get_parameter_names() + self.weight_dependence.get_parameter_names()
 
     @property
     def translated_parameters(self):
@@ -392,9 +383,10 @@ class STDPMechanism(object):
         timing_parameters = self.timing_dependence.translated_parameters
         weight_parameters = self.weight_dependence.translated_parameters
         parameters = ParameterSpace(timing_parameters)
-        parameters.update(weight_parameters)
-        parameters.update(self.timing_dependence.extra_parameters)
-        parameters.update(self.weight_dependence.extra_parameters)
+        parameters.update(**weight_parameters)
+        parameters.update(**self.timing_dependence.extra_parameters)
+        parameters.update(**self.weight_dependence.extra_parameters)
+        parameters.update(dendritic_delay_fraction=self.dendritic_delay_fraction)
         return parameters
 
     def describe(self, template='stdpmechanism_default.txt', engine='default'):

@@ -10,6 +10,7 @@ $Id$
 
 import numpy
 from pyNN.utility import get_script_args
+from pyNN.parameters import Sequence
 
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
@@ -28,7 +29,7 @@ numpy.random.seed(637645386)
 spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/rate, size=number))
 assert spike_times.max() > tstop
 
-spike_source = create(SpikeSourceArray(spike_times=spike_times))
+spike_source = create(SpikeSourceArray(spike_times=Sequence(spike_times)))
 
 conn1 = connect(spike_source, ifcell1, weight=1.0)
 conn2 = connect(spike_source, ifcell2, weight=1.0)

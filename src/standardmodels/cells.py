@@ -334,7 +334,7 @@ class SpikeSourcePoisson(StandardCellType):
     }
     recordable = ['spikes']
     injectable = False
-    synapse_types = ()
+    receptor_types = ()
 
 
 class SpikeSourceInhGamma(StandardCellType):
@@ -355,7 +355,7 @@ class SpikeSourceInhGamma(StandardCellType):
     }
     recordable = ['spikes']
     injectable = False
-    synapse_types = ()      
+    receptor_types = ()
 
 
 class SpikeSourceArray(StandardCellType):
@@ -364,4 +364,4 @@ class SpikeSourceArray(StandardCellType):
     default_parameters = { 'spike_times' : Sequence([]) } # list or numpy array containing spike times in milliseconds.
     recordable = ['spikes']
     injectable = False
-    synapse_types = ()    
+    receptor_types = ()

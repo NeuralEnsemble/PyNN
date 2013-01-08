@@ -27,8 +27,8 @@ spike_sourceE = create(SpikeSourceArray(spike_times=[float(i) for i in range(5,1
 #spike_sourceE = create(SpikeSourcePoisson(rate=100.0)
 spike_sourceI = create(SpikeSourceArray(spike_times=[float(i) for i in range(155,255,10)]))
 
-connE = connect(spike_sourceE, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)
-connI = connect(spike_sourceI, ifcell, weight=-1.5, synapse_type='inhibitory', delay=4.0)
+connE = connect(spike_sourceE, ifcell, weight=1.5, receptor_type='excitatory', delay=2.0)
+connI = connect(spike_sourceI, ifcell, weight=-1.5, receptor_type='inhibitory', delay=4.0)
 record('v', ifcell, "Results/Izhikevich_%s.pkl" % simulator_name)
 initialize(ifcell, v=-53.2)
 run(200)

@@ -114,3 +114,7 @@ def reraise(exception, message):
     args[0] += message
     exception.args = args
     raise
+
+def ezip(*args):
+    for items in zip(*args):
+        yield items[0], items[1:]

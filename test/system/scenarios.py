@@ -243,7 +243,7 @@ def scenario3(sim):
     post.set(**cell_parameters)
     post.initialize(v=RandomDistribution('normal', (v_reset, 5.0)))
 
-    stdp = sim.SynapseDynamics(
+    stdp = sim.ComposedSynapseType(
                 slow=sim.STDPMechanism(
                         sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0 ),
                         sim.AdditiveWeightDependence(w_min=w_min, w_max=w_max,
@@ -631,8 +631,8 @@ def scenario4(sim):
                                   weights=0.05,
                                   delays="0.2 + d/100.0",
                                   space=Space(periodic_boundaries=((-100.0, 100.0), (-100.0, 100.0), None))) # should add "calculate_boundaries" method to Structure classes
-    depressing = sim.SynapseDynamics(fast=sim.TsodyksMarkramMechanism(U=0.5, tau_rec=800.0, tau_facil=0.0))
-    facilitating = sim.SynapseDynamics(fast=sim.TsodyksMarkramMechanism(U=0.04, tau_rec=100.0, tau_facil=1000.0))
+    depressing = sim.ComposedSynapseType(fast=sim.TsodyksMarkramMechanism(U=0.5, tau_rec=800.0, tau_facil=0.0))
+    facilitating = sim.ComposedSynapseType(fast=sim.TsodyksMarkramMechanism(U=0.04, tau_rec=100.0, tau_facil=1000.0))
     input_connections = sim.Projection(inputs, outputs, input_connectivity,
                                        target='excitatory',
                                        synapse_dynamics=depressing,

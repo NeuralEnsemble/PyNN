@@ -17,7 +17,18 @@ Classes for defining STDP rules:
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN.standardmodels import ShortTermPlasticityMechanism, STDPWeightDependence, STDPTimingDependence
+from pyNN.standardmodels import StandardSynapseType, ShortTermPlasticityMechanism, STDPWeightDependence, STDPTimingDependence
+
+
+class StaticSynapse(StandardSynapseType):
+    """
+    Synaptic connection with fixed weight and delay.
+    """
+    default_parameters = {
+        'weight': 0.0,
+        'delay': None
+    }
+
 
 class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):
     """

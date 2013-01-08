@@ -47,7 +47,7 @@ Classes for creating, connecting, modifying and recording from neurons
                 EIF_cond_alpha_isfa_ista, EIF_cond_exp_isfa_ista,
                 SpikeSourcePoisson, SpikeSourceArray, SpikeSourceInhGamma
                 (not all cell types are available for all simulator backends).
-    Synaptic plasticity: SynapseDynamics, TsodyksMarkramMechanism, STDPMechanism,
+    Synaptic plasticity: ComposedSynapseType, TsodyksMarkramMechanism, STDPMechanism,
                 AdditiveWeightDependence, MultiplicativeWeightDependence,
                 AdditivePotentiationMultiplicativeDepression,
                 GutigWeightDependence, SpikePairRule

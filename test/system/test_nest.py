@@ -74,7 +74,7 @@ def test_native_stdp_model():
     p2 = nest.Population(10, nest.SpikeSourcePoisson())
 
     stdp_params = {'Wmax': 50.0, 'lambda': 0.015}
-    stdp = nest.NativeSynapseDynamics("stdp_synapse", stdp_params)
+    stdp = nest.NativeSynapseType("stdp_synapse", stdp_params)
 
     connector = nest.AllToAllConnector(weights=0.001)
 

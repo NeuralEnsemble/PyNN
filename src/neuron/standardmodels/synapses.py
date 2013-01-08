@@ -7,7 +7,21 @@ Synapse Dynamics classes for the neuron module.
 $Id$
 """
 
-from pyNN.standardmodels import synapses, build_translations, STDPMechanism, SynapseDynamics
+from pyNN.standardmodels import synapses, build_translations, STDPMechanism
+from pyNN.neuron.simulator import state
+
+
+class StaticSynapse(synapses.StaticSynapse):
+    __doc__ = synapses.StaticSynapse.__doc__
+
+    translations = build_translations(
+        ('weight', 'weight'),
+        ('delay', 'delay')
+    )
+    model = None
+
+    def _get_minimum_delay(self):
+        return state.min_delay
 
 
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):

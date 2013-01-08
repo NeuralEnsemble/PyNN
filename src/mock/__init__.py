@@ -10,7 +10,7 @@ really running simulations.
 
 import logging
 from pyNN import common
-from pyNN.standardmodels import SynapseDynamics, STDPMechanism
+from pyNN.standardmodels import ComposedSynapseType, STDPMechanism
 from pyNN.connectors import *
 from . import simulator
 from .standardmodels import *
