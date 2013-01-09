@@ -8,8 +8,9 @@ $Id$
 """
 
 import numpy
-from pyNN.utility import get_script_args
+from pyNN.utility import get_script_args, init_logging
 
+init_logging(None, debug=True)
 simulator_name = get_script_args(1)[0]
 exec("import pyNN.%s as sim" % simulator_name)
 
@@ -20,15 +21,12 @@ spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(1
 connector = sim.AllToAllConnector()
 
 synapse_types = {
-    'static': StaticSynapse(weight=0.01, delay=0.5),
-    'depressing': sim.ComposedSynapseType(
-        fast=sim.TsodyksMarkramMechanism(U=0.5, tau_rec=800.0, tau_facil=0.0),
-        initial_weight=0.01,
-        delay=0.5),
-    'facilitating': sim.ComposedSynapseType(
-        fast=sim.TsodyksMarkramMechanism(U=0.04, tau_rec=100.0, tau_facil=1000.0),
-        initial_weight=0.01,
-        delay=0.5),
+    'static': sim.StaticSynapse(weight=0.01, delay=0.5),
+    'depressing': sim.TsodyksMarkramSynapse(U=0.5, tau_rec=800.0, tau_facil=0.0,
+                                            weight=0.01, delay=0.5),
+    'facilitating': sim.TsodyksMarkramSynapse(U=0.04, tau_rec=100.0,
+                                              tau_facil=1000.0, weight=0.01,
+                                              delay=0.5),
 }
 
 populations = {}

@@ -24,6 +24,30 @@ class StaticSynapse(synapses.StaticSynapse):
         return state.min_delay
 
 
+class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
+    __doc__ = synapses.TsodyksMarkramSynapse.__doc__
+
+    translations = build_translations(
+        ('weight', 'weight'),
+        ('delay', 'delay'),
+        ('U', 'U'),
+        ('tau_rec', 'tau_rec'),
+        ('tau_facil', 'tau_facil'),
+        ('u0', 'u0'),
+        ('x0', 'x' ), # } note that these two values
+        ('y0', 'y')   # } are not used
+    )
+    model = 'TsodyksMarkramWA'
+    postsynaptic_variable = None
+
+    def __init__(self, weight=0.0, delay=None, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
+        assert (x0 == 1 and y0 == 0), "It is not currently possible to set x0 and y0"
+        synapses.TsodyksMarkramSynapse.__init__(self, weight=weight, delay=delay,
+                                                U=U, tau_rec=tau_rec,
+                                                tau_facil=tau_facil, u0=u0,
+                                                x0=x0, y0=y0)
+
+
 class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
     __doc__ = synapses.TsodyksMarkramMechanism.__doc__
 

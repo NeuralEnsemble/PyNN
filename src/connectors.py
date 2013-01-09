@@ -192,16 +192,12 @@ class MapConnector(Connector):
             mask = projection.post._mask_local
             components = (
                 column_indices[mask],
-                projection.post.local_cells,
                 connection_map.by_column(mask))
 
-        for count, (col, tgt, source_mask) in enumerate(izip(*components)):
-            if source_mask is True:
-                sources = projection.pre.all_cells
-                source_mask = slice(None)
-            else:
-                sources = projection.pre.all_cells[source_mask]
-            if len(sources) > 0:
+        for count, (col, source_mask) in enumerate(izip(*components)):
+            if source_mask is True or source_mask.any():
+                if source_mask is True:
+                    source_mask = numpy.arange(projection.pre.size, dtype=int)
 #                if weight_map.is_homogeneous:
 #                    weights = weight_map.evaluate(simplify=True)
 #                else:
@@ -227,9 +223,8 @@ class MapConnector(Connector):
 #                                          projection._simulator.state.max_delay)
 #                    # TODO: add checks for plasticity parameters
 #                #logger.debug("mask: %s, w: %s, d: %s", source_mask, weights, delays)
-                assert tgt.local
                 if True:
-                    projection._convergent_connect(sources, tgt, **connection_parameters)
+                    projection._convergent_connect(source_mask, col, **connection_parameters)
                     if self.callback:
                         self.callback(count/projection.post.local_size)
 

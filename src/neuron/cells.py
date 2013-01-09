@@ -66,13 +66,6 @@ class SingleCompartmentNeuron(nrn.Section):
         synapse_model = self.synapse_models[syn_type][syn_shape]
         self.esyn = synapse_model(0.5, sec=self)
         self.isyn = synapse_model(0.5, sec=self)
-        if self.syn_shape == 'exp':
-            if self.syn_type == 'conductance':
-                self.esyn_TM = h.tmgsyn(0.5, sec=self)
-                self.isyn_TM = h.tmgsyn(0.5, sec=self)
-            else:
-                self.esyn_TM = h.tmisyn(0.5, sec=self)
-                self.isyn_TM = h.tmisyn(0.5, sec=self)
 
         # insert current source
         self.stim = h.IClamp(0.5, sec=self)
@@ -95,20 +88,6 @@ class SingleCompartmentNeuron(nrn.Section):
     def inhibitory(self):
         return self.isyn
 
-    @property
-    def excitatory_TM(self):
-        if hasattr(self, 'esyn_TM'):
-            return self.esyn_TM
-        else:
-            return None
-
-    @property
-    def inhibitory_TM(self):
-        if hasattr(self, 'isyn_TM'):
-            return self.isyn_TM
-        else:
-            return None
-
     def area(self):
         """Membrane area in µm²"""
         return pi*self.L*self.seg.diam
@@ -120,32 +99,24 @@ class SingleCompartmentNeuron(nrn.Section):
         return self.esyn.tau
     def _set_tau_e(self, value):
         self.esyn.tau = value
-        if hasattr(self, 'esyn_TM'):
-            self.esyn_TM.tau = value
     tau_e = property(fget=_get_tau_e, fset=_set_tau_e)
 
     def _get_tau_i(self):
         return self.isyn.tau
     def _set_tau_i(self, value):
         self.isyn.tau = value
-        if hasattr(self, 'isyn_TM'):
-            self.isyn_TM.tau = value
     tau_i = property(fget=_get_tau_i, fset=_set_tau_i)
 
     def _get_e_e(self):
         return self.esyn.e
     def _set_e_e(self, value):
         self.esyn.e = value
-        if hasattr(self, 'esyn_TM'):
-            self.esyn_TM.e = value
     e_e = property(fget=_get_e_e, fset=_set_e_e)
 
     def _get_e_i(self):
         return self.isyn.e
     def _set_e_i(self, value):
         self.isyn.e = value
-        if hasattr(self, 'isyn_TM'):
-            self.isyn_TM.e = value
     e_i = property(fget=_get_e_i, fset=_set_e_i)
 
     def memb_init(self):
@@ -153,20 +124,6 @@ class SingleCompartmentNeuron(nrn.Section):
         for seg in self:
             seg.v = self.v_init
         #self.seg.v = self.v_init
-
-    def set_Tsodyks_Markram_synapses(self, ei, U, tau_rec, tau_facil, u0):
-        if self.syn_shape == 'alpha':
-            raise Exception("Tsodyks-Markram mechanism not available for alpha-function-shaped synapses.")
-        elif ei == 'excitatory':
-            syn = self.esyn_TM
-        elif ei == 'inhibitory':
-            syn = self.isyn_TM
-        else:
-            raise Exception("Tsodyks-Markram mechanism not yet implemented for user-defined synapse types. ei = %s" % ei)
-        syn.U = U
-        syn.tau_rec = tau_rec
-        syn.tau_facil = tau_facil
-        syn.u0 = u0
 
     def set_parameters(self, param_dict):
         for name in self.parameter_names:

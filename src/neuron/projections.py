@@ -27,20 +27,8 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    label, rng)
-
-        ### Deal with short-term synaptic plasticity
-        #if self.synapse_dynamics and self.synapse_dynamics.fast:
-        #    # need to check it is actually the Ts-M model, even though that is the only one at present!
-        #    parameter_space = self.synapse_dynamics.fast.translated_parameters
-        #    parameter_space.evaluate(mask=self.post._mask_local)
-        #    for cell, P in zip(self.post, parameter_space):
-        #        cell._cell.set_Tsodyks_Markram_synapses(self.synapse_type,
-        #                                                P['U'], P['tau_rec'],
-        #                                                P['tau_facil'], P['u0'])
-        #    self.synapse_model = 'Tsodyks-Markram'
-        #else:
-        #    self.synapse_model = None
         self.connections = []
+        self._connections = dict((index, {}) for index in self.post._mask_local.nonzero()[0])
 
         ## Create connections
         connector.connect(self)
@@ -81,7 +69,7 @@ class Projection(common.Projection):
 #        if self.synapse_model == 'Tsodyks-Markram' and 'TM' not in self.synapse_type:
 #            self.synapse_type += '_TM'
 
-    def _convergent_connect(self, presynaptic_cells, postsynaptic_cell,
+    def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):
         """
         Connect a neuron to one or more other neurons with a static connection.
@@ -93,6 +81,7 @@ class Projection(common.Projection):
                                    a single value.
         """
         logger.debug("Convergent connect. Weights=%s" % connection_parameters['weight'])
+        postsynaptic_cell = self.post[postsynaptic_index]
         if not isinstance(postsynaptic_cell, int) or postsynaptic_cell > simulator.state.gid_counter or postsynaptic_cell < 0:
             errmsg = "Invalid post-synaptic cell: %s (gid_counter=%d)" % (postsynaptic_cell, simulator.state.gid_counter)
             raise errors.ConnectionError(errmsg)
@@ -100,51 +89,18 @@ class Projection(common.Projection):
             if isinstance(value, float):
                 connection_parameters[name] = repeat(value)
         assert postsynaptic_cell.local
-        plasticity_mechanism = self.synapse_type.model
-
-        for pre, values in core.ezip(presynaptic_cells, *connection_parameters.values()):
+        #import pdb; pdb.set_trace()
+        for pre_idx, values in core.ezip(presynaptic_indices, *connection_parameters.values()):
             parameters = dict(zip(connection_parameters.keys(), values))
-            #logging.debug("Connecting neuron #%s to neuron #%s with synapse type %s, weight %g, delay %g", source, receptor_type, self.synapse_type, weight, delay)
-            if not isinstance(pre, common.IDMixin):
-                raise errors.ConnectionError("Invalid pre-synaptic cell ID: %s" % pre)
-            self.connections.append(
-                simulator.Connection(pre, postsynaptic_cell, self.receptor_type,
-                                     plasticity_mechanism, **parameters))
-
-    # --- Methods for setting connection parameters ----------------------------
+            logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, parameters %s", pre_idx, self.receptor_type, self.synapse_type, parameters)
+            self._connections[postsynaptic_index][pre_idx] = \
+                simulator.Connection(self.pre[pre_idx], postsynaptic_cell, self.receptor_type,
+                                     self.synapse_type, **parameters)
 
     def _set_attributes(self, parameter_space):
-        parameter_space.evaluate()  # should really take only columns for connections that exist on this machine
-        for connection, connection_parameters in zip(self.connections, parameter_space):
+        parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
+        for connection_group, connection_parameters in zip(self._connections.values(),
+                                                           parameter_space.columns()):
             for name, value in connection_parameters.items():
-                setattr(connection, name, value)
-    #    for name, value in attributes.items():
-    #        if numpy.isscalar(value):
-    #            for c in self:
-    #                setattr(c, name, value)
-    #        elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
-    #            for c in self.connections:
-    #                addr = (self.pre.id_to_index(c.source), self.post.id_to_index(c.receptor_type))
-    #                try:
-    #                    val = value[addr]
-    #                except IndexError, e:
-    #                    raise IndexError("%s. addr=%s" % (e, addr))
-    #                if numpy.isnan(val):
-    #                    raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.receptor_type))
-    #                else:
-    #                    setattr(c, name, val)
-    #        elif core.is_listlike(value):
-    #            for c,val in zip(self.connections, value):
-    #                setattr(c, name, val)
-    #        elif isinstance(value, RandomDistribution):
-    #            if isinstance(value.rng, NativeRNG):
-    #                rarr = simulator.nativeRNG_pick(len(self),
-    #                                                value.rng,
-    #                                                value.name,
-    #                                                value.parameters)
-    #            else:
-    #                rarr = value.next(len(self))
-    #            for c,val in zip(self.connections, rarr):
-    #                setattr(c, name, val)
-    #        else:
-    #            raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
+                for index in connection_group:
+                    setattr(connection_group[index], name, value[index])

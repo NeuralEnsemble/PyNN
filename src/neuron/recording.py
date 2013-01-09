@@ -34,15 +34,9 @@ class Recorder(recording.Recorder):
         if variable == 'v':
             hoc_var = cell(0.5)._ref_v  # or use "seg.v"?
         elif variable == 'gsyn_exc':
-            if cell.excitatory_TM is None:
-                hoc_var = cell.esyn._ref_g
-            else:
-                hoc_var = cell.esyn_TM._ref_g
+            hoc_var = cell.esyn._ref_g
         elif variable == 'gsyn_inh':
-            if cell.inhibitory_TM is None:
-                hoc_var = cell.isyn._ref_g
-            else:
-                hoc_var = cell.isyn_TM._ref_g
+            hoc_var = cell.isyn._ref_g
         else:
             source, var_name = self._resolve_variable(cell, variable)
             hoc_var = getattr(source, "_ref_%s" % var_name)

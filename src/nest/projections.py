@@ -134,7 +134,7 @@ class Projection(common.Projection):
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.append(source)
 
-    def _convergent_connect(self, presynaptic_cells, postsynaptic_cell,
+    def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):
         """
         Connect a neuron to one or more other neurons with a static connection.
@@ -144,6 +144,8 @@ class Projection(common.Projection):
 
         TO UPDATE
         """
+        presynaptic_cells = self.pre[presynaptic_indices].all_cells
+        postsynaptic_cell = self.post[postsynaptic_index]
         assert len(presynaptic_cells) > 0, presynaptic_cells
         weights = connection_parameters.pop('weight')
         if self.receptor_type == 'inhibitory' and self.post.conductance_based:
@@ -173,63 +175,15 @@ class Projection(common.Projection):
         for name, value in connection_parameters.items():
             nest.SetStatus(connections, name, value)
 
-    def set(self, **attributes):
-        __doc__ = common.Projection.set.__doc__
-        for name, value in attributes.items():
-            if numpy.isscalar(value):
-                value = float(value)
-            elif isinstance(value, numpy.ndarray) and len(value.shape) == 2:
-                value_list = []
-                connection_parameters = nest.GetStatus(self.connections, ('source', 'target'))
-                for conn in connection_parameters:
-                    addr = self.pre.id_to_index(conn['source']), self.post.id_to_index(conn['target'])
-                    try:
-                        val = value[addr]
-                    except IndexError, e:
-                        raise IndexError("%s. addr=%s" % (e, addr))
-                    if numpy.isnan(val):
-                        raise Exception("Array contains no value for synapse from %d to %d" % (c.source, c.target))
-                    else:
-                        value_list.append(val)
-                value = value_list
-            elif core.is_listlike(value):
-                value = numpy.array(value)
-            elif isinstance(value, RandomDistribution):
-                value = value.next(len(self))
-            else:
-                raise TypeError("Argument should be a numeric type (int, float...), a list, or a numpy array.")
-
-            if name == 'weights':
-                value *= 1000.0
-                if self.synapse_type == 'inhibitory' and common.is_conductance(self.post[0]):
-                    value *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
-                name = "weight"
-            elif name == 'delays':
-                name = "delay"
-            else:
-                #translation = self.synapse_dynamics.reverse_translate({name: value})
-                #name, value = translation.items()[0]
-                translated_name = None
-                if self.synapse_dynamics.fast:
-                    if name in self.synapse_dynamics.fast.translations:
-                        translated_name = self.synapse_dynamics.fast.translations[name]["translated_name"] # a hack
-                if translated_name is None:
-                    if self.synapse_dynamics.slow:
-                        for component_name in "timing_dependence", "weight_dependence", "voltage_dependence":
-                            component = getattr(self.synapse_dynamics.slow, component_name)
-                            if component and name in component.translations:
-                                translated_name = component.translations[name]["translated_name"]
-                                break
-                if translated_name:
-                    name = translated_name
-    
-            try:
-                nest.SetStatus(self.connections, name, value) # perhaps take this out of the loop, and set multiple values at once in a dict?
-            except nest.NESTError, e:
-                n = 1
-                if hasattr(value, '__len__'):
-                    n = len(value)
-                raise Exception("%s. Trying to set %d values." % (e, n))
+    def _set_attributes(self, parameter_space):
+        parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
+        for postsynaptic_cell, connection_parameters in zip(self.post.local_cells,
+                                                            parameter_space.columns()):
+            connections = nest.FindConnections(numpy.unique(self._sources),
+                                               [postsynaptic_cell],
+                                               synapse_type=self.synapse_model)
+            for name, value in connection_parameters.items():
+                nest.SetStatus(connections, name, value)
 
     def saveConnections(self, file, gather=True, compatible_output=True):
         """
