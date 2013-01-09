@@ -28,6 +28,11 @@ class STDPMechanism(synapses.STDPMechanism):
     __doc__ = synapses.STDPMechanism.__doc__
     postsynaptic_variable = 'spikes'
 
+    base_translations = build_translations(
+        ('weight', 'weight'),
+        ('delay', 'delay')
+    )  # will be extended by translations from timing_dependence, etc.
+
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0,
                  weight=0.0, delay=None):

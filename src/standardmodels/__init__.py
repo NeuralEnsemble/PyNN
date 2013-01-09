@@ -63,16 +63,16 @@ class StandardModelType(models.BaseModelType):
     def translated_parameters(self):
         return self.translate(self.parameter_space)
 
-    @classmethod
-    def translate(cls, parameters):
+    def translate(self, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
         _parameters = deepcopy(parameters)
+        cls = self.__class__
         if parameters.schema != cls.get_schema():
             raise Exception("Schemas do not match: %s != %s" % (parameters.schema, cls.get_schema())) # should replace this with a PyNN-specific exception type
         native_parameters = {}
         #for name in parameters.schema:
         for name in parameters.keys():
-            D = cls.translations[name]
+            D = self.translations[name]
             pname = D['translated_name']
             try:
                 pval = eval(D['forward_transform'], globals(), _parameters)
@@ -85,11 +85,11 @@ class StandardModelType(models.BaseModelType):
             native_parameters[pname] = pval
         return ParameterSpace(native_parameters, schema=None, shape=parameters.shape)
 
-    @classmethod
-    def reverse_translate(cls, native_parameters):
+    def reverse_translate(self, native_parameters):
         """Translate simulator-specific model parameters to standardized parameters."""
+        cls = self.__class__
         standard_parameters = {}
-        for name,D  in cls.translations.items():
+        for name,D  in self.translations.items():
             tname = D['translated_name']
             if tname in native_parameters.keys():
                 try:
@@ -99,37 +99,27 @@ class StandardModelType(models.BaseModelType):
                                     % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
         return ParameterSpace(standard_parameters, schema=cls.get_schema(), shape=native_parameters.shape)
 
-    @classmethod
-    def simple_parameters(cls):
+    def simple_parameters(self):
         """Return a list of parameters for which there is a one-to-one
         correspondance between standard and native parameter values."""
-        return [name for name in cls.translations if cls.translations[name]['forward_transform'] == name]
+        return [name for name in self.translations if self.translations[name]['forward_transform'] == name]
 
-    @classmethod
-    def scaled_parameters(cls):
+    def scaled_parameters(self):
         """Return a list of parameters for which there is a unit change between
         standard and native parameter values."""
-        return [name for name in cls.translations if "float" in cls.translations[name]['forward_transform']]
+        return [name for name in self.translations if "float" in self.translations[name]['forward_transform']]
 
-    @classmethod
-    def computed_parameters(cls):
+    def computed_parameters(self):
         """Return a list of parameters whose values must be computed from
         more than one other parameter."""
-        return [name for name in cls.translations if name not in cls.simple_parameters()+cls.scaled_parameters()]
+        return [name for name in self.translations if name not in self.simple_parameters() + self.scaled_parameters()]
 
-    @classmethod
-    def get_translated_names(cls, *names):
+    def get_translated_names(self, *names):
         if names:
-            translations = (cls.translations[name] for name in names)
+            translations = (self.translations[name] for name in names)
         else:  # return all names
-            translations = cls.translations.itervalues()
+            translations = self.translations.itervalues()
         return [D['translated_name'] for D in translations]
-
-#    def update_parameters(self, parameters):
-#        """
-#        update self.parameters with those in parameters
-#        """
-#        self.parameters.update(self.translate(parameters))
 
 
 class StandardCellType(StandardModelType, models.BaseCellType):
@@ -213,101 +203,6 @@ class ModelNotAvailable(object):
 
 class StandardSynapseType(StandardModelType, models.BaseSynapseType):
     pass
-
-
-#class ComposedSynapseType(StandardSynapseType):
-#    """
-#    For specifying synapse short-term (faciliation, depression) and long-term
-#    (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
-#    `Projection.__init__()` or to the `connect()` function.
-#
-#    Arguments:
-#        `fast`:
-#            a short-term plasticity mechanism, e.g.
-#            :class:`TsodyksMarkramMechanism`, or `None`.
-#        `slow`:
-#            an :class:`STDPMechanism` object, or `None`.
-#    """
-#
-#    def __init__(self, fast=None, slow=None):
-#        """
-#        Create a new specification for a dynamic synapse, combining a `fast`
-#        component (short-term facilitation/depression) and a `slow` component
-#        (long-term potentiation/depression).
-#        """
-#        if fast:
-#            assert isinstance(fast, ShortTermPlasticityMechanism)
-#        if slow:
-#            assert isinstance(slow, STDPMechanism)
-#            assert 0 <= slow.dendritic_delay_fraction <= 1.0
-#        self.fast = fast
-#        self.slow = slow
-#
-#
-#    @property
-#    def translated_parameters(self):
-#        """
-#        Return combined, translated parameter space from both fast and slow components
-#        """
-#        P = {}
-#        if self.fast:
-#            P = self.fast.translated_parameters
-#        if self.slow:
-#            P.update(self.slow.translated_parameters)
-#        return P
-#
-#    def get_translated_names(self, *names):
-#        translated_names = []
-#        if self.fast:
-#            names_fast = self.fast.get_parameter_names()
-#        else:
-#            names_fast = []
-#        if self.slow:
-#            names_slow = self.slow.get_parameter_names()
-#        else:
-#            names_slow = []
-#        for name in names:
-#            if name in names_fast:
-#                translated_names.append(self.fast.get_translated_names(name)[0])
-#            elif name in names_slow:
-#                translated_names.append(self.slow.get_translated_names(name)[0])
-#            elif name in ('weights', 'delays'):  # not sure
-#                translated_names.append(name)    # about this
-#            else:
-#                raise NameError("ComposedSynapseType object does not have a parameter '%s'" % name)
-#        return translated_names
-#
-#    def describe(self, template='synapsedynamics_default.txt', engine='default'):
-#        """
-#        Returns a human-readable description of the synapse dynamics.
-#
-#        The output may be customized by specifying a different template
-#        togther with an associated template engine (see ``pyNN.descriptions``).
-#
-#        If template is None, then a dictionary containing the template context
-#        will be returned.
-#        """
-#        context = {'fast': self.fast and self.fast.describe(template=None) or None,
-#                   'slow': self.slow and self.slow.describe(template=None) or None}
-#        return descriptions.render(engine, template, context)
-#
-#
-#class ShortTermPlasticityMechanism(StandardModelType):
-#    """Abstract base class for models of short-term synaptic dynamics."""
-#
-#    def __init__(self, **parameters):
-#        StandardModelType.__init__(self, **parameters)
-#
-#    #@property
-#    #def parameters(self):
-#    #    parameter_space = self.translated_parameters
-#    #    parameter_space.shape = (1,)
-#    #    if not parameter_space.is_homogeneous:
-#    #        raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
-#    #    parameter_space.evaluate(simplify=True)
-#    #    p = parameter_space.as_dict()
-#    #    p.update(self.extra_parameters)
-#    #    return p
 
 
 class STDPWeightDependence(StandardModelType):

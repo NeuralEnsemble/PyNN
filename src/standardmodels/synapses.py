@@ -105,7 +105,13 @@ class STDPMechanism(StandardSynapseType):
         self.dendritic_delay_fraction = dendritic_delay_fraction
         self.weight = weight
         self.delay = delay or self._get_minimum_delay()
+        self._build_translations()
         
+    def _build_translations(self):
+        self.translations = self.__class__.base_translations  # weight and delay
+        for component in (self.timing_dependence, self.weight_dependence, self.voltage_dependence):
+            if component:
+                self.translations.update(component.translations)
 
     @property
     def model(self):
@@ -131,19 +137,19 @@ class STDPMechanism(StandardSynapseType):
         assert self.voltage_dependence is None  # once we have some models with v-dep, need to update the following
         return ['weight', 'delay'] + self.timing_dependence.get_parameter_names() + self.weight_dependence.get_parameter_names()
 
-    def get_translated_names(self, *names):
-        translated_names = []
-        for name in names:
-            if name == 'weight':
-                translated_names.append('weight')
-            elif name == 'delay':
-                translated_names.append('delay')
-            else:
-                for component in (self.timing_dependence, self.weight_dependence):
-                    if name in component.get_parameter_names():
-                        translated_names.append(component.get_translated_names(name)[0])
-                        break
-        return translated_names
+    #def get_translated_names(self, *names):
+    #    translated_names = []
+    #    for name in names:
+    #        if name == 'weight':
+    #            translated_names.append('weight')
+    #        elif name == 'delay':
+    #            translated_names.append('delay')
+    #        else:
+    #            for component in (self.timing_dependence, self.weight_dependence):
+    #                if name in component.get_parameter_names():
+    #                    translated_names.append(component.get_translated_names(name)[0])
+    #                    break
+    #    return translated_names
 
     @property
     def translated_parameters(self):
