@@ -1,6 +1,6 @@
 from pyNN.standardmodels import build_translations, StandardModelType, \
-                                ComposedSynapseType, STDPMechanism, \
                                 STDPWeightDependence, STDPTimingDependence
+from pyNN.standardmodels.synapses import STDPMechanism
 from pyNN import errors
 from pyNN.parameters import ParameterSpace
 from nose.tools import assert_equal, assert_raises
@@ -164,12 +164,10 @@ def test_describe():
 
 # test create
 
-def test_describe_SD():
-    sd = ComposedSynapseType()
+def test_describe_synapse_type():
+    sd = StaticSynapse()
     assert isinstance(sd.describe(), basestring)
     assert isinstance(sd.describe(template=None), dict)
-
-## test ShortTermPlasticityMechanism
 
 def test_STDPMechanism_create():
     STDPTimingDependence.__init__ = Mock(return_value=None)

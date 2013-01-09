@@ -79,4 +79,4 @@ def test_native_stdp_model():
     connector = nest.AllToAllConnector(weights=0.001)
 
     prj = nest.Projection(p2, p1, connector, target='excitatory',
-                          synapse_dynamics=stdp)
+                          synapse_type=stdp)

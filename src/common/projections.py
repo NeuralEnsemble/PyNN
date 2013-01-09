@@ -12,7 +12,7 @@ import logging
 import operator
 from pyNN import random, recording, errors, models, core, descriptions
 from pyNN.parameters import ParameterSpace
-from pyNN.standardmodels import StandardSynapseType, ComposedSynapseType
+from pyNN.standardmodels import StandardSynapseType
 from populations import BasePopulation, Assembly
 
 logger = logging.getLogger("PyNN")
@@ -81,7 +81,7 @@ class Projection(object):
         self._connector = connector
         self.synapse_type = synapse_type
         assert isinstance(self.synapse_type, models.BaseSynapseType), \
-              "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(synapse_dynamics)
+              "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(synapse_type)
         if label is None:
             if self.pre.label and self.post.label:
                 self.label = "%s→%s" % (self.pre.label, self.post.label)
@@ -126,7 +126,7 @@ class Projection(object):
         Set connection attributes for all connections on the local MPI node.
 
         Attribute names may be 'weights', 'delays', or the name of any parameter
-        of a synapse dynamics model (e.g. 'U' for TsodyksMarkramMechanism).
+        of a synapse dynamics model (e.g. 'U' for TsodyksMarkramSynapse).
 
         Each attribute value may be:
             (1) a single number
@@ -144,7 +144,7 @@ class Projection(object):
         parameter_space = ParameterSpace(attributes,
                                          self.synapse_type.get_schema(),
                                          (self.pre.size, self.post.size))
-        if isinstance(self.synapse_type, ComposedSynapseType):
+        if isinstance(self.synapse_type, StandardSynapseType):
             parameter_space = self.synapse_type.translate(parameter_space)
         self._set_attributes(parameter_space)
 
@@ -165,11 +165,11 @@ class Projection(object):
         self.set(delay=rand_distr)
 
     @deprecated("set(parameter_name=value)")
-    def setComposedSynapseType(self, parameter_name, value):
+    def setSynapseDynamics(self, parameter_name, value):
         self.set(parameter_name=value)
 
     @deprecated("set(name=rand_distr)")
-    def randomizeComposedSynapseType(self, parameter_name, rand_distr):
+    def randomizeSynapseDynamics(self, parameter_name, rand_distr):
         self.set(parameter_name=rand_distr)
 
     # --- Methods for writing/reading information to/from file. ---------------
@@ -217,7 +217,7 @@ class Projection(object):
         if format == 'list':
             names = list(attribute_names)
             if with_address:
-                names = ["source", "target"] + names
+                names = ["pre", "post"] + names
             values = self._get_attributes_as_list(*names)
             if not with_address and return_single:
                 values = [val[0] for val in values]
@@ -260,7 +260,7 @@ class Projection(object):
         return self.get('delay', format, gather, with_address=False)
 
     @deprecated("get(parameter_name, format, gather)")
-    def getComposedSynapseType(self, parameter_name, format='list', gather=True):
+    def getSynapseDynamics(self, parameter_name, format='list', gather=True):
         return self.get(parameter_name, format, gather, with_address=False)
 
     def save(self, attribute_names, file, format='list', gather=True):
@@ -331,6 +331,6 @@ class Projection(object):
             "connector": self._connector.describe(template=None),
             "plasticity": None,
         }
-        if self.synapse_dynamics:
-            context.update(plasticity=self.synapse_dynamics.describe(template=None))
+        if self.synapse_type:
+            context.update(plasticity=self.synapse_type.describe(template=None))
         return descriptions.render(engine, template, context)

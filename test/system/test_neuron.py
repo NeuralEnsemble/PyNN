@@ -102,6 +102,7 @@ class SimpleNeuronType(NativeCellType):
     default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}
     default_initial_values = {'v': -65.0}
     recordable = ['apical(1.0).v', 'soma(0.5).ina'] # this is not good - over-ride Population.can_record()?
+    receptor_types = ['apical.ampa']
     model = SimpleNeuron
 
 
@@ -126,8 +127,9 @@ def test_record_native_model():
 
     p1.record(['apical(1.0).v', 'soma(0.5).ina'])
 
-    connector = nrn.AllToAllConnector(weights=0.1)
-    prj_alpha = nrn.Projection(p2, p1, connector, target='apical.ampa')
+    connector = nrn.AllToAllConnector()
+    syn = nrn.StaticSynapse(weight=0.1)
+    prj_alpha = nrn.Projection(p2, p1, connector, syn, receptor_type='apical.ampa')
 
     nrn.run(250.0)
 

@@ -8,7 +8,7 @@ $Id$
 """
 
 import nest
-from pyNN.standardmodels import synapses, build_translations, ComposedSynapseType, STDPMechanism
+from pyNN.standardmodels import synapses, build_translations
 from pyNN.nest.synapses import get_defaults
 from pyNN.nest.simulator import state
 import logging
@@ -40,63 +40,63 @@ class StaticSynapse(synapses.StaticSynapse):
         return state.min_delay
 
 
-class ComposedSynapseType(ComposedSynapseType):
-    __doc__ = ComposedSynapseType.__doc__
+#class ComposedSynapseType(ComposedSynapseType):
+#    __doc__ = ComposedSynapseType.__doc__
+#
+#    def _get_nest_synapse_model(self, suffix):
+#        # We create a particular synapse context for each projection, by copying
+#        # the one which is desired.
+#        if self.fast:
+#            if self.slow:
+#                raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
+#            else:
+#                base_model = self.fast.native_name
+#        elif self.slow:
+#            base_model = self.slow.possible_models
+#            if isinstance(base_model, set):
+#                logger.warning("Several STDP models are available for these connections:")
+#                logger.warning(", ".join(model for model in base_model))
+#                base_model = list(base_model)[0]
+#                logger.warning("By default, %s is used" % base_model)
+#        else:
+#            base_model = "static_synapse"
+#        available_models = nest.Models(mtype='synapses')
+#        if base_model not in available_models:
+#            raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
+#                             "Possible models in your NEST build are: %s" % (base_model, available_models))
+#
+#        # CopyModel defaults must be simple floats, so we use the NEST defaults
+#        # for any inhomogeneous parameters, and set the inhomogeneous values
+#        # later
+#        synapse_defaults = get_defaults(base_model)
+#        synapse_parameters = self.translated_parameters
+#        for name, value in synapse_parameters.items():
+#            if value.is_homogeneous:
+#                value.shape = (1,)
+#                synapse_defaults[name] = value.evaluate(simplify=True)
+#        # Tau_minus is a parameter of the post-synaptic cell, not of the connection
+#        synapse_defaults.pop("tau_minus")
+#        label = "%s_%s" % (base_model, suffix)
+#        nest.CopyModel(base_model, label, synapse_defaults)
+#        return label
+#
+#    def _set_tau_minus(self, cells):
+#        if len(cells) > 0 and self.slow:
+#            if 'tau_minus' in nest.GetStatus([cells[0]])[0]:
+#                native_parameters = self.slow.timing_dependence.translated_parameters
+#                if not native_parameters["tau_minus"].is_homogeneous: # could allow inhomogeneous values as long as each column is internally homogeneous
+#                    raise ValueError("pyNN.NEST does not support tau_minus being different for different synapses")
+#                native_parameters.size = 1 # hack
+#                tau_minus = native_parameters["tau_minus"].evaluate(simplify=True)
+#                nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
+#            else:
+#                raise Exception("Postsynaptic cell model does not support STDP.")
+#
+#    def _get_minimum_delay(self):
+#        return state.min_delay
 
-    def _get_nest_synapse_model(self, suffix):
-        # We create a particular synapse context for each projection, by copying
-        # the one which is desired.
-        if self.fast:
-            if self.slow:
-                raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
-            else:
-                base_model = self.fast.native_name
-        elif self.slow:
-            base_model = self.slow.possible_models
-            if isinstance(base_model, set):
-                logger.warning("Several STDP models are available for these connections:")
-                logger.warning(", ".join(model for model in base_model))
-                base_model = list(base_model)[0]
-                logger.warning("By default, %s is used" % base_model)
-        else:
-            base_model = "static_synapse"
-        available_models = nest.Models(mtype='synapses')
-        if base_model not in available_models:
-            raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
-                             "Possible models in your NEST build are: %s" % (base_model, available_models))
 
-        # CopyModel defaults must be simple floats, so we use the NEST defaults
-        # for any inhomogeneous parameters, and set the inhomogeneous values
-        # later
-        synapse_defaults = get_defaults(base_model)
-        synapse_parameters = self.translated_parameters
-        for name, value in synapse_parameters.items():
-            if value.is_homogeneous:
-                value.shape = (1,)
-                synapse_defaults[name] = value.evaluate(simplify=True)
-        # Tau_minus is a parameter of the post-synaptic cell, not of the connection
-        synapse_defaults.pop("tau_minus")
-        label = "%s_%s" % (base_model, suffix)
-        nest.CopyModel(base_model, label, synapse_defaults)
-        return label
-
-    def _set_tau_minus(self, cells):
-        if len(cells) > 0 and self.slow:
-            if 'tau_minus' in nest.GetStatus([cells[0]])[0]:
-                native_parameters = self.slow.timing_dependence.translated_parameters
-                if not native_parameters["tau_minus"].is_homogeneous: # could allow inhomogeneous values as long as each column is internally homogeneous
-                    raise ValueError("pyNN.NEST does not support tau_minus being different for different synapses")
-                native_parameters.size = 1 # hack
-                tau_minus = native_parameters["tau_minus"].evaluate(simplify=True)
-                nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
-            else:
-                raise Exception("Postsynaptic cell model does not support STDP.")
-
-    def _get_minimum_delay(self):
-        return state.min_delay
-
-
-class STDPMechanism(STDPMechanism):
+class STDPMechanism(synapses.STDPMechanism):
     """Specification of STDP models."""
 
     def __init__(self, timing_dependence=None, weight_dependence=None,

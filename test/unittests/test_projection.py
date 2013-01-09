@@ -52,19 +52,15 @@ class ProjectionTest(unittest.TestCase):
         self.assertRaises(errors.ConnectionError, sim.Projection,
                           self.p1, self.p1 + self.p3, method=self.all2all)
 
-    def test_create_with_empty_synapse_dynamics(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all,
-                             synapse_dynamics=sim.ComposedSynapseType())
-
     def test_create_with_fast_synapse_dynamics(self):
-        depressing = sim.TsodyksMarkramMechanism(U=0.5, tau_rec=800.0, tau_facil=0.0)
+        depressing = sim.TsodyksMarkramSynapse(U=0.5, tau_rec=800.0, tau_facil=0.0)
         prj = sim.Projection(self.p1, self.p2, method=self.all2all,
-                             synapse_dynamics=sim.ComposedSynapseType(fast=depressing))
+                             synapse_type=depressing)
 
     def test_create_with_invalid_type(self):
         self.assertRaises(errors.ConnectionError, sim.Projection,
                           self.p1, "foo", method=self.all2all,
-                          synapse_dynamics=sim.ComposedSynapseType())
+                          synapse_type=sim.StaticSynapse)
 
     def test_size_with_gather(self):
         prj = sim.Projection(self.p1, self.p2, method=self.all2all)
@@ -152,7 +148,7 @@ class ProjectionTest(unittest.TestCase):
         U_distr = random.RandomDistribution('uniform', [0.4, 0.6], rng=MockRNG(start=0.5, delta=0.001))
         depressing = sim.TsodyksMarkramMechanism(U=U_distr, tau_rec=lambda d: 800.0+d, tau_facil=0.0)
         prj = sim.Projection(self.p1, self.p2, method=self.all2all,
-                             synapse_dynamics=sim.ComposedSynapseType(fast=depressing))
+                             synapse_type=depressing)
         U = prj.get("U", format="list")
         U = _sort_by_column(U, 1)[:5]
         U_target = numpy.array(
@@ -217,7 +213,7 @@ class ProjectionTest(unittest.TestCase):
 
     def test_describe(self):
         prj = sim.Projection(self.p1, self.p2, method=self.all2all,
-                             synapse_dynamics=sim.ComposedSynapseType())
+                             synapse_type=sim.StaticSynapse)
         self.assertIsInstance(prj.describe(engine='string'), basestring)
         self.assertIsInstance(prj.describe(template=None), dict)
 

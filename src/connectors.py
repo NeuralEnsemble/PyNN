@@ -140,7 +140,7 @@ class MapConnector(Connector):
         try:
             attr = getattr(self, attribute_name)
         except AttributeError:
-            attr = projection.synapse_dynamics.translated_parameters[attribute_name]  # need to handle case of attr being already an larray?
+            attr = projection.synapse_type.translated_parameters[attribute_name]  # need to handle case of attr being already an larray?
         if isinstance(attr, (int, long, float, numpy.ndarray, list, RandomDistribution)):
             # attr is constant, an array, a random distribution
             map = LazyArray(attr, projection.shape, dtype=float)
@@ -193,11 +193,12 @@ class MapConnector(Connector):
             components = (
                 column_indices[mask],
                 connection_map.by_column(mask))
-
         for count, (col, source_mask) in enumerate(izip(*components)):
             if source_mask is True or source_mask.any():
                 if source_mask is True:
                     source_mask = numpy.arange(projection.pre.size, dtype=int)
+                else:
+                    source_mask = source_mask.nonzero()[0]  # bool to integer mask
 #                if weight_map.is_homogeneous:
 #                    weights = weight_map.evaluate(simplify=True)
 #                else:
@@ -316,12 +317,11 @@ class DistanceDependentProbabilityConnector(MapConnector):
     parameter_names = ('allow_self_connections', 'd_expression')
 
     def __init__(self, d_expression, allow_self_connections=True,
-                 weights=None, delays=None, space=Space(), safe=True,
-                 callback=None, **plasticity_parameters):
+                 space=Space(), safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, weights, delays, space, safe, callback)
+        Connector.__init__(self, space, safe, callback)
         assert isinstance(d_expression, str) or callable(d_expression)
         assert isinstance(allow_self_connections, bool)
         try:
@@ -451,12 +451,12 @@ class FixedNumberConnector(MapConnector):
     # base class - should not be instantiated
     parameter_names = ('allow_self_connections', 'n')
 
-    def __init__(self, n, allow_self_connections=True, weights=None, delays=None,
+    def __init__(self, n, allow_self_connections=True,
                  space=Space(), safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, weights, delays, space, safe, callback)
+        Connector.__init__(self, space, safe, callback)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         if isinstance(n, int):
@@ -586,12 +586,12 @@ class SmallWorldConnector(Connector):
     parameter_names = ('allow_self_connections', 'degree', 'rewiring', 'n_connections')
 
     def __init__(self, degree, rewiring, allow_self_connections=True,
-                 n_connections=None, weights=None, delays=None, space=Space(),
+                 n_connections=None, space=Space(),
                  safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, weights, delays, space, safe, callback)
+        Connector.__init__(self, space, safe, callback)
         assert 0 <= rewiring <= 1
         assert isinstance(allow_self_connections, bool)
         self.rewiring               = rewiring
@@ -617,17 +617,15 @@ class CSAConnector(Connector):
     parameter_names = ('cset',)
 
     if haveCSA:
-        def __init__ (self, cset, weights=None, delays=None, safe=True, callback=None):
+        def __init__ (self, cset, safe=True, callback=None):
             """
             """
-            Connector.__init__(self, weights, delays, safe=safe, callback=callback)
+            Connector.__init__(self, safe=safe, callback=callback)
             self.cset = cset
             if csa.arity(cset) == 0:
                 pass
             else:
                 assert csa.arity(cset) == 2, 'must specify mask or connection-set with arity 2'
-                assert weights is None and delays is None, \
-                       "weights or delays specified both in connection-set and as CSAConnector argument"
     else:
         def __init__ (self, cset, safe=True, callback=None):
             raise RuntimeError, "CSAConnector not available---couldn't import csa module"

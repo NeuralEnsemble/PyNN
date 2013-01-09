@@ -66,14 +66,16 @@ def scenario1(sim):
     all_cells.initialize(v=uniform_distr)
 
     connections = {}
-    for name, pconn, target in (
+    for name, pconn, receptor_type in (
         ('excitatory', pconn_recurr, 'excitatory'),
         ('inhibitory', pconn_recurr, 'inhibitory'),
         ('input',      pconn_input,  'excitatory'),
     ):
-        connector = sim.FixedProbabilityConnector(pconn, weights=weights[name], delays=delay)
+        connector = sim.FixedProbabilityConnector(pconn)
+        syn = sim.StaticSynapse(weight=weights[name], delay=delay)
         connections[name] = sim.Projection(cells[name], all_cells, connector,
-                                           target=target, label=name, rng=rng)
+                                           syn, receptor_type=receptor_type,
+                                           label=name, rng=rng)
 
     all_cells.record('spikes')
     cells['excitatory'][0:2].record('v')
@@ -124,11 +126,11 @@ def scenario1a(sim):
     sim.initialize(all_cells, v=cell_params['v_rest'])
 
     sim.connect(excitatory_cells, all_cells, weight=w_exc, delay=delay,
-                synapse_type='excitatory', p=pconn_recurr)
+                receptor_type='excitatory', p=pconn_recurr)
     sim.connect(inhibitory_cells, all_cells, weight=w_exc, delay=delay,
-                synapse_type='inhibitory', p=pconn_recurr)
+                receptor_type='inhibitory', p=pconn_recurr)
     sim.connect(inputs, all_cells, weight=w_input, delay=delay,
-                synapse_type='excitatory', p=pconn_input)
+                receptor_type='excitatory', p=pconn_input)
     sim.record('spikes', all_cells, "scenario1a_%s_spikes.pkl" % sim.__name__)
     sim.record('v', excitatory_cells[0:2], "scenario1a_%s_v.pkl" % sim.__name__)
 
@@ -243,20 +245,20 @@ def scenario3(sim):
     post.set(**cell_parameters)
     post.initialize(v=RandomDistribution('normal', (v_reset, 5.0)))
 
-    stdp = sim.ComposedSynapseType(
-                slow=sim.STDPMechanism(
-                        sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0 ),
-                        sim.AdditiveWeightDependence(w_min=w_min, w_max=w_max,
-                                                     A_plus=0.01, A_minus=0.01),
-                        #dendritic_delay_fraction=0.5))
-                        dendritic_delay_fraction=1))
+    stdp = sim.STDPMechanism(
+                sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0 ),
+                sim.AdditiveWeightDependence(w_min=w_min, w_max=w_max,
+                                             A_plus=0.01, A_minus=0.01),
+                #dendritic_delay_fraction=0.5))
+                dendritic_delay_fraction=1)
 
     connections = sim.Projection(pre, post, sim.AllToAllConnector(),
-                                 target='excitatory', synapse_dynamics=stdp)
+                                 synapse_type=stdp,
+                                 receptor_type='excitatory')
 
     initial_weight_distr = RandomDistribution('uniform', (w_min, w_max))
     connections.randomizeWeights(initial_weight_distr)
-    initial_weights = connections.get('weights', format='array')
+    initial_weights = connections.get('weight', format='array')
     assert initial_weights.min() >= w_min
     assert initial_weights.max() < w_max
     assert initial_weights[0,0] != initial_weights[1,0]
@@ -273,7 +275,7 @@ def scenario3(sim):
     assert abs(actual_rate - expected_rate) < 1, errmsg
     #assert abs(pre[:50].mean_spike_count()/duration - r1) < 1
     #assert abs(pre[50:].mean_spike_count()/duration- r2) < 1
-    final_weights = connections.get('weights', format='array')
+    final_weights = connections.get('weight', format='array')
     assert initial_weights[0,0] != final_weights[0,0]
 
     import scipy.stats
@@ -304,7 +306,8 @@ def ticket166(sim, interactive=False):
 
     spikesources = sim.Population(2, sim.SpikeSourceArray())
     cells = sim.Population(2, sim.IF_cond_exp())
-    conn = sim.Projection(spikesources, cells, sim.OneToOneConnector(weights=0.01))
+    syn = sim.StaticSynapse(weight=0.01)
+    conn = sim.Projection(spikesources, cells, sim.OneToOneConnector(), syn)
     cells.record('v')
 
     spiketimes = numpy.arange(2.0, t_step, t_step/13.0)
@@ -494,8 +497,8 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     sim.setup(timestep=dt, min_delay=dt)
     cells = sim.Population(5, sim.IF_cond_exp()) + sim.Population(6, sim.EIF_cond_exp_isfa_ista())
     inputs = sim.Population(5, sim.SpikeSourcePoisson(rate=50.0))
-    sim.connect(inputs, cells, weight=0.1, delay=0.5, synapse_type='inhibitory')
-    sim.connect(inputs, cells, weight=0.1, delay=0.3, synapse_type='excitatory')
+    sim.connect(inputs, cells, weight=0.1, delay=0.5, receptor_type='inhibitory')
+    sim.connect(inputs, cells, weight=0.1, delay=0.3, receptor_type='excitatory')
     cells.record('v')
     cells[2:9].record(['gsyn_exc', 'gsyn_inh'])
 #    for p in cells.populations:
@@ -524,12 +527,12 @@ def test_record_vm_and_gsyn_from_assembly(sim):
 
     assert_arrays_equal(vm_p1[:,3], vm_all[:,8])
 
-    assert_equal(vm_p0.channel_index, range(5))
-    assert_equal(vm_p1.channel_index, range(6))
-    assert_equal(vm_all.channel_index, range(11))
-    assert_equal(gsyn_p0.channel_index, [ 2, 3, 4])
-    assert_equal(gsyn_p1.channel_index, [ 0, 1, 2, 3])
-    assert_equal(gsyn_all.channel_index, range(2,9))
+    assert_arrays_equal(vm_p0.channel_index, numpy.arange(5))
+    assert_arrays_equal(vm_p1.channel_index, numpy.arange(6))
+    assert_arrays_equal(vm_all.channel_index, numpy.arange(11))
+    assert_arrays_equal(gsyn_p0.channel_index, numpy.array([ 2, 3, 4]))
+    assert_arrays_equal(gsyn_p1.channel_index, numpy.arange(4))
+    assert_arrays_equal(gsyn_all.channel_index, numpy.arange(2, 9))
 
     sim.end()
 
@@ -623,24 +626,24 @@ def scenario4(sim):
                              label="outputs")
     logger.debug("Output population positions:\n %s", outputs.positions)
     DDPC = sim.DistanceDependentProbabilityConnector
-    input_connectivity = DDPC("0.5*exp(-d/100.0)",
-                             weights=RandomDistribution('normal', (0.1, 0.02), rng=rng),
-                             delays="0.5 + d/100.0",
-                             space=Space(axes='xy'))
+    input_connectivity = DDPC("0.5*exp(-d/100.0)", space=Space(axes='xy'))
     recurrent_connectivity = DDPC("sin(pi*d/250.0)**2",
-                                  weights=0.05,
-                                  delays="0.2 + d/100.0",
                                   space=Space(periodic_boundaries=((-100.0, 100.0), (-100.0, 100.0), None))) # should add "calculate_boundaries" method to Structure classes
-    depressing = sim.ComposedSynapseType(fast=sim.TsodyksMarkramMechanism(U=0.5, tau_rec=800.0, tau_facil=0.0))
-    facilitating = sim.ComposedSynapseType(fast=sim.TsodyksMarkramMechanism(U=0.04, tau_rec=100.0, tau_facil=1000.0))
+    depressing = sim.TsodyksMarkramSynapse(weight=RandomDistribution('normal', (0.1, 0.02), rng=rng),
+                                           delay="0.5 + d/100.0",
+                                           U=0.5, tau_rec=800.0, tau_facil=0.0)
+    facilitating = sim.TsodyksMarkramSynapse(weight=0.05,
+                                             delays="0.2 + d/100.0",
+                                             U=0.04, tau_rec=100.0,
+                                             tau_facil=1000.0)
     input_connections = sim.Projection(inputs, outputs, input_connectivity,
-                                       target='excitatory',
-                                       synapse_dynamics=depressing,
+                                       receptor_type='excitatory',
+                                       synapse_type=depressing,
                                        label="input connections",
                                        rng=rng)
     recurrent_connections = sim.Projection(outputs, outputs, recurrent_connectivity,
-                                           target='inhibitory',
-                                           synapse_dynamics=facilitating,
+                                           receptor_type='inhibitory',
+                                           synapse_type=facilitating,
                                            label="recurrent connections",
                                            rng=rng)
     outputs.record('spikes')

@@ -47,7 +47,7 @@ Classes for creating, connecting, modifying and recording from neurons
                 EIF_cond_alpha_isfa_ista, EIF_cond_exp_isfa_ista,
                 SpikeSourcePoisson, SpikeSourceArray, SpikeSourceInhGamma
                 (not all cell types are available for all simulator backends).
-    Synaptic plasticity: ComposedSynapseType, TsodyksMarkramMechanism, STDPMechanism,
+    Standard synapse types: StaticSynapse, TsodyksMarkramSynapse, STDPMechanism,
                 AdditiveWeightDependence, MultiplicativeWeightDependence,
                 AdditivePotentiationMultiplicativeDepression,
                 GutigWeightDependence, SpikePairRule
@@ -70,4 +70,4 @@ Other modules:
 """
 
 __version__ = '0.8.0dev ( $Rev$)'.replace(' $','')
-__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "nemo", "moose", "nineml", "recording", "errors", "space", "descriptions", "standardmodels"]
+__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "nemo", "moose", "nineml", "recording", "errors", "space", "descriptions", "standardmodels", "parameters", "core"]

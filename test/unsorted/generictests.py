@@ -655,9 +655,9 @@ class SynapticPlasticityTest(unittest.TestCase):
             p1 = sim.Population(10, sim.SpikeSourceArray)
             p2 = sim.Population(10, sim.IF_cond_exp)
             prj1 = sim.Projection(p1, p2, sim.OneToOneConnector(),
-                                  synapse_dynamics=sim.SynapseDynamics(fast_mech, None))
+                                  synapse_type=fast_mech)
             prj2 = sim.Projection(p1, p2, sim.OneToOneConnector(),
-                                  synapse_dynamics=sim.SynapseDynamics(None, slow_mech))
+                                  synapse_dynamics=slow_mech)
                 
 #===============================================================================
 class ProjectionTest(unittest.TestCase):

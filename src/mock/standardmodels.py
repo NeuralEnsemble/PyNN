@@ -213,8 +213,8 @@ class NoisyCurrentSource(MockCurrentSource, electrodes.NoisyCurrentSource):
         ('dt',    'dt')
     )
 
-class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
-    __doc__ = synapses.TsodyksMarkramMechanism.__doc__
+class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
+    __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
     translations = build_translations(
         ('U', 'U'),

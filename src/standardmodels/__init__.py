@@ -10,9 +10,6 @@ Classes:
     StandardModelType
     StandardCellType
     ModelNotAvailable
-    ComposedSynapseType
-    ShortTermPlasticityMechanism
-    STDPMechanism
     STDPWeightDependence
     STDPTimingDependence
 
@@ -218,192 +215,99 @@ class StandardSynapseType(StandardModelType, models.BaseSynapseType):
     pass
 
 
-class ComposedSynapseType(StandardSynapseType):
-    """
-    For specifying synapse short-term (faciliation, depression) and long-term
-    (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
-    `Projection.__init__()` or to the `connect()` function.
-
-    Arguments:
-        `fast`:
-            a short-term plasticity mechanism, e.g.
-            :class:`TsodyksMarkramMechanism`, or `None`.
-        `slow`:
-            an :class:`STDPMechanism` object, or `None`.
-    """
-
-    def __init__(self, fast=None, slow=None):
-        """
-        Create a new specification for a dynamic synapse, combining a `fast`
-        component (short-term facilitation/depression) and a `slow` component
-        (long-term potentiation/depression).
-        """
-        if fast:
-            assert isinstance(fast, ShortTermPlasticityMechanism)
-        if slow:
-            assert isinstance(slow, STDPMechanism)
-            assert 0 <= slow.dendritic_delay_fraction <= 1.0
-        self.fast = fast
-        self.slow = slow
-
-
-    @property
-    def translated_parameters(self):
-        """
-        Return combined, translated parameter space from both fast and slow components
-        """
-        P = {}
-        if self.fast:
-            P = self.fast.translated_parameters
-        if self.slow:
-            P.update(self.slow.translated_parameters)
-        return P
-
-    def get_translated_names(self, *names):
-        translated_names = []
-        if self.fast:
-            names_fast = self.fast.get_parameter_names()
-        else:
-            names_fast = []
-        if self.slow:
-            names_slow = self.slow.get_parameter_names()
-        else:
-            names_slow = []
-        for name in names:
-            if name in names_fast:
-                translated_names.append(self.fast.get_translated_names(name)[0])
-            elif name in names_slow:
-                translated_names.append(self.slow.get_translated_names(name)[0])
-            elif name in ('weights', 'delays'):  # not sure
-                translated_names.append(name)    # about this
-            else:
-                raise NameError("ComposedSynapseType object does not have a parameter '%s'" % name)
-        return translated_names
-
-    def describe(self, template='synapsedynamics_default.txt', engine='default'):
-        """
-        Returns a human-readable description of the synapse dynamics.
-
-        The output may be customized by specifying a different template
-        togther with an associated template engine (see ``pyNN.descriptions``).
-
-        If template is None, then a dictionary containing the template context
-        will be returned.
-        """
-        context = {'fast': self.fast and self.fast.describe(template=None) or None,
-                   'slow': self.slow and self.slow.describe(template=None) or None}
-        return descriptions.render(engine, template, context)
-
-
-class ShortTermPlasticityMechanism(StandardModelType):
-    """Abstract base class for models of short-term synaptic dynamics."""
-
-    def __init__(self, **parameters):
-        StandardModelType.__init__(self, **parameters)
-
-    #@property
-    #def parameters(self):
-    #    parameter_space = self.translated_parameters
-    #    parameter_space.shape = (1,)
-    #    if not parameter_space.is_homogeneous:
-    #        raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
-    #    parameter_space.evaluate(simplify=True)
-    #    p = parameter_space.as_dict()
-    #    p.update(self.extra_parameters)
-    #    return p
-
-
-class STDPMechanism(object):
-    """
-    A specification for an STDP mechanism, combining a weight-dependence, a
-    timing-dependence, and, optionally, a voltage-dependence of the synaptic
-    change.
-
-    For point neurons, the synaptic delay `d` can be interpreted either as
-    occurring purely in the pre-synaptic axon + synaptic cleft, in which
-    case the synaptic plasticity mechanism 'sees' the post-synaptic spike
-    immediately and the pre-synaptic spike after a delay `d`
-    (`dendritic_delay_fraction = 0`) or as occurring purely in the post-
-    synaptic dendrite, in which case the pre-synaptic spike is seen
-    immediately, and the post-synaptic spike after a delay `d`
-    (`dendritic_delay_fraction = 1`), or as having both pre- and post-
-    synaptic components (`dendritic_delay_fraction` between 0 and 1).
-
-    In a future version of the API, we will allow the different
-    components of the synaptic delay to be specified separately in
-    milliseconds.
-    """
-
-    def __init__(self, timing_dependence=None, weight_dependence=None,
-                 voltage_dependence=None, dendritic_delay_fraction=1.0):
-        """
-        Create a new specification for an STDP mechanism, by combining a
-        weight-dependence, a timing-dependence, and, optionally, a voltage-
-        dependence.
-        """
-        if timing_dependence:
-            assert isinstance(timing_dependence, STDPTimingDependence)
-        if weight_dependence:
-            assert isinstance(weight_dependence, STDPWeightDependence)
-        assert isinstance(dendritic_delay_fraction, (int, long, float))
-        assert 0 <= dendritic_delay_fraction <= 1
-        self.timing_dependence = timing_dependence
-        self.weight_dependence = weight_dependence
-        self.voltage_dependence = voltage_dependence
-        self.dendritic_delay_fraction = dendritic_delay_fraction
-
-    @property
-    def possible_models(self):
-        """
-        A list of available synaptic plasticity models for the current
-        configuration (weight dependence, timing dependence, ...) in the
-        current simulator.
-        """
-        td = self.timing_dependence
-        wd = self.weight_dependence
-        pm = td.possible_models.intersection(wd.possible_models)
-        if len(pm) == 1 :
-            return list(pm)[0]
-        elif len(pm) == 0 :
-            raise errors.NoModelAvailableError("No available plasticity models")
-        elif len(pm) > 1 :
-            # we pass the set of models back to the simulator-specific module for it to deal with
-            return pm
-
-    def get_parameter_names(self):
-        assert self.voltage_dependence is None  # once we have some models with v-dep, need to update the following
-        return self.timing_dependence.get_parameter_names() + self.weight_dependence.get_parameter_names()
-
-    @property
-    def translated_parameters(self):
-        """
-        A dictionary containing the combination of parameters from the different
-        components of the STDP model.
-        """
-        timing_parameters = self.timing_dependence.translated_parameters
-        weight_parameters = self.weight_dependence.translated_parameters
-        parameters = ParameterSpace(timing_parameters)
-        parameters.update(**weight_parameters)
-        parameters.update(**self.timing_dependence.extra_parameters)
-        parameters.update(**self.weight_dependence.extra_parameters)
-        parameters.update(dendritic_delay_fraction=self.dendritic_delay_fraction)
-        return parameters
-
-    def describe(self, template='stdpmechanism_default.txt', engine='default'):
-        """
-        Returns a human-readable description of the STDP mechanism.
-
-        The output may be customized by specifying a different template
-        togther with an associated template engine (see ``pyNN.descriptions``).
-
-        If template is None, then a dictionary containing the template context
-        will be returned.
-        """
-        context = {'weight_dependence': self.weight_dependence.describe(template=None),
-                   'timing_dependence': self.timing_dependence.describe(template=None),
-                   'voltage_dependence': self.voltage_dependence and self.voltage_dependence.describe(template=None) or None,
-                   'dendritic_delay_fraction': self.dendritic_delay_fraction}
-        return descriptions.render(engine, template, context)
+#class ComposedSynapseType(StandardSynapseType):
+#    """
+#    For specifying synapse short-term (faciliation, depression) and long-term
+#    (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
+#    `Projection.__init__()` or to the `connect()` function.
+#
+#    Arguments:
+#        `fast`:
+#            a short-term plasticity mechanism, e.g.
+#            :class:`TsodyksMarkramMechanism`, or `None`.
+#        `slow`:
+#            an :class:`STDPMechanism` object, or `None`.
+#    """
+#
+#    def __init__(self, fast=None, slow=None):
+#        """
+#        Create a new specification for a dynamic synapse, combining a `fast`
+#        component (short-term facilitation/depression) and a `slow` component
+#        (long-term potentiation/depression).
+#        """
+#        if fast:
+#            assert isinstance(fast, ShortTermPlasticityMechanism)
+#        if slow:
+#            assert isinstance(slow, STDPMechanism)
+#            assert 0 <= slow.dendritic_delay_fraction <= 1.0
+#        self.fast = fast
+#        self.slow = slow
+#
+#
+#    @property
+#    def translated_parameters(self):
+#        """
+#        Return combined, translated parameter space from both fast and slow components
+#        """
+#        P = {}
+#        if self.fast:
+#            P = self.fast.translated_parameters
+#        if self.slow:
+#            P.update(self.slow.translated_parameters)
+#        return P
+#
+#    def get_translated_names(self, *names):
+#        translated_names = []
+#        if self.fast:
+#            names_fast = self.fast.get_parameter_names()
+#        else:
+#            names_fast = []
+#        if self.slow:
+#            names_slow = self.slow.get_parameter_names()
+#        else:
+#            names_slow = []
+#        for name in names:
+#            if name in names_fast:
+#                translated_names.append(self.fast.get_translated_names(name)[0])
+#            elif name in names_slow:
+#                translated_names.append(self.slow.get_translated_names(name)[0])
+#            elif name in ('weights', 'delays'):  # not sure
+#                translated_names.append(name)    # about this
+#            else:
+#                raise NameError("ComposedSynapseType object does not have a parameter '%s'" % name)
+#        return translated_names
+#
+#    def describe(self, template='synapsedynamics_default.txt', engine='default'):
+#        """
+#        Returns a human-readable description of the synapse dynamics.
+#
+#        The output may be customized by specifying a different template
+#        togther with an associated template engine (see ``pyNN.descriptions``).
+#
+#        If template is None, then a dictionary containing the template context
+#        will be returned.
+#        """
+#        context = {'fast': self.fast and self.fast.describe(template=None) or None,
+#                   'slow': self.slow and self.slow.describe(template=None) or None}
+#        return descriptions.render(engine, template, context)
+#
+#
+#class ShortTermPlasticityMechanism(StandardModelType):
+#    """Abstract base class for models of short-term synaptic dynamics."""
+#
+#    def __init__(self, **parameters):
+#        StandardModelType.__init__(self, **parameters)
+#
+#    #@property
+#    #def parameters(self):
+#    #    parameter_space = self.translated_parameters
+#    #    parameter_space.shape = (1,)
+#    #    if not parameter_space.is_homogeneous:
+#    #        raise ValueError("PyNN does not currently support initialising plastic synapses with inhomogeneous parameters")
+#    #    parameter_space.evaluate(simplify=True)
+#    #    p = parameter_space.as_dict()
+#    #    p.update(self.extra_parameters)
+#    #    return p
 
 
 class STDPWeightDependence(StandardModelType):

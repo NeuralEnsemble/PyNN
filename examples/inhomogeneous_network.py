@@ -29,8 +29,10 @@ n_cells = 9
 sim.setup()
 
 cell_type = sim.IF_cond_exp(tau_m=10.0,
-                            v_rest=lambda x, y, z: -60.0 - sqrt((x**2 + y**2)/100),
-                            v_thresh=lambda x, y, z: -55.0 + x/10.0)
+#                            v_rest=lambda x, y, z: -60.0 - sqrt((x**2 + y**2)/100),
+#                            v_thresh=lambda x, y, z: -55.0 + x/10.0)
+                            v_rest=lambda i: -60.0 + i,
+                            v_thresh=lambda i: -55.0 + i)
 
 cells = sim.Population(n_cells, cell_type,
                        structure=Grid2D(dx=100.0, dy=100.0),

@@ -36,18 +36,11 @@ class Projection(common.Projection):
     _simulator = simulator
 
     def __init__(self, presynaptic_population, postsynaptic_population, method,
-                 source=None, target=None, synapse_dynamics=None, label=None,
+                 synapse_type, source=None, target=None, label=None,
                  rng=None):
         common.Projection.__init__(self, presynaptic_population,
-                                   postsynaptic_population, method, source,
-                                   target, synapse_dynamics, label, rng)
-
-        ## Deal with synaptic plasticity
-        if self.synapse_dynamics:
-            if self.synapse_dynamics.fast:
-                pass
-            if self.synapse_dynamics.slow:
-                pass
+                                   postsynaptic_population, method, synapse_type,
+                                   source, target, label, rng)
 
         ## Create connections
         self.connections = []

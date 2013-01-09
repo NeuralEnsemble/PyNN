@@ -334,7 +334,7 @@ class Connection(object):
         self.pre2wa.weight[0] = 1
         if synapse_type.postsynaptic_variable == 'spikes':
             # directly create NetCon as wa is on the same machine as the post-synaptic cell
-            self.post2wa = h.NetCon(self.post._cell.pre, self.weight_adjuster,
+            self.post2wa = h.NetCon(self.post._cell.source, self.weight_adjuster,
                                     sec=self.post._cell.source_section)
             self.post2wa.threshold = 1
             self.post2wa.delay = self.nc.delay * self.ddf
@@ -370,15 +370,7 @@ class Connection(object):
 
     def as_tuple(self, *attribute_names):
         # should return indices, not IDs for source and target
-        addr = [self.source, self.target]
-        attributes = []
-        for name in attribute_names:
-            if name == "weights":
-                name = "weight"
-            elif name == "delays":
-                name = "delay"
-            attributes.append(getattr(self, name))
-        return tuple(addr + attributes)
+        return tuple(getattr(self, name) for name in attribute_names)
 
 
 def generate_synapse_property(name):

@@ -7,7 +7,7 @@ Synapse Dynamics classes for the neuron module.
 $Id$
 """
 
-from pyNN.standardmodels import synapses, build_translations, STDPMechanism
+from pyNN.standardmodels import synapses, build_translations
 from pyNN.neuron.simulator import state
 
 
@@ -19,6 +19,30 @@ class StaticSynapse(synapses.StaticSynapse):
         ('delay', 'delay')
     )
     model = None
+
+    def _get_minimum_delay(self):
+        return state.min_delay
+
+
+class STDPMechanism(synapses.STDPMechanism):
+    __doc__ = synapses.STDPMechanism.__doc__
+    postsynaptic_variable = 'spikes'
+
+    def __init__(self, timing_dependence=None, weight_dependence=None,
+                 voltage_dependence=None, dendritic_delay_fraction=1.0,
+                 weight=0.0, delay=None):
+        super(STDPMechanism, self).__init__(timing_dependence,
+                                            weight_dependence,
+                                            voltage_dependence,
+                                            dendritic_delay_fraction,
+                                            weight, delay)
+        if dendritic_delay_fraction > 0.5 and state.num_processes > 1:
+            # depending on delays, can run into problems with the delay from the
+            # pre-synaptic neuron to the weight-adjuster mechanism being zero.
+            # The best (only?) solution would be to create connections on the
+            # node with the pre-synaptic neurons for ddf>0.5 and on the node
+            # with the post-synaptic neuron (as is done now) for ddf<0.5
+            raise NotImplementedError("STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
 
     def _get_minimum_delay(self):
         return state.min_delay
@@ -46,24 +70,6 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
                                                 U=U, tau_rec=tau_rec,
                                                 tau_facil=tau_facil, u0=u0,
                                                 x0=x0, y0=y0)
-
-
-class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
-    __doc__ = synapses.TsodyksMarkramMechanism.__doc__
-
-    translations = build_translations(
-        ('U', 'U'),
-        ('tau_rec', 'tau_rec'),
-        ('tau_facil', 'tau_facil'),
-        ('u0', 'u0'),
-        ('x0', 'x' ), # } note that these two values
-        ('y0', 'y')   # } are not used
-    )
-    native_name = 'tsodkys-markram'
-
-    def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
-        assert (x0 == 1 and y0 == 0), "It is not currently possible to set x0 and y0"
-        synapses.TsodyksMarkramMechanism.__init__(self, U, tau_rec, tau_facil, u0, x0, y0)
 
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):

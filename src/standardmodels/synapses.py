@@ -4,7 +4,7 @@ Definition of default parameters (and hence, standard parameter names) for
 standard dynamic synapse models.
 
 Classes for specifying short-term plasticity (facilitation/depression):
-    TsodyksMarkramMechanism
+    TsodyksMarkramSynapse
 
 Classes for defining STDP rules:
     AdditiveWeightDependence
@@ -17,7 +17,8 @@ Classes for defining STDP rules:
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN.standardmodels import StandardSynapseType, ShortTermPlasticityMechanism, STDPWeightDependence, STDPTimingDependence
+from pyNN.standardmodels import StandardSynapseType, STDPWeightDependence, STDPTimingDependence
+from pyNN.parameters import ParameterSpace
 
 
 class StaticSynapse(StandardSynapseType):
@@ -63,43 +64,119 @@ class TsodyksMarkramSynapse(StandardSynapseType):
     }
 
 
-class TsodyksMarkramMechanism(ShortTermPlasticityMechanism):
+class STDPMechanism(StandardSynapseType):
     """
-    Synapse exhibiting facilitation and depression, implemented using the model
-    of Tsodyks, Markram et al.:
+    A specification for an STDP mechanism, combining a weight-dependence, a
+    timing-dependence, and, optionally, a voltage-dependence of the synaptic
+    change.
 
-    Tsodyks, Uziel, Markram (2000) Synchrony Generation in Recurrent Networks
-       with Frequency-Dependent Synapses. Journal of Neuroscience, vol 20 RC50
+    For point neurons, the synaptic delay `d` can be interpreted either as
+    occurring purely in the pre-synaptic axon + synaptic cleft, in which
+    case the synaptic plasticity mechanism 'sees' the post-synaptic spike
+    immediately and the pre-synaptic spike after a delay `d`
+    (`dendritic_delay_fraction = 0`) or as occurring purely in the post-
+    synaptic dendrite, in which case the pre-synaptic spike is seen
+    immediately, and the post-synaptic spike after a delay `d`
+    (`dendritic_delay_fraction = 1`), or as having both pre- and post-
+    synaptic components (`dendritic_delay_fraction` between 0 and 1).
 
-    Note that the time constant of the post-synaptic current is set in the
-    neuron model, not here.
-
-    Arguments:
-        `U`:
-            use parameter.
-        `tau_rec`:
-            depression time constant (ms).
-        `tau_facil`:
-            facilitation time constant (ms).
-        `u0`, `x0`, `y0`:
-            initial conditions.
+    In a future version of the API, we will allow the different
+    components of the synaptic delay to be specified separately in
+    milliseconds.
     """
-    default_parameters = {
-        'U': 0.5,   # use parameter
-        'tau_rec': 100.0, # depression time constant (ms)
-        'tau_facil': 0.0,   # facilitation time constant (ms)
-        'u0': 0.0,  # }
-        'x0': 1.0,  # } initial values
-        'y0': 0.0   # }
-    }
 
-    def __init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
+    def __init__(self, timing_dependence=None, weight_dependence=None,
+                 voltage_dependence=None, dendritic_delay_fraction=1.0,
+                 weight=0.0, delay=None):
         """
-        Create a new specification for a short-term plasticity mechanism.
+        Create a new specification for an STDP mechanism, by combining a
+        weight-dependence, a timing-dependence, and, optionally, a voltage-
+        dependence.
         """
-        parameters = dict(locals())
-        parameters.pop('self')
-        ShortTermPlasticityMechanism.__init__(self, **parameters)
+        if timing_dependence:
+            assert isinstance(timing_dependence, STDPTimingDependence)
+        if weight_dependence:
+            assert isinstance(weight_dependence, STDPWeightDependence)
+        assert isinstance(dendritic_delay_fraction, (int, long, float))
+        assert 0 <= dendritic_delay_fraction <= 1
+        self.timing_dependence = timing_dependence
+        self.weight_dependence = weight_dependence
+        self.voltage_dependence = voltage_dependence
+        self.dendritic_delay_fraction = dendritic_delay_fraction
+        self.weight = weight
+        self.delay = delay or self._get_minimum_delay()
+        
+
+    @property
+    def model(self):
+        return list(self.possible_models)[0]
+
+    @property
+    def possible_models(self):
+        """
+        A list of available synaptic plasticity models for the current
+        configuration (weight dependence, timing dependence, ...) in the
+        current simulator.
+        """
+        td = self.timing_dependence
+        wd = self.weight_dependence
+        pm = td.possible_models.intersection(wd.possible_models)
+        if len(pm) == 0 :
+            raise errors.NoModelAvailableError("No available plasticity models")
+        else:
+            # we pass the set of models back to the simulator-specific module for it to deal with
+            return pm
+
+    def get_parameter_names(self):
+        assert self.voltage_dependence is None  # once we have some models with v-dep, need to update the following
+        return ['weight', 'delay'] + self.timing_dependence.get_parameter_names() + self.weight_dependence.get_parameter_names()
+
+    def get_translated_names(self, *names):
+        translated_names = []
+        for name in names:
+            if name == 'weight':
+                translated_names.append('weight')
+            elif name == 'delay':
+                translated_names.append('delay')
+            else:
+                for component in (self.timing_dependence, self.weight_dependence):
+                    if name in component.get_parameter_names():
+                        translated_names.append(component.get_translated_names(name)[0])
+                        break
+        return translated_names
+
+    @property
+    def translated_parameters(self):
+        """
+        A dictionary containing the combination of parameters from the different
+        components of the STDP model.
+        """
+        timing_parameters = self.timing_dependence.translated_parameters
+        weight_parameters = self.weight_dependence.translated_parameters
+        parameters = ParameterSpace({'weight': self.weight,  # need to handle unit conversion
+                                     'delay': self.delay})
+        parameters.update(**timing_parameters)
+        parameters.update(**weight_parameters)
+        parameters.update(**self.timing_dependence.extra_parameters)
+        parameters.update(**self.weight_dependence.extra_parameters)
+        parameters.update(dendritic_delay_fraction=self.dendritic_delay_fraction)
+        return parameters
+
+    def describe(self, template='stdpmechanism_default.txt', engine='default'):
+        """
+        Returns a human-readable description of the STDP mechanism.
+
+        The output may be customized by specifying a different template
+        togther with an associated template engine (see ``pyNN.descriptions``).
+
+        If template is None, then a dictionary containing the template context
+        will be returned.
+        """
+        context = {'weight_dependence': self.weight_dependence.describe(template=None),
+                   'timing_dependence': self.timing_dependence.describe(template=None),
+                   'voltage_dependence': self.voltage_dependence and self.voltage_dependence.describe(template=None) or None,
+                   'dendritic_delay_fraction': self.dendritic_delay_fraction}
+        return descriptions.render(engine, template, context)
 
 
 class AdditiveWeightDependence(STDPWeightDependence):
