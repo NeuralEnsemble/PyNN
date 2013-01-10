@@ -20,12 +20,12 @@ simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
 
-setup(timestep=0.1,min_delay=0.1,max_delay=4.0)
+setup(timestep=0.1, min_delay=0.1, max_delay=4.0)
 
-ifcell = create(IF_cond_exp, {  'i_offset' : 0.1,    'tau_refrac' : 3.0,
-                                'v_thresh' : -51.0,  'tau_syn_E'  : 2.0,
-                                'tau_syn_I': 5.0,    'v_reset'    : -70.0,
-                                'e_rev_E'  : 0.,     'e_rev_I'    : -80.})
+ifcell = create(IF_cond_exp, {'i_offset' : 0.1,   'tau_refrac': 3.0,
+                              'v_thresh' : -51.0, 'tau_syn_E' : 2.0,
+                              'tau_syn_I': 5.0,   'v_reset'   : -70.0,
+                              'e_rev_E'  : 0.,    'e_rev_I'   : -80.})
 
 spike_sourceE = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(5,105,10)]})
 spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(155,255,10)]})

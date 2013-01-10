@@ -18,6 +18,7 @@ from populations import BasePopulation, Assembly
 logger = logging.getLogger("PyNN")
 deprecated = core.deprecated
 
+
 class Projection(object):
     """
     A container for all the connections of a given type (same synapse type and

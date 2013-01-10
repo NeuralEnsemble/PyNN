@@ -218,7 +218,7 @@ class BasePopulation(object):
     @property
     def position_generator(self):  # "generator" is a misleading name, has no yield statement
         def gen(i):
-            return self.positions[:,i]
+            return self.positions.T[i]
         return gen
 
     def _get_cell_initial_value(self, id, variable):

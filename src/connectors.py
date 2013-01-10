@@ -132,47 +132,15 @@ class MapConnector(Connector):
     # abstract base class
 
     def _generate_distance_map(self, projection):
-        position_generators = (projection.pre.position_generator, projection.post.position_generator)
-        return LazyArray(self.space.distance_generator(*position_generators),
+        position_generators = (projection.pre.position_generator,
+                               projection.post.position_generator)
+        return LazyArray(self.space.distance_generator3D(*position_generators),
                          shape=projection.shape)
-
-    def _generate_attribute_map(self, attribute_name, projection, distance_map):
-        try:
-            attr = getattr(self, attribute_name)
-        except AttributeError:
-            attr = projection.synapse_type.translated_parameters[attribute_name]  # need to handle case of attr being already an larray?
-        if isinstance(attr, (int, long, float, numpy.ndarray, list, RandomDistribution)):
-            # attr is constant, an array, a random distribution
-            map = LazyArray(attr, projection.shape, dtype=float)
-        elif isinstance(attr, basestring):
-            # attr is an expression for d
-            f_a = eval("lambda d: %s" % attr)
-            map = f_a(distance_map)
-        elif isinstance(attr, LazyArray):
-            attr.shape = projection.shape
-            if callable(attr.base_value):
-                map = attr(distance_map)
-            else:
-                map = attr
-        elif callable(attr):
-            # attr is a function of distance
-            map = attr(distance_map)
-        return map
 
     def _connect_with_map(self, projection, connection_map, distance_map=None):
         logger.debug("Connecting %s using a connection map" % projection.label)
         if distance_map is None:
             distance_map = self._generate_distance_map(projection)
-#        weight_map = self._generate_attribute_map('weights', projection, distance_map)
-#        if self.delays is None:
-#            self.delays = projection._simulator.state.min_delay
-#        delay_map = self._generate_attribute_map('delays', projection, distance_map)
-#        # TODO: where appropriate, will also need to generate maps for plasticity model parameters
-#        plasticity_maps = {}
-#        if projection.synapse_dynamics is not None:
-#            for name in projection.synapse_dynamics.translated_parameters.keys():
-#                plasticity_maps[name] = self._generate_attribute_map(name, projection, distance_map)
-#
 #        # If any of the maps are based on parallel-safe random number generators,
 #        # we need to iterate over all post-synaptic cells, so we can generate then
 #        # throw away the random numbers for the non-local nodes.
@@ -199,17 +167,11 @@ class MapConnector(Connector):
                     source_mask = numpy.arange(projection.pre.size, dtype=int)
                 else:
                     source_mask = source_mask.nonzero()[0]  # bool to integer mask
-#                if weight_map.is_homogeneous:
-#                    weights = weight_map.evaluate(simplify=True)
-#                else:
-#                    weights = weight_map[source_mask, col]
-#                if delay_map.is_homogeneous:
-#                    delays = delay_map.evaluate(simplify=True)
-#                else:
-#                    delays = delay_map[source_mask, col]
                 connection_parameters = {}
                 for name, map in projection.synapse_type.translated_parameters.items():
                     map.shape = (projection.pre.size, projection.post.size)
+                    if callable(map.base_value):  # map is assumed to be a function of "d"
+                        map = map(distance_map)
                     if map.is_homogeneous:
                         connection_parameters[name] = map.evaluate(simplify=True)
                     else:
@@ -335,7 +297,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
         self.distance_function = eval("lambda d: %s" % self.d_expression)
 
     def connect(self, projection):
-        distance_map  = self._generate_distance_map(projection)
+        distance_map = self._generate_distance_map(projection)
         probability_map = self.distance_function(distance_map)
         random_map = LazyArray(RandomDistribution('uniform', (0, 1), rng=projection.rng),
                                projection.shape)

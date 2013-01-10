@@ -284,7 +284,7 @@ class Connection(object):
         `target` -- ID of post-synaptic neuron.
         `nc` -- a Hoc NetCon object.
         """
-        #logger.debug("Creating connection from %d to %d, weight %g" % (pre, post, parameters['weight']))
+        logger.debug("Creating connection from %d to %d, weight %g" % (pre, post, parameters['weight']))
         self.pre = pre
         self.post = post
         if "." in post_synaptic_target:

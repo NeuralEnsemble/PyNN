@@ -120,6 +120,13 @@ class Space(object):
         numpy.sqrt(d, d)
         return d
 
+    def distances3D(self, A, B):
+        d = A - B
+        d **= 2
+        d = numpy.sum(d, axis=-1)
+        numpy.sqrt(d, d)
+        return d
+
     def distance_generator(self, f, g):
         """
         Return a function that calculates the distance matrix as a function of
@@ -132,6 +139,11 @@ class Space(object):
             elif d.shape[1] == 1:
                 d = d[:,0]
             return d
+        return distance_map
+
+    def distance_generator3D(self, f, g):
+        def distance_map(i, j):
+            return self.distances3D(f(i), g(j))
         return distance_map
 
 

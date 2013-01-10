@@ -18,7 +18,7 @@ Classes:
 
 """
 
-from pyNN import descriptions, errors, models
+from pyNN import errors, models
 from pyNN.parameters import ParameterSpace
 import numpy
 from pyNN.core import is_listlike

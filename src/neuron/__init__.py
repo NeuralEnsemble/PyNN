@@ -7,7 +7,7 @@ nrnpython implementation of the PyNN API.
 
 $Id:__init__.py 188 2008-01-29 10:03:59Z apdavison $
 """
-__version__ = "$Rev: 191 $"
+__version__ = "$Rev: $"
 
 from pyNN.random import *
 from pyNN import common, core, space, __doc__

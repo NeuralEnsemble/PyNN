@@ -575,9 +575,10 @@ def ticket195(sim):
     sim.setup(timestep=0.01)
     pre = sim.Population(10, sim.SpikeSourceArray(spike_times=range(1,10)))
     post = sim.Population(10, sim.IF_cond_exp())
-    sim.connect(pre[0], post[0], weight=0.01, delay=0.1, p=1)
+    #sim.connect(pre[0], post[0], weight=0.01, delay=0.1, p=1)
+    sim.connect(pre[0:1], post[0:1], weight=0.01, delay=0.1, p=1)
     #prj = sim.Projection(pre, post, sim.FromListConnector([(0, 0, 0.01, 0.1)]))
-    post.record('spikes')
+    post.record(['spikes', 'v'])
     sim.run(100.0)
     assert_arrays_almost_equal(post.get_data().segments[0].spiketrains[0], numpy.array([13.4])*pq.ms, 0.5)
 
@@ -633,7 +634,7 @@ def scenario4(sim):
                                            delay="0.5 + d/100.0",
                                            U=0.5, tau_rec=800.0, tau_facil=0.0)
     facilitating = sim.TsodyksMarkramSynapse(weight=0.05,
-                                             delays="0.2 + d/100.0",
+                                             delay="0.2 + d/100.0",
                                              U=0.04, tau_rec=100.0,
                                              tau_facil=1000.0)
     input_connections = sim.Projection(inputs, outputs, input_connectivity,

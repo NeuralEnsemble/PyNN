@@ -17,6 +17,7 @@ Classes for defining STDP rules:
 :license: CeCILL, see LICENSE for details.
 """
 
+from pyNN import descriptions
 from pyNN.standardmodels import StandardSynapseType, STDPWeightDependence, STDPTimingDependence
 from pyNN.parameters import ParameterSpace
 

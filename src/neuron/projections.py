@@ -16,6 +16,9 @@ from . import simulator
 
 logger = logging.getLogger("PyNN")
 
+_projections = []  # if a Projection is created but not assigned to a variable,
+                   # the connections will not exist, so we store a reference here
+
 class Projection(common.Projection):
     __doc__ = common.Projection.__doc__
     _simulator = simulator
@@ -29,6 +32,7 @@ class Projection(common.Projection):
                                    label, rng)
         self._connections = dict((index, {}) for index in self.post._mask_local.nonzero()[0])
         connector.connect(self)
+        _projections.append(self)
         logger.info("--- Projection[%s].__init__() ---" %self.label)
 
     @property

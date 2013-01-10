@@ -60,7 +60,7 @@ spike_source = sim.Population(n_cells, sim.SpikeSourceArray(spike_times=generate
 
 connections = sim.Projection(spike_source, cells,
                              sim.FixedProbabilityConnector(0.5),
-                             sim.StaticSynapse(weight=lambda i,j: 0.01*i + 0.02*j,
+                             sim.StaticSynapse(weight='1/(1+d)',
                                                delay=0.5)
                             )
 

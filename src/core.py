@@ -6,7 +6,7 @@ Assorted utility classes and functions.
 """
 
 import numpy
-from pyNN import random
+from pyNN import random, errors
 import warnings
 from lazyarray import larray
 
@@ -49,6 +49,19 @@ class LazyArray(larray):
     """
     # most of the implementation moved to external lazyarray package
     # the plan is ultimately to move everything to lazyarray
+
+    def __init__(self, value, shape=None, dtype=None):
+        if isinstance(value, basestring):
+            errmsg = "Value should be a string expressing a function of d. "
+            try:
+                value = eval("lambda d: %s" % value)
+            except SyntaxError:
+                raise errors.InvalidParameterValueError(errmsg + "Incorrect syntax.")
+            try:
+                value(0.0)
+            except NameError, err:
+                raise errors.InvalidParameterValueError(errmsg + str(err))
+        super(LazyArray, self).__init__(value, shape, dtype)
 
     def __setitem__(self, addr, new_value):
         self.check_bounds(addr)
