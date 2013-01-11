@@ -7,7 +7,7 @@ Classes:
     ACSource           -- a sine modulated current.
     NoisyCurrentSource -- a Gaussian whitish noise current.
 
-:copyright: Copyright 2006-2012 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id: electrodes.py 957 2011-05-03 13:44:15Z apdavison $

@@ -2,7 +2,7 @@
 Base classes for cell and synapse models, whether "standard" (cross-simulator)
 or "native" (restricted to an individual simulator).
 
-:copyright: Copyright 2006-2012 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 

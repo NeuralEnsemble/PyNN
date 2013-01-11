@@ -1,7 +1,7 @@
 """
 Parameter set handling
 
-:copyright: Copyright 2006-2012 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
