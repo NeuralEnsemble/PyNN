@@ -158,8 +158,12 @@ class ParameterSpace(object):
                 try:
                     expected_dtype = self.schema[name]
                 except KeyError:
+                    if self.component:
+                        model_name = self.component.__name__
+                    else:
+                        model_name = 'unknown'
                     raise errors.NonExistentParameterError(name,
-                                                           self.component.__name__,
+                                                           model_name,
                                                            valid_parameter_names=self.schema.keys())
                 if (expected_dtype == Sequence
                     and isinstance(value, collections.Sized)
@@ -168,7 +172,7 @@ class ParameterSpace(object):
                 try:
                     self._parameters[name] = LazyArray(value, shape=self._shape,
                                                        dtype=expected_dtype)
-                except TypeError:
+                except (TypeError, errors.InvalidParameterValueError):
                     raise errors.InvalidParameterValueError("For parameter %s expected %s, got %s" % (name, type(value), expected_dtype))
                 except ValueError as err:
                     raise errors.InvalidDimensionsError(err) # maybe put the more specific error classes into lazyarray

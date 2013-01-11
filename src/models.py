@@ -92,4 +92,3 @@ class BaseSynapseType(BaseModelType):
         self.parameter_space = ParameterSpace(all_parameters,
                                               self.get_schema(),
                                               shape=None)
-

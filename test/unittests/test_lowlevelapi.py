@@ -16,19 +16,21 @@ def test_build_create():
 def test_build_connect():
     projection_class = Mock()
     connector_class = Mock(return_value="connector")
-    connect_function = common.build_connect(projection_class, connector_class)
+    syn_class = Mock(return_value="syn")
+    connect_function = common.build_connect(projection_class, connector_class, syn_class)
     assert isfunction(connect_function)
 
-    prj = connect_function("source", "target", "weight", "delay", "synapse_type", "p", "rng")
-    connector_class.assert_called_with(p_connect="p", weights="weight", delays="delay")
-    projection_class.assert_called_with("source", "target", "connector", target="synapse_type", rng="rng")
+    prj = connect_function("source", "target", "weight", "delay", "receptor_type", "p", "rng")
+    syn_class.assert_called_with(weight="weight", delay="delay")
+    connector_class.assert_called_with(p_connect="p")
+    projection_class.assert_called_with("source", "target", "connector", synapse_type="syn", receptor_type="receptor_type", rng="rng")
 
     class MockID(common.IDMixin):
        def as_view(self):
             return "view"
 
-    prj = connect_function(MockID(), MockID(), "weight", "delay", "synapse_type", "p", "rng")
-    projection_class.assert_called_with("view", "view", "connector", target="synapse_type", rng="rng")
+    prj = connect_function(MockID(), MockID(), "weight", "delay", "receptor_type", "p", "rng")
+    projection_class.assert_called_with("view", "view", "connector", synapse_type="syn", receptor_type="receptor_type", rng="rng")
 
 def test_set():
     cells = BasePopulation()

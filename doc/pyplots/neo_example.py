@@ -6,8 +6,9 @@ sim.setup(timestep=0.01)
 p_in = sim.Population(10, sim.SpikeSourcePoisson(rate=10.0), label="input")
 p_out = sim.Population(10, sim.EIF_cond_exp_isfa_ista(), label="AdExp neurons")
 
-random = sim.FixedProbabilityConnector(p_connect=0.5, weights=0.05)
-connections = sim.Projection(p_in, p_out, method=random, target='excitatory')
+syn = sim.StaticSynapse(weight=0.05)
+random = sim.FixedProbabilityConnector(p_connect=0.5)
+connections = sim.Projection(p_in, p_out, random, syn, receptor_type='excitatory')
 
 p_in.record('spikes')
 p_out.record('spikes')                    # record spikes from all neurons

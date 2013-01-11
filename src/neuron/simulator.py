@@ -369,7 +369,7 @@ class Connection(object):
     delay = property(_get_delay, _set_delay)
 
     def as_tuple(self, *attribute_names):
-        # should return indices, not IDs for source and target
+        # need to do translation of names, or perhaps that should be handled in common?
         return tuple(getattr(self, name) for name in attribute_names)
 
 

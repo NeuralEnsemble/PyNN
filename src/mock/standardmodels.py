@@ -7,6 +7,7 @@ Standard cells for the mock module.
 """
 
 from pyNN.standardmodels import cells, synapses, electrodes, build_translations, StandardCurrentSource
+from .simulator import state
 import logging
 
 logger = logging.getLogger("PyNN")
@@ -213,6 +214,17 @@ class NoisyCurrentSource(MockCurrentSource, electrodes.NoisyCurrentSource):
         ('dt',    'dt')
     )
 
+
+class StaticSynapse(synapses.StaticSynapse):
+    __doc__ = synapses.StaticSynapse.__doc__
+    translations = build_translations(
+        ('weight', 'WEIGHT'),
+        ('delay', 'DELAY'),
+    )
+
+    def _get_minimum_delay(self):
+        return state.min_delay
+
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
@@ -221,8 +233,8 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         ('tau_rec', 'tau_rec'),
         ('tau_facil', 'tau_facil'),
         ('u0', 'u0'),
-        ('x0', 'x' ), # } note that these two values
-        ('y0', 'y')   # } are not used
+        ('x0', 'x' ),
+        ('y0', 'y')
     )
 
 

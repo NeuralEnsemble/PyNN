@@ -2,7 +2,16 @@
 Synaptic plasticity models
 ==========================
 
-.. autoclass:: pyNN.standardmodels.SynapseDynamics
+.. autoclass:: pyNN.standardmodels.StandardSynapseType
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+
+.. currentmodule:: pyNN.standardmodels.synapses
+
+.. autoclass:: pyNN.standardmodels.synapses.StaticSynapse
    :members:
    :undoc-members:
    :inherited-members:
@@ -12,9 +21,9 @@ Synaptic plasticity models
 Short-term plasticity mechanisms
 ================================
 
-.. currentmodule:: pyNN.standardmodels.synapses
 
-.. autoclass:: pyNN.standardmodels.synapses.TsodyksMarkramMechanism
+
+.. autoclass:: pyNN.standardmodels.synapses.TsodyksMarkramSynapse
    :members:
    :undoc-members:
    :show-inheritance:
@@ -24,7 +33,7 @@ Short-term plasticity mechanisms
 Long-term plasticity mechanisms
 ===============================
 
-.. autoclass:: pyNN.standardmodels.STDPMechanism
+.. autoclass:: pyNN.standardmodels.synapses.STDPMechanism
    :members:
    :undoc-members:
    :inherited-members:
@@ -79,4 +88,3 @@ Native plasticity models
 
 NineML plasticity models
 ========================
-

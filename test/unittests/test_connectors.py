@@ -38,19 +38,21 @@ class TestOneToOneConnector(unittest.TestCase):
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
 
     def test_connect_with_scalar_weights_and_delays(self):
-        C = connectors.OneToOneConnector(weights=5.0, delays=0.5, safe=False)
-        prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[1], self.p2[1], 5.0, 0.5),
-                          (self.p1[3], self.p2[3], 5.0, 0.5)])
+        C = connectors.OneToOneConnector(safe=False)
+        syn = sim.StaticSynapse(weight=5.0, delay=0.5)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(1, 1, 5.0, 0.5),
+                          (3, 3, 5.0, 0.5)])
 
     def test_connect_with_random_weights(self):
         rd = random.RandomDistribution(rng=MockRNG(delta=1.0))
-        C = connectors.OneToOneConnector(weights=rd, delays=0.5, safe=False)
-        prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[1], self.p2[1], 1.0, 0.5),
-                          (self.p1[3], self.p2[3], 3.0, 0.5)])
+        syn = sim.StaticSynapse(weight=rd, delay=0.5)
+        C = connectors.OneToOneConnector(safe=False)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(1, 11, 1.0, 0.5),
+                          (3, 3, 3.0, 0.5)])
 
 
 class TestAllToAllConnector(unittest.TestCase):
@@ -64,62 +66,68 @@ class TestAllToAllConnector(unittest.TestCase):
         random.num_processes = 2
 
     def test_connect_with_scalar_weights_and_delays(self):
-        C = connectors.AllToAllConnector(weights=5.0, delays=0.5, safe=False)
-        prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=0.1, parallel_safe=True))
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[1], 5.0, 0.5),
-                          (self.p1[1], self.p2[1], 5.0, 0.5),
-                          (self.p1[2], self.p2[1], 5.0, 0.5),
-                          (self.p1[3], self.p2[1], 5.0, 0.5),
-                          (self.p1[0], self.p2[3], 5.0, 0.5),
-                          (self.p1[1], self.p2[3], 5.0, 0.5),
-                          (self.p1[2], self.p2[3], 5.0, 0.5),
-                          (self.p1[3], self.p2[3], 5.0, 0.5)])
+        C = connectors.AllToAllConnector(safe=False)
+        syn = sim.StaticSynapse(weight=5.0, delay=0.5)
+        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=0.1, parallel_safe=True))
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 1, 5.0, 0.5),
+                          (1, 1, 5.0, 0.5),
+                          (2, 1, 5.0, 0.5),
+                          (3, 1, 5.0, 0.5),
+                          (0, 3, 5.0, 0.5),
+                          (1, 3, 5.0, 0.5),
+                          (2, 3, 5.0, 0.5),
+                          (3, 3, 5.0, 0.5)])
 
     def test_connect_with_random_weights_parallel_safe(self):
         rd = random.RandomDistribution(rng=MockRNG(delta=1.0, parallel_safe=True))
-        C = connectors.AllToAllConnector(weights=rd, delays=0.5, safe=False)
-        prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[1], 4.0, 0.5),
-                          (self.p1[1], self.p2[1], 5.0, 0.5),
-                          (self.p1[2], self.p2[1], 6.0, 0.5),
-                          (self.p1[3], self.p2[1], 7.0, 0.5),
-                          (self.p1[0], self.p2[3], 12.0, 0.5),
-                          (self.p1[1], self.p2[3], 13.0, 0.5),
-                          (self.p1[2], self.p2[3], 14.0, 0.5),
-                          (self.p1[3], self.p2[3], 15.0, 0.5)])
+        syn = sim.StaticSynapse(weight=rd, delay=0.5)
+        C = connectors.AllToAllConnector(safe=False)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 1, 4.0, 0.5),
+                          (1, 1, 5.0, 0.5),
+                          (2, 1, 6.0, 0.5),
+                          (3, 1, 7.0, 0.5),
+                          (0, 3, 12.0, 0.5),
+                          (1, 3, 13.0, 0.5),
+                          (2, 3, 14.0, 0.5),
+                          (3, 3, 15.0, 0.5)])
 
     def test_connect_with_distance_dependent_weights_parallel_safe(self):
         d_expr = "d+100"
-        C = connectors.AllToAllConnector(weights=d_expr, delays=0.5, safe=False)
-        prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[1], 101.0, 0.5),
-                          (self.p1[1], self.p2[1], 100.0, 0.5),
-                          (self.p1[2], self.p2[1], 101.0, 0.5),
-                          (self.p1[3], self.p2[1], 102.0, 0.5),
-                          (self.p1[0], self.p2[3], 103.0, 0.5),
-                          (self.p1[1], self.p2[3], 102.0, 0.5),
-                          (self.p1[2], self.p2[3], 101.0, 0.5),
-                          (self.p1[3], self.p2[3], 100.0, 0.5)])
+        syn = sim.StaticSynapse(weight=d_expr, delay=0.5)
+        C = connectors.AllToAllConnector(safe=False)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 1, 101.0, 0.5),
+                          (1, 1, 100.0, 0.5),
+                          (2, 1, 101.0, 0.5),
+                          (3, 1, 102.0, 0.5),
+                          (0, 3, 103.0, 0.5),
+                          (1, 3, 102.0, 0.5),
+                          (2, 3, 101.0, 0.5),
+                          (3, 3, 100.0, 0.5)])
 
     def test_connect_with_delays_None(self):
-        C = connectors.AllToAllConnector(weights=0.1, delays=None)
+        syn = sim.StaticSynapse(weight=0.1, delay=None)
+        C = connectors.AllToAllConnector()
         assert C.safe
         assert C.allow_self_connections
-        prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.get(["weights", "delays"], format='list')[0][3], prj._simulator.state.min_delay)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list')[0][3], prj._simulator.state.min_delay)
 
     def test_connect_with_delays_too_small(self):
-        C = connectors.AllToAllConnector(weights=0.1, delays=0.0)
-        self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, self.p2, C)
+        C = connectors.AllToAllConnector()
+        syn = sim.StaticSynapse(weight=0.1, delay=0.0)
+        self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, self.p2, C, syn)
 
     def test_connect_with_list_delays_too_small(self):
         delays = numpy.ones((self.p1.size, self.p2.size), float)
         delays[2, 3] = sim.Projection._simulator.state.min_delay - 0.01
-        C = connectors.AllToAllConnector(weights=0.1, delays=delays)
-        self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, self.p2, C)
+        syn = sim.StaticSynapse(weight=0.1, delay=delays)
+        C = connectors.AllToAllConnector()
+        self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, self.p2, C, syn)
 
 
 class TestFixedProbabilityConnector(unittest.TestCase):
@@ -134,35 +142,38 @@ class TestFixedProbabilityConnector(unittest.TestCase):
 
     def test_connect_with_default_args(self):
         C = connectors.FixedProbabilityConnector(p_connect=0.75)
-        prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=0.1, parallel_safe=True))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=0.1, parallel_safe=True))
 
         # 20 possible connections. Due to the mock RNG, only the
         # first 8 are created (0,0), (1,0), (2,0), (3,0), (0,1), (1,1), (2,1), (3,1)
         # of these, (0,1), (1,1), (2,1), (3,1) are created on this node
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[1], 0.0, 0.123),
-                          (self.p1[1], self.p2[1], 0.0, 0.123),
-                          (self.p1[2], self.p2[1], 0.0, 0.123),
-                          (self.p1[3], self.p2[1], 0.0, 0.123)])
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 1, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123)])
 
     def test_connect_with_weight_function(self):
-        C = connectors.FixedProbabilityConnector(p_connect=0.75, weights=lambda d: 0.1*d)
-        prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=0.1))
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[1], 0.1, 0.123),
-                          (self.p1[1], self.p2[1], 0.0, 0.123),
-                          (self.p1[2], self.p2[1], 0.1, 0.123),
-                          (self.p1[3], self.p2[1], 0.2, 0.123)])
+        C = connectors.FixedProbabilityConnector(p_connect=0.75)
+        syn = sim.StaticSynapse(weight=lambda d: 0.1*d)
+        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=0.1))
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 1, 0.1, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (2, 1, 0.1, 0.123),
+                          (3, 1, 0.2, 0.123)])
 
     def test_connect_with_random_delays_parallel_safe(self):
         rd = random.RandomDistribution('uniform', [0.1, 1.1], rng=MockRNG(start=1.0, delta=0.2, parallel_safe=True))
-        C = connectors.FixedProbabilityConnector(p_connect=0.75, delays=rd)
-        prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=0.1))
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[1], 0.0, 1.0+0.2*4),
-                          (self.p1[1], self.p2[1], 0.0, 1.0+0.2*5),
-                          (self.p1[2], self.p2[1], 0.0, 1.0+0.2*6),
-                          (self.p1[3], self.p2[1], 0.0, 1.0+0.2*7)])
+        syn = sim.StaticSynapse(delay=rd)
+        C = connectors.FixedProbabilityConnector(p_connect=0.75)
+        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=0.1))
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 1, 0.0, 1.0+0.2*4),
+                          (1, 1, 0.0, 1.0+0.2*5),
+                          (2, 1, 0.0, 1.0+0.2*6),
+                          (3, 1, 0.0, 1.0+0.2*7)])
 
 
 class TestDistanceDependentProbabilityConnector(unittest.TestCase):
@@ -177,15 +188,16 @@ class TestDistanceDependentProbabilityConnector(unittest.TestCase):
 
     def test_connect_with_default_args(self):
         C = connectors.DistanceDependentProbabilityConnector(d_expression="d<1.5")
-        prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=0.01))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=0.01))
         # 20 possible connections. Only those with a sufficiently small distance
         # are created
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[1], 0.0, 0.123),
-                          (self.p1[1], self.p2[1], 0.0, 0.123),
-                          (self.p1[2], self.p2[1], 0.0, 0.123),
-                          (self.p1[2], self.p2[3], 0.0, 0.123),
-                          (self.p1[3], self.p2[3], 0.0, 0.123)])
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 1, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123)])
 
 
 class TestFromListConnector(unittest.TestCase):
@@ -207,10 +219,11 @@ class TestFromListConnector(unittest.TestCase):
             (0, 1, 0.5, 0.14),  # local
             ]
         C = connectors.FromListConnector(connection_list)
-        prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[1], 0.5, 0.14),
-                          (self.p1[2], self.p2[3], 0.3, 0.12)])
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 1, 0.5, 0.14),
+                          (2, 3, 0.3, 0.12)])
 
     def test_connect_with_out_of_range_index(self):
         connection_list = [
@@ -221,7 +234,8 @@ class TestFromListConnector(unittest.TestCase):
             (0, 1, 0.5, 0.14),  # local
             ]
         C = connectors.FromListConnector(connection_list)
-        self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, self.p2, C)
+        syn = sim.StaticSynapse()
+        self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, self.p2, C, syn)
 
 
 class TestFromFileConnector(unittest.TestCase):
@@ -249,19 +263,21 @@ class TestFromFileConnector(unittest.TestCase):
     def test_connect_with_standard_text_file_not_distributed(self):
         numpy.savetxt("test.connections", self.connection_list)
         C = connectors.FromFileConnector("test.connections", distributed=False)
-        prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[1], 0.5, 0.14),
-                          (self.p1[2], self.p2[3], 0.3, 0.12)])
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 1, 0.5, 0.14),
+                          (2, 3, 0.3, 0.12)])
 
     def test_connect_with_standard_text_file_distributed(self):
         local_connection_list = [c for c in self.connection_list if c[1]%2 == 1]
         numpy.savetxt("test.connections.1", local_connection_list)
         C = connectors.FromFileConnector("test.connections", distributed=True)
-        prj = sim.Projection(self.p1, self.p2, C)
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[1], 0.5, 0.14),
-                          (self.p1[2], self.p2[3], 0.3, 0.12)])
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 1, 0.5, 0.14),
+                          (2, 3, 0.3, 0.12)])
 
 
 class TestFixedNumberPostConnector(unittest.TestCase):
@@ -276,12 +292,13 @@ class TestFixedNumberPostConnector(unittest.TestCase):
 
     def test_with_n_smaller_than_population_size(self):
         C = connectors.FixedNumberPostConnector(n=3)
-        prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=1))
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[0], self.p2[3], 0.0, 0.123),
-                          (self.p1[1], self.p2[3], 0.0, 0.123),
-                          (self.p1[2], self.p2[3], 0.0, 0.123),
-                          (self.p1[3], self.p2[3], 0.0, 0.123),])
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=1))
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(0, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123),])
 
 
 class TestFixedNumberPreConnector(unittest.TestCase):
@@ -296,14 +313,15 @@ class TestFixedNumberPreConnector(unittest.TestCase):
 
     def test_with_n_smaller_than_population_size(self):
         C = connectors.FixedNumberPreConnector(n=3)
-        prj = sim.Projection(self.p1, self.p2, C, rng=MockRNG(delta=1))
-        self.assertEqual(prj.get(["weights", "delays"], format='list'),
-                         [(self.p1[1], self.p2[1], 0.0, 0.123),
-                          (self.p1[2], self.p2[1], 0.0, 0.123),
-                          (self.p1[3], self.p2[1], 0.0, 0.123),
-                          (self.p1[1], self.p2[3], 0.0, 0.123),
-                          (self.p1[2], self.p2[3], 0.0, 0.123),
-                          (self.p1[3], self.p2[3], 0.0, 0.123),])
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=1))
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+                         [(1, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123),])
 
 
 class CheckTest(unittest.TestCase):

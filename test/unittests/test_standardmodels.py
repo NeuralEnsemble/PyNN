@@ -1,6 +1,6 @@
 from pyNN.standardmodels import build_translations, StandardModelType, \
                                 STDPWeightDependence, STDPTimingDependence
-from pyNN.standardmodels.synapses import STDPMechanism
+from pyNN.standardmodels.synapses import StaticSynapse, STDPMechanism
 from pyNN import errors
 from pyNN.parameters import ParameterSpace
 from nose.tools import assert_equal, assert_raises
@@ -27,9 +27,6 @@ def test_build_translations():
     assert_equal(t['c']['reverse_transform'], 'C - A')
 
 
-
-##test StandardModelType
-
 def test_has_parameter():
     M = StandardModelType
     M.default_parameters = {'a': 22.2, 'b': 33.3}
@@ -52,6 +49,7 @@ def test_instantiate():
     P1 = {'a': 22.2, 'b': 33.3}
     m = M(**P1)
     assert_equal(m.parameter_space._parameters, ParameterSpace(P1, None, None)._parameters)
+    M.default_parameters = {}
 
 def _parameter_space_to_dict(parameter_space, size):
     parameter_space.shape = (size,)
@@ -66,7 +64,7 @@ def test_translate():
             ('b', 'B', 1000.0),
             ('c', 'C', 'c + a', 'C - A'),
         )
-    native_parameters = M.translate(ParameterSpace({'a': 23.4, 'b': 34.5, 'c': 45.6}, M.get_schema(), None))
+    native_parameters = M().translate(ParameterSpace({'a': 23.4, 'b': 34.5, 'c': 45.6}, M.get_schema(), None))
     assert_equal(_parameter_space_to_dict(native_parameters, 77),
                  {'A': 23.4, 'B': 34500.0, 'C': 69.0})
 
@@ -79,7 +77,7 @@ def test_translate_with_invalid_transformation():
     M.default_parameters = {'a': 22.2, 'b': 33.3}
     #really we should trap such errors in build_translations(), not in translate()
     assert_raises(NameError,
-                  M.translate,
+                  M().translate,
                   ParameterSpace({'a': 23.4, 'b': 34.5}, M.get_schema(), None))
 
 def test_translate_with_divide_by_zero_error():
@@ -89,7 +87,7 @@ def test_translate_with_divide_by_zero_error():
             ('a', 'A'),
             ('b', 'B', 'b/0', 'B*0'),
     )
-    native_parameters = M.translate(ParameterSpace({'a': 23.4, 'b': 34.5}, M.get_schema(), 77))
+    native_parameters = M().translate(ParameterSpace({'a': 23.4, 'b': 34.5}, M.get_schema(), 77))
     assert_raises(ZeroDivisionError,
                   native_parameters.evaluate,
                   simplify=True)
@@ -102,7 +100,7 @@ def test_reverse_translate():
             ('b', 'B', 1000.0),
             ('c', 'C', 'c + a', 'C - A'),
         )
-    assert_equal(_parameter_space_to_dict(M.reverse_translate(ParameterSpace({'A': 23.4, 'B': 34500.0, 'C': 69.0})), 88),
+    assert_equal(_parameter_space_to_dict(M().reverse_translate(ParameterSpace({'A': 23.4, 'B': 34500.0, 'C': 69.0})), 88),
                  {'a': 23.4, 'b': 34.5, 'c': 45.6})
 
 def test_reverse_translate_with_invalid_transformation():
@@ -114,7 +112,7 @@ def test_reverse_translate_with_invalid_transformation():
     M.default_parameters = {'a': 22.2, 'b': 33.3}
     #really we should trap such errors in build_translations(), not in reverse_translate()
     assert_raises(NameError,
-                  M.reverse_translate,
+                  M().reverse_translate,
                   {'A': 23.4, 'B': 34.5})
 
 def test_simple_parameters():
@@ -125,7 +123,7 @@ def test_simple_parameters():
             ('b', 'B', 1000.0),
             ('c', 'C', 'c + a', 'C - A'),
         )
-    assert_equal(M.simple_parameters(), ['a'])
+    assert_equal(M().simple_parameters(), ['a'])
 
 def test_scaled_parameters():
     M = StandardModelType
@@ -135,7 +133,7 @@ def test_scaled_parameters():
             ('b', 'B', 1000.0),
             ('c', 'C', 'c + a', 'C - A'),
         )
-    assert_equal(M.scaled_parameters(), ['b'])
+    assert_equal(M().scaled_parameters(), ['b'])
 
 def test_computed_parameters():
     M = StandardModelType
@@ -145,7 +143,7 @@ def test_computed_parameters():
             ('b', 'B', 1000.0),
             ('c', 'C', 'c + a', 'C - A'),
         )
-    assert_equal(M.computed_parameters(), ['c'])
+    assert_equal(M().computed_parameters(), ['c'])
 
 def test_describe():
     M = StandardModelType
@@ -155,8 +153,7 @@ def test_describe():
             ('b', 'B', 1000.0),
             ('c', 'C', 'c + a', 'C - A'),
         )
-    m = M()
-    assert isinstance(m.describe(), basestring)
+    assert isinstance(M().describe(), basestring)
 
 # test StandardCellType
 
@@ -165,11 +162,15 @@ def test_describe():
 # test create
 
 def test_describe_synapse_type():
+    StaticSynapse._get_minimum_delay = lambda self: 0.1
     sd = StaticSynapse()
     assert isinstance(sd.describe(), basestring)
     assert isinstance(sd.describe(template=None), dict)
+    del StaticSynapse._get_minimum_delay
 
 def test_STDPMechanism_create():
+    STDPMechanism._get_minimum_delay = lambda self: 0.1
+    STDPMechanism.base_translations = {}
     STDPTimingDependence.__init__ = Mock(return_value=None)
     STDPWeightDependence.__init__ = Mock(return_value=None)
     td = STDPTimingDependence()
@@ -179,6 +180,8 @@ def test_STDPMechanism_create():
     assert_equal(stdp.weight_dependence, wd)
     assert_equal(stdp.voltage_dependence, None)
     assert_equal(stdp.dendritic_delay_fraction, 0.5)
+    del STDPMechanism._get_minimum_delay
+    del STDPMechanism.base_translations
 
 def test_STDPMechanism_create_invalid_types():
     assert_raises(AssertionError, # probably want a more informative error

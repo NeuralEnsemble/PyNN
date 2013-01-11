@@ -13,6 +13,26 @@
 
 import sys, os
 
+use_mocks = False
+
+if use_mocks:
+  import mock
+  # mocks are only wanted when building docs, not when running doctests
+  # is there are way to use them selectively, like this?
+  # also, the matplotlib figures need the real modules.
+  class MockNeuronModule(mock.Mock):
+      nrn_dll_loaded = []
+      nhost = lambda self: 1
+      id = lambda self: 1
+      Section = object
+      set_maxstep = lambda self, x: 10.0
+
+  class MockNESTModule(mock.Mock):
+      GetKernelStatus = lambda self: {'num_processes': 1}
+
+  sys.modules["neuron"] = MockNeuronModule()
+  sys.modules["nest"] = MockNESTModule()
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -29,7 +49,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.todo',
               'sphinx.ext.viewcode',
-              'sphinx.ext.intersphinx',
+              #'sphinx.ext.intersphinx',
               'matplotlib.sphinxext.only_directives',
               'matplotlib.sphinxext.plot_directive']
 

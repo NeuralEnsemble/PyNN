@@ -20,9 +20,6 @@ from pyNN import random, errors, space
 from pyNN.parameters import Sequence
 
 
-
-
-
 class PopulationTest(unittest.TestCase):
 
     def setUp(self):

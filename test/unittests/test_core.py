@@ -1,5 +1,5 @@
 from pyNN.core import is_listlike, LazyArray, larray
-from pyNN import random
+from pyNN import random, errors
 import numpy
 from nose.tools import assert_raises, assert_equal
 from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal
@@ -53,8 +53,11 @@ def test_create_with_array():
 def test_create_inconsistent():
     assert_raises(ValueError, LazyArray, [1,2,3], shape=4)
 
-def test_create_with_string():
-    assert_raises(TypeError, LazyArray, "123", shape=3)
+def test_create_with_invalid_string():
+    A = LazyArray("d+2", shape=3)
+
+def test_create_with_invalid_string():
+    assert_raises(errors.InvalidParameterValueError, LazyArray, "x+y", shape=3)
     
 def test_setitem_nonexpanded_same_value():
     A = LazyArray(3, shape=(5,))
@@ -64,7 +67,7 @@ def test_setitem_nonexpanded_same_value():
 
 def test_setitem_invalid_value():
     A = LazyArray(3, shape=(5,))
-    assert_raises(TypeError, A, "abc")
+    assert_raises(TypeError, A.__setitem__, "abc")
 
 def test_setitem_nonexpanded_different_value():
     A = LazyArray(3, shape=(5,))
@@ -240,4 +243,3 @@ def test_getitem_from_constant_array():
     assert m[0,0] == m[3,2] == m[-1,2] == m[-4,2] == m[2,-3] == 3
     assert_raises(IndexError, m.__getitem__, (4,0))
     assert_raises(IndexError, m.__getitem__, (2,-4))
-    

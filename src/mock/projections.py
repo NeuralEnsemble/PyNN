@@ -12,39 +12,31 @@ class Connection(object):
     attributes.
     """
 
-    def __init__(self, source, target, weight, delay, **other_attributes):
-        self.source = source
-        self.target = target
-        self.weight = weight
-        self.delay = delay
-        for name, value in other_attributes.items():
+    def __init__(self, pre, post, **attributes):
+        self.pre = pre
+        self.post = post
+        for name, value in attributes.items():
             setattr(self, name, value)
 
     def as_tuple(self, *attribute_names):
         # should return indices, not IDs for source and target
-        attributes = []
-        for name in attribute_names:
-            if name == "weights":
-                name = "weight"
-            elif name == "delays":
-                name = "delay"
-            attributes.append(getattr(self, name))
-        return tuple(attributes)
+        return tuple([getattr(self, name) for name in attribute_names])
 
 
 class Projection(common.Projection):
+    __doc__ = common.Projection.__doc__
     _simulator = simulator
 
-    def __init__(self, presynaptic_population, postsynaptic_population, method,
-                 synapse_type, source=None, target=None, label=None,
-                 rng=None):
-        common.Projection.__init__(self, presynaptic_population,
-                                   postsynaptic_population, method, synapse_type,
-                                   source, target, label, rng)
+    def __init__(self, presynaptic_population, postsynaptic_population,
+                 connector, synapse_type, source=None, receptor_type=None,
+                 label=None, rng=None):
+        common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
+                                   connector, synapse_type, source, receptor_type,
+                                   label, rng)
 
         ## Create connections
         self.connections = []
-        method.connect(self)
+        connector.connect(self)
 
     def __len__(self):
         return len(self.connections)
@@ -52,35 +44,13 @@ class Projection(common.Projection):
     def set(self, **attributes):
         parameter_space = ParameterSpace
 
-    def _convergent_connect(self, sources, target, weights, delays, **plasticity_attributes):
-        """
-        Connect a neuron to one or more other neurons with a static connection.
-
-        `sources`  -- a 1D array of pre-synaptic cell IDs
-        `target`   -- the ID of the post-synaptic cell.
-        `weight`   -- a 1D array of connection weights, of the same length as
-                      `sources`, or a single weight value.
-        `delays`   -- a 1D array of connection delays, of the same length as
-                      `sources`, or a single delay value.
-        `plasticity_attributes` -- each plasticity attribute should be either a
-                                   1D array of the same length as `sources`, or
-                                   a single value.
-        """
-        if isinstance(weights, float):
-            weights = repeat(weights)
-        if isinstance(delays, float):
-            delays = repeat(delays)
-        for name, value in plasticity_attributes.items():
+    def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
+                            **connection_parameters):
+        for name, value in connection_parameters.items():
             if isinstance(value, float):
-                plasticity_attributes[name] = repeat(value)
-        if plasticity_attributes:
-            for source, weight, delay, other in ezip(sources, weights, delays, *plasticity_attributes.values()):
-                other_attributes = dict(zip(plasticity_attributes.keys(), other))
-                self.connections.append(
-                    Connection(source, target, weight=weight, delay=delay, **other_attributes)
-                )
-        else:
-            for source, weight, delay in izip(sources, weights, delays):
-                self.connections.append(
-                    Connection(source, target, weight=weight, delay=delay)
-                )
+                connection_parameters[name] = repeat(value)
+        for pre_idx, other in ezip(presynaptic_indices, *connection_parameters.values()):
+            other_attributes = dict(zip(connection_parameters.keys(), other))
+            self.connections.append(
+                Connection(pre_idx, postsynaptic_index, **other_attributes)
+            )

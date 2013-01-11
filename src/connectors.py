@@ -330,7 +330,7 @@ class FromListConnector(Connector):
         Create a new connector.
         """
         # needs extending for dynamic synapses.
-        Connector.__init__(self, None, None, safe=safe, callback=callback)
+        Connector.__init__(self, safe=safe, callback=callback)
         self.conn_list  = numpy.array(conn_list)
 
     def connect(self, projection):
@@ -367,7 +367,7 @@ class FromListConnector(Connector):
                 tgt = projection.post.all_cells[tgt]
             except IndexError:
                 raise errors.ConnectionError("invalid target index %d" % tgt)
-            projection._convergent_connect(srcs, tgt, weights, delays)
+            projection._convergent_connect(srcs, tgt, weight=weights, delay=delays)
 
 
 class FromFileConnector(FromListConnector):
@@ -394,7 +394,7 @@ class FromFileConnector(FromListConnector):
         """
         Create a new connector.
         """
-        Connector.__init__(self, None, None, safe=safe, callback=callback)
+        Connector.__init__(self, safe=safe, callback=callback)
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='r')
         self.file = file

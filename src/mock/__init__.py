@@ -19,6 +19,9 @@ from .projections import Projection
 
 logger = logging.getLogger("PyNN")
 
+def list_standard_models():
+    """Return a list of all the StandardCellType classes available for this simulator."""
+    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
 
 def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     common.setup(timestep, min_delay, max_delay, **extra_params)
@@ -53,7 +56,7 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 
 create = common.build_create(Population)
 
-connect = common.build_connect(Projection, FixedProbabilityConnector)
+connect = common.build_connect(Projection, FixedProbabilityConnector, StaticSynapse)
 
 #set = common.set
 
