@@ -161,10 +161,10 @@ Making a release
 To make a release of PyNN requires you to have permissions to upload PyNN
 packages to the `Python Package Index`_ and the INCF Software Center, and to
 upload documentation to the neuralensemble.org server. If you are interested
-in becoming release manager for PyNN, please contact us via the `mailing list`.
+in becoming release manager for PyNN, please contact us via the `mailing list`_.
 
 When you think a release is ready, run through the following checklist one
-last time::
+last time:
 
     * do all the tests pass? This means running ``nosetests`` in
       ``test/unittests`` and ``test/system`` and running ``make doctest`` in

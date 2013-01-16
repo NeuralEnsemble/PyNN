@@ -76,7 +76,10 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
                                                 tau_facil=tau_facil, u0=u0,
                                                 x0=x0, y0=y0)
 
-
+    def _get_minimum_delay(self):
+        return state.min_delay
+    
+    
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
 

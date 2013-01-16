@@ -9,9 +9,8 @@ for improved performance.
 """
 
 from __future__ import division
-from pyNN.space import Space
 from pyNN.core import LazyArray
-from pyNN.random import RandomDistribution
+from pyNN.random import RandomDistribution, AbstractRNG, NumpyRNG
 from pyNN.common.populations import is_conductance
 from pyNN import errors, descriptions
 from pyNN.recording import files
@@ -75,14 +74,20 @@ def check_delays(delays, min_delay, max_delay):
     return delays
 
 
+def _get_rng(rng):
+    if isinstance(rng, AbstractRNG):
+        return rng
+    elif rng is None:
+        return NumpyRNG(seed=151985012)
+    else:
+        raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
+
+
 class Connector(object):
     """
     Base class for connectors.
 
     All connector sub-classes have the following optional keyword arguments:
-        `space`:
-            a `Space` object, needed if you wish to specify distance-dependent
-            weights or delays.
         `safe`:
             if True, check that weights and delays have valid values. If False,
             this check is skipped.
@@ -91,11 +96,10 @@ class Connector(object):
             connection routine. An example would be `progress_bar.set_level`.
     """
 
-    def __init__(self, space=Space(), safe=True, callback=None):
+    def __init__(self, safe=True, callback=None):
         """
         docstring needed
         """
-        self.space   = space
         self.safe    = safe
         self.callback = callback
         if callback is not None:
@@ -134,7 +138,7 @@ class MapConnector(Connector):
     def _generate_distance_map(self, projection):
         position_generators = (projection.pre.position_generator,
                                projection.post.position_generator)
-        return LazyArray(self.space.distance_generator3D(*position_generators),
+        return LazyArray(projection.space.distance_generator3D(*position_generators),
                          shape=projection.shape)
 
     def _connect_with_map(self, projection, connection_map, distance_map=None):
@@ -207,12 +211,12 @@ class AllToAllConnector(MapConnector):
     """
     parameter_names = ('allow_self_connections',)
 
-    def __init__(self, allow_self_connections=True, space=Space(), safe=True,
+    def __init__(self, allow_self_connections=True, safe=True,
                  callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, space, safe, callback)
+        Connector.__init__(self, safe, callback)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
 
@@ -238,22 +242,25 @@ class FixedProbabilityConnector(MapConnector):
             if the connector is used to connect a Population to itself, this
             flag determines whether a neuron is allowed to connect to itself,
             or only to other neurons in the Population.
+        `rng`:
+            an :class:`RNG` instance used to evaluate whether connections exist
     """
     parameter_names = ('allow_self_connections', 'p_connect')
 
-    def __init__(self, p_connect, allow_self_connections=True, space=Space(),
-                 safe=True, callback=None):
+    def __init__(self, p_connect, allow_self_connections=True,
+                 rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, space, safe, callback)
+        Connector.__init__(self, safe, callback)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
         assert 0 <= self.p_connect
+        self.rng = _get_rng(rng)
 
     def connect(self, projection):
-        random_map = LazyArray(RandomDistribution('uniform', (0, 1), rng=projection.rng),
+        random_map = LazyArray(RandomDistribution('uniform', (0, 1), rng=self.rng),
                                projection.shape)
         connection_map = random_map < self.p_connect
         if not self.allow_self_connections and projection.pre == projection.post:
@@ -275,15 +282,17 @@ class DistanceDependentProbabilityConnector(MapConnector):
             if the connector is used to connect a Population to itself, this
             flag determines whether a neuron is allowed to connect to itself,
             or only to other neurons in the Population.
+        `rng`:
+            an :class:`RNG` instance used to evaluate whether connections exist
     """
     parameter_names = ('allow_self_connections', 'd_expression')
 
     def __init__(self, d_expression, allow_self_connections=True,
-                 space=Space(), safe=True, callback=None):
+                 rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, space, safe, callback)
+        Connector.__init__(self, safe, callback)
         assert isinstance(d_expression, str) or callable(d_expression)
         assert isinstance(allow_self_connections, bool)
         try:
@@ -295,11 +304,12 @@ class DistanceDependentProbabilityConnector(MapConnector):
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
         self.distance_function = eval("lambda d: %s" % self.d_expression)
+        self.rng = _get_rng(rng)
 
     def connect(self, projection):
         distance_map = self._generate_distance_map(projection)
         probability_map = self.distance_function(distance_map)
-        random_map = LazyArray(RandomDistribution('uniform', (0, 1), rng=projection.rng),
+        random_map = LazyArray(RandomDistribution('uniform', (0, 1), rng=self.rng),
                                projection.shape)
         connection_map = random_map < probability_map
         if not self.allow_self_connections and projection.pre == projection.post:
@@ -414,11 +424,11 @@ class FixedNumberConnector(MapConnector):
     parameter_names = ('allow_self_connections', 'n')
 
     def __init__(self, n, allow_self_connections=True,
-                 space=Space(), safe=True, callback=None):
+                 rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, space, safe, callback)
+        Connector.__init__(self, safe, callback)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         if isinstance(n, int):
@@ -430,6 +440,7 @@ class FixedNumberConnector(MapConnector):
             assert numpy.all(numpy.array(n.next(100)) >= 0), "the random distribution produces negative numbers"
         else:
             raise TypeError("n must be an integer or a RandomDistribution object")
+        self.rng = _get_rng(rng)
 
 
 class FixedNumberPostConnector(FixedNumberConnector):
@@ -455,13 +466,16 @@ class FixedNumberPostConnector(FixedNumberConnector):
             if the connector is used to connect a Population to itself, this
             flag determines whether a neuron is allowed to connect to itself,
             or only to other neurons in the Population.
+        `rng`:
+            an :class:`RNG` instance used to evaluate which potential connections
+            are created.
     """
 
     def connect(self, projection):
-        assert projection.rng.parallel_safe
+        assert self.rng.parallel_safe
         # this is probably very inefficient, would be better to use
         # divergent connect
-        shuffle = numpy.array([projection.rng.permutation(numpy.arange(projection.post.size))
+        shuffle = numpy.array([self.rng.permutation(numpy.arange(projection.post.size))
                                for i in range(projection.pre.size)])
         n = self.n
         if hasattr(self, "rand_distr"):
@@ -496,11 +510,14 @@ class FixedNumberPreConnector(FixedNumberConnector):
             if the connector is used to connect a Population to itself, this
             flag determines whether a neuron is allowed to connect to itself,
             or only to other neurons in the Population.
+        `rng`:
+            an :class:`RNG` instance used to evaluate which potential connections
+            are created.
     """
 
     def connect(self, projection):
-        assert projection.rng.parallel_safe
-        shuffle = projection.rng.permutation(numpy.arange(projection.pre.size))
+        assert self.rng.parallel_safe
+        shuffle = self.rng.permutation(numpy.arange(projection.pre.size))
         n = self.n
         if hasattr(self, "rand_distr"):
             n = self.rand_distr.next(projection.pre.size)
@@ -544,22 +561,25 @@ class SmallWorldConnector(Connector):
             or only to other neurons in the Population.
         `n_connections`:
             if specified, the number of efferent synaptic connections per neuron.
+        `rng`:
+            an :class:`RNG` instance used to evaluate which connections
+            are created.
     """
     parameter_names = ('allow_self_connections', 'degree', 'rewiring', 'n_connections')
 
     def __init__(self, degree, rewiring, allow_self_connections=True,
-                 n_connections=None, space=Space(),
-                 safe=True, callback=None):
+                 n_connections=None, rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, space, safe, callback)
+        Connector.__init__(self, safe, callback)
         assert 0 <= rewiring <= 1
         assert isinstance(allow_self_connections, bool)
         self.rewiring               = rewiring
         self.d_expression           = "d < %g" % degree
         self.allow_self_connections = allow_self_connections
         self.n_connections          = n_connections
+        self.rng = _get_rng(rng)
 
     def connect(self, projection):
         """Connect-up a Projection."""

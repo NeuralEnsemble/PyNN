@@ -138,13 +138,13 @@ uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
 all_cells.initialize(v=uniformDistr)
 
 print "%s Connecting populations..." % node_id
-connector = FixedProbabilityConnector(pconn)
+connector = FixedProbabilityConnector(pconn, rng=rng)
 exc_syn = StaticSynapse(weight=w_exc, delay=delay)
 inh_syn = StaticSynapse(weight=w_inh, delay=delay)
 
 connections={}
-connections['exc'] = Projection(exc_cells, all_cells, connector, exc_syn, receptor_type='excitatory', rng=rng)
-connections['inh'] = Projection(inh_cells, all_cells, connector, inh_syn, receptor_type='inhibitory', rng=rng)
+connections['exc'] = Projection(exc_cells, all_cells, connector, exc_syn, receptor_type='excitatory')
+connections['inh'] = Projection(inh_cells, all_cells, connector, inh_syn, receptor_type='inhibitory')
 if (benchmark == "COBA"):
     connections['ext'] = Projection(ext_stim, all_cells, ext_conn, ext_syn, receptor_type='excitatory')
 

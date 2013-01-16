@@ -141,8 +141,8 @@ exc_conn = CSAConnector(csa.cset (csa.random (pconn), w_exc, delay))
 inh_conn = CSAConnector(csa.cset (csa.random (pconn), w_inh, delay))
 
 connections={}
-connections['exc'] = Projection(exc_cells, all_cells, exc_conn, receptor_type='excitatory', rng=rng)
-connections['inh'] = Projection(inh_cells, all_cells, inh_conn, receptor_type='inhibitory', rng=rng)
+connections['exc'] = Projection(exc_cells, all_cells, exc_conn, receptor_type='excitatory')
+connections['inh'] = Projection(inh_cells, all_cells, inh_conn, receptor_type='inhibitory')
 if (benchmark == "COBA"):
     connections['ext'] = Projection(ext_stim, all_cells, ext_conn, receptor_type='excitatory')
 

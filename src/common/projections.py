@@ -12,6 +12,7 @@ import logging
 import operator
 from pyNN import random, recording, errors, models, core, descriptions
 from pyNN.parameters import ParameterSpace
+from pyNN.space import Space
 from pyNN.standardmodels import StandardSynapseType
 from populations import BasePopulation, Assembly
 
@@ -45,13 +46,14 @@ class Projection(object):
         `synapse_type`:
             a SynapseType object specifying which synaptic connection
             mechanisms to use.
-        `rng`:
-            specify an RNG object to be used by the Connector.
+        `space`:
+            TO DOCUMENT
     """
     _nProj = 0
 
     def __init__(self, presynaptic_neurons, postsynaptic_neurons, connector,
-                 synapse_type, source=None, receptor_type=None, label=None, rng=None):
+                 synapse_type, source=None, receptor_type=None,
+                 space=Space(), label=None):
         """
         Create a new projection, connecting the pre- and post-synaptic neurons.
         """
@@ -72,13 +74,8 @@ class Projection(object):
             valid_types = postsynaptic_neurons.receptor_types
             assert len(valid_types) > 0
             raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: '%s'" % (self.receptor_type, "', '".join(valid_types)))
-        self.label  = label
-        if isinstance(rng, random.AbstractRNG):
-            self.rng = rng
-        elif rng is None:
-            self.rng = random.NumpyRNG(seed=151985012)
-        else:
-            raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
+        self.label = label
+        self.space = space
         self._connector = connector
         self.synapse_type = synapse_type
         assert isinstance(self.synapse_type, models.BaseSynapseType), \
@@ -303,7 +300,7 @@ class Projection(object):
         If min and max are not given, the minimum and maximum weights are
         calculated automatically.
         """
-        weights = numpy.array(self.get('weights', format='list', gather=True, with_address=False))
+        weights = numpy.array(self.get('weight', format='list', gather=True, with_address=False))
         if min is None:
             min = weights.min()
         if max is None:

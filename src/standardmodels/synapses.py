@@ -37,8 +37,8 @@ class TsodyksMarkramSynapse(StandardSynapseType):
     Synapse exhibiting facilitation and depression, implemented using the model
     of Tsodyks, Markram et al.:
 
-    Tsodyks, Uziel, Markram (2000) Synchrony Generation in Recurrent Networks
-       with Frequency-Dependent Synapses. Journal of Neuroscience, vol 20 RC50
+    `Tsodyks, Uziel and Markram (2000)`_ Synchrony Generation in Recurrent Networks
+    with Frequency-Dependent Synapses. Journal of Neuroscience 20:RC50
 
     Note that the time constant of the post-synaptic current is set in the
     neuron model, not here.
@@ -52,6 +52,8 @@ class TsodyksMarkramSynapse(StandardSynapseType):
             facilitation time constant (ms).
         `u0`, `x0`, `y0`:
             initial conditions.
+    
+    .. _`Tsodyks, Uziel and Markram (2000)`: http://www.jneurosci.org/content/20/1/RC50.long
     """
     default_parameters = {
         'weight': 0.0,

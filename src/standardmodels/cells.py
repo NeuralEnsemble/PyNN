@@ -306,6 +306,10 @@ class Izhikevich(StandardCellType):
     E. Izhikevich (2003), IEEE transactions on neural networks, 14(6) 
 
     Synapses are modeled as dirac, as in the original model
+    
+    NOTE: name should probably be changed to match standard nomenclature,
+    e.g. QIF_cond_exp_etc_etc, although keeping "Izhikevich" as an alias would be good
+    
     """
 
     default_parameters = {

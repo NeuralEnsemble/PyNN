@@ -61,6 +61,11 @@ class StandardModelType(models.BaseModelType):
 
     @property
     def translated_parameters(self):
+        """
+        A :class:`ParameterSpace` containing parameter names and values
+        translated from the standard PyNN names and units to simulator-specific
+        ("native") names and units.
+        """
         return self.translate(self.parameter_space)
 
     def translate(self, parameters):
@@ -115,6 +120,9 @@ class StandardModelType(models.BaseModelType):
         return [name for name in self.translations if name not in self.simple_parameters() + self.scaled_parameters()]
 
     def get_translated_names(self, *names):
+        """
+        Return a list of native parameter names for a given model.
+        """
         if names:
             translations = (self.translations[name] for name in names)
         else:  # return all names

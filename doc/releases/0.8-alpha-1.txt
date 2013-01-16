@@ -14,8 +14,8 @@ refactoring.
 For PyNN 0.8 we have taken the opportunity to make significant, backward-incompatible
 changes to the API. The aim was fourfold:
 
-  * to simplify it, making it more consistent and easier to remember;
-  * to make it more powerful, so more complex models can be expressed with less code;
+  * to simplify the API, making it more consistent and easier to remember;
+  * to make the API more powerful, so more complex models can be expressed with less code;
   * to allow a number of internal simplifications so it is easier for new developers to contribute;
   * to prepare for planned future extensions, notably support for multi-compartmental models.
 
@@ -100,8 +100,8 @@ any of the following:
       random value drawn from the distribution;
     * a list or 1D NumPy array of the same size as the :class:`Population`;
     * a function that takes a single integer argument; this function will be
-        called with the index of every cell in the :class:`Population` to return
-        the parameter value for that cell.
+      called with the index of every cell in the :class:`Population` to return
+      the parameter value for that cell.
 
 See :doc:`../parameters` for more details and examples.
 
@@ -232,14 +232,27 @@ DO THE SAME FOR get_v()
 See :doc:`../data_handling` for more details.
 
 
+Creating connections
+====================
+
+SynapseType all changed, required
+
+"target" now called "receptor_type"
+
+Projection target must now be specified explicitly, will no longer be inferred
+based on whether weights are positive or negative
+
+rng no longer arg of Projection, rather of Connector
+space no longer arg of Connector, rather of Projection, since possible distance-dependent parameters are no longer specified in the Connector
+
+
 Accessing and setting properties of synaptic connections
 ========================================================
 
 todo
 
 
-Projection target must now be specified explicitly, will no longer be inferred
-based on whether weights are positive or negative
+
 
 
 Python compatibility

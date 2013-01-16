@@ -22,15 +22,15 @@ def test_build_connect():
 
     prj = connect_function("source", "target", "weight", "delay", "receptor_type", "p", "rng")
     syn_class.assert_called_with(weight="weight", delay="delay")
-    connector_class.assert_called_with(p_connect="p")
-    projection_class.assert_called_with("source", "target", "connector", synapse_type="syn", receptor_type="receptor_type", rng="rng")
+    connector_class.assert_called_with(p_connect="p", rng="rng")
+    projection_class.assert_called_with("source", "target", "connector", synapse_type="syn", receptor_type="receptor_type")
 
     class MockID(common.IDMixin):
        def as_view(self):
             return "view"
 
     prj = connect_function(MockID(), MockID(), "weight", "delay", "receptor_type", "p", "rng")
-    projection_class.assert_called_with("view", "view", "connector", synapse_type="syn", receptor_type="receptor_type", rng="rng")
+    projection_class.assert_called_with("view", "view", "connector", synapse_type="syn", receptor_type="receptor_type")
 
 def test_set():
     cells = BasePopulation()

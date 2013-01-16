@@ -2,16 +2,56 @@
 Neuron models
 =============
 
+.. currentmodule:: pyNN.standardmodels.cells
 
+PyNN provides a library of neuron models that have been standardized so as to
+give the same results (within certain limits of numerical accuracy) on different
+backends. Each model is represented by a "cell type" class.
+
+It is also possible to use simulator-specific neuron models, which we call
+"native" cell types. Of course, such models will only work with one specific
+backend simulator.
+
+.. note:: the development version has some support for specifying cell types
+          using the NineML_ and NeuroML_ formats, but this is not yet available
+          in the current release.
+   
 Standard cell types
 ===================
+
+* Plain integrate-and-fire models:
+
+  * :class:`IF_curr_exp`
+  * :class:`IF_curr_alpha`
+  * :class:`IF_cond_exp`
+  * :class:`IF_cond_alpha`
+    
+* Integrate-and-fire with adaptation:
+
+  * :class:`IF_cond_exp_gsfa_grr`
+  * :class:`EIF_cond_alpha_isfa_ista`
+  * :class:`EIF_cond_exp_isfa_ista`    
+  * :class:`Izhikevich`
+    
+* Hodgkin-Huxley model
+
+  * :class:`HH_cond_exp`
+
+* Spike sources (input neurons) 
+
+  * :class:`SpikeSourcePoisson`
+  * :class:`SpikeSourceArray`
+  * :class:`SpikeSourceInhGamma`
+
+
+Base class
+----------
 
 All standard cell types inherit from the following base class, and have the
 same methods, as listed below.
 
-.. currentmodule:: pyNN.standardmodels
 
-.. autoclass:: StandardCellType
+.. autoclass:: pyNN.standardmodels.StandardCellType
    :show-inheritance:
 
    .. automethod:: get_schema
@@ -28,8 +68,6 @@ same methods, as listed below.
 
 Simple integrate-and-fire neurons
 ---------------------------------
-
-.. currentmodule:: pyNN.standardmodels.cells
 
 .. autoclass:: IF_cond_exp
    :members:
@@ -128,11 +166,17 @@ Spike sources
    .. autoattribute:: conductance_based
 
 
+Native cell types
+=================
+
+.. todo:: WRITE THIS PART
+
+
 Utility functions
 =================
 
 .. autofunction:: pyNN.neuron.list_standard_models
 
 
-Native cell types
-=================
+.. _NineML: http://nineml.incf.org
+.. _NeuroML: http://www.neuroml.org

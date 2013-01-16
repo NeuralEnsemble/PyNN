@@ -13,7 +13,7 @@
 
 import sys, os
 
-use_mocks = False
+use_mocks = True
 
 if use_mocks:
   import mock

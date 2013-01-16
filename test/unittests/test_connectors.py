@@ -68,7 +68,7 @@ class TestAllToAllConnector(unittest.TestCase):
     def test_connect_with_scalar_weights_and_delays(self):
         C = connectors.AllToAllConnector(safe=False)
         syn = sim.StaticSynapse(weight=5.0, delay=0.5)
-        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=0.1, parallel_safe=True))
+        prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),
                          [(0, 1, 5.0, 0.5),
                           (1, 1, 5.0, 0.5),
@@ -141,9 +141,10 @@ class TestFixedProbabilityConnector(unittest.TestCase):
         random.num_processes = 2
 
     def test_connect_with_default_args(self):
-        C = connectors.FixedProbabilityConnector(p_connect=0.75)
+        C = connectors.FixedProbabilityConnector(p_connect=0.75,
+                                                 rng=MockRNG(delta=0.1, parallel_safe=True))
         syn = sim.StaticSynapse()
-        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=0.1, parallel_safe=True))
+        prj = sim.Projection(self.p1, self.p2, C, syn)
 
         # 20 possible connections. Due to the mock RNG, only the
         # first 8 are created (0,0), (1,0), (2,0), (3,0), (0,1), (1,1), (2,1), (3,1)
@@ -155,9 +156,10 @@ class TestFixedProbabilityConnector(unittest.TestCase):
                           (3, 1, 0.0, 0.123)])
 
     def test_connect_with_weight_function(self):
-        C = connectors.FixedProbabilityConnector(p_connect=0.75)
+        C = connectors.FixedProbabilityConnector(p_connect=0.75,
+                                                 rng=MockRNG(delta=0.1))
         syn = sim.StaticSynapse(weight=lambda d: 0.1*d)
-        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=0.1))
+        prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),
                          [(0, 1, 0.1, 0.123),
                           (1, 1, 0.0, 0.123),
@@ -167,8 +169,8 @@ class TestFixedProbabilityConnector(unittest.TestCase):
     def test_connect_with_random_delays_parallel_safe(self):
         rd = random.RandomDistribution('uniform', [0.1, 1.1], rng=MockRNG(start=1.0, delta=0.2, parallel_safe=True))
         syn = sim.StaticSynapse(delay=rd)
-        C = connectors.FixedProbabilityConnector(p_connect=0.75)
-        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=0.1))
+        C = connectors.FixedProbabilityConnector(p_connect=0.75, rng=MockRNG(delta=0.1))
+        prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),
                          [(0, 1, 0.0, 1.0+0.2*4),
                           (1, 1, 0.0, 1.0+0.2*5),
@@ -187,9 +189,10 @@ class TestDistanceDependentProbabilityConnector(unittest.TestCase):
         random.num_processes = 2
 
     def test_connect_with_default_args(self):
-        C = connectors.DistanceDependentProbabilityConnector(d_expression="d<1.5")
+        C = connectors.DistanceDependentProbabilityConnector(d_expression="d<1.5",
+                                                             rng=MockRNG(delta=0.01))
         syn = sim.StaticSynapse()
-        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=0.01))
+        prj = sim.Projection(self.p1, self.p2, C, syn)
         # 20 possible connections. Only those with a sufficiently small distance
         # are created
         self.assertEqual(prj.get(["weight", "delay"], format='list'),
@@ -291,9 +294,9 @@ class TestFixedNumberPostConnector(unittest.TestCase):
         random.num_processes = 2
 
     def test_with_n_smaller_than_population_size(self):
-        C = connectors.FixedNumberPostConnector(n=3)
+        C = connectors.FixedNumberPostConnector(n=3, rng=MockRNG(delta=1))
         syn = sim.StaticSynapse()
-        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=1))
+        prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),
                          [(0, 3, 0.0, 0.123),
                           (1, 3, 0.0, 0.123),
@@ -312,9 +315,9 @@ class TestFixedNumberPreConnector(unittest.TestCase):
         random.num_processes = 2
 
     def test_with_n_smaller_than_population_size(self):
-        C = connectors.FixedNumberPreConnector(n=3)
+        C = connectors.FixedNumberPreConnector(n=3, rng=MockRNG(delta=1))
         syn = sim.StaticSynapse()
-        prj = sim.Projection(self.p1, self.p2, C, syn, rng=MockRNG(delta=1))
+        prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),
                          [(1, 1, 0.0, 0.123),
                           (2, 1, 0.0, 0.123),

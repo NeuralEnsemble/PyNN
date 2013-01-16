@@ -35,10 +35,10 @@ def build_connect(projection_class, connector_class, static_synapse_class):
             pre = pre.as_view()
         if isinstance(post, IDMixin):
             post = post.as_view()
-        connector = connector_class(p_connect=p)
+        connector = connector_class(p_connect=p, rng=rng)
         synapse = static_synapse_class(weight=weight, delay=delay)
         return projection_class(pre, post, connector, receptor_type=receptor_type,
-                                synapse_type=synapse, rng=rng)
+                                synapse_type=synapse)
     return connect
 
 

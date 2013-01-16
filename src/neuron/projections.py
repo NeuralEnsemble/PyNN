@@ -12,6 +12,7 @@ import logging
 from itertools import izip, repeat, chain
 from pyNN import common, errors, core
 from pyNN.random import RandomDistribution, NativeRNG
+from pyNN.space import Space
 from . import simulator
 
 logger = logging.getLogger("PyNN")
@@ -25,11 +26,11 @@ class Projection(common.Projection):
 
     def __init__(self, presynaptic_population, postsynaptic_population,
                  connector, synapse_type, source=None, receptor_type=None,
-                 label=None, rng=None):
+                 space=Space(), label=None):
         __doc__ = common.Projection.__init__.__doc__
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
-                                   label, rng)
+                                   space, label)
         self._connections = dict((index, {}) for index in self.post._mask_local.nonzero()[0])
         connector.connect(self)
         _projections.append(self)

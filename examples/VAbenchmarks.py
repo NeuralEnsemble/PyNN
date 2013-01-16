@@ -136,15 +136,15 @@ inh_cells.initialize(v=uniformDistr)
 
 print "%s Connecting populations..." % node_id
 progress_bar = ProgressBar(width=20)
-connector = FixedProbabilityConnector(pconn, callback=progress_bar)
+connector = FixedProbabilityConnector(pconn, rng=rng, callback=progress_bar)
 exc_syn = StaticSynapse(weight=w_exc, delay=delay)
 inh_syn = StaticSynapse(weight=w_inh, delay=delay)
 
 connections={}
-connections['e2e'] = Projection(exc_cells, exc_cells, connector, exc_syn, receptor_type='excitatory', rng=rng)
-connections['e2i'] = Projection(exc_cells, inh_cells, connector, exc_syn, receptor_type='excitatory', rng=rng)
-connections['i2e'] = Projection(inh_cells, exc_cells, connector, inh_syn, receptor_type='inhibitory', rng=rng)
-connections['i2i'] = Projection(inh_cells, inh_cells, connector, inh_syn, receptor_type='inhibitory', rng=rng)
+connections['e2e'] = Projection(exc_cells, exc_cells, connector, exc_syn, receptor_type='excitatory')
+connections['e2i'] = Projection(exc_cells, inh_cells, connector, exc_syn, receptor_type='excitatory')
+connections['i2e'] = Projection(inh_cells, exc_cells, connector, inh_syn, receptor_type='inhibitory')
+connections['i2i'] = Projection(inh_cells, inh_cells, connector, inh_syn, receptor_type='inhibitory')
 if (benchmark == "COBA"):
     connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, ext_syn, receptor_type='excitatory')
     connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, ext_syn, receptor_type='excitatory')

@@ -71,11 +71,11 @@ def scenario1(sim):
         ('inhibitory', pconn_recurr, 'inhibitory'),
         ('input',      pconn_input,  'excitatory'),
     ):
-        connector = sim.FixedProbabilityConnector(pconn)
+        connector = sim.FixedProbabilityConnector(pconn, rng=rng)
         syn = sim.StaticSynapse(weight=weights[name], delay=delay)
         connections[name] = sim.Projection(cells[name], all_cells, connector,
                                            syn, receptor_type=receptor_type,
-                                           label=name, rng=rng)
+                                           label=name)
 
     all_cells.record('spikes')
     cells['excitatory'][0:2].record('v')
@@ -627,9 +627,8 @@ def scenario4(sim):
                              label="outputs")
     logger.debug("Output population positions:\n %s", outputs.positions)
     DDPC = sim.DistanceDependentProbabilityConnector
-    input_connectivity = DDPC("0.5*exp(-d/100.0)", space=Space(axes='xy'))
-    recurrent_connectivity = DDPC("sin(pi*d/250.0)**2",
-                                  space=Space(periodic_boundaries=((-100.0, 100.0), (-100.0, 100.0), None))) # should add "calculate_boundaries" method to Structure classes
+    input_connectivity = DDPC("0.5*exp(-d/100.0)", rng=rng)
+    recurrent_connectivity = DDPC("sin(pi*d/250.0)**2", rng=rng)
     depressing = sim.TsodyksMarkramSynapse(weight=RandomDistribution('normal', (0.1, 0.02), rng=rng),
                                            delay="0.5 + d/100.0",
                                            U=0.5, tau_rec=800.0, tau_facil=0.0)
@@ -640,13 +639,13 @@ def scenario4(sim):
     input_connections = sim.Projection(inputs, outputs, input_connectivity,
                                        receptor_type='excitatory',
                                        synapse_type=depressing,
-                                       label="input connections",
-                                       rng=rng)
+                                       space=Space(axes='xy'),
+                                       label="input connections")
     recurrent_connections = sim.Projection(outputs, outputs, recurrent_connectivity,
                                            receptor_type='inhibitory',
                                            synapse_type=facilitating,
-                                           label="recurrent connections",
-                                           rng=rng)
+                                           space=Space(periodic_boundaries=((-100.0, 100.0), (-100.0, 100.0), None)), # should add "calculate_boundaries" method to Structure classes
+                                           label="recurrent connections")
     outputs.record('spikes')
     outputs.sample(10, rng=rng).record('v')
     sim.run(1000.0)

@@ -26,13 +26,13 @@ class MockCell(object):
     def __init__(self, romans=0, judeans=1):
         self.source_section = h.Section()
         self.source = self.source_section(0.5)._ref_v
-        self.synapse = h.tmgsyn(self.source_section(0.5))
+        #self.synapse = h.tmgsyn(self.source_section(0.5))
         self.record = Mock()
         self.record_v = Mock()
         self.record_gsyn = Mock()
         self.memb_init = Mock()
-        self.excitatory_TM = None
-        self.inhibitory_TM = None
+        self.excitatory = h.ExpSyn(self.source_section(0.5))
+        self.inhibitory = None
         self.romans = romans
         self.judeans = judeans
         self.foo_init = -99.9
@@ -41,6 +41,13 @@ class MockCell(object):
     def __call__(self, pos):
         return Mock()
 
+
+class MockSynapseType(object):
+    model = None
+
+class MockPlasticSynapseType(object):
+    model = "StdwaSA"
+    postsynaptic_variable = "spikes"
 
 class MockStepCurrentSource(object):
     parameter_names = ['amplitudes', 'times']
@@ -240,42 +247,44 @@ class TestID(unittest.TestCase):
 class TestConnection(unittest.TestCase):
 
     def setUp(self):
-        self.source = MockID(252)
-        self.target = MockID(539)
-        self.nc = h.NetCon(self.source._cell.source,
-                           self.target._cell.synapse,
-                           sec=self.source._cell.source_section)
-        self.nc.delay = 1.0
-        self.c = simulator.Connection(self.source, self.target, self.nc)
+        self.pre = MockID(252)
+        self.post = MockID(539)
+        self.c = simulator.Connection(self.pre, self.post, 'excitatory',
+                                      MockSynapseType(), weight=0.123,
+                                      delay=0.321)
 
     def test_create(self):
         c = self.c
-        self.assertEqual(c.source, self.source)
-        self.assertEqual(c.target, self.target)
+        self.assertEqual(c.pre, self.pre)
+        self.assertEqual(c.post, self.post)
 
-    def test_useSTDP(self):
-        self.c.useSTDP("StdwaSA", {'wmax': 0.04}, ddf=0)
+    def test_setup_plasticity(self):
+        self.c._setup_plasticity(MockPlasticSynapseType(),
+                                 {'wmax': 0.04,
+                                  'dendritic_delay_fraction': 0.234})
 
     def test_weight_property(self):
-        self.nc.weight[0] = 0.123
+        self.c.nc.weight[0] = 0.123
         self.assertEqual(self.c.weight, 0.123)
         self.c.weight = 0.234
-        self.assertEqual(self.nc.weight[0], 0.234)
+        self.assertEqual(self.c.nc.weight[0], 0.234)
 
     def test_delay_property(self):
-        self.nc.delay = 12.3
+        self.c.nc.delay = 12.3
         self.assertEqual(self.c.delay, 12.3)
         self.c.delay = 23.4
-        self.assertEqual(self.nc.delay, 23.4)
+        self.assertEqual(self.c.nc.delay, 23.4)
 
     def test_U_property(self):
-        self.target._cell.synapse.U = 0.1
+        self.post._cell.synapse.U = 0.1
         self.assertEqual(self.c.U, 0.1)
         self.c.U = 0.2
-        self.assertEqual(self.target._cell.synapse.U, 0.2)
+        self.assertEqual(self.post._cell.synapse.U, 0.2)
 
     def test_w_max_property(self):
-        self.c.useSTDP("StdwaSA", {'wmax': 0.04}, ddf=0)
+        self.c._setup_plasticity(MockPlasticSynapseType(),
+                                 {'wmax': 0.04,
+                                  'dendritic_delay_fraction': 0})
         self.assertEqual(self.c.w_max, 0.04)
         self.c.w_max = 0.05
         self.assertEqual(self.c.weight_adjuster.wmax, 0.05)
@@ -288,14 +297,16 @@ class TestProjection(unittest.TestCase):
         self.p1 = sim.Population(7, sim.IF_cond_exp())
         self.p2 = sim.Population(4, sim.IF_cond_exp())
         self.p3 = sim.Population(5, sim.IF_curr_alpha())
-        self.random_connect = sim.FixedNumberPostConnector(n=2, weights=0.123, delays=0.5)
-        self.all2all = sim.AllToAllConnector(weights=0.456, delays=0.4)
+        self.syn1 = sim.StaticSynapse(weight=0.123, delay=0.5)
+        self.syn2 = sim.StaticSynapse(weight=0.456, delay=0.4)
+        self.random_connect = sim.FixedNumberPostConnector(n=2)
+        self.all2all = sim.AllToAllConnector()
 
     def test_create_simple(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all)
+        prj = sim.Projection(self.p1, self.p2, self.all2all, self.syn2)
 
     def test_create_with_fast_synapse_dynamics(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all,
+        prj = sim.Projection(self.p1, self.p2, self.all2all,
                              synapse_type=sim.TsodyksMarkramSynapse())
 
 

@@ -2,6 +2,7 @@ from itertools import repeat, izip
 from pyNN import common
 from pyNN.core import ezip
 from pyNN.parameters import ParameterSpace
+from pyNN.space import Space
 from . import simulator
 
 
@@ -29,10 +30,10 @@ class Projection(common.Projection):
 
     def __init__(self, presynaptic_population, postsynaptic_population,
                  connector, synapse_type, source=None, receptor_type=None,
-                 label=None, rng=None):
+                 space=Space(), label=None):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
-                                   label, rng)
+                                   space, label)
 
         ## Create connections
         self.connections = []

@@ -30,10 +30,12 @@ class BaseModelType(object):
 
     @classmethod
     def has_parameter(cls, name):
+        """Does this model have a parameter with the given name?"""
         return name in cls.default_parameters
 
     @classmethod
     def get_parameter_names(cls):
+        """Return the names of the parameters of this model."""
         return cls.default_parameters.keys()
 
     @classmethod

@@ -36,40 +36,42 @@ class ProjectionTest(unittest.TestCase):
         self.p1 = sim.Population(7, sim.IF_cond_exp())
         self.p2 = sim.Population(4, sim.IF_cond_exp())
         self.p3 = sim.Population(5, sim.IF_curr_alpha())
-        self.random_connect = sim.FixedNumberPostConnector(n=2, weights=0.123, delays=0.5)
-        self.all2all = sim.AllToAllConnector(weights=0.456, delays=0.4)
+        self.syn1 = sim.StaticSynapse(weight=0.123, delay=0.5)
+        self.random_connect = sim.FixedNumberPostConnector(n=2)
+        self.syn2 = sim.StaticSynapse(weight=0.456, delay=0.4)
+        self.all2all = sim.AllToAllConnector()
 
     def test_create_simple(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all)
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
 
     def test_create_with_presynaptic_assembly(self):
-        prj = sim.Projection(self.p1 + self.p2, self.p2, method=self.all2all)
+        prj = sim.Projection(self.p1 + self.p2, self.p2, connector=self.all2all, synapse_type=self.syn2)
 
     def test_create_with_homogeneous_postsynaptic_assembly(self):
-        prj = sim.Projection(self.p1, self.p1 + self.p2, method=self.all2all)
+        prj = sim.Projection(self.p1, self.p1 + self.p2, connector=self.all2all, synapse_type=self.syn2)
 
     def test_create_with_inhomogeneous_postsynaptic_assembly(self):
         self.assertRaises(errors.ConnectionError, sim.Projection,
-                          self.p1, self.p1 + self.p3, method=self.all2all)
+                          self.p1, self.p1 + self.p3, connector=self.all2all, synapse_type=self.syn2)
 
     def test_create_with_fast_synapse_dynamics(self):
         depressing = sim.TsodyksMarkramSynapse(U=0.5, tau_rec=800.0, tau_facil=0.0)
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all,
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=depressing)
 
     def test_create_with_invalid_type(self):
         self.assertRaises(errors.ConnectionError, sim.Projection,
-                          self.p1, "foo", method=self.all2all,
-                          synapse_type=sim.StaticSynapse)
+                          self.p1, "foo", connector=self.all2all,
+                          synapse_type=self.syn2)
 
     def test_size_with_gather(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all)
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         self.assertEqual(prj.size(gather=True), self.p1.size * self.p2.size)
 
     #def test_set_weights(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
-    #    prj = sim.Projection(p1, p2, method=Mock())
+    #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.synapse_type = "foo"
     #    prj.post.local_cells = [0]
     #    prj.set = Mock()
@@ -81,7 +83,7 @@ class ProjectionTest(unittest.TestCase):
     #    sim.Projection.__len__ = Mock(return_value=42)
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
-    #    prj = sim.Projection(p1, p2, method=Mock())
+    #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.set = Mock()
     #    rd = Mock()
     #    rd.next = Mock(return_value=777)
@@ -93,7 +95,7 @@ class ProjectionTest(unittest.TestCase):
     #def test_set_delays(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
-    #    prj = sim.Projection(p1, p2, method=Mock())
+    #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.set = Mock()
     #    prj.setDelays(0.5)
     #    prj.set.assert_called_with('delay', 0.5)
@@ -103,7 +105,7 @@ class ProjectionTest(unittest.TestCase):
     #    sim.Projection.__len__ = Mock(return_value=42)
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
-    #    prj = sim.Projection(p1, p2, method=Mock())
+    #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.set = Mock()
     #    rd = Mock()
     #    rd.next = Mock(return_value=777)
@@ -115,14 +117,14 @@ class ProjectionTest(unittest.TestCase):
     #def test_set_synapse_dynamics_param(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
-    #    prj = sim.Projection(p1, p2, method=Mock())
+    #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.set = Mock()
     #    prj.setComposedSynapseType('U', 0.5)
     #    prj.set.assert_called_with('U', 0.5)
     #
     def test_get_weights_as_list(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all)
-        weights = prj.get("weights", format="list")
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
+        weights = prj.get("weight", format="list")
         weights = _sort_by_column(weights, 1)[:5]
         target = numpy.array(
             [(self.p1[0], self.p2[0], 0.456),
@@ -133,21 +135,21 @@ class ProjectionTest(unittest.TestCase):
         assert_array_equal(weights, target)
 
     def test_get_weights_as_list_no_address(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all)
-        weights = prj.get("weights", format="list", with_address=False)[:5]
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
+        weights = prj.get("weight", format="list", with_address=False)[:5]
         target = 0.456*numpy.ones((5,))
         assert_array_equal(weights, target)
 
     def test_get_weights_as_array(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all)
-        weights = prj.get("weights", format="array")
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
+        weights = prj.get("weight", format="array")
         target = 0.456*numpy.ones((self.p1.size, self.p2.size))
         assert_array_equal(weights, target)
 
     def test_get_plasticity_attribute_as_list(self):
         U_distr = random.RandomDistribution('uniform', [0.4, 0.6], rng=MockRNG(start=0.5, delta=0.001))
-        depressing = sim.TsodyksMarkramMechanism(U=U_distr, tau_rec=lambda d: 800.0+d, tau_facil=0.0)
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all,
+        depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 800.0+d, tau_facil=0.0)
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=depressing)
         U = prj.get("U", format="list")
         U = _sort_by_column(U, 1)[:5]
@@ -171,7 +173,7 @@ class ProjectionTest(unittest.TestCase):
     #def test_get_delays(self):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
-    #    prj = sim.Projection(p1, p2, method=Mock())
+    #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.get = Mock()
     #    prj.getDelays(format='list', gather=False)
     #    prj.get.assert_called_with('delay', 'list')
@@ -180,7 +182,7 @@ class ProjectionTest(unittest.TestCase):
         filename = "test.connections"
         if os.path.exists(filename):
             os.remove(filename)
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all)
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         prj.save('connections', filename, gather=True)
         assert os.path.exists(filename)
         os.remove(filename)
@@ -191,7 +193,7 @@ class ProjectionTest(unittest.TestCase):
     #        os.remove(filename)
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
-    #    prj = sim.Projection(p1, p2, method=Mock())
+    #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.get = Mock(return_value=range(5))
     #    prj.printWeights(filename, format='list', gather=False)
     #    prj.get.assert_called_with('weight', format='list', gather=False)
@@ -204,7 +206,7 @@ class ProjectionTest(unittest.TestCase):
     #        os.remove(filename)
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
-    #    prj = sim.Projection(p1, p2, method=Mock())
+    #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.get = Mock(return_value=numpy.arange(5.0))
     #    prj.printWeights(filename, format='array', gather=False)
     #    prj.get.assert_called_with('weight', format='array', gather=False)
@@ -212,13 +214,14 @@ class ProjectionTest(unittest.TestCase):
     #    os.remove(filename)
 
     def test_describe(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all,
-                             synapse_type=sim.StaticSynapse)
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
+                             synapse_type=self.syn2)
         self.assertIsInstance(prj.describe(engine='string'), basestring)
         self.assertIsInstance(prj.describe(template=None), dict)
 
     def test_weightHistogram(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all)
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
+                             synapse_type=self.syn2)
         n, bins = prj.weightHistogram(min=0.0, max=1.0)
         assert_array_equal(bins, numpy.linspace(0, 1.0, num=11))
         assert_array_equal(n, numpy.array([0, 0, 0, 0, prj.size(), 0, 0, 0, 0, 0]))

@@ -14,6 +14,7 @@ import logging
 from itertools import repeat
 from pyNN import common, errors, core
 from pyNN.random import RandomDistribution
+from pyNN.space import Space
 from . import simulator
 from .synapses import NativeSynapseType, NativeSynapseMechanism
 
@@ -26,12 +27,12 @@ class Projection(common.Projection):
     _simulator = simulator
 
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 method, synapse_type, source=None, receptor_type=None, label=None,
-                 rng=None):
+                 method, synapse_type, source=None, receptor_type=None,
+                 space=Space(), label=None):
         __doc__ = common.Projection.__init__.__doc__
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
-                                   method, synapse_type, source, receptor_type, label,
-                                   rng)
+                                   method, synapse_type, source, receptor_type,
+                                   space, label)
 #        if self.synapse_dynamics:
 #            synapse_dynamics = self.synapse_dynamics
 #            self.synapse_dynamics._set_tau_minus(self.post.local_cells)
