@@ -108,10 +108,12 @@ class STDPMechanism(synapses.STDPMechanism):
                                             voltage_dependence, dendritic_delay_fraction)
 
 
-class TsodyksMarkramMechanism(synapses.TsodyksMarkramMechanism):
-    __doc__ = synapses.TsodyksMarkramMechanism.__doc__
+class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
+    __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
     translations = build_translations(
+        ('weight', 'weight', 1000.0),
+        ('delay', 'delay'),
         ('U', 'U'),
         ('tau_rec', 'tau_rec'),
         ('tau_facil', 'tau_fac'),

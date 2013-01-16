@@ -172,6 +172,7 @@ class MockCurrentSource(object):
         __doc__ = StandardCurrentSource.inject_into.__doc__
         pass
 
+
 class DCSource(MockCurrentSource, electrodes.DCSource):
     __doc__ = electrodes.DCSource.__doc__
 
@@ -225,16 +226,19 @@ class StaticSynapse(synapses.StaticSynapse):
     def _get_minimum_delay(self):
         return state.min_delay
 
+
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
     translations = build_translations(
-        ('U', 'U'),
-        ('tau_rec', 'tau_rec'),
-        ('tau_facil', 'tau_facil'),
-        ('u0', 'u0'),
-        ('x0', 'x' ),
-        ('y0', 'y')
+        ('weight', 'WEIGHT'),
+        ('delay', 'DELAY'),
+        ('U', 'UU'),
+        ('tau_rec', 'TAU_REC'),
+        ('tau_facil', 'TAU_FACIL'),
+        ('u0', 'U0'),
+        ('x0', 'X' ),
+        ('y0', 'Y')
     )
 
 

@@ -72,8 +72,8 @@ class StandardModelType(models.BaseModelType):
         """Translate standardized model parameters to simulator-specific parameters."""
         _parameters = deepcopy(parameters)
         cls = self.__class__
-        if parameters.schema != cls.get_schema():
-            raise Exception("Schemas do not match: %s != %s" % (parameters.schema, cls.get_schema())) # should replace this with a PyNN-specific exception type
+        if parameters.schema != self.get_schema():
+            raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema())) # should replace this with a PyNN-specific exception type
         native_parameters = {}
         #for name in parameters.schema:
         for name in parameters.keys():
@@ -102,7 +102,7 @@ class StandardModelType(models.BaseModelType):
                 except NameError, errmsg:
                     raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
                                     % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
-        return ParameterSpace(standard_parameters, schema=cls.get_schema(), shape=native_parameters.shape)
+        return ParameterSpace(standard_parameters, schema=self.get_schema(), shape=native_parameters.shape)
 
     def simple_parameters(self):
         """Return a list of parameters for which there is a one-to-one
@@ -209,8 +209,61 @@ class ModelNotAvailable(object):
 #   Synapse Dynamics classes
 # ==============================================================================
 
+
+def check_weights(weights, projection):
+    # if projection.post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
+    synapse_sign = projection.receptor_type
+    is_conductance = projection.post.conductance_based
+    if isinstance(weights, numpy.ndarray):
+        all_negative = (weights <= 0).all()
+        all_positive = (weights >= 0).all()
+        if not (all_negative or all_positive):
+            raise errors.ConnectionError("Weights must be either all positive or all negative")
+    elif numpy.isreal(weights):
+        all_positive = weights >= 0
+        all_negative = weights < 0
+    else:
+        raise errors.ConnectionError("Weights must be a number or an array of numbers.")
+    if is_conductance or synapse_sign == 'excitatory':
+        if not all_positive:
+            raise errors.ConnectionError("Weights must be positive for conductance-based and/or excitatory synapses")
+    elif is_conductance == False and synapse_sign == 'inhibitory':
+        if not all_negative:
+            raise errors.ConnectionError("Weights must be negative for current-based, inhibitory synapses")
+    else:  # This should never happen.
+        raise Exception("Can't check weight, conductance status unknown.")
+
+
+def check_delays(delays, projection):
+    min_delay = projection._simulator.state.min_delay
+    max_delay = projection._simulator.state.max_delay
+    if isinstance(delays, numpy.ndarray):
+        below_max = (delays <= max_delay).all()
+        above_min = (delays >= min_delay).all()
+        in_range = below_max and above_min
+    elif numpy.isreal(delays):
+        in_range = min_delay <= delays <= max_delay
+    else:
+        raise errors.ConnectionError("Delays must be a number or an array of numbers.")
+    if not in_range:
+        raise errors.ConnectionError("Delay (%s) is out of range [%s, %s]" % (delays, min_delay, max_delay))
+
+
 class StandardSynapseType(StandardModelType, models.BaseSynapseType):
-    pass
+    parameter_checks = {
+        'weight': check_weights,
+        'delay': check_delays
+    }
+
+    def get_schema(self):
+        """
+        Returns the model schema: i.e. a mapping of parameter names to allowed
+        parameter types.
+        """
+        base_schema = dict((name, type(value))
+                           for name, value in self.default_parameters.items())
+        base_schema['delay'] = float  # delay has default value None, meaning "use the minimum delay", so we have to correct the auto-generated schema
+        return base_schema
 
 
 class STDPWeightDependence(StandardModelType):

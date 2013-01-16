@@ -31,48 +31,6 @@ except ImportError:
 
 logger = logging.getLogger("PyNN")
 
-DEFAULT_WEIGHT = 0.0
-
-
-def check_weights(weights, synapse_sign, is_conductance):
-    # if projection.post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
-    # consider moving checks inside the lazyarray module?
-    if weights is None:
-        weights = DEFAULT_WEIGHT
-    if isinstance(weights, numpy.ndarray):
-        all_negative = (weights <= 0).all()
-        all_positive = (weights >= 0).all()
-        if not (all_negative or all_positive):
-            raise errors.ConnectionError("Weights must be either all positive or all negative")
-    elif numpy.isreal(weights):
-        all_positive = weights >= 0
-        all_negative = weights < 0
-    else:
-        raise errors.ConnectionError("Weights must be a number or an array of numbers.")
-    if is_conductance or synapse_sign == 'excitatory':
-        if not all_positive:
-            raise errors.ConnectionError("Weights must be positive for conductance-based and/or excitatory synapses")
-    elif is_conductance == False and synapse_sign == 'inhibitory':
-        if not all_negative:
-            raise errors.ConnectionError("Weights must be negative for current-based, inhibitory synapses")
-    else:  # This should never happen.
-        raise Exception("Can't check weight, conductance status unknown.")
-    return weights
-
-
-def check_delays(delays, min_delay, max_delay):
-    if isinstance(delays, numpy.ndarray):
-        below_max = (delays <= max_delay).all()
-        above_min = (delays >= min_delay).all()
-        in_range = below_max and above_min
-    elif numpy.isreal(delays):
-        in_range = min_delay <= delays <= max_delay
-    else:
-        raise errors.ConnectionError("Delays must be a number or an array of numbers.")
-    if not in_range:
-        raise errors.ConnectionError("Delay (%s) is out of range [%s, %s]" % (delays, min_delay, max_delay))
-    return delays
-
 
 def _get_rng(rng):
     if isinstance(rng, AbstractRNG):
@@ -365,6 +323,7 @@ class FromListConnector(Connector):
         logger.debug("left = %s", left)
         logger.debug("right = %s", right)
 
+        weight_attr, delay_attr = projection.synapse_type.get_translated_names('weight', 'delay')
         for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
             weights = self.conn_list[l:r, 2]
@@ -377,7 +336,8 @@ class FromListConnector(Connector):
                 tgt = projection.post.all_cells[tgt]
             except IndexError:
                 raise errors.ConnectionError("invalid target index %d" % tgt)
-            projection._convergent_connect(srcs, tgt, weight=weights, delay=delays)
+            projection._convergent_connect(srcs, tgt, **{weight_attr: weights,
+                                                         delay_attr: delays})
 
 
 class FromFileConnector(FromListConnector):

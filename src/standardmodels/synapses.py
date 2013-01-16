@@ -140,19 +140,17 @@ class STDPMechanism(StandardSynapseType):
         assert self.voltage_dependence is None  # once we have some models with v-dep, need to update the following
         return ['weight', 'delay'] + self.timing_dependence.get_parameter_names() + self.weight_dependence.get_parameter_names()
 
-    #def get_translated_names(self, *names):
-    #    translated_names = []
-    #    for name in names:
-    #        if name == 'weight':
-    #            translated_names.append('weight')
-    #        elif name == 'delay':
-    #            translated_names.append('delay')
-    #        else:
-    #            for component in (self.timing_dependence, self.weight_dependence):
-    #                if name in component.get_parameter_names():
-    #                    translated_names.append(component.get_translated_names(name)[0])
-    #                    break
-    #    return translated_names
+    def get_schema(self):
+        """
+        Returns the model schema: i.e. a mapping of parameter names to allowed
+        parameter types.
+        """
+        base_schema = {'weight': float, 'delay': float}
+        for component in (self.timing_dependence, self.weight_dependence, self.voltage_dependence):
+            if component:
+                base_schema.update((name, type(value))
+                                   for name, value in component.default_parameters.items())
+        return base_schema
 
     @property
     def translated_parameters(self):

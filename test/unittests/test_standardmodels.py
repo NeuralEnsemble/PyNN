@@ -64,7 +64,8 @@ def test_translate():
             ('b', 'B', 1000.0),
             ('c', 'C', 'c + a', 'C - A'),
         )
-    native_parameters = M().translate(ParameterSpace({'a': 23.4, 'b': 34.5, 'c': 45.6}, M.get_schema(), None))
+    m = M()
+    native_parameters = m.translate(ParameterSpace({'a': 23.4, 'b': 34.5, 'c': 45.6}, m.get_schema(), None))
     assert_equal(_parameter_space_to_dict(native_parameters, 77),
                  {'A': 23.4, 'B': 34500.0, 'C': 69.0})
 
@@ -76,9 +77,10 @@ def test_translate_with_invalid_transformation():
     )
     M.default_parameters = {'a': 22.2, 'b': 33.3}
     #really we should trap such errors in build_translations(), not in translate()
+    m = M()
     assert_raises(NameError,
-                  M().translate,
-                  ParameterSpace({'a': 23.4, 'b': 34.5}, M.get_schema(), None))
+                  m.translate,
+                  ParameterSpace({'a': 23.4, 'b': 34.5}, m.get_schema(), None))
 
 def test_translate_with_divide_by_zero_error():
     M = StandardModelType
@@ -87,7 +89,8 @@ def test_translate_with_divide_by_zero_error():
             ('a', 'A'),
             ('b', 'B', 'b/0', 'B*0'),
     )
-    native_parameters = M().translate(ParameterSpace({'a': 23.4, 'b': 34.5}, M.get_schema(), 77))
+    m = M()
+    native_parameters = m.translate(ParameterSpace({'a': 23.4, 'b': 34.5}, m.get_schema(), 77))
     assert_raises(ZeroDivisionError,
                   native_parameters.evaluate,
                   simplify=True)

@@ -14,6 +14,7 @@ class BaseModelType(object):
     """Base class for standard and native cell and synapse model classes."""
     default_parameters = {}
     default_initial_values = {}
+    parameter_checks = {}
 
     def __init__(self, **parameters):
         """
@@ -38,14 +39,13 @@ class BaseModelType(object):
         """Return the names of the parameters of this model."""
         return cls.default_parameters.keys()
 
-    @classmethod
-    def get_schema(cls):
+    def get_schema(self):
         """
         Returns the model schema: i.e. a mapping of parameter names to allowed
         parameter types.
         """
         return dict((name, type(value))
-                    for name, value in cls.default_parameters.items())
+                    for name, value in self.default_parameters.items())
 
     def describe(self, template='modeltype_default.txt', engine='default'):
         """
