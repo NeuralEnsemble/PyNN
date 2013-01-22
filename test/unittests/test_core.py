@@ -250,4 +250,3 @@ def test_getitem_from_constant_array():
     assert m[0,0] == m[3,2] == m[-1,2] == m[-4,2] == m[2,-3] == 3
     assert_raises(IndexError, m.__getitem__, (4,0))
     assert_raises(IndexError, m.__getitem__, (2,-4))
-    

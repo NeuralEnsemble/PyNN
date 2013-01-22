@@ -8,6 +8,7 @@ NEST v2 implementation of the PyNN API.
 $Id$
 """
 
+import numpy
 import nest
 from pyNN.nest import simulator
 from pyNN import common, recording, errors, space, __doc__
@@ -17,7 +18,6 @@ recording.simulator = simulator
 if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
     raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
 
-import numpy
 import os
 import shutil
 import logging
@@ -136,6 +136,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
                                          'min_delay': min_delay,
                                          'max_delay': max_delay})
     simulator.connection_managers = []
+    simulator.populations = []
     simulator.reset()
 
     return rank()
@@ -217,6 +218,7 @@ class Population(common.Population):
         if hasattr(celltype, "uses_parrot") and celltype.uses_parrot:
             for gid, source in zip(self.all_cells, self.all_cells_source):
                 gid.source = source
+        simulator.populations.append(self)
         
 
     def set(self, param, val=None):

@@ -39,6 +39,7 @@ CHECK_CONNECTIONS = False
 recorder_list = []
 recording_devices = []
 connection_managers = []
+populations = []
 
 global net
 net    = None
@@ -101,7 +102,11 @@ def run(simtime):
 def reset():
     nest.ResetNetwork()
     nest.SetKernelStatus({'time': 0.0})
+    for p in populations:
+        for name, value in p.initial_values.items():
+            p.initialize(name, value)
     state.running = False
+
 
 # --- For implementation of access to individual neurons' parameters ----------- 
 

@@ -641,7 +641,8 @@ class BasePopulation(object):
         logger.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
         if isinstance(value, random.RandomDistribution):
             initial_value = value.next(n=self.all_cells.size, mask_local=self._mask_local)
-            assert len(initial_value) == self.local_size, "%d != %d" % (len(initial_value), self.local_size)
+            if self.local_size > 1:
+                assert len(initial_value) == self.local_size, "%d != %d" % (len(initial_value), self.local_size)
         else:
             initial_value = value
         self.initial_values[variable] = core.LazyArray(initial_value, shape=(self.local_size,))
