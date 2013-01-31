@@ -9,8 +9,8 @@ Installing PyNN
 
 The easiest way to get PyNN is to download the latest source distribution from the `PyNN download page`_, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.7.4.tar.gz
-    $ cd PyNN-0.7.4
+    $ tar xzf PyNN-0.7.5.tar.gz
+    $ cd PyNN-0.7.5
     $ python setup.py install
     
 This will install it to your python ``site-packages`` directory, and may require root privileges. If you wish to install it elsewhere use the ``--prefix`` or ``--home`` option, and set the ``PYTHONPATH`` environment variable accordingly (see above). We assume you have already installed the simulator(s) you wish to use it with. If this is not the case, see below for installation instructions.
@@ -111,22 +111,30 @@ Now try it out::
     $ python 
     >>> import nest
 
-               -- N E S T 2 beta --
-              Neural Simulation Tool
-      Copyright 1995-2009 The NEST Initiative
-       Version 2.0-0-rc2 Jan 27 2011 10:59:20
+                  -- N E S T --
+
+      Copyright (C) 2004 The NEST Initiative
+      Version 2.2.1 Jan 30 2013 10:22:11
+
     ...
     >>> nest.Models()
-    ['ac_generator', 'aeif_cond_alpha', 'aeif_cond_exp', 'cont_delay_synapse', 'correlation_detector',
-     'dc_generator', 'hh_cond_exp_traub', 'hh_psc_alpha', 'ht_neuron', 'ht_synapse', 'iaf_cond_alpha',
-     'iaf_cond_alpha_mc', 'iaf_cond_exp', 'iaf_cond_exp_sfa_rr', 'iaf_neuron', 'iaf_psc_alpha',
-     'iaf_psc_alpha_canon', 'iaf_psc_alpha_presc', 'iaf_psc_delta', 'iaf_psc_delta_canon',
-     'iaf_psc_exp', 'iaf_psc_exp_ps', 'iaf_tum_2000', 'mat2_psc_exp', 'mip_generator', 'multimeter',
-     'noise_generator', 'parrot_neuron', 'parrot_neuron_ps', 'poisson_generator', 'poisson_generator_ps',
-     'pulsepacket_generator', 'sli_neuron', 'smp_generator', 'spike_detector', 'spike_generator',
-     'static_synapse', 'static_synapse_hom_wd', 'stdp_dopamine_synapse', 'stdp_pl_synapse_hom',
-     'stdp_synapse', 'stdp_synapse_hom', 'step_current_generator', 'subnet', 'topology_layer_3d',
-     'topology_layer_free', 'topology_layer_grid', 'tsodyks_synapse', 'voltmeter', 'volume_transmitter']
+    ['ac_generator', 'aeif_cond_alpha', 'aeif_cond_exp', 'cont_delay_synapse',
+    'correlation_detector', 'dc_generator', 'gamma_sup_generator',
+    'ginzburg_neuron', 'hh_cond_exp_traub', 'hh_psc_alpha', 'ht_neuron',
+    'ht_synapse', 'iaf_cond_alpha', 'iaf_cond_alpha_mc', 'iaf_cond_exp',
+    'iaf_cond_exp_sfa_rr', 'iaf_neuron', 'iaf_psc_alpha', 'iaf_psc_alpha_canon',
+    'iaf_psc_alpha_presc', 'iaf_psc_delta', 'iaf_psc_delta_canon',
+    'iaf_psc_exp', 'iaf_psc_exp_ps', 'iaf_tum_2000', 'izhikevich',
+    'mat2_psc_exp', 'mip_generator', 'multimeter', 'noise_generator',
+    'parrot_neuron', 'parrot_neuron_ps', 'poisson_generator',
+    'poisson_generator_ps', 'pp_psc_delta', 'ppd_sup_generator',
+    'pulsepacket_generator', 'sli_neuron', 'smp_generator', 'spike_detector',
+    'spike_generator', 'static_synapse', 'static_synapse_hom_wd',
+    'stdp_dopamine_synapse', 'stdp_facetshw_synapse_hom', 'stdp_pl_synapse_hom',
+    'stdp_synapse', 'stdp_synapse_hom', 'step_current_generator', 'subnet',
+    'topology_layer_free', 'topology_layer_free_3d', 'topology_layer_grid',
+    'topology_layer_grid_3d', 'tsodyks2_synapse', 'tsodyks_synapse',
+    'voltmeter', 'volume_transmitter']
     
 Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may need to install a newer version of the `GNU Scientific Library`_ and then recompile NEST.
 

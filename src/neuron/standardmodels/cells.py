@@ -2,7 +2,7 @@
 """
 Standard cells for the neuron module.
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id: cells.py 873 2010-12-13 22:40:03Z apdavison $

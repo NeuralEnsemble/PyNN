@@ -44,6 +44,7 @@ for simulator in simulator_names:
                 if script_name in extra_args:
                     cmd += " " + extra_args[script_name]
                 print cmd,
+                sys.stdout.flush()
                 logfile = open("Results/%s_%s.log" % (os.path.basename(script), simulator), 'w')
                 p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
                 retval = p.wait()

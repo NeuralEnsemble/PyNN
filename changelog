@@ -1,4 +1,14 @@
 =====================
+Release 0.7.5
+=====================
+
+* works with NEST 2.2
+* Fixed problem with nest.Recorder.read_local_data when running with more than one thread (see ticket:244)
+* Fixed a problem with weights changes not being taken into account in Brain backend (see ticket:235)
+* Fixed a problem when trying to retrieve data in the middle of a run, with NEST backend (see ticket:236)
+
+
+=====================
 Release 0.7.4 (r1195)
 =====================
 

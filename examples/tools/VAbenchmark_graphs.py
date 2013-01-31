@@ -28,13 +28,18 @@ y0 = (1-ny*h)/(ny+1);
 x0 = 0.05
 
 def get_header(filename):
-    cmd = ''
+    metadata = {}
     f = open(filename, 'r')
     for line in f.readlines():
         if line[0] == '#':
-            cmd += line[1:].strip() + ';'
+            key, value = line[1:].strip().split("=")
+            key = key.strip()
+            try:
+                metadata[key] = eval(value)
+            except (NameError, SyntaxError):
+                metadata[key] = value.strip()
     f.close()
-    return cmd
+    return metadata
 
 def population_isis(spiketimes,ids):
     """Calculate the interspike intervals for each cell in the population,
@@ -66,7 +71,9 @@ for simulator in simulators:
         subplot.set_ylabel("Membrane potential (mV)")
         
         # Get info about dataset from header of .v file
-        exec(get_header("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, num_nodes)))
+        metadata = get_header("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, num_nodes))
+        n = metadata['n']
+        dt = metadata['dt']
         
         # Plot membrane potential trace
         allvdata = numpy.loadtxt("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, num_nodes), comments='#')
@@ -78,7 +85,7 @@ for simulator in simulators:
         for i in 0,1:
             tdata = pylab.arange(0,(n+1)*dt,dt)
             vdata = allvdata.compress(cell_ids==i)
-            vdata = pylab.where(vdata>=v_thresh-0.05,0.0,vdata) # add fake APs for plotting
+            vdata = pylab.where(vdata>=v_thresh-0.05,0.0, vdata) # add fake APs for plotting
             if len(tdata) > len(vdata):
                 print "Warning. Shortening tdata from %d to %d elements (%s)" % (len(tdata),len(vdata),simulator)
                 tdata = tdata[0:len(vdata)]
@@ -113,7 +120,7 @@ for simulator in simulators:
             cvhist, bins = dataset.cv_isi_hist(bins)
         
             #cvhist = nstats.histc(cvs,bins)
-            subplot = figure.add_axes([x+xoffset,y0,0.4*w,h])
+            subplot = figure.add_axes([x+xoffset, y0, 0.4*w, h])
             plot_hist(subplot, cvhist, bins, 0.1, xlabel="ISI CV", ymax=ymax)
         
         x += dx

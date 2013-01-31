@@ -1,7 +1,7 @@
 """
 Connection method classes for the nemo module
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id: connectors.py 833 2010-11-26 11:56:38Z pierre $
