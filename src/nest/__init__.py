@@ -2,7 +2,7 @@
 """
 NEST v2 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id$
@@ -83,6 +83,11 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     global tempdir
     
     common.setup(timestep, min_delay, max_delay, **extra_params)
+    # clear the sli stack, if this is not done --> memory leak cause the stack increases
+    nest.sr('clear')
+    
+    # reset the simulation kernel
+    nest.ResetKernel()
     
     if 'verbosity' in extra_params:
         nest_verbosity = extra_params['verbosity'].upper()
@@ -97,15 +102,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     nest.SetKernelStatus({'off_grid_spiking': simulator.state.spike_precision=='off_grid'})
     if "recording_precision" in extra_params:
         simulator.state.default_recording_precision = extra_params["recording_precision"]
-    if 'allow_offgrid_spikes' in nest.GetDefaults('spike_generator'):
-        nest.SetDefaults('spike_generator', {'allow_offgrid_spikes': True})
-    
-    # clear the sli stack, if this is not done --> memory leak cause the stack increases
-    nest.sr('clear')
-    
-    # reset the simulation kernel
-    nest.ResetKernel()
-    
+        
     # all NEST to erase previously written files (defaut with all the other simulators)
     nest.SetKernelStatus({'overwrite_files' : True})
     
@@ -128,6 +125,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
 
     # set resolution
     nest.SetKernelStatus({'resolution': timestep})
+
+    if 'allow_offgrid_spikes' in nest.GetDefaults('spike_generator'):
+        nest.SetDefaults('spike_generator', {'allow_offgrid_spikes': True})
 
     # Set min_delay and max_delay for all synapse models
     NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')  # need to rebuild after ResetKernel
