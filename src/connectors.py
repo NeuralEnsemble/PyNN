@@ -179,13 +179,16 @@ class DelayGenerator(ConnectionAttributeGenerator):
     def __init__(self, source, local_mask, safe=True):
         ConnectionAttributeGenerator.__init__(self, source, local_mask, safe)
         self.min_delay = common.get_min_delay()
+        if self.min_delay == numpy.inf:
+            self.min_delay = 'auto'
         self.max_delay = common.get_max_delay()
         
     def check(self, delay):
-        all_negative = (delay<=self.max_delay).all()
-        all_positive = (delay>=self.min_delay).all()# If the delay is too small , we have to throw an error
-        if not (all_negative and all_positive):
-            raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, common.get_min_delay(), common.get_max_delay()))
+        if self.min_delay != 'auto':
+            all_negative = (delay<=self.max_delay).all()
+            all_positive = (delay>=self.min_delay).all()# If the delay is too small , we have to throw an error
+            if not (all_negative and all_positive):
+                raise errors.ConnectionError("delay (%s) is out of range [%s,%s]" % (delay, common.get_min_delay(), common.get_max_delay()))
         return delay    
 
 
@@ -234,12 +237,13 @@ class Connector(object):
         if delays is None:
             self.delays = min_delay
         else:
-            if core.is_listlike(delays):
-                if min(delays) < min_delay:
-                    raise errors.ConnectionError("smallest delay (%g) is smaller than minimum delay (%g)" % (min(delays), min_delay))
-            elif not (isinstance(delays, basestring) or isinstance(delays, RandomDistribution)):
-                if delays < min_delay:
-                    raise errors.ConnectionError("delay (%g) is smaller than minimum delay (%g)" % (delays, min_delay))
+            if min_delay < numpy.inf:  # inf means min_delay was set to 'auto', so we skip the tests
+                if core.is_listlike(delays):
+                    if min(delays) < min_delay:
+                        raise errors.ConnectionError("smallest delay (%g) is smaller than minimum delay (%g)" % (min(delays), min_delay))
+                elif not (isinstance(delays, basestring) or isinstance(delays, RandomDistribution)):
+                    if delays < min_delay:
+                        raise errors.ConnectionError("delay (%g) is smaller than minimum delay (%g)" % (delays, min_delay))
             self.delays = delays        
         
     def connect(self, projection):

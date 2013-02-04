@@ -130,11 +130,12 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
         nest.SetDefaults('spike_generator', {'allow_offgrid_spikes': True})
 
     # Set min_delay and max_delay for all synapse models
-    NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')  # need to rebuild after ResetKernel
-    for synapse_model in NEST_SYNAPSE_TYPES:
-        nest.SetDefaults(synapse_model, {'delay' : min_delay,
-                                         'min_delay': min_delay,
-                                         'max_delay': max_delay})
+    if min_delay != 'auto':
+        NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')  # need to rebuild after ResetKernel
+        for synapse_model in NEST_SYNAPSE_TYPES:
+            nest.SetDefaults(synapse_model, {'delay' : min_delay,
+                                             'min_delay': min_delay,
+                                             'max_delay': max_delay})
     simulator.connection_managers = []
     simulator.populations = []
     simulator.reset()
