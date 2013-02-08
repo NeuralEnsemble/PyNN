@@ -141,7 +141,7 @@ class Population(common.Population):
         # currently, we create a single NeuronGroup for create(), but
         # arguably we should use n NeuronGroups each containing a single cell
         # either that or use the subgroup() method in connect(), etc
-        cell_parameters = self.celltype.translated_parameters
+        cell_parameters = self.celltype.native_parameters
         cell_parameters.size = self.size
         cell_parameters.evaluate(simplify=False)
         brian_cells = self.celltype.brian_model(self.size,

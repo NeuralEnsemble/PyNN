@@ -29,7 +29,7 @@ class PopulationView(common.PopulationView):
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        #ps = self.parent._get_parameters(*self.celltype.get_translated_names())
+        #ps = self.parent._get_parameters(*self.celltype.get_native_names())
         for name, value in parameter_space.items():
             self.parent._parameters[name][self.mask] = value.evaluate(simplify=True)
             #ps[name][self.mask] = value.evaluate(simplify=True)
@@ -52,7 +52,7 @@ class Population(common.Population):
 
     def _create_cells(self):
         if isinstance(self.celltype, StandardCellType):
-            parameter_space = self.celltype.translated_parameters
+            parameter_space = self.celltype.native_parameters
         else:
             parameter_space = self.celltype.parameter_space
         parameter_space.shape = (self.size,)
@@ -86,7 +86,7 @@ class Population(common.Population):
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        #ps = self._get_parameters(*self.celltype.get_translated_names())
+        #ps = self._get_parameters(*self.celltype.get_native_names())
         #ps.update(**parameter_space)
         #ps.evaluate(simplify=True)
         #self._parameters = ps.as_dict()

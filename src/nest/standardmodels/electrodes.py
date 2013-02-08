@@ -59,17 +59,17 @@ class NestCurrentSource(StandardCurrentSource):
                 numpy.append(times, 1e12)
                 amplitudes = value.value
                 numpy.append(amplitudes, amplitudes[-1])
-                nest.SetStatus([self._device], {key: amplitudes,
+                nest.SetStatus(self._device, {key: amplitudes,
                                                 'amplitude_times': times})
             elif key in ("start", "stop"):
-                nest.SetStatus([self._device], {key: self._delay_correction(value)})
+                nest.SetStatus(self._device, {key: self._delay_correction(value)})
             elif not key == "amplitude_times":
-                nest.SetStatus([self._device], {key: value})
+                nest.SetStatus(self._device, {key: value})
 
     def get_native_parameters(self):
         all_params = nest.GetStatus([self._device])[0]
         return ParameterSpace(dict((k,v) for k,v in all_params.items()
-                                   if k in self.get_translated_names()))
+                                   if k in self.get_native_names()))
 
 
 class DCSource(NestCurrentSource, electrodes.DCSource):

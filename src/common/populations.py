@@ -269,9 +269,9 @@ class BasePopulation(object):
             return_list = True
         if isinstance(self.celltype, standardmodels.StandardCellType):
             if any(name in self.celltype.computed_parameters() for name in parameter_names):
-                native_names = self.celltype.get_translated_names() # need all parameters in order to calculate values
+                native_names = self.celltype.get_native_names() # need all parameters in order to calculate values
             else:
-                native_names = self.celltype.get_translated_names(*parameter_names)
+                native_names = self.celltype.get_native_names(*parameter_names)
             native_parameter_space = self._get_parameters(*native_names)
             parameter_space = self.celltype.reverse_translate(native_parameter_space)
         else:
@@ -324,7 +324,7 @@ class BasePopulation(object):
         if (isinstance(self.celltype, standardmodels.StandardCellType)
             and any(name in self.celltype.computed_parameters() for name in parameters)):
             # need to get existing parameter space of models so we can perform calculations
-            native_names = self.celltype.get_translated_names()
+            native_names = self.celltype.get_native_names()
             parameter_space = self.celltype.reverse_translate(self._get_parameters(*native_names))
             parameter_space.update(**parameters)
         else:

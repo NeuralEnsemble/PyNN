@@ -182,15 +182,15 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     @classmethod
     def translate(cls, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
-        translated_parameters = super(SpikeSourceArray, cls).translate(parameters)
-        translated_parameters['spikeTimes'] = sanitize_spike_times(translated_parameters['spikeTimes'])
+        native_parameters = super(SpikeSourceArray, cls).translate(parameters)
+        native_parameters['spikeTimes'] = sanitize_spike_times(native_parameters['spikeTimes'])
         # for why we used 'super' here, see http://blogs.gnome.org/jamesh/2005/06/23/overriding-class-methods-in-python/
         # convert from ms to s - should really be done in common.py, but that doesn't handle lists, only arrays
-        if isinstance(translated_parameters['spikeTimes'], list):
-            translated_parameters['spikeTimes'] = [t*0.001 for t in translated_parameters['spikeTimes']]
-        elif isinstance(translated_parameters['spikeTimes'], numpy.ndarray):
-            translated_parameters['spikeTimes'] *= 0.001
-        return translated_parameters
+        if isinstance(native_parameters['spikeTimes'], list):
+            native_parameters['spikeTimes'] = [t*0.001 for t in native_parameters['spikeTimes']]
+        elif isinstance(native_parameters['spikeTimes'], numpy.ndarray):
+            native_parameters['spikeTimes'] *= 0.001
+        return native_parameters
     
     @classmethod
     def reverse_translate(cls, native_parameters):

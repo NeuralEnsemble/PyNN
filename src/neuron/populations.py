@@ -91,7 +91,7 @@ class Population(common.Population, PopulationMixin):
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
         self._mask_local = self.all_cells%simulator.state.num_processes==simulator.state.mpi_rank # round-robin distribution of cells between nodes
         if isinstance(self.celltype, StandardCellType):
-            parameter_space = self.celltype.translated_parameters
+            parameter_space = self.celltype.native_parameters
         else:
             parameter_space = self.celltype.parameter_space
         parameter_space.shape = (self.size,)

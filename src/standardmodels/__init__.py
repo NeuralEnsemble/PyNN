@@ -60,7 +60,7 @@ class StandardModelType(models.BaseModelType):
     extra_parameters = {}
 
     @property
-    def translated_parameters(self):
+    def native_parameters(self):
         """
         A :class:`ParameterSpace` containing parameter names and values
         translated from the standard PyNN names and units to simulator-specific
@@ -119,7 +119,7 @@ class StandardModelType(models.BaseModelType):
         more than one other parameter."""
         return [name for name in self.translations if name not in self.simple_parameters() + self.scaled_parameters()]
 
-    def get_translated_names(self, *names):
+    def get_native_names(self, *names):
         """
         Return a list of native parameter names for a given model.
         """

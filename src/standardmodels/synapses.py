@@ -153,13 +153,13 @@ class STDPMechanism(StandardSynapseType):
         return base_schema
 
     @property
-    def translated_parameters(self):
+    def native_parameters(self):
         """
         A dictionary containing the combination of parameters from the different
         components of the STDP model.
         """
-        timing_parameters = self.timing_dependence.translated_parameters
-        weight_parameters = self.weight_dependence.translated_parameters
+        timing_parameters = self.timing_dependence.native_parameters
+        weight_parameters = self.weight_dependence.native_parameters
         parameters = ParameterSpace({'weight': self.weight,  # need to handle unit conversion
                                      'delay': self.delay})
         parameters.update(**timing_parameters)

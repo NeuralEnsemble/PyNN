@@ -26,7 +26,7 @@ class StaticSynapse(synapses.StaticSynapse):
 
     def _get_nest_synapse_model(self, suffix):
         synapse_defaults = get_defaults(self.nest_name)
-        synapse_parameters = self.translated_parameters
+        synapse_parameters = self.native_parameters
         for name, value in synapse_parameters.items():
             if value.is_homogeneous:
                 value.shape = (1,)
@@ -69,7 +69,7 @@ class StaticSynapse(synapses.StaticSynapse):
 #        # for any inhomogeneous parameters, and set the inhomogeneous values
 #        # later
 #        synapse_defaults = get_defaults(base_model)
-#        synapse_parameters = self.translated_parameters
+#        synapse_parameters = self.native_parameters
 #        for name, value in synapse_parameters.items():
 #            if value.is_homogeneous:
 #                value.shape = (1,)
@@ -83,7 +83,7 @@ class StaticSynapse(synapses.StaticSynapse):
 #    def _set_tau_minus(self, cells):
 #        if len(cells) > 0 and self.slow:
 #            if 'tau_minus' in nest.GetStatus([cells[0]])[0]:
-#                native_parameters = self.slow.timing_dependence.translated_parameters
+#                native_parameters = self.slow.timing_dependence.native_parameters
 #                if not native_parameters["tau_minus"].is_homogeneous: # could allow inhomogeneous values as long as each column is internally homogeneous
 #                    raise ValueError("pyNN.NEST does not support tau_minus being different for different synapses")
 #                native_parameters.size = 1 # hack

@@ -14,6 +14,7 @@ from pyNN import common, errors, core
 from pyNN.random import RandomDistribution, NativeRNG
 from pyNN.space import Space
 from . import simulator
+from .standardmodels.synapses import StaticSynapse
 
 logger = logging.getLogger("PyNN")
 
@@ -23,9 +24,10 @@ _projections = []  # if a Projection is created but not assigned to a variable,
 class Projection(common.Projection):
     __doc__ = common.Projection.__doc__
     _simulator = simulator
+    _static_synapse_class = StaticSynapse
 
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 connector, synapse_type, source=None, receptor_type=None,
+                 connector, synapse_type=None, source=None, receptor_type=None,
                  space=Space(), label=None):
         __doc__ = common.Projection.__init__.__doc__
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,

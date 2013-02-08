@@ -130,7 +130,7 @@ class MapConnector(Connector):
                 else:
                     source_mask = source_mask.nonzero()[0]  # bool to integer mask
                 connection_parameters = {}
-                for name, map in projection.synapse_type.translated_parameters.items():
+                for name, map in projection.synapse_type.native_parameters.items():
                     map.shape = (projection.pre.size, projection.post.size)
                     if callable(map.base_value):  # map is assumed to be a function of "d"
                         map = map(distance_map)
@@ -323,20 +323,12 @@ class FromListConnector(Connector):
         logger.debug("left = %s", left)
         logger.debug("right = %s", right)
 
-        weight_attr, delay_attr = projection.synapse_type.get_translated_names('weight', 'delay')
+        weight_attr, delay_attr = projection.synapse_type.get_native_names('weight', 'delay')
         for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
             weights = self.conn_list[l:r, 2]
             delays  = self.conn_list[l:r, 3]
-            try:
-                srcs = projection.pre.all_cells[sources]
-            except IndexError:
-                raise errors.ConnectionError("invalid sources index or indices")
-            try:
-                tgt = projection.post.all_cells[tgt]
-            except IndexError:
-                raise errors.ConnectionError("invalid target index %d" % tgt)
-            projection._convergent_connect(srcs, tgt, **{weight_attr: weights,
+            projection._convergent_connect(sources, tgt, **{weight_attr: weights,
                                                          delay_attr: delays})
 
 

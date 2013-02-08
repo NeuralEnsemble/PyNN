@@ -15,7 +15,7 @@ def get_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
     ignore = ['delay', 'max_delay', 'min_delay', 'num_connections',
               'num_connectors', 'receptor_type', 'synapsemodel', 'weight',
-              'property_object']
+              'property_object', 'type']
     default_params = {}
     for name,value in defaults.items():
         if name not in ignore:
@@ -41,6 +41,9 @@ class NativeSynapseType(BaseSynapseType):
                        label,
                        defaults)
         return label
+
+    def get_native_names(self, *names):
+        return names
 
     def _set_tau_minus(self, cells):
         if len(cells) > 0:

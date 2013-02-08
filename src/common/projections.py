@@ -52,7 +52,7 @@ class Projection(object):
     _nProj = 0
 
     def __init__(self, presynaptic_neurons, postsynaptic_neurons, connector,
-                 synapse_type, source=None, receptor_type=None,
+                 synapse_type=None, source=None, receptor_type=None,
                  space=Space(), label=None):
         """
         Create a new projection, connecting the pre- and post-synaptic neurons.
@@ -77,7 +77,7 @@ class Projection(object):
         self.label = label
         self.space = space
         self._connector = connector
-        self.synapse_type = synapse_type
+        self.synapse_type = synapse_type or self._static_synapse_class()
         assert isinstance(self.synapse_type, models.BaseSynapseType), \
               "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(synapse_type)
         if label is None:
@@ -211,7 +211,7 @@ class Projection(object):
         else:
             return_single = False
         if isinstance(self.synapse_type, StandardSynapseType):
-            attribute_names = self.synapse_type.get_translated_names(*attribute_names)
+            attribute_names = self.synapse_type.get_native_names(*attribute_names)
         if format == 'list':
             names = list(attribute_names)
             if with_address:

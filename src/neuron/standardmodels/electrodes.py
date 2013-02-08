@@ -80,7 +80,7 @@ class NeuronCurrentSource(StandardCurrentSource):
         self._reset()
 
     def get_native_parameters(self):
-        return ParameterSpace(dict((k, self.__getattribute__(k)) for k in self.get_translated_names()))
+        return ParameterSpace(dict((k, self.__getattribute__(k)) for k in self.get_native_names()))
 
     def inject_into(self, cells):
         __doc__ = StandardCurrentSource.inject_into.__doc__

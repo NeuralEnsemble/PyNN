@@ -17,17 +17,25 @@ from pyNN.random import RandomDistribution
 from pyNN.space import Space
 from . import simulator
 from .synapses import NativeSynapseType, NativeSynapseMechanism
-
+from .standardmodels.synapses import StaticSynapse
 
 logger = logging.getLogger("PyNN")
+
+
+def listify(obj):
+    if isinstance(obj, numpy.ndarray):
+        return obj.tolist()
+    else:
+        return obj
 
 
 class Projection(common.Projection):
     __doc__ = common.Projection.__doc__
     _simulator = simulator
+    _static_synapse_class = StaticSynapse
 
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 method, synapse_type, source=None, receptor_type=None,
+                 method, synapse_type=None, source=None, receptor_type=None,
                  space=Space(), label=None):
         __doc__ = common.Projection.__init__.__doc__
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
@@ -155,9 +163,9 @@ class Projection(common.Projection):
         if postsynaptic_cell.celltype.standard_receptor_type:
             try:
                 nest.ConvergentConnect(presynaptic_cells.astype(int).tolist(),
-                                       [postsynaptic_cell],
-                                       weights,
-                                       delays,
+                                       [int(postsynaptic_cell)],
+                                       listify(weights),
+                                       listify(delays),
                                        self.synapse_model)
             except nest.NESTError, e:
                 raise errors.ConnectionError("%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
