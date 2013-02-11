@@ -240,6 +240,9 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         ('x0', 'X' ),
         ('y0', 'Y')
     )
+    
+    def _get_minimum_delay(self):
+        return state.min_delay
 
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):

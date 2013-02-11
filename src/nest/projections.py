@@ -35,11 +35,11 @@ class Projection(common.Projection):
     _static_synapse_class = StaticSynapse
 
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 method, synapse_type=None, source=None, receptor_type=None,
+                 connector, synapse_type=None, source=None, receptor_type=None,
                  space=Space(), label=None):
         __doc__ = common.Projection.__init__.__doc__
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
-                                   method, synapse_type, source, receptor_type,
+                                   connector, synapse_type, source, receptor_type,
                                    space, label)
 #        if self.synapse_dynamics:
 #            synapse_dynamics = self.synapse_dynamics
@@ -51,7 +51,7 @@ class Projection(common.Projection):
         self._connections = None
 
         # Create connections
-        method.connect(self)
+        connector.connect(self)
 
     def __getitem__(self, i):
         """Return the `i`th connection on the local MPI node."""
@@ -227,16 +227,26 @@ class Projection(common.Projection):
     def _get_attributes_as_list(self, *names):
         nest_names = []
         for name in names:
-            if name[-1] == "s":  # weights --> weight, delays --> delay
-                nest_names.append(name[:-1])
+            if name == 'presynaptic_index':
+                nest_names.append('source')
+            elif name == 'postsynaptic_index':
+                nest_names.append('target')
             else:
                 nest_names.append(name)
         values = nest.GetStatus(self.connections, nest_names)
-        if 'weights' in names: # other attributes could also have scale factors - need to use translation mechanisms
+        if 'weight' in names: # other attributes could also have scale factors - need to use translation mechanisms
             values = numpy.array(values) # ought to preserve int type for source, target
             scale_factors = numpy.ones(len(names))
-            scale_factors[names.index('weights')] = 0.001
+            scale_factors[names.index('weight')] = 0.001
             values *= scale_factors
+            values = values.tolist()
+        if 'presynaptic_index' in names:
+            values = numpy.array(values)
+            values[:, names.index('presynaptic_index')] -= self.pre.first_id
+            values = values.tolist()
+        if 'postsynaptic_index' in names:
+            values = numpy.array(values)
+            values[:, names.index('postsynaptic_index')] -= self.post.first_id
             values = values.tolist()
         return values        
 

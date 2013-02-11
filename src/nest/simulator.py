@@ -191,6 +191,7 @@ class Connection(object):
         src = ID(nest.GetStatus([self.id()], 'source')[0])
         src.parent = self.parent.pre
         return src
+    presynaptic_cell = source
 
     @property
     def target(self):
@@ -198,6 +199,7 @@ class Connection(object):
         tgt = ID(nest.GetStatus([self.id()], 'target')[0])
         tgt.parent = self.parent.post
         return tgt
+    postsynaptic_cell = target
 
     def _set_weight(self, w):
         nest.SetStatus([self.id()], 'weight', w*1000.0)

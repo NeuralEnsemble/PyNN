@@ -16,8 +16,9 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mock import Mock, patch
 from .mocks import MockRNG
-#import pyNN.mock as sim
-import pyNN.neuron as sim
+import pyNN.mock as sim
+#import pyNN.neuron as sim
+#import pyNN.nest as sim
 
 from pyNN import random, errors, space
 from pyNN.parameters import Sequence
@@ -127,11 +128,11 @@ class ProjectionTest(unittest.TestCase):
         weights = prj.get("weight", format="list")
         weights = _sort_by_column(weights, 1)[:5]
         target = numpy.array(
-            [(self.p1[0], self.p2[0], 0.456),
-             (self.p1[1], self.p2[0], 0.456),
-             (self.p1[2], self.p2[0], 0.456),
-             (self.p1[3], self.p2[0], 0.456),
-             (self.p1[4], self.p2[0], 0.456),])
+            [(0, 0, 0.456),
+             (1, 0, 0.456),
+             (2, 0, 0.456),
+             (3, 0, 0.456),
+             (4, 0, 0.456),])
         assert_array_equal(weights, target)
 
     def test_get_weights_as_list_no_address(self):
@@ -154,20 +155,20 @@ class ProjectionTest(unittest.TestCase):
         U = prj.get("U", format="list")
         U = _sort_by_column(U, 1)[:5]
         U_target = numpy.array(
-            [(self.p1[0], self.p2[0], 0.5),
-             (self.p1[1], self.p2[0], 0.501),
-             (self.p1[2], self.p2[0], 0.502),
-             (self.p1[3], self.p2[0], 0.503),
-             (self.p1[4], self.p2[0], 0.504),])
+            [(0, 0, 0.5),
+             (1, 0, 0.501),
+             (2, 0, 0.502),
+             (3, 0, 0.503),
+             (4, 0, 0.504),])
         assert_array_equal(U, U_target)
         tau_rec = prj.get("tau_rec", format="list")
         tau_rec = _sort_by_column(tau_rec, 1)[:5]
         tau_rec_target = numpy.array(
-            [(self.p1[0], self.p2[0], 800),
-             (self.p1[1], self.p2[0], 801),
-             (self.p1[2], self.p2[0], 802),
-             (self.p1[3], self.p2[0], 803),
-             (self.p1[4], self.p2[0], 804),])
+            [(0, 0, 800),
+             (1, 0, 801),
+             (2, 0, 802),
+             (3, 0, 803),
+             (4, 0, 804),])
         assert_array_equal(tau_rec, tau_rec_target)
 
     #def test_get_delays(self):

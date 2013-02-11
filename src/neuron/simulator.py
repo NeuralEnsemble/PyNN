@@ -275,32 +275,29 @@ class Connection(object):
     attributes.
     """
 
-    def __init__(self, pre, post, post_synaptic_target, synapse_type,
-                 **parameters):
+    def __init__(self, projection, pre, post, **parameters):
         """
         Create a new connection.
-
-        `source` -- ID of pre-synaptic neuron.
-        `target` -- ID of post-synaptic neuron.
-        `nc` -- a Hoc NetCon object.
         """
         #logger.debug("Creating connection from %d to %d, weight %g" % (pre, post, parameters['weight']))
-        self.pre = pre
-        self.post = post
-        if "." in post_synaptic_target:
-            section, target = post_synaptic_target.split(".")
-            target_object = getattr(getattr(post._cell, section), target)
+        self.presynaptic_index = pre
+        self.postsynaptic_index = post
+        self.presynaptic_cell = projection.pre[pre]
+        self.postsynaptic_cell = projection.post[post]
+        if "." in projection.receptor_type:
+            section, target = projection.receptor_type.split(".")
+            target_object = getattr(getattr(self.postsynaptic_cell._cell, section), target)
         else:
-            target_object = getattr(post._cell, post_synaptic_target)
+            target_object = getattr(self.postsynaptic_cell._cell, projection.receptor_type)
         self.nc = state.parallel_context.gid_connect(int(pre), target_object)
         self.nc.weight[0] = parameters.pop('weight')
         # if we have a mechanism (e.g. from 9ML) that includes multiple
         # synaptic channels, need to set nc.weight[1] here
-        if self.nc.wcnt() > 1 and hasattr(post._cell, "type"):
-            self.nc.weight[1] = post._cell.type.receptor_types.index(post_synaptic_target)
+        if self.nc.wcnt() > 1 and hasattr(self.postsynaptic_cell._cell, "type"):
+            self.nc.weight[1] = self.postsynaptic_cell._cell.type.receptor_types.index(projection.receptor_type)
         self.nc.delay  = parameters.pop('delay')
-        if synapse_type.model is not None:
-            self._setup_plasticity(synapse_type, parameters)
+        if projection.synapse_type.model is not None:
+            self._setup_plasticity(projection.synapse_type, parameters)
         # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
 
     def _setup_plasticity(self, synapse_type, parameters):
@@ -328,14 +325,14 @@ class Connection(object):
             self.ddf = 0
         else:
             raise NotImplementedError("Only post-synaptic-spike-dependent mechanisms available for now.")
-        self.pre2wa = state.parallel_context.gid_connect(int(self.pre), self.weight_adjuster)
+        self.pre2wa = state.parallel_context.gid_connect(int(self.presynaptic_cell), self.weight_adjuster)
         self.pre2wa.threshold = self.nc.threshold
         self.pre2wa.delay = self.nc.delay * (1 - self.ddf)
         self.pre2wa.weight[0] = 1
         if synapse_type.postsynaptic_variable == 'spikes':
             # directly create NetCon as wa is on the same machine as the post-synaptic cell
-            self.post2wa = h.NetCon(self.post._cell.source, self.weight_adjuster,
-                                    sec=self.post._cell.source_section)
+            self.post2wa = h.NetCon(self.postsynaptic_cell._cell.source, self.weight_adjuster,
+                                    sec=self.postsynaptic_cell._cell.source_section)
             self.post2wa.threshold = 1
             self.post2wa.delay = self.nc.delay * self.ddf
             self.post2wa.weight[0] = -1
@@ -372,38 +369,22 @@ class Connection(object):
         # need to do translation of names, or perhaps that should be handled in common?
         return tuple(getattr(self, name) for name in attribute_names)
 
-
 def generate_synapse_property(name):
-    def _get(self):
-        synapse = self.nc.syn()
-        if hasattr(synapse, name):
-            return getattr(synapse, name)
-        else:
-            raise Exception("synapse type does not have an attribute '%s'" % name)
-    def _set(self, val):
-        synapse = self.nc.syn()
-        if hasattr(synapse, name):
-            setattr(synapse, name, val)
-        else:
-            raise Exception("synapse type does not have an attribute '%s'" % name)
-    return property(_get, _set)
-setattr(Connection, 'U', generate_synapse_property('U'))
-setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))
-setattr(Connection, 'tau_facil', generate_synapse_property('tau_facil'))
-setattr(Connection, 'u0', generate_synapse_property('u0'))
-
-def generate_stdp_property(name):
     def _get(self):
         return getattr(self.weight_adjuster, name)
     def _set(self, val):
         setattr(self.weight_adjuster, name, val)
     return property(_get, _set)
-setattr(Connection, 'w_max', generate_stdp_property('wmax'))
-setattr(Connection, 'w_min', generate_stdp_property('wmin'))
-setattr(Connection, 'A_plus', generate_stdp_property('aLTP'))
-setattr(Connection, 'A_minus', generate_stdp_property('aLTD'))
-setattr(Connection, 'tau_plus', generate_stdp_property('tauLTP'))
-setattr(Connection, 'tau_minus', generate_stdp_property('tauLTD'))
+setattr(Connection, 'w_max', generate_synapse_property('wmax'))
+setattr(Connection, 'w_min', generate_synapse_property('wmin'))
+setattr(Connection, 'A_plus', generate_synapse_property('aLTP'))
+setattr(Connection, 'A_minus', generate_synapse_property('aLTD'))
+setattr(Connection, 'tau_plus', generate_synapse_property('tauLTP'))
+setattr(Connection, 'tau_minus', generate_synapse_property('tauLTD'))
+setattr(Connection, 'U', generate_synapse_property('U'))
+setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))
+setattr(Connection, 'tau_facil', generate_synapse_property('tau_facil'))
+setattr(Connection, 'u0', generate_synapse_property('u0'))
 
 
 # --- Initialization, and module attributes ------------------------------------

@@ -85,8 +85,7 @@ class Projection(common.Projection):
             parameters = dict(zip(connection_parameters.keys(), values))
             #logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, parameters %s", pre_idx, self.receptor_type, self.synapse_type, parameters)
             self._connections[postsynaptic_index][pre_idx] = \
-                simulator.Connection(self.pre[pre_idx], postsynaptic_cell, self.receptor_type,
-                                     self.synapse_type, **parameters)
+                simulator.Connection(self, pre_idx, postsynaptic_index, **parameters)
 
     def _set_attributes(self, parameter_space):
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine

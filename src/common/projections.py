@@ -215,7 +215,7 @@ class Projection(object):
         if format == 'list':
             names = list(attribute_names)
             if with_address:
-                names = ["pre", "post"] + names
+                names = ["presynaptic_index", "postsynaptic_index"] + names
             values = self._get_attributes_as_list(*names)
             if not with_address and return_single:
                 values = [val[0] for val in values]
@@ -241,7 +241,7 @@ class Projection(object):
                 attribute_name = attribute_name[:-1]
             for c in self.connections:
                 value = getattr(c, attribute_name)
-                addr = (self.pre.id_to_index(c.pre), self.post.id_to_index(c.post))
+                addr = (c.presynaptic_index, c.postsynaptic_index)
                 if numpy.isnan(values[addr]):
                     values[addr] = value
                 else:

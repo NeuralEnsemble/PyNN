@@ -15,7 +15,7 @@ from pyNN.common.populations import is_conductance
 from pyNN import errors, descriptions
 from pyNN.recording import files
 import numpy
-from itertools import izip
+from itertools import izip, repeat
 import logging
 
 from lazyarray import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, exp, \
@@ -89,9 +89,10 @@ class Connector(object):
 
 class MapConnector(Connector):
     """
-
+    Abstract base class for Connectors based on connection maps, where a map is a 2D lazy array
+    containing either a connection probability or the value of a connection parameter.
     """
-    # abstract base class
+    
 
     def _generate_distance_map(self, projection):
         position_generators = (projection.pre.position_generator,
@@ -103,41 +104,46 @@ class MapConnector(Connector):
         logger.debug("Connecting %s using a connection map" % projection.label)
         if distance_map is None:
             distance_map = self._generate_distance_map(projection)
-#        # If any of the maps are based on parallel-safe random number generators,
-#        # we need to iterate over all post-synaptic cells, so we can generate then
-#        # throw away the random numbers for the non-local nodes.
-#        # Otherwise, we only need to iterate over local post-synaptic cells.
-#        def parallel_safe(map):
-#            return (isinstance(map.base_value, RandomDistribution) and
-#                    map.base_value.rng.parallel_safe)
+        # If any of the synapse parameters are based on parallel-safe random number generators,
+        # we need to iterate over all post-synaptic cells, so we can generate then
+        # throw away the random numbers for the non-local nodes.
+        # Otherwise, we only need to iterate over local post-synaptic cells.
         column_indices = numpy.arange(projection.post.size)
-#        if parallel_safe(weight_map) or parallel_safe(delay_map): # TODO check all the plasticity maps as well
-#            logger.debug("Parallel-safe iteration.")
-#            components = (
-#                column_indices,
-#                projection.post.all_cells,
-#                connection_map.by_column())
-#        else:
-        if True: ###
+        
+        if projection.synapse_type.native_parameters.parallel_safe:
+            logger.debug("Parallel-safe iteration.")
+            components = (
+                column_indices,
+                projection.post._mask_local,
+                connection_map.by_column())
+        else:
             mask = projection.post._mask_local
             components = (
                 column_indices[mask],
+                repeat(True),
                 connection_map.by_column(mask))
-        for count, (col, source_mask) in enumerate(izip(*components)):
+            
+        parameter_space = projection.synapse_type.native_parameters
+        parameter_space.shape = (projection.pre.size, projection.post.size)
+        for name, map in parameter_space.items():
+            if callable(map.base_value):  # map is assumed to be a function of "d"
+                parameter_space[name] = map(distance_map)
+                
+        for count, (col, local, source_mask) in enumerate(izip(*components)):
             if source_mask is True or source_mask.any():
                 if source_mask is True:
                     source_mask = numpy.arange(projection.pre.size, dtype=int)
                 else:
                     source_mask = source_mask.nonzero()[0]  # bool to integer mask
                 connection_parameters = {}
-                for name, map in projection.synapse_type.native_parameters.items():
-                    map.shape = (projection.pre.size, projection.post.size)
-                    if callable(map.base_value):  # map is assumed to be a function of "d"
-                        map = map(distance_map)
+                for name, map in parameter_space.items():
+                    #if callable(map.base_value):  # map is assumed to be a function of "d"
+                    #    map = map(distance_map)
                     if map.is_homogeneous:
                         connection_parameters[name] = map.evaluate(simplify=True)
                     else:
                         connection_parameters[name] = map[source_mask, col]
+                    #logger.debug("%d. %s = %s", count, name, map)
                         
                 #logger.debug("Convergent connect %d neurons to #%s, delays in range (%g, %g)" % (sources.size, tgt, delays.min(), delays.max()))
 #                if self.safe:
@@ -148,8 +154,9 @@ class MapConnector(Connector):
 #                                          projection._simulator.state.max_delay)
 #                    # TODO: add checks for plasticity parameters
 #                #logger.debug("mask: %s, w: %s, d: %s", source_mask, weights, delays)
-                if True:
+                if local:
                     projection._convergent_connect(source_mask, col, **connection_parameters)
+                    #logger.debug("source_mask = %s, col = %d, params = %s", source_mask, col, connection_parameters)
                     if self.callback:
                         self.callback(count/projection.post.local_size)
 
@@ -303,7 +310,9 @@ class FromListConnector(Connector):
 
     def connect(self, projection):
         """Connect-up a Projection."""
-        logger.debug("self.conn_list = \n%s", self.conn_list)
+        logger.debug("conn_list (original) = \n%s", self.conn_list)
+        if numpy.any(self.conn_list[:, 0] >= projection.post.size):
+            raise errors.ConnectionError("source index out of range")
         # need to do some profiling, to figure out the best way to do this:
         #  - order of sorting/filtering by local
         #  - use numpy.unique, or just do in1d(self.conn_list)?
@@ -319,7 +328,7 @@ class FromListConnector(Connector):
         logger.debug("idx = %s", idx)
         logger.debug("targets = %s", targets)
         logger.debug("local_targets = %s", local_targets)
-        logger.debug("self.conn_list = \n%s", self.conn_list)
+        logger.debug("conn_list (sorted by target) = \n%s", self.conn_list)
         logger.debug("left = %s", left)
         logger.debug("right = %s", right)
 

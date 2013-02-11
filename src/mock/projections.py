@@ -14,8 +14,8 @@ class Connection(object):
     """
 
     def __init__(self, pre, post, **attributes):
-        self.pre = pre
-        self.post = post
+        self.presynaptic_index = pre
+        self.postsynaptic_index = post
         for name, value in attributes.items():
             setattr(self, name, value)
 

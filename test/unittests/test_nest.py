@@ -66,15 +66,17 @@ class TestProjection(unittest.TestCase):
         self.p1 = sim.Population(7, sim.IF_cond_exp())
         self.p2 = sim.Population(4, sim.IF_cond_exp())
         self.p3 = sim.Population(5, sim.IF_curr_alpha())
-        self.random_connect = sim.FixedNumberPostConnector(n=2, weights=0.123, delays=0.5)
-        self.all2all = sim.AllToAllConnector(weights=0.456, delays=0.4)
+        self.syn_rnd = sim.StaticSynapse(weight=0.123, delay=0.5)
+        self.syn_a2a = sim.StaticSynapse(weight=0.456, delay=0.4)
+        self.random_connect = sim.FixedNumberPostConnector(n=2)
+        self.all2all = sim.AllToAllConnector()
 
     def test_create_simple(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all)
+        prj = sim.Projection(self.p1, self.p2, self.all2all, synapse_type=self.syn_a2a)
 
     def test_create_with_synapse_dynamics(self):
-        prj = sim.Projection(self.p1, self.p2, method=self.all2all,
-                             synapse_type=sim.TsodyksMarkramMechanism())
+        prj = sim.Projection(self.p1, self.p2, self.all2all,
+                             synapse_type=sim.TsodyksMarkramSynapse())
 
 
 if __name__ == '__main__':

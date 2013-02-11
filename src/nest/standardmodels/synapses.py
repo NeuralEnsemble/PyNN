@@ -121,8 +121,24 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         ('x0', 'x' ), # (as for V_m) in cell models, since the initial value
         ('y0', 'y')   # is not stored, only set.
     )
-    native_name = 'tsodyks_synapse'
+    nest_name = 'tsodyks_synapse'
+    
+    def _get_minimum_delay(self):
+        return state.min_delay
 
+    def _get_nest_synapse_model(self, suffix):
+        # copied and pasted - should really inherit from somewhere, use the
+        # same machinery as NativeSynapseType
+        synapse_defaults = get_defaults(self.nest_name)
+        synapse_parameters = self.native_parameters
+        for name, value in synapse_parameters.items():
+            if value.is_homogeneous:
+                value.shape = (1,)
+                synapse_defaults[name] = value.evaluate(simplify=True)
+        synapse_defaults.pop("tau_minus")
+        label = "%s_%s" % (self.nest_name, suffix)
+        nest.CopyModel(self.nest_name, label, synapse_defaults)
+        return label
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__

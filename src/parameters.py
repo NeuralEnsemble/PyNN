@@ -9,6 +9,7 @@ import numpy
 import collections
 from pyNN.core import LazyArray, is_listlike
 from pyNN import errors
+from pyNN.random import RandomDistribution
 from lazyarray import partial_shape
 
 
@@ -184,6 +185,10 @@ class ParameterSpace(object):
         """x.__getitem__(y) <==> x[y]"""
         return self._parameters[name]
 
+    def __setitem__(self, name, value):
+        # need to add check against schema
+        self._parameters[name] = value
+
     @property
     def is_homogeneous(self):
         """
@@ -275,6 +280,11 @@ class ParameterSpace(object):
         return (all(a==b for a,b in zip(self._parameters.items(), other._parameters.items()))
                 and self.schema == other.schema
                 and self._shape == other._shape)
+
+    @property
+    def parallel_safe(self):
+        return any(isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe
+                   for value in self._parameters.values())
 
 
 def simplify(value):

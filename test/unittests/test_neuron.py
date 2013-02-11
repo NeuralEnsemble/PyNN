@@ -80,9 +80,17 @@ class MockID(int):
 class MockPopulation(populations.BasePopulation):
     celltype = MockCellClass()
     local_cells = [MockID(44), MockID(33)]
+    all_cells = local_cells
     label = "mock population"
     def describe(self):
         return "mock population"
+
+class MockProjection(object):
+    receptor_type = 'excitatory'
+    synapse_type = MockSynapseType()
+    pre = MockPopulation()
+    post = MockPopulation()
+    
 
 # simulator
 class TestFunctions(unittest.TestCase):
@@ -247,16 +255,15 @@ class TestID(unittest.TestCase):
 class TestConnection(unittest.TestCase):
 
     def setUp(self):
-        self.pre = MockID(252)
-        self.post = MockID(539)
-        self.c = simulator.Connection(self.pre, self.post, 'excitatory',
-                                      MockSynapseType(), weight=0.123,
-                                      delay=0.321)
+        self.pre = 0
+        self.post = 1
+        self.c = simulator.Connection(MockProjection(), self.pre, self.post,
+                                      weight=0.123, delay=0.321)
 
     def test_create(self):
         c = self.c
-        self.assertEqual(c.pre, self.pre)
-        self.assertEqual(c.post, self.post)
+        self.assertEqual(c.presynaptic_index, self.pre)
+        self.assertEqual(c.postsynaptic_index, self.post)
 
     def test_setup_plasticity(self):
         self.c._setup_plasticity(MockPlasticSynapseType(),
@@ -274,12 +281,6 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(self.c.delay, 12.3)
         self.c.delay = 23.4
         self.assertEqual(self.c.nc.delay, 23.4)
-
-    def test_U_property(self):
-        self.post._cell.synapse.U = 0.1
-        self.assertEqual(self.c.U, 0.1)
-        self.c.U = 0.2
-        self.assertEqual(self.post._cell.synapse.U, 0.2)
 
     def test_w_max_property(self):
         self.c._setup_plasticity(MockPlasticSynapseType(),
