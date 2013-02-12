@@ -8,7 +8,7 @@ import quantities as pq
 try:
     import pyNN.neuron
     from pyNN.neuron.cells import _new_property, NativeCellType
-    from nrnutils import Mechanism, Section
+    from nrnutils import Mechanism, Section, DISTAL
     have_neuron = True
 except ImportError:
     have_neuron = False
@@ -51,7 +51,7 @@ class SimpleNeuron(object):
         # create cable sections
         self.soma = Section(L=30, diam=30, mechanisms=[hh])
         self.apical = Section(L=600, diam=2, nseg=5, mechanisms=[leak], parent=self.soma,
-                              connect_to=1)
+                              connection_point=DISTAL)
         self.basilar = Section(L=600, diam=2, nseg=5, mechanisms=[leak], parent=self.soma)
         self.axon = Section(L=1000, diam=1, nseg=37, mechanisms=[hh])
         # synaptic input

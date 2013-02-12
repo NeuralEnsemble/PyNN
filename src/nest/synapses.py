@@ -13,8 +13,8 @@ DEFAULT_TAU_MINUS = 20.0
 
 def get_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
-    ignore = ['delay', 'max_delay', 'min_delay', 'num_connections',
-              'num_connectors', 'receptor_type', 'synapsemodel', 'weight',
+    ignore = ['max_delay', 'min_delay', 'num_connections',
+              'num_connectors', 'receptor_type', 'synapsemodel',
               'property_object', 'type']
     default_params = {}
     for name,value in defaults.items():
@@ -30,11 +30,11 @@ class NativeSynapseType(BaseSynapseType):
         cls = type(model_name, (NativeSynapseMechanism,),
                    {'nest_model': model_name})
         self.mechanism = cls(**parameters)
-        self.parameters = self.mechanism.default_parameters
-        self.parameters.update(**parameters)
+        self.native_parameters = self.mechanism.default_parameters
+        self.native_parameters.update(**parameters)
 
     def _get_nest_synapse_model(self, suffix):
-        defaults = self.parameters.copy()
+        defaults = self.native_parameters.copy()
         defaults.pop("tau_minus")
         label = "%s_%s" % (self.mechanism.nest_model, suffix)
         nest.CopyModel(self.mechanism.nest_model,

@@ -98,7 +98,12 @@ class StaticSynapse(synapses.StaticSynapse):
 
 class STDPMechanism(synapses.STDPMechanism):
     """Specification of STDP models."""
-
+    
+    base_translations = build_translations(
+        ('weight', 'weight', 1000.0),  # nA->pA, uS->nS
+        ('delay', 'delay')
+    )  # will be extended by translations from timing_dependence, etc.
+    
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0):
         assert dendritic_delay_fraction == 1, """NEST does not currently support axonal delays:
@@ -106,6 +111,38 @@ class STDPMechanism(synapses.STDPMechanism):
                                                  are assumed to be dendritic."""
         super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
                                             voltage_dependence, dendritic_delay_fraction)
+
+    def _get_minimum_delay(self):
+        return state.min_delay
+
+    def _get_nest_synapse_model(self, suffix):
+        base_model = self.possible_models
+        if isinstance(base_model, set):
+            logger.warning("Several STDP models are available for these connections:")
+            logger.warning(", ".join(model for model in base_model))
+            base_model = list(base_model)[0]
+            logger.warning("By default, %s is used" % base_model)
+        available_models = nest.Models(mtype='synapses')
+        if base_model not in available_models:
+            raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
+                             "Possible models in your NEST build are: %s" % (base_model, available_models))
+
+        # CopyModel defaults must be simple floats, so we use the NEST defaults
+        # for any inhomogeneous parameters, and set the inhomogeneous values
+        # later
+        synapse_defaults = get_defaults(base_model)
+        synapse_parameters = self.native_parameters
+        for name, value in synapse_parameters.items():
+            if value.is_homogeneous:
+                value.shape = (1,)
+                synapse_defaults[name] = value.evaluate(simplify=True)
+        synapse_defaults.pop("dendritic_delay_fraction")
+        synapse_defaults.pop("w_min_always_zero_in_NEST")
+        # Tau_minus is a parameter of the post-synaptic cell, not of the connection
+        synapse_defaults.pop("tau_minus")
+        label = "%s_%s" % (base_model, suffix)
+        nest.CopyModel(base_model, label, synapse_defaults)
+        return label
 
 
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):

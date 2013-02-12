@@ -49,9 +49,10 @@ def test_record_native_model():
     p2.record('spikes')
     p1.record('V_m')
 
-    connector = nest.AllToAllConnector(weights=0.001)
+    connector = nest.AllToAllConnector()
+    syn = nest.StaticSynapse(weight=0.001)
 
-    prj_ampa = nest.Projection(p2, p1, connector, target='AMPA')
+    prj_ampa = nest.Projection(p2, p1, connector, syn, receptor_type='AMPA')
 
     tstop = 250.0
     nest.run(tstop)
@@ -73,10 +74,10 @@ def test_native_stdp_model():
     p1 = nest.Population(10, nest.IF_cond_exp())
     p2 = nest.Population(10, nest.SpikeSourcePoisson())
 
-    stdp_params = {'Wmax': 50.0, 'lambda': 0.015}
+    stdp_params = {'Wmax': 50.0, 'lambda': 0.015, 'weight': 0.001}
     stdp = nest.NativeSynapseType("stdp_synapse", stdp_params)
 
-    connector = nest.AllToAllConnector(weights=0.001)
+    connector = nest.AllToAllConnector()
 
-    prj = nest.Projection(p2, p1, connector, target='excitatory',
+    prj = nest.Projection(p2, p1, connector, receptor_type='excitatory',
                           synapse_type=stdp)

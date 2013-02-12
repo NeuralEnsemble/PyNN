@@ -67,7 +67,7 @@ class NestCurrentSource(StandardCurrentSource):
                 nest.SetStatus(self._device, {key: value})
 
     def get_native_parameters(self):
-        all_params = nest.GetStatus([self._device])[0]
+        all_params = nest.GetStatus(self._device)[0]
         return ParameterSpace(dict((k,v) for k,v in all_params.items()
                                    if k in self.get_native_names()))
 
