@@ -16,7 +16,6 @@ from pyNN import common, errors, core
 from pyNN.random import RandomDistribution
 from pyNN.space import Space
 from . import simulator
-from .synapses import NativeSynapseType, NativeSynapseMechanism
 from .standardmodels.synapses import StaticSynapse
 
 logger = logging.getLogger("PyNN")

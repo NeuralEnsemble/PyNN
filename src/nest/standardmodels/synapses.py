@@ -9,7 +9,7 @@ $Id$
 
 import nest
 from pyNN.standardmodels import synapses, build_translations
-from pyNN.nest.synapses import get_defaults
+from pyNN.nest.synapses import get_synapse_defaults
 from pyNN.nest.simulator import state
 import logging
 
@@ -25,7 +25,7 @@ class StaticSynapse(synapses.StaticSynapse):
     nest_name = 'static_synapse'
 
     def _get_nest_synapse_model(self, suffix):
-        synapse_defaults = get_defaults(self.nest_name)
+        synapse_defaults = get_synapse_defaults(self.nest_name)  # not sure about this. Surely we should be taking translated PyNN defaults, already available in self.native_parameters, not NEST ones
         synapse_parameters = self.native_parameters
         for name, value in synapse_parameters.items():
             if value.is_homogeneous:
@@ -130,7 +130,7 @@ class STDPMechanism(synapses.STDPMechanism):
         # CopyModel defaults must be simple floats, so we use the NEST defaults
         # for any inhomogeneous parameters, and set the inhomogeneous values
         # later
-        synapse_defaults = get_defaults(base_model)
+        synapse_defaults = get_synapse_defaults(base_model)
         synapse_parameters = self.native_parameters
         for name, value in synapse_parameters.items():
             if value.is_homogeneous:
@@ -166,7 +166,7 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     def _get_nest_synapse_model(self, suffix):
         # copied and pasted - should really inherit from somewhere, use the
         # same machinery as NativeSynapseType
-        synapse_defaults = get_defaults(self.nest_name)
+        synapse_defaults = get_synapse_defaults(self.nest_name)
         synapse_parameters = self.native_parameters
         for name, value in synapse_parameters.items():
             if value.is_homogeneous:
@@ -176,6 +176,7 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         label = "%s_%s" % (self.nest_name, suffix)
         nest.CopyModel(self.nest_name, label, synapse_defaults)
         return label
+
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__

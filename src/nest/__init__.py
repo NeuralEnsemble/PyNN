@@ -29,7 +29,7 @@ import shutil
 import logging
 
 from pyNN.nest.cells import NativeCellType, native_cell_type
-from pyNN.nest.synapses import NativeSynapseType, NativeSynapseMechanism
+from pyNN.nest.synapses import NativeSynapseType, native_synapse_type
 from pyNN.nest.standardmodels.cells import *
 from pyNN.nest.connectors import *
 from pyNN.nest.standardmodels.synapses import *
