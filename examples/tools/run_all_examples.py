@@ -22,10 +22,10 @@ for simulator in simulator_names:
         pass
 
 exclude = {
-    'PCSIM': ("brunel.py", "HH_cond_exp.py", "EIF_cond_alpha_isfa_ista.py"),
-    'NEURON': [],
-    'NEST': [],
-    'Brian': [],
+    'PCSIM': ("brunel.py", "HH_cond_exp.py", "EIF_cond_alpha_isfa_ista.py", "VAbenchmarks2-csa.py", "nineml_neuron.py"),
+    'NEURON': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
+    'NEST': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
+    'Brian': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
 }
 
 extra_args = {
@@ -48,6 +48,7 @@ for simulator in simulator_names:
                 if script_name in extra_args:
                     cmd += " " + extra_args[script_name]
                 print cmd,
+                sys.stdout.flush()
                 logfile = open("Results/%s_%s.log" % (os.path.basename(script), simulator), 'w')
                 p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
                 retval = p.wait()

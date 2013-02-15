@@ -32,9 +32,9 @@ synapse_types = {
 populations = {}
 projections = {}
 for label in 'static', 'depressing', 'facilitating':
-    populations[label] = sim.Population(1, sim.IF_cond_exp(e_rev_I=-75), label=label)
+    populations[label] = sim.Population(1, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=5.0), label=label)
     populations[label].record('v')
-    if populations[label].can_record('gsyn'):
+    if populations[label].can_record('gsyn_exc'):
         populations[label].record(['gsyn_exc', 'gsyn_inh'])
     projections[label] = sim.Projection(spike_source, populations[label], connector,
                                         receptor_type='inhibitory',

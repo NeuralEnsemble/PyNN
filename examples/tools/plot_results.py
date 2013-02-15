@@ -57,13 +57,18 @@ if len(blocks) > 0:
 
         plt.savefig("Results/%s.png" % name)
 
-#if gsyn_data:
-#    pylab.figure(2)
-#    for label, gsyn in gsyn_data.items():
-#        pylab.plot(t, gsyn[:,0], label="%s (exc)" % label)
-#        pylab.plot(t, gsyn[:,1], label="%s (inh)" % label)
-#        pylab.legend()
-#        pylab.title(example)
-#        pylab.xlabel("Time (ms)")
-#        pylab.ylabel("Synaptic conductance (nS)")
-#        pylab.savefig("Results/%s_gsyn.png" % example)
+        if blocks[name].values()[0].segments[0].filter(name="gsyn_exc"):
+            plt.figure()
+            lw = 2*len(blocks[name]) - 1
+            for simulator, block in blocks[name].items():
+                g_exc = block.segments[0].filter(name="gsyn_exc")[0]
+                g_inh = block.segments[0].filter(name="gsyn_inh")[0]            
+                plt.plot(g_exc.times, g_exc[:, 0], label=simulator+"(exc)", linewidth=lw)
+                plt.plot(g_inh.times, g_inh[:, 0], label=simulator+"(inh)", linewidth=lw)            
+                lw -= 2
+            plt.legend()
+            plt.title(name)
+            plt.xlabel("Time (ms)")
+            plt.ylabel("Synaptic conductance (nS)")
+    
+            plt.savefig("Results/%s_gsyn.png" % name)
