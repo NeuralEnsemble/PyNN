@@ -720,7 +720,7 @@ class Population(BasePopulation):
             first_id = self.local_cells[0]
             context.update({
                 "local_first_id": first_id,
-                "cell_parameters": first_id.get_parameters(),
+                "cell_parameters": {} #first_id.get_parameters(),
             })
         if self.structure:
             context["structure"] = self.structure.describe(template=None)

@@ -9,14 +9,13 @@ $Id$
 
 import nest
 from pyNN.standardmodels import synapses, build_translations
-from pyNN.nest.synapses import get_synapse_defaults
-from pyNN.nest.simulator import state
+from pyNN.nest.synapses import get_synapse_defaults, NESTSynapseMixin
 import logging
 
 logger = logging.getLogger("PyNN")
 
 
-class StaticSynapse(synapses.StaticSynapse):
+class StaticSynapse(synapses.StaticSynapse, NESTSynapseMixin):
 
     translations = build_translations(
         ('weight', 'weight', 1000.0),
@@ -24,79 +23,8 @@ class StaticSynapse(synapses.StaticSynapse):
     )
     nest_name = 'static_synapse'
 
-    def _get_nest_synapse_model(self, suffix):
-        synapse_defaults = get_synapse_defaults(self.nest_name)  # not sure about this. Surely we should be taking translated PyNN defaults, already available in self.native_parameters, not NEST ones
-        synapse_parameters = self.native_parameters
-        for name, value in synapse_parameters.items():
-            if value.is_homogeneous:
-                value.shape = (1,)
-                synapse_defaults[name] = value.evaluate(simplify=True)
-        synapse_defaults.pop("tau_minus")
-        label = "%s_%s" % (self.nest_name, suffix)
-        nest.CopyModel(self.nest_name, label, synapse_defaults)
-        return label
 
-    def _get_minimum_delay(self):
-        return state.min_delay
-
-
-#class ComposedSynapseType(ComposedSynapseType):
-#    __doc__ = ComposedSynapseType.__doc__
-#
-#    def _get_nest_synapse_model(self, suffix):
-#        # We create a particular synapse context for each projection, by copying
-#        # the one which is desired.
-#        if self.fast:
-#            if self.slow:
-#                raise Exception("It is not currently possible to have both short-term and long-term plasticity at the same time with this simulator.")
-#            else:
-#                base_model = self.fast.native_name
-#        elif self.slow:
-#            base_model = self.slow.possible_models
-#            if isinstance(base_model, set):
-#                logger.warning("Several STDP models are available for these connections:")
-#                logger.warning(", ".join(model for model in base_model))
-#                base_model = list(base_model)[0]
-#                logger.warning("By default, %s is used" % base_model)
-#        else:
-#            base_model = "static_synapse"
-#        available_models = nest.Models(mtype='synapses')
-#        if base_model not in available_models:
-#            raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
-#                             "Possible models in your NEST build are: %s" % (base_model, available_models))
-#
-#        # CopyModel defaults must be simple floats, so we use the NEST defaults
-#        # for any inhomogeneous parameters, and set the inhomogeneous values
-#        # later
-#        synapse_defaults = get_defaults(base_model)
-#        synapse_parameters = self.native_parameters
-#        for name, value in synapse_parameters.items():
-#            if value.is_homogeneous:
-#                value.shape = (1,)
-#                synapse_defaults[name] = value.evaluate(simplify=True)
-#        # Tau_minus is a parameter of the post-synaptic cell, not of the connection
-#        synapse_defaults.pop("tau_minus")
-#        label = "%s_%s" % (base_model, suffix)
-#        nest.CopyModel(base_model, label, synapse_defaults)
-#        return label
-#
-#    def _set_tau_minus(self, cells):
-#        if len(cells) > 0 and self.slow:
-#            if 'tau_minus' in nest.GetStatus([cells[0]])[0]:
-#                native_parameters = self.slow.timing_dependence.native_parameters
-#                if not native_parameters["tau_minus"].is_homogeneous: # could allow inhomogeneous values as long as each column is internally homogeneous
-#                    raise ValueError("pyNN.NEST does not support tau_minus being different for different synapses")
-#                native_parameters.size = 1 # hack
-#                tau_minus = native_parameters["tau_minus"].evaluate(simplify=True)
-#                nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
-#            else:
-#                raise Exception("Postsynaptic cell model does not support STDP.")
-#
-#    def _get_minimum_delay(self):
-#        return state.min_delay
-
-
-class STDPMechanism(synapses.STDPMechanism):
+class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
     """Specification of STDP models."""
     
     base_translations = build_translations(
@@ -105,15 +33,14 @@ class STDPMechanism(synapses.STDPMechanism):
     )  # will be extended by translations from timing_dependence, etc.
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
-                 voltage_dependence=None, dendritic_delay_fraction=1.0):
+                 voltage_dependence=None, dendritic_delay_fraction=1.0,
+                 weight=0.0, delay=None):
         assert dendritic_delay_fraction == 1, """NEST does not currently support axonal delays:
                                                  for the purpose of STDP calculations all delays
                                                  are assumed to be dendritic."""
         super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
-                                            voltage_dependence, dendritic_delay_fraction)
-
-    def _get_minimum_delay(self):
-        return state.min_delay
+                                            voltage_dependence, dendritic_delay_fraction,
+                                            weight, delay)
 
     def _get_nest_synapse_model(self, suffix):
         base_model = self.possible_models
@@ -130,9 +57,8 @@ class STDPMechanism(synapses.STDPMechanism):
         # CopyModel defaults must be simple floats, so we use the NEST defaults
         # for any inhomogeneous parameters, and set the inhomogeneous values
         # later
-        synapse_defaults = get_synapse_defaults(base_model)
-        synapse_parameters = self.native_parameters
-        for name, value in synapse_parameters.items():
+        synapse_defaults = {}
+        for name, value in self.native_parameters.items():
             if value.is_homogeneous:
                 value.shape = (1,)
                 synapse_defaults[name] = value.evaluate(simplify=True)
@@ -145,7 +71,7 @@ class STDPMechanism(synapses.STDPMechanism):
         return label
 
 
-class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
+class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse, NESTSynapseMixin):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
     translations = build_translations(
@@ -159,23 +85,6 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         ('y0', 'y')   # is not stored, only set.
     )
     nest_name = 'tsodyks_synapse'
-    
-    def _get_minimum_delay(self):
-        return state.min_delay
-
-    def _get_nest_synapse_model(self, suffix):
-        # copied and pasted - should really inherit from somewhere, use the
-        # same machinery as NativeSynapseType
-        synapse_defaults = get_synapse_defaults(self.nest_name)
-        synapse_parameters = self.native_parameters
-        for name, value in synapse_parameters.items():
-            if value.is_homogeneous:
-                value.shape = (1,)
-                synapse_defaults[name] = value.evaluate(simplify=True)
-        synapse_defaults.pop("tau_minus")
-        label = "%s_%s" % (self.nest_name, suffix)
-        nest.CopyModel(self.nest_name, label, synapse_defaults)
-        return label
 
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):

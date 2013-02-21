@@ -43,6 +43,7 @@ class Projection(common.Projection):
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
         self.synapse_model = self.synapse_type._get_nest_synapse_model("projection_%d" % Projection._nProj)
+        self.synapse_type._set_tau_minus(self.post.local_cells)
         self._sources = []
         self._connections = None
 
