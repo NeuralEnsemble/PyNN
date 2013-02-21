@@ -14,7 +14,7 @@ from pyNN import common, errors, core
 from pyNN.random import RandomDistribution, NativeRNG
 from pyNN.space import Space
 from . import simulator
-from .standardmodels.synapses import StaticSynapse
+from .standardmodels.synapses import StaticSynapse, TsodyksMarkramSynapse
 
 logger = logging.getLogger("PyNN")
 
@@ -33,7 +33,7 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
-        self._connections = dict((index, {}) for index in self.post._mask_local.nonzero()[0])
+        self._connections = dict((index, {}) for index in self.post._mask_local.nonzero()[0])           
         connector.connect(self)
         _projections.append(self)
         logger.info("--- Projection[%s].__init__() ---" %self.label)
@@ -83,7 +83,7 @@ class Projection(common.Projection):
         assert postsynaptic_cell.local
         for pre_idx, values in core.ezip(presynaptic_indices, *connection_parameters.values()):
             parameters = dict(zip(connection_parameters.keys(), values))
-            #logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, parameters %s", pre_idx, self.receptor_type, self.synapse_type, parameters)
+            #logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, receptor type %s, parameters %s", pre_idx, postsynaptic_index, self.synapse_type, self.receptor_type, parameters)
             self._connections[postsynaptic_index][pre_idx] = \
                 simulator.Connection(self, pre_idx, postsynaptic_index, **parameters)
 

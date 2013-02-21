@@ -35,7 +35,9 @@ INITIAL {
 }
 
 NET_RECEIVE(w) {
-    : w is not used
+    INITIAL {
+        t_last = t
+    }
     z = z*exp(-(t - t_last)/tau_rec)
     z = z + y*(exp(-(t - t_last)/tau_syn) - exp(-(t - t_last)/tau_rec)) / ((tau_syn/tau_rec) - 1)
     y = y*exp(-(t - t_last)/tau_syn)
@@ -46,8 +48,9 @@ NET_RECEIVE(w) {
     } else {
         u = U
     }
-    wsyn = wsyn*x*u
+    wsyn = w*x*u
     y = y + x*u
-    :printf("%g\t%g\t%g\t%g\t%g", t, t - t_last, y, z, u)
+    :printf("U=%g  tau_rec=%g  tau_facil=%g  tau_syn=%g  w=%g\n", U, tau_rec, tau_facil, tau_syn, w)
+    :printf("%g\t%g\t%g\t%g\t%g\t%g\t%g\n", t, t - t_last, y, z, u, x, wsyn)
     t_last = t
 }

@@ -289,7 +289,7 @@ class Connection(object):
             target_object = getattr(getattr(self.postsynaptic_cell._cell, section), target)
         else:
             target_object = getattr(self.postsynaptic_cell._cell, projection.receptor_type)
-        self.nc = state.parallel_context.gid_connect(int(pre), target_object)
+        self.nc = state.parallel_context.gid_connect(int(self.presynaptic_cell), target_object)
         self.nc.weight[0] = parameters.pop('weight')
         # if we have a mechanism (e.g. from 9ML) that includes multiple
         # synaptic channels, need to set nc.weight[1] here
@@ -328,7 +328,8 @@ class Connection(object):
         self.pre2wa = state.parallel_context.gid_connect(int(self.presynaptic_cell), self.weight_adjuster)
         self.pre2wa.threshold = self.nc.threshold
         self.pre2wa.delay = self.nc.delay * (1 - self.ddf)
-        self.pre2wa.weight[0] = 1
+        if self.pre2wa.delay > 1e-9:
+            self.pre2wa.delay -= 1e-9   # we subtract a small value so that the synaptic weight gets updated before it is used.
         if synapse_type.postsynaptic_variable == 'spikes':
             # directly create NetCon as wa is on the same machine as the post-synaptic cell
             self.post2wa = h.NetCon(self.postsynaptic_cell._cell.source, self.weight_adjuster,
@@ -336,10 +337,15 @@ class Connection(object):
             self.post2wa.threshold = 1
             self.post2wa.delay = self.nc.delay * self.ddf
             self.post2wa.weight[0] = -1
+            self.pre2wa.weight[0] = 1
+        else:
+            self.pre2wa.weight[0] = self.nc.weight[0]
         parameters.pop('x', None)   # for the Tsodyks-Markram model
         parameters.pop('y', None)   # would be better to actually use these initial values
         for name, value in parameters.items():
             setattr(self.weight_adjuster, name, value)
+        if mechanism == 'TsodyksMarkramWA':  # or could assume that any weight_adjuster parameter called "tau_syn" should be set like this
+            self.weight_adjuster.tau_syn = self.nc.syn().tau
         # setpointer
         i = len(h.plastic_connections)
         h.plastic_connections.append(self)
