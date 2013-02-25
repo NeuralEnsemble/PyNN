@@ -3,7 +3,7 @@ Recording spikes and state variables
 ====================================
 
 It is possible to record the times of action potentials, and the values of
-state variables, of any neuron in the model. Recording state variables of
+state variables, of any neuron in the network. Recording state variables of
 dynamic synapse models is not yet supported.
 
 The classes :class:`Population`, :class:`PopulationView` and :class:`Assembly`
@@ -30,7 +30,7 @@ and call :meth:`record` on this view:
 
 .. doctest::
 
-    >>> population.sample(10).record('v')  # record membrane potential from 10 neurons chosen at random
+    >>> population.sample(10).record('v')                         # record membrane potential from 10 neurons chosen at random
     >>> population[[0,1,2]].record(['v', 'gsyn_exc', 'gsyn_inh']) # record several variables from specific neurons
 
 To find out what variable names are available for a given neuron model, inspect

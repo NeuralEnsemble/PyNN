@@ -7,7 +7,7 @@ install and run PyNN on Windows, but this has not been tested.
 
 Installing PyNN requires:
 
-    * Python (version 2.5, 2.6 or 2.7)
+    * Python (version 2.6 or 2.7)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
     * the Neo_ package
@@ -32,8 +32,8 @@ If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
 available. If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.8.0.tar.gz
-    $ cd PyNN-0.8.0
+    $ tar xzf PyNN-0.8.0-alpha1.tar.gz
+    $ cd PyNN-0.8.0-alpha1
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -61,9 +61,9 @@ The PyNN installation will then compile PyNN-specific membrane mechanisms, which
 
     loading membrane mechanisms from /home/andrew/dev/pyNN/neuron/nmodl/i686/.libs/libnrnmech.so
     Additional mechanisms from files
-     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod gsfa_grr.mod hh_traub.mod netstim2.mod
-     refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod
-     tmgsyn.mod tmisyn.mod vecstim.mod
+     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod gsfa_grr.mod hh_traub.mod izikevich.mod
+     netstim2.mod refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod
+     stdwa_symm.mod tmgsyn.mod tmisyn.mod tsodyksmarkram.mod vecstim.mod
 
 If you installed PyNN before installing NEURON, or if you update your PyNN installation, you will need to manually run :command:`nrnivmodl` in the :file:`pyNN/neuron/nmodl` directory.
 
@@ -72,9 +72,9 @@ Installing NEURON
 
 Download the sources for the latest release of NEURON, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_. Also download Interviews from the same location.
 
-Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_, except that when you run :command:`configure`, add the options :option:`--with-nrnpython` and, optionally, :option:`--with-mpi`, i.e.::
+Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_, except that when you run :command:`configure`, add the options :option:`--with-nrnpython` and, optionally, :option:`--with-paranrn`, i.e.::
 
-    $ ./configure --prefix=`pwd` --with-nrnpython --with-mpi
+    $ ./configure --prefix=`pwd` --with-nrnpython --with-paranrn
     $ make
     $ make install
 
@@ -140,23 +140,14 @@ Now try it out::
     $ cd ~
     $ python
     >>> import nest
+                  -- N E S T --
 
-               -- N E S T 2 beta --
-              Neural Simulation Tool
-      Copyright 1995-2009 The NEST Initiative
-       Version 2.0-0-rc2 Jan 27 2011 10:59:20
+      Copyright (C) 2004 The NEST Initiative
+      Version 2.2.1 Feb 11 2013 17:42:00
     ...
     >>> nest.Models()
     ['ac_generator', 'aeif_cond_alpha', 'aeif_cond_exp', 'cont_delay_synapse', 'correlation_detector',
-     'dc_generator', 'hh_cond_exp_traub', 'hh_psc_alpha', 'ht_neuron', 'ht_synapse', 'iaf_cond_alpha',
-     'iaf_cond_alpha_mc', 'iaf_cond_exp', 'iaf_cond_exp_sfa_rr', 'iaf_neuron', 'iaf_psc_alpha',
-     'iaf_psc_alpha_canon', 'iaf_psc_alpha_presc', 'iaf_psc_delta', 'iaf_psc_delta_canon',
-     'iaf_psc_exp', 'iaf_psc_exp_ps', 'iaf_tum_2000', 'mat2_psc_exp', 'mip_generator', 'multimeter',
-     'noise_generator', 'parrot_neuron', 'parrot_neuron_ps', 'poisson_generator', 'poisson_generator_ps',
-     'pulsepacket_generator', 'sli_neuron', 'smp_generator', 'spike_detector', 'spike_generator',
-     'static_synapse', 'static_synapse_hom_wd', 'stdp_dopamine_synapse', 'stdp_pl_synapse_hom',
-     'stdp_synapse', 'stdp_synapse_hom', 'step_current_generator', 'subnet', 'topology_layer_3d',
-     'topology_layer_free', 'topology_layer_grid', 'tsodyks_synapse', 'voltmeter', 'volume_transmitter']
+    ...
 
 Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may need to install a newer version of the `GNU Scientific Library`_ and then recompile NEST.
 

@@ -142,9 +142,9 @@ and slicing notation, for example:
 
 .. doctest::
 
-   >>> id = ctx_cells[47]             # the 48th neuron in a Population
-   >>> view = ctx_cells[:80]          # the first eighty neurons
-   >>> view = ctx_cells[::2]           # every second neuron
+   >>> id = ctx_cells[47]           # the 48th neuron in a Population
+   >>> view = ctx_cells[:80]        # the first eighty neurons
+   >>> view = ctx_cells[::2]        # every second neuron
    >>> view = ctx_cells[45, 91, 7]  # a specific set of neurons
 
 It is also possible to address a random sample of neurons within a population
@@ -163,7 +163,7 @@ neurons in a :class:`Population`, which means that any changes in the view are a
 reflected in the real population (and vice versa).
 
 :class:`PopulationView` objects behave in most ways as real :class:`Population`
-objects, notably, they can be used in a :class:`Projection` (see
+objects; notably, they can be used in a :class:`Projection` (see
 :doc:`connections`) and combined with other :class:`Population` or
 :class:`PopulationView` objects to create an :class:`Assembly`.
 
@@ -208,9 +208,9 @@ An assembly behaves in most ways like a :class:`Population`, e.g. for setting
 and retrieving parameters, specifying which neurons to record from, etc. It can
 also be specified as the source or target of a :class:`Projection`. In this
 case, all the neurons in the component populations are treated as identical for
-the purposes of the connection algorithm (note that if the synapse type is
-specified (with the :attr:`target` argument), an Exception will be raised if not
-all component neuron types possess that synapse type).
+the purposes of the connection algorithm (note that if the post-synaptic receptor type is
+specified (with the :attr:`receptor_type` argument), an Exception will be raised if not
+all component neuron types possess that receptor type).
 
 Individual populations within an :class:`Assembly` may be accessed via their
 labels, e.g.:
@@ -349,9 +349,9 @@ Note that the sampling interval must be an integer multiple of the simulation
 time step (except for simulators which allow use of variable time-step
 integration methods).
 
-.. todo: implement sampling_interval
+.. note:: the option of specifying a sampling interval is not available in version 0.8.0-alpha1. It will be implemented before the final 0.8.0 release.
 
-.. todo: discuss specifying filename in record()
+.. todo:: discuss specifying filename in record()
 
 At the end of a simulation, the recorded data can be retrieved using the
 :meth:`get_data()` method:

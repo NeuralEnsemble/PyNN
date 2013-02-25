@@ -2,9 +2,11 @@
 Introduction
 ============
 
-PyNN (pronounced 'pine') is a simulator-independent language for building neuronal network models.
+PyNN_ (pronounced 'pine') is a simulator-independent language for building neuronal network models.
 
 In other words, you can write the code for a model once, using the PyNN API and the Python_ programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON_, NEST_, PCSIM_ and Brian_).
+
+.. note:: in PyNN 0.8.0-alpha1, only NEST and NEURON are supported. Support for Brian, PCSIM and MOOSE will be reenabled later in the 0.8 development cycle.
 
 The PyNN API aims to support modelling at a high-level of abstraction (populations of neurons, layers, columns and the connections between them) while still allowing access to the details of individual neurons and synapses when required. PyNN provides a library of standard neuron, synapse and synaptic plasticity models, which have been verified to work the same on the different supported simulators. PyNN also provides a set of commonly-used connectivity algorithms (e.g. all-to-all, random, distance-dependent, small-world) but makes it easy to provide your own connectivity in a simulator-independent way, either using the Connection Set Algebra (`Djurfeldt, 2012`_) or by writing your own Python code.
 
@@ -12,7 +14,7 @@ Even if you don't wish to run simulations on multiple simulators, you may benefi
 
 It is straightforward to port an existing model from a Python-supporting simulator to PyNN, since this can be done incrementally, replacing one piece of simulator-specific code at a time with the PyNN equivalent, and testing that the model behaviour is unchanged at each step.
 
-:doc:`Download<download>` the current stable release of the API (0.8), or get the development version from the `Subversion repository`_ .
+:doc:`Download<download>` the current stable release of the API (0.7), the latest alpha version (0.8.0-alpha) or get the development version from the `Subversion repository`_ .
 
 Licence
 -------
@@ -30,10 +32,11 @@ Davison AP, Brüderle D, Eppler JM, Kremkow J, Muller E, Pecevski DA, Perrinet L
 Questions/Bugs/Enhancements
 ---------------------------
 
-If you find a bug in PyNN, or wish to request a new feature, please go the `PyNN website`_, click on "New Ticket", and fill in the form.
+If you find a bug in PyNN, or wish to request a new feature, please go the `PyNN issue tracker`_, click on "New Ticket", and fill in the form.
 
 If you have questions or comments about PyNN, please post a message on the `NeuralEnsemble Google group`_.
 
+.. _PyNN: http://neuralensemble.org/PyNN/
 .. _Python: http://www.python.org/
 .. _CeCILL: http://www.cecill.info/
 .. _NEURON: http://www.neuron.yale.edu/neuron/
@@ -41,6 +44,6 @@ If you have questions or comments about PyNN, please post a message on the `Neur
 .. _PCSIM:  http://sourceforge.net/projects/pcsim/
 .. _Brian:  http://briansimulator.org/
 .. _`Subversion repository`: https://neuralensemble.org/svn/PyNN/trunk
-.. _`PyNN website`: http://neuralensemble.org/PyNN/
+.. _`PyNN issue tracker`: http://neuralensemble.org/PyNN/
 .. _`NeuralEnsemble Google group`: http://groups.google.com/group/neuralensemble
-.. _`Djurfeldt, 2012`: http://software.incf.org/software/csa/
+.. _`Djurfeldt, 2012`: http://dx.doi.org/10.1007/s12021-012-9146-1

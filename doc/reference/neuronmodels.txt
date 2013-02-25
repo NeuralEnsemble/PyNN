@@ -56,7 +56,7 @@ same methods, as listed below.
 
    .. automethod:: get_schema
    .. automethod:: get_parameter_names
-   .. automethod:: get_translated_names
+   .. automethod:: get_native_names
    .. automethod:: has_parameter
    .. automethod:: translate
    .. automethod:: reverse_translate

@@ -18,7 +18,7 @@ Handling of recorded data in PyNN makes use of the Neo_ package, which provides
 a common Python data model for neurophysiology data (whether real or simulated).
 
 The :meth:`get_data` method returns a Neo :class:`Block` object. This is the
-top-level data container, which contains one or more "class:`Segment`/s. Each
+top-level data container, which contains one or more :class:`Segment`\s. Each
 :class:`Segment` is a container for data sharing a common time basis - a new
 :class:`Segment` is added every time the :func:`reset` function is called.
 

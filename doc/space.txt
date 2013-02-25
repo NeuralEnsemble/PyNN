@@ -8,7 +8,7 @@ The :mod:`space` module contains classes for specifying the locations of neurons
 in space and for calculating the distances between them.
 
 Neuron positions can be defined either manually, using the :attr:`positions`
-attribute of a :class:`Population` or using a :class:``Structure`` instance
+attribute of a :class:`Population` or using a :class:`Structure` instance
 which is passed to the :class:`Population` constructor.
 
 A number of different structures are available in :mod:`space`. It is simple to
@@ -95,5 +95,5 @@ subclass :class:`Shape` and implement a :meth:`sample` method::
            ...
            # return a nx3 numpy array.
 
-.. note:: rotation of structures is currently missing, but is planned for the
-          next release.
+.. note:: rotation of structures is currently missing, but is planned for a
+          future release.
