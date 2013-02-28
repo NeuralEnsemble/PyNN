@@ -1,0 +1,77 @@
+======================
+PyNN 0.6 release notes
+======================
+
+14th February 2010
+
+Welcome to PyNN 0.6!
+
+There have been three major changes to the API in this version.
+
+* Spikes, membrane potential and synaptic conductances can now be saved to file
+  in various binary formats. To do this, pass a PyNN :class:`File` object to
+  :meth:`Population.print_X()`, instead of a filename. There are various types
+  of PyNN :class:`File` object, defined in the :mod:`recording.files module`,
+  e.g., :class:`StandardTextFile`, :class:`PickleFile`,
+  :class:`NumpyBinaryFile`, :class:`HDF5ArrayFile`.
+* Added a :func:`reset()` function and made the behaviour of :func:`setup()`
+  consistent across simulators. :func:`reset()` sets the simulation time to zero
+  and sets membrane potentials to their initial values, but does not change the
+  network structure. :func:`setup()` destroys any previously defined network.
+* The possibility of expressing distance-dependent weights and delays was
+  extended to the :class:`AllToAllConnector` and :class:`FixedProbabilityConnector` classes. To
+  reduce the number of arguments to the constructors, the arguments affecting
+  the spatial topology (periodic boundary conditions, etc.) were moved to a new
+  :class:`Space` class, so that only a single :class:`Space` instance need be passed to the
+  :class:`Connector` constructor.
+
+Details
+=======
+
+* Switched to using the point process-based AdExp mechanism in NEURON.
+* Factored out most of the commonality between the :class:`Recorder` classes of
+  each backend into a parent class :class:`recording.Recorder`, and tidied up the
+  :mod:`recording` module.
+* Added an attribute :attr:`conductance_based` to :class:`StandardCellType`, to make the
+  determination of synapse type for a given cell more robust.
+* PyNN now uses a named logger, which makes it easier to control logging levels
+  when using PyNN within a larger application. 
+* implemented gather for :meth:`Projection.saveConnections()`
+* Added a test script (:file:`test_mpi.py`) to check whether serial and distributed
+  simulations give the same results
+* Added a :meth:`size()` method to :class:`Projection`, to give the total number of
+  connections across all nodes (unlike :meth:`__len__()`, which gives only the
+  connections on the local node
+* Speeded up :func:`record()` by a huge factor (from 10 s for 12000 cells to less than
+  0.1 s) by removing an unecessary conditional path (since all IDs now have an
+  attribute "local")
+* `synapse_type` is now passed to the :class:`ConnectionManager` constructor, not to
+  the :meth:`connect()` method, since (a) it is fixed for a given connection manager,
+  (b) it is needed in other methods than just :meth:`connect()`; fixed weight unit
+  conversion in :mod:`brian` module. 
+* Updated connection handling in :mod:`nest` module to work with NEST version
+  1.9.8498. Will not now work with previous NEST versions
+* The :mod:`neuron` back-end now supports having both static and Tsodyks-Markram
+  synapses on the same neuron (previously, the T-M synapses replaced the static
+  synapses) - in agreement with :mod:`nest` and common sense. Thanks to Bartosz
+  Telenczuk for reporting this. 
+* Added a `compatible_output` mode for the :meth:`saveConnections()` method. True by
+  default, it allows connections to be reloaded from a file. If False, then the
+  raw connections are stored, which makes for easier postprocessing.
+* Added an :class:`ACSource` current source to the :mod:`nest` module.
+* Fixed Hoc build directory problem in :file:`setup.py` - see ticket:147
+* :meth:`Population.get_v()` and the other "`get`" methods now return cell indices
+  (starting from 0) rather than cell IDs. This behaviour now matches that of
+  :meth:`Population.print_v()`, etc. See ticket:119 if you think this is a bad idea.
+* Moved the base :class:`Connector` class from :mod:`common` to :mod:`connectors`. Put the
+  :meth:`distances` function inside a :class:`Space` class, to allow more convenient
+  specification of topology parameters.
+* :meth:`Projection.setWeights()` and :meth:`setDelays()` now accept a 2D array argument
+  (ref ticket:136), to be symmetric with :meth:`getWeights()` and :meth:`getDelays()`. For
+  distributed simulations, each node only takes the values it needs from the
+  array.
+* :class:`FixedProbabilityConnector` is now more strict, and checks that :attr:`p_connect` is
+  less than 1 (see ticket:148). This makes no difference to the behaviour, but
+  could act as a check for errors in user code.
+* Fixed problem with changing :class:`SpikeSourcePoisson` rate during a simulation (see
+  ticket:152)

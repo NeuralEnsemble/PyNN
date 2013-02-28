@@ -132,8 +132,8 @@ class Projection(object):
             (3) a list/1D array of the same length as the number of local connections
             (4) a 2D array with the same dimensions as the connectivity matrix
                 (as returned by `get(format='array')`
-            (5) a mapping function, which accepts two integer arguments (i, j)
-                and returns a single value.
+            (5) a mapping function, which accepts a single float argument (the
+                distance between pre- and post-synaptic cells) and returns a single value.
 
         Weights should be in nA for current-based and µS for conductance-based
         synapses. Delays should be in milliseconds.

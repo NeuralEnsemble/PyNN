@@ -33,11 +33,11 @@ Subversion checkout
 
 To work on the development version::
 
-    svn co https://neuralensemble.org/svn/PyNN/trunk pyNN_trunk
+    svn co https://neuralensemble.org/svn/PyNN/branches/parameter_space pyNN_dev
 
 To work on the latest stable release (for bug-fixes):
 
-    svn co https://neuralensemble.org/svn/PyNN/branches/0.8 pyNN_0.8
+    svn co https://neuralensemble.org/svn/PyNN/branches/0.7 pyNN_0.7
 
 To get PyNN onto your :envvar:`PYTHONPATH` there are many options, such as:
 
@@ -62,9 +62,7 @@ We try to stay fairly close to PEP8_. Please note in particular:
     - some function/method names in PyNN use ``mixedCase``, but these will
       gradually be deprecated and replaced with ``lower_case_with_underscores``.
       Any new functions or methods should use the latter.
-    - we currently target versions 2.5 to 2.7. The main consequence of this is
-      that ``except Exception`` can't use the ``as`` statement, since this is
-      not supported in 2.5.
+    - we currently target versions 2.6 to 2.7.
 
 
 Testing
@@ -78,19 +76,19 @@ optionally the *coverage_* package. To run the entire test suite, in the
 
 To see how well the codebase is covered by the tests, run::
 
-    $ nosetests --with-coverage --cover-package=pyNN --cover-erase
+    $ nosetests --with-coverage --cover-package=pyNN --cover-erase --cover-html
 
 There are currently two sorts of tests, unit tests, which aim to exercise
-small pieces of code such as individual functions and methods, and system tests
+small pieces of code such as individual functions and methods, and system tests,
 which aim to test that all the pieces of the system work together as expected.
 
 If you add a new feature to PyNN, you should write both unit and system tests.
 
 Unit tests should where necessary make use of mock/fake/stub/dummy objects to
-isolate the component under test as well as possible. The :mod:`pyNN.mock` is
-a complete mock simulator backend that may be used for this purpose. Except when
-testing a specific simulator interface, unit tests should be able to run without
-a simulator installed.
+isolate the component under test as well as possible. The :mod:`pyNN.mock`
+module is a complete mock simulator backend that may be used for this purpose.
+Except when testing a specific simulator interface, unit tests should be able to
+run without a simulator installed.
 
 System tests should be written so that they can run with any of the simulators.
 The suggested way to do this is to write test functions, in a separate file,
@@ -151,8 +149,7 @@ by running::
 
     $ make doctest
 
-PyNN documentation is hosted at http://neuralensemble.org/PyNN/docs/. In future,
-we may move the documentation to http://readthedocs.org.
+PyNN documentation is hosted at http://readthedocs.org.
 
 
 Making a release
@@ -170,7 +167,7 @@ last time:
       ``test/unittests`` and ``test/system`` and running ``make doctest`` in
       ``doc``. You should do this on at least two Linux systems -- one a very
       recent version and one at least a year old, and on at least one version of
-      Mac OS X. You should also do this with Python 2.5, 2.6 and 2.7.
+      Mac OS X. You should also do this with Python 2.6 and 2.7.
     * do all the example scripts generate the correct output? Run the
       ``run_all_examples.py`` script in ``examples/tools`` and then visually
       check the ``.png`` files generated in ``examples/tools/Results``. Again,
@@ -197,7 +194,9 @@ to http://neuralensemble.org/PyNN/docs.
 .. todo:: more details on this
 
 If this is a development release (i.e. an *alpha* or *beta*), the final step is
-to upload the source package to http://neuralensemble.org/PyNN/download/.
+to upload the source package to http://neuralensemble.org/PyNN/download/ and to
+the INCF Software Center [more instructions needed here]. Do **not** upload
+development releases to PyPI.
 
 .. todo:: more details on this
 
@@ -211,8 +210,6 @@ If this is a final release, there are a few more steps:
     * upload the source package to PyPI::
 
         $ python setup.py sdist upload
-
-    * upload the source package to the INCF Software Center [more instructions needed here]
 
     * make an announcement on the `mailing list`_
 

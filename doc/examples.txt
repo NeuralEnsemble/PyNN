@@ -5,45 +5,48 @@ Examples
 .. todo:: probably have one page per example, with line numbering, and include figure for each. Do not include all examples, many are rather similar
 
 A single IF neuron with exponential, conductance-based synapses, fed by two spike sources
+-----------------------------------------------------------------------------------------
 
 .. literalinclude:: ../examples/IF_cond_exp.py  
  
 
 Injecting time-varying current into  a cell
+-------------------------------------------
  
 .. literalinclude:: ../examples/StepCurrentSource.py
- 
 
 A single-compartment Hodgkin-Huxley neuron with exponential, conductance-based synapses, fed by two spike sources
+-----------------------------------------------------------------------------------------------------------------
  
 .. literalinclude:: ../examples/HH_cond_exp.py
  
  
 Simple network with a Poisson spike source projecting to a pair of IF_curr_alpha neurons 
- 
+----------------------------------------------------------------------------------------
+
 .. literalinclude:: ../examples/simpleNetwork.py
 
 
-Simple network with a 1D population of Poisson spike sources projecting to a 2D population of IF_curr_alpha neurons (alternative implementation)
- 
-.. literalinclude:: ../examples/simpleNetworkL.py
-
-
-Simple random network with a 1D population of Poisson spike sources projecting to a 2D population of IF_curr_alpha neurons
+Simple random network with a population of Poisson spike sources projecting to a population of IF_curr_alpha neurons
+--------------------------------------------------------------------------------------------------------------------
  
 .. literalinclude:: ../examples/simpleRandomNetwork.py 
 
 
 Example of depressing and facilitating synapses
+-----------------------------------------------
 
 .. literalinclude:: ../examples/tsodyksmarkram.py
 
 
-Balanced random network based on Brunel N (2000) Dynamics of sparsely connected networks of excitatory and inhibitory spiking neurons. J Comput Neurosci 8:183-208.] [[http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=PubMed&list_uids=10809012&dopt=Abstract PubMed]]
+.. Balanced random network based on Brunel N (2000) Dynamics of sparsely connected networks of excitatory and inhibitory spiking neurons. J Comput Neurosci 8:183-208.] [[http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=PubMed&list_uids=10809012&dopt=Abstract PubMed]]
  
-.. literalinclude:: ../examples/brunel.py
+.. .. literalinclude:: ../examples/brunel.py
 
 
-IF network based on the CUBA and COBA models of Vogels & Abbott (2005)  J Neurosci 25:10786-95] [[http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=PubMed&list_uids=16291952&dopt=Abstract PubMed]]
+IF network based on the CUBA and COBA models of Vogels & Abbott (2005)
+----------------------------------------------------------------------
 
-.. literalinclude:: ../examples/VAbenchmarks.py  
+(J Neurosci 25:10786-95) [http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=PubMed&list_uids=16291952&dopt=Abstract PubMed]
+
+.. literalinclude:: ../examples/VAbenchmarks.py

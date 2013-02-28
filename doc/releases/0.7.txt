@@ -1,0 +1,211 @@
+======================
+PyNN 0.7 release notes
+======================
+
+4th February 2011
+
+This release sees a major extension of the API with the addition of the
+:class:`PopulationView` and :class:`Assembly` classes, which aim to make
+building large, structured networks much simpler and cleaner. A
+:class:`PopulationView` allows a sub-set of the neurons from a
+:class:`Population` to be encapsulated in an object. We call it a "view", rather
+than a "sub-population", to emphasize the fact that the neurons are not copied:
+they are the same neurons as in the parent :class:`Population`, and any
+operations on either view or parent (setting parameter values, recording, etc.)
+will be reflected in the other. An :class:`Assembly` is a list of
+:class:`Population` and/or :class:`PopulationView` objects, enabling multiple
+cell types to be encapsulated in a single object. :class:`PopulationView` and
+:class:`Assembly` objects behave in most ways like :class:`Population`: you can
+record them, connect them using a :class:`Projection`, you can have views of
+views...
+
+The "low-level API" (rechristened "procedural API") has been reimplemented in in
+terms of :class:`Population` and :class:`Projection`. For example,
+:func:`create()` now returns a :class:`Population` object rather than a list of
+IDs, and :func:`connect()` returns a :class:`Projection`object. This change
+should be almost invisible to the user, since :class:`Population` now behaves
+very much like a list of IDs (can be sliced, joined, etc.).
+
+There has been a major change to cell addressing: :class:`Population`\s now
+always store cells in a one-dimensional array, which means cells no longer have
+an address but just an index. To specify the spatial structure of a
+:class:`Population`, pass a :class:`Structure` object to the constructor, e.g.::
+
+    p = Population((12,10), IF_cond_exp)
+
+is now::
+
+    p = Population(120, IF_cond_exp, structure=Grid2D(1.2))
+
+although the former syntax still works, for backwards compatibility. The reasons
+for doing this are:
+
+1. we can now have more interesting structures than just grids
+2. efficiency (less juggling addresses, flattening)
+3. simplicity (less juggling addresses, less code).
+
+The API for setting initial values has changed: this is now done via the
+:func:`initialize()` function or the :meth:`Population.initialize()` method,
+rather than by having `v_init` and similar parameters for cell models.
+
+
+Other API changes
+=================
+
+- simplification of the :meth:`record_X()` methods.With the addition of the
+  :class:`PopulationView` class, the selection logic implemented by the
+  `record_from` and `rng` arguments duplicated that in
+  :meth:`Population.__getitem__()` and :meth:`Population.sample()`, and so these arguments
+  have been removed, and the :meth:`record_X()` methods now record all neurons within
+  a :class:`Population`, :class:`PopulationView` or :class:`Assembly`.
+  Examples of syntax changes::
+  
+    pop.record_v([pop[0], pop[17]]) --> pop[(0, 17)].record_v()
+    pop.record(10, rng=rng) --> pop.sample(10, rng).record()
+     
+- enhanced :meth:`describe()` methods: can now use Jinja2 or Cheetah templating
+  engines to produce much nicer, better formatted network descriptions.
+- connections and neuron positions can now be saved to various binary formats as
+  well as to text files.
+- added some new connectors: :class:`SmallWorldConnector` and
+  :class:`CSAConnector` (CSA = Connection Set Algebra)
+- native neuron and synapse models are now supported using a
+  :class:`NativeModelType` subclass, rather than specified as strings. This
+  simplifies the code internally and increases the range of PyNN functionality
+  that can be used with native models (e.g. you can now record any variable from
+  a native NEST or NEURON model). For NEST, there is a class factory
+  :func:`native_cell_type()`, for NEURON the :class:`NativeModelType` subclasses
+  have to be written by hand.
+
+
+Backend changes
+===============
+
+- the NEST backend has been updated to work with NEST version 2.0.0.
+- the Brian backend has seen extensive work on performance and on bringing it
+  to feature parity with the other backends.
+  
+
+Details
+=======
+
+* Where :meth:`Population.initial_values` contains arrays, these arrays now
+  consistently contain only enough values for local cells. Before, there was
+  some inconsistency about how this was handled. Still need more tests to be
+  sure it's really working as expected.
+* Allow override of `default_maxstep` for NEURON backend as setup paramter. This
+  is for the case that the user wants to add network connections across nodes
+  after simulation start time.
+* Discovered that when using NEST with mpi4py, you must ``import nest`` first
+  and let it do the MPI initialization. The only time this seems to be a problem
+  with PyNN is if a user imports :mod:`pyNN.random` before :mod:`pyNN.nest`. It
+  would be nice to handle this more gracefully, but for now I've just added a
+  test that NEST and mpi4py agree on the rank, and a hopefully useful error
+  message.
+* Added a new :func:`setup()` option for :mod:`pyNN.nest`:
+  `recording_precision`. By default, `recording_precision` is 3 for on-grid and
+  15 for off-grid.
+* Partially fixed the :mod:`pyNN.nest` implementation of
+  :class:`TsodyksMarkramMechanism` (cf ticket:172). The 'tsodyks_synapse' model
+  has a 'tau_psc' parameter, which should be set to the same value as the decay
+  time constant of the post-synaptic current (which is a parameter of the neuron
+  model). I consider this only a partial fix, because if 'tau_syn_E' or
+  'tau_syn_I' is changed after the creation of the Projection, 'tau_psc' will
+  not be updated to match (unlike in the :mod:`pyNN.neuron` implementation. I'm
+  also not sure how well it will work with native neuron models.
+* reverted :mod:`pyNN.nest` to reading/resetting the current time from the
+  kernel rather than keeping track of it within PyNN. NEST warns that this is
+  dangerous, but all the tests pass, so let's wait and see.
+* In :class:`HH_cond_exp`, conductances are now in µS, as for all other
+  conductances in PyNN, instead of nS. 
+* NEURON now supports Tsodyks-Markram synapses for current-based exponential
+  synapses (before it was only for conductance-based).
+* NEURON backend now supports the :class:`IF_cond_exp_gsfa_grr` model.
+* Added a :meth:`sample()` method to :class:`Population`, which returns a
+  :class:`PopulationView` of a random sample of the neurons in the parent
+  population.
+* Added the :class:`EIF_cond_exp/alpha_isfa/ista` and :class:`HH_cond_exp`
+  standard models in Brian.
+* Added a `gather` option to the :meth:`Population.get()` method.
+* :func:`brian.setup()` now accepts a number of additional arguments in
+  `extra_params`, For example, ``extra_params={'useweave': True}`` will lead to
+  inline C++ code generation
+* Wrote a first draft of a developers' guide.
+* Considerably extended the :class:`core.LazyArray` class, as a basis for a
+  possible rewrite of the `connectors` module.
+* The :mod:`random` module now uses :mod:`mpi4py` to determine the MPI rank and
+  `num_processes`, rather than receiving these as arguments to the RNG
+  constructor (see ticket:164). 
+* Many fixes and performance enhancements for the :mod:`brian` module, which now
+  supports synaptic plasticity.
+* No more GSL warning every time! Just raise an Exception if we attempt to use
+  GSLRNG and pygsl is not available.
+* Added some more flexibility to :func:`init_logging`: ``logfile=None`` ->
+  stderr, format includes size & rank, user can override log-level
+* NEST :file:`__init__.py` changed to query NEST for filling
+  ``NEST_SYNAPSE_TYPES``.
+* Started to move synapse dynamics related stuff out of :class:`Projection` and
+  into the synapse dynamics-related classes, where it belongs.
+* Added a new "spike_precision" option to :func:`nest.setup()`
+  (see http://neuralensemble.org/trac/PyNN/wiki/SimulatorSpecificOptions)
+* Updated the NEST backend to work with version 2.0.0
+* Rewrote the test suite, making a much cleaner distinction between unit tests,
+  which now make heavy use of mock objects to better-isolate components, and
+  system tests. Test suite now runs with nose
+  (http://somethingaboutorange.com/mrl/projects/nose), in order to facilitate
+  continuous integration testing.
+* Changed the format of connection files, as written by
+  :meth:`saveConnections()` and read by :class:`FromFileConnector`: files no
+  longer contain the population label. Connections can now also be written to
+  :class:`NumpyBinaryFile` or :class:`PickleFile` objects, instead of just text
+  files. Same for :meth:`Population.save_positions()`.
+* Added CSAConnector, which wraps the Connection Set Algebra for use by PyNN.
+  Requires the csa package: http://pypi.python.org/pypi/csa/
+* Enhanced distance expressions by allowing expressions such as
+  ``(d[0] < 0.1) & (d[1] < 0.2)``. Complex forms can therefore now be drawn,
+  such as squares, ellipses, and so on.
+* Added an `n_connections` flag to the
+  :class:`DistanceDependentProbabiblityConnector` in order to be able to
+  constrain the total number of connections. Can be useful for normalizations.
+* Added a simple :class:`SmallWorldConnector`. Cells are connected within a
+  certain degree *d*. Then, all the connections are rewired with a probability
+  given by a rewiring parameter and new targets are uniformly selected among all
+  the possible targets.
+* Added a method to save cell positions to file.
+* Added a progress bar to connectors. Now, a `verbose` flag allows to display or
+  not a progress bar indicating the percentage of connections established.
+* New implementation of the connector classes, with much improved performance
+  and scaling with MPI, and extension of distance-dependent weights and delays
+  to all connectors. In addition, a `safe` flag has been added to all connectors:
+  on by default, a user can turn it off to avoid tests on weights and delays.
+* Added the ability to set the `atol` and `rtol` parameters of NEURON's cvode
+  solver in the `extra_params` argument of :func:`setup()` (patch from Johannes
+  Partzsch).
+* Made :mod:`pyNN.nest`'s handling of the refractory period consistent with the
+  other backends. Made the default refractory period 0.1 ms rather than 0.0 ms,
+  since NEST appears not to handle zero refractory period.
+* Moved standard model (cells and synapses) machinery, the :class:`Space` class,
+  and :class:`Error` classes out of :mod:`common` into their own modules.
+  
+  
+Release 0.7.1
+=============
+
+.. date?
+
+This bug-fix release added copyright statements to all files, together with some
+minor bug fixes.
+
+Release 0.7.2
+=============
+
+Release 0.7.3
+=============
+
+Release 0.7.4
+=============
+
+Release 0.7.5
+=============
+
+

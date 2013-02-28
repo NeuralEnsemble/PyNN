@@ -19,6 +19,7 @@ from pyNN.standardmodels import electrodes, build_translations, StandardCurrentS
 from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.neuron import simulator
 
+
 class NeuronCurrentSource(StandardCurrentSource):
     """Base class for a source of current to be injected into a neuron."""
 
@@ -76,6 +77,8 @@ class NeuronCurrentSource(StandardCurrentSource):
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for name, value in parameters.items():
+            if isinstance(value, Sequence):  # this shouldn't be necessary, but seems to prevent a segfault
+                value = value.value
             object.__setattr__(self, name, value)
         self._reset()
 
@@ -161,6 +164,7 @@ class ACSource(NeuronCurrentSource, electrodes.ACSource):
         tmp             = numpy.arange(0, self.stop - self.start, simulator.state.dt)
         self.amplitudes = self.offset + self.amplitude * numpy.sin(tmp*2*numpy.pi*self.frequency/1000. + 2*numpy.pi*self.phase/360)
         self.amplitudes[-1] = 0.0
+
 
 class NoisyCurrentSource(NeuronCurrentSource, electrodes.NoisyCurrentSource):
 

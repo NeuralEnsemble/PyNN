@@ -18,12 +18,13 @@ PyNN: documentation
    backends
    parallel
    units
-   logging
-   descriptions
    examples
    contributors
    release_notes
 
+.. add 'logging' after 'units' once configure_logging() implemented.
+
+.. add 'descriptions' after logging
 
 Developers' Guide
 =================

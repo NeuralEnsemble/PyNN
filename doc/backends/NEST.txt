@@ -40,8 +40,12 @@ implementation: :class:`IF_curr_alpha` (in preparation), :class:`IF_curr_exp`,
 Here is an example showing how to specify the option in a PyNN script
 and an illustration of the different outcomes:
 
-.. plot:: pyplots/continuous_time_spiking.py
-   :include-source:
+.. .. plot:: pyplots/continuous_time_spiking.py
+..    :include-source:
+
+.. literalinclude:: ../pyplots/continuous_time_spiking.py
+
+.. image:: ../images/continuous_time_spiking.png
 
 
 The gray curve shows the membrane potential excursion in response to an
@@ -92,9 +96,9 @@ these neurons as from standard cells:
 .. doctest::
 
     >>> p1.get('Tau_m')
-    array([ 20.,  20.,  20.,  20.,  20.,  20.,  20.,  20.,  20.,  20.])
+    20.0
     >>> p1.get('Tau_theta')
-    array([ 2.,  2.,  2.,  2.,  2.,  2.,  2.,  2.,  2.,  2.])
+    2.0
     >>> p1.get('C_m')
     NonExistentParameterError: C_m (valid parameters for ht_neuron are:
       AMPA_E_rev, AMPA_Tau_1, AMPA_Tau_2, AMPA_g_peak, E_K, E_Na, GABA_A_E_rev,
@@ -114,21 +118,22 @@ synaptic receptor types:
 
 .. doctest::
 
-    >>> ht_neuron.synapse_types
+    >>> ht_neuron.receptor_types
     {'GABA_B': 4, 'AMPA': 1, 'GABA_A': 3, 'NMDA': 2}
     >>> from pyNN.nest import Projection, AllToAllConnector
     >>> connector = AllToAllConnector()
-    >>> prj_ampa = Projection(p2, p1, connector, target='AMPA')
-    >>> prj_nmda = Projection(p2, p1, connector, target='NMDA')
+    >>> prj_ampa = Projection(p2, p1, connector, receptor_type='AMPA')
+    >>> prj_nmda = Projection(p2, p1, connector, receptor_type='NMDA')
 
 
 Using native synaptic plasticity models
 =======================================
 
-To use a NEST STDP model with PyNN, we use the ``NativeSynapseDynamics`` class:
+To use a NEST STDP model with PyNN, we use the :func:`native_synapse_type`
+function:
 
 .. doctest::
 
-    >>> from pyNN.nest import NativeSynapseDynamics
-    >>> stdp = NativeSynapseDynamics("stdp_synapse", {'Wmax': 50.0, 'lambda': 0.015})
-    >>> prj_plastic = Projection(p1, p1, connector, target='AMPA', synapse_dynamics=stdp)
+    >>> from pyNN.nest import native_synapse_type
+    >>> stdp = native_synapse_type("stdp_synapse")(Wmax=50.0, lambda=0.015)
+    >>> prj_plastic = Projection(p1, p1, connector, receptor_type='AMPA', synapse_type=stdp)

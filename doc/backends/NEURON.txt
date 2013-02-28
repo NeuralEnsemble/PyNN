@@ -125,7 +125,7 @@ It is now straightforward to use this cell type in PyNN:
     setup()
     p1 = Population(10, SimpleNeuronType(g_leak=0.0003))
     p1.record('soma(0.5).ina')
-    prj = Projection(p1, p1, AllToAllConnector(), target='soma.ampa')
+    prj = Projection(p1, p1, AllToAllConnector(), receptor_type='soma.ampa')
     run(100.0)
     output = p1.get_data()
 

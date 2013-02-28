@@ -1,3 +1,40 @@
+=====================
+Release 0.8a1 (r????)
+=====================
+
+see doc/releases/0.8-alpha-1.txt
+
+====================
+Release 0.7.5 (r???)
+====================
+
+??
+
+=====================
+Release 0.7.4 (r1195)
+=====================
+
+* Some small fixes to the `random` module (see ticket:231)
+* NumpyBinaryFile now works with NumPy 1.6
+
+=====================
+Release 0.7.3 (r1124)
+=====================
+
+* Some fixes to the `CSAConnector` class
+* the Brian backend now includes the value at t=0 in recorded data (see ticket:225)
+* start times for `CurrentSources` in the NEST backend are now corrected for the
+  connection delay
+* start times for `CurrentSources` in the Brian backend are now correct (there
+  was something funny happening with clocks, before.)
+
+====================
+Release 0.7.2 (r995)
+====================
+
+Fixed a bug whereby the `connect()` function didn't work with single IDs (see ticket:195)
+
+
 ====================
 Release 0.7.1 (r958)
 ====================
@@ -111,7 +148,7 @@ Details:
 
 * Added a `gather` option to the `Population.get()` method.
 
-* `brian.setup()` now accepts a number of addtional argumenbts in `extra_params`,
+* `brian.setup()` now accepts a number of additional arguments in `extra_params`,
   For example, extra_params={'useweave': True} will lead to inline C++ code generation
 
 * Wrote a first draft of a developers' guide.

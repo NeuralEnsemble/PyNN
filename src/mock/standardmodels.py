@@ -245,6 +245,18 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         return state.min_delay
 
 
+class STDPMechanism(synapses.STDPMechanism):
+    __doc__ = synapses.STDPMechanism.__doc__
+
+    base_translations = build_translations(
+        ('weight', 'WEIGHT'),
+        ('delay', 'DELAY')
+    )
+
+    def _get_minimum_delay(self):
+        return state.min_delay
+    
+
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
 

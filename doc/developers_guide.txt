@@ -26,6 +26,8 @@ The following sections contain guidelines for each of these.
 
    developers/bug_reports
    developers/contributing
-   developers/adding_backend
+   
+   
+.. developers/adding_backend
 
 .. _`NeuralEnsemble Google Group`: http://groups.google.com/group/neuralensemble

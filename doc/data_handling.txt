@@ -2,8 +2,8 @@
 Data handling
 =============
 
-.. todo: add a note that data handling has changed considerably since 0.7,
-         and give link to detailed changelog.
+.. todo:: add a note that data handling has changed considerably since 0.7,
+          and give link to detailed changelog.
 
 Recorded data in PyNN is always associated with the :class:`Population` or
 :class:`Assembly` from which it was recorded. Data may either be written to
@@ -30,8 +30,13 @@ addition they carry metadata about units, sampling interval, etc.
 
 Here is a complete example of recording and plotting data from a simulation:
 
-.. plot:: pyplots/neo_example.py
-   :include-source:
+.. .. plot:: pyplots/neo_example.py
+..   :include-source:
+
+.. literalinclude:: pyplots/neo_example.py
+
+.. image:: images/neo_example.png
+
 
 
 The adoption of Neo as an output representation also makes it easier to handle
@@ -42,11 +47,16 @@ resulting data. Now, each run just creates a new Neo ``Segment``, and PyNN takes
 care of storing the data until it is needed. This is illustrated in the example
 below.
 
-.. note:: if you still want to retrieve the data after every run you can do so:
-          just call `get_data(clear=True)`
+.. .. plot:: images/reset_example.py
+..    :include-source:
 
-.. plot:: pyplots/reset_example.py
-   :include-source:
+.. literalinclude:: pyplots/reset_example.py
+
+.. image:: images/reset_example.png
+
+
+.. note:: if you still want to retrieve the data after every run you can do so:
+          just call ``get_data(clear=True)``
 
 
 Writing data to file
@@ -55,7 +65,7 @@ Writing data to file
 Neo provides support for writing to a `variety of different file formats`_,
 notably an assortment of text-based formats, NumPy binary format,
 Matlab :file:`.mat` files, and HDF5. To write to a given format, we create a Neo
-:class:`IO` object and pass it to the meth:`write_data` method:
+:class:`IO` object and pass it to the :meth:`write_data` method:
 
 .. testsetup::
 

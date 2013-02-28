@@ -15,25 +15,22 @@ times, different individual cells or connections should have different parameter
 values. To handle both of these situations, parameter values may be of four
 different types:
 
-a single number
-    sets the same value for all cells in the :class:`Population` or connections
-    in the :class:`Projection`
+* a single number - sets the same value for all cells in the :class:`Population`
+  or connections in the :class:`Projection`
 
-a :class:`RandomDistribution` object (see :doc:`random_numbers`)
-    each item in the group will have the parameter set to a value drawn from
-    the distribution
+* a :class:`RandomDistribution` object (see :doc:`random_numbers`) - each item
+  in the group will have the parameter set to a value drawn from the
+  distribution
 
-a list or 1D NumPy array
-    of the same size as the :class:`Population` or the number of connections in
-    the :class:`Projection`
+* a list or 1D NumPy array - of the same size as the :class:`Population` or the
+  number of connections in the :class:`Projection`
 
-a function
-    for a :class:`Population` or :class:`Assembly` the function should take a
-    single integer argument, and will be called with the index of every
-    neuron in the :class:`Population` to return the parameter value for that
-    neuron. For a :class:`Projection`, the function should take two integer
-    arguments, and for every connection will be called with the indices of the
-    pre- and post-synaptic neurons.
+* a function - for a :class:`Population` or :class:`Assembly` the function
+  should take a single integer argument, and will be called with the index of
+  every neuron in the :class:`Population` to return the parameter value for that
+  neuron. For a :class:`Projection`, the function should take two integer
+  arguments, and for every connection will be called with the indices of the
+  pre- and post-synaptic neurons.
 
 Examples
 ========

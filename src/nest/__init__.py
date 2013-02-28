@@ -119,7 +119,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     simulator.state.dt = timestep
     # Set min_delay and max_delay for all synapse models
     simulator.state.set_delays(min_delay, max_delay)
-    nest.SetDefaults('spike_generator', {'allow_offgrid_spikes': True})
+    nest.SetDefaults('spike_generator', {'precise_times': True})
     return rank()
 
 

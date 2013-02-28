@@ -6,6 +6,7 @@ Building networks: connections
 
     from pyNN.mock import *
     from pyNN.random import NumpyRNG
+    from pyNN.space import Space
     setup()
     pre = Population(10, IF_curr_alpha())
     post = Population(10, IF_cond_exp())
@@ -76,17 +77,6 @@ between pre- and post-synaptic neurons:
 .. testcode::
 
     syn = StaticSynapse(weight=w, delay="0.2 + 0.01*d")
-
-
-If weights or delays are not specified, they will be set to default values:
-
-.. doctest::
-
-    >>> get_min_delay()
-    0.1
-    >>> from pyNN import DEFAULT_WEIGHT
-    >>> DEFAULT_WEIGHT
-    0.0
 
 
 Short-term synaptic plasticity
@@ -374,9 +364,9 @@ and here is a full example:
     rng = NumpyRNG(seed=64754)
     sparse_connectivity = FixedProbabilityConnector(0.1, rng=rng)
     weight_distr = RandomDistribution('normal', [0.01, 1e-3], rng=rng)
-    facilitating = TsodyksMarkramMechanism(U=0.04, tau_rec=100.0, tau_facil=1000.0,
-                                           weight=weight_distr, delay=lambda d: 0.1+d/100.0)
-    space=Space(axes='xy')
+    facilitating = TsodyksMarkramSynapse(U=0.04, tau_rec=100.0, tau_facil=1000.0,
+                                         weight=weight_distr, delay=lambda d: 0.1+d/100.0)
+    space = Space(axes='xy')
     inhibitory_connections = Projection(pre, post,
                                         connector=sparse_connectivity,
                                         synapse_type=facilitating,
@@ -419,7 +409,7 @@ specifying periodic boundary conditions, e.g.:
 
 .. testcode::
 
-    space = Space(periodic_boundaries=((0,500), (0,500), None)))
+    space = Space(periodic_boundaries=((0,500), (0,500), None))
 
 calculates distance on the surface of a torus of circumference 500 µm
 (wrap-around in the x- and y-dimensions but not z). For more information, see
@@ -437,7 +427,7 @@ returns a 2D weight array (with NaN for non-existent connections):
 .. doctest::
 
     >>> excitatory_connections.get('weight', format='list')[3:7]
-    [(45, 52, 0.123), (46, 52, 0.123), (47, 52, 0.123), (48, 52, 0.123)]
+    [(3, 0, 0.123), (4, 0, 0.123), (5, 0, 0.123), (6, 0, 0.123)]
     >>> inhibitory_connections.get('delay', format='array')[:3,:5]
     array([[  nan,  0.11,   nan,   nan,   nan],
            [  nan,   nan,   nan,   nan,   nan],
