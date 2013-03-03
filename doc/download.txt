@@ -5,7 +5,7 @@ Downloads
 Source distributions
 --------------------
 
-The latest alpha version of PyNN (0.8.0-alpha1) may be downloaded from the `INCF Software Centre`_. This is currently experimental, and should probably only be used by experienced users of PyNN.
+The latest alpha version of PyNN (0.8alpha1) may be downloaded from the `INCF Software Centre`_. This is currently experimental, and should probably only be used by experienced users of PyNN.
 
 The `latest stable version of PyNN`_ (0.7.5) may be downloaded from the `Python Package Index`_ or from the `INCF Software Centre`_. This is recommended for most users.
 

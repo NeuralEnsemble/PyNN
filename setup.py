@@ -40,7 +40,7 @@ class build(_build):
       
 setup(
     name = "PyNN",
-    version = "0.8.0dev",
+    version = "0.8alpha1",
     package_dir={'pyNN': 'src'},
     packages = ['pyNN','pyNN.nest', 'pyNN.pcsim', 'pyNN.neuron', 'pyNN.nineml',
                 'pyNN.brian','pyNN.nemo', 'pyNN.common',
@@ -49,7 +49,7 @@ setup(
                 'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels', 'pyNN.nemo.standardmodels'],
     package_data = {'pyNN': ['neuron/nmodl/*.mod', "descriptions/templates/*/*"]},
     author = "The PyNN team",
-    author_email = "pynn@neuralensemble.org",
+    author_email = "andrew.davison@unic.cnrs-gif.fr",
     description = "A Python package for simulator-independent specification of neuronal network models",
         long_description = """In other words, you can write the code for a model once, using the PyNN API and the Python programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON, NEST, PCSIM and Brian).
 
