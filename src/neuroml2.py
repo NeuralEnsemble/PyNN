@@ -13,10 +13,10 @@ NeuroML v2.0 by Padraig Gleeson
 
 For an overview of PyNN & NeuroML interoperability see http://www.neuroml.org/pynn.php
 
-This script is intended to map models sprcified in PyNN on to the equivalent representation in
+This script is intended to map models specified in PyNN on to the equivalent representation in
 NeuroML v2.0. A valid NML2 file will be produced containing the cells, populations,
 etc. and a LEMS file will be created which imports this file and can run a simple
-simulation using the LEMS interpreter, see http://www.neuroml.org/neuroml2.php#libNeuroML
+simulation using the LEMS interpreter, see http://www.neuroml.org/neuroml2.php
 
 Ideally... this will produce equivalent simulation results when a script is run using:
 
@@ -452,11 +452,11 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params
     lemsNode = lemsdoc.createElement('Lems')
     lemsdoc.appendChild(lemsNode)
 
-    drNode = build_node('DefaultRun',component=simulation_prefix+nml_id)
-    lemsNode.appendChild(drNode)
+    targetNode = build_node('Target',component=simulation_prefix+nml_id)
+    lemsNode.appendChild(targetNode)
     coreNml2Files = ["NeuroMLCoreDimensions.xml","PyNN.xml","Networks.xml","Simulation.xml"]
     for f in coreNml2Files:
-        incNode = build_node('Include', file="NeuroML2CoreTypes/"+f)
+        incNode = build_node('Include', file=""+f)
         lemsNode.appendChild(incNode)
 
     incNode = build_node('Include', file=nml2file.name)
@@ -465,7 +465,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params
     global simNode, displayNode
     simNode = build_node('Simulation', id=simulation_prefix+nml_id, step=str(dt)+"ms", target=network_prefix+nml_id)
     lemsNode.appendChild(simNode)
-    displayNode = build_node('Display',id="display_0",title="Recording of PyNN model run in LEMS", timeScale="1ms")
+    displayNode = build_node('Display',id="display_0",title="Recording of PyNN model run in LEMS", timeScale="1ms", xmin="0", ymin="-80", ymax="-50")
     simNode.appendChild(displayNode)
 
     lemsfile = "LEMS_"+nml_id+".xml"
@@ -500,13 +500,14 @@ def end(compatible_output=True):
     lemsfile.close()
     print("\nThe file: "+lemsfile.name+" has been generated. This can be executed with libNeuroML utility nml2 (which wraps the LEMS Interpreter), i.e.")
     print("\n    nml2 "+lemsfile.name)
-    print("\nFor more details see: http://www.neuroml.org/neuroml2.php#libNeuroML\n")
+    print("\nFor more details see: http://www.neuroml.org/neuroml2.php\n")
 
 
 def run(simtime):
     """Run the simulation for simtime ms."""
-    global simNode
+    global simNode, displayNode
     simNode.setAttribute('length', str(simtime)+"ms")
+    displayNode.setAttribute('xmax', str(simtime))
 
 
 
@@ -618,16 +619,18 @@ class Population(common.Population):
         #simNode.appendChild(displayNode)
 
         scale = "1"
-        #if variable == 'v': scale = "1mV"
+        if variable == 'v': scale = "1mV"
         colour = colours[displayNode.childNodes.length%len(colours)]
         for i in range(self.size):
             lineNode = build_node('Line',
-                                  id=line_prefix+self.label,
+                                  id="%s%s_%i"%(line_prefix,self.label,i),
                                   scale=scale,
                                   color=colour,
                                   quantity="%s[%i]/%s"%(self.label,i,variable),
-                                  save="%s_%i_%s_nml2.dat"%(self.label,i,variable))
+                                  timeScale="1ms")
                                   
+            '''save="%s_%i_%s_nml2.dat"%(self.label,i,variable),'''
+
             displayNode.appendChild(lineNode)
     
     def meanSpikeCount(self):
@@ -941,7 +944,7 @@ def record_v(source, filename):
 
     global simNode, displayNode, color
 
-    scale = "1"
+    scale = "1mV"
     colour = colours[displayNode.childNodes.length%len(colours)]
     for i in range(source.size):
         lineNode = build_node('Line',
@@ -949,8 +952,9 @@ def record_v(source, filename):
                               scale=scale,
                               color=colour,
                               quantity="%s[%i]/%s"%(source.label,i,'v'),
-                              save="%s_%i_%s_nml2.dat"%(source.label,i,'v'))
+                              timeScale="1ms")
 
+        '''save="%s_%i_%s_nml2.dat"%(source.label,i,'v')'''
         displayNode.appendChild(lineNode)
 
 def record_gsyn(source, filename):
