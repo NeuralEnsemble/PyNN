@@ -151,6 +151,7 @@ class _State(object):
         h('objref plastic_connections')
         self.clear()
         self.default_maxstep=10.0
+        self.vargid_counter = 0
     
     t = h_property('t')
     def __get_dt(self):
@@ -167,6 +168,7 @@ class _State(object):
         self.parallel_context.gid_clear()
         gid_sources = []
         self.gid_counter = 0
+        self.vargid_counter = 0
         self.running = False
         h.plastic_connections = []
 
@@ -182,6 +184,9 @@ def run(simtime):
     if not state.running:
         state.running = True
         local_minimum_delay = state.parallel_context.set_maxstep(state.default_maxstep)
+        if state.vargid_counter:
+            logger.info("Setting up transfer on MPI process {}".format(state.mpi_rank))
+            state.parallel_context.setup_transfer()
         h.finitialize()
         state.tstop = 0
         logger.debug("default_maxstep on host #%d = %g" % (state.mpi_rank, state.default_maxstep ))
@@ -327,6 +332,46 @@ class Connection(object):
 
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
+
+
+class GapJunctionConnection(object):
+    """
+    Store an individual gap junction connection and information about it. Provide an
+    interface that allows access to the gap junction's conductance
+    """
+
+    def __init__(self, source, target, source_gap, target_gap=None):
+        """
+        Create a new connection.
+        
+        `source` -- ID of pre-synaptic neuron.
+        `target` -- ID of post-synaptic neuron.
+        `source_gap` -- gap junction mechanism on source cell
+        `target_gap` -- gap junction mechanism on target cell
+        """
+        self.source = source
+        self.target = target
+        self.source_gap = source_gap
+        self.target_gap = target_gap
+
+    def _set_weight(self, w):
+        """Gap junction conductance in µS."""
+        if self.source_gap:
+            self.source_gap.g = w
+        if self.target_gap:
+            self.target_gap.g = w
+
+    def _get_weight(self):
+        """Gap junction conductance in µS."""
+        if self.source_gap:
+            assert (not self.target_gap or self.source_gap.g == self.target_gap.g)
+            w = self.source_gap.g
+        else:
+            w = self.target_gap.g
+        return w
+
+    weight = property(_get_weight, _set_weight)
+
 
 def generate_synapse_property(name):
     def _get(self):

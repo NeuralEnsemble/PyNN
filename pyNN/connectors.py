@@ -291,15 +291,69 @@ class ProbabilisticConnector(Connector):
         self.local             = projection.post._mask_local
         self.N                 = projection.post.size
         self.weights_generator = WeightGenerator(weights, self.local, projection, safe)
-        self.delays_generator  = DelayGenerator(self.delays, self.local, kernel=projection._simulator.state, safe=safe)
-        self.probas_generator  = ProbaGenerator(RandomDistribution('uniform', (0,1), rng=self.rng), self.local)
-        self._distance_matrix  = None
-        self.projection        = projection
-        self.candidates        = projection.post.local_cells
-        self.size              = self.local.sum()
+        self.delays_generator = DelayGenerator(self.delays, self.local, kernel=projection._simulator.state, safe=safe)
+        self.probas_generator = ProbaGenerator(RandomDistribution('uniform', (0, 1), rng=self.rng), self.local)
+        self._distance_matrix = None
+        # The projection requires the source cells to be prepared as well as the target cells (i.e.
+        # gap junctions) we need to store the unmasked probas, weights, and delays matrices as well
+        self.prepare_sources = hasattr(projection, '_prepare_sources')
+        if self.prepare_sources:
+            self.full_mask = numpy.ones(self.N, dtype=bool)
+            self.full_weights_generator = WeightGenerator(weights, self.full_mask, projection, safe)
+            self.full_delays_generator = DelayGenerator(self.delays, self.full_mask,
+                                                        kernel=projection._simulator.state,
+                                                        safe=safe)
+            self.full_probas_generator = ProbaGenerator(RandomDistribution('uniform', (0, 1),
+                                                                           rng=self.rng),
+                                                        self.full_mask)
+            self._full_distance_matrix = None
+            self.full_candidates = projection.post.all_cells        
+        self.projection = projection
+        self.candidates = projection.post.local_cells
+        self.size = self.local.sum()
         self.allow_self_connections = allow_self_connections
-       
-    @property 
+
+    def _get_size(self, src):
+        if self.prepare_sources and src.local:
+            return self.N
+        else:
+            return self.size
+
+    def _get_delays(self, src, create):
+        if self.prepare_sources and src.local:
+            delays = self.full_delays_generator.get(self.N, self.full_distance_matrix, create)
+        else:
+            delays = self.delays_generator.get(self.N, self.distance_matrix, create)
+        return delays
+
+    def _get_weights(self, src, create):
+        if self.prepare_sources and src.local:
+            weights = self.full_weights_generator.get(self.N, self.full_distance_matrix, create)
+        else:
+            weights = self.weights_generator.get(self.N, self.distance_matrix, create)
+        return weights
+
+    def _get_probas(self, src):
+        if self.prepare_sources and src.local:
+            rarr = self.full_probas_generator.get(self.N)
+        else:
+            rarr = self.probas_generator.get(self.N)
+        return rarr
+
+    def _set_distance_matrix(self, src):
+        if self.prepare_sources and src.local:
+            self.full_distance_matrix.set_source(src.position)
+        else:
+            self.distance_matrix.set_source(src.position)
+            
+    def _get_candidates(self, src):
+        if self.prepare_sources and src.local:
+            candidates = self.full_candidates
+        else:
+            candidates = self.candidates
+        return candidates
+    
+    @property
     def distance_matrix(self):
         """
         We want to avoid calculating positions if it is not necessary, so we
@@ -308,7 +362,19 @@ class ProbabilisticConnector(Connector):
         if self._distance_matrix is None:
             self._distance_matrix = DistanceMatrix(self.projection.post.positions, self.space, self.local)
         return self._distance_matrix
-        
+
+    @property
+    def full_distance_matrix(self):
+        """
+        We want to avoid calculating positions if it is not necessary, so we
+        delay it until the distance matrix is actually used.
+        """
+        if self._full_distance_matrix is None:
+            self._full_distance_matrix = DistanceMatrix(self.projection.post.positions, self.space,
+                                                        self.full_mask)
+        return self._full_distance_matrix
+
+
     def _probabilistic_connect(self, src, p, n_connections=None):
         """
         Connect-up a Projection with connection probability p, where p may be either
@@ -317,37 +383,51 @@ class ProbabilisticConnector(Connector):
         targets of that pre-synaptic cell.
         """
         if numpy.isscalar(p) and p == 1:
-            precreate = numpy.arange(self.size, dtype=numpy.int)
+            precreate = numpy.arange(self._get_size(src), dtype=numpy.int)
         else:
-            rarr   = self.probas_generator.get(self.N)
+            rarr = self._get_probas(src)
             if not core.is_listlike(rarr) and numpy.isscalar(rarr): # if N=1, rarr will be a single number
                 rarr = numpy.array([rarr])
             precreate = numpy.where(rarr < p)[0]  
-
-        self.distance_matrix.set_source(src.position)        
-        if not self.allow_self_connections and self.projection.pre == self.projection.post:
-            idx_src   = numpy.where(self.candidates == src)
-            if len(idx_src) > 0:
-                i     = numpy.where(precreate == idx_src[0])
-                if len(i) > 0:
-                    precreate = numpy.delete(precreate, i[0])
-                
-        if (n_connections is not None) and (len(precreate) > 0):            
+        self._set_distance_matrix(src)
+        if self.projection.pre == self.projection.post:
+            if not self.allow_self_connections:            
+                idx_del = numpy.where(self._get_candidates(src) == src)
+            # For connections which are always mutual, in the case of gap junctions, it doesn't 
+            # make sense to allow x->y connections and y->x connections because they are always x<->y.
+            elif self.allow_self_connections == 'NoMutual':
+                idx_del = numpy.where(self._get_candidates(src) <= src)
+            if len(idx_del) > 0:
+                precreate = numpy.delete(precreate, idx_del)
+        if (n_connections is not None) and (len(precreate) > 0):
             create = numpy.array([], dtype=numpy.int)
             while len(create) < n_connections: # if the number of requested cells is larger than the size of the
                                                ## presynaptic population, we allow multiple connections for a given cell
                 create = numpy.concatenate((create, self.projection.rng.permutation(precreate)))
             create = create[:n_connections]
         else:
-            create = precreate            
-        targets = self.candidates[create]        
-        weights = self.weights_generator.get(self.N, self.distance_matrix, create)
-        delays  = self.delays_generator.get(self.N, self.distance_matrix, create)        
-        
-        if len(targets) > 0:
-            self.projection._divergent_connect(src, targets.tolist(), weights, delays)
-        
-    
+            create = precreate
+        # If there are targets and/or sources to create
+        if len(create):
+            targets = self._get_candidates(src)[create]
+            delays = self._get_delays(src, create)
+            weights = self._get_weights(src, create)
+            # If the projection requires the sources to be prepared as well (i.e. gap junctions).
+            if self.prepare_sources and src.local:
+                if len(targets) > 0:
+                    self.projection._prepare_sources(src, self.projection.post.all_cells[create], 
+                                                     weights)
+                    # If the source side needs to be prepared then the full matrices needs to be
+                    # passed to prepare_sources, whereas _divergent_connect expects only the 
+                    # targets on the current node.
+                    local_indices = numpy.where([target.local for target in targets])
+                    targets = targets[local_indices]
+                    weights = weights[local_indices]
+                    delays = delays[local_indices]
+            if len(targets) > 0:
+                self.projection._divergent_connect(src, targets.tolist(), weights, delays)          
+
+
 class AllToAllConnector(Connector):
     """
     Connects all cells in the presynaptic population to all cells in the
@@ -372,7 +452,7 @@ class AllToAllConnector(Connector):
                    dependent weights or delays
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
-        assert isinstance(allow_self_connections, bool)
+        #assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         
     def connect(self, projection):
@@ -410,7 +490,7 @@ class FixedProbabilityConnector(Connector):
                    dependent weights or delays
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
-        assert isinstance(allow_self_connections, bool)
+        #assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
         assert 0 <= self.p_connect
@@ -431,6 +511,7 @@ class DistanceDependentProbabilityConnector(Connector):
     For each pair of pre-post cells, the connection probability depends on distance.
     """
     parameter_names = ('allow_self_connections', 'd_expression')
+    ProbConnector = ProbabilisticConnector
     
     def __init__(self, d_expression, allow_self_connections=True,
                  weights=0.0, delays=None, space=Space(), safe=True, verbose=False, n_connections=None):
@@ -456,21 +537,28 @@ class DistanceDependentProbabilityConnector(Connector):
         except ZeroDivisionError, err:
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
-        assert isinstance(allow_self_connections, bool)
+        #assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         self.n_connections          = n_connections        
         
     def connect(self, projection):
         """Connect-up a Projection."""
-        connector       = ProbabilisticConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
+        connector = self.ProbConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
         proba_generator = ProbaGenerator(self.d_expression, connector.local)
+        # Used when source cells also need to be prepared (i.e. Gap junctions)
+        if connector.prepare_sources:
+            full_proba_generator = ProbaGenerator(self.d_expression, connector.full_mask)
         self.progressbar(len(projection.pre))
         if (projection._simulator.state.num_processes > 1) and (self.n_connections is not None):
             raise Exception("n_connections not implemented yet for this connector in parallel !")
-
-        for count, src in enumerate(projection.pre.all()):     
-            connector.distance_matrix.set_source(src.position)
-            proba  = proba_generator.get(connector.N, connector.distance_matrix)
+        for count, src in enumerate(projection.pre.all()):
+            connector._set_distance_matrix(src)
+            # If source cells also need to be prepared (i.e. Gap junctions), the full connection
+            # matrix is required when the source is local
+            if connector.prepare_sources and src.local:
+                proba = full_proba_generator.get(connector.N, connector.full_distance_matrix)
+            else:
+                proba = proba_generator.get(connector.N, connector.distance_matrix)
             if proba.dtype == 'bool':
                 proba = proba.astype(float)
             connector._probabilistic_connect(src, proba, self.n_connections)
@@ -500,9 +588,10 @@ class FromListConnector(Connector):
         
     def connect(self, projection):
         """Connect-up a Projection."""
+        prepare_sources   = hasattr(projection, '_prepare_sources')
         idx     = numpy.argsort(self.conn_list[:, 0])
         self.sources    = numpy.unique(self.conn_list[:,0]).astype(numpy.int)
-        self.candidates = projection.post.local_cells
+#        self.candidates = projection.post.local_cells
         self.conn_list  = self.conn_list[idx]
         self.progressbar(len(self.sources))        
         count = 0
@@ -525,7 +614,13 @@ class FromListConnector(Connector):
             ## to use a convergent_connect method, instead of a divergent_connect one
             #idx     = eval(tests)
             #projection._divergent_connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
-            projection._divergent_connect(src, tgts.tolist(), weights, delays)
+            if prepare_sources and src.local:
+                projection._prepare_sources(src, tgts.tolist(), weights)
+            mask_local = projection.post._mask_local[targets]
+            local_tgts = projection.post.all_cells[targets[mask_local]]
+            if len(local_tgts):
+                projection._divergent_connect(src, local_tgts.tolist(), weights[mask_local], 
+                                              delays[mask_local])
             self.progression(count, projection._simulator.state.mpi_rank)
             count += 1
         
@@ -594,7 +689,7 @@ class FixedNumberPostConnector(Connector):
                      to the global minimum delay.
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
-        assert isinstance(allow_self_connections, bool)
+        #assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         if isinstance(n, int):
             self.n = n
@@ -610,6 +705,7 @@ class FixedNumberPostConnector(Connector):
         """Connect-up a Projection."""
         if self.delays is None:
             self.delays = projection._simulator.state.min_delay
+        prepare_sources   = hasattr(projection, '_prepare_sources')
         local             = numpy.ones(len(projection.post), bool)
         weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
         delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)
@@ -643,10 +739,13 @@ class FixedNumberPostConnector(Connector):
             targets = candidates[create]
             weights = weights_generator.get(n, distance_matrix, create)
             delays  = delays_generator.get(n, distance_matrix, create)
-               
-            if len(targets) > 0:
-                projection._divergent_connect(src, targets.tolist(), weights, delays)
-            
+            if prepare_sources and src.local:
+                projection._prepare_sources(src, targets.tolist(), weights, delays)
+            mask_local = numpy.array([t.local for t in targets], dtype=bool) # Could be a faster way to do this using numpy loops
+            local_targets = targets[mask_local]
+            if len(local_targets): 
+                projection._divergent_connect(src, local_targets.tolist(), weights[mask_local],
+                                              delays[mask_local])
             self.progression(count, projection._simulator.state.mpi_rank)
         
 
@@ -682,7 +781,7 @@ class FixedNumberPreConnector(Connector):
                      to the global minimum delay.
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
-        assert isinstance(allow_self_connections, bool)
+        #assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         if isinstance(n, int):
             self.n = n
@@ -698,6 +797,7 @@ class FixedNumberPreConnector(Connector):
         """Connect-up a Projection."""
         if self.delays is None:
             self.delays = projection._simulator.state.min_delay
+        prepare_sources   = hasattr(projection, '_prepare_sources')
         local             = numpy.ones(len(projection.pre), bool)
         weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
         delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)
@@ -708,14 +808,16 @@ class FixedNumberPreConnector(Connector):
         
         if isinstance(projection.rng, random.NativeRNG):
             raise Exception("Warning: use of NativeRNG not implemented.")
-            
-        for count, tgt in enumerate(projection.post.local_cells):
+        if prepare_sources:
+            targets = projection.post.all_cells
+        else: 
+            targets = projection.post.local_cells
+        for count, tgt in enumerate(targets):
             # pick n neurons at random
             if hasattr(self, 'rand_distr'):
                 n = self.rand_distr.next()
             else:
                 n = self.n
-            
             idx        = numpy.arange(size, dtype=numpy.int)
             if not self.allow_self_connections and projection.pre == projection.post:
                 i   = numpy.where(candidates == tgt)[0]
@@ -732,7 +834,10 @@ class FixedNumberPreConnector(Connector):
             delays  = delays_generator.get(n, distance_matrix, create)            
                                             
             for src, w, d in zip(sources, weights, delays):
-                projection._divergent_connect(src, tgt, w, d)
+                if prepare_sources and src.local:
+                    projection._prepare_sources(src, tgt, w, d)
+                if tgt.local:
+                    projection._divergent_connect(src, tgt, w, d)
             
             self.progression(count, projection._simulator.state.mpi_rank)
         
@@ -763,27 +868,48 @@ class OneToOneConnector(Connector):
         """Connect-up a Projection."""
         if self.delays is None:
             self.delays = projection._simulator.state.min_delay
-        if projection.pre.size == projection.post.size:
-            N                 = projection.post.size
-            local             = projection.post._mask_local
-            if isinstance(self.weights, basestring) or isinstance(self.delays, basestring):
-                raise Exception('Expression for weights or delays is not supported for OneToOneConnector !')
-            weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
-            delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)                
-            weights           = weights_generator.get(N)
-            delays            = delays_generator.get(N)
-            self.progressbar(len(projection.post.local_cells))                        
-            count             = 0            
-            create            = numpy.arange(N, dtype=numpy.int)[local]
-            sources           = projection.pre.all_cells[create] 
-                        
-            for tgt, src, w, d in zip(projection.post.local_cells, sources, weights, delays):
+        if projection.pre.size != projection.post.size:
+            raise errors.InvalidDimensionsError("OneToOneConnector does not support presynaptic "
+                                                "and postsynaptic Populations of different sizes "
+                                                "({} and {} resp.)."
+                                                .format(projection.pre.size, projection.post.size))
+        if isinstance(self.weights, basestring) or isinstance(self.delays, basestring):
+            raise Exception('Expression for weights or delays is not supported for OneToOneConnector !')            
+        prepare_sources = hasattr(projection, '_prepare_sources')            
+        progressbar_len   = len(projection.post.local_cells)
+        if prepare_sources:
+            progressbar_len   = len(projection.pre.local_cells)
+        self.progressbar(progressbar_len)
+        count = 0     
+        N                 = projection.post.size
+        if prepare_sources:
+            src_local             = projection.pre._mask_local
+            src_weights_generator = WeightGenerator(self.weights, src_local, projection, self.safe)
+            src_delays_generator  = DelayGenerator(self.delays, src_local, 
+                                                   kernel=projection._simulator.state, safe=self.safe)                
+            src_weights           = src_weights_generator.get(N)
+            src_delays            = src_delays_generator.get(N)
+            src_create            = numpy.arange(N, dtype=numpy.int)[src_local]
+            targets               = projection.post.all_cells[src_create] 
+            for src, tgt, w, d in zip(projection.pre.local_cells, targets, src_weights, src_delays):
                 # the float is in case the values are of type numpy.float64, which NEST chokes on
-                projection._divergent_connect(src, [tgt], [float(w)], [float(d)])
+                projection._prepare_sources(src, [tgt], [float(w)], [float(d)])
                 self.progression(count, projection._simulator.state.mpi_rank)
-                count += 1
-        else:
-            raise errors.InvalidDimensionsError("OneToOneConnector does not support presynaptic and postsynaptic Populations of different sizes.")
+                count += 1                                                
+        local             = projection.post._mask_local
+        weights_generator = WeightGenerator(self.weights, local, projection, self.safe)
+        delays_generator  = DelayGenerator(self.delays, local, kernel=projection._simulator.state, safe=self.safe)                
+        weights           = weights_generator.get(N)
+        delays            = delays_generator.get(N)
+        create            = numpy.arange(N, dtype=numpy.int)[local]
+        sources           = projection.pre.all_cells[create] 
+        for tgt, src, w, d in zip(projection.post.local_cells, sources, weights, delays):
+            # the float is in case the values are of type numpy.float64, which NEST chokes on
+            projection._divergent_connect(src, [tgt], [float(w)], [float(d)])
+            self.progression(count, projection._simulator.state.mpi_rank)
+            count += 1
+
+            
 
 
 class SmallWorldConnector(Connector):
@@ -797,7 +923,7 @@ class SmallWorldConnector(Connector):
         """
         Create a new connector.
         
-        `degree` -- the region lenght where nodes will be connected locally
+        `degree` -- the region length where nodes will be connected locally
         `rewiring` -- the probability of rewiring each eadges 
         `space` -- a Space object.
         `allow_self_connections` -- if the connector is used to connect a
@@ -813,13 +939,13 @@ class SmallWorldConnector(Connector):
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
         assert 0 <= rewiring <= 1
-        assert isinstance(allow_self_connections, bool)        
+        #assert isinstance(allow_self_connections, bool)        
         self.rewiring               = rewiring    
         self.d_expression           = "d < %g" %degree        
         self.allow_self_connections = allow_self_connections
         self.n_connections          = n_connections
         
-    def _smallworld_connect(self, src, p, n_connections=None):
+    def _smallworld_connect(self, src, p, n_connections=None, prepare_sources=False):
         """
         Connect-up a Projection with connection probability p, where p may be either
         a float 0<=p<=1, or a dict containing a float array for each pre-synaptic
@@ -862,12 +988,15 @@ class SmallWorldConnector(Connector):
         delays  = self.delays_generator.get(self.N, self.distance_matrix, create)      
                     
         if len(targets) > 0:
+            if prepare_sources:
+                self.projection._prepare_sources(src, targets.tolist(), weights, delays)
             self.projection._divergent_connect(src, targets.tolist(), weights, delays)
 
     def connect(self, projection):
         """Connect-up a Projection."""
         if self.delays is None:
             self.delays = projection._simulator.state.min_delay
+        prepare_sources        = hasattr(projection, '_prepare_sources')            
         local                  = numpy.ones(len(projection.post), bool)
         self.N                 = projection.post.size        
         if isinstance(projection.rng, random.NativeRNG):
@@ -886,9 +1015,8 @@ class SmallWorldConnector(Connector):
         for count, src in enumerate(projection.pre.all()):     
             self.distance_matrix.set_source(src.position)
             proba = proba_generator.get(self.N, self.distance_matrix).astype(float)
-            self._smallworld_connect(src, proba, self.n_connections)
+            self._smallworld_connect(src, proba, self.n_connections, prepare_sources)
             self.progression(count, projection._simulator.state.mpi_rank)
-
 
 class CSAConnector(Connector):
     parameter_names = ('cset',)
@@ -929,15 +1057,19 @@ class CSAConnector(Connector):
             self.delays = projection._simulator.state.min_delay
         # Cut out finite part
         c = csa.cross((0, projection.pre.size-1), (0, projection.post.size-1)) * self.cset
-        
+        prepare_sources = hasattr(projection, '_prepare_sources')
         if csa.arity(self.cset) == 2:
             # Connection-set with arity 2
             for (i, j, weight, delay) in c:
+                if prepare_sources:
+                    projection._prepare_sources(projection.pre[i], [projection.post[j]], weight, delay)
                 projection._divergent_connect(projection.pre[i], [projection.post[j]], weight, delay)
         elif CSAConnector.isConstant (self.weights) \
              and CSAConnector.isConstant (self.delays):
             # Mask with constant weights and delays
             for (i, j) in c:
+                if prepare_sources:
+                    projection._prepare_sources(projection.pre[i], [projection.post[j]], self.weights, self.delays)
                 projection._divergent_connect (projection.pre[i], [projection.post[j]], self.weights, self.delays)
         else:
             # Mask with weights and/or delays iterable
@@ -948,4 +1080,6 @@ class CSAConnector(Connector):
             if CSAConnector.isConstant (delays):
                 delays = CSAConnector.constantIterator (delays)
             for (i, j), weight, delay in zip (c, weights, delays):
+                if prepare_sources:
+                    projection._prepare_sources(projection.pre[i], [projection.post[j]], weight, delay)                
                 projection._divergent_connect (projection.pre[i], [projection.post[j]], weight, delay)

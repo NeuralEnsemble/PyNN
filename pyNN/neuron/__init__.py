@@ -253,9 +253,9 @@ class Projection(common.Projection):
         # Check none of the delays are out of bounds. This should be redundant,
         # as this should already have been done in the Connector object, so
         # we could probably remove it.
-        delays = [c.nc.delay for c in self.connections]
-        if delays:
-            assert min(delays) >= get_min_delay()
+#        delays = [c.nc.delay for c in self.connections]
+#        if delays:
+#            assert min(delays) >= get_min_delay()
         
         Projection.nProj += 1           
     
@@ -442,6 +442,142 @@ class Projection(common.Projection):
             raise Exception("format must be 'list' or 'array'")
         return values
     
+
+class GapJunctionProjection(Projection):
+
+    def __init__(self, pre, dest, connector, source_secname=None, target_secname=None):
+        """
+        ` rectified [bool]: Whether the gap junction is rectified (only one direction)
+        """
+        ## Start of unique variable-GID range assigned for this projection (ends at gid_count + pre.size * dest.size * 2)
+        self.vargid_start = simulator.state.vargid_counter
+        simulator.state.vargid_counter += pre.size * dest.size * 2
+        self._connections_dict = {}
+        self.source_secname = source_secname if source_secname else 'source_section'
+        self.target_secname = target_secname if target_secname else 'source_section'
+        Projection.__init__(self, pre, dest, connector, None, None)
+
+    def _divergent_connect(self, source, targets, weights, delays=None): #@UnusedVariable
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `source` -- the ID of the pre-synaptic cell [common.IDmixin].
+        `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID [list(common.IDmixin)].
+        `weights` -- Connection weight(s). Must have the same length as "targets" [list(float) or float].
+        `delays` -- This is actually ignored but only included to match the same signature as the Population._divergent_connect method
+        """
+        if not isinstance(source, int) or source > simulator.state.gid_counter or source < 0:
+            errmsg = "Invalid source ID: {} (gid_counter={})".format(source,
+                                                                     simulator.state.gid_counter)
+            raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(targets):
+            targets = [targets]
+        if isinstance(weights, float):
+            weights = [weights]
+        assert len(targets) > 0
+        for target in targets:
+            if not isinstance(target, common.IDMixin):
+                raise errors.ConnectionError("Invalid target ID: {}".format(target))
+        assert len(targets) == len(weights), "{} {}".format(len(targets), len(weights))
+        # Rename "synapse_type" member that has been repurposed slightly to be the name of the 
+        # segment to connect to.
+        vargid_offset = self.pre.id_to_index(source) * len(self.post) * 2 + self.vargid_start
+        for target, weight in zip(targets, weights):
+            # "variable" GIDs (as distinct from the GIDs used for cells) for both the pre to post  
+            # connection the post to pre            
+            pre_post_vargid = vargid_offset + self.post.id_to_index(target) * 2
+            post_pre_vargid = pre_post_vargid + 1
+            # Get the segment on target cell the gap junction connects to
+            section = getattr(target._cell, self.target_secname)
+            # Connect the pre cell voltage to the target var
+            logger.info("Setting source_var on target cell {} to connect to source cell {} with "
+                        "vargid {} on process {}"
+                        .format(target, source, post_pre_vargid, simulator.state.mpi_rank))         
+            simulator.state.parallel_context.source_var(section(0.5)._ref_v, post_pre_vargid) #@UndefinedVariableFromImport              
+            # Create the gap_junction and set its weight
+            gap_junction = h.Gap(0.5, sec=section)
+            gap_junction.g = weight
+            # Connect the gap junction with the source_var
+            logger.info("Setting target_var on target cell {} to connect to source cell {} with "
+                        "vargid {} on process {}"
+                        .format(target, source, pre_post_vargid, simulator.state.mpi_rank))        
+            simulator.state.parallel_context.target_var(gap_junction._ref_vgap, pre_post_vargid) #@UndefinedVariableFromImport
+            # Add target gap mechanism to the dictionary holding the connections so that its 
+            # conductance can be changed after construction.
+            try:
+                self._connections_dict[(source, target)].target_gap = gap_junction
+            except KeyError: #If source does not exist on the local node
+                self._connections_dict[(source, target)] = simulator.GapJunctionConnection(
+                                                               source, target, None, gap_junction)                        
+
+    def _prepare_sources(self, source, targets, weights, delays=None): #@UnusedVariable
+        """
+        Connect a neuron to one or more other neurons with a static connection.
+        
+        `source` -- the ID of the pre-synaptic cell [common.IDmixin].
+        `targets` -- a list/1D array of post-synaptic cell IDs, or a single ID [list(common.IDmixin)].
+        `weights` -- Connection weight(s). Must have the same length as `targets` [list(float) or float].
+        `delays` -- This is actually ignored but only included to match the same signature as the _divergent_connect method
+        """
+        if not source.local:
+            raise Exception("source needs to be local for _divergent_sources")
+        if not isinstance(source, int) or source > simulator.state.gid_counter or source < 0:
+            errmsg = "Invalid source ID: {} (gid_counter={})".format(source,
+                                                                     simulator.state.gid_counter)
+            raise errors.ConnectionError(errmsg)
+        if not core.is_listlike(targets):
+            targets = [targets]
+        if isinstance(weights, float):
+            weights = [weights]
+        assert len(targets) > 0
+        for target in targets:
+            if not isinstance(target, common.IDMixin):
+                raise errors.ConnectionError("Invalid target ID: {}".format(target))
+        assert len(targets) == len(weights), "{} {}".format(len(targets), len(weights))
+        # Get the section on the pre cell that the gap junction is connected to
+        section = getattr(source._cell, self.source_secname)
+        vargid_offset = self.pre.id_to_index(source) * len(self.post) * 2 + self.vargid_start
+        for target, weight in zip(targets, weights):
+            # "variable" GIDs (as distinct from the GIDs used for cells) for both the pre to post  
+            # connection the post to pre
+            pre_post_vargid = vargid_offset + self.post.id_to_index(target) * 2
+            post_pre_vargid = pre_post_vargid + 1
+            # Connect the pre cell voltage to the target var
+            logger.info("Setting source_var on source cell {} to connect to target cell {} with "
+                        "vargid {} on process {}"
+                        .format(source, target, pre_post_vargid, simulator.state.mpi_rank))
+            simulator.state.parallel_context.source_var(section(0.5)._ref_v, pre_post_vargid) #@UndefinedVariableFromImport                    
+            # Create the gap_junction and set its weight
+            gap_junction = h.Gap(0.5, sec=section)
+            gap_junction.g = weight
+            # Connect the gap junction with the source_var
+            logger.info("Setting target_var on source cell {} to connect to target cell {} with "
+                        "vargid {} on process {}"
+                        .format(source, target, post_pre_vargid, simulator.state.mpi_rank))            
+            simulator.state.parallel_context.target_var(gap_junction._ref_vgap, post_pre_vargid) #@UndefinedVariableFromImport              
+            # Store mechanism so that its conductance can be changed after construction
+            self._connections_dict[(source, target)] = simulator.GapJunctionConnection(
+                                                               source, target, gap_junction)
+
+    def __getitem__(self, i):
+        return Projection.__getitem__(self, i)
+    
+    def __len__(self):
+        return Projection.__len__(self)
+
+    def _convergent_connect(self, sources, target, weights, delays):
+        raise NotImplementedError    
+
+    def _get_connections(self):
+        return self._connections_dict.values()
+    
+    def _set_connections(self, c):
+        if len(c):
+            raise Exception("Can only initialise connections of GapJunctionProjection to an empty "
+                            "list")
+        self._connections_dict.clear()
+    
+    connections = property(_get_connections, _set_connections)
 
 Space = space.Space
 
