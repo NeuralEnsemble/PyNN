@@ -90,7 +90,7 @@ connections_list = [(0, 9, 3.0, 0.0),
 gap3 = sim.GapJunctionProjection(source, target3, sim.FromListConnector(connections_list))
 gap4 = sim.GapJunctionProjection(source, target4, sim.FixedNumberPostConnector(3))
 gap5 = sim.GapJunctionProjection(source, target5, sim.FixedNumberPreConnector(4))
-#gap6 = sim.GapJunctionProjection(source, target6, sim.SmallWorldConnector(1, 0.5))
+#gap6 = sim.GapJunctionProjection(source, target6, sim.SmallWorldConnector(1, 0.5)) # This actually works on a single node but not over MPI
 #gap7 = sim.GapJunctionProjection(source, target7, sim.CSAConnector())
 gap1.set('weight', 1.0)
 gap2.set('weight', 2.0)

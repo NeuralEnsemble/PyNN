@@ -151,6 +151,7 @@ class _State(object):
         h('objref plastic_connections')
         self.clear()
         self.default_maxstep=10.0
+        # Used to connect variables across MPI nodes (such as gap junctions)
         self.vargid_counter = 0
     
     t = h_property('t')

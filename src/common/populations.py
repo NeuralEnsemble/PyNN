@@ -650,7 +650,7 @@ class Population(BasePopulation):
     @property
     def local_cells(self):
         return self.all_cells[self._mask_local]
-    
+
     def id_to_index(self, id):
         """
         Given the ID(s) of cell(s) in the Population, return its (their) index

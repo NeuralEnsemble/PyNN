@@ -250,13 +250,6 @@ class Projection(common.Projection):
             for c in self.connections:
                 c.useSTDP(long_term_plasticity_mechanism, stdp_parameters, ddf)
         
-        # Check none of the delays are out of bounds. This should be redundant,
-        # as this should already have been done in the Connector object, so
-        # we could probably remove it.
-#        delays = [c.nc.delay for c in self.connections]
-#        if delays:
-#            assert min(delays) >= get_min_delay()
-        
         Projection.nProj += 1           
     
     def __getitem__(self, i):
@@ -451,7 +444,15 @@ class GapJunctionProjection(Projection):
         """
         ## Start of unique variable-GID range assigned for this projection (ends at gid_count + pre.size * dest.size * 2)
         self.vargid_start = simulator.state.vargid_counter
+        # Allocate a range of vargid's for this projection that allows all pre-synaptic cells 
+        # to be connected to all post-synaptic cells once. This seems a reasonable to me but 
+        # looking at the code the for FixedNumberPostConnector this may not be true in all cases.
+        # Any thoughts on how to be more general about this? We could probably use just really big 
+        # intervals between projections
         simulator.state.vargid_counter += pre.size * dest.size * 2
+        # Stores the connection objects (simulator.GapJunctionConnection) in a dictionary rather than 
+        # a list as it is in the Projection class so they can be more easily accessed on the
+        # target side.
         self._connections_dict = {}
         self.source_secname = source_secname if source_secname else 'source_section'
         self.target_secname = target_secname if target_secname else 'source_section'
@@ -479,11 +480,9 @@ class GapJunctionProjection(Projection):
             if not isinstance(target, common.IDMixin):
                 raise errors.ConnectionError("Invalid target ID: {}".format(target))
         assert len(targets) == len(weights), "{} {}".format(len(targets), len(weights))
-        # Rename "synapse_type" member that has been repurposed slightly to be the name of the 
-        # segment to connect to.
         vargid_offset = self.pre.id_to_index(source) * len(self.post) * 2 + self.vargid_start
         for target, weight in zip(targets, weights):
-            # "variable" GIDs (as distinct from the GIDs used for cells) for both the pre to post  
+            # Get the variable-GIDs (as distinct from the GIDs used for cells) for both the pre to post  
             # connection the post to pre            
             pre_post_vargid = vargid_offset + self.post.id_to_index(target) * 2
             post_pre_vargid = pre_post_vargid + 1
@@ -538,7 +537,7 @@ class GapJunctionProjection(Projection):
         section = getattr(source._cell, self.source_secname)
         vargid_offset = self.pre.id_to_index(source) * len(self.post) * 2 + self.vargid_start
         for target, weight in zip(targets, weights):
-            # "variable" GIDs (as distinct from the GIDs used for cells) for both the pre to post  
+            # Get the variable-GIDs (as distinct from the GIDs used for cells) for both the pre to post  
             # connection the post to pre
             pre_post_vargid = vargid_offset + self.post.id_to_index(target) * 2
             post_pre_vargid = pre_post_vargid + 1
@@ -559,19 +558,21 @@ class GapJunctionProjection(Projection):
             self._connections_dict[(source, target)] = simulator.GapJunctionConnection(
                                                                source, target, gap_junction)
 
-    def __getitem__(self, i):
-        return Projection.__getitem__(self, i)
-    
-    def __len__(self):
-        return Projection.__len__(self)
-
     def _convergent_connect(self, sources, target, weights, delays):
         raise NotImplementedError    
 
     def _get_connections(self):
+        """
+        Used to make the connections_dict act like a list so it can be used in Projection
+        class functions.
+        """
         return self._connections_dict.values()
     
     def _set_connections(self, c):
+        """
+        Only allows the dictionary, which pretends to be a list to be set to the empty list.
+        Feels a little hackish.
+        """
         if len(c):
             raise Exception("Can only initialise connections of GapJunctionProjection to an empty "
                             "list")

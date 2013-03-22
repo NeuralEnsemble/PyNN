@@ -291,9 +291,9 @@ class ProbabilisticConnector(Connector):
         self.local             = projection.post._mask_local
         self.N                 = projection.post.size
         self.weights_generator = WeightGenerator(weights, self.local, projection, safe)
-        self.delays_generator = DelayGenerator(self.delays, self.local, kernel=projection._simulator.state, safe=safe)
-        self.probas_generator = ProbaGenerator(RandomDistribution('uniform', (0, 1), rng=self.rng), self.local)
-        self._distance_matrix = None
+        self.delays_generator  = DelayGenerator(self.delays, self.local, kernel=projection._simulator.state, safe=safe)
+        self.probas_generator  = ProbaGenerator(RandomDistribution('uniform', (0, 1), rng=self.rng), self.local)
+        self._distance_matrix  = None
         # The projection requires the source cells to be prepared as well as the target cells (i.e.
         # gap junctions) we need to store the unmasked probas, weights, and delays matrices as well
         self.prepare_sources = hasattr(projection, '_prepare_sources')
@@ -308,18 +308,31 @@ class ProbabilisticConnector(Connector):
                                                         self.full_mask)
             self._full_distance_matrix = None
             self.full_candidates = projection.post.all_cells        
-        self.projection = projection
-        self.candidates = projection.post.local_cells
-        self.size = self.local.sum()
+        self.projection        = projection
+        self.candidates        = projection.post.local_cells
+        self.size              = self.local.sum()
         self.allow_self_connections = allow_self_connections
 
     def _get_size(self, src):
+        """
+        Checks to see if sources need to be prepared and the current source is local,
+        in which case the full size is required
+        
+        `src` -- the ID of the source cell
+        """
         if self.prepare_sources and src.local:
             return self.N
         else:
             return self.size
 
     def _get_delays(self, src, create):
+        """
+        Checks to see if sources need to be prepared and the current source is local,
+        in which case the full list of delays is required
+        
+        `src`    -- the ID of the source cell
+        `create` -- the connections to be created
+        """
         if self.prepare_sources and src.local:
             delays = self.full_delays_generator.get(self.N, self.full_distance_matrix, create)
         else:
@@ -327,6 +340,13 @@ class ProbabilisticConnector(Connector):
         return delays
 
     def _get_weights(self, src, create):
+        """
+        Checks to see if sources need to be prepared and the current source is local,
+        in which case the full list of weights is required
+        
+        `src`    -- the ID of the source cell
+        `create` -- the connections to be created
+        """        
         if self.prepare_sources and src.local:
             weights = self.full_weights_generator.get(self.N, self.full_distance_matrix, create)
         else:
@@ -334,6 +354,12 @@ class ProbabilisticConnector(Connector):
         return weights
 
     def _get_probas(self, src):
+        """
+        Checks to see if sources need to be prepared and the current source is local,
+        in which case the full list of probabilities is required
+        
+        `src`    -- the ID of the source cell
+        """
         if self.prepare_sources and src.local:
             rarr = self.full_probas_generator.get(self.N)
         else:
@@ -341,12 +367,24 @@ class ProbabilisticConnector(Connector):
         return rarr
 
     def _set_distance_matrix(self, src):
+        """
+        Checks to see if sources need to be prepared and the current source is local,
+        in which case the full distance matrix is required
+        
+        `src`    -- the ID of the source cell
+        """        
         if self.prepare_sources and src.local:
             self.full_distance_matrix.set_source(src.position)
         else:
             self.distance_matrix.set_source(src.position)
             
     def _get_candidates(self, src):
+        """
+        Checks to see if sources need to be prepared and the current source is local,
+        in which case the full list of candidates is required
+        
+        `src`    -- the ID of the source cell
+        """        
         if self.prepare_sources and src.local:
             candidates = self.full_candidates
         else:
@@ -366,8 +404,7 @@ class ProbabilisticConnector(Connector):
     @property
     def full_distance_matrix(self):
         """
-        We want to avoid calculating positions if it is not necessary, so we
-        delay it until the distance matrix is actually used.
+        Identical to distance_matrix except it doesn't mask the distance matrix by the local cells
         """
         if self._full_distance_matrix is None:
             self._full_distance_matrix = DistanceMatrix(self.projection.post.positions, self.space,
@@ -399,7 +436,7 @@ class ProbabilisticConnector(Connector):
                 idx_del = numpy.where(self._get_candidates(src) <= src)
             if len(idx_del) > 0:
                 precreate = numpy.delete(precreate, idx_del)
-        if (n_connections is not None) and (len(precreate) > 0):
+        if (n_connections is not None) and (len(precreate) > 0):            
             create = numpy.array([], dtype=numpy.int)
             while len(create) < n_connections: # if the number of requested cells is larger than the size of the
                                                ## presynaptic population, we allow multiple connections for a given cell
@@ -452,7 +489,6 @@ class AllToAllConnector(Connector):
                    dependent weights or delays
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
-        #assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         
     def connect(self, projection):
@@ -490,7 +526,6 @@ class FixedProbabilityConnector(Connector):
                    dependent weights or delays
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
-        #assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
         assert 0 <= self.p_connect
@@ -537,13 +572,12 @@ class DistanceDependentProbabilityConnector(Connector):
         except ZeroDivisionError, err:
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
-        #assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         self.n_connections          = n_connections        
         
     def connect(self, projection):
         """Connect-up a Projection."""
-        connector = self.ProbConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
+        connector       = self.ProbConnector(projection, self.weights, self.delays, self.allow_self_connections, self.space, safe=self.safe)
         proba_generator = ProbaGenerator(self.d_expression, connector.local)
         # Used when source cells also need to be prepared (i.e. Gap junctions)
         if connector.prepare_sources:
@@ -551,7 +585,7 @@ class DistanceDependentProbabilityConnector(Connector):
         self.progressbar(len(projection.pre))
         if (projection._simulator.state.num_processes > 1) and (self.n_connections is not None):
             raise Exception("n_connections not implemented yet for this connector in parallel !")
-        for count, src in enumerate(projection.pre.all()):
+        for count, src in enumerate(projection.pre.all()):     
             connector._set_distance_matrix(src)
             # If source cells also need to be prepared (i.e. Gap junctions), the full connection
             # matrix is required when the source is local
@@ -588,16 +622,15 @@ class FromListConnector(Connector):
         
     def connect(self, projection):
         """Connect-up a Projection."""
+        # Check whether we need to prepare the source cells (i.e. gap junctions)
         prepare_sources   = hasattr(projection, '_prepare_sources')
         idx     = numpy.argsort(self.conn_list[:, 0])
         self.sources    = numpy.unique(self.conn_list[:,0]).astype(numpy.int)
-#        self.candidates = projection.post.local_cells
         self.conn_list  = self.conn_list[idx]
         self.progressbar(len(self.sources))        
         count = 0
         left  = numpy.searchsorted(self.conn_list[:,0], self.sources, 'left')
         right = numpy.searchsorted(self.conn_list[:,0], self.sources, 'right')
-        #tests = "|".join(['(tgts == %d)' %id for id in self.candidates])
         for src, l, r in zip(self.sources, left, right):
             targets = self.conn_list[l:r, 1].astype(numpy.int)
             weights = self.conn_list[l:r, 2]
@@ -610,12 +643,9 @@ class FromListConnector(Connector):
                 tgts    = projection.post.all_cells[targets]
             except IndexError:
                 raise errors.ConnectionError("invalid target index or indices")
-            ## We need to exclude the non local cells. Fastidious, need maybe
-            ## to use a convergent_connect method, instead of a divergent_connect one
-            #idx     = eval(tests)
-            #projection._divergent_connect(src, tgts[idx].tolist(), weights[idx], delays[idx])
             if prepare_sources and src.local:
                 projection._prepare_sources(src, tgts.tolist(), weights)
+            # Get the targets on the local node
             mask_local = projection.post._mask_local[targets]
             local_tgts = projection.post.all_cells[targets[mask_local]]
             if len(local_tgts):
@@ -689,7 +719,6 @@ class FixedNumberPostConnector(Connector):
                      to the global minimum delay.
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
-        #assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
         if isinstance(n, int):
             self.n = n
@@ -875,6 +904,7 @@ class OneToOneConnector(Connector):
                                                 .format(projection.pre.size, projection.post.size))
         if isinstance(self.weights, basestring) or isinstance(self.delays, basestring):
             raise Exception('Expression for weights or delays is not supported for OneToOneConnector !')            
+        # Check whether we need to prepare the source cells (i.e. gap junctions)
         prepare_sources = hasattr(projection, '_prepare_sources')            
         progressbar_len   = len(projection.post.local_cells)
         if prepare_sources:
@@ -939,7 +969,6 @@ class SmallWorldConnector(Connector):
         """
         Connector.__init__(self, weights, delays, space, safe, verbose)
         assert 0 <= rewiring <= 1
-        #assert isinstance(allow_self_connections, bool)        
         self.rewiring               = rewiring    
         self.d_expression           = "d < %g" %degree        
         self.allow_self_connections = allow_self_connections
@@ -996,6 +1025,7 @@ class SmallWorldConnector(Connector):
         """Connect-up a Projection."""
         if self.delays is None:
             self.delays = projection._simulator.state.min_delay
+        # Check whether we need to prepare the source cells (i.e. gap junctions)
         prepare_sources        = hasattr(projection, '_prepare_sources')            
         local                  = numpy.ones(len(projection.post), bool)
         self.N                 = projection.post.size        
@@ -1057,6 +1087,7 @@ class CSAConnector(Connector):
             self.delays = projection._simulator.state.min_delay
         # Cut out finite part
         c = csa.cross((0, projection.pre.size-1), (0, projection.post.size-1)) * self.cset
+        # Check whether we need to prepare the source cells (i.e. gap junctions)
         prepare_sources = hasattr(projection, '_prepare_sources')
         if csa.arity(self.cset) == 2:
             # Connection-set with arity 2
