@@ -78,12 +78,13 @@ class _State(common.control.BaseState):
         return nest.GetDefaults('static_synapse')['min_delay']
 
     def set_delays(self, min_delay, max_delay):
-        min_delay = float(min_delay)
-        max_delay = float(max_delay)
-        for synapse_model in nest.Models(mtype='synapses'):
-            nest.SetDefaults(synapse_model, {'delay'    : min_delay,
-                                             'min_delay': min_delay,
-                                             'max_delay': max_delay})
+        if min_delay != 'auto': 
+            min_delay = float(min_delay)
+            max_delay = float(max_delay)
+            for synapse_model in nest.Models(mtype='synapses'):
+                nest.SetDefaults(synapse_model, {'delay'    : min_delay,
+                                                 'min_delay': min_delay,
+                                                 'max_delay': max_delay})
 
     @property
     def max_delay(self):
@@ -120,6 +121,7 @@ class _State(common.control.BaseState):
         for device in self.recording_devices:
             if not device._connected:
                 device.connect_to_cells()
+                device._local_files_merged = False
         if not self.running:
             simtime += self.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
             self.running = True

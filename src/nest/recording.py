@@ -260,6 +260,7 @@ class Multimeter(RecordingDevice):
 #        # what if the method is called with different values of
 #        # `compatible_output`? Need to cache these separately.
 #        if self._local_files_merged:
+#            logger.debug("Loading merged data from cache")
 #            self._merged_file.seek(0)
 #            data = numpy.load(self._merged_file)
 #        else:
@@ -271,8 +272,11 @@ class Multimeter(RecordingDevice):
 #            # possibly we can just keep on saving to the end of self._merged_file, instead of concatenating everything in memory
 #            logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
 #            non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
-#            if len(non_empty_nest_files) > 0:
-#                data = numpy.concatenate([numpy.loadtxt(nest_file, dtype=float) for nest_file in non_empty_nest_files])
+#            if len(non_empty_nest_files) > 0: 
+#                data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files] 
+#                data_list = [numpy.atleast_2d(numpy.loadtxt(nest_file)) 
+#                             for nest_file in non_empty_nest_files] 
+#                data = numpy.concatenate(data_list) 
 #            if len(non_empty_nest_files) == 0 or data.size == 0:
 #                if self.type is "spike_detector":
 #                    ncol = 2
@@ -284,7 +288,7 @@ class Multimeter(RecordingDevice):
 #                data = self.add_initial_values(data)
 #            self._merged_file = tempfile.TemporaryFile()
 #            numpy.save(self._merged_file, data)
-#            self._local_files_merged = True
+#            self._local_files_merged = True  # this is set back to False by run() 
 #        return data
 #
 #    def read_data(self, gather, compatible_output, always_local=False):

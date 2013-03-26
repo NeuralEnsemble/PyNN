@@ -81,3 +81,32 @@ def test_native_stdp_model():
 
     prj = nest.Projection(p2, p1, connector, receptor_type='excitatory',
                           synapse_type=stdp)
+
+
+def test_ticket244():
+    nest = pyNN.nest
+    nest.setup(threads=4)
+    p1 = nest.Population(4, nest.IF_curr_exp())
+    p1.record('spikes')
+    poisson_generator = nest.Population(3, nest.SpikeSourcePoisson(rate=1000.0))
+    conn = nest.OneToOneConnector()
+    syn = nest.StaticSynapse(weight=1.0)
+    nest.Projection(poisson_generator, p1.sample(3), conn, syn, receptor_type="excitatory")
+    nest.run(15)
+    p1.get_data()
+
+
+def test_ticket236():
+    """Calling get_spike_counts() in the middle of a run should not stop spike recording"""
+    pynnn = pyNN.nest
+    pynnn.setup()
+    p1 = pynnn.Population(2, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
+    p1.record('spikes', to_file=False)
+    src = pynnn.DCSource(amplitude=70)
+    src.inject_into(p1[:])
+    pynnn.run(50)
+    s1 = p1.get_spike_counts() # as expected, {1: 124, 2: 124}
+    pynnn.run(50)
+    s2 = p1.get_spike_counts() # unexpectedly, still {1: 124, 2: 124}
+    assert s1[p1[0]] < s2[p1[0]]
+

@@ -68,7 +68,7 @@ def savez(file, *args, **kwds):
     for key, val in namedict.iteritems():
         fname = key + '.npy'
         filename = os.path.join(direc, fname)
-        fid = open(filename,'wb')
+        fid = open(filename, 'wb')
         format.write_array(fid, numpy.asanyarray(val))
         fid.close()
         zip.write(filename, arcname=fname)
@@ -194,7 +194,7 @@ class NumpyBinaryFile(BaseFile):
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
         self._check_open()
-        metadata_array = numpy.array(metadata.items())
+        metadata_array = numpy.array(metadata.items(), dtype=(str, float))
         savez(self.fileobj, data=data, metadata=metadata_array)
 
     def read(self):
