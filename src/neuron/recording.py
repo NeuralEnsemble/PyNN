@@ -71,6 +71,16 @@ class Recorder(recording.Recorder):
         id._cell.recording_time == 0
         id._cell.record_times = None
 
+    def _clear_simulator(self):
+        """
+        Should remove all recorded data held by the simulator and, ideally,
+        free up the memory.
+        """
+        for id in set.union(*self.recorded.values()):
+            for variable in id._cell.traces:
+                id._cell.traces[variable] = h.Vector(0)
+            id._cell.spike_times = h.Vector(0)
+
     @staticmethod
     def find_units(variable):
         if variable in recording.UNITS_MAP:

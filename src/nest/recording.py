@@ -60,8 +60,17 @@ class RecordingDevice(object):
         for id in desired_ids:
             data[id] = values[ids==id]
             if variable != 'times':
-                initial_value = id.get_initial_value(variable)
+                # NEST does not record values at the zeroth time step, so we
+                # add them here.
+                if variable not in self._initial_values:
+                    self._initial_values[variable] = {}
+                initial_value = self._initial_values[variable].get(id,
+                                                                   id.get_initial_value(variable))
                 data[id] = numpy.concatenate(([initial_value], data[id]))
+                # if `get_data()` is called in the middle of a simulation, the
+                # value at the last time point will become the initial value for
+                # the next time `get_data()` is called
+                self._initial_values[variable][id] = data[id][-1]
         return data
 
 
@@ -109,6 +118,7 @@ class Multimeter(RecordingDevice):
         device_parameters = {
             "interval": simulator.state.dt,
         }
+        self._initial_values = {}
         super(Multimeter, self).__init__(device_parameters, to_memory)
 
     def connect_to_cells(self):
@@ -426,3 +436,17 @@ class Recorder(recording.Recorder):
         #        N[id] = r-l
         #return N
         return self._spike_detector.get_spike_counts(self.filter_recorded('spikes', filter_ids))
+
+    def _clear_simulator(self):
+        """
+        Should remove all recorded data held by the simulator and, ideally,
+        free up the memory.
+        """
+        nest.SetStatus(self._spike_detector.device, 'n_events', 0)
+        nest.SetStatus(self._multimeter.device, 'n_events', 0)
+        
+    def store_to_cache(self, annotations={}):
+        # we over-ride the implementation from the parent class so as to
+        # do some reinitialisation.
+        recording.Recorder.store_to_cache(annotations)
+        self._multimeter._initial_values = {}

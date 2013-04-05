@@ -188,6 +188,7 @@ class Recorder(object):
         self.cache = DataCache()
         self._simulator.state.recorders.add(self)
         self.clear_flag = False
+        self._recording_start_time = self._simulator.state.t * pq.ms
 
     def record(self, variables, ids):
         """
@@ -222,9 +223,10 @@ class Recorder(object):
             variables_to_include = variables_to_include.intersection(set(variables))
         for variable in variables_to_include:
             if variable == 'spikes':
-                t_stop = self._simulator.state.t*pq.ms # must run on all MPI nodes
+                t_stop = self._simulator.state.t * pq.ms # must run on all MPI nodes
                 segment.spiketrains = [
                     neo.SpikeTrain(self._get_spiketimes(id),
+                                   t_start=self._recording_start_time,
                                    t_stop=t_stop,
                                    units='ms',
                                    source_population=self.population.label,
@@ -233,7 +235,7 @@ class Recorder(object):
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids)
-                t_start = self._simulator.state.t_start*pq.ms
+                t_start = self._recording_start_time
                 sampling_period = self._simulator.state.dt*pq.ms # must run on all MPI nodes
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     channel_indices = numpy.array([self.population.id_to_index(id) for id in ids])
@@ -269,9 +271,17 @@ class Recorder(object):
         if gather and self._simulator.state.num_processes > 1:
             data = gather_blocks(data)
         if clear:
-            self.cache.clear()
-        self.clear_flag = True
+            self.clear()
         return data
+
+    def clear(self):
+        """
+        Clear all recorded data, both from the cache and the simulator.
+        """
+        self.cache.clear()
+        self.clear_flag = True
+        self._recording_start_time = self._simulator.state.t * pq.ms
+        self._clear_simulator()
 
     def write(self, variables, file=None, gather=False, filter_ids=None, clear=False):
         """Write recorded data to a Neo IO"""
@@ -316,10 +326,11 @@ class Recorder(object):
         return N
 
     def store_to_cache(self, annotations={}):
-        #make sure we haven't called get with clear=True since last reset
-        #and that we did not do two resets in a row
+        # make sure we haven't called get with clear=True since last reset
+        # and that we did not do two resets in a row
         if (self._simulator.state.t != 0) and (not self.clear_flag):
             segment = self._get_current_segment()
             segment.annotate(**annotations)
             self.cache.store(segment)
         self.clear_flag = False
+        self._recording_start_time = 0.0 * pq.ms

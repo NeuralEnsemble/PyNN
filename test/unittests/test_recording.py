@@ -42,6 +42,7 @@ class MockState(object):
         self.dt = 0.123
         self.running = True
         self.recorders = set([])
+        self.t = 0.0
 class MockSimulator(object):
     def __init__(self, mpi_rank):
         self.state = MockState(mpi_rank)
