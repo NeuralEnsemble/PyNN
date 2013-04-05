@@ -183,26 +183,26 @@ class TestState(unittest.TestCase):
         self.assertEqual(h.steps_per_ms, 100.0)
         self.assertEqual(simulator.state.dt, 0.01)
 
-    def test_reset(self):
-        simulator.state.running = True
-        simulator.state.t = 17
-        simulator.state.tstop = 123
-        init = simulator.initializer
-        orig_initialize = init._initialize
-        init._initialize = Mock()
-        simulator.state.reset()
-        self.assertEqual(simulator.state.running, False)
-        self.assertEqual(simulator.state.t, 0.0)
-        self.assertEqual(simulator.state.tstop, 0.0)
-        init._initialize.assert_called()
-        init._initialize = orig_initialize
+    #def test_reset(self):
+    #    simulator.state.running = True
+    #    simulator.state.t = 17
+    #    simulator.state.tstop = 123
+    #    init = simulator.initializer
+    #    orig_initialize = init._initialize
+    #    init._initialize = Mock()
+    #    simulator.state.reset()
+    #    self.assertEqual(simulator.state.running, False)
+    #    self.assertEqual(simulator.state.t, 0.0)
+    #    self.assertEqual(simulator.state.tstop, 0.0)
+    #    init._initialize.assert_called()
+    #    init._initialize = orig_initialize
 
-    def test_run(self):
-        simulator.state.reset()
-        simulator.state.run(12.3)
-        self.assertAlmostEqual(h.t, 12.3, places=11)
-        simulator.state.run(7.7)
-        self.assertAlmostEqual(h.t, 20.0, places=11)
+    #def test_run(self):
+    #    simulator.state.reset()
+    #    simulator.state.run(12.3)
+    #    self.assertAlmostEqual(h.t, 12.3, places=11)
+    #    simulator.state.run(7.7)
+    #    self.assertAlmostEqual(h.t, 20.0, places=11)
 
     def test_finalize(self):
         orig_pc = simulator.state.parallel_context

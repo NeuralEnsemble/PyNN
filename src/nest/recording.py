@@ -46,7 +46,7 @@ class RecordingDevice(object):
         assert not self._connected
         self._all_ids = self._all_ids.union(new_ids)
 
-    def get_data(self, variable, desired_ids):
+    def get_data(self, variable, desired_ids, clear=False):
         """
         Return recorded data as a dictionary containing one numpy array for
         each neuron, ids as keys.
@@ -70,7 +70,8 @@ class RecordingDevice(object):
                 # if `get_data()` is called in the middle of a simulation, the
                 # value at the last time point will become the initial value for
                 # the next time `get_data()` is called
-                self._initial_values[variable][id] = data[id][-1]
+                if clear:
+                    self._initial_values[variable][id] = data[id][-1]
         return data
 
 
@@ -412,8 +413,8 @@ class Recorder(recording.Recorder):
     def _get_spiketimes(self, id):
         return self._spike_detector.get_spiketimes([id])[id] # hugely inefficient - to be optimized later
 
-    def _get_all_signals(self, variable, ids):
-        return numpy.vstack(self._multimeter.get_data(variable, ids).values()).T
+    def _get_all_signals(self, variable, ids, clear=False):
+        return numpy.vstack(self._multimeter.get_data(variable, ids, clear=clear).values()).T
 
     def _local_count(self, variable, filter_ids):
         assert variable == 'spikes'
@@ -448,5 +449,5 @@ class Recorder(recording.Recorder):
     def store_to_cache(self, annotations={}):
         # we over-ride the implementation from the parent class so as to
         # do some reinitialisation.
-        recording.Recorder.store_to_cache(annotations)
+        recording.Recorder.store_to_cache(self, annotations)
         self._multimeter._initial_values = {}

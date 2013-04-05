@@ -65,6 +65,7 @@ class Recorder(recording.Recorder):
             raise AttributeError("Recording of %s not implemented." % variable_path)
 
     def _reset(self):
+        """Reset the list of things to be recorded."""
         for id in set.union(*self.recorded.values()):
             id._cell.traces = {}
             id._cell.spike_times = h.Vector(0)
@@ -78,8 +79,8 @@ class Recorder(recording.Recorder):
         """
         for id in set.union(*self.recorded.values()):
             for variable in id._cell.traces:
-                id._cell.traces[variable] = h.Vector(0)
-            id._cell.spike_times = h.Vector(0)
+                id._cell.traces[variable].resize(0)
+            id._cell.spike_times.resize(0)
 
     @staticmethod
     def find_units(variable):
@@ -95,7 +96,7 @@ class Recorder(recording.Recorder):
         spikes = numpy.array(id._cell.spike_times)
         return spikes[spikes <= simulator.state.t + 1e-9]
 
-    def _get_all_signals(self, variable, ids):
+    def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
         return numpy.vstack((id._cell.traces[variable] for id in ids)).T
 

@@ -3,6 +3,7 @@ from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN import common, recording
 from pyNN.space import Space, Grid3D, RandomStructure, Cuboid
 from nose.tools import assert_equal
+from nose.plugins.skip import SkipTest
 import glob, os
 import numpy
 import quantities as pq
@@ -278,7 +279,10 @@ def scenario3(sim):
     final_weights = connections.get('weight', format='array')
     assert initial_weights[0,0] != final_weights[0,0]
 
-    import scipy.stats
+    try:
+        import scipy.stats
+    except ImportError:
+        raise SkipTest
     t,p = scipy.stats.ttest_ind(initial_weights[:50,:].flat, initial_weights[50:,:].flat)
     assert p > 0.05, p
     t,p = scipy.stats.ttest_ind(final_weights[:50,:].flat, final_weights[50:,:].flat)

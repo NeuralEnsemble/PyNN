@@ -214,7 +214,7 @@ class Recorder(object):
         else:
             return self.recorded[variable]
 
-    def _get_current_segment(self, filter_ids=None, variables='all'):
+    def _get_current_segment(self, filter_ids=None, variables='all', clear=False):
         segment = neo.Segment(name="segment%03d" % self._simulator.state.segment_counter,
                               description=self.population.describe(),
                               rec_datetime=datetime.now()) # would be nice to get the time at the start of the recording, not the end
@@ -234,7 +234,7 @@ class Recorder(object):
                     for id in sorted(self.filter_recorded('spikes', filter_ids))]
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))
-                signal_array = self._get_all_signals(variable, ids)
+                signal_array = self._get_all_signals(variable, ids, clear=clear)
                 t_start = self._recording_start_time
                 sampling_period = self._simulator.state.dt*pq.ms # must run on all MPI nodes
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
@@ -263,7 +263,7 @@ class Recorder(object):
         data.segments = [filter_by_variables(segment, variables)
                          for segment in self.cache]
         if self._simulator.state.running: # reset() has not been called, so current segment is not in cache
-            data.segments.append(self._get_current_segment(filter_ids=filter_ids, variables=variables))
+            data.segments.append(self._get_current_segment(filter_ids=filter_ids, variables=variables, clear=clear))
         data.name = self.population.label
         data.description = self.population.describe()
         data.rec_datetime = data.segments[0].rec_datetime
