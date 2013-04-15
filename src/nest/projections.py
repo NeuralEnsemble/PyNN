@@ -97,6 +97,7 @@ class Projection(common.Projection):
 
         TO UPDATE
         """
+        #logger.debug("Connecting to index %s from %s" % (postsynaptic_index, presynaptic_indices))
         presynaptic_cells = self.pre[presynaptic_indices].all_cells
         postsynaptic_cell = self.post[postsynaptic_index]
         assert len(presynaptic_cells) > 0, presynaptic_cells
@@ -124,20 +125,24 @@ class Projection(common.Projection):
                 nest.Connect([pre], [postsynaptic_cell], {'weight': w, 'delay': d, 'receptor_type': receptor_type})
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.extend(presynaptic_cells)
-        connections = nest.FindConnections(presynaptic_cells.astype(int), int(postsynaptic_cell), self.synapse_model)
         connection_parameters.pop('tau_minus', None)  # TODO: set tau_minus on the post-synaptic cells
         connection_parameters.pop('dendritic_delay_fraction', None)
         connection_parameters.pop('w_min_always_zero_in_NEST', None)
-        for name, value in connection_parameters.items():
-            nest.SetStatus(connections, name, value)
+        if connection_parameters:
+            logger.debug(connection_parameters)
+            connections = nest.GetConnections(source=presynaptic_cells.astype(int).tolist(),
+                                              target=[int(postsynaptic_cell)],
+                                              synapse_model=self.synapse_model)
+            for name, value in connection_parameters.items():
+                nest.SetStatus(connections, name, value)
 
     def _set_attributes(self, parameter_space):
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
         for postsynaptic_cell, connection_parameters in zip(self.post.local_cells,
                                                             parameter_space.columns()):
-            connections = nest.FindConnections(numpy.unique(self._sources),
-                                               [postsynaptic_cell],
-                                               synapse_type=self.synapse_model)
+            connections = nest.GetConnections(source=numpy.unique(self._sources).tolist(),
+                                              target=[postsynaptic_cell],
+                                              synapse_model=self.synapse_model)
             for name, value in connection_parameters.items():
                 nest.SetStatus(connections, name, value)
 
