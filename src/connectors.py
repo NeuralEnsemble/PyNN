@@ -311,7 +311,7 @@ class FromListConnector(Connector):
     def connect(self, projection):
         """Connect-up a Projection."""
         logger.debug("conn_list (original) = \n%s", self.conn_list)
-        if numpy.any(self.conn_list[:, 0] >= projection.post.size):
+        if numpy.any(self.conn_list[:, 0] >= projection.pre.size):
             raise errors.ConnectionError("source index out of range")
         # need to do some profiling, to figure out the best way to do this:
         #  - order of sorting/filtering by local

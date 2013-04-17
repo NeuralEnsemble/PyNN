@@ -19,7 +19,7 @@ import os
 import socket
 from math import *
 
-from pyNN.utility import get_script_args, Timer, ProgressBar
+from pyNN.utility import get_script_args, Timer, ProgressBar, init_logging
 usage = """Usage: python VAbenchmarks.py <simulator> <benchmark>
            <simulator> is either neuron, nest, brian or pcsim
            <benchmark> is either CUBA or COBA."""
@@ -28,6 +28,7 @@ exec("from pyNN.%s import *" % simulator_name)
 from pyNN.random import NumpyRNG, RandomDistribution
 from neo.io import PyNNTextIO
 
+init_logging(None, debug=True)
 timer = Timer()
 
 # === Define parameters ========================================================
