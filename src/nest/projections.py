@@ -42,7 +42,7 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
-        self.synapse_model = self.synapse_type._get_nest_synapse_model("projection_%d" % Projection._nProj)
+        self.nest_synapse_model = self.synapse_type._get_nest_synapse_model("projection_%d" % Projection._nProj)
         self.synapse_type._set_tau_minus(self.post.local_cells)
         self._sources = []
         self._connections = None
@@ -65,17 +65,17 @@ class Projection(common.Projection):
 
     def __len__(self):
         """Return the number of connections on the local MPI node."""
-        return nest.GetDefaults(self.synapse_model)['num_connections']
+        return nest.GetDefaults(self.nest_synapse_model)['num_connections']
 
     @property
     def connections(self):
         if self._connections is None:
             self._sources = numpy.unique(self._sources)
-            self._connections = nest.FindConnections(self._sources, synapse_type=self.synapse_model)
+            self._connections = nest.FindConnections(self._sources, synapse_type=self.nest_synapse_model)
         return self._connections
 
     def _set_tsodyks_params(self):
-        if 'tsodyks' in self.synapse_model: # there should be a better way to do this. In particular, if the synaptic time constant is changed
+        if 'tsodyks' in self.nest_synapse_model: # there should be a better way to do this. In particular, if the synaptic time constant is changed
                                             # after creating the Projection, tau_psc ought to be changed as well.
             assert self.synapse_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
             logger.debug("setting tau_psc")
@@ -97,7 +97,7 @@ class Projection(common.Projection):
 
         TO UPDATE
         """
-        #logger.debug("Connecting to index %s from %s" % (postsynaptic_index, presynaptic_indices))
+        logger.debug("Connecting to index %s from %s with %s" % (postsynaptic_index, presynaptic_indices, connection_parameters))
         presynaptic_cells = self.pre[presynaptic_indices].all_cells
         postsynaptic_cell = self.post[postsynaptic_index]
         assert len(presynaptic_cells) > 0, presynaptic_cells
@@ -111,10 +111,10 @@ class Projection(common.Projection):
                                        [int(postsynaptic_cell)],
                                        listify(weights),
                                        listify(delays),
-                                       self.synapse_model)
+                                       self.nest_synapse_model)
             except nest.NESTError, e:
                 raise errors.ConnectionError("%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                                             e, presynaptic_cells, postsynaptic_cell, weights, delays, self.synapse_model))
+                                             e, presynaptic_cells, postsynaptic_cell, weights, delays, self.nest_synapse_model))
         else:
             receptor_type = postsynaptic_cell.celltype.get_receptor_type(self.receptor_type)
             if numpy.isscalar(weights):
@@ -132,7 +132,7 @@ class Projection(common.Projection):
             logger.debug(connection_parameters)
             connections = nest.GetConnections(source=presynaptic_cells.astype(int).tolist(),
                                               target=[int(postsynaptic_cell)],
-                                              synapse_model=self.synapse_model)
+                                              synapse_model=self.nest_synapse_model)
             for name, value in connection_parameters.items():
                 nest.SetStatus(connections, name, value)
 
@@ -142,7 +142,7 @@ class Projection(common.Projection):
                                                             parameter_space.columns()):
             connections = nest.GetConnections(source=numpy.unique(self._sources).tolist(),
                                               target=[postsynaptic_cell],
-                                              synapse_model=self.synapse_model)
+                                              synapse_model=self.nest_synapse_model)
             for name, value in connection_parameters.items():
                 nest.SetStatus(connections, name, value)
 
