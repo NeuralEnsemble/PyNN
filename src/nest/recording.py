@@ -414,7 +414,8 @@ class Recorder(recording.Recorder):
         return self._spike_detector.get_spiketimes([id])[id] # hugely inefficient - to be optimized later
 
     def _get_all_signals(self, variable, ids, clear=False):
-        return numpy.vstack(self._multimeter.get_data(variable, ids, clear=clear).values()).T
+        data = self._multimeter.get_data(variable, ids, clear=clear)
+        return numpy.vstack([data[i] for i in ids]).T
 
     def _local_count(self, variable, filter_ids):
         assert variable == 'spikes'
