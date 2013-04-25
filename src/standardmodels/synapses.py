@@ -160,8 +160,9 @@ class STDPMechanism(StandardSynapseType):
         """
         timing_parameters = self.timing_dependence.native_parameters
         weight_parameters = self.weight_dependence.native_parameters
-        parameters = ParameterSpace({'weight': self.weight,  # need to handle unit conversion
-                                     'delay': self.delay})
+        parameters = self.translate(
+                        ParameterSpace({'weight': self.weight,
+                                        'delay': self.delay}, self.get_schema()))
         parameters.update(**timing_parameters)
         parameters.update(**weight_parameters)
         parameters.update(**self.timing_dependence.extra_parameters)
