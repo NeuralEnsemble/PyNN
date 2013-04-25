@@ -44,6 +44,7 @@ class MockState(object):
         self.recorders = set([])
         self.t = 0.0
 class MockSimulator(object):
+    name = "MockSimulator"
     def __init__(self, mpi_rank):
         self.state = MockState(mpi_rank)
 
@@ -161,7 +162,8 @@ def test_metadata_property():
     assert_equal(r.metadata,
                  {'first_id': 2454, 'label': 'mock population',
                   'dt': 0.123, 'last_id': 2465, 'size': 11,
-                  'first_index': 0, 'last_index': 11, 'knights_say': 'Ni!'})
+                  'first_index': 0, 'last_index': 11, 'knights_say': 'Ni!',
+                  'simulator': 'MockSimulator'})
 
 
 #def test_count__spikes_gather():

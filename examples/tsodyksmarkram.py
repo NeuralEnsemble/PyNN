@@ -8,7 +8,7 @@ $Id$
 """
 
 import numpy
-from pyNN.utility import get_script_args, init_logging
+from pyNN.utility import get_script_args, init_logging, normalized_filename
 
 init_logging(None, debug=True)
 simulator_name = get_script_args(1)[0]
@@ -33,9 +33,7 @@ populations = {}
 projections = {}
 for label in 'static', 'depressing', 'facilitating':
     populations[label] = sim.Population(1, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=5.0), label=label)
-    populations[label].record('v')
-    if populations[label].can_record('gsyn_exc'):
-        populations[label].record(['gsyn_exc', 'gsyn_inh'])
+    populations[label].record(['v', 'gsyn_inh'])
     projections[label] = sim.Projection(spike_source, populations[label], connector,
                                         receptor_type='inhibitory',
                                         synapse_type=synapse_types[label])
@@ -45,7 +43,9 @@ spike_source.record('spikes')
 sim.run(200.0)
 
 for label,p in populations.items():
-    p.write_data("Results/tsodyksmarkram_%s_%s.pkl" % (label, simulator_name))
+    filename = normalized_filename("Results", "tsodyksmarkram_%s" % label,
+                                   "pkl", simulator_name)
+    p.write_data(filename, annotations={'script_name': __file__})
 
 print spike_source.get_data('spikes')
 

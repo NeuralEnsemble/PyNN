@@ -4,12 +4,12 @@ Small network created with the Population and Projection classes
 Andrew Davison, UNIC, CNRS
 May 2006
 
-$Id$
+$Id: small_network.py 1246 2013-01-08 09:37:17Z apdavison $
 
 """
 
 import numpy
-from pyNN.utility import get_script_args, init_logging, normalized_filename
+from pyNN.utility import get_script_args, init_logging
 
 init_logging(None, debug=True)
 
@@ -21,7 +21,7 @@ from pyNN.parameters import Sequence
 # === Define parameters ========================================================
 
 n = 5    # Number of cells
-w = 0.3   # synaptic weight (nA)
+w = 0.5   # synaptic weight (nA)
 cell_params = {
     'tau_m'      : 20.0, # (ms)
     'tau_syn_E'  : 2.0,  # (ms)
@@ -58,18 +58,14 @@ spike_source.record('spikes')
 cells.record('spikes')
 cells[0:1].record('v')
 
-input_conns = Projection(spike_source, cells, AllToAllConnector(), StaticSynapse())
-input_conns.setWeights(w)
-input_conns.setDelays(syn_delay)
+input_conns = Projection(spike_source, cells, FixedProbabilityConnector(0.5), StaticSynapse(weight=w, delay=syn_delay))
 
 # === Run simulation ===========================================================
 
 run(simtime)
 
 #spike_source.write_data("Results/small_network_input_np%d_%s.pkl" % (num_processes(), simulator_name))
-filename = normalized_filename("Results", "small_network", "pkl",
-                               simulator_name, num_processes())
-cells.write_data(filename, annotations={'script_name': __file__})
+cells.write_data("Results/small_network2_np%d_%s.pkl" % (num_processes(), simulator_name))
 
 print "Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz"
 

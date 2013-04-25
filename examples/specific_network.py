@@ -1,10 +1,11 @@
 """
 Small network created with the Population and Projection classes
+and the FromListConnector
 
 Andrew Davison, UNIC, CNRS
-May 2006
+April 2013
 
-$Id$
+$Id: small_network.py 1246 2013-01-08 09:37:17Z apdavison $
 
 """
 
@@ -21,7 +22,7 @@ from pyNN.parameters import Sequence
 # === Define parameters ========================================================
 
 n = 5    # Number of cells
-w = 0.3   # synaptic weight (nA)
+w = 0.5   # synaptic weight (nA)
 cell_params = {
     'tau_m'      : 20.0, # (ms)
     'tau_syn_E'  : 2.0,  # (ms)
@@ -58,16 +59,27 @@ spike_source.record('spikes')
 cells.record('spikes')
 cells[0:1].record('v')
 
-input_conns = Projection(spike_source, cells, AllToAllConnector(), StaticSynapse())
-input_conns.setWeights(w)
-input_conns.setDelays(syn_delay)
+connector = FromListConnector([
+    (0, 1, w, syn_delay),
+    (0, 2, w, syn_delay),
+    (0, 4, w, syn_delay),
+    (1, 0, w, syn_delay),
+    (1, 1, w, syn_delay),
+    (1, 3, w, syn_delay),
+    (1, 4, w, syn_delay),
+    (2, 3, w, syn_delay),
+    (3, 0, w, syn_delay),
+    (3, 2, w, syn_delay),
+    (4, 2, w, syn_delay),
+])
+input_conns = Projection(spike_source, cells, connector, StaticSynapse())
 
 # === Run simulation ===========================================================
 
 run(simtime)
 
 #spike_source.write_data("Results/small_network_input_np%d_%s.pkl" % (num_processes(), simulator_name))
-filename = normalized_filename("Results", "small_network", "pkl",
+filename = normalized_filename("Results", "specific_network", "pkl",
                                simulator_name, num_processes())
 cells.write_data(filename, annotations={'script_name': __file__})
 

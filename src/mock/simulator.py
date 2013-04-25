@@ -1,5 +1,7 @@
 from pyNN import common
 
+name = "MockSimulator"
+
 class ID(int, common.IDMixin):
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""

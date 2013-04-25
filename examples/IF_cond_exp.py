@@ -14,7 +14,7 @@ May 2006
 $Id$
 """
 
-from pyNN.utility import get_script_args
+from pyNN.utility import get_script_args, normalized_filename
 
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
@@ -32,8 +32,10 @@ spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in rang
 
 connE = connect(spike_sourceE, ifcell, weight=0.006, receptor_type='excitatory', delay=2.0)
 connI = connect(spike_sourceI, ifcell, weight=0.02, receptor_type='inhibitory', delay=4.0)
-    
-record(['v', 'gsyn_exc', 'gsyn_inh'], ifcell, "Results/IF_cond_exp_%s.pkl" % simulator_name)
+
+filename = normalized_filename("Results", "IF_cond_exp", "pkl", simulator_name)
+record(['v', 'gsyn_exc', 'gsyn_inh'], ifcell, filename,
+       annotations={'script_name': __file__})
 
 run(200.0)
 

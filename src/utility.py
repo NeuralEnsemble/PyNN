@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 A collection of utility functions and classes.
 
@@ -29,7 +30,9 @@ import sys
 import logging
 import time
 import os
+from datetime import datetime
 import functools
+import numpy
 from pyNN.core import deprecated
 
 red     = 0010; green  = 0020; yellow = 0030; blue = 0040
@@ -174,6 +177,34 @@ def load_population(filename, sim):
         setattr(population, variable, value)
     s.close()
     return population
+
+
+def normalized_filename(root, basename, extension, simulator, num_processes=None):
+    """
+    Generate a file path containing a timestamp and information about the
+    simulator used and the number of MPI processes.
+    
+    The date is used as a sub-directory name, the date & time are included in the
+    filename.
+    """
+    timestamp = datetime.now()
+    if num_processes:
+        np = "_np%d" % num_processes
+    else:
+        np = ""
+    return os.path.join(root,
+                        timestamp.strftime("%Y%m%d"),
+                        "%s_%s%s_%s.%s" % (basename,
+                                           simulator,
+                                           np,
+                                           timestamp.strftime("%Y%m%d-%H%M%S"),
+                                           extension))
+
+def connection_plot(connection_array):
+    image = numpy.zeros_like(connection_array, dtype=str)
+    image[connection_array > 0] = 'O'
+    image[numpy.isnan(connection_array)] = ' '
+    return u'\n'.join([u''.join(row) for row in image])
 
 
 class Timer(object):

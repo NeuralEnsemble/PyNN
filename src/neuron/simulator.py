@@ -29,6 +29,8 @@ import os.path
 from neuron import h, nrn_dll_loaded
 
 logger = logging.getLogger("PyNN")
+name = "NEURON"  # for use in annotating output data
+
 
 # --- Internal NEURON functionality --------------------------------------------
 

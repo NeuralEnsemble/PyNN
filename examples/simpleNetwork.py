@@ -8,7 +8,7 @@ $Id$
 """
 
 import numpy
-from pyNN.utility import get_script_args
+from pyNN.utility import get_script_args, normalized_filename
 
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
@@ -38,7 +38,9 @@ output_population.record(('spikes', 'v'))
 
 run(tstop)
 
-output_population.write_data("Results/simpleNetwork_output_%s.pkl" % simulator_name)
+filename = normalized_filename("Results", "simpleNetwork_output", "pkl",
+                               simulator_name)
+output_population.write_data(filename, annotations={'script_name': __file__})
 ##input_population.write_data("Results/simpleNetwork_input_%s.h5" % simulator_name)
 
 end()

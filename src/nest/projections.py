@@ -97,7 +97,7 @@ class Projection(common.Projection):
 
         TO UPDATE
         """
-        logger.debug("Connecting to index %s from %s with %s" % (postsynaptic_index, presynaptic_indices, connection_parameters))
+        #logger.debug("Connecting to index %s from %s with %s" % (postsynaptic_index, presynaptic_indices, connection_parameters))
         presynaptic_cells = self.pre[presynaptic_indices].all_cells
         postsynaptic_cell = self.post[postsynaptic_index]
         assert len(presynaptic_cells) > 0, presynaptic_cells
@@ -129,7 +129,7 @@ class Projection(common.Projection):
         connection_parameters.pop('dendritic_delay_fraction', None)
         connection_parameters.pop('w_min_always_zero_in_NEST', None)
         if connection_parameters:
-            logger.debug(connection_parameters)
+            #logger.debug(connection_parameters)
             connections = nest.GetConnections(source=presynaptic_cells.astype(int).tolist(),
                                               target=[int(postsynaptic_cell)],
                                               synapse_model=self.nest_synapse_model)

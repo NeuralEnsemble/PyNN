@@ -72,7 +72,7 @@ class Projection(common.Projection):
                                    1D array of the same length as `sources`, or
                                    a single value.
         """
-        logger.debug("Convergent connect. Weights=%s" % connection_parameters['weight'])
+        #logger.debug("Convergent connect. Weights=%s" % connection_parameters['weight'])
         postsynaptic_cell = self.post[postsynaptic_index]
         if not isinstance(postsynaptic_cell, int) or postsynaptic_cell > simulator.state.gid_counter or postsynaptic_cell < 0:
             errmsg = "Invalid post-synaptic cell: %s (gid_counter=%d)" % (postsynaptic_cell, simulator.state.gid_counter)

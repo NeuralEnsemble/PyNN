@@ -29,6 +29,7 @@ from pyNN import common, random
 from pyNN.core import reraise
 
 logger = logging.getLogger("PyNN")
+name = "NEST"  # for use in annotating output data
 
 # --- For implementation of get_time_step() and similar functions --------------
 

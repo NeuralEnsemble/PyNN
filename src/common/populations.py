@@ -251,7 +251,7 @@ class BasePopulation(object):
         if not rng:
             rng = random.NumpyRNG()
         indices = rng.permutation(numpy.arange(len(self), dtype=numpy.int))[0:n]
-        logger.debug("The %d cells recorded have indices %s" % (n, indices))
+        logger.debug("The %d cells selected have indices %s" % (n, indices))
         logger.debug("%s.sample(%s)", self.label, n)
         return self._get_view(indices)
 
@@ -424,7 +424,7 @@ class BasePopulation(object):
         """
         self.record(['gsyn_exc', 'gsyn_inh'], to_file)
 
-    def write_data(self, io, variables='all', gather=True, clear=False):
+    def write_data(self, io, variables='all', gather=True, clear=False, annotations=None):
         """
         Write recorded data to file, using one of the file formats supported by
         Neo.
@@ -442,9 +442,13 @@ class BasePopulation(object):
         simulated on that node.
 
         If `clear` is True, recorded data will be deleted from the `Population`.
+        
+        `annotations` should be a dict containing simple data types such as
+        numbers and strings. The contents will be written into the output data
+        file as metadata.
         """
         logger.debug("Population %s is writing %s to %s [gather=%s, clear=%s]" % (self.label, variables, io, gather, clear))
-        self.recorder.write(variables, io, gather, self._record_filter)
+        self.recorder.write(variables, io, gather, self._record_filter, annotations=annotations)
 
     def get_data(self, variables='all', gather=True, clear=False):
         """

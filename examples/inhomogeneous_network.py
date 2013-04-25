@@ -6,7 +6,7 @@ December 2012
 
 """
 
-from pyNN.utility import init_logging
+from pyNN.utility import init_logging, normalized_filename
 from pyNN.parameters import Sequence
 from pyNN.space import Grid2D
 from importlib import import_module
@@ -74,8 +74,9 @@ cells.record(['spikes', 'v'])
 
 sim.run(100.0)
 
-cells.write_data("Results/inhomogeneous_network_np%d_%s.pkl" % (sim.num_processes(),
-                                                                args.simulator_name))
+filename = normalized_filename("Results", "inhomogeneous_network", "pkl",
+                               args.simulator_name)
+cells.write_data(filename, annotations={'script_name': __file__})
 
 print "Mean firing rate: ", cells.mean_spike_count()*1000.0/sim.get_current_time(), "Hz"
 

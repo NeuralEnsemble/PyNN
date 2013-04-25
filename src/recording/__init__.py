@@ -12,7 +12,6 @@ $Id$
 """
 
 import logging
-import os.path
 import numpy
 import os
 from copy import copy
@@ -122,6 +121,9 @@ def get_io(filename):
     Return a Neo IO instance, guessing the type based on the filename suffix.
     """
     logger.debug("Creating Neo IO for filename %s" % filename)
+    dir = os.path.dirname(filename)
+    if not os.path.exists(dir):
+        os.makedirs(dir)
     extension = os.path.splitext(filename)[1]
     if extension in ('.txt', '.ras', '.v', '.gsyn'):
         return neo.io.PyNNTextIO(filename=filename)
@@ -252,11 +254,13 @@ class Recorder(object):
                             channel_index=channel_indices,
                             source_ids=source_ids)
                     )
+                    logger.debug("**** ids=%s, channels=%s", source_ids, channel_indices)
                     assert segment.analogsignalarrays[0].t_stop - self._simulator.state.t*pq.ms < 2*self._simulator.state.dt*pq.ms
                     # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
-    def get(self, variables, gather=False, filter_ids=None, clear=False):
+    def get(self, variables, gather=False, filter_ids=None, clear=False,
+            annotations=None):
         """Return the recorded data as a Neo `Block`."""
         variables = normalize_variables_arg(variables)
         data = neo.Block()
@@ -268,6 +272,8 @@ class Recorder(object):
         data.description = self.population.describe()
         data.rec_datetime = data.segments[0].rec_datetime
         data.annotate(**self.metadata)
+        if annotations:
+            data.annotate(**annotations)
         if gather and self._simulator.state.num_processes > 1:
             data = gather_blocks(data)
         if clear:
@@ -283,7 +289,8 @@ class Recorder(object):
         self._recording_start_time = self._simulator.state.t * pq.ms
         self._clear_simulator()
 
-    def write(self, variables, file=None, gather=False, filter_ids=None, clear=False):
+    def write(self, variables, file=None, gather=False, filter_ids=None,
+              clear=False, annotations=None):
         """Write recorded data to a Neo IO"""
         if isinstance(file, basestring):
             file = get_io(file)
@@ -292,7 +299,7 @@ class Recorder(object):
             io.filename += '.%d' % self._simulator.state.mpi_rank
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
                                                variables, io.filename, gather))
-        data = self.get(variables, gather, filter_ids, clear)
+        data = self.get(variables, gather, filter_ids, clear, annotations=annotations)
         if self._simulator.state.mpi_rank == 0 or gather == False:
             # Open the output file, if necessary and write the data
             logger.debug("Writing data to file %s" % io)
@@ -307,6 +314,7 @@ class Recorder(object):
                 'first_id': int(self.population.first_id),
                 'last_id': int(self.population.last_id),
                 'label': self.population.label,
+                'simulator': self._simulator.name,
             }
         metadata.update(self.population.annotations)
         metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)

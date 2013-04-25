@@ -19,14 +19,13 @@ import os
 import socket
 from math import *
 
-from pyNN.utility import get_script_args, Timer, ProgressBar, init_logging
+from pyNN.utility import get_script_args, Timer, ProgressBar, init_logging, normalized_filename
 usage = """Usage: python VAbenchmarks.py <simulator> <benchmark>
            <simulator> is either neuron, nest, brian or pcsim
            <benchmark> is either CUBA or COBA."""
 simulator_name, benchmark = get_script_args(2, usage)
 exec("from pyNN.%s import *" % simulator_name)
 from pyNN.random import NumpyRNG, RandomDistribution
-from neo.io import PyNNTextIO
 
 init_logging(None, debug=True)
 timer = Timer()
@@ -178,11 +177,14 @@ I_count = inh_cells.mean_spike_count()
 
 print "%d Writing data to file..." % node_id
 
-if not(os.path.isdir('Results')):
-    os.mkdir('Results')
-
-exc_cells.write_data("Results/VAbenchmarks_%s_exc_np%d_%s.pkl" % (benchmark, np, simulator_name))
-inh_cells.write_data("Results/VAbenchmarks_%s_inh_np%d_%s.pkl" % (benchmark, np, simulator_name))
+exc_cells.write_data(
+    normalized_filename("Results", "VAbenchmarks_%s_exc" % benchmark, "pkl",
+                        simulator_name, np),
+    annotations={'script_name': __file__})
+inh_cells.write_data(
+    normalized_filename("Results", "VAbenchmarks_%s_inh" % benchmark, "pkl",
+                        simulator_name, np),
+    annotations={'script_name': __file__})
 writeCPUTime = timer.diff()
 
 connections = "%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].size(),
