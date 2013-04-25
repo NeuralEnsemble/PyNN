@@ -15,6 +15,7 @@ from pyNN.common.populations import is_conductance
 from pyNN import errors, descriptions
 from pyNN.recording import files
 from pyNN.parameters import ParameterSpace
+from pyNN.standardmodels import StandardSynapseType
 import numpy
 from itertools import izip, repeat
 import logging
@@ -336,12 +337,14 @@ class FromListConnector(Connector):
         schema = projection.synapse_type.get_schema()
         for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
-            connection_parameters = projection.synapse_type.translate(
-                                        ParameterSpace(
+            connection_parameters = ParameterSpace(
                                             {'weight': self.conn_list[l:r, 2],
                                              'delay': self.conn_list[l:r, 3]},
                                             schema=schema,
-                                            shape=(r-l,)))
+                                            shape=(r-l,))
+            if isinstance(projection.synapse_type, StandardSynapseType):
+                connection_parameters = projection.synapse_type.translate(
+                                            connection_parameters)
             connection_parameters.evaluate()
             projection._convergent_connect(sources, tgt, **connection_parameters)
 
