@@ -109,7 +109,9 @@ def plot(datafiles, output_file, annotation=None):
         lw = 2*(n_seg - k) - 1
         col = 'rbgmck'[k%6]
         for array in segment.analogsignalarrays:
-            for i in range(array.shape[1]):
+            sorted_channels = sorted(array.channel_index)
+            for channel in sorted_channels:
+                i = array.channel_index.tolist().index(channel)
                 print "plotting '%s' for %s in panel %d" % (array.name, label, panel)
                 plot_signal(panels[panel], array, i, colour=col, linewidth=lw, label=label)
                 panel += 1

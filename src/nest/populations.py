@@ -48,7 +48,7 @@ class PopulationMixin(object):
                               for col, name in enumerate(names))
         if "spike_times" in parameter_dict: # hack
             parameter_dict["spike_times"] = [Sequence(value) for value in parameter_dict["spike_times"]]
-        return ParameterSpace(parameter_dict, shape=(self.size,))
+        return ParameterSpace(parameter_dict, shape=(self.local_size,))
 
 
 class Assembly(common.Assembly):
