@@ -9,12 +9,11 @@ for improved performance.
 """
 
 from __future__ import division
-from pyNN.core import LazyArray
 from pyNN.random import RandomDistribution, AbstractRNG, NumpyRNG
 from pyNN.common.populations import is_conductance
 from pyNN import errors, descriptions
 from pyNN.recording import files
-from pyNN.parameters import ParameterSpace
+from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.standardmodels import StandardSynapseType
 import numpy
 from itertools import izip, repeat

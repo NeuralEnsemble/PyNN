@@ -7,10 +7,90 @@ Parameter set handling
 
 import numpy
 import collections
-from pyNN.core import LazyArray, is_listlike
+from pyNN.core import is_listlike
 from pyNN import errors
 from pyNN.random import RandomDistribution
-from lazyarray import partial_shape
+from lazyarray import larray, partial_shape
+
+
+class LazyArray(larray):
+    """
+    Optimises storage of arrays in various ways:
+      - stores only a single value if all the values in the array are the same
+      - if the array is created from a :class:`~pyNN.random.RandomDistribution`
+        or a function `f(i,j)`, then elements are only evaluated when they are
+        accessed. Any operations performed on the array are also queued up to
+        be executed on access.
+
+    The main intention of the latter is to save memory for very large arrays by
+    accessing them one row or column at a time: the entire array need never be
+    in memory.
+
+    Arguments:
+        `value`:
+            may be an int, long, float, bool, NumPy array, iterator, generator
+            or a function, `f(i)` or `f(i,j)`, depending on the dimensions of
+            the array. `f(i,j)` should return a single number when `i` and `j`
+            are integers, and a 1D array when either `i` or `j` or both is a
+            NumPy array (in the latter case the two arrays must have equal
+            lengths).
+        `shape`:
+            a tuple giving the shape of the array, or `None`
+        `dtype`:
+            the NumPy `dtype`.
+    """
+    # most of the implementation moved to external lazyarray package
+    # the plan is ultimately to move everything to lazyarray
+
+    def __init__(self, value, shape=None, dtype=None):
+        if isinstance(value, basestring):
+            errmsg = "Value should be a string expressing a function of d. "
+            try:
+                value = eval("lambda d: %s" % value)
+            except SyntaxError:
+                raise errors.InvalidParameterValueError(errmsg + "Incorrect syntax.")
+            try:
+                value(0.0)
+            except NameError, err:
+                raise errors.InvalidParameterValueError(errmsg + str(err))
+        super(LazyArray, self).__init__(value, shape, dtype)
+
+    def __setitem__(self, addr, new_value):
+        self.check_bounds(addr)
+        if (self.is_homogeneous
+            and isinstance(new_value, (int, long, float, bool))
+            and self.evaluate(simplify=True) == new_value):
+            pass
+        else:
+            self.base_value = self.evaluate()
+            self.base_value[addr] = new_value
+            self.operations = []
+
+    def by_column(self, mask=None):
+        """
+        Iterate over the columns of the array. Columns will be yielded either
+        as a 1D array or as a single value (for a flat array).
+
+        `mask`: either `None` or a boolean array indicating which columns should be included.
+        """
+        column_indices = numpy.arange(self.ncols)
+        if mask is not None:
+            assert len(mask) == self.ncols
+            column_indices = column_indices[mask]
+        if isinstance(self.base_value, RandomDistribution):
+            if mask is None:
+                for j in column_indices:
+                    yield self._apply_operations(self.base_value.next(self.nrows, mask_local=False),
+                                                 (slice(None), j))
+            else:
+                column_indices = numpy.arange(self.ncols)
+                for j,local in zip(column_indices, mask):  # this assumes that self.base_value.parallel_safe=True ?
+                    col = self.base_value.next(self.nrows, mask_local=False)
+                    if local:
+                        yield self._apply_operations(col, (slice(None), j))
+        else:
+            for j in column_indices:
+                yield self._partially_evaluate((slice(None), j), simplify=True)
 
 
 class Sequence(object):

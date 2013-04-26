@@ -15,7 +15,7 @@ import operator
 import tempfile
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions
 from pyNN.models import BaseCellType
-from pyNN.parameters import ParameterSpace
+from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.recording import files
 from itertools import chain
 
@@ -222,12 +222,12 @@ class BasePopulation(object):
         return gen
 
     def _get_cell_initial_value(self, id, variable):
-        assert isinstance(self.initial_values[variable], core.LazyArray)
+        assert isinstance(self.initial_values[variable], LazyArray)
         index = self.id_to_local_index(id)
         return self.initial_values[variable][index]
 
     def _set_cell_initial_value(self, id, variable, value):
-        assert isinstance(self.initial_values[variable], core.LazyArray)
+        assert isinstance(self.initial_values[variable], LazyArray)
         index = self.id_to_local_index(id)
         self.initial_values[variable][index] = value
 
@@ -376,7 +376,7 @@ class BasePopulation(object):
         """
         for variable, value in initial_values.items():
             logger.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
-            initial_value = core.LazyArray(value, shape=(self.local_size,),
+            initial_value = LazyArray(value, shape=(self.local_size,),
                                            dtype=float)
             self._set_initial_value_array(variable, initial_value)
             self.initial_values[variable] = initial_value
