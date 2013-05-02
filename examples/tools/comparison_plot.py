@@ -14,57 +14,11 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 import neo
-
-
-# this is copied from pyNN.recording, but currently importing from there automatically triggers MPI
-# most of this functionality should probably be in Neo, really
-def get_io(filename):
-    """
-    Return a Neo IO instance, guessing the type based on the filename suffix.
-    """
-    extension = os.path.splitext(filename)[1]
-    if extension in (".txt", ".ras", ".v", ".gsyn"):
-        return neo.io.PyNNTextIO(filename=filename)
-    elif extension in (".h5",):
-        return neo.io.NeoHdf5IO(filename=filename)
-    elif extension in (".pkl", ".pickle"):
-        return neo.io.PickleIO(filename=filename)
-    elif extension == ".mat":
-        return neo.io.NeoMatlabIO(filename=filename)
-    else: # function to be improved later
-        raise IOError("file extension %s not supported" % extension)
-
-
-def describe_signals(signals):
-    template = '    Signal "{0.name}" has units {0.units} and contains {0.shape[1]} channel(s) each with {0.shape[0]} values\n      Annotations: {0.annotations}'
-    for signal in signals:
-        print(template.format(signal))
-
-
-def describe_segments(segments):
-    template = '  Segment "{0.name}" contains {1} analog signal array(s) and {2} spike train(s)'
-    for segment in segments:
-        print(template.format(segment, len(segment.analogsignalarrays), len(segment.spiketrains)))
-        describe_signals(segment.analogsignalarrays)
-
-
-def describe_blocks(blocks):
-    template = 'Block "{0.name}" from {0.file_origin} contains {1} segment(s)\n  Annotations: {0.annotations}'
-    for block in blocks:
-        print(template.format(block, len(block.segments)))
-        describe_segments(block.segments)
+from neo.io import get_io
 
 
 def variable_names(segment):
     return set(signal.name for signal in segment.analogsignalarrays)
-
-
-def plot_spiketrains(panel, segment):
-    for spiketrain in segment.spiketrains:
-        y = np.ones_like(spiketrain) * spiketrain.annotations['source_id']
-        panel.plot(spiketrain, y, '.')
-        panel.set_ylabel(segment.name)
-        plt.setp(plt.gca().get_xticklabels(), visible=False)
 
 
 def plot_signal(panel, signal, index, colour='b', linewidth='1', label=''):
@@ -79,7 +33,8 @@ def plot(datafiles, output_file, annotation=None):
     print output_file
     blocks = [get_io(datafile).read_block() for datafile in datafiles]
     # note: Neo needs a pretty printer that is not tied to IPython
-    describe_blocks(blocks)
+    for block in blocks:
+        print (block.describe())
     # for now take only the first segment
     segments = [block.segments[0] for block in blocks]
     labels = [block.annotations['simulator'] for block in blocks]
