@@ -239,6 +239,8 @@ class Recorder(object):
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
                 t_start = self._recording_start_time
                 sampling_period = self._simulator.state.dt*pq.ms # must run on all MPI nodes
+                current_time = self._simulator.state.t*pq.ms
+                mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     channel_indices = numpy.array([self.population.id_to_index(id) for id in ids])
                     units = self.find_units(variable)
@@ -254,8 +256,8 @@ class Recorder(object):
                             channel_index=channel_indices,
                             source_ids=source_ids)
                     )
-                    logger.debug("**** ids=%s, channels=%s", source_ids, channel_indices)
-                    assert segment.analogsignalarrays[0].t_stop - self._simulator.state.t*pq.ms < 2*self._simulator.state.dt*pq.ms
+                    logger.debug("%d **** ids=%s, channels=%s", mpi_node, source_ids, channel_indices)
+                    assert segment.analogsignalarrays[0].t_stop - current_time < 2*sampling_period
                     # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
@@ -318,6 +320,7 @@ class Recorder(object):
             }
         metadata.update(self.population.annotations)
         metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        metadata['mpi_processes'] = self._simulator.state.num_processes
         return metadata
 
     def count(self, variable, gather=True, filter_ids=None):

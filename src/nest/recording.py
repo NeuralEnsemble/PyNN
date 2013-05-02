@@ -415,7 +415,10 @@ class Recorder(recording.Recorder):
 
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable, ids, clear=clear)
-        return numpy.vstack([data[i] for i in ids]).T
+        if len(ids) > 0:
+            return numpy.vstack([data[i] for i in ids]).T
+        else:
+            return numpy.array([])
 
     def _local_count(self, variable, filter_ids):
         assert variable == 'spikes'
