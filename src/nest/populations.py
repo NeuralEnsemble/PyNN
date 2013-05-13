@@ -12,6 +12,7 @@ import nest
 import logging
 from pyNN import common, errors
 from pyNN.parameters import Sequence, ParameterSpace, simplify
+from pyNN.random import RandomDistribution
 from pyNN.standardmodels import StandardCellType
 from . import simulator
 from .recording import Recorder
@@ -138,9 +139,12 @@ class Population(common.Population, PopulationMixin):
 
     def _set_initial_value_array(self, variable, value):
         variable = STATE_VARIABLE_MAP.get(variable, variable)
-        value = value.evaluate(simplify=True)
+        if isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe:
+            local_values = value.evaluate()[self._mask_local]
+        else:
+            local_values = value._partially_evaluate(self._mask_local, simplify=True)
         try:
-            nest.SetStatus(self.local_cells.tolist(), variable, value)
+            nest.SetStatus(self.local_cells.tolist(), variable, local_values)
         except nest.NESTError, e:
             if "Unused dictionary items" in e.message:
                 logger.warning("NEST does not allow setting an initial value for %s" % variable)

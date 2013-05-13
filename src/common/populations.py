@@ -376,8 +376,7 @@ class BasePopulation(object):
         """
         for variable, value in initial_values.items():
             logger.debug("In Population '%s', initialising %s to %s" % (self.label, variable, value))
-            initial_value = LazyArray(value, shape=(self.local_size,),
-                                           dtype=float)
+            initial_value = LazyArray(value, shape=(self.size,), dtype=float)
             self._set_initial_value_array(variable, initial_value)
             self.initial_values[variable] = initial_value
 

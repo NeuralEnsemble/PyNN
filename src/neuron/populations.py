@@ -12,6 +12,7 @@ import logging
 from pyNN import common
 from pyNN.parameters import Sequence, ParameterSpace, simplify
 from pyNN.standardmodels import StandardCellType
+from pyNN.random import RandomDistribution
 from . import simulator
 from .recording import Recorder
 
@@ -45,7 +46,11 @@ class PopulationMixin(object):
             for cell in self:  # only on local node
                 setattr(cell._cell, "%s_init" % variable, value)
         else:
-            for cell, value in zip(self, initial_values.evaluate(simplify=False)):
+            if isinstance(initial_values.base_value, RandomDistribution) and initial_values.base_value.rng.parallel_safe:
+                local_values = initial_values.evaluate()[self._mask_local]
+            else:
+                local_values = initial_values[self._mask_local]            
+            for cell, value in zip(self, local_values):
                 setattr(cell._cell, "%s_init" % variable, value)
 
 
