@@ -98,7 +98,10 @@ class Recorder(recording.Recorder):
 
     def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
-        return numpy.vstack((id._cell.traces[variable] for id in ids)).T
+        if len(ids) > 0:
+            return numpy.vstack((id._cell.traces[variable] for id in ids)).T
+        else:
+            return numpy.array([])
 
     def _local_count(self, variable, filter_ids=None):
         N = {}
