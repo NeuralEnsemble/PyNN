@@ -122,7 +122,7 @@ def get_io(filename):
     """
     logger.debug("Creating Neo IO for filename %s" % filename)
     dir = os.path.dirname(filename)
-    if not os.path.exists(dir):
+    if dir and not os.path.exists(dir):
         os.makedirs(dir)
     extension = os.path.splitext(filename)[1]
     if extension in ('.txt', '.ras', '.v', '.gsyn'):
