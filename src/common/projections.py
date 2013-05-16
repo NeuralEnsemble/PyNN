@@ -249,11 +249,11 @@ class Projection(object):
             all_values.append(values)
         return all_values
 
-    @deprecated("get('weights', format, gather)")
+    @deprecated("get('weight', format, gather)")
     def getWeights(self, format='list', gather=True):
         return self.get('weight', format, gather, with_address=False)
 
-    @deprecated("get('delays', format, gather)")
+    @deprecated("get('delay', format, gather)")
     def getDelays(self, format='list', gather=True):
         return self.get('delay', format, gather, with_address=False)
 
