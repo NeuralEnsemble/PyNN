@@ -1,0 +1,48 @@
+===========
+Projections
+===========
+
+.. currentmodule:: pyNN.neuron
+
+.. autoclass:: Projection
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+   
+   .. attribute:: pre
+   
+      The pre-synaptic Population, PopulationView or Assembly.
+
+   .. attribute:: post
+   
+      The post-synaptic Population, PopulationView or Assembly.
+
+   .. attribute:: source
+   
+      A string specifying which attribute of the presynaptic cell signals
+      action potentials.
+
+   .. attribute:: target
+   
+      Name of the postsynaptic mechanism type (e.g. 'excitatory', 'NMDA').
+
+   .. attribute:: label
+   
+      A label for the Projection.
+
+   .. attribute:: rng
+   
+      The RNG object that was used by the Connector.
+
+   .. attribute:: synapse_dynamics
+   
+      The SynapseDynamics object that was used to specify the synaptic
+      plasticity mechanism, or `None` if the synapses are static.
+
+   .. automethod:: __len__
+   .. automethod:: __getitem__
+   .. automethod:: __iter__
+
+
+.. autofunction:: connect

@@ -1,5 +1,5 @@
 """
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -107,5 +107,3 @@ class Recorder(recording.Recorder):
         if gather and simulator.state.num_processes > 1:
             N = recording.gather_dict(N)
         return N
-    
-simulator.Recorder = Recorder

@@ -1,7 +1,7 @@
 """
 Standard cells for nest
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id$
@@ -139,13 +139,11 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
     nest_name = {"on_grid": "iaf_cond_exp",
                  "off_grid": "iaf_cond_exp"}
     standard_receptor_type = True
-
-    def __init__(self, parameters):
-        cells.IF_facets_hardware1.__init__(self, parameters)
-        self.parameters['C_m']   = 200.0
-        self.parameters['t_ref'] =   1.0
-        self.parameters['E_ex']  =   0.0
-
+    extra_parameters = {
+        'C_m': 200.0,
+        't_ref': 1.0,
+        'E_ex': 0.0
+    }
 
 class HH_cond_exp(cells.HH_cond_exp):
     
@@ -211,10 +209,9 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
                  "off_grid": 'poisson_generator_ps'}
     always_local = True
     uses_parrot = True
-    
-    def __init__(self, parameters):
-        cells.SpikeSourcePoisson.__init__(self, parameters)
-        self.parameters['origin'] = 1.0
+    extra_parameters = {
+        'origin': 1.0
+    }
 
 
 class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
@@ -231,10 +228,9 @@ class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
     nest_name = {"on_grid": 'inh_gamma_generator',
                  "off_grid":  'inh_gamma_generator'}
     always_local = True
-    
-    def __init__(self, parameters):
-        cells.SpikeSourceInhGamma.__init__(self, parameters)
-        self.parameters['origin'] = 1.0
+    extra_parameters = {
+        'origin': 1.0
+    }
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
@@ -247,6 +243,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     nest_name = {"on_grid": 'spike_generator',
                  "off_grid": 'spike_generator'}
     always_local = True
+
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     

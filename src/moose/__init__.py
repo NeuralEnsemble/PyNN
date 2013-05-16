@@ -4,7 +4,7 @@ MOOSE implementation of the PyNN API
 
 Authors: Subhasis Ray and Andrew Davison
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id$
@@ -50,10 +50,7 @@ def end(compatible_output=True):
     shutil.rmtree(temporary_directory, ignore_errors=True)
     moose.PyMooseBase.endSimulation()
 
-def run(simtime):
-    """Run the simulation for simtime"""
-    simulator.run(simtime)
-    return get_current_time()
+run = common.build_run(simulator)
 
 reset = common.build_reset(simulator)
 
@@ -77,7 +74,7 @@ class Assembly(common.Assembly):
 
 class PopulationView(common.PopulationView):
     _simulator = simulator
-    assembly_class = Assembly
+    _assembly_class = Assembly
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
@@ -89,8 +86,8 @@ class Population(common.Population):
     term intended to include layers, columns, nuclei, etc., of cells.
     """
     _simulator = simulator
-    recorder_class = Recorder
-    assembly_class = Assembly
+    _recorder_class = Recorder
+    _assembly_class = Assembly
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
@@ -129,7 +126,6 @@ class Projection(common.Projection):
     parameters of those connections, including of plasticity mechanisms.
     """
     _simulator = simulator
-    nProj = 0
 
     def __init__(self, presynaptic_population, postsynaptic_population,
                  method, source=None,
@@ -163,7 +159,6 @@ class Projection(common.Projection):
         
         # Create connections
         method.connect(self)
-        Projection.nProj += 1
         
     def _divergent_connect(self, source, targets, weights, delays):
         """

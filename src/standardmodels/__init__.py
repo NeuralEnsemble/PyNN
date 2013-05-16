@@ -5,25 +5,24 @@ that are available in multiple simulators:
 
 Functions:
     build_translations()
-    
+
 Classes:
     StandardModelType
     StandardCellType
     ModelNotAvailable
-    SynapseDynamics
-    ShortTermPlasticityMechanism
-    STDPMechanism
     STDPWeightDependence
     STDPTimingDependence
-   
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-from pyNN import descriptions, errors, models
+from pyNN import errors, models
+from pyNN.parameters import ParameterSpace
 import numpy
 from pyNN.core import is_listlike
+from copy import deepcopy
 
 # ==============================================================================
 #   Standard cells
@@ -56,27 +55,32 @@ def build_translations(*translation_list):
 
 class StandardModelType(models.BaseModelType):
     """Base class for standardized cell model and synapse model classes."""
-    
+
     translations = {}
-    
-    def __init__(self, parameters):
-        models.BaseModelType.__init__(self, parameters)
-        assert set(self.translations.keys()) == set(self.default_parameters.keys()), \
-               "%s != %s" % (self.translations.keys(), self.default_parameters.keys())
-        self.parameters = self.__class__.translate(self.parameters)
-    
-    @classmethod
-    def translate(cls, parameters):
+    extra_parameters = {}
+
+    @property
+    def native_parameters(self):
+        """
+        A :class:`ParameterSpace` containing parameter names and values
+        translated from the standard PyNN names and units to simulator-specific
+        ("native") names and units.
+        """
+        return self.translate(self.parameter_space)
+
+    def translate(self, parameters):
         """Translate standardized model parameters to simulator-specific parameters."""
-        parameters = cls.check_parameters(parameters, with_defaults=False)
+        _parameters = deepcopy(parameters)
+        cls = self.__class__
+        if parameters.schema != self.get_schema():
+            raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema())) # should replace this with a PyNN-specific exception type
         native_parameters = {}
-        for name in parameters:
-            D = cls.translations[name]
+        #for name in parameters.schema:
+        for name in parameters.keys():
+            D = self.translations[name]
             pname = D['translated_name']
-            if is_listlike(cls.default_parameters[name]):
-                parameters[name] = numpy.array(parameters[name])
             try:
-                pval = eval(D['forward_transform'], globals(), parameters)
+                pval = eval(D['forward_transform'], globals(), _parameters)
             except NameError, errmsg:
                 raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
                                 % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
@@ -84,60 +88,66 @@ class StandardModelType(models.BaseModelType):
                 raise
                 #pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
-        return native_parameters
-    
-    @classmethod
-    def reverse_translate(cls, native_parameters):
-        """Translate simulator-specific model parameters to standardized parameters."""
-        standard_parameters = {}
-        for name,D  in cls.translations.items():
-            if is_listlike(cls.default_parameters[name]):
-                tname = D['translated_name']
-                native_parameters[tname] = numpy.array(native_parameters[tname])
-            try:
-                standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
-            except NameError, errmsg:
-                raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
-                                % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
-        return standard_parameters
+        return ParameterSpace(native_parameters, schema=None, shape=parameters.shape)
 
-    @classmethod
-    def simple_parameters(cls):
+    def reverse_translate(self, native_parameters):
+        """Translate simulator-specific model parameters to standardized parameters."""
+        cls = self.__class__
+        standard_parameters = {}
+        for name,D  in self.translations.items():
+            tname = D['translated_name']
+            if tname in native_parameters.keys():
+                try:
+                    standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
+                except NameError, errmsg:
+                    raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
+                                    % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
+        return ParameterSpace(standard_parameters, schema=self.get_schema(), shape=native_parameters.shape)
+
+    def simple_parameters(self):
         """Return a list of parameters for which there is a one-to-one
         correspondance between standard and native parameter values."""
-        return [name for name in cls.translations if cls.translations[name]['forward_transform'] == name]
+        return [name for name in self.translations if self.translations[name]['forward_transform'] == name]
 
-    @classmethod
-    def scaled_parameters(cls):
+    def scaled_parameters(self):
         """Return a list of parameters for which there is a unit change between
         standard and native parameter values."""
-        return [name for name in cls.translations if "float" in cls.translations[name]['forward_transform']]
-    
-    @classmethod
-    def computed_parameters(cls):
+        return [name for name in self.translations if "float" in self.translations[name]['forward_transform']]
+
+    def computed_parameters(self):
         """Return a list of parameters whose values must be computed from
         more than one other parameter."""
-        return [name for name in cls.translations if name not in cls.simple_parameters()+cls.scaled_parameters()]
-        
-    def update_parameters(self, parameters):
+        return [name for name in self.translations if name not in self.simple_parameters() + self.scaled_parameters()]
+
+    def get_native_names(self, *names):
         """
-        update self.parameters with those in parameters 
+        Return a list of native parameter names for a given model.
         """
-        self.parameters.update(self.translate(parameters))
+        if names:
+            translations = (self.translations[name] for name in names)
+        else:  # return all names
+            translations = self.translations.itervalues()
+        return [D['translated_name'] for D in translations]
 
 
 class StandardCellType(StandardModelType, models.BaseCellType):
     """Base class for standardized cell model classes."""
     recordable    = ['spikes', 'v', 'gsyn']
-    synapse_types = ('excitatory', 'inhibitory')
+    receptor_types = ('excitatory', 'inhibitory')
     always_local  = False # override for NEST spike sources
 
 
 class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
-    """Base class for standardized current source model classes."""             
-    
+    """Base class for standardized current source model classes."""
+
     def inject_into(self, cells):
-        raise Exception("Should be redefined in the local simulator electrodes")
+        """
+        Inject the current from this source into the supplied group of cells.
+
+        `cells` may be a :class:`Population`, :class:`PopulationView`,
+        :class:`Assembly` or a list of :class:`ID` objects.
+        """
+        raise NotImplementedError("Should be redefined in the local simulator electrodes")
 
     def __getattr__(self, name):
         try:
@@ -170,7 +180,9 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
             all_parameters = self.get_parameters()
             all_parameters.update(parameters)
             parameters = all_parameters
-            parameters = self.translate(parameters)
+        else:
+            parameters = ParameterSpace(parameters, self.get_schema(), (1,))
+        parameters = self.translate(parameters)
         self.set_native_parameters(parameters)
 
     def get_parameters(self):
@@ -180,144 +192,89 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         return parameters
 
     def set_native_parameters(self, parameters):
-        pass
+        raise NotImplementedError
 
-    def get_native_parameters(self):    
-        pass
+    def get_native_parameters(self):
+        raise NotImplementedError
+
 
 class ModelNotAvailable(object):
     """Not available for this simulator."""
-    
+
     def __init__(self, *args, **kwargs):
         raise NotImplementedError("The %s model is not available for this simulator." % self.__class__.__name__)
-        
+
+
 # ==============================================================================
 #   Synapse Dynamics classes
 # ==============================================================================
 
-class SynapseDynamics(models.BaseSynapseDynamics):
-    """
-    For specifying synapse short-term (faciliation, depression) and long-term
-    (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
-    `Projection.__init__()` or `connect()`.
-    """
-    
-    def __init__(self, fast=None, slow=None):
-        """
-        Create a new specification for a dynamic synapse, combining a `fast`
-        component (short-term facilitation/depression) and a `slow` component
-        (long-term potentiation/depression).
-        """
-        if fast:
-            assert isinstance(fast, ShortTermPlasticityMechanism)
-        if slow:
-            assert isinstance(slow, STDPMechanism)
-            assert 0 <= slow.dendritic_delay_fraction <= 1.0
-        self.fast = fast
-        self.slow = slow
-    
-    def describe(self, template='synapsedynamics_default.txt', engine='default'):
-        """
-        Returns a human-readable description of the synapse dynamics.
-        
-        The output may be customized by specifying a different template
-        togther with an associated template engine (see ``pyNN.descriptions``).
-        
-        If template is None, then a dictionary containing the template context
-        will be returned.
-        """
-        context = {'fast': self.fast and self.fast.describe(template=None) or None,
-                   'slow': self.slow and self.slow.describe(template=None) or None}
-        return descriptions.render(engine, template, context)
+
+def check_weights(weights, projection):
+    # if projection.post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
+    synapse_sign = projection.receptor_type
+    is_conductance = projection.post.conductance_based
+    if isinstance(weights, numpy.ndarray):
+        all_negative = (weights <= 0).all()
+        all_positive = (weights >= 0).all()
+        if not (all_negative or all_positive):
+            raise errors.ConnectionError("Weights must be either all positive or all negative")
+    elif numpy.isreal(weights):
+        all_positive = weights >= 0
+        all_negative = weights < 0
+    else:
+        raise errors.ConnectionError("Weights must be a number or an array of numbers.")
+    if is_conductance or synapse_sign == 'excitatory':
+        if not all_positive:
+            raise errors.ConnectionError("Weights must be positive for conductance-based and/or excitatory synapses")
+    elif is_conductance == False and synapse_sign == 'inhibitory':
+        if not all_negative:
+            raise errors.ConnectionError("Weights must be negative for current-based, inhibitory synapses")
+    else:  # This should never happen.
+        raise Exception("Can't check weight, conductance status unknown.")
 
 
-class ShortTermPlasticityMechanism(StandardModelType):
-    """Abstract base class for models of short-term synaptic dynamics."""
-    
-    def __init__(self):
-        raise NotImplementedError
+def check_delays(delays, projection):
+    min_delay = projection._simulator.state.min_delay
+    max_delay = projection._simulator.state.max_delay
+    if isinstance(delays, numpy.ndarray):
+        below_max = (delays <= max_delay).all()
+        above_min = (delays >= min_delay).all()
+        in_range = below_max and above_min
+    elif numpy.isreal(delays):
+        in_range = min_delay <= delays <= max_delay
+    else:
+        raise errors.ConnectionError("Delays must be a number or an array of numbers.")
+    if not in_range:
+        raise errors.ConnectionError("Delay (%s) is out of range [%s, %s]" % (delays, min_delay, max_delay))
 
 
-class STDPMechanism(object):
-    """Specification of STDP models."""
-    
-    def __init__(self, timing_dependence=None, weight_dependence=None,
-                 voltage_dependence=None, dendritic_delay_fraction=1.0):
+class StandardSynapseType(StandardModelType, models.BaseSynapseType):
+    parameter_checks = {
+        'weight': check_weights,
+        'delay': check_delays
+    }
+
+    def get_schema(self):
         """
-        Create a new specification for an STDP mechanism, by combining a
-        weight-dependence, a timing-dependence, and, optionally, a voltage-
-        dependence.
-        
-        For point neurons, the synaptic delay `d` can be interpreted either as
-        occurring purely in the pre-synaptic axon + synaptic cleft, in which
-        case the synaptic plasticity mechanism 'sees' the post-synaptic spike
-        immediately and the pre-synaptic spike after a delay `d`
-        (`dendritic_delay_fraction = 0`) or as occurring purely in the post-
-        synaptic dendrite, in which case the pre-synaptic spike is seen
-        immediately, and the post-synaptic spike after a delay `d`
-        (`dendritic_delay_fraction = 1`), or as having both pre- and post-
-        synaptic components (`dendritic_delay_fraction` between 0 and 1).
-        
-        In a future version of the API, we will allow the different
-        components of the synaptic delay to be specified separately in
-        milliseconds.
+        Returns the model schema: i.e. a mapping of parameter names to allowed
+        parameter types.
         """
-        if timing_dependence:
-            assert isinstance(timing_dependence, STDPTimingDependence)
-        if weight_dependence:
-            assert isinstance(weight_dependence, STDPWeightDependence)
-        assert isinstance(dendritic_delay_fraction, (int, long, float))
-        assert 0 <= dendritic_delay_fraction <= 1
-        self.timing_dependence = timing_dependence
-        self.weight_dependence = weight_dependence
-        self.voltage_dependence = voltage_dependence
-        self.dendritic_delay_fraction = dendritic_delay_fraction
-    
-    @property
-    def possible_models(self):
-        td = self.timing_dependence
-        wd = self.weight_dependence
-        pm = td.possible_models.intersection(wd.possible_models)
-        if len(pm) == 1 :
-            return list(pm)[0]
-        elif len(pm) == 0 :
-            raise errors.NoModelAvailableError("No available plasticity models")
-        elif len(pm) > 1 :
-            # we pass the set of models back to the simulator-specific module for it to deal with
-            return pm
-    
-    @property
-    def all_parameters(self):
-        parameters = self.timing_dependence.parameters.copy()
-        parameters.update(self.weight_dependence.parameters)
-        return parameters
-    
-    def describe(self, template='stdpmechanism_default.txt', engine='default'):
-        """
-        Returns a human-readable description of the STDP mechanism.
-        
-        The output may be customized by specifying a different template
-        togther with an associated template engine (see ``pyNN.descriptions``).
-        
-        If template is None, then a dictionary containing the template context
-        will be returned.
-        """
-        context = {'weight_dependence': self.weight_dependence.describe(template=None),
-                   'timing_dependence': self.timing_dependence.describe(template=None),
-                   'voltage_dependence': self.voltage_dependence and self.voltage_dependence.describe(template=None) or None,
-                   'dendritic_delay_fraction': self.dendritic_delay_fraction}
-        return descriptions.render(engine, template, context)
+        base_schema = dict((name, type(value))
+                           for name, value in self.default_parameters.items())
+        base_schema['delay'] = float  # delay has default value None, meaning "use the minimum delay", so we have to correct the auto-generated schema
+        return base_schema
 
 
 class STDPWeightDependence(StandardModelType):
-    """Abstract base class for models of STDP weight dependence."""
-    
-    def __init__(self):
-        raise NotImplementedError
+    """Base class for models of STDP weight dependence."""
+
+    def __init__(self, **parameters):
+        StandardModelType.__init__(self, **parameters)
 
 
 class STDPTimingDependence(StandardModelType):
-    """Abstract base class for models of STDP timing dependence (triplets, etc)"""
-    
-    def __init__(self):
-        raise NotImplementedError
+    """Base class for models of STDP timing dependence (triplets, etc)"""
+
+    def __init__(self, **parameters):
+        StandardModelType.__init__(self, **parameters)

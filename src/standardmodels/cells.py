@@ -24,12 +24,12 @@ Spike sources (input neurons)
     SpikeSourceArray
     SpikeSourceInhGamma
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-import numpy
 from pyNN.standardmodels import StandardCellType
+from pyNN.parameters import Sequence
 
 class IF_curr_alpha(StandardCellType):
     """
@@ -97,9 +97,11 @@ class IF_cond_alpha(StandardCellType):
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
         'i_offset'   : 0.0,     # Offset current in nA
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0, #'v_rest',
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
     
 class IF_cond_exp(StandardCellType):
@@ -121,9 +123,11 @@ class IF_cond_exp(StandardCellType):
         'v_reset'    : -65.0,   # Reset potential after a spike in mV.
         'i_offset'   : 0.0,     # Offset current in nA
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0, #'v_rest',
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
 
 class IF_cond_exp_gsfa_grr(StandardCellType):
@@ -158,9 +162,11 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
         'e_rev_rr'   : -75.0,   # relative refractory mechanism conductance reversal potential in mV
         'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS   
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0, #'v_rest',
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
     
 class IF_facets_hardware1(StandardCellType):
@@ -183,9 +189,11 @@ class IF_facets_hardware1(StandardCellType):
         'v_rest'    :  -65.0,     # mV
         'v_thresh'  :  -55.0      # mV
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0, #'v_rest',
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
 
 class HH_cond_exp(StandardCellType):
@@ -209,9 +217,11 @@ class HH_cond_exp(StandardCellType):
         'tau_syn_I' : 2.0,
         'i_offset'  : 0.0, # nA
     }
-    recordable = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0, #'v_rest',
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
 
 class EIF_cond_alpha_isfa_ista(StandardCellType):
@@ -243,10 +253,12 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
         'e_rev_I'   : -80.0,  # Inhibitory reversal potential in mV.
         'tau_syn_I' : 5.0,    # Rise time of the inhibitory synaptic conductance in ms (alpha function).
     }
-    recordable = ['spikes', 'v', 'w', 'gsyn']
+    recordable = ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
-        'v': -65.0, #'v_rest',
+        'v': -70.6, #'v_rest',
         'w': 0.0,
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
 
 class EIF_cond_exp_isfa_ista(StandardCellType):
@@ -278,20 +290,26 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
         'e_rev_I'   : -80.0,  # Inhibitory reversal potential in mV.
         'tau_syn_I' : 5.0,    # Decay time constant of the inhibitory synaptic conductance in ms.
     }
-    recordable = ['spikes', 'v', 'w', 'gsyn']
+    recordable = ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
-        'v': -65.0, #'v_rest',
+        'v': -70.6, #'v_rest',
         'w': 0.0,
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
     }
 
 
-class Izikevich(StandardCellType):
+class Izhikevich(StandardCellType):
     """
-    Izikevich spiking model with a quadratic non-linearity according to:
+    Izhikevich spiking model with a quadratic non-linearity according to:
 
-    E. Izikevich (2003), IEEE transactions on neural networks, 14(6) 
+    E. Izhikevich (2003), IEEE transactions on neural networks, 14(6) 
 
     Synapses are modeled as dirac, as in the original model
+    
+    NOTE: name should probably be changed to match standard nomenclature,
+    e.g. QIF_cond_exp_etc_etc, although keeping "Izhikevich" as an alias would be good
+    
     """
 
     default_parameters = {
@@ -320,7 +338,7 @@ class SpikeSourcePoisson(StandardCellType):
     }
     recordable = ['spikes']
     injectable = False
-    synapse_types = ()
+    receptor_types = ()
 
 
 class SpikeSourceInhGamma(StandardCellType):
@@ -333,27 +351,21 @@ class SpikeSourceInhGamma(StandardCellType):
     """
 
     default_parameters = {
-        'a'        : numpy.array([1.0]), # time histogram of parameter a of a gamma distribution (dimensionless)
-        'b'        : numpy.array([1.0]), # time histogram of parameter b of a gamma distribution (seconds)
-        'tbins'    : numpy.array([0.0]),   # time bins of the time histogram of a,b in units of ms
+        'a'        : Sequence([1.0]), # time histogram of parameter a of a gamma distribution (dimensionless)
+        'b'        : Sequence([1.0]), # time histogram of parameter b of a gamma distribution (seconds)
+        'tbins'    : Sequence([0.0]),   # time bins of the time histogram of a,b in units of ms
         'start'    : 0.0,                # Start time (ms)
         'duration' : 1e10                 # Duration of spike sequence (ms)
     }
     recordable = ['spikes']
     injectable = False
-    synapse_types = ()      
+    receptor_types = ()
 
 
 class SpikeSourceArray(StandardCellType):
     """Spike source generating spikes at the times given in the spike_times array."""
     
-    default_parameters = { 'spike_times' : [] } # list or numpy array containing spike times in milliseconds.
+    default_parameters = { 'spike_times' : Sequence([]) } # list or numpy array containing spike times in milliseconds.
     recordable = ['spikes']
     injectable = False
-    synapse_types = ()    
-           
-    def __init__(self, parameters):
-        if parameters and 'spike_times' in parameters:
-            parameters['spike_times'] = numpy.array(parameters['spike_times'], 'float')
-        StandardCellType.__init__(self, parameters)
-        
+    receptor_types = ()

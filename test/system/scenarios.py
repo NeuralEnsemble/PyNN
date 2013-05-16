@@ -1,11 +1,16 @@
 # encoding: utf-8
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN import common, recording
+from pyNN.space import Space, Grid3D, RandomStructure, Cuboid
 from nose.tools import assert_equal
+from nose.plugins.skip import SkipTest
 import glob, os
 import numpy
-from pyNN.utility import init_logging, assert_arrays_equal, assert_arrays_almost_equal, sort_by_column
+import quantities as pq
+from pyNN.utility import init_logging, assert_arrays_equal, assert_arrays_almost_equal
 
+import logging
+logger = logging.getLogger("TEST")
 
 scenarios = []
 def register(exclude=[]):
@@ -45,38 +50,40 @@ def scenario1(sim):
         'inhibitory': 51.0e-3,
         'input': 0.1,
     }
-       
+
     sim.setup(timestep=dt, min_delay=dt, threads=n_threads)
-    all_cells = sim.Population(n_exc+n_inh, sim.IF_cond_exp, cell_params, label="All cells")
+    all_cells = sim.Population(n_exc+n_inh, sim.IF_cond_exp(**cell_params), label="All cells")
     cells = {
         'excitatory': all_cells[:n_exc],
         'inhibitory': all_cells[n_exc:],
-        'input': sim.Population(n_input, sim.SpikeSourcePoisson, stimulation_params, label="Input")
+        'input': sim.Population(n_input, sim.SpikeSourcePoisson(**stimulation_params), label="Input")
     }
-    
+
     rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
     uniform_distr = RandomDistribution(
                         'uniform',
                         [cell_params['v_reset'], cell_params['v_thresh']],
                         rng=rng)
-    all_cells.initialize('v', uniform_distr)
-    
+    all_cells.initialize(v=uniform_distr)
+
     connections = {}
-    for name, pconn, target in (
+    for name, pconn, receptor_type in (
         ('excitatory', pconn_recurr, 'excitatory'),
         ('inhibitory', pconn_recurr, 'inhibitory'),
         ('input',      pconn_input,  'excitatory'),
     ):
-        connector = sim.FixedProbabilityConnector(pconn, weights=weights[name], delays=delay)
+        connector = sim.FixedProbabilityConnector(pconn, rng=rng)
+        syn = sim.StaticSynapse(weight=weights[name], delay=delay)
         connections[name] = sim.Projection(cells[name], all_cells, connector,
-                                           target=target, label=name, rng=rng)
-    
-    all_cells.record()
-    cells['excitatory'][0:2].record_v()
+                                           syn, receptor_type=receptor_type,
+                                           label=name)
+
+    all_cells.record('spikes')
+    cells['excitatory'][0:2].record('v')
     assert_equal(cells['excitatory'][0:2].grandparent, all_cells)
-    
+
     sim.run(tstop)
-    
+
     E_count = cells['excitatory'].mean_spike_count()
     I_count = cells['inhibitory'].mean_spike_count()
     print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
@@ -110,25 +117,26 @@ def scenario1a(sim):
     w_inh = 45.0e-3
     w_input = 0.12
     dt      = 0.1
-       
+
     sim.setup(timestep=dt, min_delay=dt, threads=n_threads)
-    excitatory_cells = sim.create(sim.IF_cond_alpha, cell_params, n=n_exc)
-    inhibitory_cells = sim.create(sim.IF_cond_alpha, cell_params, n=n_inh)
-    inputs = sim.create(sim.SpikeSourcePoisson, stimulation_params, n=n_input)
+    iaf_neuron = sim.IF_cond_alpha(**cell_params)
+    excitatory_cells = sim.create(iaf_neuron, n=n_exc)
+    inhibitory_cells = sim.create(iaf_neuron, n=n_inh)
+    inputs = sim.create(sim.SpikeSourcePoisson(**stimulation_params), n=n_input)
     all_cells = excitatory_cells + inhibitory_cells
-    sim.initialize(all_cells, 'v', cell_params['v_rest'])
-    
+    sim.initialize(all_cells, v=cell_params['v_rest'])
+
     sim.connect(excitatory_cells, all_cells, weight=w_exc, delay=delay,
-                synapse_type='excitatory', p=pconn_recurr)
+                receptor_type='excitatory', p=pconn_recurr)
     sim.connect(inhibitory_cells, all_cells, weight=w_exc, delay=delay,
-                synapse_type='inhibitory', p=pconn_recurr)
+                receptor_type='inhibitory', p=pconn_recurr)
     sim.connect(inputs, all_cells, weight=w_input, delay=delay,
-                synapse_type='excitatory', p=pconn_input)
-    sim.record(all_cells, "scenario1a_%s.spikes" % sim.__name__)
-    sim.record_v(excitatory_cells[0:2], "scenario1a_%s.v" % sim.__name__)
-    
+                receptor_type='excitatory', p=pconn_input)
+    sim.record('spikes', all_cells, "scenario1a_%s_spikes.pkl" % sim.__name__)
+    sim.record('v', excitatory_cells[0:2], "scenario1a_%s_v.pkl" % sim.__name__)
+
     sim.run(tstop)
-    
+
     E_count = excitatory_cells.mean_spike_count()
     I_count = inhibitory_cells.mean_spike_count()
     print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
@@ -142,11 +150,11 @@ def scenario1a(sim):
 def scenario2(sim):
     """
     Array of neurons, each injected with a different current.
-    
+
     firing period of a IF neuron injected with a current I:
-    
+
     T = tau_m*log(I*tau_m/(I*tau_m - v_thresh*cm))
-    
+
     (if v_rest = v_reset = 0.0)
 
     we set the refractory period to be very large, so each neuron fires only
@@ -163,33 +171,33 @@ def scenario2(sim):
                    "tau_refrac": 100.0, "v_thresh": v_thresh, "cm": cm}
     I0 = (v_thresh*cm)/tau_m
     sim.setup(timestep=0.01, spike_precision="off_grid")
-    neurons = sim.Population(n, sim.IF_curr_exp, cell_params)
-    neurons.initialize('v', 0.0)
+    neurons = sim.Population(n, sim.IF_curr_exp(**cell_params))
+    neurons.initialize(v=0.0)
     I = numpy.arange(I0, I0+1.0, 1.0/n)
-    currents = [sim.DCSource({"start" : t_start, "stop" : t_start+duration, "amplitude" :amp})
+    currents = [sim.DCSource(start=t_start, stop=t_start+duration, amplitude=amp)
                 for amp in I]
     for j, (neuron, current) in enumerate(zip(neurons, currents)):
         if j%2 == 0:                      # these should
             neuron.inject(current)        # be entirely
         else:                             # equivalent
             current.inject_into([neuron])
-    neurons.record_v()
-    neurons.record()
-    
+    neurons.record(['spikes', 'v'])
+
     sim.run(t_stop)
-    
-    spikes = neurons.getSpikes()
-    assert_equal(spikes.shape, (99,2)) # first cell does not fire
-    spikes = sort_by_column(spikes, 0)
-    spike_times = spikes[:,1]
+
+    spiketrains = neurons.get_data().segments[0].spiketrains
+    assert_equal(len(spiketrains), n)
+    assert_equal(len(spiketrains[0]), 0) # first cell does not fire
+    assert_equal(len(spiketrains[1]), 1) # other cells fire once
+    assert_equal(len(spiketrains[-1]), 1) # other cells fire once
     expected_spike_times = t_start + tau_m*numpy.log(I*tau_m/(I*tau_m - v_thresh*cm))
-    a = spike_times = spikes[:,1]
+    a = spike_times = [numpy.array(st)[0] for st in spiketrains[1:]]
     b = expected_spike_times[1:]
     max_error = abs((a-b)/b).max()
     print "max error =", max_error
     assert max_error < 0.005, max_error
     sim.end()
-    return a,b, spikes
+    return a,b, spike_times
 
 
 @register(exclude=["moose", "nemo", "brian"])
@@ -205,7 +213,7 @@ def scenario3(sim):
     duration = 10
     tau_m = 20 # ms
     cm = 1.0 # nF
-    v_reset = -60 
+    v_reset = -60
     cell_parameters = dict(
         tau_m = tau_m,
         cm = cm,
@@ -213,7 +221,7 @@ def scenario3(sim):
         e_rev_E = 0,
         e_rev_I = -70,
         v_thresh = -54,
-        v_reset = v_reset,      
+        v_reset = v_reset,
         tau_syn_E = 5,
         tau_syn_I = 5,
     )
@@ -221,68 +229,71 @@ def scenario3(sim):
 
     w_min = 0.0*g_leak
     w_max = 0.05*g_leak
-    
+
     r1 = 5.0
     r2 = 40.0
-    
+
     sim.setup()
-    pre = sim.Population(100, sim.SpikeSourcePoisson)
-    post = sim.Population(10, sim.IF_cond_exp)
-    
-    pre.set("duration", duration*second)
-    pre.set("start", 0.0)
-    pre[:50].set("rate", r1)
-    pre[50:].set("rate", r2)
+    pre = sim.Population(100, sim.SpikeSourcePoisson())
+    post = sim.Population(10, sim.IF_cond_exp())
+
+    pre.set(duration=duration*second)
+    pre.set(start=0.0)
+    pre[:50].set(rate=r1)
+    pre[50:].set(rate=r2)
     assert_equal(pre[49].rate, r1)
     assert_equal(pre[50].rate, r2)
-    post.set(cell_parameters)
-    post.initialize('v', RandomDistribution('normal', (v_reset, 5.0)))
-    
-    stdp = sim.SynapseDynamics(
-                slow=sim.STDPMechanism(
-                        sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0 ),
-                        sim.AdditiveWeightDependence(w_min=w_min, w_max=w_max,
-                                                     A_plus=0.01, A_minus=0.01),
-                        #dendritic_delay_fraction=0.5))
-                        dendritic_delay_fraction=1))
-    
+    post.set(**cell_parameters)
+    post.initialize(v=RandomDistribution('normal', (v_reset, 5.0)))
+
+    stdp = sim.STDPMechanism(
+                sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0 ),
+                sim.AdditiveWeightDependence(w_min=w_min, w_max=w_max,
+                                             A_plus=0.01, A_minus=0.01),
+                #dendritic_delay_fraction=0.5))
+                dendritic_delay_fraction=1)
+
     connections = sim.Projection(pre, post, sim.AllToAllConnector(),
-                                 target='excitatory', synapse_dynamics=stdp)
-    
+                                 synapse_type=stdp,
+                                 receptor_type='excitatory')
+
     initial_weight_distr = RandomDistribution('uniform', (w_min, w_max))
     connections.randomizeWeights(initial_weight_distr)
-    initial_weights = connections.getWeights(format='array')
+    initial_weights = connections.get('weight', format='array')
     assert initial_weights.min() >= w_min
     assert initial_weights.max() < w_max
     assert initial_weights[0,0] != initial_weights[1,0]
-    
-    pre.record()
-    post.record()
-    post.record_v(1)
-    
+
+    pre.record('spikes')
+    post.record('spikes')
+    post[0:1].record('v')
+
     sim.run(duration*second)
-    
+
     actual_rate = pre.mean_spike_count()/duration
     expected_rate = (r1+r2)/2
     errmsg = "actual rate: %g  expected rate: %g" % (actual_rate, expected_rate)
     assert abs(actual_rate - expected_rate) < 1, errmsg
     #assert abs(pre[:50].mean_spike_count()/duration - r1) < 1
     #assert abs(pre[50:].mean_spike_count()/duration- r2) < 1
-    final_weights = connections.getWeights(format='array')
+    final_weights = connections.get('weight', format='array')
     assert initial_weights[0,0] != final_weights[0,0]
-    
-    import scipy.stats
+
+    try:
+        import scipy.stats
+    except ImportError:
+        raise SkipTest
     t,p = scipy.stats.ttest_ind(initial_weights[:50,:].flat, initial_weights[50:,:].flat)
     assert p > 0.05, p
     t,p = scipy.stats.ttest_ind(final_weights[:50,:].flat, final_weights[50:,:].flat)
     assert p < 0.01, p
     assert final_weights[:50,:].mean() < final_weights[50:,:].mean()
-    
+
     return initial_weights, final_weights, pre, post, connections
-    
+
 
 @register(exclude=["nemo"])
-def ticket166(sim):
+def ticket166(sim, interactive=False):
     """
     Check that changing the spike_times of a SpikeSourceArray mid-simulation
     works (see http://neuralensemble.org/trac/PyNN/ticket/166)
@@ -290,45 +301,43 @@ def ticket166(sim):
     dt = 0.1 # ms
     t_step = 100.0 # ms
     lag = 3.0 # ms
-    interactive = False
-    
+
     if interactive:
-        import pylab
-        pylab.rcParams['interactive'] = interactive
-    
+        import matplotlib.pyplot as plt
+        plt.ion()
+
     sim.setup(timestep=dt, min_delay=dt)
-    
-    spikesources = sim.Population(2, sim.SpikeSourceArray)
-    cells = sim.Population(2, sim.IF_cond_exp)
-    conn = sim.Projection(spikesources, cells, sim.OneToOneConnector(weights=0.1))
-    cells.record_v()
-    
+
+    spikesources = sim.Population(2, sim.SpikeSourceArray())
+    cells = sim.Population(2, sim.IF_cond_exp())
+    syn = sim.StaticSynapse(weight=0.01)
+    conn = sim.Projection(spikesources, cells, sim.OneToOneConnector(), syn)
+    cells.record('v')
+
     spiketimes = numpy.arange(2.0, t_step, t_step/13.0)
     spikesources[0].spike_times = spiketimes
     spikesources[1].spike_times = spiketimes + lag
-    
+
     t = sim.run(t_step) # both neurons depolarized by synaptic input
     t = sim.run(t_step) # no more synaptic input, neurons decay
-    
+
     spiketimes += 2*t_step
     spikesources[0].spike_times = spiketimes
     # note we add no new spikes to the second source
     t = sim.run(t_step) # first neuron gets depolarized again
-    
-    final_v_0 = cells[0:1].get_v()[-1,2]
-    final_v_1 = cells[1:2].get_v()[-1,2]
-    
+
+    vm = cells.get_data().segments[0].analogsignalarrays[0]
+    final_v_0 = vm[-1, 0]
+    final_v_1 = vm[-1, 1]
+
     sim.end()
-    
+
     if interactive:
-        id, t, vtrace = cells[0:1].get_v().T
-        print vtrace.shape
-        print t.shape
-        pylab.plot(t, vtrace)
-        id, t, vtrace = cells[1:2].get_v().T
-        pylab.plot(t, vtrace)
-    
-    assert final_v_0 > -64.0  # first neuron has been depolarized again
+        plt.plot(vm.times, vm[:, 0])
+        plt.plot(vm.times, vm[:, 1])
+        plt.savefig("ticket166_%s.png" % sim.__name__)
+
+    assert final_v_0 > -60.0  # first neuron has been depolarized again
     assert final_v_1 < -64.99 # second neuron has decayed back towards rest
 
 
@@ -341,44 +350,77 @@ def test_reset(sim):
     repeats = 3
     dt      = 1
     sim.setup(timestep=dt, min_delay=dt)
-    p = sim.Population(1, sim.IF_curr_exp, {"i_offset": 0.1})
-    p.record_v()
-    
+    p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
+    p.record('v')
+
+    for i in range(repeats):
+        sim.run(10.0)
+        sim.reset()
+    data = p.get_data(clear=False)
+    sim.end()
+
+    assert len(data.segments) == repeats
+    for segment in data.segments[1:]:
+        assert_arrays_almost_equal(segment.analogsignalarrays[0],
+                                   data.segments[0].analogsignalarrays[0], 1e-11)
+
+
+@register()
+def test_reset_with_clear(sim):
+    """
+    Run the same simulation n times without recreating the network,
+    and check the results are the same each time.
+    """
+    repeats = 3
+    dt      = 1
+    sim.setup(timestep=dt, min_delay=dt)
+    p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
+    p.record('v')
+
     data = []
     for i in range(repeats):
         sim.run(10.0)
-        data.append(p.get_v())
+        data.append(p.get_data(clear=True))
         sim.reset()
-        
+
     sim.end()
 
     for rec in data:
-        assert_arrays_almost_equal(rec, data[0], 1e-11)
+        assert len(rec.segments) == 1
+        assert_arrays_almost_equal(rec.segments[0].analogsignalarrays[0],
+                                   data[0].segments[0].analogsignalarrays[0], 1e-11)
 
 
 @register(exclude=['brian', 'pcsim', 'nemo'])
 def test_reset_recording(sim):
     """
-    Check that _record(None) resets the list of things to record.
+    Check that record(None) resets the list of things to record.
+
+    This test injects different levels of current into two neurons. In the
+    first run, we record one of the neurons, in the second we record the other.
+    The main point is to check that the first neuron is not recorded in the
+    second run.
     """
     sim.setup()
-    p = sim.Population(2, sim.IF_cond_exp)
-    p[0].i_offset = 0.1
-    p[1].i_offset = 0.2
-    p[0:1].record_v()
-    assert_equal(p.recorders['v'].recorded, set([p[0]]))
+    p = sim.Population(7, sim.IF_cond_exp())
+    p[3].i_offset = 0.1
+    p[4].i_offset = 0.2
+    p[3:4].record('v')
     sim.run(10.0)
-    idA, tA, vA = p.get_v().T
     sim.reset()
-    p._record(None)
-    p[1:2].record_v()
-    assert_equal(p.recorders['v'].recorded, set([p[1]]))
+    p.record(None)
+    p[4:5].record('v')
     sim.run(10.0)
-    idB, tB, vB = p.get_v().T
-    assert_arrays_equal(tA, tB)
-    assert (idA == 0).all()
-    assert (idB == 1).all()
-    assert (vA != vB).any()
+    data = p.get_data()
+    ti = lambda i: data.segments[i].analogsignalarrays[0].times
+    assert_arrays_equal(ti(0), ti(1))
+    idx = lambda i: data.segments[i].analogsignalarrays[0].channel_index
+    assert idx(0) == [3]
+    assert idx(1) == [4]
+    vi = lambda i: data.segments[i].analogsignalarrays[0]
+    assert vi(0).shape == vi(1).shape == (101, 1)
+    assert vi(0)[0, 0] == vi(1)[0, 0] == p.initial_values['v'].evaluate(simplify=True)*pq.mV # the first value should be the same
+    assert not (vi(0)[1:, 0] == vi(1)[1:, 0]).any()            # none of the others should be, because of different i_offset
 
 
 @register()
@@ -393,30 +435,37 @@ def test_setup(sim):
 
     for i in range(n):
         sim.setup(timestep=dt, min_delay=dt)
-        p = sim.Population(1, sim.IF_curr_exp, {"i_offset": 0.1})
-        p.record_v()
+        p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
+        p.record('v')
         sim.run(10.0)
-        data.append(p.get_v())
+        data.append(p.get_data())
         sim.end()
 
     assert len(data) == n
-    assert data[0].size > 0
-    for rec in data:
-        assert_arrays_equal(rec, data[0])
+    for block in data:
+        assert len(block.segments) == 1
+        signals = block.segments[0].analogsignalarrays
+        assert len(signals) == 1
+        assert_arrays_equal(signals[0], data[0].segments[0].analogsignalarrays[0])
+
 
 @register(exclude=['pcsim', 'moose', 'nemo'])
 def test_EIF_cond_alpha_isfa_ista(sim):
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
-    ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista,
-                        {'i_offset': 1.0, 'tau_refrac': 2.0, 'v_spike': -40})   
-    ifcell.record()
+    ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista(
+                            i_offset=1.0, tau_refrac=2.0, v_spike=-40))
+    ifcell.record(['spikes', 'v'])
+    ifcell.initialize(v=-65)
     sim.run(200.0)
-    expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67,  113.13, 142.69, 174.79])
-    diff = (ifcell.getSpikes()[:,1] - expected_spike_times)/expected_spike_times
+    data = ifcell.get_data().segments[0]
+    expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67,  113.13, 142.69, 174.79]) * pq.ms
+    diff = (data.spiketrains[0] - expected_spike_times)/expected_spike_times
     assert abs(diff).max() < 0.001
     sim.end()
+    return data
 
-@register(exclude=['pcsim', 'nemo'])
+
+@register(exclude=['pcsim', 'nemo', 'brian'])
 def test_HH_cond_exp(sim):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
@@ -434,14 +483,14 @@ def test_HH_cond_exp(sim):
         'tau_syn_I' : 2.0,
         'i_offset'  : 1.0,
     }
-    hhcell = sim.create(sim.HH_cond_exp, cellparams=cellparams)
-    sim.initialize(hhcell, 'v', -64.0)
-    hhcell.record_v()
+    hhcell = sim.create(sim.HH_cond_exp(**cellparams))
+    sim.initialize(hhcell, v=-64.0)
+    hhcell.record('v')
     sim.run(20.0)
-    id, t, v = hhcell.get_v().T
-    first_spike = t[numpy.where(v>0)[0][0]]
-    assert first_spike - 2.95 < 0.01 
-    
+    v = hhcell.get_data().segments[0].filter(name='v')[0]
+    first_spike = v.times[numpy.where(v>0)[0][0]]
+    assert first_spike/pq.ms - 2.95 < 0.01
+
 
 @register(exclude=['pcsim', 'moose', 'nemo'])
 def test_record_vm_and_gsyn_from_assembly(sim):
@@ -450,42 +499,47 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     dt    = 0.1
     tstop = 100.0
     sim.setup(timestep=dt, min_delay=dt)
-    cells = sim.Population(5, sim.IF_cond_exp) + sim.Population(6, sim.EIF_cond_exp_isfa_ista)
-    inputs = sim.Population(5, sim.SpikeSourcePoisson, {'rate': 50.0})
-    sim.connect(inputs, cells, weight=0.1, delay=0.5, synapse_type='inhibitory')
-    sim.connect(inputs, cells, weight=0.1, delay=0.3, synapse_type='excitatory')
-    cells.record_v()
-    cells[2:9].record_gsyn()
-    for p in cells.populations:
-        assert_equal(p.recorders['v'].recorded, set(p.all_cells))
-    
-    assert_equal(cells.populations[0].recorders['gsyn'].recorded, set(cells.populations[0].all_cells[2:5]))
-    assert_equal(cells.populations[1].recorders['gsyn'].recorded, set(cells.populations[1].all_cells[0:4]))
+    cells = sim.Population(5, sim.IF_cond_exp()) + sim.Population(6, sim.EIF_cond_exp_isfa_ista())
+    inputs = sim.Population(5, sim.SpikeSourcePoisson(rate=50.0))
+    sim.connect(inputs, cells, weight=0.1, delay=0.5, receptor_type='inhibitory')
+    sim.connect(inputs, cells, weight=0.1, delay=0.3, receptor_type='excitatory')
+    cells.record('v')
+    cells[2:9].record(['gsyn_exc', 'gsyn_inh'])
+#    for p in cells.populations:
+#        assert_equal(p.recorders['v'].recorded, set(p.all_cells))
+
+#    assert_equal(cells.populations[0].recorders['gsyn'].recorded, set(cells.populations[0].all_cells[2:5]))
+#    assert_equal(cells.populations[1].recorders['gsyn'].recorded, set(cells.populations[1].all_cells[0:4]))
     sim.run(tstop)
-    vm_p0 = cells.populations[0].get_v()
-    vm_p1 = cells.populations[1].get_v()
-    vm_all = cells.get_v()
-    gsyn_p0 = cells.populations[0].get_gsyn()
-    gsyn_p1 = cells.populations[1].get_gsyn()
-    gsyn_all = cells.get_gsyn()
-    assert_equal(numpy.unique(vm_p0[:,0]).tolist(), [ 0., 1., 2., 3., 4.])
-    assert_equal(numpy.unique(vm_p1[:,0]).tolist(), [ 0., 1., 2., 3., 4., 5.])
-    assert_equal(numpy.unique(vm_all[:,0]).astype(int).tolist(), range(11))
-    assert_equal(numpy.unique(gsyn_p0[:,0]).tolist(), [ 2., 3., 4.])
-    assert_equal(numpy.unique(gsyn_p1[:,0]).tolist(), [ 0., 1., 2., 3.])
-    assert_equal(numpy.unique(gsyn_all[:,0]).astype(int).tolist(), range(2,9))
-    
+    data0 = cells.populations[0].get_data().segments[0]
+    data1 = cells.populations[1].get_data().segments[0]
+    data_all = cells.get_data().segments[0]
+    vm_p0 = data0.filter(name='v')[0]
+    vm_p1 = data1.filter(name='v')[0]
+    vm_all = data_all.filter(name='v')[0]
+    gsyn_p0 = data0.filter(name='gsyn_exc')[0]
+    gsyn_p1 = data1.filter(name='gsyn_exc')[0]
+    gsyn_all = data_all.filter(name='gsyn_exc')[0]
+
     n_points = int(tstop/dt) + 1
-    assert_equal(vm_p0.shape[0], 5*n_points)
-    assert_equal(vm_p1.shape[0], 6*n_points)
-    assert_equal(vm_all.shape[0], 11*n_points)
-    assert_equal(gsyn_p0.shape[0], 3*n_points)
-    assert_equal(gsyn_p1.shape[0], 4*n_points)
-    assert_equal(gsyn_all.shape[0], 7*n_points)
-    
-    assert_arrays_equal(vm_p1[vm_p1[:,0]==3][:,2], vm_all[vm_all[:,0]==8][:,2])
+    assert_equal(vm_p0.shape, (n_points, 5))
+    assert_equal(vm_p1.shape, (n_points, 6))
+    assert_equal(vm_all.shape, (n_points, 11))
+    assert_equal(gsyn_p0.shape, (n_points, 3))
+    assert_equal(gsyn_p1.shape, (n_points, 4))
+    assert_equal(gsyn_all.shape, (n_points, 7))
+
+    assert_arrays_equal(vm_p1[:,3], vm_all[:,8])
+
+    assert_arrays_equal(vm_p0.channel_index, numpy.arange(5))
+    assert_arrays_equal(vm_p1.channel_index, numpy.arange(6))
+    assert_arrays_equal(vm_all.channel_index, numpy.arange(11))
+    assert_arrays_equal(gsyn_p0.channel_index, numpy.array([ 2, 3, 4]))
+    assert_arrays_equal(gsyn_p1.channel_index, numpy.arange(4))
+    assert_arrays_equal(gsyn_all.channel_index, numpy.arange(2, 9))
 
     sim.end()
+
 
 @register(exclude=["pcsim", "nemo"])
 def test_changing_electrode(sim):
@@ -496,20 +550,22 @@ def test_changing_electrode(sim):
     dt      = 0.1
     simtime = 100
     sim.setup(timestep=dt, min_delay=dt)
-    p = sim.Population(1, sim.IF_curr_exp)
-    c = sim.DCSource({'amplitude' : 0})
-    c.inject_into(p)    
-    p.record_v()
-    
-    data = []
+    p = sim.Population(1, sim.IF_curr_exp())
+    c = sim.DCSource(amplitude=0.0)
+    c.inject_into(p)
+    p.record('v')
+
     for i in range(repeats):
-        sim.run(100.0)
+        sim.run(simtime)
         c.amplitude += 0.1
-    data.append(p.get_v())
-        
+
+    data = p.get_data().segments[0].analogsignalarrays[0]
+
     sim.end()
 
-    assert data[0][:, 2][simtime/dt] < data[0][:, 2][-1]
+    # check that the value of v just before increasing the current is less than
+    # the value at the end of the simulation
+    assert data[int(simtime/dt), 0] < data[-1, 0]
 
 
 
@@ -519,11 +575,84 @@ def ticket195(sim):
     Check that the `connect()` function works correctly with single IDs (see
     http://neuralensemble.org/trac/PyNN/ticket/195)
     """
+    init_logging(None, debug=True)
     sim.setup(timestep=0.01)
-    pre = sim.Population(10, sim.SpikeSourceArray, cellparams={'spike_times':range(1,10)})
-    post = sim.Population(10, sim.IF_cond_exp)
-    sim.connect(pre[0], post[0], weight=0.01, delay=0.1, p=1)
-    post.record()
+    pre = sim.Population(10, sim.SpikeSourceArray(spike_times=range(1,10)))
+    post = sim.Population(10, sim.IF_cond_exp())
+    #sim.connect(pre[0], post[0], weight=0.01, delay=0.1, p=1)
+    sim.connect(pre[0:1], post[0:1], weight=0.01, delay=0.1, p=1)
+    #prj = sim.Projection(pre, post, sim.FromListConnector([(0, 0, 0.01, 0.1)]))
+    post.record(['spikes', 'v'])
     sim.run(100.0)
-    assert_arrays_almost_equal(post.getSpikes(), numpy.array([[0.0, 13.4]]), 0.5)
+    assert_arrays_almost_equal(post.get_data().segments[0].spiketrains[0], numpy.array([13.4])*pq.ms, 0.5)
 
+
+@register()
+def ticket226(sim):
+    """
+    Check that the start time of DCSources is correctly taken into account
+    http://neuralensemble.org/trac/PyNN/ticket/226)
+    """
+    sim.setup(timestep=0.1)
+
+    cell = sim.Population(1, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=-60.0,
+                                               v_reset=-60.0))
+    cell.initialize(v=-60.0)
+    inj = sim.DCSource(amplitude=1.0, start=10.0, stop=20.0)
+    cell.inject(inj)
+    cell.record_v()
+    sim.run(30.0)
+    v = cell.get_data().segments[0].filter(name='v')[0][:, 0]
+    v_10p0 = v[abs(v.times-10.0*pq.ms)<0.01*pq.ms][0]
+    assert abs(v_10p0 - -60.0*pq.mV) < 1e-10
+    v_10p1 = v[abs(v.times-10.1*pq.ms)<0.01*pq.ms][0]
+    assert v_10p1 > -59.99*pq.mV, v_10p1
+
+
+@register(exclude=["nemo", "brian"])
+def scenario4(sim):
+    """
+    Network with spatial structure
+    """
+    init_logging(logfile=None, debug=True)
+    sim.setup()
+    rng = NumpyRNG(seed=76454, parallel_safe=False)
+
+    input_layout = RandomStructure(boundary=Cuboid(width=500.0, height=500.0, depth=100.0),
+                                   origin=(0, 0, 0), rng=rng)
+    inputs = sim.Population(100, sim.SpikeSourcePoisson(rate=RandomDistribution('uniform', [3.0, 7.0], rng=rng)),
+                            structure=input_layout, label="inputs")
+    output_layout = Grid3D(aspect_ratioXY=1.0, aspect_ratioXZ=5.0, dx=10.0, dy=10.0, dz=10.0,
+                           x0=0.0, y0=0.0, z0=200.0)
+    outputs = sim.Population(200, sim.EIF_cond_exp_isfa_ista(),
+                             initial_values = {'v': RandomDistribution('normal', [-65.0, 5.0], rng=rng),
+                                               'w': RandomDistribution('normal', [0.0, 1.0], rng=rng)},
+                             structure=output_layout, # 10x10x2 grid
+                             label="outputs")
+    logger.debug("Output population positions:\n %s", outputs.positions)
+    DDPC = sim.DistanceDependentProbabilityConnector
+    input_connectivity = DDPC("0.5*exp(-d/100.0)", rng=rng)
+    recurrent_connectivity = DDPC("sin(pi*d/250.0)**2", rng=rng)
+    depressing = sim.TsodyksMarkramSynapse(weight=RandomDistribution('normal', (0.1, 0.02), rng=rng),
+                                           delay="0.5 + d/100.0",
+                                           U=0.5, tau_rec=800.0, tau_facil=0.0)
+    facilitating = sim.TsodyksMarkramSynapse(weight=0.05,
+                                             delay="0.2 + d/100.0",
+                                             U=0.04, tau_rec=100.0,
+                                             tau_facil=1000.0)
+    input_connections = sim.Projection(inputs, outputs, input_connectivity,
+                                       receptor_type='excitatory',
+                                       synapse_type=depressing,
+                                       space=Space(axes='xy'),
+                                       label="input connections")
+    recurrent_connections = sim.Projection(outputs, outputs, recurrent_connectivity,
+                                           receptor_type='inhibitory',
+                                           synapse_type=facilitating,
+                                           space=Space(periodic_boundaries=((-100.0, 100.0), (-100.0, 100.0), None)), # should add "calculate_boundaries" method to Structure classes
+                                           label="recurrent connections")
+    outputs.record('spikes')
+    outputs.sample(10, rng=rng).record('v')
+    sim.run(1000.0)
+    data = outputs.get_data()
+    sim.end()
+    return data

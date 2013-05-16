@@ -1,105 +1,160 @@
 # encoding: utf-8
 """
 Implementation of the "low-level" functionality used by the common
-implementation of the API.
+implementation of the API, for the NEST simulator.
 
-Functions and classes usable by the common implementation:
-
-Functions:
-    run()
+Classes and attributes usable by the common implementation:
 
 Classes:
     ID
-    Recorder
     Connection
-    
+
 Attributes:
     state -- a singleton instance of the _State class.
-    recorder_list
 
 All other functions and classes are private, and should not be used by other
 modules.
 
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id$
 """
 
 import nest
-from pyNN import common, errors, core
 import logging
-import numpy
-import sys
+import tempfile
+from pyNN import common, random
+from pyNN.core import reraise
 
-CHECK_CONNECTIONS = False
-recorder_list = []
-recording_devices = []
-
-global net
-net    = None
 logger = logging.getLogger("PyNN")
+name = "NEST"  # for use in annotating output data
 
 # --- For implementation of get_time_step() and similar functions --------------
 
-class _State(object):
+def nest_property(name, dtype):
+    """Return a property that accesses a NEST kernel parameter"""
+    def _get(self):
+        return nest.GetKernelStatus(name)
+    def _set(self, val):
+        try:
+            nest.SetKernelStatus({name: dtype(val)})
+        except nest.NESTError as e:
+            reraise(e, "%s = %s (%s)" % (name, val, type(val)))
+    return property(fget=_get, fset=_set)
+
+
+class _State(common.control.BaseState):
     """Represent the simulator state."""
-    
+
     def __init__(self):
-        
+        super(_State, self).__init__()
         self.initialized = False
-        self.running     = False
-        self.optimize    = False
+        self.optimize = False
         self.spike_precision = "on_grid"
+        self.verbosity = "warning"
         self.default_recording_precision = 3
         self._cache_num_processes = nest.GetKernelStatus()['num_processes'] # avoids blocking if only some nodes call num_processes
                                                                             # do the same for rank?
+        # allow NEST to erase previously written files (defaut with all the other simulators)
+        nest.SetKernelStatus({'overwrite_files' : True})
+        self.tempdirs = []
+        self.recording_devices = []
+        self.populations = [] # needed for reset
 
     @property
     def t(self):
-        return nest.GetKernelStatus()['time']
-    
-    dt = property(fget=lambda self: nest.GetKernelStatus()['resolution'],
-                  fset=lambda self, timestep: nest.SetKernelStatus({'resolution': timestep}))    
-    
+        return nest.GetKernelStatus('time')
+
+    dt = nest_property('resolution', float)
+
+    threads = nest_property('local_num_threads', int)
+
+    rng_seeds = nest_property('rng_seeds', list)
+
     @property
     def min_delay(self):
+        # any reason why not nest.GetKernelStatus('min_delay')?
         return nest.GetDefaults('static_synapse')['min_delay']
-    
+
+    def set_delays(self, min_delay, max_delay):
+        if min_delay != 'auto': 
+            min_delay = float(min_delay)
+            max_delay = float(max_delay)
+            for synapse_model in nest.Models(mtype='synapses'):
+                nest.SetDefaults(synapse_model, {'delay'    : min_delay,
+                                                 'min_delay': min_delay,
+                                                 'max_delay': max_delay})
+
     @property
     def max_delay(self):
-        # any reason why not nest.GetKernelStatus()['min_delay']?
         return nest.GetDefaults('static_synapse')['max_delay']
-    
+
     @property
     def num_processes(self):
         return self._cache_num_processes
-    
+
     @property
     def mpi_rank(self):
         return nest.Rank()
-    
-    @property
-    def num_threads(self):
-        return nest.GetKernelStatus()['local_num_threads']
+
+    def _get_spike_precision(self):
+        ogs = nest.GetKernelStatus('off_grid_spiking')
+        return ogs and "off_grid" or "on_grid"
+    def _set_spike_precision(self, precision):
+        if precision == 'off_grid':
+            nest.SetKernelStatus({'off_grid_spiking': True})
+            self.default_recording_precision = 15
+        elif precision == 'on_grid':
+            nest.SetKernelStatus({'off_grid_spiking': False})
+            self.default_recording_precision = 3
+        else:
+            raise ValueError("spike_precision must be 'on_grid' or 'off_grid'")
+    spike_precision = property(fget=_get_spike_precision, fset=_set_spike_precision)
+
+    def _set_verbosity(self, verbosity):
+        nest.sli_run("M_%s setverbosity" % verbosity.upper())
+    verbosity = property(fset=_set_verbosity)
+
+    def run(self, simtime):
+        """Advance the simulation for a certain time."""
+        for device in self.recording_devices:
+            if not device._connected:
+                device.connect_to_cells()
+                device._local_files_merged = False
+        if not self.running:
+            simtime += self.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
+            self.running = True
+        nest.Simulate(simtime)
+
+    def reset(self):
+        nest.ResetNetwork()
+        nest.SetKernelStatus({'time': 0.0})
+        for p in self.populations:
+            for variable, initial_value in p.initial_values.items():
+                p._set_initial_value_array(variable, initial_value)
+        self.running = False
+        self.t_start = 0.0
+        self.segment_counter += 1
+
+    def clear(self):
+        self.populations = []
+        self.recording_devices = []
+        self.recorders = set()
+        # clear the sli stack, if this is not done --> memory leak cause the stack increases
+        nest.sr('clear')
+        # reset the simulation kernel
+        nest.ResetKernel()
+        # set tempdir
+        tempdir = tempfile.mkdtemp()
+        self.tempdirs.append(tempdir) # append tempdir to tempdirs list
+        nest.SetKernelStatus({'data_path': tempdir,})
+        self.segment_counter = -1
+        self.reset()
 
 
-def run(simtime):
-    """Advance the simulation for a certain time."""
-    for device in recording_devices:
-        device.connect_to_cells()
-    if not state.running:
-        simtime += state.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
-        state.running = True
-    nest.Simulate(simtime)
-    
-def reset():
-    nest.ResetNetwork()
-    nest.SetKernelStatus({'time': 0.0})
-    state.running = False
-
-# --- For implementation of access to individual neurons' parameters ----------- 
+# --- For implementation of access to individual neurons' parameters -----------
 
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
@@ -109,33 +164,6 @@ class ID(int, common.IDMixin):
         int.__init__(n)
         common.IDMixin.__init__(self)
 
-    def get_native_parameters(self):
-        """Return a dictionary of parameters for the NEST cell model."""
-        if "source" in self.__dict__: # self is a parrot_neuron
-            gid = self.source
-        else:
-            gid = int(self)
-        return nest.GetStatus([gid])[0]
-
-    def set_native_parameters(self, parameters):
-        """Set parameters of the NEST cell model from a dictionary."""
-        if hasattr(self, "source"): # self is a parrot_neuron
-            gid = self.source
-        else:
-            gid = self
-        try:
-    	    #nest does not like numpy array and so we will convert them to lists whenever we encounter one
-    	    for key in parameters:
-		if type(parameters[key]) == numpy.ndarray:
-		   parameters[key] = parameters[key].tolist()
-            nest.SetStatus([gid], [parameters])
-        except: # I can't seem to catch the NESTError that is raised, hence this roundabout way of doing it.
-            exc_type, exc_value, traceback = sys.exc_info()
-            if exc_type == 'NESTError' and "Unsupported Numpy array type" in exc_value:
-                raise errors.InvalidParameterValueError()
-            else:
-                raise
-            
 
 # --- For implementation of connect() and Connector classes --------------------
 
@@ -148,8 +176,8 @@ class Connection(object):
     def __init__(self, parent, index):
         """
         Create a new connection interface.
-        
-        `parent` -- a ConnectionManager instance.
+
+        `parent` -- a Projection instance.
         `index` -- the index of this connection in the parent.
         """
         self.parent = parent
@@ -164,15 +192,17 @@ class Connection(object):
     def source(self):
         """The ID of the pre-synaptic neuron."""
         src = ID(nest.GetStatus([self.id()], 'source')[0])
-        src.parent = self.parent.parent.pre
+        src.parent = self.parent.pre
         return src
-    
+    presynaptic_cell = source
+
     @property
     def target(self):
         """The ID of the post-synaptic neuron."""
         tgt = ID(nest.GetStatus([self.id()], 'target')[0])
-        tgt.parent = self.parent.parent.post
+        tgt.parent = self.parent.post
         return tgt
+    postsynaptic_cell = target
 
     def _set_weight(self, w):
         nest.SetStatus([self.id()], 'weight', w*1000.0)
@@ -205,7 +235,7 @@ setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))
 setattr(Connection, 'tau_facil', generate_synapse_property('tau_fac'))
 setattr(Connection, 'u0', generate_synapse_property('u0'))
 setattr(Connection, '_tau_psc', generate_synapse_property('tau_psc'))
-    
+
 
 # --- Initialization, and module attributes ------------------------------------
 

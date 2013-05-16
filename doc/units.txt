@@ -1,0 +1,19 @@
+=====
+Units
+=====
+
+PyNN does not at present support explicit specification of the units of
+physical quantities (parameters and initial values). Instead, the following
+convention is used:
+
+================= =====
+Physical quantity Units
+================= =====
+time              ms
+voltage           mV
+current           nA
+conductance       µS
+capacitance       nF
+firing rate       /s
+phase/angle       deg
+================= =====

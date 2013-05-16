@@ -1,25 +1,58 @@
-Welcome to PyNN's documentation!
-================================
+===================
+PyNN: documentation
+===================
+
+.. toctree::
+   :maxdepth: 1
+
+   introduction
+   installation
+   quickstart
+   building_networks
+   injecting_current
+   recording
+   data_handling
+   simulation_control
+   parameters
+   random_numbers
+   backends
+   parallel
+   units
+   examples
+   contributors
+   release_notes
+
+.. add 'logging' after 'units' once configure_logging() implemented.
+
+.. add 'descriptions' after logging
+
+Developers' Guide
+=================
 
 .. toctree::
    :maxdepth: 2
 
-   introduction
-   installation
-   highlevelapi
-   standardmodels
-   dynamicsynapses
-   nonstandardmodels
-   space
-   parallel
-   fileformats
-   lowlevelapi
-   descriptions
-   examples
-   simulatorspecificoptions
    developers_guide
-   roadmap
+
+
+API reference
+=============
+
+.. toctree::
+   :maxdepth: 2
+
    api_reference
+
+
+Old documents
+=============
+
+.. toctree::
+   :maxdepth: 1
+
+   standardmodels
+   fileformats
+
 
 Indices and tables
 ==================
@@ -27,4 +60,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

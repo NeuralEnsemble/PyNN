@@ -12,8 +12,8 @@ Defines exceptions for the PyNN API
     InvalidWeightError
     NotLocalError
     RecordingError
-    
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -21,11 +21,11 @@ class InvalidParameterValueError(ValueError):
     """Inappropriate parameter value"""
     pass
 
-class NonExistentParameterError(Exception):
+class NonExistentParameterError(KeyError):
     """
     Model parameter does not exist.
     """
-    
+
     def __init__(self, parameter_name, model_name, valid_parameter_names=['unknown']):
         Exception.__init__(self)
         self.parameter_name = parameter_name
@@ -38,7 +38,7 @@ class NonExistentParameterError(Exception):
                                                          self.model_name,
                                                          ", ".join(self.valid_parameter_names))
 
-class InvalidDimensionsError(Exception):
+class InvalidDimensionsError(ValueError):
     """Argument has inappropriate shape/dimensions."""
     pass
 
@@ -58,11 +58,11 @@ class RoundingWarning(Warning):
     """The argument has been rounded to a lower level of precision by the simulator."""
     pass
 
-class NothingToWriteError(Exception):
+class NothingToWriteError(IOError):
     """There is no data available to write."""
-    pass # subclass IOError?
+    pass
 
-class InvalidWeightError(Exception): # subclass ValueError? or InvalidParameterValueError?
+class InvalidWeightError(ValueError):
     """Invalid value for the synaptic weight."""
     pass
 
@@ -72,10 +72,13 @@ class NotLocalError(Exception):
 
 class RecordingError(Exception): # subclass AttributeError?
     """Attempt to record a variable that does not exist for this cell type."""
-    
+
     def __init__(self, variable, cell_type):
         self.variable = variable
         self.cell_type = cell_type
-        
+
     def __str__(self):
-        return "Cannot record %s from cell type %s" % (self.variable, self.cell_type.__class__.__name__)
+        msg = "Cannot record %s from cell type %s. Available variables are %s"
+        return msg % (self.variable,
+                      self.cell_type.__class__.__name__,
+                      ",".join(self.cell_type.recordable))

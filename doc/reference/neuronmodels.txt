@@ -1,0 +1,182 @@
+=============
+Neuron models
+=============
+
+.. currentmodule:: pyNN.standardmodels.cells
+
+PyNN provides a library of neuron models that have been standardized so as to
+give the same results (within certain limits of numerical accuracy) on different
+backends. Each model is represented by a "cell type" class.
+
+It is also possible to use simulator-specific neuron models, which we call
+"native" cell types. Of course, such models will only work with one specific
+backend simulator.
+
+.. note:: the development version has some support for specifying cell types
+          using the NineML_ and NeuroML_ formats, but this is not yet available
+          in the current release.
+   
+Standard cell types
+===================
+
+* Plain integrate-and-fire models:
+
+  * :class:`IF_curr_exp`
+  * :class:`IF_curr_alpha`
+  * :class:`IF_cond_exp`
+  * :class:`IF_cond_alpha`
+    
+* Integrate-and-fire with adaptation:
+
+  * :class:`IF_cond_exp_gsfa_grr`
+  * :class:`EIF_cond_alpha_isfa_ista`
+  * :class:`EIF_cond_exp_isfa_ista`    
+  * :class:`Izhikevich`
+    
+* Hodgkin-Huxley model
+
+  * :class:`HH_cond_exp`
+
+* Spike sources (input neurons) 
+
+  * :class:`SpikeSourcePoisson`
+  * :class:`SpikeSourceArray`
+  * :class:`SpikeSourceInhGamma`
+
+
+Base class
+----------
+
+All standard cell types inherit from the following base class, and have the
+same methods, as listed below.
+
+
+.. autoclass:: pyNN.standardmodels.StandardCellType
+   :show-inheritance:
+
+   .. automethod:: get_schema
+   .. automethod:: get_parameter_names
+   .. automethod:: get_native_names
+   .. automethod:: has_parameter
+   .. automethod:: translate
+   .. automethod:: reverse_translate
+   .. automethod:: simple_parameters
+   .. automethod:: scaled_parameters
+   .. automethod:: computed_parameters
+   .. automethod:: describe
+
+
+Simple integrate-and-fire neurons
+---------------------------------
+
+.. autoclass:: IF_cond_exp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: IF_cond_alpha
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: IF_curr_exp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: IF_curr_alpha
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+
+Integrate-and-fire neurons with adaptation
+------------------------------------------
+
+.. autoclass:: Izhikevich
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: EIF_cond_exp_isfa_ista
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: EIF_cond_alpha_isfa_ista
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: IF_cond_exp_gsfa_grr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+
+Spike sources
+-------------
+
+.. autoclass:: SpikeSourcePoisson
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: SpikeSourceArray
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+.. autoclass:: SpikeSourceInhGamma
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. autoattribute:: injectable
+   .. autoattribute:: conductance_based
+
+
+Native cell types
+=================
+
+.. todo:: WRITE THIS PART
+
+
+Utility functions
+=================
+
+.. autofunction:: pyNN.neuron.list_standard_models
+
+
+.. _NineML: http://nineml.incf.org
+.. _NeuroML: http://www.neuroml.org

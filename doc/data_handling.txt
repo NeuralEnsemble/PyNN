@@ -1,0 +1,130 @@
+=============
+Data handling
+=============
+
+.. todo:: add a note that data handling has changed considerably since 0.7,
+          and give link to detailed changelog.
+
+Recorded data in PyNN is always associated with the :class:`Population` or
+:class:`Assembly` from which it was recorded. Data may either be written to
+file, using the :meth:`write_data` method, or retrieved as objects in memory,
+using :meth:`get_data`.
+
+
+Retrieving recorded data
+========================
+
+Handling of recorded data in PyNN makes use of the Neo_ package, which provides
+a common Python data model for neurophysiology data (whether real or simulated).
+
+The :meth:`get_data` method returns a Neo :class:`Block` object. This is the
+top-level data container, which contains one or more :class:`Segment`\s. Each
+:class:`Segment` is a container for data sharing a common time basis - a new
+:class:`Segment` is added every time the :func:`reset` function is called.
+
+A :class:`Segment` can contain lists of :class:`AnalogSignal`,
+:class:`AnalogSignalArray` and :class:`SpikeTrain` objects. These data objects
+inherit from NumPy's array class, and so can be treated in further processing
+(analysis, visualization, etc.) in exactly the same way as NumPy arrays, but in
+addition they carry metadata about units, sampling interval, etc.
+
+Here is a complete example of recording and plotting data from a simulation:
+
+.. .. plot:: pyplots/neo_example.py
+..   :include-source:
+
+.. literalinclude:: pyplots/neo_example.py
+
+.. image:: images/neo_example.png
+
+
+
+The adoption of Neo as an output representation also makes it easier to handle
+data when running multiple simulations with the same network, calling
+:meth:`reset` between each run. In previous versions of PyNN it was necessary to
+retrieve the data before every :meth:`reset`, and take care of storing the
+resulting data. Now, each run just creates a new Neo ``Segment``, and PyNN takes
+care of storing the data until it is needed. This is illustrated in the example
+below.
+
+.. .. plot:: images/reset_example.py
+..    :include-source:
+
+.. literalinclude:: pyplots/reset_example.py
+
+.. image:: images/reset_example.png
+
+
+.. note:: if you still want to retrieve the data after every run you can do so:
+          just call ``get_data(clear=True)``
+
+
+Writing data to file
+====================
+
+Neo provides support for writing to a `variety of different file formats`_,
+notably an assortment of text-based formats, NumPy binary format,
+Matlab :file:`.mat` files, and HDF5. To write to a given format, we create a Neo
+:class:`IO` object and pass it to the :meth:`write_data` method:
+
+.. testsetup::
+
+    import os
+    import pyNN.mock as sim
+    sim.setup()
+    population = sim.Population(10, sim.IF_cond_exp())
+    population.record(['spikes', 'v'])
+    sim.run(0.2)
+    if os.path.exists("my_data.h5"):
+        os.remove("my_data.h5")
+
+.. doctest::
+
+    >>> from neo.io import NeoHdf5IO
+    >>> io = NeoHdf5IO(filename="my_data.h5")
+    >>> population.write_data(io)
+
+.. todo: check whether we need to close the `io` object.
+
+As a shortcut, for file formats with a well-defined file extension, it is
+possible to pass just the filename, and PyNN will create the appropriate
+:class:`IO` object for you:
+
+.. doctest::
+
+    >>> population.write_data("my_data.mat")  # writes to a Matlab file
+
+By default, all the variables that were specified in the :meth:`record` call
+will be saved to file, but it is also possible to save only a subset of the
+recorded data:
+
+.. doctest::
+
+    >>> population.write_data(io, variables=('v', 'gsyn_exc'))
+
+When running distributed simulations using MPI (see :doc:`parallel`), by default
+the data is gathered from all MPI nodes to the master node, and only saved to
+file on the master node. If you would prefer that each node saves its own
+local subset of the data to disk separately, use *gather=False*:
+
+.. doctest::
+
+    >>> population.write_data(io, gather=False)
+
+Saving data to a file does not delete the data from the :class:`Population`
+object. If you wish to do so (for example to release memory), use *clear=True*:
+
+.. doctest::
+
+    >>> population.write_data(io, clear=True)
+
+.. testcleanup::
+
+    import os
+    for filename in ("my_data.h5", "my_data.mat"):
+        if os.path.exists(filename):
+            os.remove(filename)
+
+
+.. _Neo: http://neuralensemble.org/neo
+.. _`variety of different file formats`: http://packages.python.org/neo/io.html#module-neo.io

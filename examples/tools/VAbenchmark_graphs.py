@@ -1,123 +1,174 @@
 """
 Plot graphs showing the results of running the VAbenchmarks.py script.
+
+Usage:
+
+    python VAbenchmark_graphs2.py [-h] [-o OUTPUT_FILE] [-a ANNOTATION] datafile [datafile ...]
+
 """
 
-import pylab, sys
-import numpy
-from NeuroTools import signals, plotting
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import argparse
+from collections import defaultdict
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from quantities import mV
+from neo.io import get_io
 
-if len(sys.argv) < 2:
-    print "Usage: python VAbenchmark_graphs.py <benchmark>\n\nwhere <benchmark> is either CUBA or COBA."
-    sys.exit(1)
-benchmark = sys.argv[1]
 
-simulators = ('neuron', 'nest', 'pcsim', 'brian')
-#simulators = ['nest']
-nodes = (1,)
-#nodes = (1,2,4)
-v_thresh = -50.0
-#pylab.rcParams['backend'] = 'PS'
-CM=1/2.54
-pylab.rcParams['figure.figsize'] = [60*CM,40*CM] # inches
+def plot_signal(panel, signal, index, colour='b', linewidth='1', label='', fake_aps=False,
+                hide_axis_labels=False):
+    label = "%s (Neuron %d)" % (label, signal.channel_index[index])
+    if fake_aps:  # add fake APs for plotting
+        v_thresh = fake_aps
+        spike_indices = signal>=v_thresh-0.05*mV
+        signal[spike_indices] = 0.0*mV
+    panel.plot(signal.times, signal[:, index], colour, linewidth=linewidth, label=label)
+    #plt.setp(plt.gca().get_xticklabels(), visible=False)
+    if not hide_axis_labels:
+        panel.set_xlabel("time (%s)" % signal.times.units._dimensionality.string)
+        panel.set_ylabel("%s (%s)" % (signal.name, signal.units._dimensionality.string))
 
-ny = 4
-dy = 1.0/ny; dx = 1.0/(len(simulators)*len(nodes));
-h = 0.8*dy; w = 0.8*dx
-y0 = (1-ny*h)/(ny+1);
-x0 = 0.05
 
-def get_header(filename):
-    cmd = ''
-    f = open(filename, 'r')
-    for line in f.readlines():
-        if line[0] == '#':
-            cmd += line[1:].strip() + ';'
-    f.close()
-    return cmd
+def plot_hist(panel, hist, bins, width, xlabel=None, ylabel=None,
+              label=None, xticks=None, xticklabels=None, xmin=None, ymax=None):
+    if xlabel: panel.set_xlabel(xlabel)
+    if ylabel: panel.set_ylabel(ylabel)
+    for t,n in zip(bins[:-1], hist):
+        panel.bar(t, n, width=width, color=None)
+    if xmin: panel.set_xlim(xmin=xmin)
+    if ymax: panel.set_ylim(ymax=ymax)
+    if xticks is not None: panel.set_xticks(xticks)
+    if xticklabels: panel.set_xticklabels(xticklabels)
+    panel.text(0.8, 0.8, label, transform=panel.transAxes)
 
-def population_isis(spiketimes,ids):
-    """Calculate the interspike intervals for each cell in the population,
-    starting with a 1D array of spiketimes and a corresponding array of IDS.
-    """
-    population_spiketimes = nstats.sort_by_id(spiketimes,ids)
-    population_isis = [nstats.isi(s) for s in population_spiketimes]
-    return population_isis
 
-def plot_hist(subplot, hist, bins, width, xlabel=None, ylabel="n in bin",
-              xticks=None, xticklabels=None, xmin=None, ymax=None):
-    if xlabel: subplot.set_xlabel(xlabel)
-    if ylabel: subplot.set_ylabel(ylabel)
-    for t,n in zip(bins,hist):
-        subplot.bar(t,n,width=width)
-    if xmin: subplot.set_xlim(xmin=xmin)
-    if ymax: subplot.set_ylim(ymax=ymax)
-    if xticks is not None: subplot.set_xticks(xticks)
-    if xticklabels: subplot.set_xticklabels(xticklabels)
-            
+def plot_vm_traces(panel, segment, label, hide_axis_labels=False):
+    for array in segment.analogsignalarrays:
+        sorted_channels = sorted(array.channel_index)
+        for j in range(2):
+            i = array.channel_index.tolist().index(j)
+            print "plotting '%s' for %s" % (array.name, label)
+            col = 'rbgmck'[j%6]
+            plot_signal(panel, array, i, colour=col, linewidth=1, label=label,
+                        fake_aps=-50*mV, hide_axis_labels=hide_axis_labels)
+        panel.set_title(label)
 
-x = x0;
-figure = pylab.Figure()
-for simulator in simulators:
-    for num_nodes in nodes:
-        col = 1
-        subplot = figure.add_axes([x,y0+2.9*dy,w,h])
-        subplot.set_title("%s (np%d)" % (simulator[:6].upper(),num_nodes), fontsize='x-large')
-        subplot.set_ylabel("Membrane potential (mV)")
-        
-        # Get info about dataset from header of .v file
-        exec(get_header("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, num_nodes)))
-        
-        # Plot membrane potential trace
-        allvdata = numpy.loadtxt("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator, num_nodes), comments='#')
-        cell_ids = allvdata[:,1].astype(int)
-        allvdata = allvdata[:,0]
-        sortmap = pylab.argsort(cell_ids, kind='mergesort')
-        cell_ids = pylab.take(cell_ids,sortmap)
-        allvdata = pylab.take(allvdata,sortmap)
-        for i in 0,1:
-            tdata = pylab.arange(0,(n+1)*dt,dt)
-            vdata = allvdata.compress(cell_ids==i)
-            vdata = pylab.where(vdata>=v_thresh-0.05,0.0,vdata) # add fake APs for plotting
-            if len(tdata) > len(vdata):
-                print "Warning. Shortening tdata from %d to %d elements (%s)" % (len(tdata),len(vdata),simulator)
-                tdata = tdata[0:len(vdata)]
-            assert len(tdata)==len(vdata), "%d != %d (%s)" % (len(tdata),len(vdata),simulator)
-            subplot.plot(tdata,vdata)
-        
+
+def plot_spiketrains(panel, segment, label, hide_axis_labels=False):
+    print "plotting spikes for %s" % label
+    for spiketrain in segment.spiketrains:
+        y = np.ones_like(spiketrain) * spiketrain.annotations['source_id']
+        panel.plot(spiketrain, y, '.', markersize=0.2)
+    if not hide_axis_labels:
+        panel.set_ylabel(segment.name)
+    #plt.setp(plt.gca().get_xticklabels(), visible=False)
+
+
+def plot_isi_hist(panel, segment, label, hide_axis_labels=False):
+    print "plotting ISI histogram (%s)" % label
+    bin_width = 0.2
+    bins_log = np.arange(0, 8, 0.2)
+    bins = np.exp(bins_log)
+    all_isis = np.concatenate([np.diff(np.array(st)) for st in segment.spiketrains])
+    isihist, bins = np.histogram(all_isis, bins)
+    xlabel = "Inter-spike interval (ms)"
+    ylabel = "n in bin"
+    if hide_axis_labels:
+        xlabel = None
+        ylabel = None
+    plot_hist(panel, isihist, bins_log, bin_width, label=label,
+        xlabel=xlabel, xticks=np.log([10, 100, 1000]),
+        xticklabels=['10', '100', '1000'], xmin=np.log(2),
+        ylabel=ylabel)
+
+
+def plot_cvisi_hist(panel, segment, label, hide_axis_labels=False):
+    print "plotting CV(ISI) histogram (%s)" % label
+    def cv_isi(spiketrain):
+        isi = np.diff(np.array(spiketrain))
+        return np.std(isi)/np.mean(isi)
+    cvs = np.fromiter((cv_isi(st) for st in segment.spiketrains), dtype=float)
+    bin_width = 0.1
+    bins = np.arange(0, 2, bin_width)
+    cvhist, bins = np.histogram(cvs[~np.isnan(cvs)], bins)
+    xlabel = "CV(ISI)"
+    ylabel = "n in bin"
+    if hide_axis_labels:
+        xlabel = None
+        ylabel = None
+    plot_hist(panel, cvhist, bins, bin_width, label=label,
+              xlabel=xlabel, xticks=np.arange(0, 2, 0.5),
+              ylabel=ylabel)
+
+
+def sort_by_annotation(name, objects):
+    sorted_objects = defaultdict(list)
+    for obj in objects:
+        sorted_objects[obj.annotations[name]].append(obj)
+    return sorted_objects
+
+
+def plot(datafiles, output_file, sort_by='simulator', annotation=None):
+    blocks = [get_io(datafile).read_block() for datafile in datafiles]
+    # note: Neo needs a pretty printer that is not tied to IPython
+    for block in blocks:
+        print (block.describe())
+    script_name = blocks[0].annotations['script_name']
+    for block in blocks[1:]:
+        assert block.annotations['script_name'] == script_name
+
+    fig_settings = {  # pass these in a configuration file?
+        'lines.linewidth': 0.5,
+        'axes.linewidth': 0.5,
+        'axes.labelsize': 'small',
+        'legend.fontsize': 'small',
+        'font.size': 8,
+    }
+    plt.rcParams.update(fig_settings)
+    CM=1/2.54
+    plt.figure(1, figsize=(15*CM*len(blocks), 20*CM))
+    gs = gridspec.GridSpec(4, 2*len(blocks), hspace=0.25, wspace=0.25)
+
+    sorted_blocks = sort_by_annotation(sort_by, blocks)
+    hide_axis_labels = False
+    for k, (label, block_list) in enumerate(sorted_blocks.iteritems()):
+        segments = {}
+        for block in block_list:
+            for name in ("exc", "inh"):
+                if name in block.name.lower():
+                    segments[name] = block.segments[0]
+                    
+        # Plot membrane potential traces
+        plot_vm_traces(plt.subplot(gs[0, 2*k:2*k+2]), segments['exc'], label, hide_axis_labels)
+
         # Plot spike rasters
-        subplot = figure.add_axes([x,y0+2*dy,w,h])
-        exc_spikedata = signals.load_spikelist("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator, num_nodes))
-        inh_spikedata = signals.load_spikelist("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator, num_nodes))
-        exc_spikedata.raster_plot(display=subplot)
+        plot_spiketrains(plt.subplot(gs[1, 2*k:2*k+2]), segments['exc'], label, hide_axis_labels)
 
         # Inter-spike-interval histograms
-        bins = pylab.exp(pylab.arange(0, 8, 0.2))
-        isihist, bins = exc_spikedata.isi_hist(bins)
-        subplot = figure.add_axes([x,y0+dy,0.4*w,h])
-        plot_hist(subplot, isihist, pylab.arange(0, 8, 0.2), 0.2,
-            xlabel="Inter-spike interval (ms)", xticks=pylab.log([3,10,30,100,1000]),
-            xticklabels=['3','10','30','100','1000'], xmin=pylab.log(2), ymax=0.006)
-        subplot.set_title('Exc')
-        
-        isihist, bins = inh_spikedata.isi_hist(bins)
-        subplot = figure.add_axes([x+0.45*dx,y0+dy,0.4*w,h])
-        plot_hist(subplot, isihist, pylab.arange(0,8,0.2),0.2,
-            xlabel="Inter-spike interval (ms)", xticks=pylab.log([3,10,30,100,1000]),
-            xticklabels=['3','10','30','100','1000'], xmin=pylab.log(2), ymax=0.006)
-        subplot.set_title('Inh')
-        
         # Histograms of coefficients of variation of ISI
-        bins = pylab.arange(0, 3, 0.1)
-        for dataset, xoffset, ymax in zip([exc_spikedata, inh_spikedata], [0.0, 0.45*dx], [2.5,2.5]):
-            cvhist, bins = dataset.cv_isi_hist(bins)
-        
-            #cvhist = nstats.histc(cvs,bins)
-            subplot = figure.add_axes([x+xoffset,y0,0.4*w,h])
-            plot_hist(subplot, cvhist, bins, 0.1, xlabel="ISI CV", ymax=ymax)
-        
-        x += dx
+        plot_isi_hist(plt.subplot(gs[2, 2*k]), segments['exc'], 'exc', hide_axis_labels)
+        plot_cvisi_hist(plt.subplot(gs[3, 2*k]), segments['exc'], 'exc', hide_axis_labels)
+        hide_axis_labels = True
+        plot_isi_hist(plt.subplot(gs[2, 2*k+1]), segments['inh'], 'inh', hide_axis_labels)
+        plot_cvisi_hist(plt.subplot(gs[3, 2*k+1]), segments['inh'], 'inh', hide_axis_labels)
 
-figure.set_canvas(FigureCanvas(figure))
-figure.savefig("Results/VAbenchmark_%s.png" % benchmark)
+    plt.savefig(output_file)
 
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("datafiles", metavar="datafile", nargs="+",
+                        help="a list of data files in a Neo-supported format")
+    parser.add_argument("-s", "--sort", default="simulator",
+                        help="field to sort by (default='%(default)s')")
+    parser.add_argument("-o", "--output-file", default="output.png",
+                        help="output filename")
+    parser.add_argument("-a", "--annotation", help="additional annotation (optional)")
+    args = parser.parse_args()
+    plot(args.datafiles, output_file=args.output_file,
+         sort_by=args.sort, annotation=args.annotation)
+
+    
+if __name__ == "__main__":
+    main()

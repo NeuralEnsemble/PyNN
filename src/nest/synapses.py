@@ -1,19 +1,21 @@
 """
 Definition of NativeSynapseType class for NEST
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import nest
-from pyNN.models import BaseModelType, BaseSynapseDynamics
+from pyNN.models import BaseModelType, BaseSynapseType
+from .simulator import state
 
 DEFAULT_TAU_MINUS = 20.0
 
-def get_defaults(model_name):
+
+def get_synapse_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
-    ignore = ['delay', 'max_delay', 'min_delay', 'num_connections',
-              'num_connectors', 'receptor_type', 'synapsemodel', 'weight',
+    ignore = ['max_delay', 'min_delay', 'num_connections',
+              'num_connectors', 'receptor_type', 'synapsemodel',
               'property_object', 'type']
     default_params = {}
     for name,value in defaults.items():
@@ -23,34 +25,51 @@ def get_defaults(model_name):
     return default_params
 
 
-class NativeSynapseDynamics(BaseSynapseDynamics):
-
-    def __init__(self, model_name, parameters={}):
-        cls = type(model_name, (NativeSynapseMechanism,),
-                   {'nest_model': model_name})
-        self.mechanism = cls(parameters)
-
+class NESTSynapseMixin(object):
+    
     def _get_nest_synapse_model(self, suffix):
-        defaults = self.mechanism.parameters.copy()
-        defaults.pop("tau_minus")
-        label = "%s_%s" % (self.mechanism.nest_model, suffix)
-        nest.CopyModel(self.mechanism.nest_model,
-                       label,
-                       defaults)
+        synapse_defaults = {}
+        for name, value in self.native_parameters.items():
+            if value.is_homogeneous:
+                value.shape = (1,)
+                synapse_defaults[name] = value.evaluate(simplify=True)
+        synapse_defaults.pop("tau_minus", None)
+        label = "%s_%s" % (self.nest_name, suffix)
+        nest.CopyModel(self.nest_name, label, synapse_defaults)
         return label
-
+    
+    def _get_minimum_delay(self):
+        return state.min_delay
+    
     def _set_tau_minus(self, cells):
-        if len(cells) > 0:
-            if 'tau_minus' in nest.GetStatus([cells[0]])[0]:
-                tau_minus = self.mechanism.parameters["tau_minus"]
-                nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
-            else:
-                raise Exception("Postsynaptic cell model %s does not support STDP."
-                                % nest.GetStatus([cells[0]], "model"))
+        if len(cells) > 0 and self.has_parameter('tau_minus'):
+            native_parameters = self.native_parameters
+            if not native_parameters["tau_minus"].is_homogeneous: # could allow inhomogeneous values as long as each column is internally homogeneous
+                raise ValueError("pyNN.NEST does not support tau_minus being different for different synapses")
+            native_parameters.shape = (1,)
+            tau_minus = native_parameters["tau_minus"].evaluate(simplify=True)
+            nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
+
+    
+class NativeSynapseType(BaseSynapseType, NESTSynapseMixin):
+
+    @property
+    def native_parameters(self):
+        return self.parameter_space
+
+    def get_native_names(self, *names):
+        return names
 
 
-class NativeSynapseMechanism(BaseModelType):
-
-    def __new__(cls, parameters):
-        cls.default_parameters = get_defaults(cls.nest_model)
-        return super(NativeSynapseMechanism, cls).__new__(cls)
+def native_synapse_type(model_name):
+    """
+    Return a new NativeSynapseType subclass.
+    """
+    assert isinstance(model_name, str)
+    default_parameters = get_synapse_defaults(model_name)
+    return type(model_name,
+                (NativeSynapseType,),
+                {
+                    'nest_name': model_name,
+                    'default_parameters': default_parameters,
+                })

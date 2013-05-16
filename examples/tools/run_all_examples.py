@@ -6,7 +6,9 @@ default_simulators = ['PCSIM', 'NEST', 'NEURON', 'Brian']
 simulator_names = sys.argv[1:]
 if len(simulator_names) > 0:
     for name in simulator_names:
-        assert name in default_simulators
+        if name not in default_simulators:
+            print "Simulator must be one of:", ", ".join(default_simulators)
+            sys.exit(1)
 else:
     simulator_names = default_simulators
 
@@ -20,11 +22,10 @@ for simulator in simulator_names:
         pass
 
 exclude = {
-    'PCSIM': ("brunel.py", "HH_cond_exp.py", "EIF_cond_alpha_isfa_ista.py"),
-    'NEURON': ("brunel.py", "tsodyksmarkram2.py"),
-    'NEST': ("brunel.py"),
-    'Brian': ("brunel.py", "tsodyksmarkram.py", "tsodyksmarkram2.py",
-              "simple_STDP.py", "simple_STDP2.py"),
+    'PCSIM': ("brunel.py", "HH_cond_exp.py", "EIF_cond_alpha_isfa_ista.py", "VAbenchmarks2-csa.py", "nineml_neuron.py"),
+    'NEURON': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
+    'NEST': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
+    'Brian': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
 }
 
 extra_args = {
@@ -33,6 +34,9 @@ extra_args = {
     "VAbenchmarks2-csa.py": "CUBA",
     "VAbenchmarks3.py": "CUBA",
 }
+
+if not os.path.exists("Results"):
+    os.mkdir("Results")
 
 for simulator in simulator_names:
     if simulator.lower() in simulators:
@@ -44,6 +48,7 @@ for simulator in simulator_names:
                 if script_name in extra_args:
                     cmd += " " + extra_args[script_name]
                 print cmd,
+                sys.stdout.flush()
                 logfile = open("Results/%s_%s.log" % (os.path.basename(script), simulator), 'w')
                 p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
                 retval = p.wait()

@@ -1,0 +1,57 @@
+=======
+Logging
+=======
+
+When developing a complex model with a long simulation time, it is unlikely that
+everything will work correctly the first time, and a fair amount of debugging
+will be necessary. Such debugging can often be helped by having a log file
+containing information about the progress of the simulation.
+
+Equally, it is useful to print information to the screen about the progress of
+the simulation, but here we generally do not want such a fine grain of detail
+as in the log file.
+
+For both debugging and status updates it is possible to use the ``print``
+statement. In general, however, it is better to use Python's :mod:`logging`
+module, as this allows you to both print to the screen and write to a file with
+the same command, and to independently control the level of detail written to
+each destination. More concretely, if you are using ``print`` statements for
+debugging, you will have to find and remove all these statements once debugging
+is complete, whereas if using :mod:`logging` you only have to change one
+configuration option at one point in your code.
+
+Configuration
+=============
+
+The :mod:`logging` module allows almost unlimited flexibility in configuring
+logging. For the common use case in simulations - sending status updates to the
+screen and logging at a higher-level of detail to file, PyNN provides a
+shortcut function::
+
+    >>> from pyNN.utility import configure_logging
+    >>> configure_logging(console='HEADER', logging='INFO', filename="log.txt", with_color=True)
+
+This will print a high-level overview of the progress of your simulation to the
+console, in colour, and a more detailed report to :file:`log.txt`. To get more detail,
+use ``'DEBUG'`` instead of ``'INFO'``, for less detail, use ``'WARNING'``.
+
+
+Adding logging to your own code
+===============================
+
+Using logging in your own code is very simple. At the top of each file, put
+something like::
+
+    import logging
+    logger = logging.getLogger("MySimulation")
+
+then add statements like::
+
+    logger.header("Creating the network....")
+    logger.info("Creating population A")
+    logger.debug("Trying to figure out why this isn't working. p = %s" % p)
+    logger.warning("This could be a problem.")
+
+at appropriate points in your code.
+
+.. todo:: implement this, and give an example of what the log file looks like.

@@ -1,0 +1,47 @@
+====================================
+Recording spikes and state variables
+====================================
+
+It is possible to record the times of action potentials, and the values of
+state variables, of any neuron in the network. Recording state variables of
+dynamic synapse models is not yet supported.
+
+The classes :class:`Population`, :class:`PopulationView` and :class:`Assembly`
+all have a :meth:`record` method, which takes either a single variable name or
+a list/tuple of such names, and which sets up recording of the requested variables
+for all neurons in the population:
+
+.. testsetup::
+
+    import pyNN.mock as sim
+    sim.setup()
+    population = sim.Population(20, sim.EIF_cond_alpha_isfa_ista())
+    p2 = sim.Population(1, sim.IF_cond_exp())
+    assembly = population + p2
+
+.. doctest::
+
+    >>> population.record(['v', 'spikes']) # record membrane potential and spikes from all neurons in the population
+    >>> assembly.record('spikes')          # record spikes from all neurons in multiple populations
+
+To record from only a subset of the neurons in a :class:`Population`, we create
+a temporary :class:`PopulationView` using indexing or the :meth:`sample` method
+and call :meth:`record` on this view:
+
+.. doctest::
+
+    >>> population.sample(10).record('v')                         # record membrane potential from 10 neurons chosen at random
+    >>> population[[0,1,2]].record(['v', 'gsyn_exc', 'gsyn_inh']) # record several variables from specific neurons
+
+To find out what variable names are available for a given neuron model, inspect
+the :attr:`recordable` attribute of the population's :attr:`celltype` attribute:
+
+.. doctest::
+
+    >>> population.celltype
+    EIF_cond_alpha_isfa_ista(<parameters>)
+    >>> population.celltype.recordable
+    ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
+
+
+.. todo:: document the low-level :func:`record` function

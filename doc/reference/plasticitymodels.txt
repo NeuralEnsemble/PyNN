@@ -1,0 +1,114 @@
+==============
+Synapse models
+==============
+
+.. currentmodule:: pyNN.standardmodels.synapses
+
+The synaptic connection between two neurons is represented as a "synapse type"
+class. Note that synaptic attributes that belong solely to the post-synaptic
+neuron, such as the decay of the post-synaptic conductance, are part of the
+cell type model. The "synapse type" models the synaptic delay, the synaptic
+weight, and any dynamic behaviour of the synaptic weight, i.e. synaptic
+plasticity.
+
+As for cell types, PyNN has a library of "standard" synapse types that should
+give the same behaviour on different simulators, and also supports the use of
+"native" synapse types, limited to a single simulator.
+
+
+Standard synapse types
+======================
+
+Base class
+----------
+
+All standard cell types inherit from the following base class, and have the
+same methods, as listed below.
+
+.. autoclass:: pyNN.standardmodels.StandardSynapseType
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+Static/fixed synapses
+---------------------
+
+.. autoclass:: StaticSynapse
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Short-term plasticity mechanisms
+--------------------------------
+
+.. autoclass:: TsodyksMarkramSynapse
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Long-term plasticity mechanisms
+-------------------------------
+
+.. autoclass:: STDPMechanism
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Weight-dependence components
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+.. autoclass:: pyNN.standardmodels.STDPWeightDependence
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. automethod:: describe
+
+.. autoclass:: AdditiveWeightDependence
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: MultiplicativeWeightDependence
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: AdditivePotentiationMultiplicativeDepression
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: GutigWeightDependence
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Timing-dependence components
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pyNN.standardmodels.STDPTimingDependence
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: SpikePairRule
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+   .. automethod:: describe
+
+
+Native plasticity models
+========================
+
+
+NineML plasticity models
+========================

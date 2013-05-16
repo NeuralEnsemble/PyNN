@@ -1,0 +1,116 @@
+=================================
+Populations, Views and Assemblies
+=================================
+
+
+.. currentmodule:: pyNN.neuron
+
+Populations
+===========
+
+.. testsetup::
+
+   import pyNN.mock as sim
+   sim.setup()
+   p = sim.Population(10, sim.IF_cond_exp())
+   pv = p[::2]
+
+
+.. autoclass:: Population
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+   .. attribute:: size
+
+      The total number of neurons in the Population.
+
+   .. attribute:: label
+
+      A label for the Population.
+
+   .. attribute:: celltype
+
+      The type of neurons making up the Population.
+
+   .. attribute:: initial_values
+
+      A dict containing the initial values of the state variables.
+
+   .. attribute:: all_cells
+
+      An array containing the cell ids of all neurons in the Population
+      (all MPI nodes)
+
+   .. automethod:: __add__
+   .. automethod:: __getitem__
+   .. automethod:: __iter__
+   .. automethod:: __len__
+
+
+.. autofunction:: pyNN.neuron.create
+
+
+Views (sub-populations)
+=======================
+
+.. autoclass:: PopulationView
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+   .. attribute:: size
+
+      The total number of neurons in the Population.
+
+   .. attribute:: label
+
+      A label for the Population.
+
+   .. attribute:: celltype
+
+      The type of neurons making up the Population.
+
+   .. attribute:: initial_values
+
+      A dict containing the initial values of the state variables.
+
+   .. attribute:: parent
+
+      A reference to the parent Population (that this is a view of).
+
+   .. attribute:: mask
+
+      The selector mask that was used to create this view.
+
+   .. attribute:: all_cells
+
+      An array containing the cell ids of all neurons in the Population
+      (all MPI nodes).
+
+   .. attribute:: local_cells
+
+      An array containing the cell ids of those neurons in the Population
+      that exist on the local MPI node.
+
+   .. automethod:: __add__
+   .. automethod:: __getitem__
+   .. automethod:: __iter__
+   .. automethod:: __len__
+
+Assemblies
+==========
+
+.. autoclass:: pyNN.neuron.Assembly
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+   .. automethod:: __add__
+   .. automethod:: __iadd__
+   .. automethod:: __getitem__
+   .. automethod:: __iter__
+   .. automethod:: __len__

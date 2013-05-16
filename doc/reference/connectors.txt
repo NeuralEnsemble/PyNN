@@ -1,0 +1,35 @@
+==========
+Connectors
+==========
+
+.. module:: pyNN.connectors
+
+Base class
+==========
+
+.. autoclass:: Connector
+   :members:
+   :undoc-members:
+
+Built-in connectors
+===================
+
+.. autoclass:: AllToAllConnector
+    
+.. autoclass:: OneToOneConnector
+
+.. autoclass:: FixedProbabilityConnector
+
+.. autoclass:: FixedNumberPreConnector
+
+.. autoclass:: FixedNumberPostConnector
+
+.. autoclass:: DistanceDependentProbabilityConnector
+
+.. autoclass:: FromListConnector
+
+.. autoclass:: FromFileConnector
+
+.. autoclass:: SmallWorldConnector
+
+.. autoclass:: CSAConnector

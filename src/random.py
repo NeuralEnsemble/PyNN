@@ -13,7 +13,7 @@ Classes:
     RandomDistribution - produces random numbers from a specific distribution
 
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id:random.py 188 2008-01-29 10:03:59Z apdavison $
@@ -23,6 +23,7 @@ import sys
 from copy import deepcopy
 import logging
 import numpy.random
+from lazyarray import VectorizedIterable
 
 try:
     import pygsl.rng
@@ -45,7 +46,7 @@ logger = logging.getLogger("PyNN")
 class AbstractRNG(object):
     """Abstract class for wrapping random number generators. The idea is to be
     able to use either simulator-native rngs, which may be more efficient, or a
-    standard python rng, e.g. a numpy.random.RandomState object, which would
+    standard Python rng, e.g. a numpy.random.RandomState object, which would
     allow the same random numbers to be used across different simulators, or
     simply to read externally-generated numbers from files."""
 
@@ -57,11 +58,18 @@ class AbstractRNG(object):
         self.random = self.next
         self.sample = self.next
 
-    def next(self, n=1, distribution='uniform', parameters=[], mask_local=None):
-        """Return n random numbers from the distribution.
+    def __repr__(self):
+        return "%s(seed=%r)" % (self.__class__.__name__, self.seed)
 
-        If n is 1, return a float, if n > 1, return a Numpy array,
-        if n <= 0, raise an Exception."""
+    def next(self, n=None, distribution='uniform', parameters=[], mask_local=None):
+        """Return `n` random numbers from the specified distribution.
+
+        If:
+            * `n` is None, return a float,
+            * `n` >= 1, return a Numpy array,
+            * `n` < 0, raise an Exception,
+            * `n` is 0, return an empty array.
+            """
         # arguably, rng.next() should return a float, rng.next(1) an array of length 1
         raise NotImplementedError
 
@@ -76,11 +84,7 @@ class WrappedRNG(AbstractRNG):
             if mpi_rank != 0:
                 logger.warning("Changing the seed to %s on node %d" % (self.seed, mpi_rank))
 
-    def next(self, n=1, distribution='uniform', parameters=[], mask_local=None):
-        """Return n random numbers from the distribution.
-
-        If n >= 0, return a numpy array,
-        if n < 0, raise an Exception."""
+    def next(self, n=None, distribution='uniform', parameters=[], mask_local=None):
         if n == 0:
             rarr = numpy.random.rand(0) # We return an empty array
         elif n > 0:
@@ -94,32 +98,36 @@ class WrappedRNG(AbstractRNG):
                 elif mask_local is not False:
                     n = mask_local.sum()
             rarr = self._next(distribution, n, parameters)
+        elif n is None:
+            rarr = self._next(distribution, 1, parameters)
         else:
             raise ValueError, "The sample number must be positive"
+        if not isinstance(rarr, numpy.ndarray):
+            rarr = numpy.array(rarr)
         if self.parallel_safe and num_processes > 1:
-            if mask_local is False: # return all the numbers on all nodes
-                pass
-            elif mask_local is not None: # strip out the random numbers that
-                                         # should be used on other processors.
-                assert mask_local.size == n
+            if hasattr(mask_local, 'size'):      # strip out the random numbers that
+                assert mask_local.size == n      # should be used on other processors.
                 rarr = rarr[mask_local]
-            else:
-                raise Exception("For a parallel-safe RNG, mask_local must be either an array or False, not %s" % mask_local)
-        if hasattr(rarr, '__len__') and len(rarr) == 1:
+        if n is None:
             return rarr[0]
         else:
             return rarr
+    next.__doc__ = AbstractRNG.next.__doc__
 
     def __getattr__(self, name):
         """
         This is to give the PyNN RNGs the same methods as the wrapped RNGs
-        (numpy.random.RandomState or the GSL RNGs.)
+        (:class:`numpy.random.RandomState` or the GSL RNGs.)
         """
         return getattr(self.rng, name)
 
+    def describe(self):
+        return "%s() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
+            self.__class__.__name__, self.seed, mpi_rank, num_processes, self.parallel_safe and "Is" or "Not")
+
 
 class NumpyRNG(WrappedRNG):
-    """Wrapper for the numpy.random.RandomState class (Mersenne Twister PRNG)."""
+    """Wrapper for the :class:`numpy.random.RandomState` class (Mersenne Twister PRNG)."""
 
     def __init__(self, seed=None, parallel_safe=True):
         WrappedRNG.__init__(self, seed, parallel_safe)
@@ -131,10 +139,6 @@ class NumpyRNG(WrappedRNG):
 
     def _next(self, distribution, n, parameters):
         return getattr(self.rng, distribution)(size=n, *parameters)
-
-    def describe(self):
-        return "NumpyRNG() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
-            self.seed, mpi_rank, z, self.parallel_safe and "Is" or "Not")
 
     def __deepcopy__(self, memo):
         obj = NumpyRNG.__new__(NumpyRNG)
@@ -164,7 +168,10 @@ class GSLRNG(WrappedRNG):
 
     def _next(self, distribution, n, parameters):
         p = parameters + [n]
-        return getattr(self.rng, distribution)(*p)
+        values = getattr(self.rng, distribution)(*p)
+        if n == 1:
+            values = [values]  # to be consistent with NumpyRNG
+        return values
 
 
 # should add a wrapper for the built-in Python random module.
@@ -181,31 +188,39 @@ class NativeRNG(AbstractRNG):
         return "AbstractRNG(seed=%s)" % self.seed
 
 
-class RandomDistribution(object):
+class RandomDistribution(VectorizedIterable):
     """
-    Class which defines a next(n) method which returns an array of n random
+    Class which defines a next(n) method which returns an array of `n` random
     numbers from a given distribution.
+
+    Arguments:
+        `rng`:
+            if present, should be a :class:`NumpyRNG` or :class:`GSLRNG` object.
+        `distribution`:
+            the name of a method supported by the underlying random number
+            generator object.
+        `parameters`:
+            a list or tuple containing the arguments expected by the underlying
+            method in the correct order. Named arguments are not yet supported.
+        `boundaries`:
+            a tuple ``(min, max)`` used to specify explicitly, for distributions
+            like Gaussian, gamma or others, hard boundaries for the parameters.
+            If parameters are drawn outside those boundaries, the policy applied
+            will depend on the `constrain` parameter.
+        `constrain`:
+            controls the policy for weights out of the specified boundaries.
+            If "clip", random numbers are clipped to the boundaries.
+            If "redraw", random numbers are drawn till they fall within the boundaries.
+
+    Note that NumpyRNG and GSLRNG distributions may not have the same names,
+    e.g., 'normal' for NumpyRNG and 'gaussian' for GSLRNG, and the arguments
+    may also differ.
     """
 
     def __init__(self, distribution='uniform', parameters=[], rng=None,
                  boundaries=None, constrain="clip"):
         """
-        If present, rng should be a NumpyRNG or GSLRNG object.
-        distribution should be the name of a method supported by the underlying
-            random number generator object.
-        parameters should be a list or tuple containing the arguments expected
-            by the underlying method in the correct order. named arguments are
-            not yet supported.
-        boundaries is a tuple (min, max) used to specify explicitly, for distribution
-            like Gaussian, Gamma or others, hard boundaries for the parameters. If
-            parameters are drawn outside those boundaries, the policy applied will depend
-            on the constrain parameter.
-        constrain control the policy for weights out of the specified boundaries.
-            If "clip", random numbers are clipped to the boundaries.
-            If "redraw", random numbers are drawn till they fall within the boundaries.
-        Note that NumpyRNG and GSLRNG distributions may not have the same names,
-            e.g., 'normal' for NumpyRNG and 'gaussian' for GSLRNG, and the
-            arguments may also differ.
+        Create a new RandomDistribution.
         """
         self.name = distribution
         assert isinstance(parameters, (list, tuple, dict)), "The parameters argument must be a list or tuple or dict"
@@ -221,14 +236,14 @@ class RandomDistribution(object):
         else: # use numpy.random.RandomState() by default
             self.rng = NumpyRNG()
 
-    def next(self, n=1, mask_local=None):
-        """Return n random numbers from the distribution."""
+    def next(self, n=None, mask_local=None):
+        """Return `n` random numbers from the distribution."""
         res = self.rng.next(n=n,
                             distribution=self.name,
                             parameters=self.parameters,
                             mask_local=mask_local)
         if self.boundaries:
-            if type(res) == numpy.float:
+            if isinstance(res, numpy.float): 
                 res = numpy.array([res])
             if self.constrain == "clip":
                 return numpy.maximum(numpy.minimum(res, self.max_bound), self.min_bound)

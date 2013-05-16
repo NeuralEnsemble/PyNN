@@ -47,7 +47,7 @@ Classes for creating, connecting, modifying and recording from neurons
                 EIF_cond_alpha_isfa_ista, EIF_cond_exp_isfa_ista,
                 SpikeSourcePoisson, SpikeSourceArray, SpikeSourceInhGamma
                 (not all cell types are available for all simulator backends).
-    Synaptic plasticity: SynapseDynamics, TsodyksMarkramMechanism, STDPMechanism,
+    Standard synapse types: StaticSynapse, TsodyksMarkramSynapse, STDPMechanism,
                 AdditiveWeightDependence, MultiplicativeWeightDependence,
                 AdditivePotentiationMultiplicativeDepression,
                 GutigWeightDependence, SpikePairRule
@@ -65,9 +65,10 @@ Other modules:
     utility
     random
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-__version__ = '0.8.0dev ( $Rev$)'.replace(' $','')
-__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "nemo", "moose", "nineml", "recording", "errors", "space", "descriptions", "standardmodels"]
+#__version__ = '0.8.0dev ( $Rev$)'.replace(' $','')
+__version__ = '0.8alpha1'
+__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "nemo", "moose", "nineml", "recording", "errors", "space", "descriptions", "standardmodels", "parameters", "core"]

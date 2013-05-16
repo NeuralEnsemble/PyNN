@@ -22,7 +22,7 @@ import pyNN.space as space
 from pyNN.utility import init_logging
 from pyNN import standardmodels
 import nest
-from pyNN.nest.synapses import NativeSynapseDynamics
+from pyNN.nest.synapses import NativeSynapseType
 from mpi4py import MPI
 import logging
 
@@ -345,13 +345,13 @@ myConnectorE_I_silenced = sim.FixedNumberPreConnector(NumOfConE_I,weights=global
 #myConnectorI = sim.AllToAllConnector(weights=globalWeight, delays=0.1)
 
 # InhGamma Generators need "_S" (selective) type synapses
-# Passing this class to the Projection in a SynapseDynamics object
+# Passing this class to the Projection in a ComposedSynapseType object
 # is how to get them:
 
-#sd = NativeSynapseDynamics('static_synapse_S')
+#sd = NativeSynapseType('static_synapse_S')
 
-#prjE_E = sim.Projection(gammaE_E, popE, method=myConnectorE_E, target='excitatory', synapse_dynamics = sd)
-#prjE_I = sim.Projection(gammaE_I, popI, method=myConnectorE_I, target='excitatory', synapse_dynamics = sd)
+#prjE_E = sim.Projection(gammaE_E, popE, method=myConnectorE_E, target='excitatory', synapse_type=sd)
+#prjE_I = sim.Projection(gammaE_I, popI, method=myConnectorE_I, target='excitatory', synapse_type=sd)
 
 prjE_E = sim.Projection(gammaE_E, popE, method=myConnectorE_E, target='excitatory')
 prjE_I = sim.Projection(gammaE_I, popI, method=myConnectorE_I, target='excitatory')
@@ -359,15 +359,15 @@ prjE_I = sim.Projection(gammaE_I, popI, method=myConnectorE_I, target='excitator
 
 # silenced excitatory input
 prjE_E = sim.Projection(gammaE_E_silenced, popE, method=myConnectorE_E_silenced,
-                        target='excitatory', synapse_dynamics = sd)
+                        target='excitatory', synapse_type=sd)
 prjE_I = sim.Projection(gammaE_I_silenced, popI, method=myConnectorE_I_silenced,
-                        target='excitatory', synapse_dynamics = sd)
+                        target='excitatory', synapse_type=sd)
 
-# return to default synapse dynamics (non-selective)
+# return to default synapse type (non-selective)
 sd = None
 
-#prjI_E = sim.Projection(poissonI_E, popE, method=myConnectorI, target='inhibitory', synapse_dynamics = sd)
-#prjI_I = sim.Projection(poissonI_I, popI, method=myConnectorI, target='inhibitory', synapse_dynamics = sd)
+#prjI_E = sim.Projection(poissonI_E, popE, method=myConnectorI, target='inhibitory', synapse_type=sd)
+#prjI_I = sim.Projection(poissonI_I, popI, method=myConnectorI, target='inhibitory', synapse_type=sd)
 
 prjI_E = sim.Projection(poissonI_E, popE, method=myConnectorI, target='inhibitory')
 prjI_I = sim.Projection(poissonI_I, popI, method=myConnectorI, target='inhibitory')
@@ -408,19 +408,19 @@ myConnectorI_I = LatticeConnector(weights=globalWeight, dist_factor=distanceFact
                                   noise_factor=noiseFactor, n=NumOfConI_I)
 # Execute the projections #
 printMessage("Now changing E_E connections for " + str(NumOfConE_E)+ " new connections")
-prjLatticeE_E = sim.Projection(popE, popE, method=myConnectorE_E, target='excitatory', synapse_dynamics = sd)
+prjLatticeE_E = sim.Projection(popE, popE, method=myConnectorE_E, target='excitatory', synapse_type=sd)
 printTimer("Time for E_E connections")
 
 printMessage("Now changing E_I connections for " + str(NumOfConE_I)+ " new connections")
-prjLatticeE_I = sim.Projection(popE, popI, method=myConnectorE_I, target='excitatory', synapse_dynamics = sd)
+prjLatticeE_I = sim.Projection(popE, popI, method=myConnectorE_I, target='excitatory', synapse_type=sd)
 printTimer("Time for E_I connections")
 
 printMessage("Now changing I_E connections for " + str(NumOfConI_E)+ " new connections")
-prjLatticeI_E = sim.Projection(popI, popE, method=myConnectorI_E, target='inhibitory', synapse_dynamics = sd)
+prjLatticeI_E = sim.Projection(popI, popE, method=myConnectorI_E, target='inhibitory', synapse_type=sd)
 printTimer("Time for I_E connections")
 
 printMessage("Now changing I_I connections for " + str(NumOfConI_I)+ " new connections")
-prjLatticeI_I = sim.Projection(popI, popI, method=myConnectorI_I, target='inhibitory', synapse_dynamics = sd)
+prjLatticeI_I = sim.Projection(popI, popI, method=myConnectorI_I, target='inhibitory', synapse_type=sd)
 printTimer("Time for I_I connections")
 
 ## Run the simulation once lattice is inter-connected ##

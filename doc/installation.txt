@@ -2,56 +2,83 @@
 Installation
 ============
 
-Use of PyNN_ requires that you have Python (version 2.5, 2.6 or 2.7), a recent version of the numpy_ package, the lazyarray_ package, plus at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
+The following instructions are for Linux and Mac OS X. It should be possible to
+install and run PyNN on Windows, but this has not been tested.
+
+Installing PyNN requires:
+
+    * Python (version 2.6 or 2.7)
+    * a recent version of the NumPy_ package
+    * the lazyarray_ package
+    * the Neo_ package
+    * at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
+
+Optional dependencies are:
+
+    * mpi4py_ (if you wish to run distributed simulations using MPI)
+    * either Jinja2_ or Cheetah_ (templating engines)
+    * the CSA_ library
 
 Installing PyNN
 ===============
 
-The easiest way to get PyNN is to download the latest source distribution from the `PyNN download page`_, then run the setup script, e.g.::
+.. note:: if using NEURON, it is easiest if you install NEURON *before* you install PyNN (see below).
 
-    $ tar xzf PyNN-0.7.0.tar.gz
-    $ cd PyNN-0.7.0
+The easiest way to get PyNN is to use pip_::
+
+    $ pip install pyNN
+
+If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
+available. If you would prefer to install manually, :doc:`download the latest
+source distribution <download>`, then run the setup script, e.g.::
+
+    $ tar xzf PyNN-0.8alpha1.tar.gz
+    $ cd PyNN-0.8alpha1
     $ python setup.py install
-    
-This will install it to your python ``site-packages`` directory, and may require root privileges. If you wish to install it elsewhere use the ``--prefix`` or ``--home`` option, and set the ``PYTHONPATH`` environment variable accordingly (see above). We assume you have already installed the simulator(s) you wish to use it with. If this is not the case, see below for installation instructions.
+
+This will install it to your Python :file:`site-packages` directory, and may
+require root privileges. If you wish to install it elsewhere use the
+:option:`--prefix` or :option:`--home` option, and set the :envvar:`PYTHONPATH`
+environment variable accordingly. We assume you have already installed the
+simulator(s) you wish to use it with. If this is not the case, see below for
+installation instructions.
 
 Test it using something like the following::
 
-    >>> from pyNN.nest import *
-    >>> setup()
-    >>> end()
-    
+    >>> import pyNN.nest as sim
+    >>> sim.setup()
+    >>> sim.end()
+
 (This assumes you have NEST installed).
 
 With NEURON as the simulator, make sure you install NEURON *before* you install PyNN.
-The PyNN installation will then compile PyNN-specific membrane mechanisms, which are loaded when importing the ``neuron`` module::
-   
-    >>> from pyNN.neuron import *
+The PyNN installation will then compile PyNN-specific membrane mechanisms, which are loaded when importing the :mod:`neuron` module::
+
+    >>> import pyNN.neuron as sim
     NEURON -- Release 7.1 (359:7f113b76a94b) 2009-10-26
     Duke, Yale, and the BlueBrain Project -- Copyright 1984-2008
     See http://www.neuron.yale.edu/credits.html
 
     loading membrane mechanisms from /home/andrew/dev/pyNN/neuron/nmodl/i686/.libs/libnrnmech.so
     Additional mechanisms from files
-     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod gsfa_grr.mod hh_traub.mod netstim2.mod
-     refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod stdwa_symm.mod
-     tmgsyn.mod tmisyn.mod vecstim.mod
+     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod gsfa_grr.mod hh_traub.mod izikevich.mod
+     netstim2.mod refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod
+     stdwa_symm.mod tmgsyn.mod tmisyn.mod tsodyksmarkram.mod vecstim.mod
 
-If your model relies on other NMODL mechanisms, call the ``load_mechanisms()`` function with the path to the directory containing the ``.mod`` files.
-
+If you installed PyNN before installing NEURON, or if you update your PyNN installation, you will need to manually run :command:`nrnivmodl` in the :file:`pyNN/neuron/nmodl` directory.
 
 Installing NEURON
 =================
 
 Download the sources for the latest release of NEURON, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_. Also download Interviews from the same location.
 
-Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_, except that when you run ``configure``, add the options ``--with-nrnpython`` and, optionally, ``--with-mpi``, i.e.::
+Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_, except that when you run :command:`configure`, add the options :option:`--with-nrnpython` and, optionally, :option:`--with-paranrn`, i.e.::
 
-    $ ./configure --prefix=`pwd` --with-nrnpython --with-mpi
+    $ ./configure --prefix=`pwd` --with-nrnpython --with-paranrn
     $ make
     $ make install
 
-Make sure that you add the Interviews and NEURON bin directories to your path. Test that the Python support has been enabled by running::
+Make sure that you add the Interviews and NEURON :file:`bin` directories to your path. Test that the Python support has been enabled by running::
 
     $ nrniv -python
     NEURON -- Release 7.1 (359:7f113b76a94b) 2009-10-26
@@ -59,21 +86,21 @@ Make sure that you add the Interviews and NEURON bin directories to your path. T
     See http://www.neuron.yale.edu/credits.html
 
     >>> import hoc
-    >>> import nrn   
+    >>> import nrn
 
 Now you can compile and install NEURON as a Python package::
 
     $ cd src/nrnpython
     # python setup.py install
 
-Note that the latter step requires running as root and will install to your global python ``site-packages`` directory.
+Note that the latter step requires running as root and will install to your global Python :file:`site-packages` directory.
 If you would prefer to install it locally, replace the last step with::
 
     $ python setup.py install --prefix=~
 
-which will install into ``~/lib/python2.5/site-packages/`` (or the equivalent for other Python versions; for more fine-grained control over where the package is installed, see the `distutils`_ documentation), then add this directory to your ``PYTHONPATH``::
+which will install into :file:`~/lib/python2.7/site-packages/` (or the equivalent for other Python versions; for more fine-grained control over where the package is installed, see the `distutils`_ documentation), then add this directory to your :envvar:`PYTHONPATH`::
 
-    $ export PYTHONPATH=$PYTHONPATH:~/lib/python2.5/site-packages
+    $ export PYTHONPATH=$PYTHONPATH:~/lib/python2.7/site-packages
 
 Now test everything worked::
 
@@ -83,7 +110,7 @@ Now test everything worked::
     Duke, Yale, and the BlueBrain Project -- Copyright 1984-2008
     See http://www.neuron.yale.edu/credits.html
 
-    >>> 
+    >>>
 
 If you run into problems, check out the `NEURON Forum`_.
 
@@ -93,41 +120,35 @@ Installing NEST and PyNEST
 
 NEST can be downloaded from `<http://www.nest-initiative.org/index.php/Software:Download>`_.
 Installation instructions are available in the file INSTALL, which you can find in the source package, or at `<http://www.nest-initiative.org/index.php/Installation>`_.
- 
+
+.. note:: NumPy must be installed *before* installing NEST.
+
+.. note:: Make sure you have the GNU Scientific Library (GSL) installed,
+          otherwise some PyNN standard models (e.g. :class:`IF_cond_exp`) will not be available.
+
 On Linux, most Unix variants and Mac OS X, installation is usually as simple as::
 
     $ ./configure --with-mpi
     $ make
     # make install
-    
-This will install PyNEST to your Python ``site-packages`` directory, and may require root privileges.
+
+This will install PyNEST to your Python :file:`site-packages` directory, and may require root privileges.
 If you wish to install it elsewhere, see the full installation instructions.
-Make sure you have the GNU Scientific Library (GSL) installed,
-otherwise some PyNN standard models (e.g. ``IF_cond_exp``) will not be available.
 
 Now try it out::
 
-    $ cd ~ 
-    $ python 
+    $ cd ~
+    $ python
     >>> import nest
+                  -- N E S T --
 
-               -- N E S T 2 beta --
-              Neural Simulation Tool
-      Copyright 1995-2009 The NEST Initiative
-       Version 2.0-0-rc2 Jan 27 2011 10:59:20
+      Copyright (C) 2004 The NEST Initiative
+      Version 2.2.1 Feb 11 2013 17:42:00
     ...
     >>> nest.Models()
     ['ac_generator', 'aeif_cond_alpha', 'aeif_cond_exp', 'cont_delay_synapse', 'correlation_detector',
-     'dc_generator', 'hh_cond_exp_traub', 'hh_psc_alpha', 'ht_neuron', 'ht_synapse', 'iaf_cond_alpha',
-     'iaf_cond_alpha_mc', 'iaf_cond_exp', 'iaf_cond_exp_sfa_rr', 'iaf_neuron', 'iaf_psc_alpha',
-     'iaf_psc_alpha_canon', 'iaf_psc_alpha_presc', 'iaf_psc_delta', 'iaf_psc_delta_canon',
-     'iaf_psc_exp', 'iaf_psc_exp_ps', 'iaf_tum_2000', 'mat2_psc_exp', 'mip_generator', 'multimeter',
-     'noise_generator', 'parrot_neuron', 'parrot_neuron_ps', 'poisson_generator', 'poisson_generator_ps',
-     'pulsepacket_generator', 'sli_neuron', 'smp_generator', 'spike_detector', 'spike_generator',
-     'static_synapse', 'static_synapse_hom_wd', 'stdp_dopamine_synapse', 'stdp_pl_synapse_hom',
-     'stdp_synapse', 'stdp_synapse_hom', 'step_current_generator', 'subnet', 'topology_layer_3d',
-     'topology_layer_free', 'topology_layer_grid', 'tsodyks_synapse', 'voltmeter', 'volume_transmitter']
-    
+    ...
+
 Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may need to install a newer version of the `GNU Scientific Library`_ and then recompile NEST.
 
 
@@ -147,11 +168,17 @@ Instructions for downloading and installing Brian_ are available from `<http://w
 
 
 .. _PyNN: http://neuralensemble.org/PyNN
-.. _numpy: http://numpy.scipy.org/
+.. _NumPy: http://numpy.scipy.org/
+.. _lazyarray: http://pypi.python.org/pypi/lazyarray
+.. _CSA: http://software.incf.org/software/csa/
+.. _Jinja2: http://jinja.pocoo.org/
+.. _Cheetah: http://www.cheetahtemplate.org/
+.. _mpi4py: http://mpi4py.scipy.org/
+.. _pip: http://www.pip-installer.org/
 .. _PCSIM: http://www.lsm.tugraz.at/pcsim/
 .. _Brian: http://www.briansimulator.org/
 .. _`PyNN download page`: https://neuralensemble.org/trac/PyNN/wiki/Download
 .. _`distutils`: http://docs.python.org/inst/inst.html
 .. _`GNU Scientific Library`: http://www.gnu.org/software/gsl/
 .. _`NEURON Forum`: http://www.neuron.yale.edu/phpBB/index.php
-.. _lazyarray: http://pypi.python.org/pypi/lazyarray
+.. _Neo: http://neuralensemble.org/neo

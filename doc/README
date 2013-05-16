@@ -2,21 +2,14 @@
 Notes on PyNN documentation
 ===========================
 
-The text files in this directory (including this one) are in reStructuredText_ format, which can easily be processed into HTML or LaTeX formats using Docutils_, e.g.::
+PyNN documentation is generated using Sphinx_.
 
-    $ rst2html.py --initial-header-level=2 highlevelapi.txt > highlevelapi.html
+To build the documentation in HTML format, run::
 
-API documentation is generated using the ``apidoc.py`` script, which can produce MediaWiki, Trac Wiki, or LaTeX formats (but not, currently, reStructuredText).
+    $ make html
 
 Many of the files contain examples of interactive Python sessions. The validity of this code can be tested by running::
 
-    $ python testdocs.py -s neuron FILE.txt
-    $ python testdocs.py -s nest FILE.txt
-    $ python testdocs.py -s pcsim FILE.txt
-    $ python testdocs.py -s brian FILE.txt
-    
-Error messages due to differences in neuron id numbers between simulators can be ignored.
+    $ make doctest
 
-
-.. _reStructuredText: http://docutils.sourceforge.net/rst.html
-.. _Docutils: http://docutils.sourceforge.net/
+.. _Sphinx: http://sphinx.pocoo.org/

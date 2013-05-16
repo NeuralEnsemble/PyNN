@@ -1,81 +1,83 @@
+import pyNN.nest as sim
 import nest
+from pyNN.standardmodels import StandardCellType
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 import numpy
-from mock import Mock
-from nose.tools import assert_equal
-from pyNN.standardmodels import StandardCellType, build_translations
-from pyNN.nest import Population
-from pyNN.nest.cells import NativeCellType
-from pyNN.common import IDMixin
-
-class MockStandardCellType(StandardCellType):
-    default_parameters = {
-        "foo": 99.9,
-        "hoo": 100.0,
-        "woo": 5.0,
-    }
-    default_initial_values = {
-        "v": 0.0,
-    }
-    translations = build_translations(
-        ('foo', 'FOO'),
-        ('hoo', 'HOO', 3.0),
-        ('woo', 'WOO', '2*woo + hoo', '(WOO - HOO)/2'),
-    )
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
-class MockNativeCellType(NativeCellType):
-    default_parameters = {
-        "FOO": 99.9,
-        "HOO": 300.0,
-        "WOO": 112.0,
-    }
-    default_initial_values = {
-        "v": 0.0,
-    }
-    nest_model = "mock_neuron"
+
+class TestFunctions(unittest.TestCase):
+
+    def tearDown(self):
+        sim.setup(verbosity='error')
+
+    def test_list_standard_models(self):
+        cell_types = sim.list_standard_models()
+        self.assertTrue(len(cell_types) > 10)
+        self.assertIsInstance(cell_types[0], basestring)
+
+    def test_setup(self):
+        sim.setup(timestep=0.05, min_delay=0.1, max_delay=1.0,
+                  verbosity='debug', spike_precision='off_grid',
+                  recording_precision=4, threads=2, rng_seeds=[873465, 3487564])
+        ks = nest.GetKernelStatus()
+        self.assertEqual(ks['resolution'], 0.05)
+        self.assertEqual(ks['local_num_threads'], 2)
+        self.assertEqual(ks['rng_seeds'], [873465, 3487564])
+        self.assertEqual(ks['min_delay'], 0.1)
+        self.assertEqual(ks['max_delay'], 1.0)
+        self.assertTrue(ks['off_grid_spiking'])
+
+    def test_setup_with_rng_seeds(self):
+        sim.setup(rng_seeds_seed=42, threads=3)
+        self.assertEqual(len(nest.GetKernelStatus('rng_seeds')), 3)
 
 
-class MockID(IDMixin):
-    set_parameters = Mock()
+class TestPopulation(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup()
+        self.p = sim.Population(4, sim.IF_cond_exp(**{'tau_m': 12.3,
+                                                      'cm': lambda i: 0.987 + 0.01*i,
+                                                     'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
+
+    def test_create_native(self):
+        cell_type = sim.native_cell_type('iaf_neuron')
+        p = sim.Population(3, cell_type())
+
+    def test__get_parameters(self):
+        ps = self.p._get_parameters('C_m', 'g_L', 'E_ex', 'I_e')
+        ps.evaluate(simplify=True)
+        assert_array_almost_equal(ps['C_m'], numpy.array([987, 997, 1007, 1017], float),
+                                  decimal=12)
+        assert_array_almost_equal(ps['I_e'], numpy.array([-210, -200, -190, -180], float),
+                                  decimal=12)
+        self.assertEqual(ps['E_ex'], 0.0)
 
 
-class TestPopulation(object):
+class TestProjection(unittest.TestCase):
 
-    def setup(self):
-        self.orig_cc = Population._create_cells
-        self.orig_init = Population.initialize
-        self.orig_ss = nest.SetStatus
-        Population._create_cells = Mock()
-        Population.initialize = Mock()
-        nest.SetStatus = Mock()
-        
-    def teardown(self):
-        Population._create_cells = self.orig_cc
-        Population.initialize = self.orig_init
-        nest.SetStatus = self.orig_ss
+    def setUp(self):
+        sim.setup()
+        self.p1 = sim.Population(7, sim.IF_cond_exp())
+        self.p2 = sim.Population(4, sim.IF_cond_exp())
+        self.p3 = sim.Population(5, sim.IF_curr_alpha())
+        self.syn_rnd = sim.StaticSynapse(weight=0.123, delay=0.5)
+        self.syn_a2a = sim.StaticSynapse(weight=0.456, delay=0.4)
+        self.random_connect = sim.FixedNumberPostConnector(n=2)
+        self.all2all = sim.AllToAllConnector()
 
-    def test_set_with_standard_celltype(self):
-        p = Population(10, MockStandardCellType)
-        p.all_cells = numpy.array([MockID()]*10, dtype=object) #numpy.arange(10)
-        p._mask_local = numpy.ones((10,), bool)
-        p.set("foo", 32)
-        assert_equal(nest.SetStatus.call_args[0][1], {"FOO": 32.0})
-        p.set("hoo", 33.0)
-        assert_equal(nest.SetStatus.call_args[0][1], {"HOO": 99.0})
-        p.set("woo", 6.0)
-        assert_equal(nest.SetStatus.call_args[0][1], {})
-        p.all_cells[0].set_parameters.assert_called_with(woo=6.0)
-        
-    def test_set_with_native_celltype(self):
-        gd_orig = nest.GetDefaults
-        nest.GetDefaults = Mock(return_value={"FOO": 1.2, "HOO": 3.4, "WOO": 5.6})
-        p = Population(10, MockNativeCellType)
-        p.all_cells = numpy.array([MockID()]*10, dtype=object) #numpy.arange(10)
-        p._mask_local = numpy.ones((10,), bool)
-        p.set("FOO", 32)
-        assert_equal(nest.SetStatus.call_args[0][1], {"FOO": 32.0})
-        p.set("HOO", 33.0)
-        assert_equal(nest.SetStatus.call_args[0][1], {"HOO": 33.0})
-        p.set("WOO", 6.0)
-        assert_equal(nest.SetStatus.call_args[0][1], {"WOO": 6.0})
-        nest.GetDefaults = gd_orig
+    def test_create_simple(self):
+        prj = sim.Projection(self.p1, self.p2, self.all2all, synapse_type=self.syn_a2a)
+
+    def test_create_with_synapse_dynamics(self):
+        prj = sim.Projection(self.p1, self.p2, self.all2all,
+                             synapse_type=sim.TsodyksMarkramSynapse())
+
+
+if __name__ == '__main__':
+    unittest.main()

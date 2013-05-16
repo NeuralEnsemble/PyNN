@@ -1,0 +1,541 @@
+==============================
+Building networks: connections
+==============================
+
+.. testsetup:: *
+
+    from pyNN.mock import *
+    from pyNN.random import NumpyRNG
+    from pyNN.space import Space
+    setup()
+    pre = Population(10, IF_curr_alpha())
+    post = Population(10, IF_cond_exp())
+
+
+Conceptually, a synapse consists of a pre-synaptic structure, the synaptic
+cleft, and a post-synaptic structure. In PyNN, the temporal dynamics of the
+post-synaptic response are handled by the post-synaptic neuron model
+(see :ref:`section-cell-types`). The size of the post-synaptic response
+(the "synaptic weight"), the temporal dynamics of the weight (synaptic
+plasticity) and the connection delay are handled by synapse models.
+
+At the time of writing, most neuronal network models do not explicitly model
+the axon. Rather, the time for propagation of the action potential from
+soma/initial segment to axon terminal is added to the synaptic transmission
+time to give a composite delay, referred to as "synaptic delay" in this
+documentation. For point neuron models, which do not include an explicit model
+of the dendrite, the time for transmission of the post-synaptic potential to the
+soma may also be considered as being included in the composite synaptic delay.
+
+At a minimum, therefore, a synaptic connection in PyNN has two attributes:
+"weight" and "delay", which are interpreted as described above. Where the weight
+has its own dynamics, a connection may have more attributes: the plasticity
+model and its parameters.
+
+.. note:: Currently, PyNN supports only chemical synapses, not electrical synapses.
+          If the underlying simulator supports electrical synapses, it is still
+          possible to use them in a PyNN model, but this will not be
+          simulator-independent.
+
+.. note:: Currently, PyNN does not support stochastic synapses. If you would
+          like to have support for this, or any other feature, please
+          `make a feature request`_.
+
+Synapse types
+=============
+
+Analogously to neuron models, the system of equations that defines a synapse
+model is encapsulated in a :class:`SynapseType` class. PyNN provides a library
+of "standard" synapse types (see :doc:`standardmodels`) which work the same
+across all backend simulators.
+
+Fixed synaptic weight
+---------------------
+
+The simplest, and default synapse type in PyNN has constant synaptic weight:
+
+.. testcode::
+
+    syn = StaticSynapse(weight=0.04, delay=0.5)
+    
+.. note:: weights are in microsiemens or nanoamps, depending on whether the
+          post-synaptic mechanism implements a change in conductance or current,
+          and delays are in milliseconds (see :doc:`units`).
+
+It is also possible to add variability to synaptic weights and delays by
+specifying a :class:`RandomDistribution` object as the parameter value:
+
+.. testcode::
+
+    w = RandomDistribution('gamma', [10, 0.004], rng=NumpyRNG(seed=4242))
+    syn = StaticSynapse(weight=w, delay=0.5)
+
+It is also possible to specify parameters as a function of the distance
+(typically in microns, but different scales are possible - see :doc:`space`)
+between pre- and post-synaptic neurons:
+
+.. testcode::
+
+    syn = StaticSynapse(weight=w, delay="0.2 + 0.01*d")
+
+
+Short-term synaptic plasticity
+------------------------------
+
+PyNN currently provides one standard model for short-term synaptic plasticity
+(facilitation and depression):
+
+.. testcode::
+
+    depressing_synapse = TsodyksMarkramSynapse(weight=w, delay=0.2, U=0.5,
+                                               tau_rec=800.0, tau_facil=0.0)
+    tau_rec = RandomDistribution('normal', [100.0, 10.0])
+    facilitating_synapse = TsodyksMarkramSynapse(weight=w, delay=0.5, U=0.04,
+                                                 tau_rec=tau_rec)
+
+.. include figure?
+
+Spike-timing-dependent plasticity
+---------------------------------
+
+STDP models are specified in a slightly different way than other standard models:
+an STDP synapse type is constructed from separate weight-dependence and
+timing-dependence components, e.g.:
+
+.. testcode::
+
+    stdp = STDPMechanism(
+              weight=0.02,  # this is the initial value of the weight
+              delay="0.2 + 0.01*d",
+              timing_dependence=SpikePairRule(tau_plus=20.0, tau_minus=20.0),
+              weight_dependence=AdditiveWeightDependence(w_min=0, w_max=0.04,
+                                                         A_plus=0.01, A_minus=0.012))
+    
+Note that not all simulators will support all possible combinations of synaptic
+plasticity components.
+
+
+Connection algorithms
+=====================
+
+.. currentmodule:: pyNN.connectors
+
+In PyNN, each different algorithm that can be used to determine which
+pre-synaptic neurons are connected to which post-synaptic neurons (also called
+a "connection method" or "wiring method") is encapsulated in a separate class.
+
+.. note:: for those interested in design patterns, this is an example of the
+          `Strategy Pattern`_
+
+Each such class inherits from a base class, :class:`Connector`, and must
+implement a :meth:`connect()` method which takes a :class:`Projection` object
+(see below) as its single argument.
+
+PyNN's library of connection algorithms currently contains the following classes:
+
+All-to-all connections
+----------------------
+
+Each neuron in the pre-synaptic population is connected to every neuron in the
+post-synaptic population. (In this section, the term "population" should be
+understood as referring to any of the following: a :class:`Population`,
+a :class:`PopulationView`, or an :class:`Assembly` object.)
+
+The :class:`AllToAllConnector` constructor has one
+optional argument, ``allow_self_connections``, for use when connecting a
+population to itself. By default it is ``True``, but if a neuron should
+not connect to itself, set it to ``False``, e.g.:
+
+.. testcode::
+
+    connector = AllToAllConnector(allow_self_connections=False)  # no autapses
+
+
+One-to-one connections
+----------------------
+
+Use of the :class:`OneToOneConnector` requires that the pre- and post-synaptic
+populations have the same size. The neuron with index *i* in the pre-synaptic
+population is then connected to the neuron with index *i* in the post-synaptic
+population.
+
+.. testcode::
+
+    connector = OneToOneConnector()
+
+Trying to connect two populations with different sizes will raise an Exception.
+
+
+Connecting neurons with a fixed probability
+-------------------------------------------
+
+With the :class:`FixedProbabilityConnector` method, each possible connection
+between all pre-synaptic neurons and all post-synaptic neurons is created with
+probability ``p_connect``:
+
+.. testcode::
+
+    connector = FixedProbabilityConnector(p_connect=0.2)
+
+
+Connecting neurons with a distance-dependent probability
+--------------------------------------------------------
+
+For each pair of pre-post cells, the connection probability depends on distance.
+
+The constructor requires a string ``d_expression``, which should be a distance
+expression, as described above for delays, but returning a probability (a value
+between 0 and 1):
+
+.. testcode::
+
+    DDPC = DistanceDependentProbabilityConnector
+    connector = DDPC("exp(-d)")
+    connector = DDPC("d<3")
+
+The first example connects neurons with an exponentially-decaying probability.
+The second example connects each neuron to all its neighbours within a range of
+3 units (typically interpreted as µm, but this is up to the individual user).
+Note that boolean values ``True`` and ``False`` are automatically converted to
+numerical values ``1.0`` and ``0.0``.
+
+Calculation of distance may be controlled by specifying a :class:`Space` object,
+passed to the :class:`Projection` constructor (see below).
+
+
+Divergent/fan-out connections
+-----------------------------
+
+The :class:`FixedNumberPostConnector` connects each pre-synaptic neuron to
+exactly ``n`` post-synaptic neurons chosen at random:
+
+.. testcode::
+
+    connector = FixedNumberPostConnector(n=30)
+
+If ``n`` is less than the size of the post-synaptic population, there are no
+multiple connections, i.e., no instances of the same pair of neurons being
+multiply connected. If ``n`` is greater than the size of the pre-synaptic
+population, all possible single connections are made before starting to add
+duplicate connections.
+
+The number of post-synaptic neurons ``n`` can be fixed, or can be chosen at
+random from a :class:`~/pyNN.random.RandomDistribution` object, e.g.:
+
+.. testcode::
+
+    distr_npost = RandomDistribution(distribution='binomial', parameters=[100,0.3])
+    connector = FixedNumberPostConnector(n=distr_npost)
+
+
+Convergent/fan-in connections
+-----------------------------
+
+The :class:`FixedNumberPreConnector` has the same arguments as
+:class:`FixedNumberPostConnector`, but of course it connects each
+*post*-synaptic neuron to ``n`` *pre*-synaptic neurons, e.g.:
+
+.. testcode::
+
+    connector = FixedNumberPreConnector(5)
+    distr_npre = RandomDistribution(distribution='poisson', parameters=[5])
+    connector = FixedNumberPreConnector(distr_npre)
+
+
+Creating a small-world network
+------------------------------
+
+.. todo:: Pierre to write this bit?
+
+
+Using the Connection Set Algebra
+--------------------------------
+
+The Connection Set Algebra (`Djurfeldt, 2012`_) is a sophisticated system that
+allows elaborate connectivity patterns to be constructed using a concise syntax.
+Using the CSA requires the Python :mod:`csa` module to be installed
+(see :doc:`installation`).
+
+The details of constructing a connection set are beyond the scope of this manual.
+We give here a simple example.
+
+.. testcode::
+
+    import csa
+    cset = csa.full - csa.oneToOne
+    connector = CSAConnector(cset)
+
+``csa.full`` represents all-to-all connections, while ``csa.oneToOne``
+represents the connection of pre-synaptic neuron *i* to post-synaptic neuron *i*.
+By subtracting the second from the first, the connection rule is "all-to-all,
+except where the neurons have the same index". If the pre- and post-synaptic
+populations are the same population, this is equivalent to
+``AllToAllConnector(allow_self_connections=False)``.
+
+.. todo:: explain that weights and delays can either be specified within the
+          connection set or within the synapse type.
+
+Specifying a list of connections
+--------------------------------
+
+Specific connection patterns not covered by the methods above can be obtained by
+specifying an explicit list of pre-synaptic and post-synaptic neuron indices,
+with weights and delays. Example:
+
+.. testcode::
+
+    connections = [
+      (0, 0, 0.0, 0.1),
+      (0, 1, 0.0, 0.1),
+      (0, 2, 0.0, 0.1),
+      (1, 5, 0.0, 0.1)
+    ]
+    connector = FromListConnector(connections)
+
+.. todo:: comment on the point that in this case weights, delays, other
+          parameters are determined by the connector rather than by the synapse type
+
+Reading connection patterns to/from a file
+------------------------------------------
+
+Connection patterns can be read in from a text file. The file should contain
+four columns separated by spaces, containing:
+
+    ``pre-synaptic-index   post-synaptic-index   weight   delay``
+
+and can be read using:
+
+.. testcode::
+
+    connector = FromFileConnector("connections.txt")
+
+.. todo:: should extend this to other parameters, allow column headers
+
+
+User-defined connection algorithms
+----------------------------------
+
+If you wish to use a specific connection/wiring algorithm not covered by the
+PyNN built-in ones, the options include:
+
+    * constructing a list of connections and use the :class:`FromListConnector` class;
+    * using the Connection Set Algebra and the :class:`CSAConnector` class;
+    * writing your own :class:`Connector` class - see the
+      :doc:`developers_guide` for guidance on this.
+
+
+Projections
+===========
+
+A :class:`Projection` is a container for a set of connections between two
+populations of neurons, where by population we mean one of:
+
+    * a :class:`Population` object - a group of neurons all of the same type;
+    * a :class:`PopulationView` object - part of a :class:`Population`;
+    * a :class:`Assembly` - a heterogeneous group of neurons, which may be of different types.
+
+Creating a :class:`Projection` in PyNN also creates the connections at the
+level of the simulator. To create a :class:`Projection` we must specify:
+
+    * the pre-synaptic population;
+    * the post-synaptic population;
+    * a connection/wiring method;
+    * a synapse type
+
+Optionally, we can also specify:
+
+    * the name of the post-synaptic mechanism (e.g. ‘excitatory’, ‘NMDA’)
+      (by default, this is 'excitatory');
+    * a label (autogenerated if not specified);
+    * a :class:`Space` object, which determines how distances should be
+      calculated for distance-dependent wiring schemes or parameter values.
+
+Here is a minimal example:
+
+.. testcode::
+
+    excitatory_connections = Projection(pre, post, AllToAllConnector(),
+                                        StaticSynapse(weight=0.123))
+
+and here is a full example:
+
+.. testcode::
+
+    rng = NumpyRNG(seed=64754)
+    sparse_connectivity = FixedProbabilityConnector(0.1, rng=rng)
+    weight_distr = RandomDistribution('normal', [0.01, 1e-3], rng=rng)
+    facilitating = TsodyksMarkramSynapse(U=0.04, tau_rec=100.0, tau_facil=1000.0,
+                                         weight=weight_distr, delay=lambda d: 0.1+d/100.0)
+    space = Space(axes='xy')
+    inhibitory_connections = Projection(pre, post,
+                                        connector=sparse_connectivity,
+                                        synapse_type=facilitating,
+                                        receptor_type='inhibitory',
+                                        space=space,
+                                        label="inhibitory connections")
+
+Note that the attribute :attr:`receptor_types` of all :ref:`cell type <section-cell-types>`
+classes contains a list of the possible values of ``receptor_type`` for that cell type:
+
+.. doctest::
+
+    >>> post
+    Population(10, IF_cond_exp(<parameters>), structure=Line(y=0.0, x0=0.0, z=0.0, dx=1.0), label='population1')
+    >>> post.celltype
+    IF_cond_exp(<parameters>)
+    >>> post.celltype.receptor_types
+    ('excitatory', 'inhibitory')
+
+The :attr:`space` argument is used to specify how to calculate distances, since
+we have used a distance expression to specify the connection delay, modelling a
+constant axonal propagation speed.
+
+By default, the 3D distance between cell positions is used, but the
+``axes`` argument may be used to change this, i.e.:
+
+.. testcode::
+
+    space = Space(axes='xy')
+
+will ignore the z-coordinate when calculating distance. Similarly, the origins
+of the coordinate systems of the two populations and the relative scale of the
+two coordinate systems may be controlled using the ``offset`` and
+``scale_factor`` arguments to the :class:`Space` constructor. This is useful
+when connecting brain regions that have very different sizes but that have a
+topographic mapping between them, e.g. retina to LGN to V1.
+
+In more abstract models, it is often useful to be able to avoid edge effects by
+specifying periodic boundary conditions, e.g.:
+
+.. testcode::
+
+    space = Space(periodic_boundaries=((0,500), (0,500), None))
+
+calculates distance on the surface of a torus of circumference 500 µm
+(wrap-around in the x- and y-dimensions but not z). For more information, see
+:doc:`space`.
+
+
+Accessing weights and delays
+----------------------------
+
+The :meth:`Projection.get` method allows the retrieval of connection attributes,
+such as weights and delays. Two formats are available. ``'list'`` returns a list
+of length equal to the number of connections in the projection, ``'array'``
+returns a 2D weight array (with NaN for non-existent connections):
+
+.. doctest::
+
+    >>> excitatory_connections.get('weight', format='list')[3:7]
+    [(3, 0, 0.123), (4, 0, 0.123), (5, 0, 0.123), (6, 0, 0.123)]
+    >>> inhibitory_connections.get('delay', format='array')[:3,:5]
+    array([[  nan,  0.11,   nan,   nan,   nan],
+           [  nan,   nan,   nan,   nan,   nan],
+           [  nan,   nan,   nan,  0.11,  0.12]])
+
+To suppress the coordinates of the connection in ``'list'``, view, set the
+*with_address* option to ``False``:
+
+.. doctest::
+
+    >>> excitatory_connections.get('weight', format='list', with_address=False)[3:7]
+    [0.123, 0.123, 0.123, 0.123]
+
+As well as weight and delay, :meth:`Projection.get` can also retrieve any other
+parameters of synapse models:
+
+.. doctest::
+
+    >>> inhibitory_connections.get('U', format='list')[0:4]
+    [(48, 52, 0.04), (42, 53, 0.04), (51, 54, 0.04), (44, 55, 0.04)]
+
+It is also possible to retrieve the values of multiple attributes at once, as
+either a list of tuples or a tuple of arrays:
+
+.. doctest::
+
+    >>> connection_data = inhibitory_connections.get(['weight', 'delay'], format='list')
+    >>> for connection in connection_data[:5]:
+    ...    src, tgt, w, d = connection
+    ...    print "weight = %.4f  delay = %4.2f" % (w, d)
+    weight = 0.0094  delay = 0.16
+    weight = 0.0113  delay = 0.11
+    weight = 0.0102  delay = 0.17
+    weight = 0.0097  delay = 0.11
+    weight = 0.0127  delay = 0.14
+    >>> weights, delays = inhibitory_connections.get(['weight', 'delay'], format='array')
+    >>> exists = ~numpy.isnan(weights)
+    >>> for w, d in zip(weights[exists].flat, delays[exists].flat)[:5]:
+    ...    print "weight = %.4f  delay = %4.2f" % (w, d)
+    weight = 0.0094  delay = 0.16
+    weight = 0.0113  delay = 0.11
+    weight = 0.0102  delay = 0.17
+    weight = 0.0097  delay = 0.11
+    weight = 0.0127  delay = 0.14
+
+Note that in this last example we have filtered out the non-existent connections using :func:`numpy.isnan()`.
+
+
+The :meth:`Projection.save` method saves connection attributes to disk.
+
+.. todo:: finish documenting save() method (also decide if it should be write() or save())
+          need to think about formats. Text, HDF5, ...
+
+Access to the weights and delays of individual connections is by the
+:attr:`connections` attribute, e.g.:
+
+.. doctest::
+
+    >>> inhibitory_connections.connections[0].weight
+    0.0094460775218037779
+    >>> inhibitory_connections.connections[10].weight
+    0.0086313719119562281
+
+
+Modifying weights and delays
+----------------------------
+
+As noted above, weights, delays and other connection attributes can be
+specified on creation of a :class:`Projection`, and this is generally the most
+efficient time to specify them. It is also possible, however, to modify these
+attributes after creation, using the :meth:`set` method.
+
+:meth:`set` accepts any number of keyword arguments, where the key is the
+attribute name, and the value is either:
+
+    * a numeric value (all connections will be set to the same value);
+    * a :class:`~pyNN.random.RandomDistribution` object (each connection will be
+        set to a different value, drawn from the distribution);
+    * a list or NumPy array of the same length as the number of connections in
+      the :class:`Projection`;
+    * a generator;
+    * a string expressing a function of the distance between pre- and post-synaptic
+      neurons.
+
+.. todo:: clarify whether this is the number of *local* connections or the total
+          number of connections.
+
+Some examples:
+
+.. doctest::
+
+    >>> excitatory_connections.set(weights=0.02)
+    >>> excitatory_connections.set(weights=RandomDistribution('gamma', [1, 0.1]),
+    ...                            delays=0.3)
+    >>> inhibitory_connections.set(U=numpy.linspace(0.4, 0.6, len(inhibitory_connections)),
+    ...                            tau_rec=500.0,
+    ...                            tau_facil=0.1)
+
+It is also possible to access the attributes of individual connections using the
+``connections`` attribute of a :class:`Projection`:
+
+.. doctest::
+
+    >>> for c in inhibitory_connections.connections[:5]:
+    ...   c.weight *= 2
+
+although this is almost always less efficient than using list- or array-based access.
+
+.. _`make a feature request`: http://neuralensemble.org/trac/PyNN/newticket
+.. _`Strategy Pattern`: http://en.wikipedia.org/wiki/Strategy_pattern
+.. _`Djurfeldt, 2012`: http://software.incf.org/software/csa/

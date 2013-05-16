@@ -27,7 +27,7 @@ from pyNN.utility import get_script_args, Timer
 usage = """Usage: python VAbenchmarks.py <simulator> <benchmark>
            <simulator> is either neuron, nest, brian or pcsim
            <benchmark> is either CUBA or COBA."""
-simulator_name, benchmark = get_script_args(2, usage)  
+simulator_name, benchmark = get_script_args(2, usage)
 exec("from pyNN.%s import *" % simulator_name)
 from pyNN.random import NumpyRNG, RandomDistribution
 
@@ -83,7 +83,7 @@ area  = area*1e-8                     # convert to cm²
 cm    = cm*area*1000                  # convert to nF
 Rm    = 1e-6/(g_leak*area)            # membrane resistance in MΩ
 assert tau_m == cm*Rm                 # just to check
-n_exc = int(round((n*r_ei/(1+r_ei)))) # number of excitatory cells   
+n_exc = int(round((n*r_ei/(1+r_ei)))) # number of excitatory cells
 n_inh = n - n_exc                     # number of inhibitory cells
 if benchmark == "COBA":
     celltype = IF_cond_exp
@@ -108,7 +108,7 @@ host_name = socket.gethostname()
 print "Host #%d is on %s" % (node_id+1, host_name)
 
 print "%s Initialising the simulator with %d thread(s)..." % (node_id, extra['threads'])
-    
+
 cell_params = {
     'tau_m'      : tau_m,    'tau_syn_E'  : tau_exc,  'tau_syn_I'  : tau_inh,
     'v_rest'     : E_leak,   'v_reset'    : v_reset,  'v_thresh'   : v_thresh,
@@ -117,22 +117,22 @@ cell_params = {
 if (benchmark == "COBA"):
     cell_params['e_rev_E'] = Erev_exc
     cell_params['e_rev_I'] = Erev_inh
-    
+
 timer.start()
 
 print "%s Creating cell populations..." % node_id
-all_cells = Population(n_exc+n_inh, celltype, cell_params, label="All_Cells")
+all_cells = Population(n_exc+n_inh, celltype(**cell_params), label="All_Cells")
 exc_cells = all_cells[:n_exc]
 inh_cells = all_cells[n_exc:]
 if benchmark == "COBA":
-    ext_stim = Population(20, SpikeSourcePoisson, {'rate' : rate, 'duration' : stim_dur}, label="expoisson")
+    ext_stim = Population(20, SpikeSourcePoisson(rate=rate, duration=stim_dur), label="expoisson")
     rconn = 0.01
     ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
 
 print "%s Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
 uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
-all_cells.initialize('v', uniformDistr)
+all_cells.initialize(v=uniformDistr)
 
 print "%s Connecting populations..." % node_id
 #exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay)
@@ -141,16 +141,15 @@ exc_conn = CSAConnector(csa.cset (csa.random (pconn), w_exc, delay))
 inh_conn = CSAConnector(csa.cset (csa.random (pconn), w_inh, delay))
 
 connections={}
-connections['exc'] = Projection(exc_cells, all_cells, exc_conn, target='excitatory', rng=rng)
-connections['inh'] = Projection(inh_cells, all_cells, inh_conn, target='inhibitory', rng=rng)
+connections['exc'] = Projection(exc_cells, all_cells, exc_conn, receptor_type='excitatory')
+connections['inh'] = Projection(inh_cells, all_cells, inh_conn, receptor_type='inhibitory')
 if (benchmark == "COBA"):
-    connections['ext'] = Projection(ext_stim, all_cells, ext_conn, target='excitatory')
+    connections['ext'] = Projection(ext_stim, all_cells, ext_conn, receptor_type='excitatory')
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id
-all_cells.record()
-vrecord_list = [exc_cells[0],exc_cells[1]]
-exc_cells.record_v(vrecord_list)
+all_cells.record('spikes')
+exc_cells[0:2].record('v')
 
 buildCPUTime = timer.diff()
 
@@ -178,9 +177,7 @@ print "%d Writing data to file..." % node_id
 if not(os.path.isdir('Results')):
     os.mkdir('Results')
 
-exc_cells.printSpikes("Results/VAbenchmark_%s_exc_%s_np%d.ras" % (benchmark, simulator_name, np))
-inh_cells.printSpikes("Results/VAbenchmark_%s_inh_%s_np%d.ras" % (benchmark, simulator_name, np))
-exc_cells.print_v("Results/VAbenchmark_%s_exc_%s_np%d.v" % (benchmark, simulator_name, np))
+all_cells.write_data("Results/VAbenchmarks2-csa_%s_np%d_%s.ras" % (benchmark, np, simulator_name))
 writeCPUTime = timer.diff()
 
 connections = "%d e→e,i  %d i→e,i" % (connections['exc'].size(),

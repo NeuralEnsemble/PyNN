@@ -8,71 +8,84 @@ Classes:
     ACSource           -- a sine modulated current.
 
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id: electrodes.py 991 2011-09-30 13:05:02Z apdavison $
 """
 
-import nest
 import numpy
-from pyNN.nest.simulator import state
+import nest
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
-from pyNN.random import NumpyRNG, NativeRNG
 from pyNN.common import Population, PopulationView, Assembly
+from pyNN.parameters import ParameterSpace, Sequence
+from pyNN.nest.simulator import state
 
-# should really use the StandardModel machinery to allow reverse translations
 
 class NestCurrentSource(StandardCurrentSource):
     """Base class for a nest source of current to be injected into a neuron."""
 
-    def __init__(self, parameters):    
-        super(StandardCurrentSource, self).__init__(parameters)
+    def __init__(self, **parameters):
         self._device   = nest.Create(self.nest_name)
         self.cell_list = []
-        self.set_native_parameters(self.parameters)
+        parameter_space = ParameterSpace(self.default_parameters,
+                                         self.get_schema(),
+                                         shape=(1,))
+        parameter_space.update(**parameters)
+        parameter_space = self.translate(parameter_space)
+        self.set_native_parameters(parameter_space)
 
-    def inject_into(self, cell_list):
-        """Inject this current source into some cells."""
-        for id in cell_list:
+    def inject_into(self, cells):
+        __doc__ = StandardCurrentSource.inject_into.__doc__
+        for id in cells:
             if id.local and not id.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
-        if isinstance(cell_list, (Population, PopulationView, Assembly)):
-            self.cell_list = [cell for cell in cell_list]
+        if isinstance(cells, (Population, PopulationView, Assembly)):
+            self.cell_list = [cell for cell in cells]
         else:
-            self.cell_list = cell_list
+            self.cell_list = cells
         nest.DivergentConnect(self._device, self.cell_list)
 
-    def set_native_parameters(self, parameters): 
-        #parameters = self.translate(parameters)
+    def _delay_correction(self, value):
+        # use dt or min_delay?
+        return value - state.min_delay
+
+    def set_native_parameters(self, parameters):
+        parameters.evaluate(simplify=True)
         for key, value in parameters.items():
-            self.parameters[key] = value
-            if key == "amplitude_values": 
-                nest.SetStatus(self._device, {key : list(parameters[key]), 'amplitude_times' : list(parameters["amplitude_times"])})
+            if key == "amplitude_values":
+                assert isinstance(value, Sequence)
+                times = self._delay_correction(parameters["amplitude_times"].value)
+                numpy.append(times, 1e12)
+                amplitudes = value.value
+                numpy.append(amplitudes, amplitudes[-1])
+                nest.SetStatus(self._device, {key: amplitudes,
+                                                'amplitude_times': times})
+            elif key in ("start", "stop"):
+                nest.SetStatus(self._device, {key: self._delay_correction(value)})
             elif not key == "amplitude_times":
-                nest.SetStatus(self._device, {key : float(value)})
+                nest.SetStatus(self._device, {key: value})
 
     def get_native_parameters(self):
-        return nest.GetStatus(self._device)[0]
-    
+        all_params = nest.GetStatus(self._device)[0]
+        return ParameterSpace(dict((k,v) for k,v in all_params.items()
+                                   if k in self.get_native_names()))
+
 
 class DCSource(NestCurrentSource, electrodes.DCSource):
-    
-    __doc__ = electrodes.DCSource.__doc__    
-    
+    __doc__ = electrodes.DCSource.__doc__
+
     translations = build_translations(
         ('amplitude',  'amplitude', 1000.),
         ('start',      'start'),
         ('stop',       'stop')
     )
-
     nest_name = 'dc_generator'
 
 
 class ACSource(NestCurrentSource, electrodes.ACSource):
-    
-    __doc__ = electrodes.ACSource.__doc__    
-    
+    __doc__ = electrodes.ACSource.__doc__
+
     translations = build_translations(
         ('amplitude',  'amplitude', 1000.),
         ('start',      'start'),
@@ -81,25 +94,22 @@ class ACSource(NestCurrentSource, electrodes.ACSource):
         ('offset',     'offset',    1000.),
         ('phase',      'phase')
     )
-
     nest_name = 'ac_generator'
 
+
 class StepCurrentSource(NestCurrentSource, electrodes.StepCurrentSource):
-    
-    __doc__ = electrodes.StepCurrentSource.__doc__ 
-    
+    __doc__ = electrodes.StepCurrentSource.__doc__
+
     translations = build_translations(
         ('amplitudes',  'amplitude_values', 1000.),
         ('times',       'amplitude_times')
     )
-
     nest_name = 'step_current_generator'
 
 
 class NoisyCurrentSource(NestCurrentSource, electrodes.NoisyCurrentSource):
-    
     __doc__ = electrodes.NoisyCurrentSource.__doc__
-    
+
     translations = build_translations(
         ('mean',  'mean', 1000.),
         ('start', 'start'),
@@ -107,5 +117,4 @@ class NoisyCurrentSource(NestCurrentSource, electrodes.NoisyCurrentSource):
         ('stdev', 'std', 1000.),
         ('dt',    'dt')
     )
-
     nest_name = 'noise_generator'

@@ -13,7 +13,7 @@ $Id$
 
 import numpy
 from pyNN.utility import get_script_args
-simulator_name = get_script_args(1)[0]  
+simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 from pyNN.random import NumpyRNG
 
@@ -30,15 +30,14 @@ rng = NumpyRNG(seed=seed)
 n_spikes = input_rate*simtime/1000.0
 spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential', [1000.0/input_rate]))
 
-spike_source = create(SpikeSourceArray, {'spike_times': spike_times})
+spike_source = create(SpikeSourceArray(spike_times=spike_times))
 
- 
-conn = connect(spike_source, ifcell, weight=1.5, synapse_type='excitatory', delay=2.0)
-    
-record(ifcell, "Results/IF_curr_exp2_%s.ras" % simulator_name)
-record_v(ifcell, "Results/IF_curr_exp2_%s.v" % simulator_name)
 
-initialize(ifcell, 'v', -53.2)
+conn = connect(spike_source, ifcell, weight=1.5, receptor_type='excitatory', delay=2.0)
+
+record(('spikes', 'v'), ifcell, "Results/IF_curr_exp2_%s.pkl" % simulator_name)
+initialize(ifcell, v=-53.2)
+
 run(simtime)
-  
+
 end()

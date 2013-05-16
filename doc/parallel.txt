@@ -5,10 +5,10 @@ Running parallel simulations
 Where the underlying simulator supports distributed simulations, in which the
 computations are spread over multiple processors using MPI (this is the case for
 NEURON, NEST and PCSIM), PyNN also supports this. To run a distributed
-simulation on eight nodes::
+simulation on eight nodes, the command will be something like::
 
     $ mpirun -np 8 -machinefile ~/mpi_hosts python myscript.py
-    
+
 Depending on the implementation of MPI you have, ``mpirun`` could be replaced by
 ``mpiexec`` or another command, and the options may also be somewhat different.
 
@@ -16,7 +16,7 @@ For NEURON only, you can also run distributed simulations using ``nrniv``
 instead of the ``python`` executable::
 
     $ mpirun -np 8 -machinefile ~/mpi_hosts nrniv -python -mpi myscript.py
-     
+
 Additional requirements
 -----------------------
 
@@ -26,13 +26,13 @@ but see the installation documentation for each simulator for details.
 
 If you wish to use the default "gather" feature (see below), which
 automatically gathers output data from all the nodes to the master node (the one
-on which you launched the simulation), you will need to install the ``mpi4py``
+on which you launched the simulation), you will need to install the :mod:`mpi4py`
 module (see `<http://mpi4py.scipy.org/>`_ for downloads and documentation).
 Installation is usually very straightforward, although, if you have more than
 one MPI implementation installed on your system (e.g. OpenMPI and MPICH2), you
-must be sure to build ``mpi4py`` with the same MPI implementation that you used to
+must be sure to build :mod:`mpi4py` with the same MPI implementation that you used to
 build the simulator.
-    
+
 Code modifications
 ------------------
 
@@ -44,17 +44,17 @@ independent of the number of processors used, even when using random numbers.
 Gathering data to the master node
 ---------------------------------
 
-The various methods of the ``Projection`` and ``Projection`` classes that deal with
-accessing recorded data or writing it to disk, such as ``getSpikes()``, ``print_v()``,
-etc., have an optional argument "``gather``", which is ``True`` by default.
+The various methods of the :class:`Population` and :class:`Assembly` classes that deal with
+accessing recorded data or writing it to disk, such as :meth:`get_data`, :meth:`write_data`,
+etc., have an optional argument *gather*, which is ``True`` by default.
 
-If ``gather`` is ``True``, then data generated on other nodes is sent to the master node.
-This means that, for example, ``printSpikes()`` will create only a single file,
-on the filesystem of the master node. If ``gather`` is ``False``, each node will
+If *gather* is ``True``, then data generated on other nodes is sent to the master node.
+This means that, for example, :meth:`write_data` will create only a single file,
+on the filesystem of the master node. If *gather* is ``False``, each node will
 write a file on its local filesystem. This option is often desirable if you wish
 to do distributed post-processing of the data. (Don't worry, by the way, if you
-are using a shared filesystem such as NFS. If ``gather`` is ``False`` then the node
-ID is appended to the filename, so there is no chance of conflict between the
+are using a shared filesystem such as NFS. If *gather* is ``False`` then the MPI
+rank is appended to the filename, so there is no chance of conflict between the
 different nodes).
 
 Random number generators
@@ -69,23 +69,18 @@ is the same on all nodes, and then generating as many random numbers as would be
 used in the single-processor case and throwing away those that are not needed.
 
 This obviously has a potential impact on performance, and so it is possible
-to turn it off by passing ``parallel_safe=False`` as argument when creating
+to turn it off by passing *parallel_safe=False* as argument when creating
 the random number generator, e.g.::
 
-    >>> import pyNN.neuron as sim
-    >>> np = sim.num_processes()
-    >>> node = sim.rank()
     >>> from pyNN.random import NumpyRNG
-    >>> rng = NumpyRNG(seed=249856, parallel_safe=False,
-                       rank=node, num_processes=np)
+    >>> rng = NumpyRNG(seed=249856, parallel_safe=False)
 
 Now, PyNN will ensure the seed is different on each node, and will generate
 only as many numbers as are actually needed on each node.
 
 Note that the above applies only to the random number generators provided by the
-PyNN ``random`` module, not to the native RNGs used internally by each simulator.
-This means that, for example, you should prefer ``SpikeSourceArray`` (for which
+:mod:`pyNN.random` module, not to the native RNGs used internally by each simulator.
+This means that, for example, you should prefer :class:`SpikeSourceArray` (for which
 you can generate Poisson spike times using a parallel-safe RNG) to
-``SpikeSourcePoisson``, which uses the simulator's internal RNG, if you care about
+:class:`SpikeSourcePoisson`, which uses the simulator's internal RNG, if you care about
 being independent of the number of processors.
-

@@ -2,18 +2,18 @@
 API reference
 =============
 
-.. py:currentmodule:: pyNN.proxy
+.. toctree::
+   :maxdepth: 3
 
-Simulation setup and control
-----------------------------
-
-.. autofunction:: setup
-.. autofunction:: end
-.. autofunction:: run
-.. autofunction:: reset
-.. autofunction:: get_time_step
-.. autofunction:: get_current_time
-.. autofunction:: get_min_delay
-.. autofunction:: get_max_delay
-.. autofunction:: rank
-.. autofunction:: num_processes
+   reference/populations
+   reference/connectors
+   reference/projections
+   reference/neuronmodels
+   reference/plasticitymodels
+   reference/electrodes
+   reference/simulationcontrol
+   reference/random
+   reference/parameters
+   reference/space
+   reference/utility
+   

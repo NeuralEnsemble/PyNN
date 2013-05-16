@@ -1,0 +1,72 @@
+=================
+Spatial structure
+=================
+
+.. module:: pyNN.space
+
+Structure classes
+-----------------
+
+:class:`Structure` classes all inherit from the following base class, and
+inherit its methods:
+
+.. autoclass:: BaseStructure
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+.. autoclass:: Line
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: Grid2D
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: Grid3D
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: RandomStructure
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Shape classes
+-------------
+
+.. autoclass:: Cuboid
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+.. autoclass:: Sphere
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+The Space class
+---------------
+
+.. autoclass:: Space
+   :members:
+   :undoc-members:
+   :inherited-members:
+
+Implementing your own Shape
+---------------------------
+
+.. todo:: write this
+
+
+Implementing your own Structure
+-------------------------------
+
+.. todo:: write this
+

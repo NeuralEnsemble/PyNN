@@ -1,0 +1,224 @@
+====================
+Adding a new backend
+====================
+
+
+Structure of the codebase
+=========================
+
+PyNN is both an API for simulator-independent model descriptions and an
+implementation of that API for a number of simulators.
+
+If you wish to add PyNN support for your own simulator, you are welcome to add
+it as part of the main PyNN codebase, or you can maintain it separately. The
+advantage of the former is that we can help maintain it, and keep it up to date
+as the API evolves.
+
+A PyNN-compliant interface is not required to use any of the code from the
+``pyNN`` package, it can implement the API entirely independently. However, by
+basing an interface on the "common" implementation you can save yourself a lot
+of work, since once you implement a small number of low-level functions and
+classes, you get the rest of the API for free.
+
+The common implementation
+-------------------------
+
+Recording
+~~~~~~~~~
+
+The ``recording`` modules provides a base class ``Recorder`` that exposes
+methods ``record()``, ``get()``, ``write()`` and ``count()``. Each simulator
+using the common implementation then subclasses this base class, and must
+implement at least the methods ``_record()``, ``_get()`` and ``_local_count()``.
+Each ``Recorder`` instance records only a single variable, whose name is passed
+in the constructor.
+
+By default, PyNN scales recorded data to the standard PyNN units (mV for voltage,
+etc.), reorders columns if necessary, and adds initial values to the beginning
+of the recording if the simulator does not record the value at time 0. In this
+way, the structure of the output data is harmonized between simulators. For
+large datasets, this can be very time-consuming, and so this restructuring can
+be turned off by setting the ``compatible_output`` flag to ``False``.
+
+.. TODO: discuss output file formats.
+
+.. TODO: discuss gathering with MPI
+
+
+The NEST interface
+------------------
+
+
+
+
+The NEURON interface
+--------------------
+
+The PCSIM interface
+-------------------
+
+The Brian interface
+-------------------
+
+
+Adding a new simulator interface
+================================
+
+The quickest way to add an interface for a new simulator is to implement the
+"internal API", described below. Each simulator interface is implemented as
+a sub-package within the ``pyNN`` package. The suggested layout for this
+sub-package is as follows::
+ 
+    |\_   __init__.py
+    |\_   cells.py
+    |\_   connectors.py
+    |\_   electrodes.py
+    |\_   recording.py
+    |\_   simulator.py
+     \_   synapses.py
+
+The only two files that are *required* are ``__init__.py`` and ``simulator.py``:
+the contents of all the other modules being imported into ``__init__.py``.
+
+[Maybe just provide a template, rather than discussing the whole thing]
+
+__init__:
+    list_standard_models()  [surely this could be in common?]
+    setup() - should call common.setup() and then do whatever initialization is necessary for your backend
+    end() - should be in common
+    run = common.build_run(simulator)
+    reset = common.build_reset(simulator)
+    initialize = common.initialize
+    get_current_time, get_time_step, get_min_delay, get_max_delay, \
+                   num_processes, rank = common.build_state_queries(simulator)
+    create = common.build_create(Population)
+    connect = common.build_connect(Projection, FixedProbabilityConnector)
+    set = common.set ??
+    record = common.build_record(simulator)
+    record_v = lambda source, filename: record(['v'], source, filename)
+    record_gsyn = lambda source, filename: record(['gsyn_exc', 'gsyn_inh'], source, filename)
+
+simulator:
+    class State
+        run
+        clear
+        reset
+        properties: t, dt, ...
+
+standardmodels
+
+populations:
+    class ID
+    
+    class Population
+        _simulator = simulator
+        _recorder_class = Recorder
+        _assembly_class = Assembly
+        
+        _create_cells
+        _set_initial_value_array
+        _get_view
+        _get_parameters
+        _set_parameters
+    
+    class PopulationView
+        _assembly_class = Assembly
+        _simulator = simulator
+    
+        _set_initial_value_array
+        _get_view
+        _get_parameters
+        _set_parameters
+    
+    class Assembly
+        _simulator = simulator
+    
+projections
+    class Connection
+    
+    class Projection
+        _simulator = simulator
+        __init__
+        __len__
+        set
+        _convergent_connect
+
+recording
+    class Recorder(recording.Recorder):
+        _simulator = simulator
+        _record
+        _get_spiketimes
+        _get_all_signals
+        (staticmethod) find_units
+        _local_count
+
+
+A walk through the lifecycle of a simulation
+============================================
+
+
+Import phase
+------------
+
+[What happens on import]
+
+
+Setup phase
+-----------
+
+[What happens when calling setup()]
+
+
+Creating neurons
+----------------
+
+On creating a Population...
+
+- create default structure, if none specified
+- create StandardCellType instance (if using standard cells)
+    - check and translate parameters, translated parameters stored in parameters attribute
+- create recorders
+- create neurons, determine local_mask
+
+
+Finally, we set initial values for all neurons' state variables, e.g. membrane
+potential. The user may set these values later with a call to the initialize()
+method, but in case they don't we set them here to default values. Defaults are
+set on a model-by-model basis: each StandardCellType subclass has a dictionary
+attribute called default_initial_values. [For now, these must be numeric values.
+It would be nice to allow them to be the names of parameters, allowing the
+initial membrane potential to be set to the resting membrane potential, for
+example]. This of course causes a problem - not yet resolved - for non
+standard cells. These initial values are immediately passed through to the
+simulator. We set initial values using the initialize() method, which in turn
+updates the initial_values attribute - we do not modify initial_values directly:
+probably it should be read-only.
+
+
+Creating connectors
+-------------------
+
+
+Composing synaptic plasticity models
+------------------------------------
+
+
+
+Connecting neurons
+------------------
+
+
+Instrumenting the network
+-------------------------
+
+
+Running a simulation
+--------------------
+
+
+Retrieving/saving recorded data
+-------------------------------
+
+
+Finishing up, or resetting for a new run
+----------------------------------------

@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 A collection of utility functions and classes.
 
@@ -8,11 +9,11 @@ Functions:
                         it was run (python, nrniv, mpirun, etc.).
     init_logging()    - convenience function for setting up logging to file and
                         to the screen.
-    
+
     Timer    - a convenience wrapper around the time.time() function from the
                standard library.
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id$
@@ -29,16 +30,34 @@ import sys
 import logging
 import time
 import os
+from datetime import datetime
+import functools
+import numpy
+from pyNN.core import deprecated
 
 red     = 0010; green  = 0020; yellow = 0030; blue = 0040
 magenta = 0050; cyan   = 0060; bright = 0100
 try:
     import ll.ansistyle
     def colour(col, text):
+        """
+        Add ANSI colour codes to the given text to make it coloured when printed
+        to the terminal.
+
+        Examples::
+
+            >>> from pyNN.utility import colour, red, blue, bright
+            >>> print colour(red, "Hello world")
+            Hello world
+            >>> print colour(bright+blue, "Creating populations...")
+            Creating populations...
+        """
         return str(ll.ansistyle.Text(col, str(text)))
 except ImportError:
     def colour(col, text):
+        """:mod:`ll.ansistyle` module not available - install the ll-core package."""
         return text
+color = colour
 
 
 def notify(msg="Simulation finished.", subject="Simulation finished.",
@@ -54,10 +73,11 @@ def notify(msg="Simulation finished.", subject="Simulation finished.",
         server.sendmail(address, address, msg)
         server.quit()
 
+
 def get_script_args(n_args, usage=''):
     """
     Get command line arguments.
-    
+
     This works by finding the name of the main script and assuming any
     arguments after this in sys.argv are arguments to the script.
     It would be nicer to use optparse, but this doesn't seem to work too well
@@ -66,7 +86,7 @@ def get_script_args(n_args, usage=''):
     calling_frame = sys._getframe(1)
     if '__file__' in calling_frame.f_locals:
         script = calling_frame.f_locals['__file__']
-        try:    
+        try:
             script_index = sys.argv.index(script)
         except ValueError:
             try:
@@ -80,10 +100,15 @@ def get_script_args(n_args, usage=''):
         usage = usage or "Script requires %d arguments, you supplied %d" % (n_args, len(args))
         raise Exception(usage)
     return args
-    
+
+
 def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
+    """
+    Simple configuration of logging.
+    """
     # allow logfile == None
     # which implies output to stderr
+    # num_processes and rank should be obtained using mpi4py, rather than having them as arguments
     if logfile:
         if num_processes > 1:
             logfile += '.%d' % rank
@@ -102,16 +127,19 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
     # allow user to override exact log_level
     if level:
         log_level = level
-        
+
     logging.basicConfig(level=log_level,
-                        format=mpi_prefix+'%(asctime)s %(levelname)s %(message)s',
+                        format=mpi_prefix+'%(asctime)s %(levelname)-8s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',
                         filename=logfile,
                         filemode='w')
+    return logging.getLogger("PyNN")
 
 
 def save_population(population, filename, variables=[]):
     """
-    Saves the spike_times of a  population and the size, structure, labels such that one can load it back into a SpikeSourceArray population using the load_population function.
+    Saves the spike_times of a  population and the size, structure, labels such
+    that one can load it back into a SpikeSourceArray population using the
+    load_population() function.
     """
     import shelve
     s = shelve.open(filename)
@@ -128,7 +156,8 @@ def save_population(population, filename, variables=[]):
 
 def load_population(filename, sim):
     """
-    Loads a population that was saved with the save_population function into SpikeSourceArray.
+    Loads a population that was saved with the save_population() function into
+    SpikeSourceArray.
     """
     import shelve
     s = shelve.open(filename)
@@ -150,48 +179,102 @@ def load_population(filename, sim):
     return population
 
 
-class Timer(object):
-    """For timing script execution."""
+def normalized_filename(root, basename, extension, simulator, num_processes=None):
+    """
+    Generate a file path containing a timestamp and information about the
+    simulator used and the number of MPI processes.
     
+    The date is used as a sub-directory name, the date & time are included in the
+    filename.
+    """
+    timestamp = datetime.now()
+    if num_processes:
+        np = "_np%d" % num_processes
+    else:
+        np = ""
+    return os.path.join(root,
+                        timestamp.strftime("%Y%m%d"),
+                        "%s_%s%s_%s.%s" % (basename,
+                                           simulator,
+                                           np,
+                                           timestamp.strftime("%Y%m%d-%H%M%S"),
+                                           extension))
+
+def connection_plot(connection_array):
+    image = numpy.zeros_like(connection_array, dtype=str)
+    image[connection_array > 0] = 'O'
+    image[numpy.isnan(connection_array)] = ' '
+    return u'\n'.join([u''.join(row) for row in image])
+
+
+class Timer(object):
+    """
+    For timing script execution.
+
+    Timing starts on creation of the timer.
+    """
+
     def __init__(self):
         self.start()
-    
+
     def start(self):
-        """Start timing."""
+        """Start/restart timing."""
         self._start_time = time.time()
         self._last_check = self._start_time
-    
-    def elapsedTime(self, format=None):
-        """Return the elapsed time in seconds but keep the clock running."""
+
+    def elapsed_time(self, format=None):
+        """
+        Return the elapsed time in seconds but keep the clock running.
+
+        If called with ``format="long"``, return a text representation of the
+        time. Examples::
+
+            >>> timer.elapsed_time()
+            987
+            >>> timer.elapsed_time(format='long')
+            16 minutes, 27 seconds
+        """
         current_time = time.time()
         elapsed_time = current_time - self._start_time
         if format == 'long':
             elapsed_time = Timer.time_in_words(elapsed_time)
         self._last_check = current_time
         return elapsed_time
-    
+
+    @deprecated('elapsed_time()')
+    def elapsedTime(self, format=None):
+        return self.elapsed_time(format)
+
     def reset(self):
         """Reset the time to zero, and start the clock."""
         self.start()
-    
+
     def diff(self, format=None): # I think delta() would be a better name for this method.
-        """Return the time since the last time elapsedTime() or diff() was called."""
+        """
+        Return the time since the last time :meth:`elapsed_time()` or
+        :meth:`diff()` was called.
+
+        If called with ``format='long'``, return a text representation of the
+        time.
+        """
         current_time = time.time()
         time_since_last_check = current_time - self._last_check
         self._last_check = current_time
         if format=='long':
-            time_since_last_check = Timer.time_in_words(elapsed_time)
+            time_since_last_check = Timer.time_in_words(time_since_last_check)
         return time_since_last_check
-    
+
     @staticmethod
     def time_in_words(s):
-        """Formats a time in seconds as a string containing the time in days,
+        """
+        Formats a time in seconds as a string containing the time in days,
         hours, minutes, seconds. Examples::
-            >>> time_in_words(1)
+
+            >>> Timer.time_in_words(1)
             1 second
-            >>> time_in_words(123)
+            >>> Timer.time_in_words(123)
             2 minutes, 3 seconds
-            >>> time_in_words(24*3600)
+            >>> Timer.time_in_words(24*3600)
             1 day
         """
         # based on http://mail.python.org/pipermail/python-list/2003-January/181442.html
@@ -207,80 +290,46 @@ class Timer(object):
                           if T[part]>0])
 
 
-class ProgressBar:
+class ProgressBar(object):
     """
     Create a progress bar in the shell.
     """
-    
-    def __init__(self, min_value=0, max_value=100, width=77, **kwargs):
-        self.char = kwargs.get('char', '#')
-        self.mode = kwargs.get('mode', 'dynamic') # fixed or dynamic
+
+    def __init__(self, width=77, char="#", mode="fixed"):
+        self.char = char
+        self.mode = mode
         if not self.mode in ['fixed', 'dynamic']:
             self.mode = 'fixed'
- 
-        self.bar = ''
-        self.min = min_value
-        self.max = max_value
-        self.span = max_value - min_value
         self.width = width
-        self.amount = 0       # When amount == max, we are 100% done 
-        self.update_amount(0) 
- 
- 
-    def increment_amount(self, add_amount = 1):
+
+    def set_level(self, level):
         """
-        Increment self.amount by 'add_ammount' or default to incrementing
-        by 1, and then rebuild the bar string. 
+        Rebuild the bar string based on `level`, which should be a number
+        between 0 and 1.
         """
-        new_amount = self.amount + add_amount
-        if new_amount < self.min: new_amount = self.min
-        if new_amount > self.max: new_amount = self.max
-        self.amount = new_amount
-        self.build_bar()
- 
- 
-    def update_amount(self, new_amount = None):
-        """
-        Update self.amount with 'new_amount', and then rebuild the bar 
-        string.
-        """
-        if not new_amount: new_amount = self.amount
-        if new_amount < self.min: new_amount = self.min
-        if new_amount > self.max: new_amount = self.max
-        self.amount = new_amount
-        self.build_bar()
- 
- 
-    def build_bar(self):
-        """
-        Figure new percent complete, and rebuild the bar string base on 
-        self.amount.
-        """
-        diff = float(self.amount - self.min)
-        try:
-            percent_done = int(round((diff / float(self.span)) * 100.0))
-        except Exception:
-            percent_done = 100
- 
-        # figure the proper number of 'character' make up the bar 
+        if level < 0:
+            level = 0
+        if level > 1:
+            level = 1
+
+        # figure the proper number of 'character' make up the bar
         all_full = self.width - 2
-        num_hashes = int(round((percent_done * all_full) / 100))
- 
+        num_hashes = int(round(level * all_full))
+
         if self.mode == 'dynamic':
             # build a progress bar with self.char (to create a dynamic bar
             # where the percent string moves along with the bar progress.
-            self.bar = self.char * num_hashes
+            bar = self.char * num_hashes
         else:
-            # build a progress bar with self.char and spaces (to create a 
-            # fixe bar (the percent string doesn't move)
-            self.bar = self.char * num_hashes + ' ' * (all_full-num_hashes)
- 
-        percent_str = str(percent_done) + "%"
-        self.bar = '[ ' + self.bar + ' ] ' + percent_str
- 
- 
-    def __str__(self):
-        return str(self.bar)
+            # build a progress bar with self.char and spaces (to create a
+            # fixed bar (the percent string doesn't move)
+            bar = self.char * num_hashes + ' ' * (all_full - num_hashes)
+        bar = '[ %s ] %3.0f%%' % (bar, 100*level)
+        print bar, "\r",
+        sys.stdout.flush()
+
+    def __call__(self, level):
+        self.set_level(level)
 
 
 def assert_arrays_equal(a, b):
@@ -290,6 +339,7 @@ def assert_arrays_equal(a, b):
     assert a.shape == b.shape, "%s != %s" % (a,b)
     assert (a.flatten()==b.flatten()).all(), "%s != %s" % (a,b)
 
+
 def assert_arrays_almost_equal(a, b, threshold):
     import numpy
     assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
@@ -297,6 +347,41 @@ def assert_arrays_almost_equal(a, b, threshold):
     assert a.shape == b.shape, "%s != %s" % (a,b)
     assert (abs(a - b) < threshold).all(), "max(|a - b|) = %s" % (abs(a - b)).max()
 
+
 def sort_by_column(a, col):
     # see stackoverflow.com/questions/2828059/
     return a[a[:,col].argsort(),:]
+
+
+# based on http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
+class forgetful_memoize(object):
+    """
+    Decorator that caches the result from the last time a function was called.
+    If the next call uses the same arguments, the cached value is returned, and
+    not re-evaluated. If the next call uses different arguments, the cached
+    value is overwritten.
+
+    The use case is when the same, heavy-weight function is called repeatedly
+    with the same arguments in different places.
+    """
+
+    def __init__(self, func):
+        self.func = func
+        self.cached_args = None
+        self.cached_value = None
+
+    def __call__(self, *args):
+        import pdb; pdb.set_trace()
+        if args == self.cached_args:
+            print "using cached value"
+            return self.cached_value
+        else:
+            #print "calculating value"
+            value = self.func(*args)
+            self.cached_args = args
+            self.cached_value = value
+            return value
+
+    def __get__(self, obj, objtype):
+        """Support instance methods."""
+        return functools.partial(self.__call__, obj)

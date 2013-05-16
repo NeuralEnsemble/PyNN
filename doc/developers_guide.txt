@@ -7,238 +7,27 @@ This guide contains information about contributing to PyNN development, and aims
 to explain the overall architecture and some of the internal details of the
 PyNN codebase.
 
-Discussions about PyNN take place in the `NeuralEnsemble Google Group`_.
-
-Contributing to PyNN
-====================
-
-If you find a bug or would like to add a new feature to PyNN, the first thing to
-do is to create a ticket for it at http://neuralensemble.org/trac/PyNN/newticket.
-You do not need an account, but it is better if you do have one since then we
-can see who reported it, and you have a better chance of avoiding the spam filter.
-
-If you know how to fix the bug, please attach a patch to the ticket, and please
-also provide a unit test that fails with the original code and passes when your
-patch is applied. If you would like commit rights for the Subversion repository,
-please contact us.
-
-If you do have commit rights, please make sure *all* the tests pass before you
-make a commit (see below).
-
-Code style
-==========
-
-We try to stay fairly close to PEP8_. Please note in particular:
-
-    - indentation of four spaces, no tabs
-    - single space around most operators, but no space around the '=' sign when
-      used to indicate a keyword argument or a default parameter value.
-    - some function/method names in PyNN use ``mixedCase``, but these will
-      gradually be deprecated and replaced with ``lower_case_with_underscores``.
-      Any new functions or methods should use the latter.
-    - we currently target versions 2.5 to 2.7. The main consequence of this is
-      that ``except Exception`` can't use the ``as`` statement, since this is
-      not supported in 2.5.
-
-Testing
-=======
-
-Running the PyNN test suite requires the *nose_* and *mock_* packages, and
-optionally the *coverage_* package. To run the entire test suite, in the
-``test`` subdirectory of the source tree::
-
-    $ nosetests
-    
-To see how well the codebase is covered by the tests, run::
-
-    $ nosetests --with-coverage --cover-package=pyNN --cover-erase
-    
-There are currently two sorts of tests, unit tests, which aim to exercise
-small pieces of code such as individual functions and methods, and system tests
-which aim to test that all the pieces of the system work together as expected.
-
-If you add a new feature to PyNN, you should write both unit and system tests.
-
-Unit tests should where necessary make use of mock/fake/stub/dummy objects to
-isolate the component under test as well as possible. Except when testing a
-specific simulator interface, unit tests should be able to run without a
-simulator installed.
-
-System tests should be written so that they can run with any of the simulators.
-The suggested way to do this is to write test functions in a separate file that
-take a simulator module as an argument, and then call these functions from
-``test_neuron.py``, ``test_nest.py``, etc.
-
-The ``test/unsorted`` directory contains a number of old tests that are either
-no longer useful or have not yet been adapted to the nose framework. These are
-not part of the test suite, but we are gradually adapting those tests that are
-useful and deleting the others.
-
-Structure of the codebase
-=========================
-
-PyNN is both an API for simulator-independent model descriptions and an
-implementation of that API for a number of simulators.
-
-If you wish to add PyNN support for your own simulator, you are welcome to add
-it as part of the main PyNN codebase, or you can maintain it separately. The
-advantage of the former is that we can help maintain it, and keep it up to date
-as the API evolves.
-
-A PyNN-compliant interface is not required to use any of the code from the
-``pyNN`` package, it can implement the API entirely independently. However, by
-basing an interface on the "common" implementation you can save yourself a lot
-of work, since once you implement a small number of low-level functions and
-classes, you get the rest of the API for free.
-
-The common implementation
--------------------------
-
-Recording
-~~~~~~~~~
-
-The ``recording`` modules provides a base class ``Recorder`` that exposes
-methods ``record()``, ``get()``, ``write()`` and ``count()``. Each simulator
-using the common implementation then subclasses this base class, and must
-implement at least the methods ``_record()``, ``_get()`` and ``_local_count()``.
-Each ``Recorder`` instance records only a single variable, whose name is passed
-in the constructor.
-
-By default, PyNN scales recorded data to the standard PyNN units (mV for voltage,
-etc.), reorders columns if necessary, and adds initial values to the beginning
-of the recording if the simulator does not record the value at time 0. In this
-way, the structure of the output data is harmonized between simulators. For
-large datasets, this can be very time-consuming, and so this restructuring can
-be turned off by setting the ``compatible_output`` flag to ``False``.
-
-.. TODO: discuss output file formats.
-
-.. TODO: discuss gathering with MPI
-
-
-The NEST interface
-------------------
-
-
-
-
-The NEURON interface
---------------------
-
-The PCSIM interface
--------------------
-
-The Brian interface
--------------------
-
-
-Adding a new simulator interface
-================================
-
-The quickest way to add an interface for a new simulator is to implement the
-"internal API", described below. Each simulator interface is implemented as
-a sub-package within the ``pyNN`` package. The suggested layout for this
-sub-package is as follows::
- 
-    |\_   __init__.py
-    |\_   cells.py
-    |\_   connectors.py
-    |\_   electrodes.py
-    |\_   recording.py
-    |\_   simulator.py
-     \_   synapses.py
-
-The only two files that are *required* are ``__init__.py`` and ``simulator.py``:
-the contents of all the other modules being imported into ``__init__.py``.
-
-[Maybe just provide a template, rather than discussing the whole thing]
-
-__init__:
-    list_standard_models()  [surely this could be in common?]
-    setup()
-    end(), run(), set(), reset(), initialize(), get_X(), num_processes(), rank() may be
-    imported from common provided common.simulator is set to the local
-    ``simulator`` module.
-    create -> common.build_create(Population)
-    connect = common.build_connect(Projection, FixedProbabilityConnector)
-    record = common.build_record('spikes', simulator)
-    record_v = common.build_record('v', simulator)
-    record_gsyn = common.build_record('gsyn', simulator)
-
-
-A walk through the lifecycle of a simulation
-============================================
-
-
-Import phase
-------------
-
-[What happens on import]
-
-
-Setup phase
------------
-
-[What happens when calling setup()]
-
-
-Creating neurons
-----------------
-
-On creating a Population...
-
-- create default structure, if none specified
-- create StandardCellType instance (if using standard cells)
-    - check and translate parameters, translated parameters stored in parameters attribute
-- create recorders
-- create neurons, determine local_mask
-
-
-Finally, we set initial values for all neurons' state variables, e.g. membrane
-potential. The user may set these values later with a call to the initialize()
-method, but in case they don't we set them here to default values. Defaults are
-set on a model-by-model basis: each StandardCellType subclass has a dictionary
-attribute called default_initial_values. [For now, these must be numeric values.
-It would be nice to allow them to be the names of parameters, allowing the
-initial membrane potential to be set to the resting membrane potential, for
-example]. This of course causes a problem - not yet resolved - for non
-standard cells. These initial values are immediately passed through to the
-simulator. We set initial values using the initialize() method, which in turn
-updates the initial_values attribute - we do not modify initial_values directly:
-probably it should be read-only.
-
-
-Creating connectors
--------------------
-
-
-Composing synaptic plasticity models
-------------------------------------
-
-
-
-Connecting neurons
-------------------
-
-
-Instrumenting the network
--------------------------
-
-
-Running a simulation
---------------------
-
-
-Retrieving/saving recorded data
--------------------------------
-
-
-Finishing up, or resetting for a new run
-----------------------------------------
-
+PyNN is open-source software, with a community-based development model:
+contributions from users are welcomed, and the direction that PyNN development
+should take in the future is determined by the needs of its users.
+
+There are several ways to contribute to PyNN:
+
+ * reporting bugs, errors and other mistakes in the code or documentation;
+ * making suggestions for improvements;
+ * fixing bugs and other mistakes;
+ * adding or maintaining a simulator backend;
+ * major refactoring to improve performance, reduce code complexity, or both.
+
+The following sections contain guidelines for each of these.
+
+.. toctree::
+   :maxdepth: 3
+
+   developers/bug_reports
+   developers/contributing
+   
+   
+.. developers/adding_backend
 
 .. _`NeuralEnsemble Google Group`: http://groups.google.com/group/neuralensemble
-.. _PEP8: http://www.python.org/dev/peps/pep-0008/
-.. _nose: http://somethingaboutorange.com/mrl/projects/nose/
-.. _mock: http://www.voidspace.org.uk/python/mock/
-.. _coverage: http://nedbatchelder.com/code/coverage/

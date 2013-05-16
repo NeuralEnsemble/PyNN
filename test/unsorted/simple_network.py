@@ -89,7 +89,7 @@ class SimpleNetwork(object):
         pop = self.sim.Population(dim, cell_type, parameters, label=label)
         setattr(self, label, pop)
         pop.record()
-        if cell_type.synapse_types: # don't record Vm for populations that don't have it
+        if cell_type.receptor_types: # don't record Vm for populations that don't have it
             pop.record_v()
             self._neuronal_populations.add(pop)
         else:

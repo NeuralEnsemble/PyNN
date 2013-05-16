@@ -1,0 +1,25 @@
+========
+Backends
+========
+
+The PyNN API provides a uniform interface to different simulators, but
+nevertheless each simulator has features that are not available in other
+simulators, and we aim to make these features accessible, as much as possible,
+from PyNN.
+
+For each simulator backend, this section presents the configuration options
+specific to that backend and explains how to use "native" neuron and synapse
+models within the PyNN framework.
+
+.. toctree::
+   :maxdepth: 2
+
+   backends/NEURON
+   backends/NEST
+   backends/Brian
+   backends/NeMo
+   backends/PCSIM
+   backends/MOOSE
+   backends/NeuroML
+   backends/NineML
+   backends/neuromorphic

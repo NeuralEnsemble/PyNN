@@ -655,9 +655,9 @@ class SynapticPlasticityTest(unittest.TestCase):
             p1 = sim.Population(10, sim.SpikeSourceArray)
             p2 = sim.Population(10, sim.IF_cond_exp)
             prj1 = sim.Projection(p1, p2, sim.OneToOneConnector(),
-                                  synapse_dynamics=sim.SynapseDynamics(fast_mech, None))
+                                  synapse_type=fast_mech)
             prj2 = sim.Projection(p1, p2, sim.OneToOneConnector(),
-                                  synapse_dynamics=sim.SynapseDynamics(None, slow_mech))
+                                  synapse_dynamics=slow_mech)
                 
 #===============================================================================
 class ProjectionTest(unittest.TestCase):
@@ -692,7 +692,7 @@ class ProjectionInitTest(unittest.TestCase):
         
     def setUp(self):
         sim.setup()
-        sim.Population.nPop = 0
+        sim.Population._nPop = 0
         sim.Projection.nProj = 0
         self.target33    = sim.Population((3,3), sim.IF_curr_alpha, label="target33")
         self.target6     = sim.Population((6,), sim.IF_curr_alpha, label="target6")
@@ -961,7 +961,7 @@ class ProjectionGetTest(unittest.TestCase):
 
     def setUp(self):
         sim.setup(max_delay=0.5)
-        sim.Population.nPop = 0
+        sim.Population._nPop = 0
         self.target33 = sim.Population((3,3), sim.IF_curr_alpha, label="target33")
         self.target6  = sim.Population((6,), sim.IF_curr_alpha, label="target6")
         self.source5  = sim.Population((5,), sim.SpikeSourcePoisson, label="source5")

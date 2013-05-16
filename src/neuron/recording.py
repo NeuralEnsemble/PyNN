@@ -1,129 +1,113 @@
 """
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import numpy
+from datetime import datetime
 from pyNN import recording
 from pyNN.neuron import simulator
 import re
 from neuron import h
+import neo
+from copy import copy
 
 recordable_pattern = re.compile(r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.)?(?P<var>\w+)')
 
-# --- For implementation of record_X()/get_X()/print_X() -----------------------
 
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
     _simulator = simulator
-    
-    def _record(self, new_ids):
+
+    def _record(self, variable, new_ids):
         """Add the cells in `new_ids` to the set of recorded cells."""
-        if self.variable == 'spikes':
+        if variable == 'spikes':
             for id in new_ids:
-                id._cell.record(1)
-        elif self.variable == 'v':
-            for id in new_ids:
-                id._cell.record_v(1)
-        elif self.variable == 'gsyn':
-            for id in new_ids:
-                id._cell.record_gsyn("excitatory", 1)
-                id._cell.record_gsyn("inhibitory", 1)
-                if id._cell.excitatory_TM is not None:
-                    id._cell.record_gsyn("excitatory_TM", 1)
-                    id._cell.record_gsyn("inhibitory_TM", 1)
+                if id._cell.rec is not None:
+                    id._cell.rec.record(id._cell.spike_times)
         else:
             for id in new_ids:
-               self._native_record(id)
-    
-    def _reset(self):
-        for id in self.recorded:
-            id._cell.traces = {}
-            id._cell.record(active=False)
-            id._cell.record_v(active=False)
-            for syn_name in id._cell.gsyn_trace:
-                id._cell.record_gsyn(syn_name, active=False)
-    
-    def _native_record(self, id):
-        match = recordable_pattern.match(self.variable)
+                self._record_state_variable(id._cell, variable)
+
+    def _record_state_variable(self, cell, variable):
+        if variable == 'v':
+            hoc_var = cell(0.5)._ref_v  # or use "seg.v"?
+        elif variable == 'gsyn_exc':
+            hoc_var = cell.esyn._ref_g
+        elif variable == 'gsyn_inh':
+            hoc_var = cell.isyn._ref_g
+        else:
+            source, var_name = self._resolve_variable(cell, variable)
+            hoc_var = getattr(source, "_ref_%s" % var_name)
+        cell.traces[variable] = vec = h.Vector()
+        vec.record(hoc_var)
+        if not cell.recording_time:
+            cell.record_times = h.Vector()
+            cell.record_times.record(h._ref_t)
+            cell.recording_time += 1
+
+    #could be staticmethod
+    def _resolve_variable(self, cell, variable_path):
+        match = recordable_pattern.match(variable_path)
         if match:
             parts = match.groupdict()
             if parts['section']:
-                section = getattr(id._cell, parts['section'])
+                section = getattr(cell, parts['section'])
                 if parts['location']:
-                    segment = section(float(parts['location']))
+                    source = section(float(parts['location']))
                 else:
-                    segment = section
+                    source = section
             else:
-                segment = id._cell.source
-            id._cell.traces[self.variable] = vec = h.Vector()
-            vec.record(getattr(segment, "_ref_%s" % parts['var']))
-            if not id._cell.recording_time:
-                id._cell.record_times = h.Vector()
-                id._cell.record_times.record(h._ref_t)
-                id._cell.recording_time += 1
+                source = cell.source
+            return source, parts['var']
         else:
-            raise Exception("Recording of %s not implemented." % self.variable)
-    
-    def _get(self, gather=False, compatible_output=True, filter=None):
-        """Return the recorded data as a Numpy array."""
-        # compatible_output is not used, but is needed for compatibility with the nest module.
-        # Does nest really need it?
-        if self.variable == 'spikes':
-            data = numpy.empty((0,2))
-            for id in self.filter_recorded(filter):
-                spikes = numpy.array(id._cell.spike_times)
-                spikes = spikes[spikes<=simulator.state.t+1e-9]
-                if len(spikes) > 0:    
-                    new_data = numpy.array([numpy.ones(spikes.shape)*id, spikes]).T
-                    data = numpy.concatenate((data, new_data))
-        elif self.variable == 'v':
-            data = numpy.empty((0,3))
-            for id in self.filter_recorded(filter):
-                v = numpy.array(id._cell.vtrace)  
-                t = numpy.array(id._cell.record_times)               
-                new_data = numpy.array([numpy.ones(v.shape)*id, t, v]).T
-                data = numpy.concatenate((data, new_data))
-        elif self.variable == 'gsyn':
-            data = numpy.empty((0,4))
-            for id in self.filter_recorded(filter):
-                ge = numpy.array(id._cell.gsyn_trace['excitatory'])
-                gi = numpy.array(id._cell.gsyn_trace['inhibitory'])
-                if 'excitatory_TM' in id._cell.gsyn_trace:
-                    ge_TM = numpy.array(id._cell.gsyn_trace['excitatory_TM'])
-                    gi_TM = numpy.array(id._cell.gsyn_trace['inhibitory_TM'])
-                    if ge.size == 0:
-                        ge = ge_TM
-                    elif ge.size == ge_TM.size:
-                        ge = ge + ge_TM
-                    else:
-                        raise Exception("Inconsistent conductance array sizes: ge.size=%d, ge_TM.size=%d", (ge.size, ge_TM.size))
-                    if gi.size == 0:
-                        gi = gi_TM
-                    elif gi.size == gi_TM.size:
-                        gi = gi + gi_TM
-                    else:
-                        raise Exception()
-                t = numpy.array(id._cell.record_times)             
-                new_data = numpy.array([numpy.ones(ge.shape)*id, t, ge, gi]).T
-                data = numpy.concatenate((data, new_data))
-        else:
-            data = numpy.empty((0,3))
-            for id in self.filter_recorded(filter):
-                var = numpy.array(id._cell.traces[self.variable])  
-                t = numpy.array(id._cell.record_times)               
-                new_data = numpy.array([numpy.ones(var.shape)*id, t, var]).T
-                data = numpy.concatenate((data, new_data))    
-            #raise Exception("Recording of %s not implemented." % self.variable)
-        if gather and simulator.state.num_processes > 1:
-            data = recording.gather(data)
-        return data
-        
-    def _local_count(self, filter=None):
-        N = {}
-        for id in self.filter_recorded(filter):
-            N[int(id)] = id._cell.spike_times.size()
-        return N
+            raise AttributeError("Recording of %s not implemented." % variable_path)
 
-simulator.Recorder = Recorder
+    def _reset(self):
+        """Reset the list of things to be recorded."""
+        for id in set.union(*self.recorded.values()):
+            id._cell.traces = {}
+            id._cell.spike_times = h.Vector(0)
+        id._cell.recording_time == 0
+        id._cell.record_times = None
+
+    def _clear_simulator(self):
+        """
+        Should remove all recorded data held by the simulator and, ideally,
+        free up the memory.
+        """
+        for id in set.union(*self.recorded.values()):
+            for variable in id._cell.traces:
+                id._cell.traces[variable].resize(0)
+            id._cell.spike_times.resize(0)
+
+    @staticmethod
+    def find_units(variable):
+        if variable in recording.UNITS_MAP:
+            return recording.UNITS_MAP[variable]
+        else:
+            # works with NEURON 7.3, not with 7.1, 7.2 not tested
+            nrn_units = h.units(variable.split('.')[-1])
+            pq_units = nrn_units.replace("2", "**2").replace("3", "**3")
+            return pq_units
+
+    def _get_spiketimes(self, id):
+        spikes = numpy.array(id._cell.spike_times)
+        return spikes[spikes <= simulator.state.t + 1e-9]
+
+    def _get_all_signals(self, variable, ids, clear=False):
+        # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
+        if len(ids) > 0:
+            return numpy.vstack((id._cell.traces[variable] for id in ids)).T
+        else:
+            return numpy.array([])
+
+    def _local_count(self, variable, filter_ids=None):
+        N = {}
+        if variable == 'spikes':
+            for id in self.filter_recorded(variable, filter_ids):
+                N[int(id)] = id._cell.spike_times.size()
+        else:
+            raise Exception("Only implemented for spikes")
+        return N

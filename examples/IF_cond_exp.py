@@ -14,32 +14,29 @@ May 2006
 $Id$
 """
 
-from pyNN.utility import get_script_args
-from pyNN.errors import RecordingError
+from pyNN.utility import get_script_args, normalized_filename
 
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
 
 
-setup(timestep=0.1,min_delay=0.1,max_delay=4.0)
+setup(timestep=0.1, min_delay=0.1, max_delay=4.0)
 
-ifcell = create(IF_cond_exp, {  'i_offset' : 0.1,    'tau_refrac' : 3.0,
-                                'v_thresh' : -51.0,  'tau_syn_E'  : 2.0,
-                                'tau_syn_I': 5.0,    'v_reset'    : -70.0,
-                                'e_rev_E'  : 0.,     'e_rev_I'    : -80.})
+ifcell = create(IF_cond_exp, {'i_offset' : 0.1,   'tau_refrac': 3.0,
+                              'v_thresh' : -51.0, 'tau_syn_E' : 2.0,
+                              'tau_syn_I': 5.0,   'v_reset'   : -70.0,
+                              'e_rev_E'  : 0.,    'e_rev_I'   : -80.})
 
 spike_sourceE = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(5,105,10)]})
 spike_sourceI = create(SpikeSourceArray, {'spike_times': [float(i) for i in range(155,255,10)]})
 
-connE = connect(spike_sourceE, ifcell, weight=0.006, synapse_type='excitatory',delay=2.0)
-connI = connect(spike_sourceI, ifcell, weight=0.02, synapse_type ='inhibitory',delay=4.0)
-    
-record_v(ifcell, "Results/IF_cond_exp_%s.v" % simulator_name)
-try:
-    record_gsyn(ifcell, "Results/IF_cond_exp_%s.gsyn" % simulator_name)
-except (NotImplementedError, RecordingError):
-    pass
+connE = connect(spike_sourceE, ifcell, weight=0.006, receptor_type='excitatory', delay=2.0)
+connI = connect(spike_sourceI, ifcell, weight=0.02, receptor_type='inhibitory', delay=4.0)
+
+filename = normalized_filename("Results", "IF_cond_exp", "pkl", simulator_name)
+record(['v', 'gsyn_exc', 'gsyn_inh'], ifcell, filename,
+       annotations={'script_name': __file__})
+
 run(200.0)
 
 end()
-

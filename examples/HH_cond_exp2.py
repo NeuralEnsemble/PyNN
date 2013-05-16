@@ -16,7 +16,7 @@ $Id:$
 
 from pyNN.utility import get_script_args
 
-simulator_name = get_script_args(1)[0]  
+simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
 
@@ -38,9 +38,9 @@ cellparams = {
         'i_offset'  : 1.0,
     }
 
-hhcell = create(HH_cond_exp, cellparams=cellparams)
-initialize(hhcell, 'v', -64.0)
-record_v(hhcell, "Results/HH_cond_exp2_%s.v" % simulator_name)
+hhcell = create(HH_cond_exp(**cellparams))
+initialize(hhcell, v=-64.0)
+record('v', hhcell, "Results/HH_cond_exp2_%s.pkl" % simulator_name)
 
 var_names = {
     'neuron': {'m': "seg.m_hh_traub", 'h': "seg.h_hh_traub", 'n': "seg.n_hh_traub"},
@@ -49,25 +49,27 @@ var_names = {
 if simulator_name in var_names:
     hhcell.can_record = lambda x: True # hack
     for native_name in var_names[simulator_name].values():
-        hhcell._record(native_name)
+        hhcell.record(native_name)
 
 run(20.0)
 
-import pylab
-pylab.rcParams['interactive'] = True
+import matplotlib.pyplot as plt
+#pylab.rcParams['interactive'] = True
+plt.ion()
 
-id, t, v = hhcell.get_v().T
-pylab.plot(t, v)
-pylab.xlabel("time (ms)")
-pylab.ylabel("Vm (mV)")
+data = hhcell.get_data()
+signal_names = [s.name for s in data.segments[0].analogsignalarrays]
+vm = data.segments[0].analogsignalarrays[signal_names.index('v')]
+plt.plot(vm.times, vm)
+plt.xlabel("time (ms)")
+plt.ylabel("Vm (mV)")
 
 if simulator_name in var_names:
-    pylab.figure(2)
+    plt.figure(2)
     for var_name, native_name in var_names[simulator_name].items():
-        id, t, x = hhcell.recorders[native_name].get().T
-        pylab.plot(t, x, label=var_name)
-    pylab.xlabel("time (ms)")
-    pylab.legend()
+        signal = data.segments[0].analogsignalarrays[signal_names.index(native_name)]
+        plt.plot(signal.times, signal, label=var_name)
+    plt.xlabel("time (ms)")
+    plt.legend()
 
 end()
-

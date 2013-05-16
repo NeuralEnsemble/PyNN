@@ -1,0 +1,36 @@
+==============
+Random numbers
+==============
+
+.. module:: pyNN.random
+
+.. autoclass:: RandomDistribution
+   :members:
+   :undoc-members:
+
+
+.. autoclass:: NumpyRNG
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+
+.. autoclass:: GSLRNG
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+
+.. autoclass:: NativeRNG
+   :members:
+   :undoc-members:
+   :inherited-members:
+   :show-inheritance:
+
+
+Adapting a different random number generator to work with PyNN
+--------------------------------------------------------------
+
+.. todo:: write this

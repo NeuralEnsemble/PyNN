@@ -134,7 +134,6 @@ class SynapticPlasticityTest(unittest.TestCase):
         assert isinstance(s.describe(template=None), dict)
        
     def test_stubs(self):
-        self.assertRaises(NotImplementedError, standardmodels.ShortTermPlasticityMechanism)
         self.assertRaises(NotImplementedError, synapses.TsodyksMarkramMechanism)
         self.assertRaises(NotImplementedError, standardmodels.STDPWeightDependence)
         self.assertRaises(NotImplementedError, standardmodels.STDPTimingDependence)

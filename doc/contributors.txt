@@ -1,0 +1,22 @@
+========================
+Contributors and licence
+========================
+
+.. include:: ../AUTHORS
+
+
+Licence
+=======
+
+PyNN is freely available under the CeCILL v2 license, which is equivalent to, and
+compatible with, the GNU GPL license, but conforms to French law (and is also
+perfectly suited to international projects) - see
+`<http://www.cecill.info/index.en.html>`_ for more information. The choice
+of GPL-equivalence was made to match the licenses of other widely-used simulation
+software in computational neuroscience, such as NEURON (GPL) and Brian (CeCILL).
+
+If you are interested in using PyNN, but the choice of licence is a problem for you, please contact us to discuss dual-licensing.
+
+.. centered:: LICENSE AGREEMENT
+
+.. include:: ../LICENSE

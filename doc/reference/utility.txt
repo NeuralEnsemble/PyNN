@@ -1,0 +1,25 @@
+=============================
+Utility classes and functions
+=============================
+
+
+.. autofunction:: pyNN.utility.init_logging
+
+.. autofunction:: pyNN.utility.get_script_args
+
+
+.. autoclass:: pyNN.utility.Timer
+   :members:
+   :undoc-members:
+   
+.. autoclass:: pyNN.utility.ProgressBar
+   :members:
+   :undoc-members:
+
+.. autofunction:: pyNN.utility.colour
+
+.. autofunction:: pyNN.utility.notify
+
+.. autofunction:: pyNN.utility.save_population
+
+.. autofunction:: pyNN.utility.load_population

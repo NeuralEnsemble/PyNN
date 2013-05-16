@@ -2,7 +2,7 @@
 """
 Nemo implementation of the PyNN API.
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 $Id: __init__.py 927 2011-02-03 16:56:10Z pierre $
@@ -98,7 +98,7 @@ class Assembly(common.Assembly):
 
 class PopulationView(common.PopulationView):
     _simulator = simulator
-    assembly_class = Assembly
+    _assembly_class = Assembly
     
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
@@ -110,8 +110,8 @@ class Population(common.Population, common.BasePopulation):
     term intended to include layers, columns, nuclei, etc., of cells.
     """
     _simulator = simulator
-    recorder_class = Recorder
-    assembly_class = Assembly
+    _recorder_class = Recorder
+    _assembly_class = Assembly
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
@@ -181,7 +181,7 @@ class Population(common.Population, common.BasePopulation):
                         list(params['e_rev_E']*i1),  
                         list(params['e_rev_I']*i1),                      
                         list(init['v']*i1), i0, i0, list(1000.*i1))
-        elif isinstance(celltype, cells.Izikevich):            
+        elif isinstance(celltype, cells.Izhikevich):            
             simulator.state.net.add_neuron(ntype, self.all_cells.tolist(), 
                         list(params['a']*i1), 
                         list(params['b']*i1), 

@@ -1,7 +1,7 @@
 # encoding: utf-8
 """
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 import nineml.user_layer as nineml
@@ -187,7 +187,7 @@ class BasePopulation(common.BasePopulation):
         
 
 class Population(BasePopulation, common.Population):
-    recorder_class = Recorder
+    _recorder_class = Recorder
     
     def __init__(self, size, cellclass, cellparams=None, structure=None, label=None):
         global net

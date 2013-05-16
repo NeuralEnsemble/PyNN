@@ -1,0 +1,40 @@
+===============
+Current sources
+===============
+
+.. currentmodule:: pyNN.neuron.standardmodels.electrodes
+
+.. autoclass:: DCSource
+   :members:
+   :show-inheritance:
+
+   .. automethod:: inject_into
+   .. automethod:: get_parameters
+   .. automethod:: set_parameters
+
+
+.. autoclass:: ACSource
+   :members:
+   :show-inheritance:
+
+   .. automethod:: inject_into
+   .. automethod:: get_parameters
+   .. automethod:: set_parameters
+
+
+.. autoclass:: StepCurrentSource
+   :members:
+   :show-inheritance:
+
+   .. automethod:: inject_into
+   .. automethod:: get_parameters
+   .. automethod:: set_parameters
+
+
+.. autoclass:: NoisyCurrentSource
+   :members:
+   :show-inheritance:
+
+   .. automethod:: inject_into
+   .. automethod:: get_parameters
+   .. automethod:: set_parameters
