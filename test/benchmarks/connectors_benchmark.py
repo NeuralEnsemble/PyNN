@@ -102,19 +102,18 @@ def test(cases=[1]):
 
         mytime = timer.diff()
         print "Time to connect the cell population:", mytime, 's'
-        print "Nb synapses built", len(prj)
+        print "Nb synapses built", prj.size()
 
         if to_file:
-           print "Saving Connections...."
-           prj.save('all', files.NumpyBinaryFile('Results/connections.dat', mode='w'), gather=True)
+            if not(os.path.isdir('Results')):
+                os.mkdir('Results')
+            print "Saving Connections...."
+            prj.save('all', files.NumpyBinaryFile('Results/connections.dat', mode='w'), gather=True)
 
         mytime = timer.diff()
         print "Time to save the projection:", mytime, 's'
 
         if render and to_file:
-            if not(os.path.isdir('Results')):
-                os.mkdir('Results')
-
             print "Saving Positions...."
             x.save_positions('Results/positions.dat')
         end()
@@ -123,8 +122,10 @@ def test(cases=[1]):
             figure()
             print "Generating and saving %s" %fig_name
             positions        = numpy.loadtxt('Results/positions.dat')
+            
             positions[:,0]  -= positions[:,0].min()
             connections      = files.NumpyBinaryFile('Results/connections.dat', mode='r').read()
+            print positions.shape, connections.shape
             connections[:,0]-= connections[:,0].min()
             connections[:,1]-= connections[:,1].min()
             idx_pre          = connections[:,0].astype(int)
@@ -152,7 +153,7 @@ def test(cases=[1]):
             plot(d, connections[:,3], '.')
             savefig("Results/" + fig_name)
             #os.remove('Results/connections.dat')
-            os.remove('Results/positions.dat')
+            #os.remove('Results/positions.dat')
             show()
 
 if __name__ == '__main__':

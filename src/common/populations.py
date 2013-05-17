@@ -531,7 +531,7 @@ class BasePopulation(object):
         # first column should probably be indices, not ids. This would make it
         # simulator independent.
         if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
+            file = recording.files.StandardTextFile(file, mode='w')
         cells  = self.all_cells
         result = numpy.empty((len(cells), 4))
         result[:,0]   = cells
