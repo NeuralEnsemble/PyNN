@@ -12,7 +12,7 @@ import numpy
 import nest
 import logging
 from itertools import repeat
-from pyNN import common, errors, core
+from pyNN import common, errors, core, recording
 from pyNN.random import RandomDistribution
 from pyNN.space import Space
 from . import simulator
@@ -71,7 +71,7 @@ class Projection(common.Projection):
     def connections(self):
         if self._connections is None:
             self._sources = numpy.unique(self._sources)
-            self._connections = nest.FindConnections(self._sources, synapse_type=self.nest_synapse_model)
+            self._connections = nest.GetConnections(self._sources.tolist(), synapse_model=self.nest_synapse_model)
         return self._connections
 
     def _set_tsodyks_params(self):
@@ -157,17 +157,16 @@ class Projection(common.Projection):
             file = recording.files.StandardTextFile(file, mode='w')
 
         lines   = nest.GetStatus(self.connections, ('source', 'target', 'weight', 'delay'))
-
-        if gather == True and num_processes() > 1:
-            all_lines = { rank(): lines }
+        if gather == True and simulator.state.num_processes > 1:
+            all_lines = { simulator.state.mpi_rank: lines }
             all_lines = recording.gather_dict(all_lines)
-            if rank() == 0:
+            if simulator.state.mpi_rank == 0:
                 lines = reduce(operator.add, all_lines.values())
-        elif num_processes() > 1:
-            file.rename('%s.%d' % (file.name, rank()))
+        elif simulator.state.num_processes > 1:
+            file.rename('%s.%d' % (file.name, simulator.state.mpi_rank))
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
 
-        if gather == False or rank() == 0:
+        if gather == False or simulator.state.mpi_rank == 0:
             lines       = numpy.array(lines, dtype=float)
             lines[:,2] *= 0.001
             if compatible_output:
