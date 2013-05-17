@@ -32,7 +32,7 @@ class Recorder(recording.Recorder):
 
     def _record_state_variable(self, cell, variable):
         if variable == 'v':
-            hoc_var = cell(0.5)._ref_v  # or use "seg.v"?
+            hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
         elif variable == 'gsyn_exc':
             hoc_var = cell.esyn._ref_g
         elif variable == 'gsyn_inh':
