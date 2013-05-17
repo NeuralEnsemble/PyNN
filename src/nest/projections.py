@@ -146,34 +146,34 @@ class Projection(common.Projection):
             for name, value in connection_parameters.items():
                 nest.SetStatus(connections, name, value)
 
-    def saveConnections(self, file, gather=True, compatible_output=True):
-        """
-        Save connections to file in a format suitable for reading in with a
-        FromFileConnector.
-        """
-        import operator
-
-        if isinstance(file, basestring):
-            file = recording.files.StandardTextFile(file, mode='w')
-
-        lines   = nest.GetStatus(self.connections, ('source', 'target', 'weight', 'delay'))
-        if gather == True and simulator.state.num_processes > 1:
-            all_lines = { simulator.state.mpi_rank: lines }
-            all_lines = recording.gather_dict(all_lines)
-            if simulator.state.mpi_rank == 0:
-                lines = reduce(operator.add, all_lines.values())
-        elif simulator.state.num_processes > 1:
-            file.rename('%s.%d' % (file.name, simulator.state.mpi_rank))
-        logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
-
-        if gather == False or simulator.state.mpi_rank == 0:
-            lines       = numpy.array(lines, dtype=float)
-            lines[:,2] *= 0.001
-            if compatible_output:
-                lines[:,0] = self.pre.id_to_index(lines[:,0])
-                lines[:,1] = self.post.id_to_index(lines[:,1])
-            file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
-            file.close()
+    #def saveConnections(self, file, gather=True, compatible_output=True):
+    #    """
+    #    Save connections to file in a format suitable for reading in with a
+    #    FromFileConnector.
+    #    """
+    #    import operator
+    #
+    #    if isinstance(file, basestring):
+    #        file = recording.files.StandardTextFile(file, mode='w')
+    #
+    #    lines   = nest.GetStatus(self.connections, ('source', 'target', 'weight', 'delay'))
+    #    if gather == True and simulator.state.num_processes > 1:
+    #        all_lines = { simulator.state.mpi_rank: lines }
+    #        all_lines = recording.gather_dict(all_lines)
+    #        if simulator.state.mpi_rank == 0:
+    #            lines = reduce(operator.add, all_lines.values())
+    #    elif simulator.state.num_processes > 1:
+    #        file.rename('%s.%d' % (file.name, simulator.state.mpi_rank))
+    #    logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
+    #
+    #    if gather == False or simulator.state.mpi_rank == 0:
+    #        lines       = numpy.array(lines, dtype=float)
+    #        lines[:,2] *= 0.001
+    #        if compatible_output:
+    #            lines[:,0] = self.pre.id_to_index(lines[:,0])
+    #            lines[:,1] = self.post.id_to_index(lines[:,1])
+    #        file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
+    #        file.close()
 
     def _get_attributes_as_list(self, *names):
         nest_names = []

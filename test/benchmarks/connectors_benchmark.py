@@ -29,7 +29,7 @@ def distances(pos_1, pos_2, N):
 timer.start()
 node_id = setup(timestep=0.1, min_delay=0.1, max_delay=4.)
 print "Creating cells population..."
-N       = 100
+N       = 30
 
 structure = RandomStructure(Cuboid(1, 1, 1), origin=(0.5,0.5,0.5), rng=NumpyRNG(2652))
 #structure = Grid2D(dx=1/float(N), dy=1/float(N))
@@ -106,7 +106,7 @@ def test(cases=[1]):
 
         if to_file:
            print "Saving Connections...."
-           prj.saveConnections(files.NumpyBinaryFile('Results/connections.dat', mode='w'), compatible_output=True, gather=True)
+           prj.save('all', files.NumpyBinaryFile('Results/connections.dat', mode='w'), gather=True)
 
         mytime = timer.diff()
         print "Time to save the projection:", mytime, 's'
@@ -156,11 +156,11 @@ def test(cases=[1]):
             show()
 
 if __name__ == '__main__':
-    import hotshot, os
-    prof = hotshot.Profile("hotshot_edi_stats")
-    prof.runcall(test)
-    prof.close()
-    from hotshot import stats
-    s = stats.load("hotshot_edi_stats")
-    s.sort_stats("time").print_stats()
+    #import hotshot, os
+    #prof = hotshot.Profile("hotshot_edi_stats")
+    #prof.runcall(test)
+    #prof.close()
+    #from hotshot import stats
+    #s = stats.load("hotshot_edi_stats")
+    #s.sort_stats("time").print_stats()
     test(test_cases)
