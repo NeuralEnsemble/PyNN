@@ -96,7 +96,7 @@ class Space(object):
         """
         Calculate the distance matrix between two sets of coordinates, given
         the topology of the current space.
-        From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
+        From http://mail.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
         """
         #logger.debug("Calculating distance between A (shape=%s) and B (shape=%s)" % (A.shape, B.shape))
         if len(A.shape) == 1:

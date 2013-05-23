@@ -3,9 +3,8 @@ Bug reports and feature requests
 ================================
 
 If you find a bug or would like to add a new feature to PyNN, the first thing to
-do is to create a ticket for it at http://neuralensemble.org/trac/PyNN/newticket.
-You do not need an account, but it is better if you do have one since then we
-can see who reported it, and you have a better chance of avoiding the spam filter.
+do is to create a ticket for it at https://github.com/NeuralEnsemble/PyNN/issues/new
+(You will need a GitHub account).
 
 If you know how to fix the bug, please attach a patch to the ticket, and please
 also provide a unit test that fails with the original code and passes when your
