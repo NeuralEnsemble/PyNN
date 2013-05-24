@@ -28,16 +28,32 @@ to run tests, and:
 
 to build the documentation.
 
-Subversion checkout
--------------------
+Code checkout
+-------------
+
+PyNN development is based around GitHub. Once you have a GitHub account, you
+should fork_ the official `PyNN repository`_, and then clone your fork to your
+local machine::
+
+    $ git clone https://github.com/<username>/PyNN.git pyNN_dev
 
 To work on the development version::
 
-    svn co https://neuralensemble.org/svn/PyNN/branches/parameter_space pyNN_dev
+    $ git checkout master
 
-To work on the latest stable release (for bug-fixes):
+To work on the latest stable release (for bug-fixes)::
 
-    svn co https://neuralensemble.org/svn/PyNN/branches/0.7 pyNN_0.7
+    $ git checkout --track origin/0.7
+
+To keep your PyNN repository up-to-date with respect to the official
+repository, add it as a remote::
+
+    $ git remote add upstream https://github.com/NeuralEnsemble/PyNN.git
+
+and then you can pull in any upstream changes::
+
+    $ git pull upstream master
+
 
 To get PyNN onto your :envvar:`PYTHONPATH` there are many options, such as:
 
@@ -82,7 +98,8 @@ There are currently two sorts of tests, unit tests, which aim to exercise
 small pieces of code such as individual functions and methods, and system tests,
 which aim to test that all the pieces of the system work together as expected.
 
-If you add a new feature to PyNN, you should write both unit and system tests.
+If you add a new feature to PyNN, or fix a bug, you should write both unit and
+system tests.
 
 Unit tests should where necessary make use of mock/fake/stub/dummy objects to
 isolate the component under test as well as possible. The :mod:`pyNN.mock`
@@ -105,33 +122,24 @@ Submitting code
 ===============
 
 The best way to get started with contributing code to PyNN is to fix a small
-bug (`bugs marked "minor" or "trivial" in the bug tracker`_) in your checkout of
+bug (`bugs marked "minor" in the bug tracker`_) in your checkout of
 the code. Once you are happy with your changes, **run the test suite again to check
-that you have not introduced any new bugs**. Then you can commit them to the
-central repository, provided you have a NeuralEnsemble account::
+that you have not introduced any new bugs**. If this is your first contribution
+to the project, please add your name and affiliation/employer to :file:`AUTHORS`.
 
-    $ svn commit -m 'informative commit message'
+After committing the changes to your local repository::
 
-If this is your first commit to the project, please add your name and
-affiliation/employer to :file:`AUTHORS`.
+    $ git commit -m 'informative commit message'
 
-If you do not have a NeuralEnsemble account, you can create a patch::
+first pull in any changes from the upstream repository::
 
-    $ svn diff > descriptive_name.patch
+    $ git pull upstream master
 
-and attach it to a ticket in the `issue tracker`_. If you have made more than
-one commit, determine the revision number of when you checked out or last updated
-from the central repository (using ``svn log``), and then give a range of
-revisions to include in the patch::
+then push to your own account on GitHub::
 
-    $ svn diff start-revision:HEAD > descriptive_name.diff
+    $ git push
 
-You should then send an e-mail to the `mailing list`_, asking for someone to
-review your patch.
-
-To apply a patch to the source tree::
-
-    $ patch -p0 < /path/to/site.descriptive_name.diff
+Now, via the GitHub web interface, open a pull request.
 
 
 Documentation
@@ -149,7 +157,7 @@ by running::
 
     $ make doctest
 
-PyNN documentation is hosted at http://readthedocs.org.
+PyNN documentation is hosted at http://neuralensemble.org/docs/PyNN
 
 
 Making a release
@@ -163,19 +171,19 @@ in becoming release manager for PyNN, please contact us via the `mailing list`_.
 When you think a release is ready, run through the following checklist one
 last time:
 
-    * do all the tests pass? This means running ``nosetests`` in
-      ``test/unittests`` and ``test/system`` and running ``make doctest`` in
-      ``doc``. You should do this on at least two Linux systems -- one a very
+    * do all the tests pass? This means running :command:`nosetests` in
+      :file:`test/unittests` and :file:`test/system` and running :command:`make doctest` in
+      :file:`doc`. You should do this on at least two Linux systems -- one a very
       recent version and one at least a year old, and on at least one version of
       Mac OS X. You should also do this with Python 2.6 and 2.7.
     * do all the example scripts generate the correct output? Run the
-      ``run_all_examples.py`` script in ``examples/tools`` and then visually
-      check the ``.png`` files generated in ``examples/tools/Results``. Again,
+      :file:`run_all_examples.py` script in :file:`examples/tools` and then visually
+      check the :file:`.png` files generated in :file:`examples/tools/Results`. Again,
       you should do this on at least two Linux systems and one Mac OS X system.
     * does the documentation build without errors? You should then at least skim
       the generated HTML pages to check for obvious problems.
-    * have you updated the version numbers in ``setup.py``, ``src/__init__.py``,
-      ``doc/conf.py`` and ``doc/installation.txt``?
+    * have you updated the version numbers in :file:`setup.py`, :file:`src/__init__.py`,
+      :file:`doc/conf.py` and :file:`doc/installation.txt`?
     * have you updated the changelog?
 
 Once you've confirmed all the above, create a source package using::
@@ -186,17 +194,16 @@ and check that it installs properly.
 
 Now you should commit any changes, then tag with the release number as follows::
 
-    $ svn cp https://neuralensemble.org/svn/PyNN/trunk https://neuralensemble.org/svn/PyNN/tags/x.y.z
+    $ git tag x.y.z
 
 where ``x.y.z`` is the release number. You should now upload the documentation
-to http://neuralensemble.org/PyNN/docs.
+to http://neuralensemble.org/docs/PyNN/.
 
 .. todo:: more details on this
 
 If this is a development release (i.e. an *alpha* or *beta*), the final step is
-to upload the source package to http://neuralensemble.org/PyNN/download/ and to
-the INCF Software Center [more instructions needed here]. Do **not** upload
-development releases to PyPI.
+to upload the source package to the INCF Software Center [more instructions needed here].
+Do **not** upload development releases to PyPI.
 
 .. todo:: more details on this
 
@@ -205,7 +212,7 @@ If this is a final release, there are a few more steps:
     * if it is a major release (i.e. an ``x.y.0`` release), create a new bug-fix
       branch::
 
-        $ svn cp https://neuralensemble.org/svn/PyNN/trunk https://neuralensemble.org/svn/PyNN/branches/x.y
+        $ git branch x.y
 
     * upload the source package to PyPI::
 
@@ -220,9 +227,9 @@ If this is a final release, there are a few more steps:
 
 
 
-.. _Sphinx: http://sphinx.pocoo.org/
+.. _Sphinx: http://sphinx-doc.org/
 .. _PEP8: http://www.python.org/dev/peps/pep-0008/
-.. _nose: http://somethingaboutorange.com/mrl/projects/nose/
+.. _nose: https://nose.readthedocs.org/
 .. _mock: http://www.voidspace.org.uk/python/mock/
 .. _coverage: http://nedbatchelder.com/code/coverage/
 .. _`Python Package Index`: http://pypi.python.org/
@@ -230,5 +237,7 @@ If this is a final release, there are a few more steps:
 .. _`NeuralEnsemble Google Group`: http://groups.google.com/group/neuralensemble
 .. _matplotlib: http://matplotlib.sourceforge.net/
 .. _virtualenv: http://www.virtualenv.org/
-.. _`bugs marked "minor" or "trivial" in the bug tracker`: https://neuralensemble.org/trac/PyNN/report/10
+.. _`bugs marked "minor" in the bug tracker`: https://github.com/NeuralEnsemble/PyNN/issues?labels=minor&state=open
 .. _`issue tracker`: https://neuralensemble.org/trac/PyNN
+.. _fork: https://github.com/NeuralEnsemble/PyNN/fork
+.. _`PyNN repository`: https://github.com/NeuralEnsemble/PyNN/

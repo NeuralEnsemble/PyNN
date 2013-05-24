@@ -67,7 +67,7 @@ population.
 
 .. doctest::
 
-    >>> from pyNN.core import LazyArray
+    >>> from pyNN.parameters import LazyArray
     >>> tau_m = 2 * LazyArray(10.0, shape=(20,))
     >>> v_thresh = -55 + LazyArray(lambda i: 0.1*i, shape=(20,))
 
@@ -115,13 +115,13 @@ value takes, hence avoiding a lot of logic at multiple points in the code.
 Reference
 ~~~~~~~~~
 
-.. autoclass:: pyNN.core.LazyArray
+.. autoclass:: pyNN.parameters.LazyArray
    :members:
    :undoc-members:
    :inherited-members:
    :show-inheritance:
 
-   .. automethod:: pyNN.core.LazyArray.__getitem__
+   .. automethod:: pyNN.parameters.LazyArray.__getitem__
 
 
 
@@ -139,7 +139,7 @@ that allow operations on all the lazy arrays within it at once. For example:
     >>> from pyNN.parameters import ParameterSpace
     >>> ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3*i+2}, shape=(4,))
     >>> ps['c']
-    <pyNN.core.LazyArray object at 0x15d3890>
+    <pyNN.parameters.LazyArray object at 0x15d3890>
     >>> ps.evaluate()
     >>> ps['c']
     array([ 2,  5,  8, 11])

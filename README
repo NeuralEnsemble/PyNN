@@ -19,11 +19,8 @@ benefit from writing your simulation code using PyNN's powerful, high-level
 interface. In this case, you can use any neuron or synapse model supported by
 your simulator, and are not restricted to the standard models.
 
-Documentation
--------------
-
-http://neuralensemble.org/PyNN
-
+**Home page**: http://neuralensemble.org/PyNN
+**Documentation**: http://neuralensemble.org/docs/PyNN
 
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
