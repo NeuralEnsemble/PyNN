@@ -1,0 +1,36 @@
+# Editor temporary/working/backup files
+.#*
+[#]*#
+*~
+*$
+*.bak
+*.kdev4
+*.komodoproject
+*.orig
+.project
+.pydevproject
+*.tmp*
+
+# Compiled source
+*.py[ocd]
+x86_64
+i386
+i686
+
+# Python files
+build
+dist
+doc/_build
+# Egg metadata
+*.egg-info
+*.egg
+*.EGG
+*.EGG-INFO
+
+# OS generated files
+.directory
+.gdb_history
+.DS_Store?
+Icon?
+Thumbs.db
+
