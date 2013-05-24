@@ -61,7 +61,7 @@ def load_mechanisms(path):
             h.nrn_load_dll(lib_path)
             nrn_dll_loaded.append(path)
             return
-    raise IOError("NEURON mechanisms not found in %s." % path)
+    raise IOError("NEURON mechanisms not found in %s. You may need to run 'nrnivmodl' in this directory." % path)
 
 
 def is_point_process(obj):

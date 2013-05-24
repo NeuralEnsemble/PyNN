@@ -2,14 +2,8 @@
 Bug reports and feature requests
 ================================
 
-If you find a bug or would like to add a new feature to PyNN, the first thing to
-do is to create a ticket for it at https://github.com/NeuralEnsemble/PyNN/issues/new
-(You will need a GitHub account).
+If you find a bug or would like to add a new feature to PyNN, please go to
+https://github.com/NeuralEnsemble/PyNN/issues/. First check that there is not an
+existing ticket for your bug or request, then click on "New issue" to create a
+new ticket (you will need a GitHub account, but creating one is simple and painless).
 
-If you know how to fix the bug, please attach a patch to the ticket, and please
-also provide a unit test that fails with the original code and passes when your
-patch is applied. If you would like commit rights for the Subversion repository,
-please contact us.
-
-If you do have commit rights, please make sure *all* the tests pass before you
-make a commit.
