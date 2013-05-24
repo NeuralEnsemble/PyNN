@@ -353,6 +353,22 @@ class TestArrayConnector(unittest.TestCase):
                           (0, 2, 5.0, 0.5),
                           (2, 2, 5.0, 0.5)])
 
+    def test_connect_with_random_weights_parallel_safe(self):
+        rd_w = random.RandomDistribution(rng=MockRNG(delta=1.0, parallel_safe=True))
+        rd_d = random.RandomDistribution(rng=MockRNG(start=1.0, delta=0.1, parallel_safe=True))
+        syn = sim.StaticSynapse(weight=rd_w, delay=rd_d)
+        connections = numpy.array([
+                [0, 1, 1, 0],
+                [1, 1, 0, 1],
+                [0, 0, 1, 0],
+            ])
+        C = connectors.ArrayConnector(connections, safe=False)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(1, 0, 0.0, 1.0),
+                          (0, 2, 3.0, 1.3),
+                          (2, 2, 4.0, 1.4000000000000001)])  # better to do an "almost-equal" check
+
 
 @unittest.skip('skipping these tests until I figure out how I want to refactor checks')
 class CheckTest(unittest.TestCase):
