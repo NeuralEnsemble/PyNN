@@ -10,5 +10,6 @@ from pyNN import random, core, errors
 from pyNN.connectors import Connector, AllToAllConnector, FixedProbabilityConnector, \
                             DistanceDependentProbabilityConnector, FixedNumberPreConnector, \
                             FixedNumberPostConnector, OneToOneConnector, SmallWorldConnector, \
-                            FromListConnector, FromFileConnector, CSAConnector
+                            FromListConnector, FromFileConnector, CSAConnector, \
+                            CloneConnector, ArrayConnector
 

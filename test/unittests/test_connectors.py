@@ -329,6 +329,31 @@ class TestFixedNumberPreConnector(unittest.TestCase):
                           (3, 3, 0.0, 0.123),])
 
 
+class TestArrayConnector(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup(num_processes=2, rank=1, min_delay=0.123)
+        self.p1 = sim.Population(3, sim.IF_cond_exp(), structure=space.Line())
+        self.p2 = sim.Population(4, sim.HH_cond_exp(), structure=space.Line())
+        assert_array_equal(self.p2._mask_local, numpy.array([1,0,1,0], dtype=bool))
+        random.mpi_rank = 1
+        random.num_processes = 2
+
+    def test_connect_with_scalar_weights_and_delays(self):
+        connections = numpy.array([
+                [0, 1, 1, 0],
+                [1, 1, 0, 1],
+                [0, 0, 1, 0],
+            ])
+        C = connectors.ArrayConnector(connections, safe=False)
+        syn = sim.StaticSynapse(weight=5.0, delay=0.5)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(1, 0, 5.0, 0.5),
+                          (0, 2, 5.0, 0.5),
+                          (2, 2, 5.0, 0.5)])
+
+
 @unittest.skip('skipping these tests until I figure out how I want to refactor checks')
 class CheckTest(unittest.TestCase):
 

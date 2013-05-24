@@ -26,7 +26,8 @@ Citing PyNN
 
 If you publish work using or mentioning PyNN, we would appreciate it if you would cite the following paper:
 
-Davison AP, Brüderle D, Eppler JM, Kremkow J, Muller E, Pecevski DA, Perrinet L and Yger P (2009) PyNN: a common interface for neuronal network simulators. Front. Neuroinform. 2:11 `doi:10.3389/neuro.11.011.2008 <http://www.frontiersin.org/neuroinformatics/10.3389/neuro.11/011.2008/>`_.
+Davison AP, Brüderle D, Eppler JM, Kremkow J, Muller E, Pecevski DA, Perrinet L and Yger P (2009)
+PyNN: a common interface for neuronal network simulators. Front. Neuroinform. 2:11 `doi:10.3389/neuro.11.011.2008 <http://www.frontiersin.org/neuroinformatics/10.3389/neuro.11/011.2008/abstract>`_.
 
 
 Questions/Bugs/Enhancements
