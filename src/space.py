@@ -127,6 +127,7 @@ class Space(object):
         From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
         """
         #logger.debug("Calculating distance between A (shape=%s) and B (shape=%s)" % (A.shape, B.shape))
+        assert A.shape[-1] == 3
         if len(A.shape) == 1:
             A = A.reshape(1, 3)
         if len(B.shape) == 1:

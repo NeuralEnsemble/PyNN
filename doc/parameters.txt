@@ -115,7 +115,7 @@ Setting parameters as a function of spatial position
     >>> grid = Grid2D(dx=10.0, dy=10.0)
     >>> p = Population(16, IF_cond_alpha(), structure=grid)
     >>> def f_v_thresh(pos):
-    ...     x, y, z = pos
+    ...     x, y, z = pos.T
     ...     return -50 + 0.5*x - 0.2*y
     >>> p.set(v_thresh=lambda i: f_v_thresh(p.position_generator(i)))
     >>> p.get('v_thresh').reshape((4,4))

@@ -2,6 +2,9 @@
 Parameter handling
 ==================
 
+.. testsetup:: *
+   from lazyarray import larray
+
 .. module:: pyNN.parameters
 
 .. note:: these classes are not part of the PyNN API. They should not be used in

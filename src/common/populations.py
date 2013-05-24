@@ -607,6 +607,8 @@ class Population(BasePopulation):
         elif issubclass(cellclass, BaseCellType):
             self.celltype = cellclass(**cellparams)
             # emit deprecation warning
+        else:
+            raise TypeError("cellclass must be an instance or subclass of BaseCellType, not a %s" % type(cellclass))
         self.annotations = {}
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers

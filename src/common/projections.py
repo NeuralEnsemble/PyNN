@@ -217,7 +217,7 @@ class Projection(object):
             if with_address:
                 names = ["presynaptic_index", "postsynaptic_index"] + names
             values = self._get_attributes_as_list(*names)
-            if gather == True and self._simulator.state.num_processes > 1:
+            if gather and self._simulator.state.num_processes > 1:
                 all_values = { self._simulator.state.mpi_rank: values }
                 all_values = recording.gather_dict(all_values)
                 if self._simulator.state.mpi_rank == 0:
@@ -226,9 +226,7 @@ class Projection(object):
                 values = [val[0] for val in values]
             return values
         elif format == 'array':
-            if gather == False:
-                values = self._get_attributes_as_arrays(*attribute_names)
-            elif gather == True:
+            if gather and self._simulator.state.num_processes > 1:
                 # Node 0 is the only one creating a full connection matrix, and returning it (saving memory)
                 # Slaves nodes are returning list of connections, so this may be inconsistent...
                 names      = list(attribute_names)
@@ -241,7 +239,9 @@ class Projection(object):
                     values     = self._get_attributes_as_arrays(*attribute_names)
                     tmp_values = numpy.array(tmp_values)
                     for i in xrange(len(values)):
-                        values[i][tmp_values[:, 0].astype(int), tmp_values[:, 1].astype(int)] = tmp_values[:, 2+i]                 
+                        values[i][tmp_values[:, 0].astype(int), tmp_values[:, 1].astype(int)] = tmp_values[:, 2+i]
+            else:
+                values = self._get_attributes_as_arrays(*attribute_names)
             if return_single:
                 assert len(values) == 1
                 return values[0]

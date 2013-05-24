@@ -130,6 +130,6 @@ doctest:
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
 zip:
-	pushd $(BUILDDIR); zip -r pyNN_docs.zip html; popd
+	cd $(BUILDDIR); zip -r pyNN_docs.zip html; cd ..
 	@echo
 	@echo "Packaging finished. The zip file is in $(BUILDDIR)/pyNN_docs.zip."
