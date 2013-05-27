@@ -35,9 +35,24 @@ class Projection(common.Projection):
                                    space, label)
         self._connections = dict((index, {}) for index in self.post._mask_local.nonzero()[0])           
         connector.connect(self)
+        self._configure_sources()
         _projections.append(self)
         logger.info("--- Projection[%s].__init__() ---" %self.label)
 
+    def _configure_sources(self):
+        """
+        For gap junctions potentially other complex synapse types the presynaptic side of the 
+        connection also needs to be initiated. This is a litle tricky with sources distributed on
+        different nodes as the parameters need to be gathered to the node where the source is 
+        hosted before it can be set
+        """
+        self._presynaptic_connections = []
+        if self.synapse_type.active_source:
+            param_values = self.get(parameter.keys(), 'array', gather=True)
+            for src in self.pre._mask_local:
+                pass
+#                urce(src, **dict(zip(parameter.keys(), 
+#                                                       [ v[src,:] for v in param_values])))
     @property
     def connections(self):
         for x in self._connections.values():
