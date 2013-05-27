@@ -269,7 +269,10 @@ class DistanceDependentProbabilityConnector(MapConnector):
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
-        self.distance_function = eval("lambda d: %s" % self.d_expression)
+        if callable(self.d_expression):
+            self.distance_function = self.d_expression
+        else:
+            self.distance_function = eval("lambda d: %s" % self.d_expression)
         self.rng = _get_rng(rng)
 
     def connect(self, projection):
