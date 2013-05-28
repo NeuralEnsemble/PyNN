@@ -100,11 +100,18 @@ class MapConnector(Connector):
                                projection.post.position_generator)
         return LazyArray(projection.space.distance_generator3D(*position_generators),
                          shape=projection.shape)
+        
+    def _generate_index_map(self, projection):
+        def index_map(i, j):
+            return (projection.pre[i], projection.post[j])
+        return LazyArray(index_map, shape=projection.shape)        
 
-    def _connect_with_map(self, projection, connection_map, distance_map=None):
+    def _connect_with_map(self, projection, connection_map, distance_map=None, index_map=None):
         logger.debug("Connecting %s using a connection map" % projection.label)
         if distance_map is None:
             distance_map = self._generate_distance_map(projection)
+        if index_map is None:
+            index_map = self._generate_index_map(projection)
         # If any of the synapse parameters are based on parallel-safe random number generators,
         # we need to iterate over all post-synaptic cells, so we can generate then
         # throw away the random numbers for the non-local nodes.
@@ -127,9 +134,18 @@ class MapConnector(Connector):
         parameter_space = projection.synapse_type.native_parameters
         parameter_space.shape = (projection.pre.size, projection.post.size)
         for name, map in parameter_space.items():
-            if callable(map.base_value):  # map is assumed to be a function of "d"
-                parameter_space[name] = map(distance_map)
-                
+            if callable(map.base_value):  
+                try:
+                    map.base_value(1.0) # If takes 1 argument map is assumed to be a function of "d"
+                    parameter_space[name] = map(distance_map)
+                except TypeError:
+                    try:
+                        map.base_value(0,0) # If takes 2 arguments map is assumed to be a function of its indices
+                        parameter_space[name] = map(index_map)
+                    except TypeError:
+                        raise Exception("Bad mapping function '{}'. Can be a function of distance "
+                                        "(1 arg) or a function of indices (2 args)"
+                                        .format(map.base_value))              
         for count, (col, local, source_mask) in enumerate(izip(*components)):
             if source_mask is True or source_mask.any():
                 if source_mask is True:
@@ -281,6 +297,49 @@ class DistanceDependentProbabilityConnector(MapConnector):
         if not self.allow_self_connections and projection.pre == projection.post:
             connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
         self._connect_with_map(projection, connection_map, distance_map)
+
+
+
+class IndexBasedProbabilityConnector(MapConnector):
+    """
+    For each pair of pre-post cells, the connection probability depends on distance.
+
+    Takes any of the standard :class:`Connector` optional arguments and, in
+    addition:
+
+        `index_function`:
+            a function that takes the two cell indices as inputs and calculates the
+            probability matrix from it. 
+        `allow_self_connections`:
+            if the connector is used to connect a Population to itself, this
+            flag determines whether a neuron is allowed to connect to itself,
+            or only to other neurons in the Population.
+        `rng`:
+            an :class:`RNG` instance used to evaluate whether connections exist
+    """
+    parameter_names = ('allow_self_connections', 'index_function')
+
+    def __init__(self, index_function, allow_self_connections=True,
+                 rng=None, safe=True, callback=None):
+        """
+        Create a new connector.
+        """
+        Connector.__init__(self, safe, callback)
+        assert callable(index_function)
+        assert isinstance(allow_self_connections, bool)
+        self.index_function = index_function
+        self.allow_self_connections = allow_self_connections
+        self.rng = _get_rng(rng)
+
+    def connect(self, projection):
+        index_map = self._generate_index_map(projection)
+        probability_map = self.index_function(index_map)
+        random_map = LazyArray(RandomDistribution('uniform', (0, 1), rng=self.rng),
+                               projection.shape)
+        connection_map = random_map < probability_map
+        if not self.allow_self_connections and projection.pre == projection.post:
+            connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+        self._connect_with_map(projection, connection_map, index_map=index_map)
 
 
 class FromListConnector(Connector):
