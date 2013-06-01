@@ -42,6 +42,26 @@ def _get_rng(rng):
     else:
         raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
 
+class IndexBasedExpression(object):
+    """
+    Abstract base class for general expressions that use the cell indices and projection class to 
+    determine their value instead of just the the distance between the cells
+    """
+       
+    @property    
+    def projection(self):
+        try:
+            return self._projection
+        except AttributeError:
+            return None
+    
+    @projection.setter        
+    def projection(self, projection): 
+        self._projection = projection
+                    
+    def __call__(self, i, j):
+        raise NotImplementedError
+
 
 class Connector(object):
     """
@@ -127,16 +147,17 @@ class MapConnector(Connector):
         parameter_space = projection.synapse_type.native_parameters
         parameter_space.shape = (projection.pre.size, projection.post.size)
         for name, map in parameter_space.items():
-            if callable(map.base_value):  
-                try:
+            if callable(map.base_value):
+                if isinstance(map.base_value, IndexBasedExpression):
                     # Assumes map is a function of index and hence requires the projection to 
                     # determine its value. It and its index function are copied so as to be able 
-                    # to set the projection without altering the connector, which would not be 
-                    # expected from the 'connect' call
-                    parameter_space[name] = new_map = copy(map)
+                    # to set the projection without altering the connector, which would perhaps
+                    # not be expected from the 'connect' call.
+                    new_map = copy(map)
                     new_map.base_value = copy(map.base_value)
-                    new_map.base_value.set_projection(projection)
-                except AttributeError:
+                    new_map.base_value.projection = projection
+                    parameter_space[name] = new_map
+                else:
                     # Assumes map is a function of distance 
                     parameter_space[name] = map(distance_map)
                 
@@ -301,7 +322,7 @@ class IndexBasedProbabilityConnector(MapConnector):
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
 
-        `index_function`:
+        `index_expression`:
             a function that takes the two cell indices as inputs and calculates the
             probability matrix from it. 
         `allow_self_connections`:
@@ -311,26 +332,27 @@ class IndexBasedProbabilityConnector(MapConnector):
         `rng`:
             an :class:`RNG` instance used to evaluate whether connections exist
     """
-    parameter_names = ('allow_self_connections', 'index_function')
+    parameter_names = ('allow_self_connections', 'index_expression')
 
-    def __init__(self, index_function, allow_self_connections=True,
+    def __init__(self, index_expression, allow_self_connections=True,
                  rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
         Connector.__init__(self, safe, callback)
-        assert callable(index_function)
-        assert hasattr(index_function, 'set_projection')
+        assert callable(index_expression)
+        assert isinstance(index_expression, IndexBasedExpression)
         assert isinstance(allow_self_connections, bool)
-        self.index_function = index_function
+        self.index_expression = index_expression
         self.allow_self_connections = allow_self_connections
         self.rng = _get_rng(rng)
 
     def connect(self, projection):
         # The index function is copied so as to avoid the connector being altered by the "connect"
         # function, which is probably unexpected behaviour.
-        probability_map = LazyArray(copy(self.index_function).set_projection(projection), 
-                                    projection.shape) 
+        index_expression = copy(self.index_expression)
+        index_expression.projection = projection
+        probability_map = LazyArray(index_expression, projection.shape) 
         random_map = LazyArray(RandomDistribution('uniform', (0, 1), rng=self.rng),
                                projection.shape)
         connection_map = random_map < probability_map
@@ -341,29 +363,23 @@ class IndexBasedProbabilityConnector(MapConnector):
 
 class DisplacementDependentProbabilityConnector(IndexBasedProbabilityConnector):
             
-    class IndexFunction(object):
+    class DisplacementExpression(IndexBasedExpression):
         """
-        Abstract base class for functions that use the cell indices and projection class to determine
-        their value instead of just the the distance between the cells
+        A displacement based expression function used to determine the connection probability
+        and the value of variable connection parameters of a projection 
         """
         def __init__(self, disp_function):
             self._disp_function = disp_function
-            self._projection = None
-            
-        def set_projection(self, projection):
-            self._projection = projection
-            return self
-            
+                        
         def __call__(self, i, j):
-            assert(self._projection is not None)
-            disp = (self._projection.post.positions.T[j] - self._projection.pre.positions.T[i]).T
+            disp = (self.projection.post.positions.T[j] - self.projection.pre.positions.T[i]).T
             return self._disp_function(disp)             
             
     def __init__(self, disp_function, allow_self_connections=True,
                  rng=None, safe=True, callback=None):
         super(DisplacementDependentProbabilityConnector, self).__init__(
-                self.IndexFunction(disp_function), allow_self_connections=allow_self_connections, 
-                rng=rng, callback=callback)
+                self.DisplacementExpression(disp_function), 
+                allow_self_connections=allow_self_connections, rng=rng, callback=callback)
 
 
 class FromListConnector(Connector):
