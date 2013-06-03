@@ -18,4 +18,5 @@ from pyNN.connectors import AllToAllConnector, \
                             FixedNumberPreConnector, \
                             FixedNumberPostConnector, \
                             SmallWorldConnector, \
-                            CSAConnector
+                            CSAConnector, \
+                            CloneConnector

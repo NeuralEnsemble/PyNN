@@ -12,9 +12,11 @@ from pyNN.connectors import AllToAllConnector, \
                             OneToOneConnector, \
                             FixedProbabilityConnector, \
                             DistanceDependentProbabilityConnector, \
+                            DisplacementDependentProbabilityConnector, \
                             FromListConnector, \
                             FromFileConnector, \
                             FixedNumberPreConnector, \
                             FixedNumberPostConnector, \
                             SmallWorldConnector, \
-                            CSAConnector
+                            CSAConnector, \
+                            CloneConnector
