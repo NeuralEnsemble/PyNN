@@ -27,10 +27,14 @@ import logging
 import numpy
 import os.path
 from neuron import h, nrn_dll_loaded
+from operator import itemgetter
 
 logger = logging.getLogger("PyNN")
 name = "NEURON"  # for use in annotating output data
 
+# Instead of starting the projection var GID range from 0, the first _MIN_PROJECTION_VARGID are 
+# reserved for other potential uses
+_MIN_PROJECTION_VARGID = 1e6 
 
 # --- Internal NEURON functionality --------------------------------------------
 
@@ -192,6 +196,7 @@ class _State(common.control.BaseState):
         self.gid_sources = []
         self.recorders = set([])
         self.gid_counter = 0
+        self.vargid_offsets = dict() # Contains the start of the available "variable"-GID range for each projection (as opposed to "cell"-GIDs)
         h.plastic_connections = []
         self.segment_counter = -1
         self.reset()
@@ -229,6 +234,31 @@ class _State(common.control.BaseState):
             logger.info("Finishing up with NEURON.")
             h.quit()
 
+    def get_vargids(self, projection, pre_idx, post_idx):
+        """
+        Get new "variable"-GIDs (as opposed to the "cell"-GIDs) for a given pre->post connection 
+        pair for a given projection. 
+
+        `projection`  -- projection
+        `pre_idx`     -- index of the presynaptic cell
+        `post_idx`     -- index of the postsynaptic cell
+        """
+        try:
+            offset = self.vargid_offsets[projection]
+        except KeyError:
+            # Get the projection with the current maximum vargid offset
+            if len(self.vargid_offsets):
+                newest_proj, offset = max(self.vargid_offsets.items(), key=itemgetter(1))
+                # Allocate it a large enough range for a mutual all-to-all connection (assumes that 
+                # there are no duplicate pre_idx->post_idx connections for the same projection. If
+                # that is really desirable a new projection will need to be used)
+                offset += 2 * len(newest_proj.pre) * len(newest_proj.post)
+            else:
+                offset = _MIN_PROJECTION_VARGID 
+            self.vargid_offsets[projection] = offset
+        pre_post_vargid = offset + 2 * (pre_idx + post_idx * len(projection.pre))
+        post_pre_vargid = pre_post_vargid + 1
+        return (pre_post_vargid, post_pre_vargid)
 
 # --- For implementation of access to individual neurons' parameters -----------
 
@@ -269,6 +299,29 @@ class ID(int, common.IDMixin):
 
 
 # --- For implementation of connect() and Connector classes --------------------
+
+def connect(projection, pre, post, **parameters):
+    """
+    Returns an instance of a Connection object or a GapJunction object depending
+    on the synapse type of the projection
+    """
+    if projection.synapse_type.connection_type == 'GapJunction':
+        pre_post_vargid, post_pre_vargid = state.get_vargids(projection, pre, post)
+        return GapJunction(projection, pre, post, pre_post_vargid, post_pre_vargid, **parameters)
+    else:
+        return Connection(projection, pre, post, **parameters) 
+
+def configure_presynaptic(projection, pre, post, **parameters):
+    """
+    Always returns an instance of a GapJunction object at this but could in theory return a different
+    type of connection that needs presynaptic configuration. 
+    """
+    assert(projection.synapse_type.connection_type == 'GapJunction')
+    pre_post_vargid, post_pre_vargid = state.get_vargids(projection, pre, post)
+    # NB: this is the same line as the one used in 'connect' with the exception that the pre and 
+    # post parameters are switched, as this is the mirror image of the bidirectional connection
+    return GapJunction(projection, post, pre, post_pre_vargid, pre_post_vargid, **parameters)
+
 
 class Connection(object):
     """
@@ -376,6 +429,47 @@ class Connection(object):
     def as_tuple(self, *attribute_names):
         # need to do translation of names, or perhaps that should be handled in common?
         return tuple(getattr(self, name) for name in attribute_names)
+
+class GapJunction(object):
+    """
+    Store an individual gap junction connection and information about it. Provide an
+    interface that allows access to the connection's conductance attributes
+    """
+
+    def __init__(self, projection, pre, post, pre_post_vargid, post_pre_vargid, **parameters):
+        self.presynaptic_index = pre
+        self.postsynaptic_index = post
+        segment_name = projection.receptor_type
+        # Strip 'gap' string from receptor_type (not sure about this, it is currently appended to
+        # the available synapse types in the NCML model segments but is not really necessary and 
+        # it feels a bit hacky but it makes the list of receptor types more comprehensible)
+        if segment_name.endswith('.gap'): 
+            segment_name = segment_name[:-4]
+        self.segment = getattr(projection.post[post]._cell, segment_name)
+        logger.info("Setting source_var on cell {} to connect to target_var on cell {} with "
+                        "vargid {} on process {}"
+                        .format(projection.pre[pre], projection.post[post], post_pre_vargid, 
+                                state.mpi_rank))
+        state.parallel_context.source_var(self.segment(0.5)._ref_v, post_pre_vargid)              
+        # Create the gap_junction and set its weight
+        self.gap = h.Gap(0.5, sec=self.segment)
+        self.gap.g = parameters.pop('weight')
+        # Connect the gap junction with the source_var
+        logger.info("Setting target_var on cell {} to connect to source_var on cell {} with "
+                    "vargid {} on process {}"
+                    .format(projection.pre[pre], projection.post[post], pre_post_vargid, 
+                            state.mpi_rank))
+        state.parallel_context.target_var(self.gap._ref_vremote, pre_post_vargid)
+        
+    def _set_weight(self, w):
+        self.gap.g = w
+
+    def _get_weight(self):
+        """Gap junction conductance in µS."""
+        return self.gap.g
+    
+    weight = property(_get_weight, _set_weight)
+    
 
 def generate_synapse_property(name):
     def _get(self):

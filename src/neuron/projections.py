@@ -33,26 +33,13 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
-        self._connections = dict((index, {}) for index in self.post._mask_local.nonzero()[0])           
+        self._connections = dict((index, {}) for index in self.post._mask_local.nonzero()[0])    
         connector.connect(self)
-        self._configure_sources()
-        _projections.append(self)
+        self._presynaptic_components = []
+        if self.synapse_type.has_presynaptic_components:
+            self._configure_presynaptic_components()
         logger.info("--- Projection[%s].__init__() ---" %self.label)
 
-    def _configure_sources(self):
-        """
-        For gap junctions potentially other complex synapse types the presynaptic side of the 
-        connection also needs to be initiated. This is a litle tricky with sources distributed on
-        different nodes as the parameters need to be gathered to the node where the source is 
-        hosted before it can be set
-        """
-        self._presynaptic_connections = []
-        if self.synapse_type.active_source:
-            param_values = self.get(parameter.keys(), 'array', gather=True)
-            for src in self.pre._mask_local:
-                pass
-#                urce(src, **dict(zip(parameter.keys(), 
-#                                                       [ v[src,:] for v in param_values])))
     @property
     def connections(self):
         for x in self._connections.values():
@@ -100,7 +87,23 @@ class Projection(common.Projection):
             parameters = dict(zip(connection_parameters.keys(), values))
             #logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, receptor type %s, parameters %s", pre_idx, postsynaptic_index, self.synapse_type, self.receptor_type, parameters)
             self._connections[postsynaptic_index][pre_idx] = \
-                simulator.Connection(self, pre_idx, postsynaptic_index, **parameters)
+                                simulator.connect(self, pre_idx, postsynaptic_index, **parameters)
+
+
+    def _configure_presynaptic_components(self):
+        """
+        For gap junctions potentially other complex synapse types the presynaptic side of the 
+        connection also needs to be initiated. This is a little tricky with sources distributed on
+        different nodes as the parameters need to be gathered to the node where the source is 
+        hosted before it can be set
+        """
+        values = self.get(self.synapse_type.get_parameter_names(), 'array', gather=True)
+        assert(len(values))
+        for pre_idx in numpy.nonzero(self.pre._mask_local):
+            post_idxs = numpy.nonzero(~numpy.isnan(values[0])) # Get connections
+            for post_idx, params in zip(post_idxs, zip([v[pre_idx,post_idxs] for v in values])):
+                self._presynaptic_components[pre_idx][post_idx] = \
+                                simulator.configure_presynaptic(self, pre_idx, post_idx, **params)
 
     def _set_attributes(self, parameter_space):
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
