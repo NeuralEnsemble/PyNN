@@ -34,7 +34,7 @@ name = "NEURON"  # for use in annotating output data
 
 # Instead of starting the projection var GID range from 0, the first _MIN_PROJECTION_VARGID are 
 # reserved for other potential uses
-_MIN_PROJECTION_VARGID = 1000000 
+_MIN_PROJECTION_VARGID = 0 
 
 # --- Internal NEURON functionality --------------------------------------------
 
@@ -215,6 +215,9 @@ class _State(common.control.BaseState):
         if not self.running:
             self.running = True
             local_minimum_delay = self.parallel_context.set_maxstep(self.default_maxstep)
+            if state.vargid_offsets:
+                logger.info("Setting up transfer on MPI process {}".format(state.mpi_rank))
+                state.parallel_context.setup_transfer()
             h.finitialize()
             self.tstop = 0
             logger.debug("default_maxstep on host #%d = %g" % (self.mpi_rank, self.default_maxstep ))
@@ -454,7 +457,7 @@ class GapJunction(object):
                     .format(local_gid, remote_gid, local_to_remote_vargid, state.mpi_rank))
         state.parallel_context.source_var(segment(0.5)._ref_v, local_to_remote_vargid)              
         # Create the gap_junction and set its weight
-        self.gap = h.Gap(0.5, segment)
+        self.gap = h.Gap(0.5, sec=segment)
         self.gap.g = weight
         # Connect the gap junction with the source_var
         logger.info("Setting target_var on cell {} to connect to source_var on cell {} with "
