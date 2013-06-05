@@ -35,7 +35,8 @@ class Projection(common.Projection):
                                    space, label)
         self._connections = dict((index, {}) for index in self.post._mask_local.nonzero()[0])    
         connector.connect(self)
-        self._presynaptic_components = []
+        self._presynaptic_components = dict((index, {}) for index in 
+                                            self.pre._mask_local.nonzero()[0])
         if self.synapse_type.has_presynaptic_components:
             self._configure_presynaptic_components()
         logger.info("--- Projection[%s].__init__() ---" %self.label)
@@ -97,11 +98,15 @@ class Projection(common.Projection):
         different nodes as the parameters need to be gathered to the node where the source is 
         hosted before it can be set
         """
-        values = self.get(self.synapse_type.get_parameter_names(), 'array', gather=True)
-        assert(len(values))
-        for pre_idx in numpy.nonzero(self.pre._mask_local):
-            post_idxs = numpy.nonzero(~numpy.isnan(values[0])) # Get connections
-            for post_idx, params in zip(post_idxs, zip([v[pre_idx,post_idxs] for v in values])):
+        idxs_values = self.get(self.synapse_type.get_parameter_names(), 'array', gather=True, 
+                               with_address=True)
+         # Get the post indexes for all of the connections
+        all_post_idxs = numpy.ma.masked_array(idxs_values[1], numpy.isnan(idxs_values[1]))
+        values = idxs_values[2:]
+        for pre_idx in numpy.nonzero(self.pre._mask_local)[0]:
+            post_idxs = numpy.array(numpy.ma.compressed(all_post_idxs[pre_idx, :]), dtype=int)
+            for post_idx, vals in zip(post_idxs, zip(*[v[pre_idx,post_idxs] for v in values])):
+                params = dict(zip(self.synapse_type.get_parameter_names(), vals))
                 self._presynaptic_components[pre_idx][post_idx] = \
                                 simulator.configure_presynaptic(self, pre_idx, post_idx, **params)
 

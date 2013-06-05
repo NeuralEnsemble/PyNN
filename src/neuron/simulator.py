@@ -34,7 +34,7 @@ name = "NEURON"  # for use in annotating output data
 
 # Instead of starting the projection var GID range from 0, the first _MIN_PROJECTION_VARGID are 
 # reserved for other potential uses
-_MIN_PROJECTION_VARGID = 1e6 
+_MIN_PROJECTION_VARGID = 1000000 
 
 # --- Internal NEURON functionality --------------------------------------------
 
@@ -306,8 +306,7 @@ def connect(projection, pre, post, **parameters):
     on the synapse type of the projection
     """
     if projection.synapse_type.connection_type == 'GapJunction':
-        pre_post_vargid, post_pre_vargid = state.get_vargids(projection, pre, post)
-        return GapJunction(projection, pre, post, pre_post_vargid, post_pre_vargid, **parameters)
+        return GapJunction(projection, pre, post, **parameters)
     else:
         return Connection(projection, pre, post, **parameters) 
 
@@ -317,10 +316,7 @@ def configure_presynaptic(projection, pre, post, **parameters):
     type of connection that needs presynaptic configuration. 
     """
     assert(projection.synapse_type.connection_type == 'GapJunction')
-    pre_post_vargid, post_pre_vargid = state.get_vargids(projection, pre, post)
-    # NB: this is the same line as the one used in 'connect' with the exception that the pre and 
-    # post parameters are switched, as this is the mirror image of the bidirectional connection
-    return GapJunction(projection, post, pre, post_pre_vargid, pre_post_vargid, **parameters)
+    return GapJunctionPresynaptic(projection, pre, post, **parameters)
 
 
 class Connection(object):
@@ -436,7 +432,7 @@ class GapJunction(object):
     interface that allows access to the connection's conductance attributes
     """
 
-    def __init__(self, projection, pre, post, pre_post_vargid, post_pre_vargid, **parameters):
+    def __init__(self, projection, pre, post, **parameters):
         self.presynaptic_index = pre
         self.postsynaptic_index = post
         segment_name = projection.receptor_type
@@ -446,20 +442,25 @@ class GapJunction(object):
         if segment_name.endswith('.gap'): 
             segment_name = segment_name[:-4]
         self.segment = getattr(projection.post[post]._cell, segment_name)
+        pre_post_vargid, post_pre_vargid = state.get_vargids(projection, pre, post)
+        self._make_connection(self.segment, parameters.pop('weight'), pre_post_vargid,   
+                              post_pre_vargid, projection.pre[pre], projection.post[post])
+        
+    def _make_connection(self, segment, weight, local_to_remote_vargid, remote_to_local_vargid,
+                         local_gid, remote_gid):
+        
         logger.info("Setting source_var on cell {} to connect to target_var on cell {} with "
-                        "vargid {} on process {}"
-                        .format(projection.pre[pre], projection.post[post], post_pre_vargid, 
-                                state.mpi_rank))
-        state.parallel_context.source_var(self.segment(0.5)._ref_v, post_pre_vargid)              
+                    "vargid {} on process {}"
+                    .format(local_gid, remote_gid, local_to_remote_vargid, state.mpi_rank))
+        state.parallel_context.source_var(segment(0.5)._ref_v, local_to_remote_vargid)              
         # Create the gap_junction and set its weight
-        self.gap = h.Gap(0.5, sec=self.segment)
-        self.gap.g = parameters.pop('weight')
+        self.gap = h.Gap(0.5, segment)
+        self.gap.g = weight
         # Connect the gap junction with the source_var
         logger.info("Setting target_var on cell {} to connect to source_var on cell {} with "
                     "vargid {} on process {}"
-                    .format(projection.pre[pre], projection.post[post], pre_post_vargid, 
-                            state.mpi_rank))
-        state.parallel_context.target_var(self.gap._ref_vremote, pre_post_vargid)
+                    .format(local_gid, remote_gid, remote_to_local_vargid, state.mpi_rank))
+        state.parallel_context.target_var(self.gap._ref_vgap, remote_to_local_vargid)
         
     def _set_weight(self, w):
         self.gap.g = w
@@ -469,6 +470,20 @@ class GapJunction(object):
         return self.gap.g
     
     weight = property(_get_weight, _set_weight)
+    
+    def as_tuple(self, *attribute_names):
+        # need to do translation of names, or perhaps that should be handled in common?
+        return tuple(getattr(self, name) for name in attribute_names)
+    
+class GapJunctionPresynaptic(GapJunction):
+    
+    def __init__(self, projection, pre, post, **parameters):
+        self.presynaptic_index = pre
+        self.postsynaptic_index = post
+        self.segment = getattr(projection.pre[pre]._cell, projection.source)
+        pre_post_vargid, post_pre_vargid = state.get_vargids(projection, pre, post)
+        self._make_connection(self.segment, parameters.pop('weight'), post_pre_vargid, 
+                              pre_post_vargid, projection.post[post], projection.pre[pre])
     
 
 def generate_synapse_property(name):

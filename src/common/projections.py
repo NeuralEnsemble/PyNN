@@ -212,16 +212,19 @@ class Projection(object):
             return_single = False
         if isinstance(self.synapse_type, StandardSynapseType):
             attribute_names = self.synapse_type.get_native_names(*attribute_names)
+        # This will probably break some code somewhere but I was wondering whether you would mind
+        # having the option to return the indices with the 'array' format because I found it useful
+        # and so there may be times when you would want it.
+        names = list(attribute_names)
+        if with_address:
+            names = ["presynaptic_index", "postsynaptic_index"] + names
         if format == 'list':
-            names = list(attribute_names)
-            if with_address:
-                names = ["presynaptic_index", "postsynaptic_index"] + names
             values = self._get_attributes_as_list(*names)
             if not with_address and return_single:
                 values = [val[0] for val in values]
             return values
         elif format == 'array':
-            values = self._get_attributes_as_arrays(*attribute_names)
+            values = self._get_attributes_as_arrays(*names)
             if return_single:
                 assert len(values) == 1
                 return values[0]

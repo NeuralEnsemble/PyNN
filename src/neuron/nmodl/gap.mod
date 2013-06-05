@@ -1,7 +1,7 @@
 NEURON {
 
     POINT_PROCESS Gap
-    RANGE g, i, vremote
+    RANGE g, i, vgap
     NONSPECIFIC_CURRENT i
 }
 
@@ -17,12 +17,12 @@ PARAMETER { g = 0 (uS) }
 ASSIGNED {
 
     v    (mV)
-    vremote (mV)
+    vgap (mV)
     i    (nA)
 }
  
 BREAKPOINT { 
 
-  if (g > 0) { i = g * (v - vremote) }
+  if (g>0) {i = g * (v-vgap) }
 
 }
