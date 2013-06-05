@@ -33,7 +33,7 @@ class StaticSynapse(StandardSynapseType):
 
 class ElectricalSynapse(StandardSynapseType):
     """
-    A bi-directional electrical synapse (gap junction) with fixed conductance
+    A bidirectional electrical synapse (gap junction) with fixed conductance
     """
        
     default_parameters = {

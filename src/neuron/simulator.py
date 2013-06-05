@@ -305,8 +305,12 @@ class ID(int, common.IDMixin):
 
 def connect(projection, pre, post, **parameters):
     """
-    Returns an instance of a Connection object or a GapJunction object depending
-    on the synapse type of the projection
+    Chooses the appropriate connection type based on the synapse model (currently either 
+    'Connection' or 'GapJunction')
+    
+        `pre` -- index of the pre-synaptic cell
+        `post` --index of the post-synaptic cell
+        `parameters` -- the parameters used to get up the connection
     """
     if projection.synapse_type.connection_type == 'GapJunction':
         return GapJunction(projection, pre, post, **parameters)
@@ -315,8 +319,12 @@ def connect(projection, pre, post, **parameters):
 
 def configure_presynaptic(projection, pre, post, **parameters):
     """
-    Always returns an instance of a GapJunction object at this but could in theory return a different
-    type of connection that needs presynaptic configuration. 
+    Chooses the appropriate pre-synaptic component type based on the synapse model (currently only 
+    'GapJunctionPresynaptic')
+    
+        `pre` -- index of the pre-synaptic cell
+        `post` --index of the post-synaptic cell
+        `parameters` -- the parameters used to get up the connection
     """
     assert(projection.synapse_type.connection_type == 'GapJunction')
     return GapJunctionPresynaptic(projection, pre, post, **parameters)
@@ -429,6 +437,7 @@ class Connection(object):
         # need to do translation of names, or perhaps that should be handled in common?
         return tuple(getattr(self, name) for name in attribute_names)
 
+
 class GapJunction(object):
     """
     Store an individual gap junction connection and information about it. Provide an
@@ -450,11 +459,11 @@ class GapJunction(object):
                               post_pre_vargid, projection.pre[pre], projection.post[post])
         
     def _make_connection(self, segment, weight, local_to_remote_vargid, remote_to_local_vargid,
-                         local_gid, remote_gid):
-        
+                         local_gid, remote_gid):       
         logger.info("Setting source_var on cell {} to connect to target_var on cell {} with "
                     "vargid {} on process {}"
                     .format(local_gid, remote_gid, local_to_remote_vargid, state.mpi_rank))
+        # Set up the source reference for the local->remote connection 
         state.parallel_context.source_var(segment(0.5)._ref_v, local_to_remote_vargid)              
         # Create the gap_junction and set its weight
         self.gap = h.Gap(0.5, sec=segment)
@@ -463,6 +472,7 @@ class GapJunction(object):
         logger.info("Setting target_var on cell {} to connect to source_var on cell {} with "
                     "vargid {} on process {}"
                     .format(local_gid, remote_gid, remote_to_local_vargid, state.mpi_rank))
+        # set up the target reference for the remote->local connection
         state.parallel_context.target_var(self.gap._ref_vgap, remote_to_local_vargid)
         
     def _set_weight(self, w):
@@ -475,10 +485,14 @@ class GapJunction(object):
     weight = property(_get_weight, _set_weight)
     
     def as_tuple(self, *attribute_names):
-        # need to do translation of names, or perhaps that should be handled in common?
         return tuple(getattr(self, name) for name in attribute_names)
     
 class GapJunctionPresynaptic(GapJunction):
+    """
+    The presynaptic component of a gap junction. Gap junctions in NEURON are actually symmetrical
+    so it shares its functionality with the GapJunction connection object, with the exception that
+    the pre and post synaptic cells are switched
+    """
     
     def __init__(self, projection, pre, post, **parameters):
         self.presynaptic_index = pre

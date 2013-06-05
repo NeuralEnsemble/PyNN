@@ -100,13 +100,17 @@ class Projection(common.Projection):
         """
         idxs_values = self.get(self.synapse_type.get_parameter_names(), 'array', gather=True, 
                                with_address=True)
-         # Get the post indexes for all of the connections
+        # Get the post indexes for all of the connections
         all_post_idxs = numpy.ma.masked_array(idxs_values[1], numpy.isnan(idxs_values[1]))
+        # Separate the parameter values from the indices
         values = idxs_values[2:]
+        # Loop through all connections where the pre-synaptic cell is local
         for pre_idx in numpy.nonzero(self.pre._mask_local)[0]:
+            # Get the indexes for the post-synaptic cells to loop through
             post_idxs = numpy.array(numpy.ma.compressed(all_post_idxs[pre_idx, :]), dtype=int)
             for post_idx, vals in zip(post_idxs, zip(*[v[pre_idx,post_idxs] for v in values])):
                 params = dict(zip(self.synapse_type.get_parameter_names(), vals))
+                # Set up the presynaptic components of the connection
                 self._presynaptic_components[pre_idx][post_idx] = \
                                 simulator.configure_presynaptic(self, pre_idx, post_idx, **params)
 
