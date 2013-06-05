@@ -264,7 +264,7 @@ class StandardSynapseType(StandardModelType, models.BaseSynapseType):
                            for name, value in self.default_parameters.items())
         base_schema['delay'] = float  # delay has default value None, meaning "use the minimum delay", so we have to correct the auto-generated schema
         return base_schema
-    
+
 
 class STDPWeightDependence(StandardModelType):
     """Base class for models of STDP weight dependence."""
