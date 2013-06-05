@@ -214,7 +214,7 @@ class Projection(object):
             attribute_names = self.synapse_type.get_native_names(*attribute_names)
         # This will probably break some code somewhere but I was wondering whether you would mind
         # having the option to return the indices with the 'array' format because I found it useful
-        # and so there may be times when you would want it.
+        # in my gap junction implementation and so there may be times when you would want it.
         names = list(attribute_names)
         if with_address:
             names = ["presynaptic_index", "postsynaptic_index"] + names

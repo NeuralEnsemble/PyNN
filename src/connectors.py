@@ -113,13 +113,14 @@ class MapConnector(Connector):
     """
     Abstract base class for Connectors based on connection maps, where a map is a 2D lazy array
     containing either a connection probability or the value of a connection parameter.
-    """        
+    """
+    
 
     def _generate_distance_map(self, projection):
         position_generators = (projection.pre.position_generator,
                                projection.post.position_generator)
         return LazyArray(projection.space.distance_generator3D(*position_generators),
-                         shape=projection.shape)   
+                         shape=projection.shape)
 
     def _connect_with_map(self, projection, connection_map, distance_map=None):
         logger.debug("Connecting %s using a connection map" % projection.label)
@@ -300,10 +301,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
-        if callable(self.d_expression):
-            self.distance_function = self.d_expression
-        else:
-            self.distance_function = eval("lambda d: %s" % self.d_expression)
+        self.distance_function = eval("lambda d: %s" % self.d_expression)
         self.rng = _get_rng(rng)
 
     def connect(self, projection):

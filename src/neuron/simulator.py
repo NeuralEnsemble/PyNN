@@ -32,9 +32,9 @@ from operator import itemgetter
 logger = logging.getLogger("PyNN")
 name = "NEURON"  # for use in annotating output data
 
-# Instead of starting the projection var GID range from 0, the first _MIN_PROJECTION_VARGID are 
+# Instead of starting the projection var-GID range from 0, the first _MIN_PROJECTION_VARGID are 
 # reserved for other potential uses
-_MIN_PROJECTION_VARGID = 0 
+_MIN_PROJECTION_VARGID = 1000000 
 
 # --- Internal NEURON functionality --------------------------------------------
 

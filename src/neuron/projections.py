@@ -39,6 +39,7 @@ class Projection(common.Projection):
                                             self.pre._mask_local.nonzero()[0])
         if self.synapse_type.has_presynaptic_components:
             self._configure_presynaptic_components()
+        _projections.append(self)
         logger.info("--- Projection[%s].__init__() ---" %self.label)
 
     @property
