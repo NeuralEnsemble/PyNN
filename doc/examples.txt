@@ -47,6 +47,6 @@ Example of depressing and facilitating synapses
 IF network based on the CUBA and COBA models of Vogels & Abbott (2005)
 ----------------------------------------------------------------------
 
-(J Neurosci 25:10786-95) [http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=PubMed&list_uids=16291952&dopt=Abstract PubMed]
+(J Neurosci 25:10786-95) [http://www.ncbi.nlm.nih.gov/pubmed/16291952?dopt=Abstract PubMed]
 
 .. literalinclude:: ../examples/VAbenchmarks.py

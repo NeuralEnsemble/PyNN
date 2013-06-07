@@ -96,7 +96,7 @@ class Space(object):
         """
         Calculate the distance matrix between two sets of coordinates, given
         the topology of the current space.
-        From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
+        From http://mail.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
         """
         #logger.debug("Calculating distance between A (shape=%s) and B (shape=%s)" % (A.shape, B.shape))
         if len(A.shape) == 1:
@@ -120,12 +120,34 @@ class Space(object):
         numpy.sqrt(d, d)
         return d
 
-    def distances3D(self, A, B):
-        d = A - B
-        d **= 2
-        d = numpy.sum(d, axis=-1)
+    def distances3D(self, A, B, expand=False):
+        """
+        Calculate the distance matrix between two sets of coordinates, given
+        the topology of the current space.
+        From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
+        """
+        #logger.debug("Calculating distance between A (shape=%s) and B (shape=%s)" % (A.shape, B.shape))
+        assert A.shape[-1] == 3
+        if len(A.shape) == 1:
+            A = A.reshape(1, 3)
+        if len(B.shape) == 1:
+            B = B.reshape(1, 3)
+        B = self.scale_factor*(B + self.offset)
+        d = numpy.zeros((len(self.axes), A.shape[0], B.shape[0]), dtype=A.dtype)
+        for i, axis in enumerate(self.axes):
+            diff2 = A[:, None, axis] - B[:, axis]
+            if self.periodic_boundaries is not None:
+                boundaries = self.periodic_boundaries[axis]
+                if boundaries is not None:
+                    range = boundaries[1] - boundaries[0]
+                    ad2   = abs(diff2)
+                    diff2 = numpy.minimum(ad2, range-ad2)
+            diff2 **= 2
+            d[i] = diff2
+        if not expand:
+            d = numpy.sum(d, 0)
         numpy.sqrt(d, d)
-        return d
+        return d.flatten()
 
     def distance_generator(self, f, g):
         """

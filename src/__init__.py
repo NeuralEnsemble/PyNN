@@ -70,5 +70,5 @@ Other modules:
 """
 
 #__version__ = '0.8.0dev ( $Rev$)'.replace(' $','')
-__version__ = '0.8alpha1'
+__version__ = '0.8dev'
 __all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "nemo", "moose", "nineml", "recording", "errors", "space", "descriptions", "standardmodels", "parameters", "core"]

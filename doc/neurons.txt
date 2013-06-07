@@ -452,4 +452,4 @@ To change several parameters at once for a single neuron, use the
 
 .. _`Destexhe (2009)`: http://cns.iaf.cnrs-gif.fr/abstracts/TCX2008.html
 .. _MPI: http://en.wikipedia.org/wiki/Message_Passing_Interface
-.. _Neo: http://neuralensemble.org/neo
+.. _Neo: http://neuralensemble.org/neo/

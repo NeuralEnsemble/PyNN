@@ -35,3 +35,9 @@ doc/_build
 Icon?
 Thumbs.db
 
+# coverage files
+.coverage
+cover
+
+# files from running examples
+examples/Results

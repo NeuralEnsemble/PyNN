@@ -42,15 +42,21 @@ def build_connect(projection_class, connector_class, static_synapse_class):
     return connect
 
 
-def set(cells, param, val=None):
+def set(cells, **parameters):
     """
-    Set one or more parameters of an individual cell or list of cells.
+    Set one or more parameters for every cell in a population, view or assembly.
 
-    param can be a dict, in which case val should not be supplied, or a string
-    giving the parameter name, in which case val is the parameter value.
+    Values passed to set() may be:
+        (1) single values
+        (2) RandomDistribution objects
+        (3) mapping functions, where a mapping function accepts a single
+            argument (the cell index) and returns a single value.
+
+    Here, a "single value" may be either a single number or a list/array of
+    numbers (e.g. for spike times).
     """
     assert isinstance(cells, (BasePopulation, Assembly))
-    cells.set(param, val)
+    cells.set(**parameters)
 
 
 def build_record(simulator):

@@ -259,7 +259,7 @@ def scenario3(sim):
 
     initial_weight_distr = RandomDistribution('uniform', (w_min, w_max))
     connections.randomizeWeights(initial_weight_distr)
-    initial_weights = connections.get('weight', format='array')
+    initial_weights = connections.get('weight', format='array', gather=False)
     assert initial_weights.min() >= w_min
     assert initial_weights.max() < w_max
     assert initial_weights[0,0] != initial_weights[1,0]
@@ -276,7 +276,7 @@ def scenario3(sim):
     assert abs(actual_rate - expected_rate) < 1, errmsg
     #assert abs(pre[:50].mean_spike_count()/duration - r1) < 1
     #assert abs(pre[50:].mean_spike_count()/duration- r2) < 1
-    final_weights = connections.get('weight', format='array')
+    final_weights = connections.get('weight', format='array', gather=False)
     assert initial_weights[0,0] != final_weights[0,0]
 
     try:

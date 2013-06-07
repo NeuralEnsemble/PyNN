@@ -32,8 +32,8 @@ If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
 available. If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.8alpha1.tar.gz
-    $ cd PyNN-0.8alpha1
+    $ tar xzf PyNN-0.8alpha2.tar.gz
+    $ cd PyNN-0.8alpha2
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -163,22 +163,22 @@ For compilation instructions, see the files in the ``HowTos`` directory.
 Installing Brian
 ================
 
-Instructions for downloading and installing Brian_ are available from `<http://www.briansimulator.org/download/>`_.
+Instructions for downloading and installing Brian_ are available from `<http://briansimulator.org/download/>`_.
 
 
 
 .. _PyNN: http://neuralensemble.org/PyNN
-.. _NumPy: http://numpy.scipy.org/
-.. _lazyarray: http://pypi.python.org/pypi/lazyarray
-.. _CSA: http://software.incf.org/software/csa/
+.. _NumPy: http://www.numpy.org/
+.. _lazyarray: https://pypi.python.org/pypi/lazyarray
+.. _CSA: https://software.incf.org/software/csa/
 .. _Jinja2: http://jinja.pocoo.org/
 .. _Cheetah: http://www.cheetahtemplate.org/
 .. _mpi4py: http://mpi4py.scipy.org/
 .. _pip: http://www.pip-installer.org/
 .. _PCSIM: http://www.lsm.tugraz.at/pcsim/
-.. _Brian: http://www.briansimulator.org/
+.. _Brian: http://briansimulator.org/
 .. _`PyNN download page`: https://neuralensemble.org/trac/PyNN/wiki/Download
-.. _`distutils`: http://docs.python.org/inst/inst.html
+.. _`distutils`: http://docs.python.org/2/install/index.html
 .. _`GNU Scientific Library`: http://www.gnu.org/software/gsl/
 .. _`NEURON Forum`: http://www.neuron.yale.edu/phpBB/index.php
 .. _Neo: http://neuralensemble.org/neo
