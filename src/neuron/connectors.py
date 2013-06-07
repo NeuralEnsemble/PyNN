@@ -19,4 +19,5 @@ from pyNN.connectors import AllToAllConnector, \
                             FixedNumberPostConnector, \
                             SmallWorldConnector, \
                             CSAConnector, \
-                            CloneConnector
+                            CloneConnector, \
+                            ArrayConnector

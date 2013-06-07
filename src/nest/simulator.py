@@ -123,7 +123,7 @@ class _State(common.control.BaseState):
             if not device._connected:
                 device.connect_to_cells()
                 device._local_files_merged = False
-        if not self.running:
+        if not self.running and simtime > 0:
             simtime += self.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
             self.running = True
         nest.Simulate(simtime)

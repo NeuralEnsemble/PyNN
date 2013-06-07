@@ -136,4 +136,4 @@ containing the :file:`.mod` files.
 
 
 .. _`CVode documentation`: http://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/classes/cvode.html
-.. _nrnutils: http://pypi.python.org/pypi/nrnutils/
+.. _nrnutils: https://pypi.python.org/pypi/nrnutils/

@@ -35,8 +35,8 @@ def test_build_connect():
 def test_set():
     cells = BasePopulation()
     cells.set = Mock()
-    common.set(cells, "param", "val")
-    cells.set.assert_called_with("param", "val")
+    common.set(cells, param="val")
+    cells.set.assert_called_with(param="val")
 
 def test_build_record():
     simulator = Mock()

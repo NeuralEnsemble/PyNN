@@ -41,7 +41,7 @@ class TestOneToOneConnector(unittest.TestCase):
         C = connectors.OneToOneConnector(safe=False)
         syn = sim.StaticSynapse(weight=5.0, delay=0.5)
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(1, 1, 5.0, 0.5),
                           (3, 3, 5.0, 0.5)])
 
@@ -50,7 +50,7 @@ class TestOneToOneConnector(unittest.TestCase):
         syn = sim.StaticSynapse(weight=rd, delay=0.5)
         C = connectors.OneToOneConnector(safe=False)
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(1, 1, 1.0, 0.5),
                           (3, 3, 3.0, 0.5)])
 
@@ -69,7 +69,7 @@ class TestAllToAllConnector(unittest.TestCase):
         C = connectors.AllToAllConnector(safe=False)
         syn = sim.StaticSynapse(weight=5.0, delay=0.5)
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 5.0, 0.5),
                           (1, 1, 5.0, 0.5),
                           (2, 1, 5.0, 0.5),
@@ -84,7 +84,7 @@ class TestAllToAllConnector(unittest.TestCase):
         syn = sim.StaticSynapse(weight=rd, delay=0.5)
         C = connectors.AllToAllConnector(safe=False)
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 4.0, 0.5),
                           (1, 1, 5.0, 0.5),
                           (2, 1, 6.0, 0.5),
@@ -99,7 +99,7 @@ class TestAllToAllConnector(unittest.TestCase):
         syn = sim.StaticSynapse(weight=d_expr, delay=0.5)
         C = connectors.AllToAllConnector(safe=False)
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 101.0, 0.5),
                           (1, 1, 100.0, 0.5),
                           (2, 1, 101.0, 0.5),
@@ -115,7 +115,7 @@ class TestAllToAllConnector(unittest.TestCase):
         assert C.safe
         assert C.allow_self_connections
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list')[0][3], prj._simulator.state.min_delay)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False)[0][3], prj._simulator.state.min_delay)
 
     @unittest.skip('skipping this tests until I figure out how I want to refactor checks')
     def test_connect_with_delays_too_small(self):
@@ -151,7 +151,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
         # 20 possible connections. Due to the mock RNG, only the
         # first 8 are created (0,0), (1,0), (2,0), (3,0), (0,1), (1,1), (2,1), (3,1)
         # of these, (0,1), (1,1), (2,1), (3,1) are created on this node
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 0.0, 0.123),
                           (1, 1, 0.0, 0.123),
                           (2, 1, 0.0, 0.123),
@@ -162,7 +162,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
                                                  rng=MockRNG(delta=0.1))
         syn = sim.StaticSynapse(weight=lambda d: 0.1*d)
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 0.1, 0.123),
                           (1, 1, 0.0, 0.123),
                           (2, 1, 0.1, 0.123),
@@ -173,7 +173,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
         syn = sim.StaticSynapse(delay=rd)
         C = connectors.FixedProbabilityConnector(p_connect=0.75, rng=MockRNG(delta=0.1))
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 0.0, 1.0+0.2*4),
                           (1, 1, 0.0, 1.0+0.2*5),
                           (2, 1, 0.0, 1.0+0.2*6),
@@ -197,7 +197,7 @@ class TestDistanceDependentProbabilityConnector(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, C, syn)
         # 20 possible connections. Only those with a sufficiently small distance
         # are created
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 0.0, 0.123),
                           (1, 1, 0.0, 0.123),
                           (2, 1, 0.0, 0.123),
@@ -226,7 +226,7 @@ class TestFromListConnector(unittest.TestCase):
         C = connectors.FromListConnector(connection_list)
         syn = sim.StaticSynapse()
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 0.5, 0.14),
                           (2, 3, 0.3, 0.12)])
 
@@ -270,7 +270,7 @@ class TestFromFileConnector(unittest.TestCase):
         C = connectors.FromFileConnector("test.connections", distributed=False)
         syn = sim.StaticSynapse()
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 0.5, 0.14),
                           (2, 3, 0.3, 0.12)])
 
@@ -280,7 +280,7 @@ class TestFromFileConnector(unittest.TestCase):
         C = connectors.FromFileConnector("test.connections", distributed=True)
         syn = sim.StaticSynapse()
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 0.5, 0.14),
                           (2, 3, 0.3, 0.12)])
 
@@ -299,7 +299,7 @@ class TestFixedNumberPostConnector(unittest.TestCase):
         C = connectors.FixedNumberPostConnector(n=3, rng=MockRNG(delta=1))
         syn = sim.StaticSynapse()
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 3, 0.0, 0.123),
                           (1, 3, 0.0, 0.123),
                           (2, 3, 0.0, 0.123),
@@ -320,13 +320,54 @@ class TestFixedNumberPreConnector(unittest.TestCase):
         C = connectors.FixedNumberPreConnector(n=3, rng=MockRNG(delta=1))
         syn = sim.StaticSynapse()
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(1, 1, 0.0, 0.123),
                           (2, 1, 0.0, 0.123),
                           (3, 1, 0.0, 0.123),
                           (1, 3, 0.0, 0.123),
                           (2, 3, 0.0, 0.123),
                           (3, 3, 0.0, 0.123),])
+
+
+class TestArrayConnector(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup(num_processes=2, rank=1, min_delay=0.123)
+        self.p1 = sim.Population(3, sim.IF_cond_exp(), structure=space.Line())
+        self.p2 = sim.Population(4, sim.HH_cond_exp(), structure=space.Line())
+        assert_array_equal(self.p2._mask_local, numpy.array([1,0,1,0], dtype=bool))
+        random.mpi_rank = 1
+        random.num_processes = 2
+
+    def test_connect_with_scalar_weights_and_delays(self):
+        connections = numpy.array([
+                [0, 1, 1, 0],
+                [1, 1, 0, 1],
+                [0, 0, 1, 0],
+            ])
+        C = connectors.ArrayConnector(connections, safe=False)
+        syn = sim.StaticSynapse(weight=5.0, delay=0.5)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(1, 0, 5.0, 0.5),
+                          (0, 2, 5.0, 0.5),
+                          (2, 2, 5.0, 0.5)])
+
+    def test_connect_with_random_weights_parallel_safe(self):
+        rd_w = random.RandomDistribution(rng=MockRNG(delta=1.0, parallel_safe=True))
+        rd_d = random.RandomDistribution(rng=MockRNG(start=1.0, delta=0.1, parallel_safe=True))
+        syn = sim.StaticSynapse(weight=rd_w, delay=rd_d)
+        connections = numpy.array([
+                [0, 1, 1, 0],
+                [1, 1, 0, 1],
+                [0, 0, 1, 0],
+            ])
+        C = connectors.ArrayConnector(connections, safe=False)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(1, 0, 0.0, 1.0),
+                          (0, 2, 3.0, 1.3),
+                          (2, 2, 4.0, 1.4000000000000001)])  # better to do an "almost-equal" check
 
 
 @unittest.skip('skipping these tests until I figure out how I want to refactor checks')

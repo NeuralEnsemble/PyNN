@@ -45,6 +45,7 @@ def test_distance():
     assert_equal(space.distance(cell1, cell2, periodic_boundaries=A(7.0, 1e12, 1e12)), 13.0)
 
 
+
 class SpaceTest(unittest.TestCase):
     
     def setUp(self):
@@ -74,7 +75,12 @@ class SpaceTest(unittest.TestCase):
                                          (sqrt(3), 0.0, sqrt(12), sqrt(14)),
                                          (sqrt(3), sqrt(12), 0.0, sqrt(50.0)),
                                          (sqrt(29), sqrt(14), sqrt(50.0), 0.0)]))
-        
+
+    def test_infinite_space_with_3D_distances(self):
+        s = space.Space()
+        self.assertArraysEqual(s.distances3D(self.ABCD.T, self.A),
+                               numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
+
     def test_generator_for_infinite_space_with_3D_distances(self):
         s = space.Space()
         f = lambda i: self.ABCD[:,i]

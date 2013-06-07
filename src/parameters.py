@@ -187,7 +187,7 @@ class ParameterSpace(object):
         `shape`:
             the shape of the lazy arrays that will be constructed.
 
-    .. _`lazy array`: http://readthedocs.org/docs/lazyarray/en/latest/index.html
+    .. _`lazy array`: https://lazyarray.readthedocs.org/
     """
 
     def __init__(self, parameters, schema=None, shape=None, component=None):

@@ -709,7 +709,8 @@ class CSAConnector(Connector):
                 delays = repeat(delays)
             for (i, j), weight, delay in zip (c, weights, delays):
                 projection._convergent_connect([projection.pre[i]], projection.post[j], weight, delay)
-                
+
+
 class CloneConnector(MapConnector):
     """
     Connects cells with the same connectivity pattern as a previous projection.
@@ -738,3 +739,23 @@ class CloneConnector(MapConnector):
         conn_matrix[conn_list[:,0], conn_list[:,1]] = True
         connection_map= LazyArray(conn_matrix)
         self._connect_with_map(connection_map)                
+
+
+class ArrayConnector(MapConnector):
+    """
+    Provide an explicit boolean connection matrix, with shape (m, n) where m is
+    the size of the presynaptic population and n that of the postsynaptic
+    population.
+    """
+    parameter_names = ('array')
+
+    def __init__(self, array, safe=True, callback=None):
+        """
+        Create a new connector.
+        """
+        Connector.__init__(self, safe, callback)
+        self.array = array
+
+    def connect(self, projection):
+        connection_map = LazyArray(self.array, projection.shape)
+        self._connect_with_map(projection, connection_map)

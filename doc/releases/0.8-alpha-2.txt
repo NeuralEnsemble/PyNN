@@ -1,0 +1,18 @@
+==============================
+PyNN 0.8 alpha 2 release notes
+==============================
+
+May 24th 2013
+
+Welcome to the second alpha release of PyNN 0.8!
+
+For full information about what's new in PyNN 0.8, see the :doc:`0.8-alpha-1`.
+
+This second alpha is mostly just a bug-fix release, although we have added a new
+class, :class:`CloneConnector` (thanks to Tom Close), which takes the connection
+matrix from an existing :class:`Projection` and uses it to create a new :class:`Projection`,
+with the option of changing the weights, delays, receptor type, etc.
+
+The other big change for developers is that we have switched from Subversion to
+Git. PyNN development now takes place at https://github.com/NeuralEnsemble/PyNN/
+

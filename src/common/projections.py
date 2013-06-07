@@ -217,11 +217,31 @@ class Projection(object):
             if with_address:
                 names = ["presynaptic_index", "postsynaptic_index"] + names
             values = self._get_attributes_as_list(*names)
+            if gather and self._simulator.state.num_processes > 1:
+                all_values = { self._simulator.state.mpi_rank: values }
+                all_values = recording.gather_dict(all_values)
+                if self._simulator.state.mpi_rank == 0:
+                    values = reduce(operator.add, all_values.values())
             if not with_address and return_single:
                 values = [val[0] for val in values]
             return values
         elif format == 'array':
-            values = self._get_attributes_as_arrays(*attribute_names)
+            if gather and self._simulator.state.num_processes > 1:
+                # Node 0 is the only one creating a full connection matrix, and returning it (saving memory)
+                # Slaves nodes are returning list of connections, so this may be inconsistent...
+                names      = list(attribute_names)
+                names      = ["presynaptic_index", "postsynaptic_index"] + names
+                values     = self._get_attributes_as_list(*names)
+                all_values = { self._simulator.state.mpi_rank: values }
+                all_values = recording.gather_dict(all_values)
+                if self._simulator.state.mpi_rank == 0:
+                    tmp_values = reduce(operator.add, all_values.values())
+                    values     = self._get_attributes_as_arrays(*attribute_names)
+                    tmp_values = numpy.array(tmp_values)
+                    for i in xrange(len(values)):
+                        values[i][tmp_values[:, 0].astype(int), tmp_values[:, 1].astype(int)] = tmp_values[:, 2+i]
+            else:
+                values = self._get_attributes_as_arrays(*attribute_names)
             if return_single:
                 assert len(values) == 1
                 return values[0]
@@ -274,8 +294,9 @@ class Projection(object):
         if format == 'array':
             all_values = [numpy.where(numpy.isnan(values), 0.0, values)
                           for values in all_values]
-        file.write(all_values, {})
-        file.close()
+        if self._simulator.state.mpi_rank == 0:
+            file.write(all_values, {})
+            file.close()
 
     @deprecated("save('all', file, format='list', gather=gather)")
     def saveConnections(self, file, gather=True, compatible_output=True):
