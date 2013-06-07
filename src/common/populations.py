@@ -531,7 +531,7 @@ class BasePopulation(object):
         # first column should probably be indices, not ids. This would make it
         # simulator independent.
         if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
+            file = recording.files.StandardTextFile(file, mode='w')
         cells  = self.all_cells
         result = numpy.empty((len(cells), 4))
         result[:,0]   = cells
@@ -607,6 +607,8 @@ class Population(BasePopulation):
         elif issubclass(cellclass, BaseCellType):
             self.celltype = cellclass(**cellparams)
             # emit deprecation warning
+        else:
+            raise TypeError("cellclass must be an instance or subclass of BaseCellType, not a %s" % type(cellclass))
         self.annotations = {}
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers

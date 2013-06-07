@@ -2,6 +2,9 @@
 PyNN: documentation
 ===================
 
+This is the documentation for version |release|. For versions 0.7 and earlier,
+see http://neuralensemble.org/trac/PyNN
+
 .. toctree::
    :maxdepth: 1
 

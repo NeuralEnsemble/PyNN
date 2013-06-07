@@ -152,7 +152,7 @@ Details
 * Rewrote the test suite, making a much cleaner distinction between unit tests,
   which now make heavy use of mock objects to better-isolate components, and
   system tests. Test suite now runs with nose
-  (http://somethingaboutorange.com/mrl/projects/nose), in order to facilitate
+  (https://nose.readthedocs.org/en/latest/), in order to facilitate
   continuous integration testing.
 * Changed the format of connection files, as written by
   :meth:`saveConnections()` and read by :class:`FromFileConnector`: files no
@@ -160,7 +160,7 @@ Details
   :class:`NumpyBinaryFile` or :class:`PickleFile` objects, instead of just text
   files. Same for :meth:`Population.save_positions()`.
 * Added CSAConnector, which wraps the Connection Set Algebra for use by PyNN.
-  Requires the csa package: http://pypi.python.org/pypi/csa/
+  Requires the csa package: https://pypi.python.org/pypi/csa/
 * Enhanced distance expressions by allowing expressions such as
   ``(d[0] < 0.1) & (d[1] < 0.2)``. Complex forms can therefore now be drawn,
   such as squares, ellipses, and so on.

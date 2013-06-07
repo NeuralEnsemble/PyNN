@@ -36,6 +36,11 @@ class TestFunctions(unittest.TestCase):
         sim.setup(rng_seeds_seed=42, threads=3)
         self.assertEqual(len(nest.GetKernelStatus('rng_seeds')), 3)
 
+    def test_run_0(self, ):  # see https://github.com/NeuralEnsemble/PyNN/issues/191
+        sim.setup(timestep=0.123, min_delay=0.246)
+        sim.run(0)
+        self.assertEqual(sim.get_current_time(), 0.0)
+    
 
 class TestPopulation(unittest.TestCase):
 

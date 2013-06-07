@@ -110,3 +110,11 @@ def test_ticket236():
     s2 = p1.get_spike_counts() # unexpectedly, still {1: 124, 2: 124}
     assert s1[p1[0]] < s2[p1[0]]
 
+def test_issue237():
+    sim = pyNN.nest
+    n_exc = 10
+    exc_noise_in_exc = sim.Population(n_exc, sim.SpikeSourcePoisson, {'rate' : 1000.})
+    exc_cells = sim.Population(n_exc, sim.IF_cond_exp())
+    exc_noise_connector = sim.OneToOneConnector()
+    noise_ee_prj = sim.Projection(exc_noise_in_exc, exc_cells, exc_noise_connector, receptor_type="excitatory")
+    noise_ee_prj.set(weight=1e-3)

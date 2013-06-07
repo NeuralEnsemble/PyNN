@@ -143,7 +143,7 @@ class ProjectionTest(unittest.TestCase):
 
     def test_get_weights_as_array(self):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
-        weights = prj.get("weight", format="array")
+        weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
         target = 0.456*numpy.ones((self.p1.size, self.p2.size))
         assert_array_equal(weights, target)
 

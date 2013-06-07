@@ -163,7 +163,7 @@ def test_metadata_property():
                  {'first_id': 2454, 'label': 'mock population',
                   'dt': 0.123, 'last_id': 2465, 'size': 11,
                   'first_index': 0, 'last_index': 11, 'knights_say': 'Ni!',
-                  'simulator': 'MockSimulator'})
+                  'simulator': 'MockSimulator', 'mpi_processes': 9})
 
 
 #def test_count__spikes_gather():
