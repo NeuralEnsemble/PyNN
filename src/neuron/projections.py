@@ -100,7 +100,7 @@ class Projection(common.Projection):
         """
         # Get the list of all connections on all nodes
         conn_list = numpy.array(self.get(self.synapse_type.get_parameter_names(), 'list', 
-                                               gather=True, with_address=True))
+                                               gather='all', with_address=True))
         # Loop through each of the connections where the presynaptic index (first column) is on 
         # the local node
         mask_local = numpy.array(numpy.in1d(conn_list[:,0], numpy.nonzero(self.pre._mask_local)), 

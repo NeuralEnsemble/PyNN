@@ -74,10 +74,13 @@ def gather_array(data):
 
 
 
-def gather_dict(D):
+def gather_dict(D, all=False):
     # Note that if the same key exists on multiple nodes, the value from the
     # node with the highest rank will appear in the final dict.
-    Ds = mpi_comm.gather(D, root=MPI_ROOT)
+    if all:
+        Ds = mpi_comm.allgather(D)
+    else:
+        Ds = mpi_comm.gather(D, root=MPI_ROOT)
     if Ds:
         for otherD in Ds:
             D.update(otherD)

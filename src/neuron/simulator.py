@@ -460,18 +460,20 @@ class GapJunction(object):
         
     def _make_connection(self, segment, weight, local_to_remote_vargid, remote_to_local_vargid,
                          local_gid, remote_gid):       
-        logger.info("Setting source_var on cell {} to connect to target_var on cell {} with "
-                    "vargid {} on process {}"
-                    .format(local_gid, remote_gid, local_to_remote_vargid, state.mpi_rank))
+        logger.debug("Setting source_var on local cell {} to connect to target_var on remote "
+                     "cell {} with vargid {} on process {}"
+                    .format(local_gid, remote_gid, local_to_remote_vargid, 
+                            state.mpi_rank))
         # Set up the source reference for the local->remote connection 
         state.parallel_context.source_var(segment(0.5)._ref_v, local_to_remote_vargid)              
         # Create the gap_junction and set its weight
         self.gap = h.Gap(0.5, sec=segment)
         self.gap.g = weight
         # Connect the gap junction with the source_var
-        logger.info("Setting target_var on cell {} to connect to source_var on cell {} with "
-                    "vargid {} on process {}"
-                    .format(local_gid, remote_gid, remote_to_local_vargid, state.mpi_rank))
+        logger.debug("Setting target_var on local cell {} to connect to source_var on remote "
+                     "cell {} with vargid {} on process {}"
+                    .format(local_gid, remote_gid, remote_to_local_vargid, 
+                            state.mpi_rank))
         # set up the target reference for the remote->local connection
         state.parallel_context.target_var(self.gap._ref_vgap, remote_to_local_vargid)
         
