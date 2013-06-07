@@ -98,21 +98,18 @@ class Projection(common.Projection):
         different nodes as the parameters need to be gathered to the node where the source is 
         hosted before it can be set
         """
-        idxs_and_values = self.get(self.synapse_type.get_parameter_names(), 'array', gather=True, 
-                                   with_address=True)
-        # Get the post indexes for all of the connections
-        all_post_idxs = idxs_and_values[1]
-        # Separate the parameter values from the indices
-        values = idxs_and_values[2:]
-        # Loop through all connections where the pre-synaptic cell is local
-        for pre_idx in numpy.nonzero(self.pre._mask_local)[0]:
-            # Get the indexes for the post-synaptic cells to loop through (i.e. which are not NaN)
-            post_idxs = all_post_idxs[pre_idx, :]
-            post_idxs = numpy.array(post_idxs[numpy.where(~numpy.isnan(post_idxs))], dtype=int)
-            for post_idx, vals in zip(post_idxs, zip(*[v[pre_idx,post_idxs] for v in values])):
-                params = dict(zip(self.synapse_type.get_parameter_names(), vals))
-                # Set up the presynaptic components of the connection
-                self._presynaptic_components[pre_idx][post_idx] = \
+        # Get the list of all connections on all nodes
+        conn_list = numpy.array(self.get(self.synapse_type.get_parameter_names(), 'list', 
+                                               gather=True, with_address=True))
+        # Loop through each of the connections where the presynaptic index (first column) is on 
+        # the local node
+        mask_local = numpy.array(numpy.in1d(conn_list[:,0], numpy.nonzero(self.pre._mask_local)), 
+                                 dtype=bool)
+        for conn in conn_list[mask_local, :]:
+            pre_idx = int(conn[0])
+            post_idx = int(conn[1])
+            params = dict(zip(self.synapse_type.get_parameter_names(), conn[2:]))
+            self._presynaptic_components[pre_idx][post_idx] = \
                                 simulator.configure_presynaptic(self, pre_idx, post_idx, **params)
 
     def _set_attributes(self, parameter_space):
