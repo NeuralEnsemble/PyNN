@@ -91,7 +91,6 @@ class Projection(common.Projection):
             self._connections[postsynaptic_index][pre_idx] = \
                                 simulator.connect(self, pre_idx, postsynaptic_index, **parameters)
 
-
     def _configure_presynaptic_components(self):
         """
         For gap junctions potentially other complex synapse types the presynaptic side of the 
@@ -99,16 +98,17 @@ class Projection(common.Projection):
         different nodes as the parameters need to be gathered to the node where the source is 
         hosted before it can be set
         """
-        idxs_values = self.get(self.synapse_type.get_parameter_names(), 'array', gather=True, 
-                               with_address=True)
+        idxs_and_values = self.get(self.synapse_type.get_parameter_names(), 'array', gather=True, 
+                                   with_address=True)
         # Get the post indexes for all of the connections
-        all_post_idxs = numpy.ma.masked_array(idxs_values[1], numpy.isnan(idxs_values[1]))
+        all_post_idxs = idxs_and_values[1]
         # Separate the parameter values from the indices
-        values = idxs_values[2:]
+        values = idxs_and_values[2:]
         # Loop through all connections where the pre-synaptic cell is local
         for pre_idx in numpy.nonzero(self.pre._mask_local)[0]:
-            # Get the indexes for the post-synaptic cells to loop through
-            post_idxs = numpy.array(numpy.ma.compressed(all_post_idxs[pre_idx, :]), dtype=int)
+            # Get the indexes for the post-synaptic cells to loop through (i.e. which are not NaN)
+            post_idxs = all_post_idxs[pre_idx, :]
+            post_idxs = numpy.array(post_idxs[numpy.where(~numpy.isnan(post_idxs))], dtype=int)
             for post_idx, vals in zip(post_idxs, zip(*[v[pre_idx,post_idxs] for v in values])):
                 params = dict(zip(self.synapse_type.get_parameter_names(), vals))
                 # Set up the presynaptic components of the connection
