@@ -103,7 +103,7 @@ class Projection(common.Projection):
                                                gather='all', with_address=True))
         # Loop through each of the connections where the presynaptic index (first column) is on 
         # the local node
-        mask_local = numpy.array(numpy.in1d(conn_list[:,0], numpy.nonzero(self.pre._mask_local)), 
+        mask_local = numpy.array(numpy.in1d(numpy.squeeze(conn_list[:,0]), numpy.nonzero(self.pre._mask_local)), 
                                  dtype=bool)
         for conn in conn_list[mask_local, :]:
             pre_idx = int(conn[0])
