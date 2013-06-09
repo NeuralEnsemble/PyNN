@@ -24,6 +24,21 @@ class StaticSynapse(synapses.StaticSynapse):
         return state.min_delay
 
 
+class ElectricalSynapse(synapses.ElectricalSynapse):
+    __doc__ = synapses.ElectricalSynapse.__doc__
+
+    has_presynaptic_components = True
+    connection_type = 'GapJunction'
+
+    translations = build_translations(
+        ('weight', 'weight'),
+    )
+    model = 'Gap'
+
+    def _get_minimum_delay(self):
+        return state.min_delay    
+
+
 class STDPMechanism(synapses.STDPMechanism):
     __doc__ = synapses.STDPMechanism.__doc__
     postsynaptic_variable = 'spikes'
