@@ -32,6 +32,13 @@ $Id$
 
 import logging
 import brian
+# brian version 4-specific
+if [int(x) for x in brian.__version__.split('.')] >= [1,4]:
+    # import * is not sufficient due to """__all__ = ['MultipleSpikeGeneratorGroup']""" in brian 1.4.1
+    from brian.deprecated.multiplespikegeneratorgroup import MultipleSpikeGeneratorGroup, MultipleSpikeGeneratorThreshold
+else:
+    from brian import MultipleSpikeGeneratorGroup
+    from brian.directcontrol import MultipleSpikeGeneratorThreshold
 import numpy
 from itertools import izip
 import scipy.sparse
@@ -155,7 +162,7 @@ class PoissonGroupWithDelays(brian.PoissonGroup):
         pass
 
 
-class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
+class MultipleSpikeGeneratorGroupWithDelays(MultipleSpikeGeneratorGroup):
 
     def __init__(self, spiketimes):
         try:
@@ -163,7 +170,7 @@ class MultipleSpikeGeneratorGroupWithDelays(brian.MultipleSpikeGeneratorGroup):
             max_delay = state.max_delay*ms
         except Exception:
             raise Exception("Simulation timestep not yet set. Need to call setup()")
-        thresh = brian.directcontrol.MultipleSpikeGeneratorThreshold(spiketimes)
+        thresh = MultipleSpikeGeneratorThreshold(spiketimes)
         brian.NeuronGroup.__init__(self, len(spiketimes),
                                    model=brian.LazyStateUpdater(),
                                    threshold=thresh,
