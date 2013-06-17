@@ -29,10 +29,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     simulator.state.dt = timestep  # move to common.setup?
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
-    if 'rank' in extra_params:
-        simulator.state.mpi_rank = extra_params['rank']
-    if 'num_processes' in extra_params:
-        simulator.state.num_processes = extra_params['num_processes']
+    simulator.state.mpi_rank = extra_params.get('rank', 0)
+    simulator.state.num_processes = extra_params.get('num_processes', 1)
     return rank()
 
 def end(compatible_output=True):
