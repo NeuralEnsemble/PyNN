@@ -3,7 +3,7 @@ import numpy
 import os
 from mock import Mock
 from nose.tools import assert_equal, assert_raises
-from pyNN.utility import assert_arrays_equal
+from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal
 from itertools import repeat
 
 MIN_DELAY = 0.123
@@ -184,6 +184,23 @@ class TestAllToAllConnector(object):
                       (20, 80, 160.0, 0.5),
                       (20, 82, 162.0, 0.5)])
 
+    def test_connect_with_weight_list_and_delay_array(self):
+        C = connectors.AllToAllConnector(weights=range(20), delays=numpy.arange(1.1, 3.1, 0.1), safe=False)
+        C.progressbar = Mock()
+        C.progression = Mock()
+        C.connect(self.prj)
+        assert_arrays_almost_equal(
+         numpy.array(self.prj.connection_manager.connections),
+         numpy.array([(17, 80, 1.0, 1.2),
+                      (17, 82, 3.0, 1.4),
+                      (18, 80, 6.0, 1.7),
+                      (18, 82, 8.0, 1.9),
+                      (19, 80, 11.0, 2.2),
+                      (19, 82, 13.0, 2.4),
+                      (20, 80, 16.0, 2.7),
+                      (20, 82, 18.0, 2.9)]),
+         1e-9)
+
     def test_create_with_delays_None(self):
         C = connectors.AllToAllConnector(weights=0.1, delays=None)
         assert_equal(C.weights, 0.1)
@@ -223,6 +240,18 @@ class TestFixedProbabilityConnector(object):
                      [(17, 80, 0.0, MIN_DELAY),
                       (17, 82, 0.0, MIN_DELAY),
                       (18, 80, 0.0, MIN_DELAY)])
+
+    def test_connect_with_weight_list_and_delay_array(self):
+        C = connectors.FixedProbabilityConnector(p_connect=0.75, weights=range(20), delays=numpy.arange(1.1, 3.1, 0.1))
+        C.progressbar = Mock()
+        C.progression = Mock()
+        C.connect(self.prj)
+        assert_arrays_almost_equal(
+         numpy.array(self.prj.connection_manager.connections),
+         numpy.array([(17, 80, 1.0, 1.2),
+                      (17, 82, 3.0, 1.4),
+                      (18, 80, 6.0, 1.7)]),
+         1e-9)
 
 class TestDistanceDependentProbabilityConnector(object):
 

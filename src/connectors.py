@@ -65,7 +65,7 @@ class ConnectionAttributeGenerator(object):
         self.safe       = safe
         if self.safe:
             self.get = self.get_safe    
-        if isinstance(self.source, numpy.ndarray):
+        if isinstance(self.source, (numpy.ndarray, list)):
             self.source_iterator = iter(self.source)
     
     def check(self, data):
@@ -84,7 +84,7 @@ class ConnectionAttributeGenerator(object):
         distance_matrix - a DistanceMatrix object, used for calculating
                           distance-dependent attributes.
         sub-mask - a sublist of the ids we want compute some values with. For
-                   example in parallel, distances shoudl be computed only between a source
+                   example in parallel, distances should be computed only between a source
                    and local targets, since only connections with those targets are established. 
                    Avoid useless computations...                 
                    
@@ -118,15 +118,15 @@ class ConnectionAttributeGenerator(object):
                 values = data[sub_mask]
             return values
         elif isinstance(self.source, numpy.ndarray):
-            if len(self.source.shape) == 2:
-                source_row = self.source_iterator.next()
-                values     = source_row[self.local_mask]
-            elif len(self.source.shape) == 1: # for OneToOneConnector or AllToAllConnector used from or to only one Neuron
-                values = self.source[self.local_mask]
-            else:
-                raise Exception()
+            assert len(self.source.shape) == 1
+            values = numpy.array([self.source_iterator.next() for i in range(N)])[self.local_mask]
             if sub_mask is not None:
-                values = values[sub_mask]
+                values = numpy.array(values)[sub_mask]
+            return values
+        elif isinstance(self.source, list):
+            values = numpy.array([self.source_iterator.next() for i in range(N)])[self.local_mask]
+            if sub_mask is not None:
+                values = numpy.array(values)[sub_mask]
             return values
         else:
             raise Exception("Invalid source")

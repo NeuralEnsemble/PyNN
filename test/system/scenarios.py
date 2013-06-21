@@ -525,3 +525,13 @@ def ticket226(sim):
     id, t, v = cell.get_v().T
     assert abs(v[abs(t-10.0)<0.01][0] - -60.0) < 1e-10
     assert v[abs(t-10.1)<0.01][0] > -59.99
+
+@register()
+def issue243(sim):
+    sim.setup()
+    pre = sim.Population(2, sim.IF_cond_alpha)
+    post = sim.Population(2, sim.IF_cond_alpha) 
+    connector = sim.AllToAllConnector(weights=numpy.array([1, 2, 3, 4]))
+    projection = sim.Projection(pre, post, connector)
+    assert_equal(projection.getWeights(format='list'), [1.0, 2.0, 3.0, 4.0])
+    assert_arrays_equal(projection.getWeights(format='array'), numpy.array([[1, 2], [3, 4]], float))

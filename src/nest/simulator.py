@@ -26,7 +26,7 @@ modules.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id$
+$Id: simulator.py 1258 2013-01-31 15:01:25Z apdavison $
 """
 
 import nest
@@ -305,6 +305,7 @@ class ConnectionManager:
         
         if self.synapse_type not in targets[0].celltype.synapse_types:
             raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: %s" % ( self.synapse_type, "'"+"', '".join(st for st in targets[0].celltype.synapse_types or ['*No connections supported*']))+"'" )
+        # should only scale it it's a PyNN synapse model, not if it's native
         weights = numpy.array(weights)*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
