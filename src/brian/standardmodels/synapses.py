@@ -18,7 +18,7 @@ class STDPMechanism(STDPMechanism):
         assert dendritic_delay_fraction == 0, """Brian does not currently support dendritic delays:
                                                  for the purpose of STDP calculations all delays
                                                  are assumed to be axonal."""
-        standardmodels.STDPMechanism.__init__(self, timing_dependence, weight_dependence,
+        super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
                                       voltage_dependence, dendritic_delay_fraction)
 
 

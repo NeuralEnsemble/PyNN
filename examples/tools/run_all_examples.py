@@ -24,7 +24,8 @@ exclude = {
     'NEURON': ("brunel.py", "tsodyksmarkram2.py"),
     'NEST': ("brunel.py"),
     'Brian': ("brunel.py", "tsodyksmarkram.py", "tsodyksmarkram2.py",
-              "simple_STDP.py", "simple_STDP2.py"),
+              "simple_STDP.py", "simple_STDP2.py", "nineml_neuron.py",
+              "HH_cond_exp.py", "HH_cond_exp2.py", "VAbenchmarks2-csa.py"),
 }
 
 extra_args = {
