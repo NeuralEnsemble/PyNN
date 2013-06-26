@@ -249,7 +249,10 @@ class ParameterSpace(object):
                 if (expected_dtype == Sequence
                     and isinstance(value, collections.Sized)
                     and not isinstance(value[0], Sequence)): # may be a more generic way to do it, but for now this special-casing seems like the most robust approach
-                    value = Sequence(value)
+                    if isinstance(value[0], collections.Sized):  # e.g. list of tuples
+                        value = type(value)([Sequence(x) for x in value])
+                    else:
+                        value = Sequence(value)
                 try:
                     self._parameters[name] = LazyArray(value, shape=self._shape,
                                                        dtype=expected_dtype)
