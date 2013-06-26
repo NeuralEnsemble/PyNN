@@ -21,8 +21,9 @@ class SimpleTests(unittest.TestCase):
     """Simple tests on a single RNG function."""
     
     def setUp(self):
-        random.mpi_rank=0; random.num_processes=1
         self.rnglist = [random.NumpyRNG(seed=987)]
+        for rng in self.rnglist:
+            rng.mpi_rank=0; rng.num_processes=1
         if random.have_gsl:
             self.rnglist.append(random.GSLRNG(seed=654))
 
@@ -57,18 +58,23 @@ class SimpleTests(unittest.TestCase):
     def test_invalid_seed(self):
         self.assertRaises(AssertionError, random.NumpyRNG, seed=2.3)
 
+
 class ParallelTests(unittest.TestCase):
 
     def setUp(self):
         self.rng_types = [random.NumpyRNG]
         if random.have_gsl:
             self.rng_types.append(random.GSLRNG)
+        self.orig_mpi_config = random.get_mpi_config
+        
+    def tearDown(self):
+        random.get_mpi_config = self.orig_mpi_config
 
     def test_parallel_unsafe(self):
         for rng_type in self.rng_types:
-            random.mpi_rank=0; random.num_processes=2
+            random.get_mpi_config = lambda: (0, 2)
             rng0 = rng_type(seed=1000, parallel_safe=False)
-            random.mpi_rank=1; random.num_processes=2
+            random.get_mpi_config = lambda: (1, 2)
             rng1 = rng_type(seed=1000, parallel_safe=False)
             self.assertEqual(rng0.seed, 1000)
             self.assertEqual(rng1.seed, 1001)
@@ -80,9 +86,9 @@ class ParallelTests(unittest.TestCase):
 
     def test_parallel_safe_with_mask_local(self):
         for rng_type in self.rng_types:
-            random.mpi_rank=0; random.num_processes=2
+            random.get_mpi_config = lambda: (0, 2)
             rng0 = rng_type(seed=1000, parallel_safe=True)
-            random.mpi_rank=1; random.num_processes=2
+            random.get_mpi_config = lambda: (1, 2)
             rng1 = rng_type(seed=1000, parallel_safe=True)
             draw0 = rng0.next(5, mask_local=numpy.array((1,0,1,0,1), bool))
             draw1 = rng1.next(5, mask_local=numpy.array((0,1,0,1,0), bool))
@@ -92,9 +98,9 @@ class ParallelTests(unittest.TestCase):
 
     def test_parallel_safe_with_mask_local_False(self):
         for rng_type in self.rng_types:
-            random.mpi_rank=0; random.num_processes=2
+            random.get_mpi_config = lambda: (0, 2)
             rng0 = rng_type(seed=1000, parallel_safe=True)
-            random.mpi_rank=1; random.num_processes=2
+            random.get_mpi_config = lambda: (1, 2)
             rng1 = rng_type(seed=1000, parallel_safe=True)
             draw0 = rng0.next(5, mask_local=False)
             draw1 = rng1.next(5, mask_local=False)
@@ -104,9 +110,9 @@ class ParallelTests(unittest.TestCase):
 
     def test_permutation(self):
         # only works for NumpyRNG at the moment. pygsl has a permutation module, but I can't find documentation for it.
-        random.mpi_rank=0; random.num_processes=2
+        random.get_mpi_config = lambda: (0, 2)
         rng0 = random.NumpyRNG(seed=1000, parallel_safe=True)
-        random.mpi_rank=1; random.num_processes=2
+        random.get_mpi_config = lambda: (1, 2)
         rng1 = random.NumpyRNG(seed=1000, parallel_safe=True)
         A = range(10)
         perm0 = rng0.permutation(A)
@@ -122,7 +128,7 @@ class NativeRNGTests(unittest.TestCase):
 class RandomDistributionTests(unittest.TestCase):
     
     def setUp(self):
-        random.mpi_rank=0; random.num_processes=1
+        random.get_mpi_config = lambda: (0, 1)
         self.rnglist = [random.NumpyRNG(seed=987)]
         if random.have_gsl:
             self.rnglist.append(random.GSLRNG(seed=654))

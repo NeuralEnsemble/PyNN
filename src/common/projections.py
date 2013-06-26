@@ -95,7 +95,7 @@ class Projection(object):
             - only local connections, if gather is False,
             - all connections, if gather is True (default)
         """
-        if gather:
+        if gather and self._simulator.state.num_processes > 1:
             n = len(self)
             return recording.mpi_sum(n)
         else:
