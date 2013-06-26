@@ -32,6 +32,12 @@ import os
 from datetime import datetime
 import functools
 import numpy
+try:
+    from importlib import import_module
+except ImportError:  # Python 2.6
+    def import_module(name):
+        return __import__(name)
+    
 from pyNN.core import deprecated
 
 red     = 0010; green  = 0020; yellow = 0030; blue = 0040
@@ -99,6 +105,30 @@ def get_script_args(n_args, usage=''):
         usage = usage or "Script requires %d arguments, you supplied %d" % (n_args, len(args))
         raise Exception(usage)
     return args
+
+
+def get_simulator(*arguments):
+    """
+    Import and return a PyNN simulator backend module based on command-line
+    arguments.
+    
+    The simulator name should be the first positional argument. If your script
+    needs additional arguments, you can specify them as (name, help_text) tuples.
+    If you need more complex argument handling, you should use argparse
+    directly.
+    
+    Returns (simulator, command-line arguments)
+    """
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("simulator",
+                        help="neuron, nest, brian, pcsim or another backend simulator")
+    for argument in arguments:
+        arg_name, help_text = argument
+        parser.add_argument(arg_name, help=help_text)
+    args = parser.parse_args()
+    sim = import_module("pyNN.%s" % args.simulator)
+    return sim, args
 
 
 def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):

@@ -7,11 +7,10 @@ May 2009
 """
 
 import numpy
-from pyNN.utility import get_script_args, init_logging, normalized_filename
+from pyNN.utility import get_simulator, init_logging, normalized_filename
 
 init_logging(None, debug=True)
-simulator_name = get_script_args(1)[0]
-exec("import pyNN.%s as sim" % simulator_name)
+sim, options = get_simulator()
 
 sim.setup(quit_on_end=False)
 
@@ -43,7 +42,7 @@ sim.run(200.0)
 
 for label,p in populations.items():
     filename = normalized_filename("Results", "tsodyksmarkram_%s" % label,
-                                   "pkl", simulator_name)
+                                   "pkl", options.simulator)
     p.write_data(filename, annotations={'script_name': __file__})
 
 print spike_source.get_data('spikes')
