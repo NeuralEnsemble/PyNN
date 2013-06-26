@@ -46,8 +46,7 @@ def get_mpi_comm():
         from mpi4py import MPI
     except ImportError:
         raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
-    return MPI.COMM_WORLD
-
+    return MPI.COMM_WORLD, MPI.DOUBLE, MPI.SUM
 
 def rename_existing(filename):
     if os.path.exists(filename):
@@ -56,7 +55,7 @@ def rename_existing(filename):
 
 def gather_array(data):
     # gather 1D or 2D numpy arrays
-    mpi_comm = get_mpi_comm()
+    mpi_comm, MPI_DOUBLE = get_mpi_comm()
     assert isinstance(data, numpy.ndarray)
     assert len(data.shape) < 3
     # first we pass the data size
@@ -65,8 +64,8 @@ def gather_array(data):
     # now we pass the data
     displacements = [sum(sizes[:i]) for i in range(len(sizes))]
     gdata = numpy.empty(sum(sizes))
-    mpi_comm.Gatherv([data.flatten(), size, MPI.DOUBLE],
-                     [gdata, (sizes, displacements), MPI.DOUBLE],
+    mpi_comm.Gatherv([data.flatten(), size, MPI_DOUBLE],
+                     [gdata, (sizes, displacements), MPI_DOUBLE],
                      root=MPI_ROOT)
     if len(data.shape) == 1:
         return gdata
@@ -107,9 +106,9 @@ def gather_blocks(data):
 
 
 def mpi_sum(x):
-    mpi_comm = get_mpi_comm()
+    mpi_comm, MPI_DOUBLE, MPI_SUM = get_mpi_comm()
     if mpi_comm.size > 1:
-        return mpi_comm.allreduce(x, op=MPI.SUM)
+        return mpi_comm.allreduce(x, op=MPI_SUM)
     else:
         return x
 
