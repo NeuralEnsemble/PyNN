@@ -1,5 +1,3 @@
-: $Id: izhikevich.mod,v 1.16 2007/08/21 14:22:58 billl Exp $
-
 : Izhikevich artificial neuron model from 
 : EM Izhikevich "Simple Model of Spiking Neurons"
 : IEEE Transactions On Neural Networks, Vol. 14, No. 6, November 2003 pp 1569-1572

@@ -12,7 +12,6 @@
 :   J. Neurophysiol. 94: 3637-3642, 2005.
 :  
 : Implemented by Andrew Davison. UNIC, CNRS, March 2009.
-: $Id$
 
 NEURON {
     POINT_PROCESS AdExpIF
