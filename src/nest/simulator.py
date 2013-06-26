@@ -51,9 +51,8 @@ class _State(common.control.BaseState):
         super(_State, self).__init__()
         self.initialized = False
         self.optimize = False
-        self.spike_precision = "on_grid"
+        self.spike_precision = "off_grid"
         self.verbosity = "warning"
-        self.default_recording_precision = 3
         self._cache_num_processes = nest.GetKernelStatus()['num_processes'] # avoids blocking if only some nodes call num_processes
                                                                             # do the same for rank?
         # allow NEST to erase previously written files (defaut with all the other simulators)
