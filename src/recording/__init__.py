@@ -20,10 +20,6 @@ from pyNN import errors
 import neo
 from datetime import datetime
 import quantities as pq
-try:
-    from mpi4py import MPI
-except ImportError:
-    MPI = None
 
 logger = logging.getLogger("PyNN")
 
@@ -34,8 +30,6 @@ numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support diffe
                     'v': "%g",      # formats for different columns
                     'gsyn': "%g"}
 
-if MPI:
-    mpi_comm = MPI.COMM_WORLD
 MPI_ROOT = 0
 
 UNITS_MAP = {
@@ -46,6 +40,15 @@ UNITS_MAP = {
     'w': 'nA',
 }
 
+
+def get_mpi_comm():
+    try:
+        from mpi4py import MPI
+    except ImportError:
+        raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
+    return MPI.COMM_WORLD
+
+
 def rename_existing(filename):
     if os.path.exists(filename):
         os.system('mv %s %s_old' % (filename, filename))
@@ -53,8 +56,7 @@ def rename_existing(filename):
 
 def gather_array(data):
     # gather 1D or 2D numpy arrays
-    if MPI is None:
-        raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
+    mpi_comm = get_mpi_comm()
     assert isinstance(data, numpy.ndarray)
     assert len(data.shape) < 3
     # first we pass the data size
@@ -73,10 +75,10 @@ def gather_array(data):
         return gdata.reshape((gdata.size/num_columns, num_columns))
 
 
-
 def gather_dict(D, all=False):
     # Note that if the same key exists on multiple nodes, the value from the
     # node with the highest rank will appear in the final dict.
+    mpi_comm = get_mpi_comm()
     if all:
         Ds = mpi_comm.allgather(D)
     else:
@@ -89,8 +91,7 @@ def gather_dict(D, all=False):
 
 def gather_blocks(data):
     """Gather Neo Blocks"""
-    if MPI is None:
-        raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
+    mpi_comm = get_mpi_comm()
     assert isinstance(data, neo.Block)
     # for now, use gather_dict, which will probably be slow. Can optimize later
     D = {mpi_comm.rank: data}
@@ -105,7 +106,8 @@ def gather_blocks(data):
 
 
 def mpi_sum(x):
-    if MPI and mpi_comm.size > 1:
+    mpi_comm = get_mpi_comm()
+    if mpi_comm.size > 1:
         return mpi_comm.allreduce(x, op=MPI.SUM)
     else:
         return x

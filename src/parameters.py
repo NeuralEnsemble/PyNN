@@ -77,14 +77,14 @@ class LazyArray(larray):
         if mask is not None:
             assert len(mask) == self.ncols
             column_indices = column_indices[mask]
-        if isinstance(self.base_value, RandomDistribution):
+        if isinstance(self.base_value, RandomDistribution) and self.base_value.rng.parallel_safe:
             if mask is None:
                 for j in column_indices:
                     yield self._apply_operations(self.base_value.next(self.nrows, mask_local=False),
                                                  (slice(None), j))
             else:
                 column_indices = numpy.arange(self.ncols)
-                for j,local in zip(column_indices, mask):  # this assumes that self.base_value.parallel_safe=True ?
+                for j,local in zip(column_indices, mask):
                     col = self.base_value.next(self.nrows, mask_local=False)
                     if local:
                         yield self._apply_operations(col, (slice(None), j))
@@ -289,6 +289,8 @@ class ParameterSpace(object):
             self._evaluated_shape = self._shape
         else:
             for name, value in self._parameters.items():
+                if isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe:
+                    value = value.evaluate()  # can't partially evaluate if using parallel safe
                 self._parameters[name] = value[mask]
             self._evaluated_shape = partial_shape(mask, self._shape)
         self._evaluated = True

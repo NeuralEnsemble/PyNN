@@ -110,6 +110,7 @@ class Population(common.Population, PopulationMixin):
         # perhaps should check for that
         nest_model = self.celltype.nest_name[simulator.state.spike_precision]
         if isinstance(self.celltype, StandardCellType):
+            self.celltype.parameter_space.shape = (self.size,)  # should perhaps do this on a copy?
             params = _build_params(self.celltype.native_parameters,
                                    None,
                                    size=self.size,

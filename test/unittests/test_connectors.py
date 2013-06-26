@@ -18,16 +18,13 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from .mocks import MockRNG
 import pyNN.mock as sim
 
-real_mpi_rank = random.mpi_rank
-real_num_processes = random.num_processes
-orig_sim_mpi_rank = sim.simulator.state.mpi_rank
-orig_sim_num_processes = sim.simulator.state.num_processes
+
+orig_mpi_get_config = random.get_mpi_config
+def setUp():
+    random.get_mpi_config = lambda: (0, 2)
 
 def tearDown():
-    random.mpi_rank = real_mpi_rank
-    random.num_processes = real_num_processes
-    sim.simulator.state.mpi_rank = orig_sim_mpi_rank
-    sim.simulator.state.num_processes = orig_sim_num_processes
+    random.get_mpi_config = orig_mpi_get_config
 
 class TestOneToOneConnector(unittest.TestCase):
 
@@ -62,8 +59,6 @@ class TestAllToAllConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_connect_with_scalar_weights_and_delays(self):
         C = connectors.AllToAllConnector(safe=False)
@@ -139,8 +134,6 @@ class TestFixedProbabilityConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_connect_with_default_args(self):
         C = connectors.FixedProbabilityConnector(p_connect=0.75,
@@ -187,8 +180,6 @@ class TestDistanceDependentProbabilityConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_connect_with_default_args(self):
         C = connectors.DistanceDependentProbabilityConnector(d_expression="d<1.5",
@@ -212,8 +203,6 @@ class TestFromListConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_connect_with_valid_list(self):
         connection_list = [
@@ -250,8 +239,6 @@ class TestFromFileConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
         self.connection_list = [
             (0, 0, 0.1, 0.1),
             (3, 0, 0.2, 0.11),
@@ -292,8 +279,6 @@ class TestFixedNumberPostConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_with_n_smaller_than_population_size(self):
         C = connectors.FixedNumberPostConnector(n=3, rng=MockRNG(delta=1))
@@ -313,8 +298,6 @@ class TestFixedNumberPreConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_with_n_smaller_than_population_size(self):
         C = connectors.FixedNumberPreConnector(n=3, rng=MockRNG(delta=1))
@@ -336,8 +319,6 @@ class TestArrayConnector(unittest.TestCase):
         self.p1 = sim.Population(3, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(4, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_connect_with_scalar_weights_and_delays(self):
         connections = numpy.array([
