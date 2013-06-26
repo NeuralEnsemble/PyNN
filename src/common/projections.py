@@ -204,6 +204,9 @@ class Projection(object):
             TODO
 
         TODO: document "with_address"
+        
+        Values will be expressed in the standard PyNN units (i.e. millivolts,
+        nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
         if isinstance(attribute_names, basestring):
             attribute_names = (attribute_names,)
@@ -285,6 +288,9 @@ class Projection(object):
         """
         Print synaptic attributes (weights, delays, etc.) to file. In the array
         format, zeros are printed for non-existent connections.
+        
+        Values will be expressed in the standard PyNN units (i.e. millivolts,
+        nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
         if attribute_names in ('all', 'connections'):
             attribute_names = ['weight', 'delay'] # need to add synapse dynamics parameter names, if applicable
