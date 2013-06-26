@@ -1213,7 +1213,7 @@ class Assembly(object):
     def get_data(self, variables='all', gather=True, clear=False):
         """
         Return a Neo `Block` containing the data (spikes, state variables)
-        recorded from the Population.
+        recorded from the Assembly.
 
         `variables` - either a single variable name or a list of variable names
                       Variables must have been previously recorded, otherwise an
@@ -1224,7 +1224,7 @@ class Assembly(object):
         Otherwise, the Neo `Block` will contain only data from the cells
         simulated on the local node.
 
-        If `clear` is True, recorded data will be deleted from the `Population`.
+        If `clear` is True, recorded data will be deleted from the `Assembly`.
         """
         name = self.label
         description = self.describe()

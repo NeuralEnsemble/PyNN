@@ -93,7 +93,7 @@ def gather_blocks(data):
     D = {mpi_comm.rank: data}
     D = gather_dict(D)
     blocks = D.values()
-    merged = None    
+    merged = data
     if mpi_comm.rank == MPI_ROOT:    
         merged = blocks[0]
         for block in blocks[1:]:
