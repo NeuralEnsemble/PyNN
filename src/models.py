@@ -81,6 +81,9 @@ class BaseCurrentSource(BaseModelType):
 
 class BaseSynapseType(BaseModelType):
     """Base class for synapse model classes."""
+    
+    connection_type = None # override to specify a non-standard connection type (i.e. GapJunctions)
+    has_presynaptic_components = False # override for synapses that include an active presynaptic components 
 
     def __init__(self, **parameters):
         """
@@ -89,8 +92,12 @@ class BaseSynapseType(BaseModelType):
         all_parameters = self.default_parameters.copy()
         if parameters:
             all_parameters.update(**parameters)
-        if all_parameters['delay'] is None:
-            all_parameters['delay'] = self._get_minimum_delay()
+        try:
+            if all_parameters['delay'] is None:
+                all_parameters['delay'] = self._get_minimum_delay()
+        except KeyError as e:
+            if e.message != 'delay': # ElectricalSynapses don't have delays 
+                raise e
         self.parameter_space = ParameterSpace(all_parameters,
                                               self.get_schema(),
                                               shape=None)

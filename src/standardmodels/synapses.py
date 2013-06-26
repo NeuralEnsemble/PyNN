@@ -31,6 +31,14 @@ class StaticSynapse(StandardSynapseType):
         'delay': None
     }
 
+class ElectricalSynapse(StandardSynapseType):
+    """
+    A bidirectional electrical synapse (gap junction) with fixed conductance
+    """
+       
+    default_parameters = {
+        'weight': 0.0 # the (bidirectional) conductance of the gap junction (uS) 
+    }
 
 class TsodyksMarkramSynapse(StandardSynapseType):
     """
