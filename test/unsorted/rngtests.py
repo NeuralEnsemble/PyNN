@@ -1,6 +1,6 @@
 """
 Unit tests for pyNN/random.py. 
-$Id$
+
 """
 
 import pyNN.random as random

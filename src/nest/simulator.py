@@ -26,7 +26,7 @@ modules.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id: simulator.py 1258 2013-01-31 15:01:25Z apdavison $
+
 """
 
 import nest

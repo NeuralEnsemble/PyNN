@@ -3,7 +3,6 @@
 // Template for a dictionary class (holds numbers, strings, objects. Key must be a string).
 
 // Andrew P. Davison, UNIC, CNRS, August 2005-February 2006.
-// $Id$
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

@@ -8,7 +8,7 @@ Needs to be extended to check that arguments have the same default arguments
 default values of args).
 
 Andrew P. Davison, CNRS, UNIC, May 2006
-$Id$
+
 """
 
 import re, string, types, getopt, sys, shutil, os, inspect, math

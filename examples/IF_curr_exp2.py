@@ -8,7 +8,7 @@ $ python IF_curr_exp2.py <simulator>
 
 where <simulator> is 'neuron', 'nest', etc
 
-$Id$
+
 """
 
 import numpy

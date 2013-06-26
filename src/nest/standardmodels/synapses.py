@@ -4,7 +4,7 @@ Synapse Dynamics classes for nest
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id$
+
 """
 
 import nest

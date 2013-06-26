@@ -5,7 +5,7 @@ projecting to a 2D population of IF_curr_exp neurons.
 Andrew Davison, UNIC, CNRS
 August 2006, November 2009
 
-$Id$
+
 """
 
 import socket, os

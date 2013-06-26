@@ -11,7 +11,7 @@ where <simulator> is 'neuron', 'nest', etc
 Andrew Davison, UNIC, CNRS
 September 2006
 
-$Id$
+
 """
 
 from pyNN.utility import get_script_args

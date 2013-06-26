@@ -5,7 +5,7 @@ single spike source.
 Andrew Davison, UNIC, CNRS
 May 2006
 
-$Id$
+
 """
 
 from pyNN.utility import get_script_args

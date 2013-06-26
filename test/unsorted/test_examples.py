@@ -1,5 +1,5 @@
 """ Master script for running examples.
-$Id$
+
 """
 
 import subprocess, sys, glob, os, re

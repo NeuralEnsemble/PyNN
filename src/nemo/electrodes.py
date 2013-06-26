@@ -8,7 +8,7 @@ Classes:
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id: electrodes.py 922 2011-02-02 16:41:12Z pierre $
+
 """
 
 import simulator

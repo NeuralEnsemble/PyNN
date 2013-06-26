@@ -4,7 +4,7 @@ Example of depressing and facilitating, current-based, alpha synapses
 Andrew Davison, UNIC, CNRS
 May 2009
 
-$Id:$
+
 """
 
 import numpy

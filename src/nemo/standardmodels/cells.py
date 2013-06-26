@@ -5,7 +5,7 @@ Standard cells for the nemo module
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id: cells.py 897 2011-01-13 12:47:23Z pierre $
+
 """
 
 from pyNN.standardmodels import cells, build_translations, ModelNotAvailable, StandardCellType

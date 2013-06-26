@@ -15,7 +15,7 @@ Assemblies.
 Andrew Davison, UNIC, CNRS
 March 2010
 
-$Id: $
+
 """
 
 import os

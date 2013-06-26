@@ -4,7 +4,7 @@ Simple test of recording a SpikeSourcePoisson object
 Andrew Davison, UNIC, CNRS
 September 2006
 
-$Id$
+
 """
 
 from pyNN.utility import get_script_args

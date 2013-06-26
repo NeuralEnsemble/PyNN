@@ -4,7 +4,7 @@ Very simple STDP test
 Andrew Davison, UNIC, CNRS
 January 2008
 
-$Id: simple_STDP.py 607 2009-05-19 15:04:35Z apdavison $
+
 """
 
 import numpy
