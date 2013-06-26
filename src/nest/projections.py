@@ -5,7 +5,6 @@ NEST v2 implementation of the PyNN API.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id: __init__.py 1216 2012-09-11 13:57:27Z apdavison $
 """
 
 import numpy

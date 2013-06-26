@@ -11,7 +11,6 @@ where <simulator> is 'neuron', 'nest', etc
 Andrew Davison, UNIC, CNRS
 September 2006
 
-$Id: IF_curr_exp.py 756 2010-05-18 12:57:19Z apdavison $
 """
 
 from pyNN.utility import get_script_args

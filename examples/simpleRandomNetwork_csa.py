@@ -5,7 +5,6 @@ projecting to a 2D population of IF_curr_exp neurons.
 Andrew Davison, UNIC, CNRS
 August 2006, November 2009
 
-$Id: simpleRandomNetwork.py 933 2011-02-14 18:41:49Z apdavison $
 """
 
 import socket, os

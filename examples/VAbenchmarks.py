@@ -12,7 +12,6 @@ synapses (instantaneous rise, exponential decay).
 Andrew Davison, UNIC, CNRS
 August 2006
 
-$Id:VAbenchmarks.py 5 2007-04-16 15:01:24Z davison $
 """
 
 import os

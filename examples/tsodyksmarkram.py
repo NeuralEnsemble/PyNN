@@ -4,7 +4,6 @@ Example of depressing and facilitating synapses
 Andrew Davison, UNIC, CNRS
 May 2009
 
-$Id$
 """
 
 import numpy

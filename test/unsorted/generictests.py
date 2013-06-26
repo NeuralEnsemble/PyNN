@@ -1,6 +1,5 @@
 """
 Unit tests for all simulators
-$Id$
 """
 
 import sys
