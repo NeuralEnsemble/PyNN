@@ -1,60 +1,65 @@
 : Izhikevich artificial neuron model from 
 : EM Izhikevich "Simple Model of Spiking Neurons"
 : IEEE Transactions On Neural Networks, Vol. 14, No. 6, November 2003 pp 1569-1572
-: v is the voltage analog, u controls 
 
 NEURON {
-  POINT_PROCESS Izikevich
-  RANGE a, b, vreset, d
-  NONSPECIFIC_CURRENT i
+  POINT_PROCESS Izhikevich
+  RANGE a, b, c, d
+  NONSPECIFIC_CURRENT i_inj
 }
 
 UNITS {
     (mV) = (millivolt)
+    (nA) = (nanoamp)
+    (Gohm) = (gigaohm)
 }
 
 INITIAL {
-  vm = -65
-  u = 0.2*vm
-  i = 0
-  net_send(0,1)
+  vm = -70
+  u = -14
+  net_send(0, 1)
+}
+
+CONSTANT {
+    Rm = 1 (Gohm)
 }
 
 PARAMETER {
-  a       = 0.02
-  b       = 0.2
-  vreset  = -65 (mV)   : reset potential after a spike
-  d       = 2
-  vthresh = 30  (mV)   : spike threshold
+  a       = 0.02 (/ms)
+  b       = 0.2  (/mV)
+  c       = -65  (mV)   : reset potential after a spike
+  d       = 2    (mV/ms)
+  vthresh = 30   (mV)   : spike threshold
+  i_inj   = 0    (nA)
 }
 
 STATE { 
-  u (mV)
-  vm
-}
-
-ASSIGNED {
-    i (nA)
+  u (mV/ms)
+  vm (mV)
 }
 
 BREAKPOINT {
   SOLVE states METHOD derivimplicit
+  :printf("v=%f u=%f, dv=%f, du=%f\n", vm, u, 0.04*vm*vm + 5*vm + 140 - u + i_inj*Rm, a*(b*vm-u))
 }
+
+UNITSOFF
 
 DERIVATIVE states {
-  vm' = 0.04*vm*vm + 5*vm + 140 - u + i
+  vm' = 0.04*vm*vm + 5*vm + 140 - u + i_inj*Rm
   u' = a*(b*vm-u) 
-  i  = 0
 }
 
-NET_RECEIVE (weight) {
+UNITSON
+
+NET_RECEIVE (weight (mV)) {
   if (flag == 1) {
-    WATCH (vm>vthresh) 2
+    WATCH (vm > vthresh) 2
   } else if (flag == 2) {
     net_event(t)
-    vm = vreset
-    u = u+d
+    vm = c
+    u = u + d
   } else { : synaptic activation
-    i = weight
+    vm = vm + weight
   }
 }
