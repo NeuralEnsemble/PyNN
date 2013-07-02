@@ -1,10 +1,17 @@
-import nest
+try:
+    import nest
+    from pyNN.nest import Population
+    from pyNN.nest.cells import NativeCellType
+except ImportError:
+    nest = False
 import numpy
 from mock import Mock
 from nose.tools import assert_equal
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 from pyNN.standardmodels import StandardCellType, build_translations
-from pyNN.nest import Population
-from pyNN.nest.cells import NativeCellType
 from pyNN.common import IDMixin
 
 class MockStandardCellType(StandardCellType):
@@ -38,7 +45,7 @@ class MockNativeCellType(NativeCellType):
 class MockID(IDMixin):
     set_parameters = Mock()
 
-
+@unittest.skipUnless(nest, "Requires NEST")
 class TestPopulation(object):
 
     def setup(self):

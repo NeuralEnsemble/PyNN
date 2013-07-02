@@ -1,12 +1,20 @@
-from neuron import h
-from pyNN.neuron import electrodes, recording, simulator
-from pyNN import common
 from mock import Mock
+
+try:
+    from neuron import h
+    from pyNN.neuron import electrodes, recording, simulator
+    have_neuron = True
+except ImportError:
+    have_neuron = False
+    h = Mock()
+from pyNN import common
+
 from nose.tools import assert_equal, assert_raises, assert_almost_equal
 from unittest.case import SkipTest
 import numpy
 import os
 
+skip_ci = False
 if "JENKINS_SKIP_TESTS" in os.environ:
     skip_ci = os.environ["JENKINS_SKIP_TESTS"] == "1"
 
@@ -47,6 +55,8 @@ class MockPopulation(common.BasePopulation):
 
     
 def test_is_point_process():
+    if skip_ci or not have_neuron:
+        raise SkipTest()
     section = h.Section()
     clamp = h.SEClamp(section(0.5))
     assert simulator.is_point_process(clamp)
@@ -54,7 +64,7 @@ def test_is_point_process():
     assert not simulator.is_point_process(section(0.5).hh)
 
 def test_native_rng_pick():
-    if skip_ci:
+    if skip_ci or not have_neuron:
         raise SkipTest()
     rng = Mock()
     rng.seed = 28754
@@ -65,7 +75,7 @@ def test_native_rng_pick():
     assert 5.5 < rarr.max() < 6
 
 def test_register_gid():
-    if skip_ci:
+    if skip_ci or not have_neuron:
         raise SkipTest()
     cell = MockCell()
     simulator.register_gid(84568345, cell.source, cell.source_section)
@@ -73,7 +83,7 @@ def test_register_gid():
 class TestInitializer(object):
 
     def test_initializer_initialize(self):
-        if skip_ci:
+        if skip_ci or not have_neuron:
             raise SkipTest()
         init = simulator.initializer
         orig_initialize = init._initialize
@@ -83,6 +93,8 @@ class TestInitializer(object):
         init._initialize = orig_initialize
     
     def test_register(self):
+        if not have_neuron:
+            raise SkipTest()
         init = simulator.initializer
         cell = MockID(22)
         pop = MockPopulation()
@@ -92,6 +104,8 @@ class TestInitializer(object):
         assert_equal(init.population_list, [pop])
 
     def test_initialize(self):
+        if not have_neuron:
+            raise SkipTest()
         init = simulator.initializer
         cell = MockID(77)
         pop = MockPopulation()
@@ -102,6 +116,8 @@ class TestInitializer(object):
             pcell._cell.memb_init.assert_called()
 
     def test_clear(self):
+        if not have_neuron:
+            raise SkipTest()
         init = simulator.initializer
         init.cell_list = range(10)
         init.population_list = range(10)
@@ -113,6 +129,8 @@ class TestInitializer(object):
 class TestState(object):
     
     def test_dt_property(self):
+        if not have_neuron:
+            raise SkipTest()
         simulator.state.dt = 0.01
         assert_equal(h.dt, 0.01)
         assert_equal(h.steps_per_ms, 100.0)
@@ -120,7 +138,7 @@ class TestState(object):
 
 
 def test_reset():
-    if skip_ci:
+    if skip_ci or not have_neuron:
         raise SkipTest()
     simulator.state.running = True
     simulator.state.t = 17
@@ -137,7 +155,7 @@ def test_reset():
 
 
 def test_run():
-    if skip_ci:
+    if skip_ci or not have_neuron:
         raise SkipTest()
     simulator.reset()
     simulator.run(12.3)
@@ -146,6 +164,8 @@ def test_run():
     assert_almost_equal(h.t, 20.0, places=11)
 
 def test_finalize():
+    if not have_neuron:
+        raise SkipTest()
     orig_pc = simulator.state.parallel_context
     simulator.state.parallel_context = Mock()
     simulator.finalize()
@@ -157,6 +177,8 @@ def test_finalize():
 class TestID(object):
     
     def setup(self):
+        if not have_neuron:
+            raise SkipTest()
         self.id = simulator.ID(984329856)
         self.id.parent = MockPopulation()
         self.id._cell = MockCell()
@@ -187,6 +209,8 @@ class TestID(object):
 class TestConnection(object):
     
     def setup(self):
+        if not have_neuron:
+            raise SkipTest()
         self.source = MockID(252)
         self.target = MockID(539)
         self.nc = h.NetCon(self.source._cell.source,
@@ -232,6 +256,8 @@ class TestConnection(object):
 class TestCurrentSources(object):
 
     def setup(self):
+        if not have_neuron:
+            raise SkipTest()
         self.cells = [MockID(n) for n in range(5)]
 
     def test_inject_dc(self):
@@ -251,6 +277,8 @@ class TestCurrentSources(object):
 class TestRecorder(object):
     
     def setup(self):
+        if not have_neuron:
+            raise SkipTest()
         if "foo" not in recording.Recorder.formats:
             recording.Recorder.formats['foo'] = "bar"
         self.rv = recording.Recorder('v')
