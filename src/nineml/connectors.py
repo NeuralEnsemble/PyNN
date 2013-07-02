@@ -1,11 +1,15 @@
 """
+Export of PyNN scripts as NineML.
+
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
+import nineml.user_layer as nineml
+
 from pyNN import connectors
 from utility import build_parameter_set, catalog_url
-import nineml.user_layer as nineml
+
     
 class ConnectorMixin(object):
     
@@ -20,12 +24,12 @@ class ConnectorMixin(object):
         return connection_rule
 
 
-class FixedProbabilityConnector(connectors.FixedProbabilityConnector, ConnectorMixin):
+class FixedProbabilityConnector(ConnectorMixin, connectors.FixedProbabilityConnector):
     definition_url = "%s/connectionrules/fixed_probability.xml" % catalog_url 
     parameter_names = ('p_connect', 'allow_self_connections')
    
    
-class DistanceDependentProbabilityConnector(connectors.DistanceDependentProbabilityConnector, ConnectorMixin):
+class DistanceDependentProbabilityConnector(ConnectorMixin, connectors.DistanceDependentProbabilityConnector):
     definition_url = "%s/connectionrules/distance_dependent_probability.xml" % catalog_url
     parameter_names = ('d_expression', 'allow_self_connections') # space
 

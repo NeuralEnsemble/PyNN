@@ -15,9 +15,9 @@ PyNN can work with NineML in two ways:
     NineML neuron/synapse components (and, in the future, PyNN dynamic synapse
     classes from NineML synaptic plasticity components).
     
-[Note: most of what is described below does not work yet, or is not properly
-tested - this document is currently a statement of intent, which will gradually
-turn into proper documentation as things get implemented/tested]
+.. note:: most of what is described below does not work yet, or is not properly
+          tested - this document is currently a statement of intent, which will gradually
+          turn into proper documentation as things get implemented/tested]
 
 Exporting a PyNN model as XML
 =============================
@@ -79,11 +79,13 @@ Simulating an entire NineML model with NEST or NEURON
 
 Again, this requires code-generation support for the backend simulator, or for
 PyNN to be able to recognize the components as equivalent to existing PyNN
-standard models. [For example, the PyNN Subversion repository could contain
+standard models.
+
+.. todo:: For example, the PyNN Git repository could contain
 NineML representations of the standard models; these representations would then
 each have a URL including version information, and if these URLs are used in the
 user layer description, PyNN can safely use a standard model rather than
-doing code generation].
+doing code generation.
 
 ::
 

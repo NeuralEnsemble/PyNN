@@ -5,11 +5,12 @@
 :license: CeCILL, see LICENSE for details.
 """
 
+from os.path import join, dirname
 from pyNN import random
 import nineml.user_layer as nineml
 
 #catalog_url = "http://svn.incf.org/svn/nineml/catalog"
-catalog_url = "https://neuralensemble.org/svn/PyNN/trunk/src/nineml/catalog"
+catalog_url = join(dirname(__file__), "catalog")
 
 units_map = { # arguably we should do the units mapping with the PyNN names, i.e. before translation.
     "time": "ms",

@@ -82,7 +82,7 @@ class Projection(object):
               "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(synapse_type)
         if label is None:
             if self.pre.label and self.post.label:
-                self.label = "%s→%s" % (self.pre.label, self.post.label)
+                self.label = u"%s→%s" % (self.pre.label, self.post.label)
         Projection._nProj += 1
 
     def __len__(self):
