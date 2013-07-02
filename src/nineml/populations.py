@@ -19,7 +19,7 @@ from .utility import build_parameter_set, catalog_url
 class BasePopulation(object):
     
     def get_synaptic_response_components(self, synaptic_mechanism_name):
-        return [self.celltype.synapse_type_to_nineml(synaptic_mechanism_name, self.label)]
+        return [self.celltype.synapse_type_to_nineml(synaptic_mechanism_name, self.label, (self.size,))]
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
@@ -114,6 +114,6 @@ class Population(BasePopulation, common.Population):
         population = nineml.Population(
                                 name=self.label,
                                 number=len(self),
-                                prototype=self.celltype.to_nineml(self.label)[0],
+                                prototype=self.celltype.to_nineml(self.label, (self.size,))[0],
                                 positions=nineml.PositionList(structure=structure))
         return population

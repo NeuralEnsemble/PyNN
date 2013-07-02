@@ -21,9 +21,10 @@ class CellTypeMixin(object):
     
     @property
     def spiking_mechanism_parameters(self):
-        smp = {}
-        for name in self.__class__.spiking_mechanism_parameter_names:
-            smp[name] = self.native_parameters[name]
+        smp = self.native_parameters
+        for name in smp.keys():
+            if name not in self.__class__.spiking_mechanism_parameter_names:
+                smp.pop(name)
         return smp
     
     @property
@@ -35,22 +36,22 @@ class CellTypeMixin(object):
                 smp[receptor_type][name.split("_")[1]] = self.native_parameters[name]
         return smp
     
-    def to_nineml(self, label):
-        components = [self.spiking_node_to_nineml(label)] + \
-                     [self.synapse_type_to_nineml(st, label) for st in self.receptor_types]
+    def to_nineml(self, label, shape):
+        components = [self.spiking_node_to_nineml(label, shape)] + \
+                     [self.synapse_type_to_nineml(st, label, shape) for st in self.receptor_types]
         return components
     
-    def spiking_node_to_nineml(self, label):
+    def spiking_node_to_nineml(self, label, shape):
         return nineml.SpikingNodeType(
                     name="neuron type for population %s" % label,
                     definition=nineml.Definition(self.spiking_mechanism_definition_url),
-                    parameters=build_parameter_set(self.spiking_mechanism_parameters))
+                    parameters=build_parameter_set(self.spiking_mechanism_parameters, shape))
     
-    def synapse_type_to_nineml(self, synapse_type, label):
+    def synapse_type_to_nineml(self, synapse_type, label, shape):
         return nineml.SynapseType(
                     name="%s post-synaptic response for %s" % (synapse_type, label),
                     definition=nineml.Definition(self.synaptic_mechanism_definition_urls[synapse_type]),
-                    parameters=build_parameter_set(self.synaptic_mechanism_parameters[synapse_type]))
+                    parameters=build_parameter_set(self.synaptic_mechanism_parameters[synapse_type], shape))
 
 
 class IF_curr_exp(cells.IF_curr_exp, CellTypeMixin):

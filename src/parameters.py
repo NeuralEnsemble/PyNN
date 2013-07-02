@@ -272,6 +272,16 @@ class ParameterSpace(object):
         # need to add check against schema
         self._parameters[name] = value
 
+    def pop(self, name, d=None):
+        """
+        Remove the given parameter from the parameter set and from its schema,
+        and return its value.
+        """
+        value = self._parameters.pop(name, d)
+        if self.schema:
+            self.schema.pop(name, d)
+        return value
+
     @property
     def is_homogeneous(self):
         """

@@ -6,6 +6,7 @@
 """
 
 from os.path import join, dirname
+from lazyarray import larray
 from pyNN import random
 import nineml.user_layer as nineml
 
@@ -46,16 +47,22 @@ random_distribution_parameter_map = {
     'uniform': ('lowerBound', 'upperBound'),
 }
 
-def build_parameter_set(parameters, dimensionless=False):
+def build_parameter_set(parameters, shape=None, dimensionless=False):
     parameter_list = []
     for name, value in parameters.items():
-        if isinstance(value, random.RandomDistribution):
-            rand_distr = value
-            value = nineml.RandomDistribution(
-                name="%s(%s)" % (rand_distr.name, ",".join(str(p) for p in rand_distr.parameters)),
-                definition=nineml.Definition(random_distribution_url_map[rand_distr.name]),
-                parameters=build_parameter_set(map_random_distribution_parameters(rand_distr.name, rand_distr.parameters),
-                                               dimensionless=True))
+        if isinstance(value, larray):
+            value.shape = shape
+            if value.is_homogeneous:
+                value = value.evaluate(simplify=True)
+            elif isinstance(value, random.RandomDistribution):
+                rand_distr = value
+                value = nineml.RandomDistribution(
+                    name="%s(%s)" % (rand_distr.name, ",".join(str(p) for p in rand_distr.parameters)),
+                    definition=nineml.Definition(random_distribution_url_map[rand_distr.name]),
+                    parameters=build_parameter_set(map_random_distribution_parameters(rand_distr.name, rand_distr.parameters),
+                                                   dimensionless=True))
+            else:
+                raise Exception("not supported")
         if dimensionless:
             unit = "dimensionless"
         elif isinstance(value, basestring):
