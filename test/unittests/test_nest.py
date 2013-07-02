@@ -46,10 +46,11 @@ class MockNativeCellType(NativeCellType):
 class MockID(IDMixin):
     set_parameters = Mock()
 
-@unittest.skipUnless(nest, "Requires NEST")
-class TestPopulation(object):
 
-    def setup(self):
+@unittest.skipUnless(nest, "Requires NEST")
+class TestPopulation(unittest.TestCase):
+
+    def setUp(self):
         self.orig_cc = Population._create_cells
         self.orig_init = Population.initialize
         self.orig_ss = nest.SetStatus
@@ -57,7 +58,7 @@ class TestPopulation(object):
         Population.initialize = Mock()
         nest.SetStatus = Mock()
         
-    def teardown(self):
+    def tearDown(self):
         Population._create_cells = self.orig_cc
         Population.initialize = self.orig_init
         nest.SetStatus = self.orig_ss
