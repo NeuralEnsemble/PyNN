@@ -1,11 +1,12 @@
+from mock import Mock
 try:
     import nest
     from pyNN.nest import Population
     from pyNN.nest.cells import NativeCellType
 except ImportError:
     nest = False
+    NativeCellType = Mock
 import numpy
-from mock import Mock
 from nose.tools import assert_equal
 try:
     import unittest2 as unittest
