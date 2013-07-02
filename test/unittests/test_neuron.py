@@ -3,7 +3,12 @@ from pyNN.neuron import electrodes, recording, simulator
 from pyNN import common
 from mock import Mock
 from nose.tools import assert_equal, assert_raises, assert_almost_equal
+from unittest.case import SkipTest
 import numpy
+import os
+
+if "JENKINS_SKIP_TESTS" in os.environ:
+    skip_ci = os.environ["JENKINS_SKIP_TESTS"] == "1"
 
 class MockCellClass(object):
     recordable = ['v']
@@ -49,6 +54,8 @@ def test_is_point_process():
     assert not simulator.is_point_process(section(0.5).hh)
 
 def test_native_rng_pick():
+    if skip_ci:
+        raise SkipTest()
     rng = Mock()
     rng.seed = 28754
     rarr = simulator.nativeRNG_pick(100, rng, 'uniform', [-3,6])
@@ -58,12 +65,16 @@ def test_native_rng_pick():
     assert 5.5 < rarr.max() < 6
 
 def test_register_gid():
+    if skip_ci:
+        raise SkipTest()
     cell = MockCell()
     simulator.register_gid(84568345, cell.source, cell.source_section)
 
 class TestInitializer(object):
 
     def test_initializer_initialize(self):
+        if skip_ci:
+            raise SkipTest()
         init = simulator.initializer
         orig_initialize = init._initialize
         init._initialize = Mock()
@@ -109,6 +120,8 @@ class TestState(object):
 
 
 def test_reset():
+    if skip_ci:
+        raise SkipTest()
     simulator.state.running = True
     simulator.state.t = 17
     simulator.state.tstop = 123
@@ -124,6 +137,8 @@ def test_reset():
 
 
 def test_run():
+    if skip_ci:
+        raise SkipTest()
     simulator.reset()
     simulator.run(12.3)
     assert_almost_equal(h.t, 12.3, places=11)
@@ -150,6 +165,8 @@ class TestID(object):
         assert_equal(self.id, 984329856)
 
     def test_build_cell(self):
+        if skip_ci:
+            raise SkipTest()
         parameters = {'judeans': 1, 'romans': 0}
         self.id._build_cell(MockCell, parameters)
      
@@ -284,6 +301,8 @@ class TestRecorder(object):
         assert_equal(gdata.shape, (20,4))
     
     def test__local_count(self):
+        if skip_ci:
+            raise SkipTest()
         self.rs.recorded = self.cells
         self.cells[0]._cell.spike_times = h.Vector(numpy.arange(101.0, 111.0))
         self.cells[1]._cell.spike_times = h.Vector(numpy.arange(13.0, 33.0))
