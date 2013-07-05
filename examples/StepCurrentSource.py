@@ -4,7 +4,6 @@ Simple test of injecting time-varying current into a cell
 Andrew Davison, UNIC, CNRS
 May 2009
 
-$Id$
 """
 
 from pyNN.utility import get_script_args, normalized_filename

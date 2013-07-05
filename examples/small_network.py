@@ -4,8 +4,6 @@ Small network created with the Population and Projection classes
 Andrew Davison, UNIC, CNRS
 May 2006
 
-$Id$
-
 """
 
 import numpy

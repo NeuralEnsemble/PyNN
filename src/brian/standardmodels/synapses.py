@@ -4,7 +4,6 @@ Synapse Dynamics classes for the brian module.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id$
 """
 
 from pyNN.standardmodels import build_translations, synapses, SynapseDynamics, STDPMechanism

@@ -6,7 +6,6 @@
 :
 :  
 : Implemented from adexp.mod by Eilif Muller. EPFL-BMI, Jan 2011.
-: $Id: gsfa_grr.mod 888 2011-01-04 15:17:54Z apdavison $
 
 NEURON {
     POINT_PROCESS GsfaGrr

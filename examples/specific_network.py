@@ -5,8 +5,6 @@ and the FromListConnector
 Andrew Davison, UNIC, CNRS
 April 2013
 
-$Id: small_network.py 1246 2013-01-08 09:37:17Z apdavison $
-
 """
 
 import numpy

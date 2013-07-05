@@ -13,8 +13,6 @@ This script is a modified version of http://neuralensemble.org/trac/PyNN/wiki/Ex
     Andrew Davison, UNIC, CNRS
     August 2006
 
-    $Id:VAbenchmarks.py 5 2007-04-16 15:01:24Z davison $
-
 Author: Bernhard Kaplan, bkaplan@kth.se
 """
 import time

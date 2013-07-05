@@ -4,7 +4,6 @@ Standard cells for nest
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id$
 """
 
 from pyNN.standardmodels import cells, build_translations
@@ -270,3 +269,19 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     nest_name = {"on_grid": "aeif_cond_exp",
                  "off_grid": "aeif_cond_exp"}
     standard_receptor_type = True
+
+
+class Izhikevich(cells.Izhikevich):
+    __doc__ = cells.Izhikevich.__doc__
+    
+    translations = build_translations(
+        ('a',        'a'),
+        ('b',        'b'),
+        ('c',        'c'),
+        ('d',        'd'),
+        ('i_offset', 'I_e'),
+    )
+    nest_name = {"on_grid": "izhikevich",
+                 "off_grid": "izhikevich"}
+    standard_receptor_type = True
+    receptor_scale = 1e-3  # synaptic weight is in mV, so need to undo usual weight scaling

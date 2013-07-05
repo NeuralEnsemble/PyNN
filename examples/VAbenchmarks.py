@@ -9,22 +9,23 @@ The IF network is based on the CUBA and COBA models of Vogels & Abbott
 inhibitory neurons, connected via current-based "exponential"
 synapses (instantaneous rise, exponential decay).
 
+Usage: python VAbenchmarks.py <simulator> <benchmark>
+
+    <simulator> is either neuron, nest, brian or pcsim
+    <benchmark> is either CUBA or COBA.
+
 Andrew Davison, UNIC, CNRS
 August 2006
 
-$Id:VAbenchmarks.py 5 2007-04-16 15:01:24Z davison $
 """
 
 import os
 import socket
 from math import *
 
-from pyNN.utility import get_script_args, Timer, ProgressBar, init_logging, normalized_filename
-usage = """Usage: python VAbenchmarks.py <simulator> <benchmark>
-           <simulator> is either neuron, nest, brian or pcsim
-           <benchmark> is either CUBA or COBA."""
-simulator_name, benchmark = get_script_args(2, usage)
-exec("from pyNN.%s import *" % simulator_name)
+from pyNN.utility import get_simulator, Timer, ProgressBar, init_logging, normalized_filename
+sim, options = get_simulator(("benchmark", "Either CUBA or COBA"))
+
 from pyNN.random import NumpyRNG, RandomDistribution
 
 init_logging(None, debug=True)
@@ -51,9 +52,9 @@ area     = 20000. # (µm²)
 tau_m    = 20.    # (ms)
 cm       = 1.     # (µF/cm²)
 g_leak   = 5e-5   # (S/cm²)
-if benchmark == "COBA":
+if options.benchmark == "COBA":
     E_leak   = -60.  # (mV)
-elif benchmark == "CUBA":
+elif options.benchmark == "CUBA":
     E_leak   = -49.  # (mV)
 v_thresh = -50.   # (mV)
 v_reset  = -60.   # (mV)
@@ -63,10 +64,10 @@ tau_exc  = 5.     # (ms)
 tau_inh  = 10.    # (ms)
 
 # Synapse parameters
-if benchmark == "COBA":
+if options.benchmark == "COBA":
     Gexc = 4.     # (nS)
     Ginh = 51.    # (nS)
-elif benchmark == "CUBA":
+elif options.benchmark == "CUBA":
     Gexc = 0.27   # (nS) #Those weights should be similar to the COBA weights
     Ginh = 4.5    # (nS) # but the delpolarising drift should be taken into account
 Erev_exc = 0.     # (mV)
@@ -82,12 +83,12 @@ Rm    = 1e-6/(g_leak*area)            # membrane resistance in MΩ
 assert tau_m == cm*Rm                 # just to check
 n_exc = int(round((n*r_ei/(1+r_ei)))) # number of excitatory cells
 n_inh = n - n_exc                     # number of inhibitory cells
-if benchmark == "COBA":
-    celltype = IF_cond_exp
+if options.benchmark == "COBA":
+    celltype = sim.IF_cond_exp
     w_exc    = Gexc*1e-3              # We convert conductances to uS
     w_inh    = Ginh*1e-3
-elif benchmark == "CUBA":
-    celltype = IF_curr_exp
+elif options.benchmark == "CUBA":
+    celltype = sim.IF_curr_exp
     w_exc = 1e-3*Gexc*(Erev_exc - v_mean) # (nA) weight of excitatory synapses
     w_inh = 1e-3*Ginh*(Erev_inh - v_mean) # (nA)
     assert w_exc > 0; assert w_inh < 0
@@ -95,13 +96,13 @@ elif benchmark == "CUBA":
 # === Build the network ========================================================
 
 extra = {'threads' : threads,
-         'filename': "va_%s.xml" % benchmark,
+         'filename': "va_%s.xml" % options.benchmark,
          'label': 'VA'}
-if simulator_name == "neuroml":
+if options.simulator == "neuroml":
     extra["file"] = "VAbenchmarks.xml"
 
-node_id = setup(timestep=dt, min_delay=delay, max_delay=1.0, **extra)
-np = num_processes()
+node_id = sim.setup(timestep=dt, min_delay=delay, max_delay=1.0, **extra)
+np = sim.num_processes()
 
 host_name = socket.gethostname()
 print "Host #%d is on %s" % (node_id+1, host_name)
@@ -113,20 +114,20 @@ cell_params = {
     'v_rest'     : E_leak,   'v_reset'    : v_reset,  'v_thresh'   : v_thresh,
     'cm'         : cm,       'tau_refrac' : t_refrac}
 
-if (benchmark == "COBA"):
+if (options.benchmark == "COBA"):
     cell_params['e_rev_E'] = Erev_exc
     cell_params['e_rev_I'] = Erev_inh
 
 timer.start()
 
 print "%s Creating cell populations..." % node_id
-exc_cells = Population(n_exc, celltype(**cell_params), label="Excitatory_Cells")
-inh_cells = Population(n_inh, celltype(**cell_params), label="Inhibitory_Cells")
-if benchmark == "COBA":
-    ext_stim = Population(20, SpikeSourcePoisson(rate=rate, duration=stim_dur), label="expoisson")
+exc_cells = sim.Population(n_exc, celltype(**cell_params), label="Excitatory_Cells")
+inh_cells = sim.Population(n_inh, celltype(**cell_params), label="Inhibitory_Cells")
+if options.benchmark == "COBA":
+    ext_stim = sim.Population(20, sim.SpikeSourcePoisson(rate=rate, duration=stim_dur), label="expoisson")
     rconn = 0.01
-    ext_conn = FixedProbabilityConnector(rconn)
-    ext_syn = StaticSynapse(weight=0.1)
+    ext_conn = sim.FixedProbabilityConnector(rconn)
+    ext_syn = sim.StaticSynapse(weight=0.1)
 
 print "%s Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
@@ -136,18 +137,18 @@ inh_cells.initialize(v=uniformDistr)
 
 print "%s Connecting populations..." % node_id
 progress_bar = ProgressBar(width=20)
-connector = FixedProbabilityConnector(pconn, rng=rng, callback=progress_bar)
-exc_syn = StaticSynapse(weight=w_exc, delay=delay)
-inh_syn = StaticSynapse(weight=w_inh, delay=delay)
+connector = sim.FixedProbabilityConnector(pconn, rng=rng, callback=progress_bar)
+exc_syn = sim.StaticSynapse(weight=w_exc, delay=delay)
+inh_syn = sim.StaticSynapse(weight=w_inh, delay=delay)
 
 connections={}
-connections['e2e'] = Projection(exc_cells, exc_cells, connector, exc_syn, receptor_type='excitatory')
-connections['e2i'] = Projection(exc_cells, inh_cells, connector, exc_syn, receptor_type='excitatory')
-connections['i2e'] = Projection(inh_cells, exc_cells, connector, inh_syn, receptor_type='inhibitory')
-connections['i2i'] = Projection(inh_cells, inh_cells, connector, inh_syn, receptor_type='inhibitory')
-if (benchmark == "COBA"):
-    connections['ext2e'] = Projection(ext_stim, exc_cells, ext_conn, ext_syn, receptor_type='excitatory')
-    connections['ext2i'] = Projection(ext_stim, inh_cells, ext_conn, ext_syn, receptor_type='excitatory')
+connections['e2e'] = sim.Projection(exc_cells, exc_cells, connector, exc_syn, receptor_type='excitatory')
+connections['e2i'] = sim.Projection(exc_cells, inh_cells, connector, exc_syn, receptor_type='excitatory')
+connections['i2e'] = sim.Projection(inh_cells, exc_cells, connector, inh_syn, receptor_type='inhibitory')
+connections['i2i'] = sim.Projection(inh_cells, inh_cells, connector, inh_syn, receptor_type='inhibitory')
+if (options.benchmark == "COBA"):
+    connections['ext2e'] = sim.Projection(ext_stim, exc_cells, ext_conn, ext_syn, receptor_type='excitatory')
+    connections['ext2i'] = sim.Projection(ext_stim, inh_cells, ext_conn, ext_syn, receptor_type='excitatory')
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id
@@ -160,13 +161,13 @@ buildCPUTime = timer.diff()
 # === Save connections to file =================================================
 
 #for prj in connections.keys():
-    #connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, simulator_name, np))
+    #connections[prj].saveConnections('Results/VAbenchmark_%s_%s_%s_np%d.conn' % (benchmark, prj, options.simulator, np))
 saveCPUTime = timer.diff()
 
 # === Run simulation ===========================================================
 print "%d Running simulation..." % node_id
 
-run(tstop)
+sim.run(tstop)
 
 simCPUTime = timer.diff()
 
@@ -178,12 +179,12 @@ I_count = inh_cells.mean_spike_count()
 print "%d Writing data to file..." % node_id
 
 exc_cells.write_data(
-    normalized_filename("Results", "VAbenchmarks_%s_exc" % benchmark, "pkl",
-                        simulator_name, np),
+    normalized_filename("Results", "VAbenchmarks_%s_exc" % options.benchmark, "pkl",
+                        options.simulator, np),
     annotations={'script_name': __file__})
 inh_cells.write_data(
-    normalized_filename("Results", "VAbenchmarks_%s_inh" % benchmark, "pkl",
-                        simulator_name, np),
+    normalized_filename("Results", "VAbenchmarks_%s_inh" % options.benchmark, "pkl",
+                        options.simulator, np),
     annotations={'script_name': __file__})
 writeCPUTime = timer.diff()
 
@@ -195,7 +196,7 @@ connections = "%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].siz
 if node_id == 0:
     print "\n--- Vogels-Abbott Network Simulation ---"
     print "Nodes                  : %d" % np
-    print "Simulation type        : %s" % benchmark
+    print "Simulation type        : %s" % options.benchmark
     print "Number of Neurons      : %d" % n
     print "Number of Synapses     : %s" % connections
     print "Excitatory conductance : %g nS" % Gexc
@@ -210,4 +211,4 @@ if node_id == 0:
 
 # === Finished with simulator ==================================================
 
-end()
+sim.end()

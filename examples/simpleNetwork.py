@@ -4,7 +4,6 @@ Simple network with a Poisson spike source projecting to a pair of IF_curr_alpha
 Andrew Davison, UNIC, CNRS
 August 2006
 
-$Id$
 """
 
 import numpy

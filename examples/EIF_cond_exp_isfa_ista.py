@@ -4,7 +4,6 @@ Test of the EIF_cond_alpha_isfa_ista model
 Andrew Davison, UNIC, CNRS
 December 2007
 
-$Id: EIF_cond_alpha_isfa_ista.py 772 2010-08-03 07:41:36Z apdavison $
 """
 
 from pyNN.utility import get_script_args, normalized_filename

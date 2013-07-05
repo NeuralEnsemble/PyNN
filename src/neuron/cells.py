@@ -5,7 +5,6 @@ Definition of cell classes for the neuron module.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id$
 """
 
 from pyNN.models import BaseCellType
@@ -265,6 +264,38 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
         for seg in self:
             seg.v = self.v_init
             seg.w = self.w_init
+
+
+class Izhikevich_(object):
+    
+    def __init__(self, a=0.02, b=0.2, c=-65.0, d=2.0, i_inj=0.0):
+        self.source_section = nrn.Section()
+        self.source = h.Izhikevich(0.5, sec=self.source_section)
+        self.a = a
+        self.b = b
+        self.c = c
+        self.d = d
+        self.i_inj = i_inj
+        self.excitatory = self.inhibitory = self.source
+        self.spike_times = h.Vector(0)
+        self.traces = {}
+        self.recording_time = 0
+        self.v_init = None
+        self.u_init = None
+        self.recordable = {'v': self.source._ref_vm,
+                           'u': self.source._ref_u}
+
+    a = _new_property('source', 'a')
+    b = _new_property('source', 'b')
+    c = _new_property('source', 'c')
+    d = _new_property('source', 'd')
+    i_inj = _new_property('source', 'i_inj')
+    
+    def memb_init(self):
+        assert self.v_init is not None
+        assert self.u_init is not None
+        self.source.vm = self.v_init
+        self.source.u = self.u_init
 
 
 class GsfaGrrIF(StandardIF):

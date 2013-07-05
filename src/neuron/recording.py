@@ -31,7 +31,9 @@ class Recorder(recording.Recorder):
                 self._record_state_variable(id._cell, variable)
 
     def _record_state_variable(self, cell, variable):
-        if variable == 'v':
+        if hasattr(cell, 'recordable') and variable in cell.recordable:
+            hoc_var = cell.recordable[variable]
+        elif variable == 'v':
             hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
         elif variable == 'gsyn_exc':
             hoc_var = cell.esyn._ref_g
