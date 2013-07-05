@@ -5,7 +5,6 @@ NEST v2 implementation of the PyNN API.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id: __init__.py 1216 2012-09-11 13:57:27Z apdavison $
 """
 
 import numpy
@@ -104,6 +103,8 @@ class Projection(common.Projection):
         weights = connection_parameters.pop('weight')
         if self.receptor_type == 'inhibitory' and self.post.conductance_based:
             weights *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
+        if hasattr(self.post.celltype, "receptor_scale"):  # this is a bit of a hack
+            weights *= self.post.celltype.receptor_scale   # needed for the Izhikevich model
         delays = connection_parameters.pop('delay')
         if postsynaptic_cell.celltype.standard_receptor_type:
             try:

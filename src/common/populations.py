@@ -259,6 +259,9 @@ class BasePopulation(object):
         """
         Get the values of the given parameters for every local cell in the
         population, or, if gather=True, for all cells in the population.
+        
+        Values will be expressed in the standard PyNN units (i.e. millivolts,
+        nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
         # if all the cells have the same value for a parameter, should
         # we return just the number, rather than an array?
@@ -312,7 +315,9 @@ class BasePopulation(object):
                 argument (the cell index) and returns a single value.
 
         Here, a "single value" may be either a single number or a list/array of
-        numbers (e.g. for spike times).
+        numbers (e.g. for spike times). Values should be expressed in the
+        standard PyNN units (i.e. millivolts, nanoamps, milliseconds,
+        microsiemens, nanofarads, event per second).
 
         Examples::
 
@@ -367,6 +372,9 @@ class BasePopulation(object):
             (3) lists/arrays of numbers of the same size as the population
             (4) mapping functions, where a mapping function accepts a single
                 argument (the cell index) and returns a single number.
+
+        Values should be expressed in the standard PyNN units (i.e. millivolts,
+        nanoamps, milliseconds, microsiemens, nanofarads, event per second).
 
         Examples::
 
@@ -1213,7 +1221,7 @@ class Assembly(object):
     def get_data(self, variables='all', gather=True, clear=False):
         """
         Return a Neo `Block` containing the data (spikes, state variables)
-        recorded from the Population.
+        recorded from the Assembly.
 
         `variables` - either a single variable name or a list of variable names
                       Variables must have been previously recorded, otherwise an
@@ -1224,7 +1232,7 @@ class Assembly(object):
         Otherwise, the Neo `Block` will contain only data from the cells
         simulated on the local node.
 
-        If `clear` is True, recorded data will be deleted from the `Population`.
+        If `clear` is True, recorded data will be deleted from the `Assembly`.
         """
         name = self.label
         description = self.describe()

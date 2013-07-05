@@ -15,10 +15,8 @@ from pyNN.parameters import Sequence, ParameterSpace, simplify
 from pyNN.random import RandomDistribution
 from pyNN.standardmodels import StandardCellType
 from . import simulator
-from .recording import Recorder
+from .recording import Recorder, VARIABLE_MAP
 
-STATE_VARIABLE_MAP = {"v": "V_m", "w": "w", "gsyn_exc": "g_ex",
-                      "gsyn_inh": "g_in"}
 logger = logging.getLogger("PyNN")
 
 
@@ -139,7 +137,7 @@ class Population(common.Population, PopulationMixin):
                 gid.source = source
 
     def _set_initial_value_array(self, variable, value):
-        variable = STATE_VARIABLE_MAP.get(variable, variable)
+        variable = VARIABLE_MAP.get(variable, variable)
         if isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe:
             local_values = value.evaluate()[self._mask_local]
         else:

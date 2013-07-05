@@ -37,6 +37,8 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     """
     Initialises/reinitialises the simulator. Any existing network structure is
     destroyed.
+    
+    `timestep`, `min_delay` and `max_delay` should all be in milliseconds.
 
     `extra_params` contains any keyword arguments that are required by a given
     simulator but not by others.
@@ -78,19 +80,19 @@ def build_reset(simulator):
 
 def build_state_queries(simulator):
     def get_current_time():
-        """Return the current time in the simulation."""
+        """Return the current time in the simulation (in milliseconds)."""
         return simulator.state.t
 
     def get_time_step():
-        """Return the integration time step."""
+        """Return the integration time step (in milliseconds)."""
         return simulator.state.dt
 
     def get_min_delay():
-        """Return the minimum allowed synaptic delay."""
+        """Return the minimum allowed synaptic delay (in milliseconds)."""
         return simulator.state.min_delay
 
     def get_max_delay():
-        """Return the maximum allowed synaptic delay."""
+        """Return the maximum allowed synaptic delay (in milliseconds)."""
         return simulator.state.max_delay
 
     def num_processes():

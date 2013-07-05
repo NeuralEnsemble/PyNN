@@ -2,10 +2,8 @@
 Network of integrate-and-fire neurons with distance-dependent connectivity and STDP.
 """
 
-from pyNN.utility import get_script_args
-usage = """Usage: python stdp_network.py <simulator>"""
-simulator_name, = get_script_args(1, usage)
-exec("import pyNN.%s as sim" % simulator_name)
+from pyNN.utility import get_simulator
+sim, options = get_simulator()
 from pyNN import space
 
 n_exc = 80

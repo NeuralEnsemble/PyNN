@@ -293,6 +293,46 @@ class ParameterSpaceTest(unittest.TestCase):
             for key in y:
                 assert_array_equal(x[key], y[key])
 
+    def test_create_with_sequence(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': Sequence([1, 2, 3])},
+                            schema,
+                            shape=(2,))
+        ps.evaluate()
+        assert_array_equal(ps['a'], np.array([Sequence([1, 2, 3]), Sequence([1, 2, 3])], dtype=Sequence))
+
+    def test_create_with_tuple(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': (1, 2, 3)},
+                            schema,
+                            shape=(2,))
+        ps.evaluate()
+        assert_array_equal(ps['a'], np.array([Sequence([1, 2, 3]), Sequence([1, 2, 3])], dtype=Sequence))
+    
+    def test_create_with_list_of_sequences(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': [Sequence([1, 2, 3]), Sequence([4, 5, 6])]},
+                            schema,
+                            shape=(2,))
+        ps.evaluate()
+        assert_array_equal(ps['a'], np.array([Sequence([1, 2, 3]), Sequence([4, 5, 6])], dtype=Sequence))
+
+    def test_create_with_array_of_sequences(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': np.array([Sequence([1, 2, 3]), Sequence([4, 5, 6])], dtype=Sequence)},
+                            schema,
+                            shape=(2,))
+        ps.evaluate()
+        assert_array_equal(ps['a'], np.array([Sequence([1, 2, 3]), Sequence([4, 5, 6])], dtype=Sequence))
+
+    def test_create_with_list_of_lists(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': [[1, 2, 3], [4, 5, 6]]},
+                            schema,
+                            shape=(2,))
+        ps.evaluate()
+        assert_array_equal(ps['a'], np.array([Sequence([1, 2, 3]), Sequence([4, 5, 6])], dtype=Sequence))  
+
 
 if __name__ == "__main__":
     unittest.main()

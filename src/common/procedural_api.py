@@ -53,7 +53,9 @@ def set(cells, **parameters):
             argument (the cell index) and returns a single value.
 
     Here, a "single value" may be either a single number or a list/array of
-    numbers (e.g. for spike times).
+    numbers (e.g. for spike times). Values should be expressed in the standard
+    PyNN units (i.e. millivolts, nanoamps, milliseconds, microsiemens,
+    nanofarads, event per second).
     """
     assert isinstance(cells, (BasePopulation, Assembly))
     cells.set(**parameters)
@@ -78,7 +80,23 @@ def build_record(simulator):
 
 def initialize(cells, **initial_values):
     """
-    MISSING DOCSTRING
+    Set initial values of state variables, e.g. the membrane potential.
+
+    Values passed to initialize() may be:
+        (1) single numeric values (all neurons set to the same value)
+        (2) RandomDistribution objects
+        (3) lists/arrays of numbers of the same size as the population
+        (4) mapping functions, where a mapping function accepts a single
+            argument (the cell index) and returns a single number.
+
+    Values should be expressed in the standard PyNN units (i.e. millivolts,
+    nanoamps, milliseconds, microsiemens, nanofarads, event per second).
+
+    Examples::
+
+        initialize(cells, v=-70.0)
+        initialize(cells, v=rand_distr, gsyn_exc=0.0)
+        initialize(cells, v=lambda i: -65 + i/10.0)
     """
     assert isinstance(cells, (BasePopulation, Assembly)), type(cells)
     cells.initialize(**initial_values)

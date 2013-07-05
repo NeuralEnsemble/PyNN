@@ -5,11 +5,12 @@ Standard base_cells for the neuron module.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id: cells.py 873 2010-12-13 22:40:03Z apdavison $
 """
 
 from pyNN.standardmodels import cells as base_cells, build_translations
-from pyNN.neuron.cells import StandardIF, SingleCompartmentTraub, RandomSpikeSource, VectorSpikeSource, BretteGerstnerIF, GsfaGrrIF
+from pyNN.neuron.cells import (StandardIF, SingleCompartmentTraub,
+                               RandomSpikeSource, VectorSpikeSource,
+                               BretteGerstnerIF, GsfaGrrIF, Izhikevich_)
 import logging
 
 logger = logging.getLogger("PyNN")
@@ -230,3 +231,16 @@ class EIF_cond_exp_isfa_ista(base_cells.EIF_cond_exp_isfa_ista):
     model = BretteGerstnerIF
     extra_parameters = {'syn_type': 'conductance',
                         'syn_shape': 'exp'}
+
+
+class Izhikevich(base_cells.Izhikevich):
+    __doc__ = base_cells.Izhikevich.__doc__
+    
+    translations = build_translations(
+        ('a',        'a'),
+        ('b',        'b'),
+        ('c',        'c'),
+        ('d',        'd'),
+        ('i_offset', 'i_inj')
+    )
+    model = Izhikevich_

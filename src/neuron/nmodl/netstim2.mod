@@ -1,5 +1,4 @@
-: Based on:
-:     $Id$
+: Based on netstim
 : but with fixed duration rather than fixed number of spikes, and an interval
 : that can safely be varied during the simulation
 : Modified by Andrew Davison, UNIC, CNRS
