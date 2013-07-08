@@ -136,3 +136,14 @@ class SpikePairRule(synapses.SpikePairRule):
 
     )
     possible_models = set(['StdwaSA', 'StdwaSoft', 'StdwaGuetig'])
+
+
+class Vogels2011Rule(synapses.Vogels2011Rule):
+    __doc__ = synapses.Vogels2011Rule.__doc__
+    
+    translations = build_translations(
+        ('tau',  'tauLTP'),
+        ('eta', 'eta'),
+        ('rho', 'rho'),
+    )
+    possible_models = set(['StdwaVogels2011'])

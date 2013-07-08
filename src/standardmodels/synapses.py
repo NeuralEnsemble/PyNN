@@ -328,3 +328,26 @@ class SpikePairRule(STDPTimingDependence):
         parameters = dict(locals())
         parameters.pop('self')
         STDPTimingDependence.__init__(self, **parameters)
+
+
+class Vogels2011Rule(STDPTimingDependence):
+    """
+    Timing-dependence rule from 
+
+      Vogels TP, Sprekeler H, Zenke F, Clopath C, Gerstner W (2011)
+      Inhibitory plasticity balances excitation and inhibition in sensory
+      pathways and memory networks. Science 334:1569-73
+      http://dx.doi.org/10.1126/science.1211095
+  
+    Potentiation depends on the coincidence of pre- and post-synaptic spikes
+    but not on their order. Pre-synaptic spikes in the absence of post-
+    synaptic ones produce depression.
+    
+    Also see http://senselab.med.yale.edu/modeldb/ShowModel.asp?model=143751
+    """
+
+    default_parameters = {
+        'tau': 20.0,
+        'eta': 0.01,
+        'rho': 0.2
+    }
