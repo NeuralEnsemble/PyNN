@@ -750,10 +750,14 @@ class CloneConnector(MapConnector):
         self.allow_self_connections = allow_self_connections
 
     def connect(self, projection):
+<<<<<<< Updated upstream
         conn_list = numpy.array([(c.presynaptic_index, c.postsynaptic_index)
                                  for c in self.orig_proj.connections])
         conn_matrix = numpy.zeros((projection.pre.size, projection.post.size))
         conn_matrix[conn_list[:,0], conn_list[:,1]] = True
+=======
+        conn_matrix = numpy.isnan(self.orig_proj.get(['weight'], 'array', gather='all')[0])       
+>>>>>>> Stashed changes
         connection_map= LazyArray(conn_matrix)
         self._connect_with_map(projection, connection_map)                
 
