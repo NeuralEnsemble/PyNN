@@ -85,10 +85,8 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     translations = build_translations(
         ('w_max',     'wmax'),
         ('w_min',     'wmin'),
-        ('A_plus',    'aLTP'),
-        ('A_minus',   'aLTD'),
     )
-    possible_models = set(['StdwaSA',])
+    possible_models = set(['StdwaSA', 'StdwaVogels2011'])
 
 
 class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
@@ -97,8 +95,6 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     translations = build_translations(
         ('w_max',     'wmax'),
         ('w_min',     'wmin'),
-        ('A_plus',    'aLTP'),
-        ('A_minus',   'aLTD'),
     )
     possible_models = set(['StdwaSoft',])
 
@@ -109,8 +105,6 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
     translations = build_translations(
         ('w_max',     'wmax'),
         ('w_min',     'wmin'),
-        ('A_plus',    'aLTP'),
-        ('A_minus',   'aLTD'),
     )
     possible_models = set(['StdwaGuetig'])
     extra_parameters = {
@@ -125,8 +119,6 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
     translations = build_translations(
         ('w_max',     'wmax'),
         ('w_min',     'wmin'),
-        ('A_plus',    'aLTP'),
-        ('A_minus',   'aLTD'),
         ('mu_plus',   'muLTP'),
         ('mu_minus',  'muLTD'),
     )
@@ -139,5 +131,8 @@ class SpikePairRule(synapses.SpikePairRule):
     translations = build_translations(
         ('tau_plus',  'tauLTP'),
         ('tau_minus', 'tauLTD'),
+        ('A_plus',    'aLTP'),
+        ('A_minus',   'aLTD'),
+
     )
     possible_models = set(['StdwaSA', 'StdwaSoft', 'StdwaGuetig'])
