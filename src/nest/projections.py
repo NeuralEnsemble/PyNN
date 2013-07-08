@@ -103,8 +103,8 @@ class Projection(common.Projection):
         weights = connection_parameters.pop('weight')
         if self.receptor_type == 'inhibitory' and self.post.conductance_based:
             weights *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
-        if hasattr(self.post.celltype, "receptor_scale"):  # this is a bit of a hack
-            weights *= self.post.celltype.receptor_scale   # needed for the Izhikevich model
+        if hasattr(self.post, "celltype") and hasattr(self.post.celltype, "receptor_scale"):  # this is a bit of a hack
+            weights *= self.post.celltype.receptor_scale                                      # needed for the Izhikevich model
         delays = connection_parameters.pop('delay')
         if postsynaptic_cell.celltype.standard_receptor_type:
             try:
