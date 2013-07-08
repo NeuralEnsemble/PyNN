@@ -45,6 +45,7 @@ class NineMLCell(object):
         for param, value in parameters.items():
             setattr(self.source, param, value)
         # for recording
+        self.rec = h.NetCon(self.source, None)
         self.spike_times = h.Vector(0)
         self.traces = {}
         self.recording_time = False
@@ -58,12 +59,12 @@ class NineMLCell(object):
             else:
                 raise AttributeError("'NineMLCell' object has no attribute or synapse type '%s'" % name)
 
-    def record(self, active):
-        if active:
-            rec = h.NetCon(self.source, None)
-            rec.record(self.spike_times)
-        else:
-            self.spike_times = h.Vector(0)
+    #def record(self, active):
+    #    if active:
+    #        self.rec = h.NetCon(self.source, None)
+    #        self.rec.record(self.spike_times)
+    #    else:
+    #        self.spike_times = h.Vector(0)
 
     def memb_init(self):
         # this is a bit of a hack
@@ -77,9 +78,9 @@ class NineMLCell(object):
 class NineMLCellType(BaseCellType):
     model = NineMLCell
     
-    def __init__(self, parameters):
-        BaseCellType.__init__(self, parameters)
-        self.parameters["type"] = self
+    def __init__(self, **parameters):
+        BaseCellType.__init__(self, **parameters)
+        self.extra_parameters = {"type": self}
 
 
 def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): # weight variables should really be within component
@@ -101,12 +102,9 @@ def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): 
     write_nmodldirect(component=nineml_component, mod_filename=mod_filename, weight_variables=weight_variables) 
     #write_nmodl(xml_file, weight_variables) # weight variables should really come from xml file
 
-
     print "Running 'nrnivmodl' from %s"%NMODL_DIR
     import nineml2nmodl
     nineml2nmodl.call_nrnivmodl()
-
-
 
     os.chdir(cwd)
     neuron.load_mechanisms(NMODL_DIR)

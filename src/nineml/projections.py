@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 Export of PyNN scripts as NineML.
 
@@ -31,15 +32,16 @@ class Projection(common.Projection):
         return 0
 
     def to_nineml(self):
-        connection_rule = self._connector.to_nineml(self.label)
+        safe_label = self.label.replace(u"→", "-->")
+        connection_rule = self._connector.to_nineml(safe_label)
         connection_type = nineml.ConnectionType(
-                                    name="connection type for projection %s" % self.label,
+                                    name="connection type for projection %s" % safe_label,
                                     definition=nineml.Definition("%s/connectiontypes/static_synapse.xml" % catalog_url),
                                     parameters=build_parameter_set(self.synapse_type.native_parameters, self.shape))
         synaptic_responses = self.post.get_synaptic_response_components(self.receptor_type)
         synaptic_response, = synaptic_responses
         projection = nineml.Projection(
-                                name=self.label,
+                                name=safe_label,
                                 source=self.pre.to_nineml(), # or just pass ref, and then resolve later?
                                 target=self.post.to_nineml(),
                                 rule=connection_rule,

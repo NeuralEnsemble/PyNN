@@ -90,7 +90,10 @@ class Recorder(recording.Recorder):
             return recording.UNITS_MAP[variable]
         else:
             # works with NEURON 7.3, not with 7.1, 7.2 not tested
-            nrn_units = h.units(variable.split('.')[-1])
+            try:
+                nrn_units = h.units(variable.split('.')[-1])
+            except RuntimeError:
+                nrn_units = "dimensionless"
             pq_units = nrn_units.replace("2", "**2").replace("3", "**3")
             return pq_units
 

@@ -9,7 +9,7 @@ import logging
 import nineml.user_layer as nineml
 from neo.io import get_io
 
-from pyNN import common, random
+from pyNN import common, random, standardmodels as std
 from . import simulator
 from .standardmodels import *
 from .populations import Population, PopulationView, Assembly
@@ -21,7 +21,7 @@ random.get_mpi_config = lambda: (0, 1)
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
+    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, std.StandardCellType)]
 
 
 def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
@@ -106,4 +106,5 @@ class Network(object):  # move to .simulator ?
         for prj in _projections:
             main_group.add(prj.to_nineml())
         model.add_group(main_group)
+        model.check()
         return model

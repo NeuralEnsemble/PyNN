@@ -8,6 +8,7 @@
 from os.path import join, dirname
 from lazyarray import larray
 from pyNN import random
+from pyNN.parameters import Sequence
 import nineml.user_layer as nineml
 
 #catalog_url = "http://svn.incf.org/svn/nineml/catalog"
@@ -54,6 +55,10 @@ def build_parameter_set(parameters, shape=None, dimensionless=False):
             value.shape = shape
             if value.is_homogeneous:
                 value = value.evaluate(simplify=True)
+                if isinstance(value, Sequence):
+                    value = value.value.tolist()
+                elif isinstance(value, bool):
+                    value = int(value)
             elif isinstance(value, random.RandomDistribution):
                 rand_distr = value
                 value = nineml.RandomDistribution(
@@ -63,6 +68,9 @@ def build_parameter_set(parameters, shape=None, dimensionless=False):
                                                    dimensionless=True))
             else:
                 raise Exception("not supported")
+        else:
+            if isinstance(value, bool):
+                value = int(value)
         if dimensionless:
             unit = "dimensionless"
         elif isinstance(value, basestring):

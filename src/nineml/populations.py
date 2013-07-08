@@ -54,10 +54,14 @@ class PopulationView(BasePopulation, common.PopulationView):
         self._simulator.state.net.populations.append(self)
 
     def to_nineml(self):
+        if isinstance(self.mask, slice):
+            ids = "%s:%s:%s" % (self.mask.start or "", self.mask.stop or "", self.mask.step or "")
+        else:
+            ids = str(self.mask.tolist())
         selection = nineml.Selection(self.label,
                         nineml.All(
                             nineml.Eq("population[@name]", self.parent.label),
-                            nineml.In("population[@id]", "%s:%s:%s" % (self.mask.start or "", self.mask.stop or "", self.mask.step or ""))
+                            nineml.In("population[@id]", ids)
                         )
                     )
         return selection

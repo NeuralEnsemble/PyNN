@@ -106,7 +106,7 @@ class Projection(object):
         return (self.pre.size, self.post.size)
 
     def __repr__(self):
-        return 'Projection("%s")' % self.label
+        return 'Projection("%s")' % self.label.replace(u"→", "-->")
 
     def __getitem__(self, i):
         """Return the *i*th connection within the Projection."""

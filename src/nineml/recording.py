@@ -24,4 +24,4 @@ class Recorder(recording.Recorder):
         pass
 
     def _local_count(self, variable, filter_ids=None):
-        return 0
+        return {}
