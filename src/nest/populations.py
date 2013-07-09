@@ -29,11 +29,13 @@ class PopulationMixin(object):
         """
         parameter_space should contain native parameters
         """
-        param_dict = _build_params(parameter_space, numpy.where(self._mask_local)[0])
-        ids = self.local_cells.tolist()
-        if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
-            ids = [id.source for id in ids]
-        nest.SetStatus(ids, param_dict)
+        local_indices = numpy.where(self._mask_local) # This shouldn't be necessary but I am getting a funny error
+        if len(local_indices):
+            param_dict = _build_params(parameter_space, local_indices[0])
+            ids = self.local_cells.tolist()
+            if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
+                ids = [id.source for id in ids]
+            nest.SetStatus(ids, param_dict)
 
     def _get_parameters(self, *names):
         """
