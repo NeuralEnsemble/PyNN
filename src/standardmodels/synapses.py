@@ -348,6 +348,6 @@ class Vogels2011Rule(STDPTimingDependence):
 
     default_parameters = {
         'tau': 20.0,
-        'eta': 0.01,
-        'rho': 0.2
+        'eta': 1e-10,
+        'rho': 3.0
     }

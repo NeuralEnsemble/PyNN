@@ -142,7 +142,7 @@ class Vogels2011Rule(synapses.Vogels2011Rule):
     __doc__ = synapses.Vogels2011Rule.__doc__
     
     translations = build_translations(
-        ('tau',  'tauLTP'),
+        ('tau',  'tau'),
         ('eta', 'eta'),
         ('rho', 'rho'),
     )
