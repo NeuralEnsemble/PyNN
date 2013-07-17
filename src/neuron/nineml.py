@@ -20,21 +20,22 @@ Constants:
 
 from __future__ import absolute_import # Not compatible with Python 2.4
 import subprocess
-import neuron
-from pyNN.models import BaseCellType
-from pyNN.nineml.cells import _mh_build_nineml_celltype
-#from pyNN.nineml.cells import _build_nineml_celltype, _mh_build_nineml_celltype
-from pyNN.nineml.cells import CoBaSyn 
 import logging
 import os
 from itertools import chain
+import neuron
+from pyNN.models import BaseCellType
+from pyNN.nineml.cells import build_nineml_celltype, CoBaSyn
 from pyNN.neuron import simulator
 from pyNN import common, recording
+from nineml2nmodl import write_nmodl, write_nmodldirect, call_nrnivmodl
+
 
 h = neuron.h
 logger = logging.getLogger("PyNN")
 
 NMODL_DIR = "nineml_mechanisms"
+
 
 class NineMLCell(object):
     
@@ -54,17 +55,10 @@ class NineMLCell(object):
         try:
             return self.__getattribute__(name)
         except AttributeError:
-            if name in self.type.synapse_types:
+            if name in self.type.receptor_types:
                 return self.source # source is also target
             else:
-                raise AttributeError("'NineMLCell' object has no attribute or synapse type '%s'" % name)
-
-    #def record(self, active):
-    #    if active:
-    #        self.rec = h.NetCon(self.source, None)
-    #        self.rec.record(self.spike_times)
-    #    else:
-    #        self.spike_times = h.Vector(0)
+                raise AttributeError("'NineMLCell' object has no attribute or receptor type '%s'" % name)
 
     def memb_init(self):
         # this is a bit of a hack
@@ -97,27 +91,25 @@ def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): 
     logger.debug("Writing NineML component to %s" % xml_file)
     nineml_component.write(xml_file)
     
-    from nineml2nmodl import write_nmodl, write_nmodldirect
     mod_filename = nineml_component.name + ".mod"
     write_nmodldirect(component=nineml_component, mod_filename=mod_filename, weight_variables=weight_variables) 
     #write_nmodl(xml_file, weight_variables) # weight variables should really come from xml file
 
-    print "Running 'nrnivmodl' from %s"%NMODL_DIR
-    import nineml2nmodl
-    nineml2nmodl.call_nrnivmodl()
+    print "Running 'nrnivmodl' from %s" % NMODL_DIR
+    call_nrnivmodl()
 
     os.chdir(cwd)
     neuron.load_mechanisms(NMODL_DIR)
 
 
-def nineml_cell_type(name, neuron_model, synapse_models):
-    """
-    Return a new NineMLCellType subclass.
-    """
-    return _mh_build_nineml_celltype(name, (NineMLCellType,),
-                                     {'neuron_model': neuron_model,
-                                      'synapse_models': synapse_models,
-                                      'builder': _compile_nmodl})
+#def nineml_cell_type(name, neuron_model, synapse_models):
+#    """
+#    Return a new NineMLCellType subclass.
+#    """
+#    return build_nineml_celltype(name, (NineMLCellType,),
+#                                     {'neuron_model': neuron_model,
+#                                      'synapse_models': synapse_models,
+#                                      'builder': _compile_nmodl})
 
 def nineml_celltype_from_model(name, nineml_model, synapse_components):
     """
@@ -127,5 +119,5 @@ def nineml_celltype_from_model(name, nineml_model, synapse_components):
     dct = {'nineml_model':nineml_model,
            'synapse_components':synapse_components,
            'builder': _compile_nmodl} 
-    return _mh_build_nineml_celltype(name, (NineMLCellType,), dct)
+    return build_nineml_celltype(name, (NineMLCellType,), dct)
 

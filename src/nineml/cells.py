@@ -40,7 +40,6 @@ def nineml_cell_type(name, neuron_model, port_map={}, weight_variables={}, **syn
 
 # Helpers for Neuron Models derived from a 9ML AL definition
 
-
 def _add_prefix(synapse_model, prefix, port_map):
     assert False, "Deprecated" 
     """
@@ -60,10 +59,7 @@ def _add_prefix(synapse_model, prefix, port_map):
     return new_port_map
 
 
-
-
-
-class _mh_build_nineml_celltype(type):
+class build_nineml_celltype(type):
     """
     Metaclass for building NineMLCellType subclasses
     Called by nineml_celltype_from_model
@@ -96,34 +92,25 @@ class _mh_build_nineml_celltype(type):
         dct["combined_model"] = flat_component
         dct["default_parameters"] = dict( (param.name, 1.0) for param in flat_component.parameters )
         dct["default_initial_values"] = dict((statevar.name, 0.0) for statevar in chain(flat_component.state_variables) )
-        dct["synapse_types"] = [syn.namespace for syn in synapse_components] 
-        dct["standard_receptor_type"] = (dct["synapse_types"] == ('excitatory', 'inhibitory'))
+        dct["receptor_types"] = [syn.namespace for syn in synapse_components] 
+        dct["standard_receptor_type"] = (dct["receptor_types"] == ('excitatory', 'inhibitory'))
         dct["injectable"] = True # need to determine this. How??
         dct["conductance_based"] = True # how to determine this??
         dct["model_name"] = name
-        
-        
+
         # Recording from bindings:
         dct["recordable"] = [port.name for port in flat_component.analog_ports] + ['spikes', 'regime'] + [alias.lhs for alias in flat_component.aliases] + [statevar.name for statevar in flat_component.state_variables]
         
         dct["weight_variables"] = dict([ (syn.namespace,syn.namespace+'_'+syn.weight_connector )
                                          for syn in synapse_components ])
         
-        
         logger.debug("Creating class '%s' with bases %s and dictionary %s" % (name, bases, dct))
-        # generate and compile NMODL code, then load the mechanism into NEUORN
         dct["builder"](flat_component, dct["weight_variables"], hierarchical_mode=True)
         
         return type.__new__(cls, name, bases, dct)
-        
 
-      
+
 class CoBaSyn(object):
     def __init__(self, namespace, weight_connector):
         self.namespace = namespace
         self.weight_connector = weight_connector
-
-
-
-
-
