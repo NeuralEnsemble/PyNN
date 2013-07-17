@@ -13,6 +13,7 @@ from neuron import h, nrn, hclass
 from simulator import state
 from math import pi
 import logging
+from .recording import recordable_pattern
 
 logger = logging.getLogger("PyNN")
 
@@ -35,7 +36,10 @@ def _new_property(obj_hierarchy, attr_name):
 
 
 class NativeCellType(BaseCellType):
-    pass
+    
+    def can_record(self, variable):
+        # crude check, could be improved
+        return bool(recordable_pattern.match(variable))
 
 
 class SingleCompartmentNeuron(nrn.Section):

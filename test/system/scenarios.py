@@ -247,9 +247,9 @@ def scenario3(sim):
     post.initialize(v=RandomDistribution('normal', (v_reset, 5.0)))
 
     stdp = sim.STDPMechanism(
-                sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0 ),
-                sim.AdditiveWeightDependence(w_min=w_min, w_max=w_max,
-                                             A_plus=0.01, A_minus=0.01),
+                sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0,
+                                  A_plus=0.01, A_minus=0.01),
+                sim.AdditiveWeightDependence(w_min=w_min, w_max=w_max),
                 #dendritic_delay_fraction=0.5))
                 dendritic_delay_fraction=1)
 

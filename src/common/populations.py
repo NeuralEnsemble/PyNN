@@ -390,7 +390,7 @@ class BasePopulation(object):
 
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
-        return (variable in self.celltype.recordable)
+        return self.celltype.can_record(variable)
 
     def record(self, variables, to_file=None):
         """

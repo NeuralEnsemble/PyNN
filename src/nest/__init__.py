@@ -17,8 +17,8 @@ from . import simulator
 from pyNN import common, recording, errors, space, __doc__
 
 try:
-    nest.GetStatus([numpy.int64(0)])
-except NESTError:
+    nest.GetStatus([numpy.int32(0)])
+except nest.NESTError:
     raise Exception("NEST built without NumPy support. Try rebuilding NEST after installing NumPy.")
 
 #if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):

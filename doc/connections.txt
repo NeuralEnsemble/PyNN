@@ -107,9 +107,9 @@ timing-dependence components, e.g.:
     stdp = STDPMechanism(
               weight=0.02,  # this is the initial value of the weight
               delay="0.2 + 0.01*d",
-              timing_dependence=SpikePairRule(tau_plus=20.0, tau_minus=20.0),
-              weight_dependence=AdditiveWeightDependence(w_min=0, w_max=0.04,
-                                                         A_plus=0.01, A_minus=0.012))
+              timing_dependence=SpikePairRule(tau_plus=20.0, tau_minus=20.0,
+                                              A_plus=0.01, A_minus=0.012),
+              weight_dependence=AdditiveWeightDependence(w_min=0, w_max=0.04))
     
 Note that not all simulators will support all possible combinations of synaptic
 plasticity components.

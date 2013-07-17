@@ -22,13 +22,6 @@ import quantities as pq
 
 logger = logging.getLogger("PyNN")
 
-numpy1_1_formats = {'spikes': "%g\t%d",
-                    'v': "%g\t%g\t%d",
-                    'gsyn': "%g\t%g\t%g\t%d"}
-numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support different
-                    'v': "%g",      # formats for different columns
-                    'gsyn': "%g"}
-
 MPI_ROOT = 0
 
 UNITS_MAP = {
@@ -233,7 +226,8 @@ class Recorder(object):
                                    t_stop=t_stop,
                                    units='ms',
                                    source_population=self.population.label,
-                                   source_id=int(id)) # index?
+                                   source_id=int(id),
+                                   source_index=self.population.id_to_index(id))
                     for id in sorted(self.filter_recorded('spikes', filter_ids))]
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))
