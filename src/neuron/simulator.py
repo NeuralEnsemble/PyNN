@@ -392,7 +392,9 @@ setattr(Connection, 'U', generate_synapse_property('U'))
 setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))
 setattr(Connection, 'tau_facil', generate_synapse_property('tau_facil'))
 setattr(Connection, 'u0', generate_synapse_property('u0'))
-
+setattr(Connection, 'tau', generate_synapse_property('tau'))
+setattr(Connection, 'eta', generate_synapse_property('eta'))
+setattr(Connection, 'rho', generate_synapse_property('rho'))
 
 # --- Initialization, and module attributes ------------------------------------
 
