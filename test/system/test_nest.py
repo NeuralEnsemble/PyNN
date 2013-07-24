@@ -90,7 +90,7 @@ def test_ticket240():
     p2 = nest.Population(4, nest.HH_curr_exp())
     conn = nest.AllToAllConnector()
     syn = nest.StaticSynapse(weight=1.0)
-    prj = nest.Projection(p1, p2, conn, syn, receptor_type="need_nonstandard_receptor_here")
+    prj = nest.Projection(p1, p2, conn, syn, receptor_type="excitatory") # This should be a nonstandard receptor type but I don't know of one to use.
     connections = prj.get(('weight',), format='list')
     assert len(connections) > 0
 
