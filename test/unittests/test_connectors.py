@@ -10,7 +10,7 @@ try:
 except ImportError:
     import unittest
 
-from pyNN import connectors, random, errors, space
+from pyNN import connectors, random, errors, space, recording
 import numpy
 import os
 from mock import Mock
@@ -249,6 +249,17 @@ class TestCloneConnector(unittest.TestCase):
         list_connector = connectors.FromListConnector(connection_list)
         syn = sim.StaticSynapse()
         self.ref_prj = sim.Projection(self.p1, self.p2, list_connector, syn)
+        self.orig_gather_dict = recording.gather_dict  # create reference to original function
+        # The gather_dict function in recording needs to be temporarily replaced so it can work with
+        # a mock version of the function to avoid it throwing an mpi4py import error when setting
+        # the rank in pyNN.mock by hand to > 1
+        def mock_gather_dict(D, all=False):
+            return D
+        recording.gather_dict = mock_gather_dict  
+        
+    def tearDown(self):
+        # restore original gather_dict function
+        recording.gather_dict = self.orig_gather_dict  
 
     def test_connect_with_scalar_weights_and_delays(self):
         syn = sim.StaticSynapse(weight=5.0, delay=0.5)
