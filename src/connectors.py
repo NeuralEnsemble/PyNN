@@ -733,25 +733,28 @@ class CloneConnector(MapConnector):
     """
     Connects cells with the same connectivity pattern as a previous projection.
     """
-    parameter_names = ('allow_self_connections',)
+    parameter_names = ('reference_projection',)
 
-    def __init__(self, orig_proj, allow_self_connections=True, safe=True, callback=None):
+    def __init__(self, reference_projection, safe=True, callback=None):
         """
         Create a new CloneConnector.
         
-        `orig_proj` -- the projection to clone the connectivity pattern from
-        `allow_self_connections` -- if the connector is used to connect a
-            Population to itself, this flag determines whether a neuron is
-            allowed to connect to itself, or only to other neurons in the
-            Population.
+        `reference_projection` -- the projection to clone the connectivity pattern from
         """
         MapConnector.__init__(self, safe, callback=callback)
-        self.orig_proj = orig_proj
-        self.allow_self_connections = allow_self_connections
+        self.reference_projection = reference_projection
 
     def connect(self, projection):
-        conn_matrix = ~numpy.isnan(self.orig_proj.get(['weight'], 'array', gather='all')[0])       
-        connection_map= LazyArray(conn_matrix)
+        if (projection.pre != self.reference_projection.pre or 
+            projection.post != self.reference_projection.post):
+            raise errors.ConnectionError("Pre and post populations must match between reference ({}"
+                                         "  and {}) and clone projections ({} and {}) for "
+                                         "CloneConnector"
+                                         .format(self.reference_projection.pre, 
+                                                 self.reference_projection.post, 
+                                                 projection.pre, projection.post))
+        connection_map = LazyArray(~numpy.isnan(self.reference_projection.get(['weight'], 'array', 
+                                                                              gather='all')[0]))
         self._connect_with_map(projection, connection_map)                
 
 
