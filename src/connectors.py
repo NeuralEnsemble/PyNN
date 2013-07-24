@@ -750,7 +750,7 @@ class CloneConnector(MapConnector):
         self.allow_self_connections = allow_self_connections
 
     def connect(self, projection):
-        conn_matrix = numpy.isnan(self.orig_proj.get(['weight'], 'array', gather='all')[0])       
+        conn_matrix = ~numpy.isnan(self.orig_proj.get(['weight'], 'array', gather='all')[0])       
         connection_map= LazyArray(conn_matrix)
         self._connect_with_map(projection, connection_map)                
 
