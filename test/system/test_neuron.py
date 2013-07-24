@@ -97,7 +97,6 @@ class SimpleNeuron(object):
             for seg in sec:
                 seg.v = self.v_init
 
-
 class SimpleNeuronType(NativeCellType):
     default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}
     default_initial_values = {'v': -65.0}
@@ -105,6 +104,21 @@ class SimpleNeuronType(NativeCellType):
     receptor_types = ['apical.ampa']
     model = SimpleNeuron
 
+
+def test_electrical_synapse():
+    p1 = pyNN.neuron.Population(2, pyNN.neuron.standardmodels.cells.HH_cond_exp())
+    p2 = pyNN.neuron.Population(2, pyNN.neuron.standardmodels.cells.HH_cond_exp())
+    syn = pyNN.neuron.ElectricalSynapse(weight=1.0)
+    prj = pyNN.neuron.Projection(p1, p2, pyNN.connectors.AllToAllConnector(), syn, 
+                                 source='source_section.gap', receptor_type='source_section.gap') #@UnusedVariable
+    current_source = pyNN.neuron.StepCurrentSource(amplitudes=[1.0], times=[100])
+    p1[0:1].inject(current_source)
+    p2[1:2].record('v')
+    pyNN.neuron.run(200)
+    volt_trace = p2.get_data(('v',)).segments[0].analogsignalarrays
+    # Check to see if the second cell as received any input current
+    assert volt_trace.max() - volt_trace.min() > 50 
+    
 
 def test_record_native_model():
     nrn = pyNN.neuron
@@ -144,3 +158,6 @@ def test_record_native_model():
     assert_equal(data[0].t_stop, 250.1*pq.ms) # would prefer if it were 250.0, but this is a fundamental Neo issue
     assert_equal(data[0].shape, (2501, 10))
     return data
+
+if __name__ == '__main__':
+    test_electrical_synapse()

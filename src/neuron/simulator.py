@@ -498,7 +498,11 @@ class GapJunctionPresynaptic(GapJunction):
     def __init__(self, projection, pre, post, **parameters):
         self.presynaptic_index = pre
         self.postsynaptic_index = post
-        self.segment = getattr(projection.pre[pre]._cell, projection.source)
+        if projection.source.endswith('.gap'): 
+            segment_name = projection.source[:-4]
+        else:
+            segment_name = projection.source
+        self.segment = getattr(projection.pre[pre]._cell, segment_name)
         pre_post_vargid, post_pre_vargid = state.get_vargids(projection, pre, post)
         self._make_connection(self.segment, parameters.pop('weight'), post_pre_vargid, 
                               pre_post_vargid, projection.post[post], projection.pre[pre])
