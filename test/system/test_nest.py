@@ -83,6 +83,17 @@ def test_native_stdp_model():
                           synapse_type=stdp)
 
 
+def test_ticket240():
+    nest = pyNN.nest
+    nest.setup(threads=4)
+    p1 = nest.Population(4, nest.IF_curr_exp())
+    p2 = nest.Population(4, nest.HH_curr_exp())
+    conn = nest.AllToAllConnector()
+    syn = nest.StaticSynapse(weight=1.0)
+    prj = nest.Projection(p1, p2, conn, syn, receptor_type="need_nonstandard_receptor_here")
+    connections = prj.get(('weight',), format='list')
+    assert len(connections) > 0
+
 def test_ticket244():
     nest = pyNN.nest
     nest.setup(threads=4)
