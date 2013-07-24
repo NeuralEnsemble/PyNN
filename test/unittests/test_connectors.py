@@ -232,6 +232,57 @@ class TestFromListConnector(unittest.TestCase):
         self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, self.p2, C, syn)
 
 
+class TestCloneConnector(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup(num_processes=2, rank=1, min_delay=0.123)
+        self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
+        self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
+        assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
+        connection_list = [
+            (0, 0, 0.0, 1.0),
+            (3, 0, 0.0, 1.0),
+            (2, 3, 0.0, 1.0),  # local
+            (2, 2, 0.0, 1.0),
+            (0, 1, 0.0, 1.0),  # local
+            ]
+        list_connector = connectors.FromListConnector(connection_list)
+        syn = sim.StaticSynapse()
+        self.ref_prj = sim.Projection(self.p1, self.p2, list_connector, syn)
+
+    def test_connect_with_scalar_weights_and_delays(self):
+        syn = sim.StaticSynapse(weight=5.0, delay=0.5)
+        C = connectors.CloneConnector(self.ref_prj)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 5.0, 0.5),
+                          (2, 3, 5.0, 0.5)])
+
+    def test_connect_with_random_weights_parallel_safe(self):
+        rd = random.RandomDistribution(rng=MockRNG(delta=1.0, parallel_safe=True))
+        syn = sim.StaticSynapse(weight=rd, delay=0.5)
+        C = connectors.CloneConnector(self.ref_prj)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.0, 0.5),
+                          (2, 3, 1.0, 0.5)])
+        
+    def test_connect_with_distance_dependent_weights(self):
+        d_expr = "d+100"
+        syn = sim.StaticSynapse(weight=d_expr, delay=0.5)
+        C = connectors.CloneConnector(self.ref_prj)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 101.0, 0.5),
+                          (2, 3, 101.0, 0.5)])
+
+    def test_connect_with_pre_post_mismatch(self):
+        syn = sim.StaticSynapse()
+        C = connectors.CloneConnector(self.ref_prj)
+        p3 = sim.Population(5, sim.IF_cond_exp(), structure=space.Line())
+        self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, p3, C, syn)
+
+
 class TestFromFileConnector(unittest.TestCase):
 
     def setUp(self):
@@ -349,7 +400,7 @@ class TestArrayConnector(unittest.TestCase):
                          [(1, 0, 0.0, 1.0),
                           (0, 2, 3.0, 1.3),
                           (2, 2, 4.0, 1.4000000000000001)])  # better to do an "almost-equal" check
-
+  
 
 @unittest.skip('skipping these tests until I figure out how I want to refactor checks')
 class CheckTest(unittest.TestCase):

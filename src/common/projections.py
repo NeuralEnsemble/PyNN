@@ -228,13 +228,13 @@ class Projection(object):
             if not with_address and return_single:
                 values = [val[0] for val in values]
             return values
-        elif format == 'array':           
-            values = self._get_attributes_as_arrays(*attribute_names)
+        elif format == 'array':
             if gather and self._simulator.state.num_processes > 1:
-                # Node 0 is the only one creating a full connection matrix if gather != 'all', and 
-                # returning it (saving memory). Slaves nodes are returning list of connections, so 
-                # this may be inconsistent...
-                values     = self._get_attributes_as_list(*attribute_names)
+                # Node 0 is the only one creating a full connection matrix, and returning it (saving memory)
+                # Slaves nodes are returning list of connections, so this may be inconsistent...
+                names      = list(attribute_names)
+                names      = ["presynaptic_index", "postsynaptic_index"] + names
+                values     = self._get_attributes_as_list(*names)
                 all_values = { self._simulator.state.mpi_rank: values }
                 all_values = recording.gather_dict(all_values, all=(gather=='all'))
                 if gather == 'all' or self._simulator.state.mpi_rank == 0:
