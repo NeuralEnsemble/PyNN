@@ -398,51 +398,59 @@ class TestCloneConnector(unittest.TestCase):
         
 class TestIndexBasedProbabilityConnector(unittest.TestCase):
 
+    class IndexBasedProbability(connectors.IndexBasedExpression):
+        def __call__(self, i, j):
+            return numpy.array((i + j) % 3 == 0, dtype=float)
+
+    class IndexBasedWeights(connectors.IndexBasedExpression):
+        def __call__(self, i, j):
+            return numpy.array(i * j + 1, dtype=float)
+        
+    class IndexBasedDelays(connectors.IndexBasedExpression):
+        def __call__(self, i, j):
+            return numpy.array(i + j + 1, dtype=float)
+
     def setUp(self):
         sim.setup(num_processes=2, rank=1, min_delay=0.123)
         self.p1 = sim.Population(5, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
-        assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0,1,0,1,0,1], dtype=bool))
-        def index_based_probability(i,j):
-            return float((i + j) % 3 == 0)
-        self._index_based_probability = index_based_probability
+        assert_array_equal(self.p2._mask_local, numpy.array([1,0,1,0,1], dtype=bool))
 
     def test_connect_with_scalar_weights_and_delays(self):
         syn = sim.StaticSynapse(weight=1.0, delay=2)
-        C = connectors.IndexBasedProbabilityConnector(self._index_based_probability)
+        C = connectors.IndexBasedProbabilityConnector(self.IndexBasedProbability())
         prj = sim.Projection(self.p1, self.p2, C, syn)
         nan = float('nan')
-        self.assertEqual(prj.get(["weight", "delay"], format='array', gather=False),  # use gather False because we are faking the MPI
-                         [numpy.array([[1.0, nan, nan, 1.0, nan],
-                                       [nan, 1.0, nan, nan, 1.0],
-                                       [nan, nan, 1.0, nan, nan]]),
-                          numpy.array([[2.0, nan, nan, 2.0, nan],
-                                       [nan, 2.0, nan, nan, 2.0],
-                                       [nan, nan, 2.0, nan, nan]])])
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 0, 1, 2),
+                          (3, 0, 1, 2),
+                          (1, 2, 1, 2),
+                          (4, 2, 1, 2),
+                          (2, 4, 1, 2)])
 
     def test_connect_with_index_based_weights(self):
-        def index_based_weights(i, j):
-            return float(i * j)
-        syn = sim.StaticSynapse(weight=index_based_weights, delay=0.5)
-        C = connectors.IndexBasedProbabilityConnector(self._index_based_probability)
+        syn = sim.StaticSynapse(weight=self.IndexBasedWeights(), delay=2)
+        C = connectors.IndexBasedProbabilityConnector(self.IndexBasedProbability())
         prj = sim.Projection(self.p1, self.p2, C, syn)
         nan = float('nan')
-        self.assertEqual(prj.get(["weight"], format='list', gather=False),  # use gather False because we are faking the MPI
-                         numpy.array([[0.0, nan, nan, 0.0, nan],
-                                      [nan, 2.0, nan, nan, 8.0],
-                                      [nan, nan, 8.0, nan, nan]]))
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 0, 1, 2),
+                          (3, 0, 1, 2),
+                          (1, 2, 3, 2),
+                          (4, 2, 9, 2),
+                          (2, 4, 9, 2)])
         
     def test_connect_with_index_based_delays(self):
-        def index_based_delays(i, j):
-            return float(i + j)
-        syn = sim.StaticSynapse(weight=1.0, index_based_delays)
-        C = connectors.IndexBasedProbabilityConnector(self._index_based_probability)
+        syn = sim.StaticSynapse(weight=1.0, delay=self.IndexBasedDelays())
+        C = connectors.IndexBasedProbabilityConnector(self.IndexBasedProbability())
         prj = sim.Projection(self.p1, self.p2, C, syn)
         nan = float('nan')
-        self.assertEqual(prj.get(["delay"], format='list', gather=False),  # use gather False because we are faking the MPI
-                         numpy.array([[0.0, nan, nan, 4.0, nan],
-                                      [nan, 4.0, nan, nan, 6.0],
-                                      [nan, nan, 6.0, nan, nan]]))
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 0, 1, 1),
+                          (3, 0, 1, 4),
+                          (1, 2, 1, 4),
+                          (4, 2, 1, 7),
+                          (2, 4, 1, 7)])
 
 
 @unittest.skip('skipping these tests until I figure out how I want to refactor checks')
