@@ -4,6 +4,7 @@ from nose.tools import assert_equal, assert_almost_equal
 from pyNN.random import RandomDistribution
 from pyNN.utility import init_logging
 import quantities as pq
+import numpy
 
 try:
     import pyNN.neuron
@@ -106,19 +107,31 @@ class SimpleNeuronType(NativeCellType):
 
 
 def test_electrical_synapse():
-    p1 = pyNN.neuron.Population(2, pyNN.neuron.standardmodels.cells.HH_cond_exp())
-    p2 = pyNN.neuron.Population(2, pyNN.neuron.standardmodels.cells.HH_cond_exp())
+    p1 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
+    p2 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
     syn = pyNN.neuron.ElectricalSynapse(weight=1.0)
-    prj = pyNN.neuron.Projection(p1, p2, pyNN.connectors.AllToAllConnector(), syn, 
-                                 source='source_section.gap', receptor_type='source_section.gap') #@UnusedVariable
+    C = pyNN.connectors.FromListConnector(numpy.array([[0, 0, 1.0],
+                                                       [0, 1, 1.0],
+                                                       [2, 2, 1.0],
+                                                       [3, 2, 1.0]]))
+    prj = pyNN.neuron.Projection(p1, p2, C, syn,                            #@UnusedVariable
+                                 source='source_section.gap', receptor_type='source_section.gap') 
     current_source = pyNN.neuron.StepCurrentSource(amplitudes=[1.0], times=[100])
     p1[0:1].inject(current_source)
-    p2[1:2].record('v')
+    p2[2:3].inject(current_source)
+    p1.record('v')
+    p2.record('v')
     pyNN.neuron.run(200)
-    volt_trace = p2.get_data(('v',)).segments[0].analogsignalarrays
-    # Check to see if the second cell as received any input current
-    assert volt_trace.max() - volt_trace.min() > 50 
-    
+    p1_trace = p1.get_data(('v',)).segments[0].analogsignalarrays[0]
+    p2_trace = p2.get_data(('v',)).segments[0].analogsignalarrays[0]
+    # Check the local forward connection
+    assert p2_trace[:,0].max() - p2_trace[:,0].min() > 50 
+    # Check the remote forward connection
+    assert p2_trace[:,1].max() - p2_trace[:,1].min() > 50 
+    # Check the local backward connection
+    assert p1_trace[:,2].max() - p2_trace[:,2].min() > 50 
+    # Check the remote backward connection
+    assert p1_trace[:,3].max() - p2_trace[:,3].min() > 50
 
 def test_record_native_model():
     nrn = pyNN.neuron
@@ -158,6 +171,3 @@ def test_record_native_model():
     assert_equal(data[0].t_stop, 250.1*pq.ms) # would prefer if it were 250.0, but this is a fundamental Neo issue
     assert_equal(data[0].shape, (2501, 10))
     return data
-
-if __name__ == '__main__':
-    test_electrical_synapse()
