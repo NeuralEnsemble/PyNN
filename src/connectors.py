@@ -425,6 +425,10 @@ class FromListConnector(Connector):
         logger.debug("conn_list (original) = \n%s", self.conn_list)
         if numpy.any(self.conn_list[:, 0] >= projection.pre.size):
             raise errors.ConnectionError("source index out of range")
+        if (self.conn_list.shape[1] < 3 or self.conn_list.shape[1] > 4 or 
+            (self.conn_list.shape[1] == 3 and projection.synapse_type.has_parameter('delay'))):
+            raise errors.ConnectionError("incompatible number of columns for connection list requires "
+                                         "4 (3 for synapse type without delay)")
         # need to do some profiling, to figure out the best way to do this:
         #  - order of sorting/filtering by local
         #  - use numpy.unique, or just do in1d(self.conn_list)?
@@ -447,11 +451,12 @@ class FromListConnector(Connector):
         schema = projection.synapse_type.get_schema()
         for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
-            connection_parameters = ParameterSpace(
-                                            {'weight': self.conn_list[l:r, 2],
-                                             'delay': self.conn_list[l:r, 3]},
-                                            schema=schema,
-                                            shape=(r-l,))
+            param_dict = {'weight': self.conn_list[l:r, 2] }
+            if self.conn_list.shape[1] == 4:
+                param_dict['delay'] = self.conn_list[l:r, 3]
+            connection_parameters = ParameterSpace(param_dict,
+                                                   schema=schema,
+                                                   shape=(r-l,))
             if isinstance(projection.synapse_type, StandardSynapseType):
                 connection_parameters = projection.synapse_type.translate(
                                             connection_parameters)
