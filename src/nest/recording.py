@@ -12,7 +12,8 @@ import nest
 from pyNN import recording, errors
 from pyNN.nest import simulator
 
-VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in'}
+VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',
+                'w': 'w'}
 REVERSE_VARIABLE_MAP = dict((v,k) for k,v in VARIABLE_MAP.items())
 SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001}
 

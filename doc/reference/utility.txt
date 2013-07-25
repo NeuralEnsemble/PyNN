@@ -5,7 +5,7 @@ Utility classes and functions
 
 .. autofunction:: pyNN.utility.init_logging
 
-.. autofunction:: pyNN.utility.get_script_args
+.. autofunction:: pyNN.utility.get_simulator
 
 
 .. autoclass:: pyNN.utility.Timer

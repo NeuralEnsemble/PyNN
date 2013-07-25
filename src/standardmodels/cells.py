@@ -218,6 +218,7 @@ class HH_cond_exp(StandardCellType):
         'i_offset'  : 0.0, # nA
     }
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
+    receptor_types = ('excitatory', 'inhibitory', 'source_section.gap')
     default_initial_values = {
         'v': -65.0, #'v_rest',
         'gsyn_exc': 0.0,
@@ -305,26 +306,28 @@ class Izhikevich(StandardCellType):
 
     E. Izhikevich (2003), IEEE transactions on neural networks, 14(6) 
 
-    Synapses are modeled as dirac, as in the original model
+        dv/dt = 0.04*v^2 + 5*v + 140 - u + I
+        du/dt = a*(b*v - u)
+
+    Synapses are modeled as Dirac delta currents (voltage step), as in the original model
     
     NOTE: name should probably be changed to match standard nomenclature,
-    e.g. QIF_cond_exp_etc_etc, although keeping "Izhikevich" as an alias would be good
+    e.g. QIF_cond_delta_etc_etc, although keeping "Izhikevich" as an alias would be good
     
     """
 
     default_parameters = {
-        'a'        : 0.02,     
-        'b'        : 0.2,     
-        'v_reset'  : -65.0,   
-        'd'        :   2.,
-        'tau_refrac' : 0.1       
+        'a'        : 0.02,    # (/ms)
+        'b'        : 0.2,     # (/ms)
+        'c'        : -65.0,   # (mV) aka 'v_reset'
+        'd'        : 2.0,     # (mV/ms) Reset value for u after a spike.
+        'i_offset' : 0.0      # (nA)
     }
-    recordable        = ['spikes', 'v', 'u']
+    recordable = ['spikes', 'v', 'u']
     conductance_based = False
-
     default_initial_values = {
-        'v': -65.0, 
-        'u': 0.0
+        'v': -70.0,   # mV
+        'u': -14.0      # mV/ms
     }  
 
 

@@ -5,7 +5,6 @@ NEST v2 implementation of the PyNN API.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id$
 """
 
 import numpy
@@ -22,8 +21,8 @@ try:
 except NESTError:
     raise Exception("NEST built without NumPy support. Try rebuilding NEST after installing NumPy.")
 
-if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
-    raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
+#if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
+#    raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
 
 import shutil
 import logging
@@ -40,7 +39,6 @@ from pyNN.space import Space
 from pyNN.standardmodels import StandardCellType
 from pyNN.nest.populations import Population, PopulationView, Assembly
 from pyNN.nest.projections import Projection
-
 
 logger = logging.getLogger("PyNN")
 
@@ -146,7 +144,6 @@ initialize = common.initialize
 
 get_current_time, get_time_step, get_min_delay, get_max_delay, \
             num_processes, rank = common.build_state_queries(simulator)
-
 
 
 # ==============================================================================

@@ -7,11 +7,6 @@ from datetime import datetime
 from collections import defaultdict
 from pyNN.utility import assert_arrays_equal
 
-MPI = recording.MPI
-if MPI:
-    mpi_comm = recording.mpi_comm
-
-
 #def test_rename_existing():
     
 #def test_gather():

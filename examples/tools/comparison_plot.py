@@ -41,9 +41,10 @@ def plot(datafiles, output_file, annotation=None):
     variables_to_plot = set.union(*(variable_names(s) for s in segments))
     print "Plotting the following variables: %s" % ", ".join(variables_to_plot)
     n_panels = sum(a.shape[1] for a in segments[0].analogsignalarrays) #+ bool(segments[0].spiketrains)
-    script_name = blocks[0].annotations['script_name']
-    for block in blocks[1:]:
-        assert block.annotations['script_name'] == script_name
+    script_name = blocks[0].annotations.get('script_name', '')
+    if script_name:
+        for block in blocks[1:]:
+            assert block.annotations['script_name'] == script_name
     
     fig_settings = {  # pass these in a configuration file?
         'lines.linewidth': 0.5,

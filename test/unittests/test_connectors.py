@@ -10,7 +10,7 @@ try:
 except ImportError:
     import unittest
 
-from pyNN import connectors, random, errors, space
+from pyNN import connectors, random, errors, space, recording
 import numpy
 import os
 from mock import Mock
@@ -18,16 +18,13 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from .mocks import MockRNG
 import pyNN.mock as sim
 
-real_mpi_rank = random.mpi_rank
-real_num_processes = random.num_processes
-orig_sim_mpi_rank = sim.simulator.state.mpi_rank
-orig_sim_num_processes = sim.simulator.state.num_processes
+
+orig_mpi_get_config = random.get_mpi_config
+def setUp():
+    random.get_mpi_config = lambda: (0, 2)
 
 def tearDown():
-    random.mpi_rank = real_mpi_rank
-    random.num_processes = real_num_processes
-    sim.simulator.state.mpi_rank = orig_sim_mpi_rank
-    sim.simulator.state.num_processes = orig_sim_num_processes
+    random.get_mpi_config = orig_mpi_get_config
 
 class TestOneToOneConnector(unittest.TestCase):
 
@@ -62,8 +59,6 @@ class TestAllToAllConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_connect_with_scalar_weights_and_delays(self):
         C = connectors.AllToAllConnector(safe=False)
@@ -139,8 +134,6 @@ class TestFixedProbabilityConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_connect_with_default_args(self):
         C = connectors.FixedProbabilityConnector(p_connect=0.75,
@@ -187,8 +180,6 @@ class TestDistanceDependentProbabilityConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_connect_with_default_args(self):
         C = connectors.DistanceDependentProbabilityConnector(d_expression="d<1.5",
@@ -212,8 +203,6 @@ class TestFromListConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_connect_with_valid_list(self):
         connection_list = [
@@ -243,6 +232,68 @@ class TestFromListConnector(unittest.TestCase):
         self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, self.p2, C, syn)
 
 
+class TestCloneConnector(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup(num_processes=2, rank=1, min_delay=0.123)
+        self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
+        self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
+        assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
+        connection_list = [
+            (0, 0, 0.0, 1.0),
+            (3, 0, 0.0, 1.0),
+            (2, 3, 0.0, 1.0),  # local
+            (2, 2, 0.0, 1.0),
+            (0, 1, 0.0, 1.0),  # local
+            ]
+        list_connector = connectors.FromListConnector(connection_list)
+        syn = sim.StaticSynapse()
+        self.ref_prj = sim.Projection(self.p1, self.p2, list_connector, syn)
+        self.orig_gather_dict = recording.gather_dict  # create reference to original function
+        # The gather_dict function in recording needs to be temporarily replaced so it can work with
+        # a mock version of the function to avoid it throwing an mpi4py import error when setting
+        # the rank in pyNN.mock by hand to > 1
+        def mock_gather_dict(D, all=False):
+            return D
+        recording.gather_dict = mock_gather_dict  
+        
+    def tearDown(self):
+        # restore original gather_dict function
+        recording.gather_dict = self.orig_gather_dict  
+
+    def test_connect_with_scalar_weights_and_delays(self):
+        syn = sim.StaticSynapse(weight=5.0, delay=0.5)
+        C = connectors.CloneConnector(self.ref_prj)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 5.0, 0.5),
+                          (2, 3, 5.0, 0.5)])
+
+    def test_connect_with_random_weights_parallel_safe(self):
+        rd = random.RandomDistribution(rng=MockRNG(delta=1.0, parallel_safe=True))
+        syn = sim.StaticSynapse(weight=rd, delay=0.5)
+        C = connectors.CloneConnector(self.ref_prj)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.0, 0.5),
+                          (2, 3, 1.0, 0.5)])
+        
+    def test_connect_with_distance_dependent_weights(self):
+        d_expr = "d+100"
+        syn = sim.StaticSynapse(weight=d_expr, delay=0.5)
+        C = connectors.CloneConnector(self.ref_prj)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 101.0, 0.5),
+                          (2, 3, 101.0, 0.5)])
+
+    def test_connect_with_pre_post_mismatch(self):
+        syn = sim.StaticSynapse()
+        C = connectors.CloneConnector(self.ref_prj)
+        p3 = sim.Population(5, sim.IF_cond_exp(), structure=space.Line())
+        self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, p3, C, syn)
+
+
 class TestFromFileConnector(unittest.TestCase):
 
     def setUp(self):
@@ -250,8 +301,6 @@ class TestFromFileConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
         self.connection_list = [
             (0, 0, 0.1, 0.1),
             (3, 0, 0.2, 0.11),
@@ -292,8 +341,6 @@ class TestFixedNumberPostConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_with_n_smaller_than_population_size(self):
         C = connectors.FixedNumberPostConnector(n=3, rng=MockRNG(delta=1))
@@ -313,8 +360,6 @@ class TestFixedNumberPreConnector(unittest.TestCase):
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_with_n_smaller_than_population_size(self):
         C = connectors.FixedNumberPreConnector(n=3, rng=MockRNG(delta=1))
@@ -336,8 +381,6 @@ class TestArrayConnector(unittest.TestCase):
         self.p1 = sim.Population(3, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(4, sim.HH_cond_exp(), structure=space.Line())
         assert_array_equal(self.p2._mask_local, numpy.array([1,0,1,0], dtype=bool))
-        random.mpi_rank = 1
-        random.num_processes = 2
 
     def test_connect_with_scalar_weights_and_delays(self):
         connections = numpy.array([
@@ -368,7 +411,7 @@ class TestArrayConnector(unittest.TestCase):
                          [(1, 0, 0.0, 1.0),
                           (0, 2, 3.0, 1.3),
                           (2, 2, 4.0, 1.4000000000000001)])  # better to do an "almost-equal" check
-
+  
 
 @unittest.skip('skipping these tests until I figure out how I want to refactor checks')
 class CheckTest(unittest.TestCase):

@@ -8,7 +8,6 @@ internal use.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id$
 """
 
 import logging
@@ -20,10 +19,6 @@ from pyNN import errors
 import neo
 from datetime import datetime
 import quantities as pq
-try:
-    from mpi4py import MPI
-except ImportError:
-    MPI = None
 
 logger = logging.getLogger("PyNN")
 
@@ -34,8 +29,6 @@ numpy1_0_formats = {'spikes': "%g", # only later versions of numpy support diffe
                     'v': "%g",      # formats for different columns
                     'gsyn': "%g"}
 
-if MPI:
-    mpi_comm = MPI.COMM_WORLD
 MPI_ROOT = 0
 
 UNITS_MAP = {
@@ -46,6 +39,14 @@ UNITS_MAP = {
     'w': 'nA',
 }
 
+
+def get_mpi_comm():
+    try:
+        from mpi4py import MPI
+    except ImportError:
+        raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
+    return MPI.COMM_WORLD, {'DOUBLE': MPI.DOUBLE, 'SUM': MPI.SUM}
+
 def rename_existing(filename):
     if os.path.exists(filename):
         os.system('mv %s %s_old' % (filename, filename))
@@ -53,8 +54,7 @@ def rename_existing(filename):
 
 def gather_array(data):
     # gather 1D or 2D numpy arrays
-    if MPI is None:
-        raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
+    mpi_comm, mpi_flags = get_mpi_comm()
     assert isinstance(data, numpy.ndarray)
     assert len(data.shape) < 3
     # first we pass the data size
@@ -63,8 +63,8 @@ def gather_array(data):
     # now we pass the data
     displacements = [sum(sizes[:i]) for i in range(len(sizes))]
     gdata = numpy.empty(sum(sizes))
-    mpi_comm.Gatherv([data.flatten(), size, MPI.DOUBLE],
-                     [gdata, (sizes, displacements), MPI.DOUBLE],
+    mpi_comm.Gatherv([data.flatten(), size, mpi_flags['DOUBLE']],
+                     [gdata, (sizes, displacements), mpi_flags['DOUBLE']],
                      root=MPI_ROOT)
     if len(data.shape) == 1:
         return gdata
@@ -74,10 +74,14 @@ def gather_array(data):
 
 
 
-def gather_dict(D):
+def gather_dict(D, all=False):
     # Note that if the same key exists on multiple nodes, the value from the
     # node with the highest rank will appear in the final dict.
-    Ds = mpi_comm.gather(D, root=MPI_ROOT)
+    mpi_comm, mpi_flags = get_mpi_comm()
+    if all:
+        Ds = mpi_comm.allgather(D)
+    else:
+        Ds = mpi_comm.gather(D, root=MPI_ROOT)
     if Ds:
         for otherD in Ds:
             D.update(otherD)
@@ -86,14 +90,13 @@ def gather_dict(D):
 
 def gather_blocks(data):
     """Gather Neo Blocks"""
-    if MPI is None:
-        raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
+    mpi_comm, mpi_flags = get_mpi_comm()
     assert isinstance(data, neo.Block)
     # for now, use gather_dict, which will probably be slow. Can optimize later
     D = {mpi_comm.rank: data}
     D = gather_dict(D)
     blocks = D.values()
-    merged = None    
+    merged = data
     if mpi_comm.rank == MPI_ROOT:    
         merged = blocks[0]
         for block in blocks[1:]:
@@ -102,8 +105,9 @@ def gather_blocks(data):
 
 
 def mpi_sum(x):
-    if MPI and mpi_comm.size > 1:
-        return mpi_comm.allreduce(x, op=MPI.SUM)
+    mpi_comm, mpi_flags = get_mpi_comm()
+    if mpi_comm.size > 1:
+        return mpi_comm.allreduce(x, op=mpi_flags['SUM'])
     else:
         return x
 

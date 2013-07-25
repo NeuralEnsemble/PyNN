@@ -7,8 +7,6 @@ Brunel N (2000) Dynamics of sparsely connected networks of excitatory and inhibi
 Andrew Davison, UNIC, CNRS
 May 2006
 
-$Id$
-
 """
 
 from pyNN.utility import get_script_args, Timer, ProgressBar

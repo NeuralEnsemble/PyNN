@@ -5,7 +5,6 @@ NEST v2 implementation of the PyNN API.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id: __init__.py 1216 2012-09-11 13:57:27Z apdavison $
 """
 
 import numpy
@@ -104,6 +103,8 @@ class Projection(common.Projection):
         weights = connection_parameters.pop('weight')
         if self.receptor_type == 'inhibitory' and self.post.conductance_based:
             weights *= -1 # NEST wants negative values for inhibitory weights, even if these are conductances
+        if hasattr(self.post.celltype, "receptor_scale"):  # this is a bit of a hack
+            weights *= self.post.celltype.receptor_scale   # needed for the Izhikevich model
         delays = connection_parameters.pop('delay')
         if postsynaptic_cell.celltype.standard_receptor_type:
             try:
@@ -122,7 +123,9 @@ class Projection(common.Projection):
             if numpy.isscalar(delays):
                 delays = repeat(delays)
             for pre, w, d in zip(presynaptic_cells, weights, delays):
-                nest.Connect([pre], [postsynaptic_cell], {'weight': w, 'delay': d, 'receptor_type': receptor_type})
+                nest.Connect([pre], [postsynaptic_cell], 
+                             {'weight': w, 'delay': d, 'receptor_type': receptor_type},
+                             model=self.nest_synapse_model)
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.extend(presynaptic_cells)
         connection_parameters.pop('tau_minus', None)  # TODO: set tau_minus on the post-synaptic cells

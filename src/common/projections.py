@@ -95,7 +95,7 @@ class Projection(object):
             - only local connections, if gather is False,
             - all connections, if gather is True (default)
         """
-        if gather:
+        if gather and self._simulator.state.num_processes > 1:
             n = len(self)
             return recording.mpi_sum(n)
         else:
@@ -204,6 +204,9 @@ class Projection(object):
             TODO
 
         TODO: document "with_address"
+        
+        Values will be expressed in the standard PyNN units (i.e. millivolts,
+        nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
         if isinstance(attribute_names, basestring):
             attribute_names = (attribute_names,)
@@ -219,8 +222,8 @@ class Projection(object):
             values = self._get_attributes_as_list(*names)
             if gather and self._simulator.state.num_processes > 1:
                 all_values = { self._simulator.state.mpi_rank: values }
-                all_values = recording.gather_dict(all_values)
-                if self._simulator.state.mpi_rank == 0:
+                all_values = recording.gather_dict(all_values, all=(gather=='all'))
+                if gather == 'all' or self._simulator.state.mpi_rank == 0:
                     values = reduce(operator.add, all_values.values())
             if not with_address and return_single:
                 values = [val[0] for val in values]
@@ -233,8 +236,8 @@ class Projection(object):
                 names      = ["presynaptic_index", "postsynaptic_index"] + names
                 values     = self._get_attributes_as_list(*names)
                 all_values = { self._simulator.state.mpi_rank: values }
-                all_values = recording.gather_dict(all_values)
-                if self._simulator.state.mpi_rank == 0:
+                all_values = recording.gather_dict(all_values, all=(gather=='all'))
+                if gather == 'all' or self._simulator.state.mpi_rank == 0:
                     tmp_values = reduce(operator.add, all_values.values())
                     values     = self._get_attributes_as_arrays(*attribute_names)
                     tmp_values = numpy.array(tmp_values)
@@ -285,6 +288,9 @@ class Projection(object):
         """
         Print synaptic attributes (weights, delays, etc.) to file. In the array
         format, zeros are printed for non-existent connections.
+        
+        Values will be expressed in the standard PyNN units (i.e. millivolts,
+        nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
         if attribute_names in ('all', 'connections'):
             attribute_names = ['weight', 'delay'] # need to add synapse dynamics parameter names, if applicable

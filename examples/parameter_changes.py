@@ -2,10 +2,8 @@
 
 """
 
-from pyNN.utility import get_script_args
-
-simulator_name = get_script_args(1)[0]
-exec("import pyNN.%s as sim" % simulator_name)
+from pyNN.utility import get_simulator
+sim, options = get_simulator()
 
 sim.setup(timestep=0.01)
 
@@ -20,6 +18,6 @@ for a in (0.0, 4.0, 20.0, 100.0):
     cell.set(a=a)
     sim.run(200.0)
 
-cell.write_data("Results/parameter_changes_%s.pkl" % simulator_name)
+cell.write_data("Results/parameter_changes_%s.pkl" % options.simulator)
 
 sim.end()

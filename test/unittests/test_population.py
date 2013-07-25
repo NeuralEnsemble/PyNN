@@ -242,7 +242,20 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(tau_m, 12.3)
         assert_array_almost_equal(i_offset, numpy.array([-0.0, -0.2, -0.4, -0.6]), decimal=12)
 
-    ##def test_get_multiple_params_no_gather(self):
+    def test_get_multiple_params_no_gather(self):
+        sim.simulator.state.num_processes = 2
+        sim.simulator.state.mpi_rank = 1
+        p = sim.Population(4, sim.IF_cond_exp(tau_m=12.3,
+                                              cm=[0.987, 0.988, 0.989, 0.990],
+                                              i_offset=lambda i: -0.2*i))
+        cm, tau_m, i_offset = p.get(('cm', 'tau_m', 'i_offset'), gather=False)
+        self.assertIsInstance(tau_m, float)
+        self.assertIsInstance(cm, numpy.ndarray)
+        assert_array_equal(cm, numpy.array([0.988, 0.990]))
+        self.assertEqual(tau_m, 12.3)
+        assert_array_almost_equal(i_offset, numpy.array([-0.2, -0.6]), decimal=12)
+        sim.simulator.state.num_processes = 1
+        sim.simulator.state.mpi_rank = 0
 
     def test_get_sequence_param(self):
         p = sim.Population(3, sim.SpikeSourceArray(spike_times=[Sequence([1, 2, 3, 4]),
@@ -284,6 +297,34 @@ class PopulationTest(unittest.TestCase):
         p.set(v_thresh=-50.0+numpy.arange(5))
         assert_array_equal(p.get('v_thresh', gather=True),
                            numpy.array([-50.0, -49.0, -48.0, -47.0, -46.0]))
+
+    def test_set_random_distribution_parallel_unsafe(self):
+        orig_rcfg = random.get_mpi_config
+        random.get_mpi_config = lambda: (1, 2)
+        sim.simulator.state.num_processes = 2
+        sim.simulator.state.mpi_rank = 1
+        p = sim.Population(4, sim.IF_cond_exp(cm=0.987))
+        rng = MockRNG(start=1.21, delta=0.01, parallel_safe=False)
+        p.set(cm=random.RandomDistribution('uniform', rng=rng))
+        cm = p.get('cm', gather=False)
+        assert_array_equal(cm, numpy.array([1.21, 1.22]))
+        random.get_mpi_config = orig_rcfg
+        sim.simulator.state.num_processes = 1
+        sim.simulator.state.mpi_rank = 0
+
+    def test_set_random_distribution_parallel_safe(self):
+        orig_rcfg = random.get_mpi_config
+        random.get_mpi_config = lambda: (1, 2)
+        sim.simulator.state.num_processes = 2
+        sim.simulator.state.mpi_rank = 1
+        p = sim.Population(4, sim.IF_cond_exp(cm=0.987))
+        rng = MockRNG(start=1.21, delta=0.01, parallel_safe=True)
+        p.set(cm=random.RandomDistribution('uniform', rng=rng))
+        cm = p.get('cm', gather=False)
+        assert_array_equal(cm, numpy.array([1.22, 1.24]))
+        random.get_mpi_config = orig_rcfg
+        sim.simulator.state.num_processes = 1
+        sim.simulator.state.mpi_rank = 0
 
     def test_tset(self):
         p = sim.Population(17, sim.IF_cond_alpha())

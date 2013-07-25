@@ -78,7 +78,8 @@ def test_columnwise_iteration_with_structured_array():
     assert_array_equal(cols[2], input[:,2])
 
 def test_columnwise_iteration_with_random_array_parallel_safe_no_mask():
-    random.mpi_rank=0; random.num_processes=2
+    orig_get_mpi_config = random.get_mpi_config
+    random.get_mpi_config = lambda: (0, 2)
     input = random.RandomDistribution(rng=MockRNG(parallel_safe=True))
     copy_input = random.RandomDistribution(rng=MockRNG(parallel_safe=True))
     m = LazyArray(input, shape=(4,3))
@@ -86,7 +87,8 @@ def test_columnwise_iteration_with_random_array_parallel_safe_no_mask():
     assert_array_equal(cols[0], copy_input.next(4, mask_local=False))
     assert_array_equal(cols[1], copy_input.next(4, mask_local=False))
     assert_array_equal(cols[2], copy_input.next(4, mask_local=False))
-    
+    random.get_mpi_config = orig_get_mpi_config
+
 def test_columnwise_iteration_with_function():
     input = lambda i,j: 2*i + j
     m = LazyArray(input, shape=(4,3))
@@ -110,7 +112,8 @@ def test_columnwise_iteration_with_structured_array_and_mask():
     assert_array_equal(cols[1], input[:,2])
 
 def test_columnwise_iteration_with_random_array_parallel_safe_with_mask():
-    random.mpi_rank=0; random.num_processes=2
+    orig_get_mpi_config = random.get_mpi_config
+    random.get_mpi_config = lambda: (0, 2)
     input = random.RandomDistribution(rng=MockRNG(parallel_safe=True))
     copy_input = random.RandomDistribution(rng=MockRNG(parallel_safe=True))
     m = LazyArray(input, shape=(4,3))
@@ -118,6 +121,7 @@ def test_columnwise_iteration_with_random_array_parallel_safe_with_mask():
     cols = [col for col in m.by_column(mask=mask)]
     assert_equal(len(cols), 1)
     assert_array_almost_equal(cols[0], copy_input.next(12, mask_local=False)[8:], 15)
+    random.get_mpi_config = orig_get_mpi_config
 
 def test_evaluate_with_flat_array():
     m = LazyArray(5, shape=(4,3))
@@ -288,6 +292,46 @@ class ParameterSpaceTest(unittest.TestCase):
         for x, y in zip(ps2d.columns(), expected):
             for key in y:
                 assert_array_equal(x[key], y[key])
+
+    def test_create_with_sequence(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': Sequence([1, 2, 3])},
+                            schema,
+                            shape=(2,))
+        ps.evaluate()
+        assert_array_equal(ps['a'], np.array([Sequence([1, 2, 3]), Sequence([1, 2, 3])], dtype=Sequence))
+
+    def test_create_with_tuple(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': (1, 2, 3)},
+                            schema,
+                            shape=(2,))
+        ps.evaluate()
+        assert_array_equal(ps['a'], np.array([Sequence([1, 2, 3]), Sequence([1, 2, 3])], dtype=Sequence))
+    
+    def test_create_with_list_of_sequences(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': [Sequence([1, 2, 3]), Sequence([4, 5, 6])]},
+                            schema,
+                            shape=(2,))
+        ps.evaluate()
+        assert_array_equal(ps['a'], np.array([Sequence([1, 2, 3]), Sequence([4, 5, 6])], dtype=Sequence))
+
+    def test_create_with_array_of_sequences(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': np.array([Sequence([1, 2, 3]), Sequence([4, 5, 6])], dtype=Sequence)},
+                            schema,
+                            shape=(2,))
+        ps.evaluate()
+        assert_array_equal(ps['a'], np.array([Sequence([1, 2, 3]), Sequence([4, 5, 6])], dtype=Sequence))
+
+    def test_create_with_list_of_lists(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': [[1, 2, 3], [4, 5, 6]]},
+                            schema,
+                            shape=(2,))
+        ps.evaluate()
+        assert_array_equal(ps['a'], np.array([Sequence([1, 2, 3]), Sequence([4, 5, 6])], dtype=Sequence))  
 
 
 if __name__ == "__main__":

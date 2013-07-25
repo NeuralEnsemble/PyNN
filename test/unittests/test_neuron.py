@@ -1,10 +1,17 @@
 # encoding: utf-8
-from neuron import h
-from pyNN.common import populations
-from pyNN.neuron.standardmodels import electrodes
-from pyNN.neuron import recording, simulator, cells
-import pyNN.neuron as sim
+
 from mock import Mock
+
+try:
+    from neuron import h
+    import pyNN.neuron as sim
+    from pyNN.neuron.standardmodels import electrodes
+    from pyNN.neuron import recording, simulator, cells
+except ImportError:
+    sim = False
+    h = Mock()
+    
+from pyNN.common import populations
 try:
     import unittest2 as unittest
 except ImportError:
@@ -92,7 +99,7 @@ class MockProjection(object):
     post = MockPopulation()
     
 
-# simulator
+@unittest.skipUnless(sim, "Requires NEURON")
 class TestFunctions(unittest.TestCase):
 
     def test_load_mechanisms(self):
@@ -132,6 +139,7 @@ class TestFunctions(unittest.TestCase):
         # many more things could be tested here
 
 
+@unittest.skipUnless(sim, "Requires NEURON")
 class TestInitializer(unittest.TestCase):
 
     def test_initializer_initialize(self):
@@ -170,6 +178,7 @@ class TestInitializer(unittest.TestCase):
         self.assertEqual(init.population_list, [])
 
 
+@unittest.skipUnless(sim, "Requires NEURON")
 class TestState(unittest.TestCase):
 
     def test_register_gid(self):
@@ -213,6 +222,7 @@ class TestState(unittest.TestCase):
         simulator.state.parallel_context = orig_pc
 
 
+@unittest.skipUnless(sim, "Requires NEURON")
 class TestPopulation(unittest.TestCase):
 
     def setUp(self):
@@ -231,6 +241,7 @@ class TestPopulation(unittest.TestCase):
         self.assertEqual(ps['e_e'], 0.0)
 
 
+@unittest.skipUnless(sim, "Requires NEURON")
 class TestID(unittest.TestCase):
 
     def setUp(self):
@@ -252,6 +263,7 @@ class TestID(unittest.TestCase):
     #def test_set_initial_value(self):
 
 
+@unittest.skipUnless(sim, "Requires NEURON")
 class TestConnection(unittest.TestCase):
 
     def setUp(self):
@@ -291,6 +303,7 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(self.c.weight_adjuster.wmax, 0.05)
 
 
+@unittest.skipUnless(sim, "Requires NEURON")
 class TestProjection(unittest.TestCase):
 
     def setUp(self):
@@ -311,7 +324,7 @@ class TestProjection(unittest.TestCase):
                              synapse_type=sim.TsodyksMarkramSynapse())
 
 
-# electrodes
+@unittest.skipUnless(sim, "Requires NEURON")
 class TestCurrentSources(unittest.TestCase):
 
     def setUp(self):
@@ -330,7 +343,7 @@ class TestCurrentSources(unittest.TestCase):
         # need more assertions about iclamps, vectors
 
 
-# recording
+@unittest.skipUnless(sim, "Requires NEURON")
 class TestRecorder(unittest.TestCase):
 
     def setUp(self):
@@ -393,6 +406,7 @@ class TestRecorder(unittest.TestCase):
                          {self.cells[0]: 10, self.cells[1]: 20})
 
 
+@unittest.skipUnless(sim, "Requires NEURON")
 class TestStandardIF(unittest.TestCase):
     
     def test_create_cond_exp(self):
@@ -405,6 +419,7 @@ class TestStandardIF(unittest.TestCase):
         cell = cells.StandardIF("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
         self.assertAlmostEqual(cell.tau_m, 12.3, places=10)
         self.assertAlmostEqual(cell.c_m, 0.246, places=10)
+
 
 if __name__ == '__main__':
     unittest.main()

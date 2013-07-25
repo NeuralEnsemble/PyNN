@@ -4,7 +4,6 @@ Synapse Dynamics classes for the neuron module.
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id$
 """
 
 from pyNN.standardmodels import synapses, build_translations
@@ -22,6 +21,21 @@ class StaticSynapse(synapses.StaticSynapse):
 
     def _get_minimum_delay(self):
         return state.min_delay
+
+
+class ElectricalSynapse(synapses.ElectricalSynapse):
+    __doc__ = synapses.ElectricalSynapse.__doc__
+
+    has_presynaptic_components = True
+    connection_type = 'GapJunction'
+
+    translations = build_translations(
+        ('weight', 'weight'),
+    )
+    model = 'Gap'
+
+    def _get_minimum_delay(self):
+        return state.min_delay    
 
 
 class STDPMechanism(synapses.STDPMechanism):

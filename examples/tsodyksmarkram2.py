@@ -4,14 +4,12 @@ Example of depressing and facilitating, current-based, alpha synapses
 Andrew Davison, UNIC, CNRS
 May 2009
 
-$Id:$
 """
 
 import numpy
-from pyNN.utility import get_script_args
+from pyNN.utility import get_simulator
 
-simulator_name = get_script_args(1)[0]
-exec("import pyNN.%s as sim" % simulator_name)
+sim, options = get_simulator()
 
 sim.setup()
 
@@ -41,6 +39,6 @@ spike_source.record('spikes')
 sim.run(200.0)
 
 for label,p in populations.items():
-    p.write_data("Results/tsodyksmarkram2_%s_%s.pkl" % (label, simulator_name))
+    p.write_data("Results/tsodyksmarkram2_%s_%s.pkl" % (label, options.simulator))
 
 sim.end()

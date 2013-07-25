@@ -16,7 +16,6 @@ Classes:
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-$Id:random.py 188 2008-01-29 10:03:59Z apdavison $
 """
 
 import sys
@@ -32,16 +31,19 @@ except (ImportError, Warning):
     have_gsl = False
 import time
 
-try:
-    from mpi4py import MPI
-    mpi_rank = MPI.COMM_WORLD.rank
-    num_processes = MPI.COMM_WORLD.size
-except ImportError:
-    MPI = None
-    mpi_rank = 0
-    num_processes = 1
-
 logger = logging.getLogger("PyNN")
+
+
+def get_mpi_config():
+    try:
+        from mpi4py import MPI
+        mpi_rank = MPI.COMM_WORLD.rank
+        num_processes = MPI.COMM_WORLD.size
+    except ImportError:
+        mpi_rank = 0
+        num_processes = 1
+    return mpi_rank, num_processes
+
 
 class AbstractRNG(object):
     """Abstract class for wrapping random number generators. The idea is to be
@@ -79,22 +81,23 @@ class WrappedRNG(AbstractRNG):
     def __init__(self, seed=None, parallel_safe=True):
         AbstractRNG.__init__(self, seed)
         self.parallel_safe = parallel_safe
+        self.mpi_rank, self.num_processes = get_mpi_config()
         if self.seed is not None and not parallel_safe:
-            self.seed += mpi_rank # ensure different nodes get different sequences
-            if mpi_rank != 0:
-                logger.warning("Changing the seed to %s on node %d" % (self.seed, mpi_rank))
+            self.seed += self.mpi_rank # ensure different nodes get different sequences
+            if self.mpi_rank != 0:
+                logger.warning("Changing the seed to %s on node %d" % (self.seed, self.mpi_rank))
 
     def next(self, n=None, distribution='uniform', parameters=[], mask_local=None):
         if n == 0:
             rarr = numpy.random.rand(0) # We return an empty array
         elif n > 0:
-            if num_processes > 1 and not self.parallel_safe:
+            if self.num_processes > 1 and not self.parallel_safe:
                 # n is the number for the whole model, so if we do not care about
                 # having exactly the same random numbers independent of the
                 # number of processors (m), we only need generate n/m+1 per node
                 # (assuming round-robin distribution of cells between processors)
                 if mask_local is None:
-                    n = n/num_processes + 1
+                    n = n/self.num_processes + 1
                 elif mask_local is not False:
                     n = mask_local.sum()
             rarr = self._next(distribution, n, parameters)
@@ -104,7 +107,7 @@ class WrappedRNG(AbstractRNG):
             raise ValueError, "The sample number must be positive"
         if not isinstance(rarr, numpy.ndarray):
             rarr = numpy.array(rarr)
-        if self.parallel_safe and num_processes > 1:
+        if self.parallel_safe and self.num_processes > 1:
             if hasattr(mask_local, 'size'):      # strip out the random numbers that
                 assert mask_local.size == n      # should be used on other processors.
                 rarr = rarr[mask_local]
@@ -123,7 +126,7 @@ class WrappedRNG(AbstractRNG):
 
     def describe(self):
         return "%s() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
-            self.__class__.__name__, self.seed, mpi_rank, num_processes, self.parallel_safe and "Is" or "Not")
+            self.__class__.__name__, self.seed, self.mpi_rank, self.num_processes, self.parallel_safe and "Is" or "Not")
 
 
 class NumpyRNG(WrappedRNG):

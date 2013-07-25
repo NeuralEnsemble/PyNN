@@ -2,8 +2,8 @@
 : integrate-and-fire neuron with a refractory period.
 : This calculates the adaptive current, sets the membrane potential to the
 : correct value at the start and end of the refractory period, and prevents spikes
-: during the period by clamping the membrane potential to the reset voltage with
-: a huge conductance.
+: during the refractory period by clamping the membrane potential to the reset
+: voltage with a huge conductance.
 :
 : Reference:
 :
@@ -12,7 +12,6 @@
 :   J. Neurophysiol. 94: 3637-3642, 2005.
 :  
 : Implemented by Andrew Davison. UNIC, CNRS, March 2009.
-: $Id$
 
 NEURON {
     POINT_PROCESS AdExpIF
