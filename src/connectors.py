@@ -752,8 +752,8 @@ class CloneConnector(MapConnector):
     def connect(self, projection):
         if (projection.pre != self.reference_projection.pre or 
             projection.post != self.reference_projection.post):
-            raise errors.ConnectionError("Pre and post populations must match between reference ({}"
-                                         "  and {}) and clone projections ({} and {}) for "
+            raise errors.ConnectionError("Pre and post populations must match between reference ({0}"
+                                         "  and {1}) and clone projections ({2} and {3}) for "
                                          "CloneConnector"
                                          .format(self.reference_projection.pre, 
                                                  self.reference_projection.post, 
