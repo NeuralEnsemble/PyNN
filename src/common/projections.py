@@ -222,8 +222,8 @@ class Projection(object):
             values = self._get_attributes_as_list(*names)
             if gather and self._simulator.state.num_processes > 1:
                 all_values = { self._simulator.state.mpi_rank: values }
-                all_values = recording.gather_dict(all_values)
-                if self._simulator.state.mpi_rank == 0:
+                all_values = recording.gather_dict(all_values, all=(gather=='all'))
+                if gather == 'all' or self._simulator.state.mpi_rank == 0:
                     values = reduce(operator.add, all_values.values())
             if not with_address and return_single:
                 values = [val[0] for val in values]
@@ -236,8 +236,8 @@ class Projection(object):
                 names      = ["presynaptic_index", "postsynaptic_index"] + names
                 values     = self._get_attributes_as_list(*names)
                 all_values = { self._simulator.state.mpi_rank: values }
-                all_values = recording.gather_dict(all_values)
-                if self._simulator.state.mpi_rank == 0:
+                all_values = recording.gather_dict(all_values, all=(gather=='all'))
+                if gather == 'all' or self._simulator.state.mpi_rank == 0:
                     tmp_values = reduce(operator.add, all_values.values())
                     values     = self._get_attributes_as_arrays(*attribute_names)
                     tmp_values = numpy.array(tmp_values)

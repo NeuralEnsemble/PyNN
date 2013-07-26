@@ -10,7 +10,7 @@ try:
 except ImportError:
     import unittest
 
-from pyNN import connectors, random, errors, space
+from pyNN import connectors, random, errors, space, recording
 import numpy
 import os
 from mock import Mock
@@ -349,7 +349,151 @@ class TestArrayConnector(unittest.TestCase):
                          [(1, 0, 0.0, 1.0),
                           (0, 2, 3.0, 1.3),
                           (2, 2, 4.0, 1.4000000000000001)])  # better to do an "almost-equal" check
+  
 
+
+class TestCloneConnector(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup(num_processes=2, rank=1, min_delay=0.123)
+        self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
+        self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
+        assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
+        connection_list = [
+            (0, 0, 0.0, 1.0),
+            (3, 0, 0.0, 1.0),
+            (2, 3, 0.0, 1.0),  # local
+            (2, 2, 0.0, 1.0),
+            (0, 1, 0.0, 1.0),  # local
+            ]
+        list_connector = connectors.FromListConnector(connection_list)
+        syn = sim.StaticSynapse()
+        self.ref_prj = sim.Projection(self.p1, self.p2, list_connector, syn)
+        self.orig_gather_dict = recording.gather_dict  # create reference to original function
+        # The gather_dict function in recording needs to be temporarily replaced so it can work with
+        # a mock version of the function to avoid it throwing an mpi4py import error when setting
+        # the rank in pyNN.mock by hand to > 1
+        def mock_gather_dict(D, all=False):
+            return D
+        recording.gather_dict = mock_gather_dict  
+        
+    def tearDown(self):
+        # restore original gather_dict function
+        recording.gather_dict = self.orig_gather_dict  
+
+    def test_connect(self):
+        syn = sim.StaticSynapse(weight=5.0, delay=0.5)
+        C = connectors.CloneConnector(self.ref_prj)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 5.0, 0.5),
+                          (2, 3, 5.0, 0.5)])
+
+    def test_connect_with_pre_post_mismatch(self):
+        syn = sim.StaticSynapse()
+        C = connectors.CloneConnector(self.ref_prj)
+        p3 = sim.Population(5, sim.IF_cond_exp(), structure=space.Line())
+        self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, p3, C, syn)
+        
+        
+class TestIndexBasedProbabilityConnector(unittest.TestCase):
+
+    class IndexBasedProbability(connectors.IndexBasedExpression):
+        def __call__(self, i, j):
+            return numpy.array((i + j) % 3 == 0, dtype=float)
+
+    class IndexBasedWeights(connectors.IndexBasedExpression):
+        def __call__(self, i, j):
+            return numpy.array(i * j + 1, dtype=float)
+        
+    class IndexBasedDelays(connectors.IndexBasedExpression):
+        def __call__(self, i, j):
+            return numpy.array(i + j + 1, dtype=float)
+
+    def setUp(self):
+        sim.setup(num_processes=2, rank=1, min_delay=0.123)
+        self.p1 = sim.Population(5, sim.IF_cond_exp(), structure=space.Line())
+        self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
+        assert_array_equal(self.p2._mask_local, numpy.array([1,0,1,0,1], dtype=bool))
+
+    def test_connect_with_scalar_weights_and_delays(self):
+        syn = sim.StaticSynapse(weight=1.0, delay=2)
+        C = connectors.IndexBasedProbabilityConnector(self.IndexBasedProbability())
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 0, 1, 2),
+                          (3, 0, 1, 2),
+                          (1, 2, 1, 2),
+                          (4, 2, 1, 2),
+                          (2, 4, 1, 2)])
+
+    def test_connect_with_index_based_weights(self):
+        syn = sim.StaticSynapse(weight=self.IndexBasedWeights(), delay=2)
+        C = connectors.IndexBasedProbabilityConnector(self.IndexBasedProbability())
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 0, 1, 2),
+                          (3, 0, 1, 2),
+                          (1, 2, 3, 2),
+                          (4, 2, 9, 2),
+                          (2, 4, 9, 2)])
+        
+    def test_connect_with_index_based_delays(self):
+        syn = sim.StaticSynapse(weight=1.0, delay=self.IndexBasedDelays())
+        C = connectors.IndexBasedProbabilityConnector(self.IndexBasedProbability())
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 0, 1, 1),
+                          (3, 0, 1, 4),
+                          (1, 2, 1, 4),
+                          (4, 2, 1, 7),
+                          (2, 4, 1, 7)])
+
+class TestDisplacementDependentProbabilityConnector(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup(num_processes=2, rank=1, min_delay=0.123)
+        self.p1 = sim.Population(9, sim.IF_cond_exp(), 
+                                 structure=space.Grid2D(aspect_ratio=1.0, dx=1.0, dy=1.0))
+        self.p2 = sim.Population(9, sim.HH_cond_exp(), 
+                                 structure=space.Grid2D(aspect_ratio=1.0, dx=1.0, dy=1.0))
+        assert_array_equal(self.p2._mask_local, numpy.array([1,0,1,0,1,0,1,0,1], dtype=bool))
+
+    def test_connect(self):
+        syn = sim.StaticSynapse(weight=1.0, delay=2)
+        def displacement_expression(d):
+            return 0.5 * ((d[0] >= -1) * (d[0] <= 2)) + 0.25 * (d[1] >= 0) * (d[1] <= 1)
+        C = connectors.DisplacementDependentProbabilityConnector(displacement_expression,
+                                                                 rng=MockRNG(delta=0.01))
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 0, 1.0, 2.0), 
+                          (1, 0, 1.0, 2.0), 
+                          (2, 0, 1.0, 2.0), 
+                          (3, 0, 1.0, 2.0), 
+                          (4, 0, 1.0, 2.0), 
+                          (5, 0, 1.0, 2.0), 
+                          (6, 0, 1.0, 2.0), 
+                          (0, 2, 1.0, 2.0), 
+                          (1, 2, 1.0, 2.0), 
+                          (2, 2, 1.0, 2.0), 
+                          (3, 2, 1.0, 2.0), 
+                          (4, 2, 1.0, 2.0), 
+                          (5, 2, 1.0, 2.0), 
+                          (0, 4, 1.0, 2.0), 
+                          (1, 4, 1.0, 2.0), 
+                          (2, 4, 1.0, 2.0), 
+                          (3, 4, 1.0, 2.0), 
+                          (4, 4, 1.0, 2.0), 
+                          (5, 4, 1.0, 2.0), 
+                          (6, 4, 1.0, 2.0), 
+                          (7, 4, 1.0, 2.0), 
+                          (8, 4, 1.0, 2.0), 
+                          (0, 6, 1.0, 2.0), 
+                          (3, 6, 1.0, 2.0), 
+                          (6, 6, 1.0, 2.0), 
+                          (1, 8, 1.0, 2.0), 
+                          (2, 8, 1.0, 2.0)])
 
 @unittest.skip('skipping these tests until I figure out how I want to refactor checks')
 class CheckTest(unittest.TestCase):
