@@ -18,6 +18,7 @@ from pyNN.standardmodels import StandardSynapseType
 import numpy
 from itertools import izip, repeat
 import logging
+from copy import copy
 
 from lazyarray import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, exp, \
                       fabs, floor, fmod, hypot, ldexp, log, log10, modf, power, \
@@ -40,6 +41,26 @@ def _get_rng(rng):
         return NumpyRNG(seed=151985012)
     else:
         raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
+
+class IndexBasedExpression(object):
+    """
+    Abstract base class for general expressions that use the cell indices and projection class to 
+    determine their value instead of just the the distance between the cells
+    """
+       
+    @property    
+    def projection(self):
+        try:
+            return self._projection
+        except AttributeError:
+            return None
+    
+    @projection.setter        
+    def projection(self, projection): 
+        self._projection = projection
+                    
+    def __call__(self, i, j):
+        raise NotImplementedError
 
 
 class Connector(object):
@@ -127,8 +148,19 @@ class MapConnector(Connector):
         parameter_space = projection.synapse_type.native_parameters
         parameter_space.shape = (projection.pre.size, projection.post.size)
         for name, map in parameter_space.items():
-            if callable(map.base_value):  # map is assumed to be a function of "d"
-                parameter_space[name] = map(distance_map)
+            if callable(map.base_value):
+                if isinstance(map.base_value, IndexBasedExpression):
+                    # Assumes map is a function of index and hence requires the projection to 
+                    # determine its value. It and its index function are copied so as to be able 
+                    # to set the projection without altering the connector, which would perhaps
+                    # not be expected from the 'connect' call.
+                    new_map = copy(map)
+                    new_map.base_value = copy(map.base_value)
+                    new_map.base_value.projection = projection
+                    parameter_space[name] = new_map
+                else:
+                    # Assumes map is a function of distance 
+                    parameter_space[name] = map(distance_map)
                 
         for count, (col, local, source_mask) in enumerate(izip(*components)):
             if source_mask is True or source_mask.any():
@@ -189,6 +221,8 @@ class AllToAllConnector(MapConnector):
     def connect(self, projection):
         if not self.allow_self_connections and projection.pre == projection.post:
             connection_map = LazyArray(lambda i,j: i != j, shape=projection.shape)
+        elif self.allow_self_connections == 'NoMutual' and projection.pre == projection.post:
+            connection_map = LazyArray(lambda i,j: i > j, shape=projection.shape)
         else:
             connection_map = LazyArray(True, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
@@ -219,7 +253,7 @@ class FixedProbabilityConnector(MapConnector):
         Create a new connector.
         """
         Connector.__init__(self, safe, callback)
-        assert isinstance(allow_self_connections, bool)
+        assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
         assert 0 <= self.p_connect
@@ -229,8 +263,11 @@ class FixedProbabilityConnector(MapConnector):
         random_map = LazyArray(RandomDistribution('uniform', (0, 1), rng=self.rng),
                                projection.shape)
         connection_map = random_map < self.p_connect
-        if not self.allow_self_connections and projection.pre == projection.post:
-            connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+        if projection.pre == projection.post:
+            if not self.allow_self_connections:
+                connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+            elif self.allow_self_connections == 'NoMutual':
+                connection_map *= LazyArray(lambda i,j: i > j, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
 
 
@@ -260,7 +297,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
         """
         Connector.__init__(self, safe, callback)
         assert isinstance(d_expression, str) or callable(d_expression)
-        assert isinstance(allow_self_connections, bool)
+        assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
         try:
             if isinstance(d_expression, str):
                 d = 0; assert 0 <= eval(d_expression), eval(d_expression)
@@ -278,9 +315,83 @@ class DistanceDependentProbabilityConnector(MapConnector):
         random_map = LazyArray(RandomDistribution('uniform', (0, 1), rng=self.rng),
                                projection.shape)
         connection_map = random_map < probability_map
-        if not self.allow_self_connections and projection.pre == projection.post:
-            connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+        if projection.pre == projection.post:
+            if not self.allow_self_connections:
+                connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+            elif self.allow_self_connections == 'NoMutual':
+                connection_map *= LazyArray(lambda i,j: i > j, shape=projection.shape)
         self._connect_with_map(projection, connection_map, distance_map)
+
+
+class IndexBasedProbabilityConnector(MapConnector):
+    """
+    For each pair of pre-post cells, the connection probability depends on an arbitrary functions
+    that takes the indices of the pre and post populations.
+
+    Takes any of the standard :class:`Connector` optional arguments and, in
+    addition:
+
+        `index_expression`:
+            a function that takes the two cell indices as inputs and calculates the
+            probability matrix from it. 
+        `allow_self_connections`:
+            if the connector is used to connect a Population to itself, this
+            flag determines whether a neuron is allowed to connect to itself,
+            or only to other neurons in the Population.
+        `rng`:
+            an :class:`RNG` instance used to evaluate whether connections exist
+    """
+    parameter_names = ('allow_self_connections', 'index_expression')
+
+    def __init__(self, index_expression, allow_self_connections=True,
+                 rng=None, safe=True, callback=None):
+        """
+        Create a new connector.
+        """
+        Connector.__init__(self, safe, callback)
+        assert callable(index_expression)
+        assert isinstance(index_expression, IndexBasedExpression)
+        assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
+        self.index_expression = index_expression
+        self.allow_self_connections = allow_self_connections
+        self.rng = _get_rng(rng)
+
+    def connect(self, projection):
+        # The index function is copied so as to avoid the connector being altered by the "connect"
+        # function, which is probably unexpected behaviour.
+        index_expression = copy(self.index_expression)
+        index_expression.projection = projection
+        probability_map = LazyArray(index_expression, projection.shape) 
+        random_map = LazyArray(RandomDistribution('uniform', (0, 1), rng=self.rng),
+                               projection.shape)
+        connection_map = random_map < probability_map
+        if projection.pre == projection.post:
+            if not self.allow_self_connections:
+                connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+            elif self.allow_self_connections == 'NoMutual':
+                connection_map *= LazyArray(lambda i,j: i > j, shape=projection.shape)
+        self._connect_with_map(projection, connection_map)
+
+
+class DisplacementDependentProbabilityConnector(IndexBasedProbabilityConnector):
+            
+    class DisplacementExpression(IndexBasedExpression):
+        """
+        A displacement based expression function used to determine the connection probability
+        and the value of variable connection parameters of a projection 
+        """
+        def __init__(self, disp_function):
+            self._disp_function = disp_function
+                        
+        def __call__(self, i, j):
+            disp = (self.projection.post.positions.T[j] - self.projection.pre.positions.T[i]).T
+            return self._disp_function(disp)             
+            
+    def __init__(self, disp_function, allow_self_connections=True,
+                 rng=None, safe=True, callback=None):
+        super(DisplacementDependentProbabilityConnector, self).__init__(
+                self.DisplacementExpression(disp_function), 
+                allow_self_connections=allow_self_connections, rng=rng, callback=callback)
 
 
 class FromListConnector(Connector):
@@ -314,6 +425,10 @@ class FromListConnector(Connector):
         logger.debug("conn_list (original) = \n%s", self.conn_list)
         if numpy.any(self.conn_list[:, 0] >= projection.pre.size):
             raise errors.ConnectionError("source index out of range")
+        if (self.conn_list.shape[1] < 3 or self.conn_list.shape[1] > 4 or 
+            (self.conn_list.shape[1] == 3 and projection.synapse_type.has_parameter('delay'))):
+            raise errors.ConnectionError("incompatible number of columns for connection list requires "
+                                         "4 (3 for synapse type without delay)")
         # need to do some profiling, to figure out the best way to do this:
         #  - order of sorting/filtering by local
         #  - use numpy.unique, or just do in1d(self.conn_list)?
@@ -336,11 +451,12 @@ class FromListConnector(Connector):
         schema = projection.synapse_type.get_schema()
         for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
-            connection_parameters = ParameterSpace(
-                                            {'weight': self.conn_list[l:r, 2],
-                                             'delay': self.conn_list[l:r, 3]},
-                                            schema=schema,
-                                            shape=(r-l,))
+            param_dict = {'weight': self.conn_list[l:r, 2] }
+            if self.conn_list.shape[1] == 4:
+                param_dict['delay'] = self.conn_list[l:r, 3]
+            connection_parameters = ParameterSpace(param_dict,
+                                                   schema=schema,
+                                                   shape=(r-l,))
             if isinstance(projection.synapse_type, StandardSynapseType):
                 connection_parameters = projection.synapse_type.translate(
                                             connection_parameters)
@@ -397,7 +513,7 @@ class FixedNumberConnector(MapConnector):
         Create a new connector.
         """
         Connector.__init__(self, safe, callback)
-        assert isinstance(allow_self_connections, bool)
+        assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
         self.allow_self_connections = allow_self_connections
         if isinstance(n, int):
             self.n = n
@@ -450,8 +566,11 @@ class FixedNumberPostConnector(FixedNumberConnector):
             n = self.rand_distr.next(projection.pre.size)
         f_ij = lambda i,j: shuffle[:, j] < n
         connection_map = LazyArray(f_ij, projection.shape)
-        if not self.allow_self_connections and projection.pre == projection.post:
-            connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+        if projection.pre == projection.post:
+            if not self.allow_self_connections:
+                connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+            elif self.allow_self_connections == 'NoMutual':
+                connection_map *= LazyArray(lambda i,j: i > j, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
 
 
@@ -491,8 +610,11 @@ class FixedNumberPreConnector(FixedNumberConnector):
             n = self.rand_distr.next(projection.pre.size)
         f_ij = lambda i,j: shuffle[i] < n
         connection_map = LazyArray(f_ij, projection.shape)
-        if not self.allow_self_connections and projection.pre == projection.post:
-            connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+        if projection.pre == projection.post:
+            if not self.allow_self_connections:
+                connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+            elif self.allow_self_connections == 'NoMutual':
+                connection_map *= LazyArray(lambda i,j: i > j, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
 
 
@@ -542,7 +664,7 @@ class SmallWorldConnector(Connector):
         """
         Connector.__init__(self, safe, callback)
         assert 0 <= rewiring <= 1
-        assert isinstance(allow_self_connections, bool)
+        assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
         self.rewiring               = rewiring
         self.d_expression           = "d < %g" % degree
         self.allow_self_connections = allow_self_connections
@@ -616,30 +738,29 @@ class CloneConnector(MapConnector):
     """
     Connects cells with the same connectivity pattern as a previous projection.
     """
-    parameter_names = ('allow_self_connections',)
+    parameter_names = ('reference_projection',)
 
-    def __init__(self, orig_proj, allow_self_connections=True, safe=True, callback=None):
+    def __init__(self, reference_projection, safe=True, callback=None):
         """
         Create a new CloneConnector.
         
-        `orig_proj` -- the projection to clone the connectivity pattern from
-        `allow_self_connections` -- if the connector is used to connect a
-            Population to itself, this flag determines whether a neuron is
-            allowed to connect to itself, or only to other neurons in the
-            Population.
+        `reference_projection` -- the projection to clone the connectivity pattern from
         """
         MapConnector.__init__(self, safe, callback=callback)
-        self.orig_proj = orig_proj
-        self.allow_self_connections = allow_self_connections
+        self.reference_projection = reference_projection
 
     def connect(self, projection):
-        conn_list = numpy.array([(self.orig_proj.pre.id_to_index(c.source),
-                                  self.orig_proj.post.id_to_index(c.target))
-                                 for c in self.orig_proj.connections])
-        conn_matrix = numpy.zeros((projection.pre.size, projection.post.size))
-        conn_matrix[conn_list[:,0], conn_list[:,1]] = True
-        connection_map= LazyArray(conn_matrix)
-        self._connect_with_map(connection_map)                
+        if (projection.pre != self.reference_projection.pre or 
+            projection.post != self.reference_projection.post):
+            raise errors.ConnectionError("Pre and post populations must match between reference ({0}"
+                                         "  and {1}) and clone projections ({2} and {3}) for "
+                                         "CloneConnector"
+                                         .format(self.reference_projection.pre, 
+                                                 self.reference_projection.post, 
+                                                 projection.pre, projection.post))
+        connection_map = LazyArray(~numpy.isnan(self.reference_projection.get(['weight'], 'array', 
+                                                                              gather='all')[0]))
+        self._connect_with_map(projection, connection_map)                
 
 
 class ArrayConnector(MapConnector):

@@ -14,4 +14,5 @@ from pyNN.connectors import AllToAllConnector, \
                             FromFileConnector, \
                             FixedNumberPreConnector, \
                             FixedNumberPostConnector, \
-                            SmallWorldConnector
+                            SmallWorldConnector, \
+                            CloneConnector
