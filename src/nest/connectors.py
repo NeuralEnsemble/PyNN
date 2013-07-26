@@ -7,10 +7,19 @@ Connection method classes for nest
 """
 
 from pyNN import random, core, errors
-from pyNN.connectors import Connector, AllToAllConnector, FixedProbabilityConnector, \
+from pyNN.connectors import Connector, \
+                            AllToAllConnector, \
+                            FixedProbabilityConnector, \
                             DistanceDependentProbabilityConnector, \
-                            DisplacementDependentProbabilityConnector, FixedNumberPreConnector, \
-                            FixedNumberPostConnector, OneToOneConnector, SmallWorldConnector, \
-                            FromListConnector, FromFileConnector, CSAConnector, \
-                            CloneConnector, ArrayConnector
+                            DisplacementDependentProbabilityConnector, 
+                            IndexBasedProbabilityConnector, \
+                            FixedNumberPreConnector, \
+                            FixedNumberPostConnector, \
+                            OneToOneConnector, \
+                            SmallWorldConnector, \
+                            FromListConnector, \
+                            FromFileConnector, \
+                            CSAConnector, \
+                            CloneConnector, \
+                            ArrayConnector
 

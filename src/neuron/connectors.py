@@ -12,6 +12,7 @@ from pyNN.connectors import AllToAllConnector, \
                             FixedProbabilityConnector, \
                             DistanceDependentProbabilityConnector, \
                             DisplacementDependentProbabilityConnector, \
+                            IndexBasedProbabilityConnector, \
                             FromListConnector, \
                             FromFileConnector, \
                             FixedNumberPreConnector, \
