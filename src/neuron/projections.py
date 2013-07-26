@@ -6,7 +6,7 @@ nrnpython implementation of the PyNN API.
 :license: CeCILL, see LICENSE for details.
 
 """
-
+from copy import deepcopy
 import numpy
 import logging
 from itertools import izip, repeat, chain
@@ -37,7 +37,7 @@ class Projection(common.Projection):
         connector.connect(self)
         self._presynaptic_components = dict((index, {}) for index in 
                                             self.pre._mask_local.nonzero()[0])
-        if self.synapse_type.has_presynaptic_components:
+        if self.synapse_type.presynaptic_type:
             self._configure_presynaptic_components()
         _projections.append(self)
         logger.info("--- Projection[%s].__init__() ---" %self.label)
@@ -89,7 +89,7 @@ class Projection(common.Projection):
             parameters = dict(zip(connection_parameters.keys(), values))
             #logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, receptor type %s, parameters %s", pre_idx, postsynaptic_index, self.synapse_type, self.receptor_type, parameters)
             self._connections[postsynaptic_index][pre_idx] = \
-                                simulator.connect(self, pre_idx, postsynaptic_index, **parameters)
+                    self.synapse_type.connection_type(self, pre_idx, postsynaptic_index, **parameters)
 
     def _configure_presynaptic_components(self):
         """
@@ -110,12 +110,24 @@ class Projection(common.Projection):
             post_idx = int(conn[1])
             params = dict(zip(self.synapse_type.get_parameter_names(), conn[2:]))
             self._presynaptic_components[pre_idx][post_idx] = \
-                                simulator.configure_presynaptic(self, pre_idx, post_idx, **params)
+                                self.synapse_type.presynaptic_type(self, pre_idx, post_idx, **params)
 
     def _set_attributes(self, parameter_space):
+        # If synapse has pre-synaptic components evaluate the parameters for them
+        if self.synapse_type.presynaptic_type:
+            presyn_param_space = deepcopy(parameter_space)
+            presyn_param_space.evaluate(mask=(slice(None), self.pre._mask_local))
+            for component, connection_parameters in zip(self._presynaptic_components.values(), 
+                                                        presyn_param_space.columns()):
+                for name, value in connection_parameters.items():
+                    for index in component:
+                        setattr(component[index], name, value[index])
+        # Evaluate the parameters for the post-synaptic components (typically the "Connection" object)
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
         for connection_group, connection_parameters in zip(self._connections.values(),
                                                            parameter_space.columns()):
             for name, value in connection_parameters.items():
                 for index in connection_group:
                     setattr(connection_group[index], name, value[index])
+            
+                    

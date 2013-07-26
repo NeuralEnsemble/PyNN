@@ -300,35 +300,6 @@ class ID(int, common.IDMixin):
         setattr(self._cell, "%s_init" % variable, value)
 
 
-# --- For implementation of connect() and Connector classes --------------------
-
-def connect(projection, pre, post, **parameters):
-    """
-    Chooses the appropriate connection type based on the synapse model (currently either 
-    'Connection' or 'GapJunction')
-    
-        `pre` -- index of the pre-synaptic cell
-        `post` --index of the post-synaptic cell
-        `parameters` -- the parameters used to get up the connection
-    """
-    if projection.synapse_type.connection_type == 'GapJunction':
-        return GapJunction(projection, pre, post, **parameters)
-    else:
-        return Connection(projection, pre, post, **parameters) 
-
-def configure_presynaptic(projection, pre, post, **parameters):
-    """
-    Chooses the appropriate pre-synaptic component type based on the synapse model (currently only 
-    'GapJunctionPresynaptic')
-    
-        `pre` -- index of the pre-synaptic cell
-        `post` --index of the post-synaptic cell
-        `parameters` -- the parameters used to get up the connection
-    """
-    assert(projection.synapse_type.connection_type == 'GapJunction')
-    return GapJunctionPresynaptic(projection, pre, post, **parameters)
-
-
 class Connection(object):
     """
     Store an individual plastic connection and information about it. Provide an
