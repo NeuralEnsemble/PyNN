@@ -381,6 +381,10 @@ class DisplacementDependentProbabilityConnector(IndexBasedProbabilityConnector):
         and the value of variable connection parameters of a projection 
         """
         def __init__(self, disp_function):
+            """
+            `disp_function`: a function that takes a 3xN numpy position matrix and maps each row
+                             (displacement) to a probability between 0 and 1
+            """
             self._disp_function = disp_function
                         
         def __call__(self, i, j):
