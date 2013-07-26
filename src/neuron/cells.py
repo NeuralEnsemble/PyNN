@@ -359,6 +359,7 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
                                          tau_e, tau_i, e_e, e_i)
         self.source = self.seg._ref_v
+        self.source_section = self
         self.rec = h.NetCon(self.source, None, sec=self)
         self.insert('k_ion')
         self.insert('na_ion')

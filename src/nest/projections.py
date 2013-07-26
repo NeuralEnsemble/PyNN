@@ -123,7 +123,9 @@ class Projection(common.Projection):
             if numpy.isscalar(delays):
                 delays = repeat(delays)
             for pre, w, d in zip(presynaptic_cells, weights, delays):
-                nest.Connect([pre], [postsynaptic_cell], {'weight': w, 'delay': d, 'receptor_type': receptor_type})
+                nest.Connect([pre], [postsynaptic_cell], 
+                             {'weight': w, 'delay': d, 'receptor_type': receptor_type},
+                             model=self.nest_synapse_model)
         self._connections = None # reset the caching of the connection list, since this will have to be recalculated
         self._sources.extend(presynaptic_cells)
         connection_parameters.pop('tau_minus', None)  # TODO: set tau_minus on the post-synaptic cells
