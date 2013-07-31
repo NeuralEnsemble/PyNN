@@ -10,7 +10,7 @@ from pyNN.connectors import AllToAllConnector, \
                             OneToOneConnector, \
                             FixedProbabilityConnector, \
                             DistanceDependentProbabilityConnector, \
-                            DisplacementDependentProbabilityConnector, 
+                            DisplacementDependentProbabilityConnector, \
                             IndexBasedProbabilityConnector, \
                             FromListConnector, \
                             FromFileConnector, \
