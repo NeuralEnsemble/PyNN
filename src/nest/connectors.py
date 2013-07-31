@@ -11,7 +11,7 @@ from pyNN.connectors import Connector, \
                             AllToAllConnector, \
                             FixedProbabilityConnector, \
                             DistanceDependentProbabilityConnector, \
-                            DisplacementDependentProbabilityConnector, 
+                            DisplacementDependentProbabilityConnector, \
                             IndexBasedProbabilityConnector, \
                             FixedNumberPreConnector, \
                             FixedNumberPostConnector, \
