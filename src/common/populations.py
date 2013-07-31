@@ -455,7 +455,8 @@ class BasePopulation(object):
         file as metadata.
         """
         logger.debug("Population %s is writing %s to %s [gather=%s, clear=%s]" % (self.label, variables, io, gather, clear))
-        self.recorder.write(variables, io, gather, self._record_filter, annotations=annotations)
+        self.recorder.write(variables, io, gather, self._record_filter, clear=clear, 
+                            annotations=annotations)
 
     def get_data(self, variables='all', gather=True, clear=False):
         """
