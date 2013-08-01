@@ -392,7 +392,7 @@ class BasePopulation(object):
         """Determine whether `variable` can be recorded from this population."""
         return self.celltype.can_record(variable)
 
-    def record(self, variables, to_file=None):
+    def record(self, variables, to_file=None, sampling_interval=None):
         """
         Record the specified variable or variables for all cells in the
         Population or view.
@@ -403,6 +403,9 @@ class BasePopulation(object):
 
         If specified, `to_file` should be a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
+        
+        `sampling_interval` should be a value in milliseconds, and an integer
+        multiple of the simulation timestep.
         """
         if variables is None: # reset the list of things to record
                               # note that if record(None) is called on a view of a population
@@ -411,9 +414,9 @@ class BasePopulation(object):
         else:
             logger.debug("%s.record('%s')", self.label, variables)
             if self._record_filter is None:
-                self.recorder.record(variables, self.all_cells)
+                self.recorder.record(variables, self.all_cells, sampling_interval)
             else:
-                self.recorder.record(variables, self._record_filter)
+                self.recorder.record(variables, self._record_filter, sampling_interval)
         if isinstance(to_file, basestring):
             self.recorder.file = to_file
 

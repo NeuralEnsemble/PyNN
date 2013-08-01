@@ -189,18 +189,20 @@ class Recorder(object):
         self.clear_flag = False
         self._recording_start_time = self._simulator.state.t * pq.ms
 
-    def record(self, variables, ids):
+    def record(self, variables, ids, sampling_interval=None):
         """
         Add the cells in `ids` to the sets of recorded cells for the given variables.
         """
         logger.debug('Recorder.record(<%d cells>)' % len(ids))
+        if sampling_interval != self.sampling_interval and len(self.recorded) > 0:
+            raise Exception("All neurons in a population must be recorded with the same sampling interval.")
         ids = set([id for id in ids if id.local])
         for variable in normalize_variables_arg(variables):
             if not self.population.can_record(variable):
                 raise errors.RecordingError(variable, self.population.celltype)
             new_ids = ids.difference(self.recorded[variable])
             self.recorded[variable] = self.recorded[variable].union(ids)
-            self._record(variable, new_ids)
+            self._record(variable, new_ids, sampling_interval)
 
     def reset(self):
         """Reset the list of things to be recorded."""
@@ -236,7 +238,7 @@ class Recorder(object):
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
                 t_start = self._recording_start_time
-                sampling_period = self._simulator.state.dt*pq.ms # must run on all MPI nodes
+                sampling_period = self.sampling_interval*pq.ms
                 current_time = self._simulator.state.t*pq.ms
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
