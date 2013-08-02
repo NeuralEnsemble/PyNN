@@ -30,14 +30,18 @@ DEFAULT_FIG_SETTINGS = {
 }
 
 
-def plot_signal(ax, signal, index=None, label='', **options):
-    """
-    Plot an AnalogSignal or one signal from an AnalogSignalArray.
-    """
+def handle_options(ax, options):
     if "xticks" not in options or options.pop("xticks") is False:
         plt.setp(ax.get_xticklabels(), visible=False)
     if "xlabel" in options:
         ax.set_xlabel(options.pop("xlabel"))
+
+
+def plot_signal(ax, signal, index=None, label='', **options):
+    """
+    Plot an AnalogSignal or one signal from an AnalogSignalArray.
+    """
+    handle_options(ax, options)
     if index is None:
         label = "%s (Neuron %d)" % (label, signal.channel_index)
     else:
@@ -52,10 +56,7 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
     """
     Plot all signals in an AnalogSignalArray in a single panel.
     """
-    if "xticks" not in options or options.pop("xticks") is False:
-        plt.setp(ax.get_xticklabels(), visible=False)
-    if "xlabel" in options:
-        ax.set_xlabel(options.pop("xlabel"))
+    handle_options(ax, options)
     ax.set_ylabel(
         options.pop("ylabel",
                     "%s (%s)" % (signal_array.name,
@@ -72,10 +73,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     """
     Plot all spike trains in a Segment in a raster plot.
     """
-    if "xticks" not in options or options.pop("xticks") is False:
-        plt.setp(ax.get_xticklabels(), visible=False)
-    if "xlabel" in options:
-        ax.set_xlabel(options.pop("xlabel"))
+    handle_options(ax, options)
     max_index = 0
     for spiketrain in spiketrains:
         plt.plot(spiketrain,
