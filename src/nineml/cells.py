@@ -67,7 +67,8 @@ class build_nineml_celltype(type):
     def __new__(cls, name, bases, dct):
         
         import nineml.abstraction_layer as al
-        from nineml.abstraction_layer import flattening, writers, component_modifiers
+        from nineml.abstraction_layer.dynamics import flattening
+        from nineml.abstraction_layer import writers, component_modifiers
 
         #Extract Parameters Back out from Dict:
         combined_model = dct['nineml_model']

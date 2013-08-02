@@ -19,13 +19,14 @@ class ConnectorMixin(object):
             connector_parameters[name] = getattr(self, name)
         connection_rule = nineml.ConnectionRule(
                                     name="connection rule for projection %s" % label,
-                                    definition=nineml.Definition(self.definition_url),
+                                    definition=nineml.Definition(self.definition_url,
+                                                                 "connection_generator"),
                                     parameters=build_parameter_set(connector_parameters))
         return connection_rule
 
 
 class FixedProbabilityConnector(ConnectorMixin, connectors.FixedProbabilityConnector):
-    definition_url = "%s/connectionrules/fixed_probability.xml" % catalog_url 
+    definition_url = "%s/connectionrules/random_fixed_probability.xml" % catalog_url 
     parameter_names = ('p_connect', 'allow_self_connections')
    
    

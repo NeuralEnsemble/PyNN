@@ -32,11 +32,12 @@ class Projection(common.Projection):
         return 0
 
     def to_nineml(self):
-        safe_label = self.label.replace(u"→", "-->")
+        safe_label = self.label.replace(u"→", "---")
         connection_rule = self._connector.to_nineml(safe_label)
         connection_type = nineml.ConnectionType(
                                     name="connection type for projection %s" % safe_label,
-                                    definition=nineml.Definition("%s/connectiontypes/static_synapse.xml" % catalog_url),
+                                    definition=nineml.Definition("%s/connectiontypes/static_synapse.xml" % catalog_url,
+                                                                 "dynamics"),
                                     parameters=build_parameter_set(self.synapse_type.native_parameters, self.shape))
         synaptic_responses = self.post.get_synaptic_response_components(self.receptor_type)
         synaptic_response, = synaptic_responses

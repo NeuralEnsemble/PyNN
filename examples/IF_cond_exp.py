@@ -19,7 +19,7 @@ simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
 
-setup(timestep=0.1, min_delay=0.1, max_delay=4.0)
+setup(timestep=0.1, min_delay=0.1, max_delay=4.0, filename="IF_cond_exp.xml")
 
 ifcell = create(IF_cond_exp, {'i_offset' : 0.1,   'tau_refrac': 3.0,
                               'v_thresh' : -51.0, 'tau_syn_E' : 2.0,

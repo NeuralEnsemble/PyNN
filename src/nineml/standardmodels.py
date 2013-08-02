@@ -34,12 +34,13 @@ class CellTypeMixin(object):
         for receptor_type in self.__class__.receptor_types:
             smp[receptor_type] = {}
             for name in self.__class__.synaptic_receptor_parameter_names[receptor_type]:
-                smp[receptor_type][name.split("_")[1]] = self.native_parameters[name]
+                smp[receptor_type][name.split(".")[1]] = self.native_parameters[name]
         return smp
     
     def to_nineml(self, label, shape):
-        components = [self.spiking_component_to_nineml(label, shape)] + \
-                     [self.synaptic_receptor_component_to_nineml(st, label, shape) for st in self.receptor_types]
+        inline_definition = False  # todo: get inline definitions to work
+        components = [self.spiking_component_to_nineml(label, shape, inline_definition)] + \
+                     [self.synaptic_receptor_component_to_nineml(st, label, shape, inline_definition) for st in self.receptor_types]
         return components
     
     def spiking_component_to_nineml(self, label, shape, inline_definition=False):
@@ -53,7 +54,7 @@ class CellTypeMixin(object):
             definition = self.spiking_component_definition_url
         return nineml.SpikingNodeType(
                     name="neuron type for population %s" % label,
-                    definition=nineml.Definition(definition),
+                    definition=nineml.Definition(definition, "dynamics"),
                     parameters=build_parameter_set(self.spiking_component_parameters, shape))
     
     def synaptic_receptor_component_to_nineml(self, receptor_type, label, shape, inline_definition=False):
@@ -70,7 +71,7 @@ class CellTypeMixin(object):
             definition = self.synaptic_receptor_component_definition_urls[receptor_type]
         return nineml.SynapseType(
                     name="%s post-synaptic response for %s" % (receptor_type, label),
-                    definition=nineml.Definition(definition),
+                    definition=nineml.Definition(definition, "dynamics"),
                     parameters=build_parameter_set(self.synaptic_receptor_parameters[receptor_type], shape))
 
 
@@ -108,27 +109,27 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
     __doc__ = cells.IF_cond_exp.__doc__    
 
     translations = build_translations(
-        ('tau_m',      'cell.tau_m'),
-        ('cm',         'cell.cm'),
-        ('v_rest',     'cell.v_rest'),
-        ('v_thresh',   'cell.v_thresh'),
-        ('v_reset',    'cell.v_reset'),
-        ('tau_refrac', 'cell.tau_refrac'),
-        ('i_offset',   'cell.i_offset'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'cm'),
+        ('v_rest',     'v_rest'),
+        ('v_thresh',   'v_thresh'),
+        ('v_reset',    'v_reset'),
+        ('tau_refrac', 'tau_refrac'),
+        ('i_offset',   'i_offset'),
         ('tau_syn_E',  'excitatory.tau_syn'),
         ('tau_syn_I',  'inhibitory.tau_syn'),
         ('e_rev_E',    'excitatory.e_rev'),
         ('e_rev_I',    'inhibitory.e_rev')
     )
-    spiking_component_definition_url = "%s/neurons/if_tau.xml" % catalog_url
+    spiking_component_definition_url = "%s/neurons/iaf_tau.xml" % catalog_url
     synaptic_receptor_component_definition_urls = {
         'excitatory': "%s/postsynapticresponses/cond_exp_syn.xml" % catalog_url,
         'inhibitory': "%s/postsynapticresponses/cond_exp_syn.xml" % catalog_url
     }
-    spiking_component_parameter_names = ('cell.tau_m', 'cell.cm',
-                                         'cell.v_rest', 'cell.v_thresh',
-                                         'cell.v_reset', 'cell.i_offset',
-                                         'cell.tau_refrac')
+    spiking_component_parameter_names = ('tau_m', 'cm',
+                                         'v_rest', 'v_thresh',
+                                         'v_reset', 'i_offset',
+                                         'tau_refrac')
     synaptic_receptor_parameter_names = {
         'excitatory': ['excitatory.tau_syn', 'excitatory.e_rev'],
         'inhibitory': ['inhibitory.tau_syn', 'inhibitory.e_rev']
@@ -182,8 +183,8 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
                 )
             ],
             state_variables=[al.StateVariable('g_syn')],  #, dimension='[G]'  # alias [M]^-1[L]^-2[T]^3[I]^2
-            analog_ports=[al.RecvPort("v"), al.SendPort("i_syn"), ],
-            parameters=['tau_syn', 'q', 'e_rev']
+            analog_ports=[al.RecvPort("v"), al.SendPort("i_syn"), al.RecvPort('q') ],
+            parameters=['tau_syn', 'e_rev']
         )
         return coba
     
@@ -231,28 +232,80 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
 #    }
     
 
-#class SpikeSourcePoisson(cells.SpikeSourcePoisson, CellTypeMixin):
-#
-#    __doc__ = cells.SpikeSourcePoisson.__doc__     
-#    
-#    translations = build_translations(
-#        ('start',    'onset'),
-#        ('rate',     'frequency'),
-#        ('duration', 'duration'),
-#    )
-#    spiking_component_definition_url = "%s/neurons/poisson_spike_source.xml" % catalog_url
-#    spiking_component_parameter_names = ("onset", "frequency", "duration")
-#
-#
-#class SpikeSourceArray(cells.SpikeSourceArray, CellTypeMixin):
-#
-#    __doc__ = cells.SpikeSourceArray.__doc__     
-#    
-#    translations = build_translations(
-#        ('spike_times',    'spike_times'),
-#    )
-#    spiking_component_definition_url = "%s/neurons/spike_source_array.xml" % catalog_url
-#    spiking_component_parameter_names = ("spike_times",)
+class SpikeSourcePoisson(cells.SpikeSourcePoisson, CellTypeMixin):
+
+    __doc__ = cells.SpikeSourcePoisson.__doc__     
+    
+    translations = build_translations(
+        ('start',    'start'),
+        ('rate',     'rate'),
+        ('duration', 'duration'),
+    )
+    spiking_component_definition_url = "%s/neurons/poisson_spike_source.xml" % catalog_url
+    spiking_component_parameter_names = ("onset", "frequency", "duration")
+
+    @classmethod
+    def spiking_component_type_to_nineml(cls):
+        """Return a 9ML ComponentClass describing the spike source model."""
+        source = al.ComponentClass(
+            name="poisson_spike_source",
+            regimes=[
+                al.Regime(
+                    name="before",
+                    transitions=[al.On("t > start",
+                                       do=["t_spike = -1"],
+                                       to="on")]),
+                al.Regime(
+                    name="on",
+                    transitions=[al.On("t >= t_spike",
+                                       do=["t_spike = t_spike + random.exponential(rate)",
+                                           al.OutputEvent('spike_output')]),
+                                 al.On("t >= start + duration",
+                                       to="after")],
+                ),
+                al.Regime(name="after")
+            ],
+            state_variables=[
+                al.StateVariable('t_spike'), #, dimension='[T]'
+            ],
+            event_ports=[al.SendEventPort('spike_output'), ],
+            parameters=['start', 'rate', 'duration'],  # add dimensions, or infer them from dimensions of variables
+        )
+        return source
+
+
+class SpikeSourceArray(cells.SpikeSourceArray, CellTypeMixin):
+
+    __doc__ = cells.SpikeSourceArray.__doc__     
+    
+    translations = build_translations(
+        ('spike_times',    'spike_times'),
+    )
+    spiking_component_definition_url = "%s/neurons/spike_source_array.xml" % catalog_url
+    spiking_component_parameter_names = ("spike_times",)
+
+    @classmethod
+    def spiking_component_type_to_nineml(cls):
+        """Return a 9ML ComponentClass describing the spike source model."""
+        source = al.ComponentClass(
+            name="spike_source_array",
+            regimes=[
+                al.Regime(
+                    name="on",
+                    transitions=[al.On("t >= spike_times[i]",  # this is currently illegal
+                                       do=["i = i + 1",
+                                           al.OutputEvent('spike_output')])],
+                ),
+            ],
+            state_variables=[
+                al.StateVariable('t_spike'), #, dimension='[T]'
+                al.StateVariable('i'), #, dimension='[T]'
+            ],
+            event_ports=[al.SendEventPort('spike_output'), ],
+            parameters=['start', 'rate', 'duration'],  # add dimensions, or infer them from dimensions of variables
+        )
+        return source
+
 
 
 class SynapseTypeMixin(object):
@@ -261,7 +314,8 @@ class SynapseTypeMixin(object):
     def to_nineml(self):
         return nineml.ConnectionType(
                             name="synapse type %d" % self.__class__.counter,
-                            definition=nineml.Definition("%s/connectiontypes/%s" % (catalog_url, self.definition_file)),
+                            definition=nineml.Definition("%s/connectiontypes/%s" % (catalog_url, self.definition_file),
+                                                         "dynamics"),
                             parameters=build_parameter_set(self.parameters))
     
 
@@ -294,7 +348,8 @@ class CurrentSourceMixin(object):
     def to_nineml(self):
         return nineml.CurrentSourceType(
                             name="current source %d" % self.__class__.counter,
-                            definition=nineml.Definition("%s/currentsources/%s" % (catalog_url, self.definition_file)),
+                            definition=nineml.Definition("%s/currentsources/%s" % (catalog_url, self.definition_file),
+                                                         "dynamics"),
                             parameters=build_parameter_set(self.parameters))
 
 class DCSource(CurrentSourceMixin, electrodes.DCSource):

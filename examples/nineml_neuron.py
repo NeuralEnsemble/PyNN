@@ -4,7 +4,11 @@ Example of using a cell type defined in 9ML
 
 import sys
 from copy import deepcopy
-import nineml.abstraction_layer as al
+from nineml.abstraction_layer.dynamics import (ComponentClass,
+                                               Regime, On, OutputEvent,
+                                               StateVariable, RecvPort,
+                                               ReducePort,
+                                               SendPort, SendEventPort)
 from pyNN.utility import init_logging, get_simulator, normalized_filename
 
 sim, options = get_simulator(("--plot-figure", "plot a figure with the given filename"))
@@ -14,53 +18,52 @@ init_logging(None, debug=True)
 sim.setup(timestep=0.1, min_delay=0.1, max_delay=2.0)
 
 
-iaf = al.ComponentClass(
+iaf = ComponentClass(
     name="iaf",
     regimes=[
-        al.Regime(
+        Regime(
             name="subthresholdregime",
             time_derivatives=["dV/dt = ( gl*( vrest - V ) + ISyn)/(cm)"],
-            transitions=al.On("V > vthresh",
-                              do=["tspike = t",
-                                  "V = vreset",
-                                  al.OutputEvent('spikeoutput')],
-                              to="refractoryregime"),
+            transitions=On("V > vthresh",
+                           do=["tspike = t",
+                               "V = vreset",
+                               OutputEvent('spikeoutput')],
+                           to="refractoryregime"),
         ),
-
-        al.Regime(
+        Regime(
             name="refractoryregime",
             time_derivatives=["dV/dt = 0"],
-            transitions=[al.On("t >= tspike + taurefrac",
-                               to="subthresholdregime")],
+            transitions=[On("t >= tspike + taurefrac",
+                            to="subthresholdregime")],
         )
     ],
     state_variables=[
-        al.StateVariable('V'),
-        al.StateVariable('tspike'),
+        StateVariable('V'),
+        StateVariable('tspike'),
     ],
-    analog_ports=[al.SendPort("V"),
-                  al.ReducePort("ISyn", reduce_op="+"), ],
+    analog_ports=[SendPort("V"),
+                  ReducePort("ISyn", reduce_op="+"), ],
 
-    event_ports=[al.SendEventPort('spikeoutput'), ],
+    event_ports=[SendEventPort('spikeoutput'), ],
     parameters=['cm', 'taurefrac', 'gl', 'vreset', 'vrest', 'vthresh']
 )
 
-coba = al.ComponentClass(
+coba = ComponentClass(
     name="CobaSyn",
     aliases=["I:=g*(vrev-V)", ],
     regimes=[
-        al.Regime(
+        Regime(
             name="cobadefaultregime",
             time_derivatives=["dg/dt = -g/tau", ],
-            transitions=al.On('spikeinput', do=["g=g+q"]),
+            transitions=On('spikeinput', do=["g=g+q"]),
         )
     ],
-    state_variables=[al.StateVariable('g')],
-    analog_ports=[al.RecvPort("V"), al.SendPort("I"), ],
+    state_variables=[StateVariable('g')],
+    analog_ports=[RecvPort("V"), SendPort("I"), ],
     parameters=['tau', 'q', 'vrev']
 )
 
-iaf_2coba = al.ComponentClass(
+iaf_2coba = ComponentClass(
     name="iaf_2coba",
     subnodes={"iaf": iaf,
               "excitatory": coba,

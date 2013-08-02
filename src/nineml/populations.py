@@ -19,7 +19,7 @@ from .utility import build_parameter_set, catalog_url
 class BasePopulation(object):
     
     def get_synaptic_response_components(self, synaptic_mechanism_name):
-        return [self.celltype.synapse_type_to_nineml(synaptic_mechanism_name, self.label, (self.size,))]
+        return [self.celltype.synaptic_receptor_component_to_nineml(synaptic_mechanism_name, self.label, (self.size,))]
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
@@ -35,7 +35,7 @@ class Assembly(common.Assembly):
     def get_synaptic_response_components(self, synaptic_mechanism_name):
         components = set([])
         for p in self.populations:
-            components.add(p.celltype.synapse_type_to_nineml(synaptic_mechanism_name, self.label))
+            components.add(p.celltype.synaptic_receptor_component_to_nineml(synaptic_mechanism_name, self.label))
         return components
 
     def to_nineml(self):
@@ -110,7 +110,8 @@ class Population(BasePopulation, common.Population):
         if self.structure:
             structure = nineml.Structure(
                                     name="structure for %s" % self.label,
-                                    definition=nineml.Definition("%s/networkstructures/%s.xml" % (catalog_url, self.structure.__class__.__name__)),
+                                    definition=nineml.Definition("%s/networkstructures/%s.xml" % (catalog_url, self.structure.__class__.__name__),
+                                                                 "structure"),
                                     parameters=build_parameter_set(self.structure.get_parameters())
                                     )
         else:

@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<NineML xmlns="http://nineml.org/9ML/0.2">
+  <ComponentClass name="cond_exp_syn">
+    <AnalogPort mode="recv" name="v"/>
+    <AnalogPort mode="send" name="i_syn"/>
+    <AnalogPort mode="recv" name="q"/>
+    <EventPort mode="recv" name="spike_input"/>
+    <Parameter dimension="" name="tau_syn"/>
+    <Parameter dimension="" name="e_rev"/>
+    <Dynamics>
+      <Regime name="coba_default_regime">
+        <TimeDerivative variable="g_syn">
+          <MathInline>-g_syn/tau_syn</MathInline>
+        </TimeDerivative>
+        <OnEvent target_regime="coba_default_regime" src_port="spike_input">
+          <StateAssignment variable="g_syn">
+            <MathInline>g_syn+q</MathInline>
+          </StateAssignment>
+        </OnEvent>
+      </Regime>
+      <Alias name="i_syn">
+        <MathInline>g_syn*(e_rev-v)</MathInline>
+      </Alias>
+      <StateVariable dimension="" name="g_syn"/>
+    </Dynamics>
+  </ComponentClass>
+</NineML>

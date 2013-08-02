@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<NineML xmlns="http://nineml.org/9ML/0.2">
+  <ComponentClass name="Layout on a one-dimensional grid">
+    <Parameter name="dx"/>
+    <Parameter name="x0"/>
+    <Parameter name="y"/>
+    <Parameter name="z"/>    
+  </ComponentClass>
+</NineML>

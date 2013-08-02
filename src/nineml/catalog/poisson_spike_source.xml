@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<NineML xmlns="http://nineml.org/9ML/0.2">
+  <ComponentClass name="poisson_spike_source">
+    <EventPort mode="send" name="spike_output"/>
+    <Parameter dimension="" name="duration"/>
+    <Parameter dimension="" name="start"/>
+    <Parameter dimension="" name="rate"/>
+    <Dynamics>
+      <Regime name="before">
+        <OnCondition target_regime="on">
+          <StateAssignment variable="t_spike">
+            <MathInline>-1</MathInline>
+          </StateAssignment>
+          <Trigger>
+            <MathInline>t &gt; start</MathInline>
+          </Trigger>
+        </OnCondition>
+      </Regime>
+      <Regime name="on">
+        <OnCondition target_regime="on">
+          <StateAssignment variable="t_spike">
+            <MathInline>t_spike + random.exponential(rate)</MathInline>
+          </StateAssignment>
+          <EventOut port="spike_output"/>
+          <Trigger>
+            <MathInline>t &gt;= t_spike</MathInline>
+          </Trigger>
+        </OnCondition>
+        <OnCondition target_regime="after">
+          <Trigger>
+            <MathInline>t &gt;= start + duration</MathInline>
+          </Trigger>
+        </OnCondition>
+      </Regime>
+      <Regime name="after"/>
+      <StateVariable dimension="" name="t_spike"/>
+    </Dynamics>
+  </ComponentClass>
+</NineML>
