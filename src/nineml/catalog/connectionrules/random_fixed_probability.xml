@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<NineML xmlns="http://nineml.org/9ML/0.2">
+  <ComponentClass name="RandomFixedProbability">
+    <Parameter name="p_connect" dimension=""/>
+    <Parameter name="allow_self_connections" dimension=""/>
+    <ConnectionRule>
+      <English>
+	For each possible connection (i, j), where i and j belong to
+	the index sets, let the connection exist with probability
+	p_connect.
+      </English>
+      <Inline-CSA xmlns="http://software.incf.org/software/inline-csa/1.0">
+	lambda p: random (p) - allow_self_connections*oneToOne
+      </Inline-CSA>
+      <!-- need to update this to use allow_self_connections -->
+      <CSA xmlns="http://software.incf.org/software/csa/1.0"> 
+	<bind>
+	  <closure/>
+	  <bvar><ci>p</ci></bvar>
+	  <apply>
+	    <randomMask/>
+	    <ci>p</ci>
+	  </apply>
+	</bind>
+      </CSA>
+      <Graph xmlns="http://software.incf.org/software/csa/1.0">
+	...
+      </Graph>
+      <StandardLib xmlns="http://standardlib.networkguru.org/1.0">
+	randomFixedProbability
+      </StandardLib>
+    </ConnectionRule>
+  </ComponentClass>
+</NineML>
