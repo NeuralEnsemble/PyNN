@@ -32,7 +32,9 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
+    return [obj.__name__ for obj in globals().values() if (isinstance(obj, type) and 
+                                                           issubclass(obj, StandardCellType) and
+                                                           obj is not StandardCellType)]
 
 # ==============================================================================
 #   Functions for simulation set-up and control
