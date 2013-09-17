@@ -47,9 +47,6 @@ class IDMixin(object):
     # (e.g., int or long) and from IDMixin.
 
     def __getattr__(self, name):
-#         try:
-#             val = self.__getattribute__(name)
-#         except AttributeError:
         if name == "parent":
             raise Exception("parent is not set")
         try:
