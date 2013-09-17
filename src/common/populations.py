@@ -47,17 +47,14 @@ class IDMixin(object):
     # (e.g., int or long) and from IDMixin.
 
     def __getattr__(self, name):
+        if name == "parent":
+            raise Exception("parent is not set")
         try:
-            val = self.__getattribute__(name)
-        except AttributeError:
-            if name == "parent":
-                raise Exception("parent is not set")
-            try:
-                val = self.get_parameters()[name]
-            except KeyError:
-                raise errors.NonExistentParameterError(name,
-                                                       self.celltype.__class__.__name__,
-                                                       self.celltype.get_parameter_names())
+            val = self.get_parameters()[name]
+        except KeyError:
+            raise errors.NonExistentParameterError(name,
+                                                   self.celltype.__class__.__name__,
+                                                   self.celltype.get_parameter_names())
         return val
 
     def __setattr__(self, name, value):
@@ -619,6 +616,7 @@ class Population(BasePopulation):
         else:
             raise TypeError("cellclass must be an instance or subclass of BaseCellType, not a %s" % type(cellclass))
         self.annotations = {}
+        self.recorder = self._recorder_class(self)
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
@@ -630,7 +628,6 @@ class Population(BasePopulation):
         all_initial_values = self.celltype.default_initial_values.copy()
         all_initial_values.update(initial_values)
         self.initialize(**all_initial_values)
-        self.recorder = self._recorder_class(self)
         Population._nPop += 1
 
     def __repr__(self):
