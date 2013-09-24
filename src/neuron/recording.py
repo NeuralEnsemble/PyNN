@@ -80,8 +80,9 @@ class Recorder(recording.Recorder):
         free up the memory.
         """
         for id in set.union(*self.recorded.values()):
-            for variable in id._cell.traces:
-                id._cell.traces[variable].resize(0)
+            if hasattr(id._cell, "traces"):
+                for variable in id._cell.traces:
+                    id._cell.traces[variable].resize(0)
             id._cell.spike_times.resize(0)
 
     @staticmethod
