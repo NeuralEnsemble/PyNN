@@ -42,6 +42,7 @@ def _get_rng(rng):
     else:
         raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
 
+
 class IndexBasedExpression(object):
     """
     Abstract base class for general expressions that use the cell indices and projection class to 
@@ -680,7 +681,7 @@ class SmallWorldConnector(Connector):
         raise NotImplementedError
 
 
-class CSAConnector(Connector):
+class CSAConnector(MapConnector):
     """
     Use the Connection Set Algebra (Djurfeldt, 2012) to connect cells.
 
@@ -706,14 +707,8 @@ class CSAConnector(Connector):
         def __init__ (self, cset, safe=True, callback=None):
             raise RuntimeError, "CSAConnector not available---couldn't import csa module"
 
-    @staticmethod
-    def isConstant(x):
-        return isinstance(x, (int, float))
-
     def connect(self, projection):
         """Connect-up a Projection."""
-        if self.delays is None:
-            self.delays = projection._simulator.state.min_delay
         # Cut out finite part
         c = csa.cross((0, projection.pre.size-1), (0, projection.post.size-1)) * self.cset  # can't we cut out just the columns we want?
 
@@ -721,21 +716,14 @@ class CSAConnector(Connector):
             # Connection-set with arity 2
             for (i, j, weight, delay) in c:
                 projection._convergent_connect([projection.pre[i]], projection.post[j], weight, delay)
-        elif CSAConnector.isConstant (self.weights) \
-             and CSAConnector.isConstant (self.delays):
-            # Mask with constant weights and delays
-            for (i, j) in c:
-                projection._convergent_connect([projection.pre[i]], projection.post[j], self.weights, self.delays)
+        elif csa.arity(self.cset) == 0:
+            # inefficient implementation as a starting point
+            connection_map = numpy.zeros((projection.pre.size, projection.post.size), dtype=bool)
+            for addr in c:
+                connection_map[addr] = True
+            self._connect_with_map(projection, LazyArray(connection_map))
         else:
-            # Mask with weights and/or delays iterable
-            weights = self.weights
-            if CSAConnector.isConstant(weights):
-                weights = repeat(weights)
-            delays = self.delays
-            if CSAConnector.isConstant(delays):
-                delays = repeat(delays)
-            for (i, j), weight, delay in zip (c, weights, delays):
-                projection._convergent_connect([projection.pre[i]], projection.post[j], weight, delay)
+            raise NotImplementedError
 
 
 class CloneConnector(MapConnector):
