@@ -668,4 +668,27 @@ def issue241(sim):
     assert_arrays_equal(spike_train2.get('duration'), numpy.array([1234, 2345]))
     assert_equal(spike_train3.get(['rate', 'start', 'duration']), [5, 1000, 1234])
 
+
+@register()
+def issue259(sim):
+    """
+    A test that retrieving data with "clear=True" gives correct spike trains.
+    """
+    sim.setup(time_step=0.05, spike_precision="off_grid")
+    p = sim.Population(1, sim.SpikeSourceArray(spike_times=[0.025, 10.025, 12.34, 1000.025]))
+    p.record('spikes')
+    sim.run(10.0)
+    spiketrains0 = p.get_data('spikes', clear=True).segments[0].spiketrains
+    print spiketrains0[0]
+    sim.run(10.0)
+    spiketrains1 = p.get_data('spikes', clear=True).segments[0].spiketrains
+    print spiketrains1[0]
+    sim.run(10.0)
+    spiketrains2 = p.get_data('spikes', clear=True).segments[0].spiketrains
+    print spiketrains2[0]
+    sim.end()
+
+    assert_arrays_almost_equal(spiketrains0[0], numpy.array([0.025])*pq.ms, 1e-17)
+    assert_arrays_almost_equal(spiketrains1[0], numpy.array([10.025, 12.34])*pq.ms, 1e-17)
+    assert_equal(spiketrains2[0].size, 0)
     

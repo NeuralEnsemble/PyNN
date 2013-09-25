@@ -63,7 +63,7 @@ class _State(common.control.BaseState):
 
     @property
     def t(self):
-        return nest.GetKernelStatus('time')
+        return max(nest.GetKernelStatus('time') - self.dt, 0.0)  # note that we always simulate one time step past the requested time
 
     dt = nest_property('resolution', float)
 
