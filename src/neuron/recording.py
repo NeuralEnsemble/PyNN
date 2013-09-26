@@ -80,9 +80,13 @@ class Recorder(recording.Recorder):
         free up the memory.
         """
         for id in set.union(*self.recorded.values()):
-            for variable in id._cell.traces:
-                id._cell.traces[variable].resize(0)
-            id._cell.spike_times.resize(0)
+            if hasattr(id._cell, "traces"):
+                for variable in id._cell.traces:
+                    id._cell.traces[variable].resize(0)
+            if id._cell.rec is not None:
+                id._cell.spike_times.resize(0)
+            else:
+                id._cell.clear_past_spikes()
 
     @staticmethod
     def find_units(variable):
