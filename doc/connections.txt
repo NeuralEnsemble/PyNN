@@ -279,8 +279,9 @@ Specifying a list of connections
 --------------------------------
 
 Specific connection patterns not covered by the methods above can be obtained by
-specifying an explicit list of pre-synaptic and post-synaptic neuron indices,
-with weights and delays. Example:
+specifying an explicit list of pre-synaptic and post-synaptic neuron indices.
+Optionally, the list can contain synaptic properties such as weights, delays,
+or the parameters for plasticity rules. Example:
 
 .. testcode::
 
@@ -290,10 +291,12 @@ with weights and delays. Example:
       (0, 2, 0.0, 0.1),
       (1, 5, 0.0, 0.1)
     ]
-    connector = FromListConnector(connections)
+    connector = FromListConnector(connections, column_names=["weight", "delay"])
 
-.. todo:: comment on the point that in this case weights, delays, other
-          parameters are determined by the connector rather than by the synapse type
+Any synaptic parameters not given in the list are determined from the synapse
+type. Parameters given in the list always override the values from the synapse
+type.
+
 
 Reading connection patterns to/from a file
 ------------------------------------------

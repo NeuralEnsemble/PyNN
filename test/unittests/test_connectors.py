@@ -26,6 +26,7 @@ def setUp():
 def tearDown():
     random.get_mpi_config = orig_mpi_get_config
 
+
 class TestOneToOneConnector(unittest.TestCase):
 
     def setUp(self):
@@ -73,6 +74,21 @@ class TestAllToAllConnector(unittest.TestCase):
                           (1, 3, 5.0, 0.5),
                           (2, 3, 5.0, 0.5),
                           (3, 3, 5.0, 0.5)])
+
+    def test_connect_with_array_weights(self):
+        C = connectors.AllToAllConnector(safe=False)
+        syn = sim.StaticSynapse(weight=numpy.arange(0.0, 2.0, 0.1).reshape(4, 5), delay=0.5)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        assert_array_almost_equal(
+            numpy.array(prj.get(["weight", "delay"], format='list', gather=False)),  # use gather False because we are faking the MPI
+            numpy.array([(0, 1, 0.1, 0.5),
+                         (1, 1, 0.6, 0.5),
+                         (2, 1, 1.1, 0.5),
+                         (3, 1, 1.6, 0.5),
+                         (0, 3, 0.3, 0.5),
+                         (1, 3, 0.8, 0.5),
+                         (2, 3, 1.3, 0.5),
+                         (3, 3, 1.8, 0.5)]))
 
     def test_connect_with_random_weights_parallel_safe(self):
         rd = random.RandomDistribution(rng=MockRNG(delta=1.0, parallel_safe=True))
@@ -231,6 +247,21 @@ class TestFromListConnector(unittest.TestCase):
         syn = sim.StaticSynapse()
         self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, self.p2, C, syn)
 
+    def test_with_plastic_synapse(self):
+        connection_list = [
+            (0, 0, 0.1, 0.1, 100, 400),
+            (3, 0, 0.2, 0.11, 101, 500),
+            (2, 3, 0.3, 0.12, 102, 600),  # local
+            (2, 2, 0.4, 0.13, 103, 700),
+            (0, 1, 0.5, 0.14, 104, 800),  # local
+            ]
+        C = connectors.FromListConnector(connection_list, column_names=["weight", "delay", "U", "tau_rec"])
+        syn = sim.TsodyksMarkramSynapse(U=99, tau_facil=88.8)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay", "tau_facil", "tau_rec", "U"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.5, 0.14, 88.8, 800.0, 104.0),
+                          (2, 3, 0.3, 0.12, 88.8, 600.0, 102.0)])
+
 
 class TestFromFileConnector(unittest.TestCase):
 
@@ -248,7 +279,7 @@ class TestFromFileConnector(unittest.TestCase):
             ]
 
     def tearDown(self):
-        for path in ("test.connections", "test.connections.1"):
+        for path in ("test.connections", "test.connections.1", "test.connections.2"):
             if os.path.exists(path):
                 os.remove(path)
 
@@ -270,6 +301,23 @@ class TestFromFileConnector(unittest.TestCase):
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 0.5, 0.14),
                           (2, 3, 0.3, 0.12)])
+
+    def test_with_plastic_synapses_not_distributed(self):
+        connection_list = [
+            (0, 0, 0.1, 0.1,  100, 100),
+            (3, 0, 0.2, 0.11, 110, 99),
+            (2, 3, 0.3, 0.12, 120, 98),  # local
+            (2, 2, 0.4, 0.13, 130, 97),
+            (0, 1, 0.5, 0.14, 140, 96),  # local
+            ]
+        file = recording.files.StandardTextFile("test.connections.2", mode='w')
+        file.write(connection_list, {"columns": ["i", "j", "weight", "delay", "U", "tau_rec"]})
+        C = connectors.FromFileConnector("test.connections.2", distributed=False)
+        syn = sim.TsodyksMarkramSynapse(tau_facil=88.8)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay", "U", "tau_rec", "tau_facil"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.5, 0.14, 140.0, 96.0, 88.8),
+                          (2, 3, 0.3, 0.12, 120.0, 98.0, 88.8)])
 
 
 class TestFixedNumberPostConnector(unittest.TestCase):
@@ -449,6 +497,7 @@ class TestIndexBasedProbabilityConnector(unittest.TestCase):
                           (4, 2, 1, 7),
                           (2, 4, 1, 7)])
 
+
 class TestDisplacementDependentProbabilityConnector(unittest.TestCase):
 
     def setUp(self):
@@ -494,6 +543,7 @@ class TestDisplacementDependentProbabilityConnector(unittest.TestCase):
                           (6, 6, 1.0, 2.0), 
                           (1, 8, 1.0, 2.0), 
                           (2, 8, 1.0, 2.0)])
+
 
 @unittest.skip('skipping these tests until I figure out how I want to refactor checks')
 class CheckTest(unittest.TestCase):
