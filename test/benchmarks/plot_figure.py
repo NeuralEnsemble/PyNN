@@ -37,9 +37,8 @@ with open(args.data_store, "rb") as csvfile:
 
 # Filter and re-format data for plotting
 independent_variable = "num_processes"
-dependent_variables = ["import", "setup", "build", "record", "run"]
-conditions = parameters
-conditions.pop("recording")
+dependent_variables = ["import", "setup", "build", "connect", "record", "run"]
+conditions = parameters.flatten()
 
 abscissae = []
 ordinates = defaultdict(list)

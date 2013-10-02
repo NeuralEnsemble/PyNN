@@ -20,27 +20,43 @@ from pyNN.utility import Timer
 
 
 def main_pyNN(parameters):
-    P = parameters
     timer = Timer()
-    sim = import_module(P.simulator)
+    sim = import_module(parameters.simulator)
     timer.mark("import")
 
     sim.setup()
     timer.mark("setup")
 
-    p = sim.Population(P.n, sim.IF_cond_exp(i_offset=1.0))
+    populations = {}
+    for name, P in parameters.populations.parameters():
+        populations[name] = sim.Population(P.n, getattr(sim, P.celltype)(**P.params), label=name)
     timer.mark("build")
 
-    if P.recording:
-        for var_name, n_record in P.recording:
-            p.sample(n_record).record(var_name)
+    if parameters.projections:
+        projections = {}
+        for name, P in parameters.projections.parameters():
+            connector = getattr(sim, P.connector.type)(**P.connector.params)
+            synapse_type = getattr(sim, P.synapse_type.type)(**P.synapse_type.params)
+            projections[name] = sim.Projection(populations[P.pre],
+                                               populations[P.post],
+                                               connector,
+                                               synapse_type,
+                                               receptor_type=P.receptor_type,
+                                               label=name)
+        timer.mark("connect")
+
+    if parameters.recording:
+        for pop_name, to_record in parameters.recording.parameters():
+            for var_name, n_record in to_record.items():
+                populations[pop_name].sample(n_record).record(var_name)
         timer.mark("record")
 
-    sim.run(P.sim_time)
+    sim.run(parameters.sim_time)
     timer.mark("run")
 
-    if P.recording:
-        block = p.get_data()  # perhaps include some summary statistics in the data returned?
+    if parameters.recording:
+        for pop_name in parameters.recording.names():
+            block = populations[pop_name].get_data()  # perhaps include some summary statistics in the data returned?
         timer.mark("get_data")
 
     mpi_rank = sim.rank()
@@ -102,9 +118,10 @@ if __name__ == "__main__":
         #shelf[timestamp] = data
         #shelf.close()
         import os, csv
-        fieldnames = ["timestamp"] + parameters.keys() + data.keys()
+        parameters_flat = parameters.flatten()
+        fieldnames = ["timestamp"] + parameters_flat.keys() + data.keys()
         data.update(timestamp=timestamp)
-        data.update(parameters.as_dict())
+        data.update(parameters_flat)
         write_header = True
         if os.path.exists(args.data_store):
             write_header = False
