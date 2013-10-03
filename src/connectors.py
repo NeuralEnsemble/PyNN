@@ -433,8 +433,8 @@ class FromListConnector(Connector):
         self.column_names = column_names or ('weight', 'delay')
         if len(conn_list) > 0:
             if len(conn_list[0]) != len(self.column_names) + 2:
-                raise errors.ValueError("connection list has %d parameter columns, but %d column names provided." % (
-                                        len(conn_list[0]) - 2, len(self.column_names)))
+                raise ValueError("connection list has %d parameter columns, but %d column names provided." % (
+                                 len(conn_list[0]) - 2, len(self.column_names)))
 
     def connect(self, projection):
         """Connect-up a Projection."""
