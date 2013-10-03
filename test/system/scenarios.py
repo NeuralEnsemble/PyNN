@@ -691,4 +691,19 @@ def issue259(sim):
     assert_arrays_almost_equal(spiketrains0[0], numpy.array([0.025])*pq.ms, 1e-17)
     assert_arrays_almost_equal(spiketrains1[0], numpy.array([10.025, 12.34])*pq.ms, 1e-17)
     assert_equal(spiketrains2[0].size, 0)
+
+
+@register()
+def issue165(sim):
+    """Ensure that anonymous current sources are not lost."""
+    sim.setup(time_step=0.1)
+    p = sim.Population(1, sim.IF_cond_exp())
+    p.inject(sim.DCSource(amplitude=1.0, start=10.0, stop=20.0))
+    p.record('v')
+    sim.run(20.0)
+    data = p.get_data().segments[0].filter(name='v')[0]
+    
+    assert_equal(data[99, 0], -65.0)
+    assert data[150, 0] > -65.0
+    
     
