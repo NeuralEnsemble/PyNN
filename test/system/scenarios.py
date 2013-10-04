@@ -2,7 +2,7 @@
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN import common, recording
 from pyNN.space import Space, Grid3D, RandomStructure, Cuboid
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_almost_equal, assert_raises
 from nose.plugins.skip import SkipTest
 import glob, os
 import numpy
@@ -706,4 +706,15 @@ def issue165(sim):
     assert_equal(data[99, 0], -65.0)
     assert data[150, 0] > -65.0
     
-    
+
+@register()
+def test_run_until(sim):
+    sim.setup(time_step=0.1)
+    p = sim.Population(1, sim.IF_cond_exp())
+    sim.run_until(12.7)
+    assert_almost_equal(sim.get_current_time(), 12.7, 10)
+    sim.run_until(12.7)
+    assert_almost_equal(sim.get_current_time(), 12.7, 10)
+    sim.run_until(99.9)
+    assert_almost_equal(sim.get_current_time(), 99.9, 10)
+    assert_raises(ValueError, sim.run_until, 88.8)

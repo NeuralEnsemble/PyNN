@@ -64,7 +64,18 @@ def build_run(simulator):
         """Run the simulation for `simtime` ms."""
         simulator.state.run(simtime)
         return simulator.state.t
-    return run
+    def run_until(time_point):
+        """Run the simulation until `time_point` (in ms)."""
+        now = simulator.state.t
+        if time_point - now < -simulator.state.dt/2.0:  # allow for floating point error
+            raise ValueError("Time %g is in the past (current time %g)" % (time_point, now))
+        if hasattr(simulator.state, "run_until"):
+            simulator.state.run_until(time_point)
+        else:
+            simulator.state.run(time_point - now)
+        return simulator.state.t
+    return run, run_until
+
 
 def build_reset(simulator):
     def reset(annotations={}):

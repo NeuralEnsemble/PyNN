@@ -41,6 +41,14 @@ Running a simulation
 The :meth:`run()` function advances the simulation for a given number of milliseconds, e.g.::
 
     >>> run(1000.0)
+    
+You can also use :meth:`run_for()`, which is an alias for :meth:`run()`. The :meth:`run_until()`
+function advances the simulation until a given future time point, e.g.::
+
+    >>> run_until(1001.0)
+    >>> get_current_time()
+    1001.0
+
 
 Repeating a simulation
 ======================

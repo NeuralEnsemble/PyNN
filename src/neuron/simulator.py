@@ -209,8 +209,7 @@ class _State(common.control.BaseState):
         self.segment_counter += 1
         h.finitialize()
 
-    def run(self, simtime):
-        """Advance the simulation for a certain time."""
+    def _pre_run(self):
         if not self.running:
             self.running = True
             local_minimum_delay = self.parallel_context.set_maxstep(self.default_maxstep)
@@ -224,9 +223,20 @@ class _State(common.control.BaseState):
             if self.num_processes > 1:
                 assert local_minimum_delay >= self.min_delay, \
                        "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, self.min_delay)
+
+    def run(self, simtime):
+        """Advance the simulation for a certain time."""
+        self._pre_run()
         self.tstop += simtime
         logger.info("Running the simulation for %g ms" % simtime)
         self.parallel_context.psolve(self.tstop)
+
+    def run_until(self, tstop):
+        self._pre_run()
+        self.tstop = tstop
+        logger.info("Running the simulation until %g ms" % tstop)
+        if self.tstop > self.t:
+            self.parallel_context.psolve(self.tstop)
 
     def finalize(self, quit=False):
         """Finish using NEURON."""
