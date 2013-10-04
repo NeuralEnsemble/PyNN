@@ -73,6 +73,9 @@ class _State(common.control.BaseState):
     def run(self, simtime):
         self.running = True
         self.network.run(simtime * ms)
+        
+    def run_until(self, tstop):
+        self.run(tstop - self.t)
 
     def add(self, obj):
         self.network.add(obj)

@@ -126,6 +126,9 @@ class _State(common.control.BaseState):
             self.running = True
         nest.Simulate(simtime)
 
+    def run_until(self, tstop):
+        self.run(tstop - self.t)
+
     def reset(self):
         nest.ResetNetwork()
         nest.SetKernelStatus({'time': 0.0})

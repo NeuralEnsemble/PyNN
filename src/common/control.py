@@ -60,31 +60,26 @@ def end(compatible_output=True):
 
 
 def build_run(simulator):
-    def run(simtime, callbacks=None):
-        """Run the simulation for `simtime` ms."""
-        if callbacks:
-            t_stop = simulator.state.t + simtime
-            callback_events = [(callback(simulator.state.t), callback)
-                               for callback in callbacks]
-            while simulator.state.t < t_stop:
-                callback_events.sort(key=lambda cbe: cbe[0], reverse=True)
-                time_point, callback = callback_events.pop()
-                time_point = min(time_point, t_stop)
-                simulator.state.run(time_point - simulator.state.t)
-                callback_events.append((callback(simulator.state.t), callback))
-        else:
-            simulator.state.run(simtime)
-        return simulator.state.t
-    def run_until(time_point):
+    def run_until(time_point, callbacks=None):
         """Run the simulation until `time_point` (in ms)."""
         now = simulator.state.t
         if time_point - now < -simulator.state.dt/2.0:  # allow for floating point error
             raise ValueError("Time %g is in the past (current time %g)" % (time_point, now))
-        if hasattr(simulator.state, "run_until"):
-            simulator.state.run_until(time_point)
+        if callbacks:
+            callback_events = [(callback(simulator.state.t), callback)
+                               for callback in callbacks]
+            while simulator.state.t + 1e-9 < time_point:
+                callback_events.sort(key=lambda cbe: cbe[0], reverse=True)
+                next, callback = callback_events.pop()
+                next = min(next, time_point)
+                simulator.state.run_until(next)
+                callback_events.append((callback(simulator.state.t), callback))
         else:
-            simulator.state.run(time_point - now)
+            simulator.state.run_until(time_point)
         return simulator.state.t
+    def run(simtime, callbacks=None):
+        """Run the simulation for `simtime` ms."""
+        return run_until(simulator.state.t + simtime, callbacks)
     return run, run_until
 
 
@@ -99,6 +94,7 @@ def build_reset(simulator):
             recorder.store_to_cache(annotations)
         simulator.state.reset()
     return reset
+
 
 def build_state_queries(simulator):
     def get_current_time():
