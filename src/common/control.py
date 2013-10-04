@@ -61,7 +61,13 @@ def end(compatible_output=True):
 
 def build_run(simulator):
     def run_until(time_point, callbacks=None):
-        """Run the simulation until `time_point` (in ms)."""
+        """
+        Run the simulation until `time_point` (in ms).
+        
+        `callbacks` is an optional list of callables, each of which should
+        accept the current time as an argument, and return the next time it
+        wishes to be called.
+        """
         now = simulator.state.t
         if time_point - now < -simulator.state.dt/2.0:  # allow for floating point error
             raise ValueError("Time %g is in the past (current time %g)" % (time_point, now))
@@ -78,7 +84,13 @@ def build_run(simulator):
             simulator.state.run_until(time_point)
         return simulator.state.t
     def run(simtime, callbacks=None):
-        """Run the simulation for `simtime` ms."""
+        """
+        Run the simulation for `simtime` ms.
+        
+        `callbacks` is an optional list of callables, each of which should
+        accept the current time as an argument, and return the next time it
+        wishes to be called.
+        """
         return run_until(simulator.state.t + simtime, callbacks)
     return run, run_until
 
