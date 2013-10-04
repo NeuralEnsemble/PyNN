@@ -60,9 +60,20 @@ def end(compatible_output=True):
 
 
 def build_run(simulator):
-    def run(simtime):
+    def run(simtime, callbacks=None):
         """Run the simulation for `simtime` ms."""
-        simulator.state.run(simtime)
+        if callbacks:
+            t_stop = simulator.state.t + simtime
+            callback_events = [(callback(simulator.state.t), callback)
+                               for callback in callbacks]
+            while simulator.state.t < t_stop:
+                callback_events.sort(key=lambda cbe: cbe[0], reverse=True)
+                time_point, callback = callback_events.pop()
+                time_point = min(time_point, t_stop)
+                simulator.state.run(time_point - simulator.state.t)
+                callback_events.append((callback(simulator.state.t), callback))
+        else:
+            simulator.state.run(simtime)
         return simulator.state.t
     def run_until(time_point):
         """Run the simulation until `time_point` (in ms)."""
