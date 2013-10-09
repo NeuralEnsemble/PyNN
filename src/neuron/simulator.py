@@ -226,10 +226,7 @@ class _State(common.control.BaseState):
 
     def run(self, simtime):
         """Advance the simulation for a certain time."""
-        self._pre_run()
-        self.tstop += simtime
-        logger.info("Running the simulation for %g ms" % simtime)
-        self.parallel_context.psolve(self.tstop)
+        self.run_until(self.tstop + simtime)
 
     def run_until(self, tstop):
         self._pre_run()

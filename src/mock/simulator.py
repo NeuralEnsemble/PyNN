@@ -18,6 +18,9 @@ class State(common.control.BaseState):
     def run(self, simtime):
         self.t += simtime
         self.running = True
+    def run_until(self, tstop):
+        self.t = tstop
+        self.running = True
     def clear(self):
         self.recorders = set([])
         self.id_counter = 42
