@@ -14,7 +14,14 @@ import numpy
 import os
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from mock import Mock, patch
+try:
+    from unittest.mock import Mock, patch
+except ImportError:
+    from mock import Mock, patch
+try:
+    basestring
+except NameError:
+    basestring = str
 from .mocks import MockRNG
 import pyNN.mock as sim
 #import pyNN.neuron as sim

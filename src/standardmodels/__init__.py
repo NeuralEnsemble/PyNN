@@ -81,7 +81,7 @@ class StandardModelType(models.BaseModelType):
             pname = D['translated_name']
             try:
                 pval = eval(D['forward_transform'], globals(), _parameters)
-            except NameError, errmsg:
+            except NameError as errmsg:
                 raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
                                 % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
             except ZeroDivisionError:
@@ -99,7 +99,7 @@ class StandardModelType(models.BaseModelType):
             if tname in native_parameters.keys():
                 try:
                     standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
-                except NameError, errmsg:
+                except NameError as errmsg:
                     raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
                                     % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
         return ParameterSpace(standard_parameters, schema=self.get_schema(), shape=native_parameters.shape)

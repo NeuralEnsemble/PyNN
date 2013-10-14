@@ -1,6 +1,9 @@
 from pyNN import recording, errors
 from nose.tools import assert_equal, assert_raises
-from mock import Mock
+try:
+    from unittest.mock import Mock
+except ImportError:
+    from mock import Mock
 import numpy
 import os
 from datetime import datetime

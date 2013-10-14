@@ -16,8 +16,6 @@ Utility classes and functions
    :members:
    :undoc-members:
 
-.. autofunction:: pyNN.utility.colour
-
 .. autofunction:: pyNN.utility.notify
 
 .. autofunction:: pyNN.utility.save_population

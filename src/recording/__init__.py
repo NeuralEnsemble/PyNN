@@ -19,6 +19,10 @@ from pyNN import errors
 import neo
 from datetime import datetime
 import quantities as pq
+try:
+    basestring
+except NameError:
+    basestring = str
 
 logger = logging.getLogger("PyNN")
 

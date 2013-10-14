@@ -13,7 +13,14 @@ except ImportError:
 import numpy
 import quantities as pq
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from mock import Mock, patch
+try:
+    from unittest.mock import Mock, patch
+except ImportError:
+    from mock import Mock, patch
+try:
+    basestring
+except NameError:
+    basestring = str
 from .mocks import MockRNG
 import pyNN.mock as sim
 
@@ -220,7 +227,7 @@ class AssemblyTest(unittest.TestCase):
         p2 = sim.Population(6, sim.IF_cond_alpha())
         p3 = sim.Population(3, sim.IF_curr_exp())
         a = sim.Assembly(p1, p2, p3)
-        assert hasattr(a.all(), "next")
+        assert hasattr(a.all(), "next") or hasattr(a.all(), "__next__")  # 2nd form is for Py3
         ids = list(a.all())
         self.assertEqual(ids, p1.all_cells.tolist() + p2.all_cells.tolist() + p3.all_cells.tolist())
 

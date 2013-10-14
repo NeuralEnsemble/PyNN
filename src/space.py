@@ -23,6 +23,10 @@ Classes:
 
 # There must be some Python package out there that provides most of this stuff.
 
+try:
+    reduce
+except NameError:
+    from functools import reduce
 import numpy
 import math
 from operator import and_

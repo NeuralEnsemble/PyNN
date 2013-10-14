@@ -13,6 +13,12 @@ import os
 import logging
 import operator
 import tempfile
+try:
+    basestring
+    reduce
+except NameError:
+    basestring = str
+    from functools import reduce
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions
 from pyNN.models import BaseCellType
 from pyNN.parameters import ParameterSpace, LazyArray
@@ -150,7 +156,7 @@ class BasePopulation(object):
             p[2] is equivalent to p.__getitem__(2).
             p[3:6] is equivalent to p.__getitem__(slice(3, 6))
         """
-        if isinstance(index, int):
+        if isinstance(index, (int, numpy.integer)):
             return self.all_cells[index]
         elif isinstance(index, (slice, list, numpy.ndarray)):
             return self._get_view(index)
@@ -677,7 +683,7 @@ class Population(BasePopulation):
 
     def _set_structure(self, structure):
         assert isinstance(structure, space.BaseStructure)
-        if structure != self._structure:
+        if self._structure is None or structure != self._structure:
             self._positions = None  # setting a new structure invalidates previously calculated positions
             self._structure = structure
     structure = property(fget=_get_structure, fset=_set_structure)
@@ -898,7 +904,7 @@ class Assembly(object):
         Create an Assembly of Populations and/or PopulationViews.
         """
         if kwargs:
-            assert kwargs.keys() == ['label']
+            assert list(kwargs.keys()) == ['label']
         self.populations = []
         for p in populations:
             self._insert(p)

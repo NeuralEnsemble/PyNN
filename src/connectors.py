@@ -16,7 +16,15 @@ from pyNN.recording import files
 from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.standardmodels import StandardSynapseType
 import numpy
-from itertools import izip, repeat
+from itertools import repeat
+try:
+    from itertools import izip
+except ImportError:
+    izip = zip  # Python 3 zip returns an iterator already
+try:
+    basestring
+except NameError:
+    basestring = str
 import logging
 from copy import copy, deepcopy
 
@@ -178,7 +186,7 @@ class MapConnector(Connector):
                     else:
                         connection_parameters[name] = map[source_mask, col]
                     #logger.debug("%d. %s = %s", count, name, map)
-                        
+
                 #logger.debug("Convergent connect %d neurons to #%s, delays in range (%g, %g)" % (sources.size, tgt, delays.min(), delays.max()))
 #                if self.safe:
 #                    # (might be cheaper to do the weight and delay check before evaluating the larray)
@@ -303,7 +311,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
             if isinstance(d_expression, str):
                 d = 0; assert 0 <= eval(d_expression), eval(d_expression)
                 d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
-        except ZeroDivisionError, err:
+        except ZeroDivisionError as err:
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
@@ -718,7 +726,7 @@ class CSAConnector(MapConnector):
                 assert csa.arity(cset) == 2, 'must specify mask or connection-set with arity 2'
     else:
         def __init__ (self, cset, safe=True, callback=None):
-            raise RuntimeError, "CSAConnector not available---couldn't import csa module"
+            raise RuntimeError("CSAConnector not available---couldn't import csa module")
 
     def connect(self, projection):
         """Connect-up a Projection."""

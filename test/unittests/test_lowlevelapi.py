@@ -1,6 +1,9 @@
 from pyNN import common
 from pyNN.common.populations import BasePopulation
-from mock import Mock
+try:
+    from unittest.mock import Mock
+except ImportError:
+    from mock import Mock
 from inspect import isfunction
 from nose.tools import assert_equal
 

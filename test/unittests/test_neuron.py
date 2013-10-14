@@ -1,6 +1,9 @@
 # encoding: utf-8
 
-from mock import Mock
+try:
+    from unittest.mock import Mock
+except ImportError:
+    from mock import Mock
 
 try:
     from neuron import h

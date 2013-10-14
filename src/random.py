@@ -54,7 +54,7 @@ class AbstractRNG(object):
 
     def __init__(self, seed=None):
         if seed is not None:
-            assert isinstance(seed, int), "`seed` must be an int (< %d), not a %s" % (sys.maxint, type(seed).__name__)
+            assert isinstance(seed, int), "`seed` must be an int, not a %s" % (type(seed).__name__,)
         self.seed = seed
         # define some aliases
         self.random = self.next
@@ -90,6 +90,8 @@ class WrappedRNG(AbstractRNG):
     def next(self, n=None, distribution='uniform', parameters=[], mask_local=None):
         if n == 0:
             rarr = numpy.random.rand(0) # We return an empty array
+        elif n is None:
+            rarr = self._next(distribution, 1, parameters)
         elif n > 0:
             if self.num_processes > 1 and not self.parallel_safe:
                 # n is the number for the whole model, so if we do not care about
@@ -101,10 +103,8 @@ class WrappedRNG(AbstractRNG):
                 elif mask_local is not False:
                     n = mask_local.sum()
             rarr = self._next(distribution, n, parameters)
-        elif n is None:
-            rarr = self._next(distribution, 1, parameters)
         else:
-            raise ValueError, "The sample number must be positive"
+            raise ValueError("The sample number must be positive")
         if not isinstance(rarr, numpy.ndarray):
             rarr = numpy.array(rarr)
         if self.parallel_safe and self.num_processes > 1:
@@ -156,7 +156,7 @@ class GSLRNG(WrappedRNG):
 
     def __init__(self, seed=None, type='mt19937', parallel_safe=True):
         if not have_gsl:
-            raise ImportError, "GSLRNG: Cannot import pygsl"
+            raise ImportError("GSLRNG: Cannot import pygsl")
         WrappedRNG.__init__(self, seed, parallel_safe)
         self.rng = getattr(pygsl.rng, type)()
         if self.seed is not None:
