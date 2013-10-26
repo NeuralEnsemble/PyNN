@@ -86,7 +86,8 @@ def end(compatible_output=True):
     simulator.state.write_on_end = []
     #simulator.state.finalize()
 
-run = common.build_run(simulator)
+run, run_until = common.build_run(simulator)
+run_for = run
 
 reset = common.build_reset(simulator)
 

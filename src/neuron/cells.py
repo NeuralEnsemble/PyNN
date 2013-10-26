@@ -435,3 +435,11 @@ class VectorSpikeSource(hclass(h.VecStim)):
 
     spike_times = property(fget=_get_spike_times,
                            fset=_set_spike_times)
+
+    def clear_past_spikes(self):
+        """If previous recordings are cleared, need to remove spikes from before the current time."""
+        end = self._spike_times.indwhere(">", h.t)
+        if end > 0:
+            self._spike_times.remove(0, end-1)  # range is inclusive
+
+    

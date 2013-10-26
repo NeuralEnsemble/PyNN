@@ -161,6 +161,24 @@ class StandardTextFile(BaseFile):
         self._check_open()
         return numpy.loadtxt(self.fileobj)
 
+    def get_metadata(self):
+        self._check_open()
+        D = {}
+        for line in self.fileobj:
+            if line:
+                if line[0] != "#":
+                    break
+                name, value = line[1:].split("=")
+                name = name.strip()
+                try:
+                    D[name] = eval(value)
+                except Exception:
+                    D[name] = value.strip()
+            else:
+                break
+        self.fileobj.seek(0)
+        return D
+
 
 class PickleFile(BaseFile):
     """

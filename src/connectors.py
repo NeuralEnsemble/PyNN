@@ -18,7 +18,7 @@ from pyNN.standardmodels import StandardSynapseType
 import numpy
 from itertools import izip, repeat
 import logging
-from copy import copy
+from copy import copy, deepcopy
 
 from lazyarray import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, exp, \
                       fabs, floor, fmod, hypot, ldexp, log, log10, modf, power, \
@@ -41,6 +41,7 @@ def _get_rng(rng):
         return NumpyRNG(seed=151985012)
     else:
         raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
+
 
 class IndexBasedExpression(object):
     """
@@ -405,9 +406,15 @@ class FromListConnector(Connector):
     Arguments:
         `conn_list`:
             a list of tuples, one tuple for each connection. Each tuple should contain:
-            `(pre_idx, post_idx, weight, delay)` where `pre_idx` is the index
+            `(pre_idx, post_idx, p1, p2, ..., pn)` where `pre_idx` is the index
             (i.e. order in the Population, not the ID) of the presynaptic
-            neuron, and `post_idx` is the index of the postsynaptic neuron.
+            neuron, `post_idx` is the index of the postsynaptic neuron, and
+            p1, p2, etc. are the synaptic parameters (e.g. weight, delay,
+            plasticity parameters).
+        `column_names`:
+            the names of the parameters p1, p2, etc. If not provided, it is
+            assumed the parameters are 'weight', 'delay' (for backwards
+            compatibility).
         `safe`:
             if True, check that weights and delays have valid values. If False,
             this check is skipped.
@@ -416,23 +423,29 @@ class FromListConnector(Connector):
     """
     parameter_names = ('conn_list',)
 
-    def __init__(self, conn_list, safe=True, callback=None):
+    def __init__(self, conn_list, column_names=None, safe=True, callback=None):
         """
         Create a new connector.
         """
         # needs extending for dynamic synapses.
         Connector.__init__(self, safe=safe, callback=callback)
         self.conn_list  = numpy.array(conn_list)
+        self.column_names = column_names or ('weight', 'delay')
+        if len(conn_list) > 0:
+            if len(conn_list[0]) != len(self.column_names) + 2:
+                raise ValueError("connection list has %d parameter columns, but %d column names provided." % (
+                                 len(conn_list[0]) - 2, len(self.column_names)))
 
     def connect(self, projection):
         """Connect-up a Projection."""
         logger.debug("conn_list (original) = \n%s", self.conn_list)
+        synapse_parameter_names = projection.synapse_type.get_parameter_names()
+        for name in self.column_names:
+            if name not in synapse_parameter_names:
+                raise ValueError("%s is not a valid parameter for %s" % (
+                                 name, projection.synapse_type.__class__.__name__))
         if numpy.any(self.conn_list[:, 0] >= projection.pre.size):
             raise errors.ConnectionError("source index out of range")
-        if (self.conn_list.shape[1] < 3 or self.conn_list.shape[1] > 4 or 
-            (self.conn_list.shape[1] == 3 and projection.synapse_type.has_parameter('delay'))):
-            raise errors.ConnectionError("incompatible number of columns for connection list requires "
-                                         "4 (3 for synapse type without delay)")
         # need to do some profiling, to figure out the best way to do this:
         #  - order of sorting/filtering by local
         #  - use numpy.unique, or just do in1d(self.conn_list)?
@@ -452,15 +465,12 @@ class FromListConnector(Connector):
         logger.debug("left = %s", left)
         logger.debug("right = %s", right)
 
-        schema = projection.synapse_type.get_schema()
         for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
-            param_dict = {'weight': self.conn_list[l:r, 2] }
-            if self.conn_list.shape[1] == 4:
-                param_dict['delay'] = self.conn_list[l:r, 3]
-            connection_parameters = ParameterSpace(param_dict,
-                                                   schema=schema,
-                                                   shape=(r-l,))
+            connection_parameters = deepcopy(projection.synapse_type.parameter_space)
+            connection_parameters.shape = (r-l,)
+            for col, name in enumerate(self.column_names, 2):
+                connection_parameters.update(**{name: self.conn_list[l:r, col]})
             if isinstance(projection.synapse_type, StandardSynapseType):
                 connection_parameters = projection.synapse_type.translate(
                                             connection_parameters)
@@ -503,6 +513,10 @@ class FromFileConnector(FromListConnector):
         if self.distributed:
             self.file.rename("%s.%d" % (self.file.name,
                                         projection._simulator.state.mpi_rank))
+        self.column_names = self.file.get_metadata().get('columns', ('weight', 'delay'))
+        for ignore in "ij":
+            if ignore in self.column_names:
+                self.column_names.remove(ignore)
         self.conn_list = self.file.read()
         FromListConnector.connect(self, projection)
 
@@ -680,7 +694,7 @@ class SmallWorldConnector(Connector):
         raise NotImplementedError
 
 
-class CSAConnector(Connector):
+class CSAConnector(MapConnector):
     """
     Use the Connection Set Algebra (Djurfeldt, 2012) to connect cells.
 
@@ -706,14 +720,8 @@ class CSAConnector(Connector):
         def __init__ (self, cset, safe=True, callback=None):
             raise RuntimeError, "CSAConnector not available---couldn't import csa module"
 
-    @staticmethod
-    def isConstant(x):
-        return isinstance(x, (int, float))
-
     def connect(self, projection):
         """Connect-up a Projection."""
-        if self.delays is None:
-            self.delays = projection._simulator.state.min_delay
         # Cut out finite part
         c = csa.cross((0, projection.pre.size-1), (0, projection.post.size-1)) * self.cset  # can't we cut out just the columns we want?
 
@@ -721,21 +729,14 @@ class CSAConnector(Connector):
             # Connection-set with arity 2
             for (i, j, weight, delay) in c:
                 projection._convergent_connect([projection.pre[i]], projection.post[j], weight, delay)
-        elif CSAConnector.isConstant (self.weights) \
-             and CSAConnector.isConstant (self.delays):
-            # Mask with constant weights and delays
-            for (i, j) in c:
-                projection._convergent_connect([projection.pre[i]], projection.post[j], self.weights, self.delays)
+        elif csa.arity(self.cset) == 0:
+            # inefficient implementation as a starting point
+            connection_map = numpy.zeros((projection.pre.size, projection.post.size), dtype=bool)
+            for addr in c:
+                connection_map[addr] = True
+            self._connect_with_map(projection, LazyArray(connection_map))
         else:
-            # Mask with weights and/or delays iterable
-            weights = self.weights
-            if CSAConnector.isConstant(weights):
-                weights = repeat(weights)
-            delays = self.delays
-            if CSAConnector.isConstant(delays):
-                delays = repeat(delays)
-            for (i, j), weight, delay in zip (c, weights, delays):
-                projection._convergent_connect([projection.pre[i]], projection.post[j], weight, delay)
+            raise NotImplementedError
 
 
 class CloneConnector(MapConnector):

@@ -1,0 +1,6 @@
+{
+    "simulator": "pyNN.nest",
+    "n": 10000,
+    "sim_time": 100.0,
+    "recording": None
+}

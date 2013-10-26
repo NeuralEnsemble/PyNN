@@ -113,8 +113,9 @@ def test_electrical_synapse():
     C = pyNN.connectors.FromListConnector(numpy.array([[0, 0, 1.0],
                                                        [0, 1, 1.0],
                                                        [2, 2, 1.0],
-                                                       [3, 2, 1.0]]))
-    prj = pyNN.neuron.Projection(p1, p2, C, syn,                            #@UnusedVariable
+                                                       [3, 2, 1.0]]),
+                                          column_names=['weight'])
+    prj = pyNN.neuron.Projection(p1, p2, C, syn,
                                  source='source_section.gap', receptor_type='source_section.gap') 
     current_source = pyNN.neuron.StepCurrentSource(amplitudes=[1.0], times=[100])
     p1[0:1].inject(current_source)

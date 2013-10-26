@@ -1,0 +1,22 @@
+{
+    "simulator": "pyNN.nest",
+    "populations": {
+        "A": {
+            "n": 10000,
+            "celltype": "IF_cond_exp",
+            "params": {
+                "i_offset": 1.0 }},
+        "B": {
+            "n": 10000,
+            "celltype": "IF_cond_exp",
+            "params": {
+                "i_offset": 0.5 }}},
+    "sim_time": 100.0,
+    "recording": {
+        "A": {
+            "v": 100,
+            "spikes": 1000},
+        "B": {
+            "v": 100,
+            "spikes": 1000}}
+}

@@ -63,7 +63,7 @@ class _State(common.control.BaseState):
 
     @property
     def t(self):
-        return nest.GetKernelStatus('time')
+        return max(nest.GetKernelStatus('time') - self.dt, 0.0)  # note that we always simulate one time step past the requested time
 
     dt = nest_property('resolution', float)
 
@@ -125,6 +125,9 @@ class _State(common.control.BaseState):
             simtime += self.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
             self.running = True
         nest.Simulate(simtime)
+
+    def run_until(self, tstop):
+        self.run(tstop - self.t)
 
     def reset(self):
         nest.ResetNetwork()

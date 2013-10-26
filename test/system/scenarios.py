@@ -2,7 +2,7 @@
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN import common, recording
 from pyNN.space import Space, Grid3D, RandomStructure, Cuboid
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_almost_equal, assert_raises
 from nose.plugins.skip import SkipTest
 import glob, os
 import numpy
@@ -668,4 +668,53 @@ def issue241(sim):
     assert_arrays_equal(spike_train2.get('duration'), numpy.array([1234, 2345]))
     assert_equal(spike_train3.get(['rate', 'start', 'duration']), [5, 1000, 1234])
 
+
+@register()
+def issue259(sim):
+    """
+    A test that retrieving data with "clear=True" gives correct spike trains.
+    """
+    sim.setup(time_step=0.05, spike_precision="off_grid")
+    p = sim.Population(1, sim.SpikeSourceArray(spike_times=[0.025, 10.025, 12.34, 1000.025]))
+    p.record('spikes')
+    sim.run(10.0)
+    spiketrains0 = p.get_data('spikes', clear=True).segments[0].spiketrains
+    print spiketrains0[0]
+    sim.run(10.0)
+    spiketrains1 = p.get_data('spikes', clear=True).segments[0].spiketrains
+    print spiketrains1[0]
+    sim.run(10.0)
+    spiketrains2 = p.get_data('spikes', clear=True).segments[0].spiketrains
+    print spiketrains2[0]
+    sim.end()
+
+    assert_arrays_almost_equal(spiketrains0[0], numpy.array([0.025])*pq.ms, 1e-17)
+    assert_arrays_almost_equal(spiketrains1[0], numpy.array([10.025, 12.34])*pq.ms, 1e-17)
+    assert_equal(spiketrains2[0].size, 0)
+
+
+@register()
+def issue165(sim):
+    """Ensure that anonymous current sources are not lost."""
+    sim.setup(time_step=0.1)
+    p = sim.Population(1, sim.IF_cond_exp())
+    p.inject(sim.DCSource(amplitude=1.0, start=10.0, stop=20.0))
+    p.record('v')
+    sim.run(20.0)
+    data = p.get_data().segments[0].filter(name='v')[0]
     
+    assert_equal(data[99, 0], -65.0)
+    assert data[150, 0] > -65.0
+    
+
+@register()
+def test_run_until(sim):
+    sim.setup(time_step=0.1)
+    p = sim.Population(1, sim.IF_cond_exp())
+    sim.run_until(12.7)
+    assert_almost_equal(sim.get_current_time(), 12.7, 10)
+    sim.run_until(12.7)
+    assert_almost_equal(sim.get_current_time(), 12.7, 10)
+    sim.run_until(99.9)
+    assert_almost_equal(sim.get_current_time(), 99.9, 10)
+    assert_raises(ValueError, sim.run_until, 88.8)

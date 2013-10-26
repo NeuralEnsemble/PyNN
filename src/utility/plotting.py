@@ -14,6 +14,7 @@ package directly rather than trying to extend this module.
 from collections import defaultdict
 from numbers import Number
 from itertools import repeat
+from os import path, makedirs
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
@@ -144,6 +145,9 @@ class Figure(object):
         """
         Save the figure to file. The format is taken from the file extension.
         """
+        dirname = path.dirname(filename)
+        if not path.exists(dirname):
+            makedirs(dirname)
         self.fig.savefig(filename)
 
 

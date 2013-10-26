@@ -41,6 +41,7 @@ class ProjectionTest(unittest.TestCase):
         self.random_connect = sim.FixedNumberPostConnector(n=2)
         self.syn2 = sim.StaticSynapse(weight=0.456, delay=0.4)
         self.all2all = sim.AllToAllConnector()
+        self.syn3 = sim.TsodyksMarkramSynapse(weight=0.789, delay=0.6, U=100.0, tau_rec=500)
 
     def test_create_simple(self):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
@@ -183,7 +184,7 @@ class ProjectionTest(unittest.TestCase):
         filename = "test.connections"
         if os.path.exists(filename):
             os.remove(filename)
-        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn3)
         prj.save('connections', filename, gather=True)
         assert os.path.exists(filename)
         os.remove(filename)

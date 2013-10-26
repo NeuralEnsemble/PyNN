@@ -49,7 +49,8 @@ def end(compatible_output=True):
     shutil.rmtree(temporary_directory, ignore_errors=True)
     moose.PyMooseBase.endSimulation()
 
-run = common.build_run(simulator)
+run, run_until = common.build_run(simulator)
+run_for = run
 
 reset = common.build_reset(simulator)
 
