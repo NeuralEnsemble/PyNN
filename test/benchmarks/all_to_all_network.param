@@ -1,0 +1,35 @@
+{
+    "simulator": "pyNN.nest",
+    "populations": {
+        "A": {
+            "n": 1000,
+            "celltype": "IF_cond_exp",
+            "params": {
+                "i_offset": 1.0 }},
+        "B": {
+            "n": 1000,
+            "celltype": "IF_cond_exp",
+            "params": {
+                "i_offset": 0.5 }}},
+    "sim_time": 100.0,
+    "recording": {
+        "A": {
+            "v": 100,
+            "spikes": 1000},
+        "B": {
+            "v": 100,
+            "spikes": 1000}},
+    "projections": {
+        "AB": {
+            "pre": "A",
+            "post": "B",
+            "connector": {
+                "type": "AllToAllConnector",
+                "params": {}},
+            "synapse_type": {
+                "type": "StaticSynapse",
+                "params": {
+                    "weight": 0.001,
+                    "delay": 1.5}},
+            "receptor_type": "excitatory"}}
+}

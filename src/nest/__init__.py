@@ -132,7 +132,8 @@ def end():
     simulator.state.tempdirs = []
     simulator.state.write_on_end = []
 
-run = common.build_run(simulator)
+run, run_until = common.build_run(simulator)
+run_for = run
 
 reset = common.build_reset(simulator)
 

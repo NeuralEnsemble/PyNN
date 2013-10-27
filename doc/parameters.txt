@@ -157,3 +157,9 @@ Setting initial values
 ======================
 
 .. todo:: complete
+
+.. note:: For most neuron types, the default initial value for the membrane
+          potential is the same as the default value for the resting membrane
+          potential parameter.
+          However, be aware that changing the value of the resting membrane
+          potential will *not* automatically change the initial value.

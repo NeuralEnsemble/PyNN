@@ -284,7 +284,7 @@ class Projection(object):
     def getSynapseDynamics(self, parameter_name, format='list', gather=True):
         return self.get(parameter_name, format, gather, with_address=False)
 
-    def save(self, attribute_names, file, format='list', gather=True):
+    def save(self, attribute_names, file, format='list', gather=True, with_address=True):
         """
         Print synaptic attributes (weights, delays, etc.) to file. In the array
         format, zeros are printed for non-existent connections.
@@ -293,15 +293,18 @@ class Projection(object):
         nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
         if attribute_names in ('all', 'connections'):
-            attribute_names = ['weight', 'delay'] # need to add synapse dynamics parameter names, if applicable
+            attribute_names = self.synapse_type.get_parameter_names()
         if isinstance(file, basestring):
             file = recording.files.StandardTextFile(file, mode='w')
-        all_values = self.get(attribute_names, format=format, gather=gather)
+        all_values = self.get(attribute_names, format=format, gather=gather, with_address=with_address)
         if format == 'array':
             all_values = [numpy.where(numpy.isnan(values), 0.0, values)
                           for values in all_values]
         if self._simulator.state.mpi_rank == 0:
-            file.write(all_values, {})
+            metadata = {"columns": attribute_names}
+            if with_address:
+                metadata["columns"] = ["i", "j"] + metadata["columns"]
+            file.write(all_values, metadata)
             file.close()
 
     @deprecated("save('all', file, format='list', gather=gather)")
