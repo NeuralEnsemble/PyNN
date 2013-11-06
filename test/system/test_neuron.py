@@ -1,5 +1,5 @@
 from nose.plugins.skip import SkipTest
-from scenarios import scenarios
+from scenarios.registry import registry
 from nose.tools import assert_equal, assert_almost_equal
 from pyNN.random import RandomDistribution
 from pyNN.utility import init_logging
@@ -15,15 +15,15 @@ except ImportError:
     have_neuron = False
 
 
-
 def test_scenarios():
-    for scenario in scenarios:
+    for scenario in registry:
         if "neuron" not in scenario.exclude:
             scenario.description = scenario.__name__
             if have_neuron:
                 yield scenario, pyNN.neuron
             else:
                 raise SkipTest
+
 
 def test_ticket168():
     """
