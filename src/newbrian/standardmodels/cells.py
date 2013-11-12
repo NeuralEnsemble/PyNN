@@ -132,7 +132,7 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     translations = deepcopy(leaky_iaf_translations)
     translations.update(current_based_synapse_translations)
     state_variable_translations = current_based_variable_translations
-    post_synaptic_variables = {'excitatory': 'ie', 'inhibitory': 'ii'}
+    post_synaptic_variables = {'excitatory': 'ye', 'inhibitory': 'yi'}
     brian_model = ThresholdNeuronGroup
 
 
@@ -152,7 +152,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     translations = deepcopy(leaky_iaf_translations)
     translations.update(conductance_based_synapse_translations)
     state_variable_translations = conductance_based_variable_translations
-    post_synaptic_variables = {'excitatory': 'ge', 'inhibitory': 'gi'}
+    post_synaptic_variables = {'excitatory': 'ye', 'inhibitory': 'yi'}
     brian_model = ThresholdNeuronGroup
 
 
@@ -268,7 +268,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     __doc__ = cells.SpikeSourcePoisson.__doc__
 
     translations = build_translations(
-        ('rate',     'rate',        Hz),
+        ('rate',     'firing_rate',        Hz),
         ('start',    'start',       ms),
         ('duration', 'duration',    ms),
     )

@@ -39,12 +39,6 @@ class Recorder(recording.Recorder):
         if variable == 'spikes':
             self._devices[variable] = brian.SpikeMonitor(group, record=self.recorded)
         else:
-            #if variable == 'v':
-            #    varname = 'v'
-            #elif variable == 'gsyn_exc':
-            #    varname = self.population.celltype.post_synaptic_variables['excitatory']
-            #elif variable == 'gsyn_inh':
-            #    varname = self.population.celltype.post_synaptic_variables['inhibitory']
             varname = self.population.celltype.state_variable_translations[variable]['translated_name']
             self._devices[variable] = brian.StateMonitor(group, varname,
                                                          record=self.recorded,
@@ -65,7 +59,15 @@ class Recorder(recording.Recorder):
             logger.debug("recording %s from %s" % (variable, self.recorded[variable]))
 
     def _reset(self):
-        raise NotImplementedError("Recording reset is not currently supported for pyNN.brian")
+        """Clear the list of cells to record."""
+        for device in self._devices.values():
+            device.reinit()
+            device.record = False
+
+    def _clear_simulator(self):
+        """Delete all recorded data, but retain the list of cells to record from."""
+        for device in self._devices.values():
+            device.reinit()
 
     @staticmethod
     def find_units(variable):
@@ -76,8 +78,6 @@ class Recorder(recording.Recorder):
         return self._devices['spikes'].spiketimes[i]/ms
 
     def _get_all_signals(self, variable, ids, clear=False):
-        if clear:
-            raise NotImplementedError
         # need to filter according to ids
         device = self._devices[variable]
         # because we use `when='start'`, need to add the value at the end of the final time step.
@@ -88,6 +88,8 @@ class Recorder(recording.Recorder):
         all_values = numpy.vstack((values, current_values[numpy.newaxis, :]))
         varname = self.population.celltype.state_variable_translations[variable]['translated_name']
         all_values = eval(self.population.celltype.state_variable_translations[variable]['reverse_transform'], {}, {varname: all_values})
+        if clear:
+            self._devices[variable].reinit()
         return all_values
 
     def _local_count(self, variable, filter_ids=None):

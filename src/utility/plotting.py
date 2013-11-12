@@ -28,6 +28,7 @@ DEFAULT_FIG_SETTINGS = {
     'axes.labelsize': 'small',
     'legend.fontsize': 'small',
     'font.size': 8,
+    'savefig.dpi': 150,
 }
 
 
@@ -224,7 +225,7 @@ def comparison_plot(segments, labels, title='', annotations=None,
         panels += [Panel(*array_list,
                          line_properties=line_properties,
                          data_labels=labels) for array_list in by_channel.values()]
-    if with_spikes:
+    if with_spikes and len(segments[0].spiketrains) > 0:
         panels += [Panel(segment.spiketrains, data_labels=[label])
                    for segment, label in zip(segments, labels)]
     panels[-1].options["xticks"] = True

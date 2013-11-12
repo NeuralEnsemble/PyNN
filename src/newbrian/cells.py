@@ -15,7 +15,8 @@ nA = brian.nA
 uS = brian.uS
 Hz = brian.Hz
 ampere = brian.amp
-from pyNN.parameters import Sequence
+second = brian.second
+from pyNN.parameters import Sequence, simplify
 from . import simulator
 
 
@@ -64,6 +65,8 @@ class BaseNeuronGroup(brian.NeuronGroup):
                                    freeze=False)
         for name, value in parameters.items():
             setattr(self, name, value)
+        self._S0 = self._S[:,0]  # store parameter values in case of reset.
+                                 # TODO: update this when parameters are modified
         self.initial_values = {}
 
     def initialize(self):
@@ -118,10 +121,12 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
     
     def __init__(self, n, equations, **parameters):
         threshold = brian.SimpleFunThreshold(self.check_threshold)
+        period = simplify(parameters['tau_refrac'])
+        assert not hasattr(period, "__len__"), "Brian does not support heterogenerous refractory periods with CustomRefractoriness"
         reset = brian.SimpleCustomRefractoriness(
                     AdaptiveReset(parameters.pop('v_reset'),
                                   parameters.pop('b')),
-                    period=parameters['tau_refrac'])  #.max()*ms)
+                    period=period*second)
         refractory = None
         BaseNeuronGroup.__init__(self, n, equations,
                                  threshold, reset, refractory,
@@ -182,11 +187,18 @@ class PoissonGroup(brian.PoissonGroup):
                                     clock=simulator.state.network.clock)
 
     def update_rates(self, t):
+        #print t, self.rate
         idx = (self.start <= t) & (t <= self.start + self.duration)
-        return numpy.where(idx, self.rate, 0)
+        return numpy.where(idx, self.firing_rate, 0)
 
     def initialize(self):
         pass
+
+    def _get_rate(self):
+        return self.firing_rate
+    def _set_rate(self, value):
+        self.firing_rate = value
+    rate = property(fset=_set_rate, fget=_get_rate)
 
 
 class SpikeGeneratorGroup(brian.SpikeGeneratorGroup):
