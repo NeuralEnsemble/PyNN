@@ -86,6 +86,7 @@ class Recorder(recording.Recorder):
         #print device.record
         current_values = device.P.state_(device.varname)[device.record]
         all_values = numpy.vstack((values, current_values[numpy.newaxis, :]))
+        logging.debug("@@@@ %s %s %s", id(device), values.shape, all_values.shape)
         varname = self.population.celltype.state_variable_translations[variable]['translated_name']
         all_values = eval(self.population.celltype.state_variable_translations[variable]['reverse_transform'], {}, {varname: all_values})
         if clear:
@@ -96,7 +97,7 @@ class Recorder(recording.Recorder):
         N = {}
         filtered_ids = self.filter_recorded(variable, filter_ids)
         padding      = self.population.first_id
-        filtered_ids = numpy.fromiter(filtered_ids, dtype=int) - padding
-        for id in filtered_ids:
-            N[id] = len(self._devices['spikes'].spiketimes[id])
+        indices = numpy.fromiter(filtered_ids, dtype=int) - padding
+        for i, id in zip(indices, filtered_ids):
+            N[id] = len(self._devices['spikes'].spiketimes[i])
         return N

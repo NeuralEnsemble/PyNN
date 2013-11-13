@@ -51,12 +51,15 @@ class Projection(common.Projection):
             presynaptic_populations = [self.pre]
         if isinstance(self.post, common.Assembly):
             postsynaptic_populations = self.post.populations
+            assert self.post._homogeneous_synapses, "Inhomogeneous assemblies not yet supported"
         else:
             postsynaptic_populations = [self.post]
         self._brian_synapses = defaultdict(dict)
         for i, pre in enumerate(presynaptic_populations):
             for j, post in enumerate(postsynaptic_populations):
                 psv = post.celltype.post_synaptic_variables[self.receptor_type]
+                target_type = post.celltype.conductance_based and "conductance" or "current"
+                self.synapse_type._set_target_type(target_type)
                 pre_eqns = self.synapse_type.pre % psv
                 if self.synapse_type.post:
                     post_eqns = self.synapse_type.post % psv
@@ -64,11 +67,13 @@ class Projection(common.Projection):
                     post_eqns = None
                 syn_obj = brian.Synapses(pre.brian_group,
                                          post.brian_group,
-                                         model=self.synapse_type.eqs,
+                                         model=self.synapse_type.eqs[target_type],
                                          pre=pre_eqns,
-                                         post=post_eqns)
+                                         post=post_eqns,
+                                         code_namespace={"exp": numpy.exp})
                 self._brian_synapses[i][j] = syn_obj
                 simulator.state.network.add(syn_obj)
+        ##self.synapse_type._set_target_type(None)  # reset in case the synapse_type is reused in a different Projection
         connector.connect(self)
 
     def __len__(self):
@@ -118,14 +123,23 @@ class Projection(common.Projection):
             for i, partition in enumerate(presynaptic_index_partitions):
                 #print i, partition, type(partition), bool(partition)
                 if partition.size > 0:
+                    if name == "u0":  # temporary hack, initial value in Tsodyks-Markram model
+                        name = "u"
+                    elif name == "x0":
+                        name = "x"
                     brian_var = getattr(self._brian_synapses[i][j], name)
                     brian_var[partition, local_index] = value  # units? don't we need to slice value to the appropriate size?
                     #print "----", i, j, partition, local_index, name, value
                     self._n_connections += partition.size
 
     def _set_attributes(self, connection_parameters):
+        if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
+            raise NotImplementedError
         connection_parameters.evaluate()
-        pass  # to be completed
+        for name, value in connection_parameters.items():
+            print "@@@@", name, value
+            filtered_value = numpy.extract(1 - numpy.isnan(value), value)
+            setattr(self._brian_synapses[0][0], name, filtered_value)
     
     def _get_attributes_as_arrays(self, *attribute_names):
         values = []

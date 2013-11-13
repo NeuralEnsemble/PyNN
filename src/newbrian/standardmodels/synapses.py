@@ -7,7 +7,7 @@ Standard cells for the Brian module.
 """
 
 import logging
-from brian import ms, uS
+from brian import ms, uS, nA
 from pyNN.standardmodels import synapses, build_translations
 from ..simulator import state
 
@@ -18,34 +18,89 @@ logger = logging.getLogger("PyNN")
 class StaticSynapse(synapses.StaticSynapse):
     __doc__ = synapses.StaticSynapse.__doc__
     
-    translations = build_translations(
-        ('weight', 'weight', uS),  # need nA for current-base synapses. How to handle?
-        ('delay', 'delay', ms),
-    )
-    eqs = """weight : uS"""   # units should depend on whether current or conductance based
+    translations = None
+    eqs = {"current":     """weight : nA""",
+           "conductance": """weight:  uS"""}
     pre = "%s += weight"
     post = None
 
     def _get_minimum_delay(self):
         return state.min_delay
+    
+    def _set_target_type(self, target_type):
+        if target_type  is None:
+            self.translations = None
+        elif target_type == "current":
+            self.translations = build_translations(
+                ('weight', 'weight', nA),
+                ('delay', 'delay', ms),
+            )
+        elif target_type == "conductance":
+            self.translations = build_translations(
+                ('weight', 'weight', uS),
+                ('delay', 'delay', ms),
+            )
+        else:
+            raise ValueError("Only current-based and conductance-based synapses currently supported. You asked for %s" % target_type)
 
-
+from numpy import exp
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
-    translations = build_translations(
-        ('weight', 'WEIGHT'),
-        ('delay', 'DELAY'),
-        ('U', 'UU'),
-        ('tau_rec', 'TAU_REC'),
-        ('tau_facil', 'TAU_FACIL'),
-        ('u0', 'U0'),
-        ('x0', 'X' ),
-        ('y0', 'Y')
-    )
+    translations = None
+    eqs = {"current": '''weight : nA
+                         dx/dt = (1-x)/tau_rec : 1 (event-driven)
+                         du/dt = (U-u)/tau_facil : 1 (event-driven)
+                         U : 1
+                         tau_rec : ms
+                         tau_facil : ms
+                         u0 : 1
+                         x0 : 1
+                         y0 : 1''',
+           "conductance": '''weight : uS
+                             dx/dt = (1-x)/tau_rec : 1 (event-driven)
+                             du/dt = (U-u)/tau_facil : 1 (event-driven)
+                             U : 1
+                             tau_rec : ms
+                             tau_facil : ms
+                             u0 : 1
+                             x0 : 1
+                             y0 : 1'''}
+    pre = '''%s += weight*u*x
+             x *= (1-u)
+             u += U*(1-u)'''
+    post = None
     
     def _get_minimum_delay(self):
         return state.min_delay
+
+    def _set_target_type(self, target_type):
+        if target_type  is None:
+            self.translations = None
+        elif target_type == "current":
+            self.translations = build_translations(
+                ('weight', 'weight', nA),
+                ('delay', 'delay', ms),
+                ('U', 'U'),
+                ('tau_rec', 'tau_rec', ms),
+                ('tau_facil', 'tau_facil', ms),
+                ('u0', 'u0'),   # unused, arguably should be moved to initial conditions
+                ('x0', 'x0' ),  # unused
+                ('y0', 'y0')    # unused
+            )
+        elif target_type == "conductance":
+            self.translations = build_translations(
+                ('weight', 'weight', uS),
+                ('delay', 'delay', ms),
+                ('U', 'U'),
+                ('tau_rec', 'tau_rec', ms),
+                ('tau_facil', 'tau_facil', ms),
+                ('u0', 'u0'),   # unused
+                ('x0', 'x0' ),  # unused
+                ('y0', 'y0')    # unused
+            )
+        else:
+            raise ValueError("Only current-based and conductance-based synapses currently supported. You asked for %s" % target_type)
 
 
 class STDPMechanism(synapses.STDPMechanism):
