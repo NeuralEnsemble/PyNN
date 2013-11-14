@@ -18,62 +18,51 @@ logger = logging.getLogger("PyNN")
 class StaticSynapse(synapses.StaticSynapse):
     __doc__ = synapses.StaticSynapse.__doc__
     
-    translations = None
-    eqs = {"current":     """weight : nA""",
-           "conductance": """weight:  uS"""}
-    pre = "%s += weight"
+    translations = build_translations(
+                        ('weight', 'weight', "weight*weight_units", "weight/weight_units"),
+                        ('delay', 'delay', ms)
+                   )
+    eqs = """weight : %(weight_units)s"""
+    pre = "%(syn_var)s += weight"
     post = None
     initial_conditions = {}
 
     def _get_minimum_delay(self):
         return state.min_delay
     
-    def _set_target_type(self, target_type):
-        if target_type  is None:
-            self.translations = None
-        elif target_type == "current":
-            self.translations = build_translations(
-                ('weight', 'weight', nA),
-                ('delay', 'delay', ms),
-            )
-        elif target_type == "conductance":
-            self.translations = build_translations(
-                ('weight', 'weight', uS),
-                ('delay', 'delay', ms),
-            )
-        else:
-            raise ValueError("Only current-based and conductance-based synapses currently supported. You asked for %s" % target_type)
+    def _set_target_type(self, weight_units):
+        for key, value in self.translations.items():
+            for direction in ("forward_transform", "reverse_transform"):
+                self.translations[key][direction] = value[direction].replace("weight_units", str(float(weight_units)))
+
 
 
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
-    translations = None
-    eqs = {"current": '''weight : nA
-                             u : 1
-                             x : 1
-                             y : 1
-                             z : 1
-                             U : 1
-                             tau_syn : ms
-                             tau_rec : ms
-                             tau_facil : ms''',
-           "conductance": '''weight : uS
-                             u : 1
-                             x : 1
-                             y : 1
-                             z : 1
-                             U : 1
-                             tau_syn : ms
-                             tau_rec : ms
-                             tau_facil : ms'''}
+    translations = build_translations(
+                        ('weight', 'weight', "weight*weight_units", "weight/weight_units"),
+                        ('delay', 'delay', ms),
+                        ('U', 'U'),
+                        ('tau_rec', 'tau_rec', ms),
+                        ('tau_facil', 'tau_facil', ms),
+                   )
+    eqs = '''weight : %(weight_units)s
+             u : 1
+             x : 1
+             y : 1
+             z : 1
+             U : 1
+             tau_syn : ms
+             tau_rec : ms
+             tau_facil : ms'''
     pre = '''z *= exp(-(t - lastupdate)/tau_rec)
              z += y*(exp(-(t - lastupdate)/tau_syn) - exp(-(t - lastupdate)/tau_rec)) / ((tau_syn/tau_rec) - 1)
              y *= exp(-(t - lastupdate)/tau_syn)
              x = 1 - y - z
              u *= exp(-(t - lastupdate)/tau_facil)
              u = max(u + U*(1-u), U)
-             %s += weight*x*u
+             %(syn_var)s += weight*x*u
              y += x*u
              '''
     post = None
@@ -84,69 +73,54 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     def _get_minimum_delay(self):
         return state.min_delay
 
-    def _set_target_type(self, target_type):
-        if target_type  is None:
-            self.translations = None
-        elif target_type == "current":
-            self.translations = build_translations(
-                ('weight', 'weight', nA),
-                ('delay', 'delay', ms),
-                ('U', 'U'),
-                ('tau_rec', 'tau_rec', ms),
-                ('tau_facil', 'tau_facil', ms),
-            )
-        elif target_type == "conductance":
-            self.translations = build_translations(
-                ('weight', 'weight', uS),
-                ('delay', 'delay', ms),
-                ('U', 'U'),
-                ('tau_rec', 'tau_rec', ms),
-                ('tau_facil', 'tau_facil', ms),
-            )
-        else:
-            raise ValueError("Only current-based and conductance-based synapses currently supported. You asked for %s" % target_type)
+    def _set_target_type(self, weight_units):
+        for key, value in self.translations.items():
+            for direction in ("forward_transform", "reverse_transform"):
+                self.translations[key][direction] = value[direction].replace("weight_units", str(float(weight_units)))
 
 
 class STDPMechanism(synapses.STDPMechanism):
     __doc__ = synapses.STDPMechanism.__doc__
 
     base_translations = build_translations(
-        ('weight', 'weight', uS),
-        ('delay', 'delay', ms)
-    )
-    eqs = """
-          weight : uS
-          tau_plus : ms
-          tau_minus : ms
-          w_max : uS
-          w_min : uS
-          A_plus : 1
-          A_minus : 1
-          dP/dt = -P/tau_plus : 1 (event-driven)
-          dM/dt = -M/tau_minus : 1 (event-driven)
-          """
+                            ('weight', 'weight', "weight*weight_units", "weight/weight_units"),
+                            ('delay', 'delay', ms),
+                        )
+    eqs = """weight : %(weight_units)s
+             tau_plus : ms
+             tau_minus : ms
+             w_max : %(weight_units)s
+             w_min : %(weight_units)s
+             A_plus : 1
+             A_minus : 1
+             dP/dt = -P/tau_plus : 1 (event-driven)
+             dM/dt = -M/tau_minus : 1 (event-driven)"""  # to be split among component parts
     pre = """
           P += A_plus
           weight = max(weight + w_max * M, w_min)
-          %s += weight
+          %(syn_var)s += weight
           """    
     post = """
            M -= A_minus
            weight = min(weight + w_max * P, w_max)
-           %s += weight
-           """
+           """  # for consistency with NEST, the synaptic variable is only updated on a pre-synaptic spike
     initial_conditions = {"M": 0.0, "P": 0.0}
 
     def _get_minimum_delay(self):
         return state.min_delay
+
+    def _set_target_type(self, weight_units):
+        for key, value in self.translations.items():
+            for direction in ("forward_transform", "reverse_transform"):
+                self.translations[key][direction] = value[direction].replace("weight_units", str(float(weight_units)))
     
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max'),
-        ('w_min',     'w_min'),
+        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
+        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
     )
 
 
@@ -154,8 +128,8 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     __doc__ = synapses.MultiplicativeWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max'),
-        ('w_min',     'w_min'),
+        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
+        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
     )
 
 
@@ -163,8 +137,8 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
     __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max'),
-        ('w_min',     'w_min'),
+        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
+        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
     )
 
 
@@ -172,8 +146,8 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
     __doc__ = synapses.GutigWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max'),
-        ('w_min',     'w_min'),
+        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
+        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
         ('mu_plus',   'mu_plus'),
         ('mu_minus',  'mu_minus'),
     )

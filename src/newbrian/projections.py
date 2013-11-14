@@ -4,8 +4,10 @@
 
 from itertools import repeat, izip, chain
 from collections import defaultdict
+import math
 import numpy
 import brian
+from brian import uS, nA
 from pyNN import common
 from pyNN.standardmodels.synapses import TsodyksMarkramSynapse
 from pyNN.core import ezip
@@ -42,10 +44,11 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
-
-        ## Create connections
         self.connections = None
         self._n_connections = 0
+        # create one Synapses object per pre-post population pair
+        # there will be multiple such pairs if either `presynaptic_population`
+        # or `postsynaptic_population` is an Assembly.
         if isinstance(self.pre, common.Assembly):
             presynaptic_populations = self.pre.populations
         else:
@@ -58,24 +61,29 @@ class Projection(common.Projection):
         self._brian_synapses = defaultdict(dict)
         for i, pre in enumerate(presynaptic_populations):
             for j, post in enumerate(postsynaptic_populations):
+                # complete the synapse type equations according to the
+                # post-synaptic response type
                 psv = post.celltype.post_synaptic_variables[self.receptor_type]
-                target_type = post.celltype.conductance_based and "conductance" or "current"
-                self.synapse_type._set_target_type(target_type)
-                pre_eqns = self.synapse_type.pre % psv
+                weight_units = post.celltype.conductance_based and uS or nA
+                self.synapse_type._set_target_type(weight_units)
+                equation_context = {"syn_var": psv, "weight_units": weight_units}
+                pre_eqns = self.synapse_type.pre % equation_context
                 if self.synapse_type.post:
-                    post_eqns = self.synapse_type.post % psv
+                    post_eqns = self.synapse_type.post % equation_context
                 else:
                     post_eqns = None
-                syn_obj = brian.Synapses(pre.brian_group,
-                                         post.brian_group,
-                                         model=self.synapse_type.eqs[target_type],
-                                         pre=pre_eqns,
+                model = self.synapse_type.eqs % equation_context
+                # create the brian Synapses object.
+                syn_obj = brian.Synapses(pre.brian_group, post.brian_group,
+                                         model=model, pre=pre_eqns,
                                          post=post_eqns,
                                          code_namespace={"exp": numpy.exp})
                 self._brian_synapses[i][j] = syn_obj
                 simulator.state.network.add(syn_obj)
-        ##self.synapse_type._set_target_type(None)  # reset in case the synapse_type is reused in a different Projection
+        # connect the populations
         connector.connect(self)
+        # special-case: the Tsodyks-Markram short-term plasticity model takes
+        #               a parameter value from the post-synaptic response model
         if isinstance(self.synapse_type, TsodyksMarkramSynapse):
             self._set_tau_syn_for_tsodyks_markram()
 
