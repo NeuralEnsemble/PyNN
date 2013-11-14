@@ -7,6 +7,7 @@ from collections import defaultdict
 import numpy
 import brian
 from pyNN import common
+from pyNN.standardmodels.synapses import TsodyksMarkramSynapse
 from pyNN.core import ezip
 from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
@@ -75,6 +76,8 @@ class Projection(common.Projection):
                 simulator.state.network.add(syn_obj)
         ##self.synapse_type._set_target_type(None)  # reset in case the synapse_type is reused in a different Projection
         connector.connect(self)
+        if isinstance(self.synapse_type, TsodyksMarkramSynapse):
+            self._set_tau_syn_for_tsodyks_markram()
 
     def __len__(self):
         return self._n_connections
@@ -113,12 +116,14 @@ class Projection(common.Projection):
         connection_parameters.pop("dendritic_delay_fraction", None)  # should try to handle this
         presynaptic_index_partitions = self._partition(presynaptic_indices)
         j, local_index = self._localize_index(postsynaptic_index)
+        # specify which connections exist
         for i, partition in enumerate(presynaptic_index_partitions):
             if partition.size > 0:
                 if isinstance(self.post, common.Assembly) and isinstance(self.post.populations[i], common.PopulationView):
                     partition = self._invert(partition, self.post.populations[i].mask)
                 self._brian_synapses[i][j][partition, local_index] = True
         #print "CONNECTING", presynaptic_indices, postsynaptic_index, connection_parameters, presynaptic_index_partitions
+        # set connection parameters
         for name, value in chain(connection_parameters.items(),
                                  self.synapse_type.initial_conditions.items()):
             for i, partition in enumerate(presynaptic_index_partitions):
@@ -143,3 +148,9 @@ class Projection(common.Projection):
         for name in attribute_names:
             values.append(getattr(self._brian_synapses[0][0], name).to_matrix())  # temporary hack, will give wrong results with Assemblies
         return values  # should put NaN where there is no connection?
+
+    def _set_tau_syn_for_tsodyks_markram(self):
+        if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
+            raise NotImplementedError
+        tau_syn_var = self.synapse_type.tau_syn_var[self.receptor_type]
+        self._brian_synapses[0][0].tau_syn = self.post.get(tau_syn_var)*brian.ms  # assumes homogeneous and excitatory - to be fixed properly

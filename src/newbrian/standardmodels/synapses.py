@@ -50,23 +50,36 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
 
     translations = None
     eqs = {"current": '''weight : nA
-                         dx/dt = (1-x)/tau_rec : 1 (event-driven)
-                         du/dt = (U-u)/tau_facil : 1 (event-driven)
-                         U : 1
-                         tau_rec : ms
-                         tau_facil : ms''',
-           "conductance": '''weight : uS
-                             dx/dt = (1-x)/tau_rec : 1 (event-driven)
-                             du/dt = (U-u)/tau_facil : 1 (event-driven)
+                             u : 1
+                             x : 1
+                             y : 1
+                             z : 1
                              U : 1
+                             tau_syn : ms
+                             tau_rec : ms
+                             tau_facil : ms''',
+           "conductance": '''weight : uS
+                             u : 1
+                             x : 1
+                             y : 1
+                             z : 1
+                             U : 1
+                             tau_syn : ms
                              tau_rec : ms
                              tau_facil : ms'''}
-    pre = '''u += U*(1-u)
-             %s += weight*u*x
-             x *= (1-u)
+    pre = '''z *= exp(-(t - lastupdate)/tau_rec)
+             z += y*(exp(-(t - lastupdate)/tau_syn) - exp(-(t - lastupdate)/tau_rec)) / ((tau_syn/tau_rec) - 1)
+             y *= exp(-(t - lastupdate)/tau_syn)
+             x = 1 - y - z
+             u *= exp(-(t - lastupdate)/tau_facil)
+             u = max(u + U*(1-u), U)
+             %s += weight*x*u
+             y += x*u
              '''
     post = None
-    initial_conditions = {"u": 0.0, "x": 1.0}
+    initial_conditions = {"u": 0.0, "x": 1.0, "y": 0.0, "z": 0.0}
+    tau_syn_var = {"excitatory": "tau_syn_E",
+                   "inhibitory": "tau_syn_I"}
     
     def _get_minimum_delay(self):
         return state.min_delay
