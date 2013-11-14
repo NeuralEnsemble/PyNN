@@ -2,7 +2,7 @@
 
 """
 
-from itertools import repeat, izip
+from itertools import repeat, izip, chain
 from collections import defaultdict
 import numpy
 import brian
@@ -119,14 +119,11 @@ class Projection(common.Projection):
                     partition = self._invert(partition, self.post.populations[i].mask)
                 self._brian_synapses[i][j][partition, local_index] = True
         #print "CONNECTING", presynaptic_indices, postsynaptic_index, connection_parameters, presynaptic_index_partitions
-        for name, value in connection_parameters.items():
+        for name, value in chain(connection_parameters.items(),
+                                 self.synapse_type.initial_conditions.items()):
             for i, partition in enumerate(presynaptic_index_partitions):
                 #print i, partition, type(partition), bool(partition)
                 if partition.size > 0:
-                    if name == "u0":  # temporary hack, initial value in Tsodyks-Markram model
-                        name = "u"
-                    elif name == "x0":
-                        name = "x"
                     brian_var = getattr(self._brian_synapses[i][j], name)
                     brian_var[partition, local_index] = value  # units? don't we need to slice value to the appropriate size?
                     #print "----", i, j, partition, local_index, name, value

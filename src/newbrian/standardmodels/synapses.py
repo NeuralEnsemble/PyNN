@@ -23,6 +23,7 @@ class StaticSynapse(synapses.StaticSynapse):
            "conductance": """weight:  uS"""}
     pre = "%s += weight"
     post = None
+    initial_conditions = {}
 
     def _get_minimum_delay(self):
         return state.min_delay
@@ -43,7 +44,7 @@ class StaticSynapse(synapses.StaticSynapse):
         else:
             raise ValueError("Only current-based and conductance-based synapses currently supported. You asked for %s" % target_type)
 
-from numpy import exp
+
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
@@ -53,23 +54,19 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
                          du/dt = (U-u)/tau_facil : 1 (event-driven)
                          U : 1
                          tau_rec : ms
-                         tau_facil : ms
-                         u0 : 1
-                         x0 : 1
-                         y0 : 1''',
+                         tau_facil : ms''',
            "conductance": '''weight : uS
                              dx/dt = (1-x)/tau_rec : 1 (event-driven)
                              du/dt = (U-u)/tau_facil : 1 (event-driven)
                              U : 1
                              tau_rec : ms
-                             tau_facil : ms
-                             u0 : 1
-                             x0 : 1
-                             y0 : 1'''}
-    pre = '''%s += weight*u*x
+                             tau_facil : ms'''}
+    pre = '''u += U*(1-u)
+             %s += weight*u*x
              x *= (1-u)
-             u += U*(1-u)'''
+             '''
     post = None
+    initial_conditions = {"u": 0.0, "x": 1.0}
     
     def _get_minimum_delay(self):
         return state.min_delay
@@ -84,9 +81,6 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
                 ('U', 'U'),
                 ('tau_rec', 'tau_rec', ms),
                 ('tau_facil', 'tau_facil', ms),
-                ('u0', 'u0'),   # unused, arguably should be moved to initial conditions
-                ('x0', 'x0' ),  # unused
-                ('y0', 'y0')    # unused
             )
         elif target_type == "conductance":
             self.translations = build_translations(
@@ -95,9 +89,6 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
                 ('U', 'U'),
                 ('tau_rec', 'tau_rec', ms),
                 ('tau_facil', 'tau_facil', ms),
-                ('u0', 'u0'),   # unused
-                ('x0', 'x0' ),  # unused
-                ('y0', 'y0')    # unused
             )
         else:
             raise ValueError("Only current-based and conductance-based synapses currently supported. You asked for %s" % target_type)
@@ -131,6 +122,7 @@ class STDPMechanism(synapses.STDPMechanism):
            weight = min(weight + w_max * P, w_max)
            %s += weight
            """
+    initial_conditions = {"M": 0.0, "P": 0.0}
 
     def _get_minimum_delay(self):
         return state.min_delay

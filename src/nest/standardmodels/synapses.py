@@ -78,10 +78,7 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse, NESTSynapseMixin):
         ('delay', 'delay'),
         ('U', 'U'),
         ('tau_rec', 'tau_rec'),
-        ('tau_facil', 'tau_fac'),
-        ('u0', 'u'),  # this could cause problems for reverse translation
-        ('x0', 'x' ), # (as for V_m) in cell models, since the initial value
-        ('y0', 'y')   # is not stored, only set.
+        ('tau_facil', 'tau_fac')
     )
     nest_name = 'tsodyks_synapse'
 

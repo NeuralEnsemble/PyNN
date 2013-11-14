@@ -499,8 +499,11 @@ class BasePopulation(object):
 
     def get_spike_counts(self, gather=True):
         """
-        Returns the number of spikes for each neuron.
+        Returns a dict containing the number of spikes for each neuron.
+        
+        The dict keys are neuron IDs, not indices.
         """
+        # arguably, we should use indices
         return self.recorder.count('spikes', gather, self._record_filter)
 
     @deprecated("mean_spike_count()")
