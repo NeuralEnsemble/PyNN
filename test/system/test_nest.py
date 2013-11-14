@@ -1,6 +1,6 @@
 from nose.plugins.skip import SkipTest
 from scenarios.registry import registry
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_not_equal
 from pyNN.utility import init_logging, assert_arrays_equal
 import numpy
 
@@ -131,3 +131,18 @@ def test_issue237():
     exc_noise_connector = sim.OneToOneConnector()
     noise_ee_prj = sim.Projection(exc_noise_in_exc, exc_cells, exc_noise_connector, receptor_type="excitatory")
     noise_ee_prj.set(weight=1e-3)
+
+def test_random_seeds():
+    sim = pyNN.nest
+    data = []
+    for seed in (98549473097783, 4709244914496864):
+        sim.setup(threads=1, rng_seeds=[seed])
+        p = sim.Population(3, sim.SpikeSourcePoisson(rate=100.0))
+        p.record('spikes')
+        sim.run(100)
+        data.append(p.get_data().segments[0].spiketrains)
+    assert_not_equal(*data)
+
+
+if __name__ == '__main__':
+    data = test_random_seeds()

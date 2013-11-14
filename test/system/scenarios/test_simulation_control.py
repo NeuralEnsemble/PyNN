@@ -91,6 +91,7 @@ def test_run_until(sim):
     sim.run_until(99.9)
     assert_almost_equal(sim.get_current_time(), 99.9, 10)
     assert_raises(ValueError, sim.run_until, 88.8)
+    sim.end()
 
 
 if __name__ == '__main__':

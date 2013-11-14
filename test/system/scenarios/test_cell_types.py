@@ -26,7 +26,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     return data
 
 
-@register(exclude=['pcsim', 'nemo'])
+@register(exclude=['pcsim', 'nemo', 'brian'])
 def test_HH_cond_exp(sim, plot_figure=False):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
@@ -49,6 +49,7 @@ def test_HH_cond_exp(sim, plot_figure=False):
     hhcell.record('v')
     sim.run(20.0)
     v = hhcell.get_data().segments[0].filter(name='v')[0]
+    sim.end()
     first_spike = v.times[numpy.where(v>0)[0][0]]
     assert first_spike/pq.ms - 2.95 < 0.01
 

@@ -27,6 +27,7 @@ def test_reset_recording(sim):
     p[4:5].record('v')
     sim.run(10.0)
     data = p.get_data()
+    sim.end()
     ti = lambda i: data.segments[i].analogsignalarrays[0].times
     assert_arrays_equal(ti(0), ti(1))
     idx = lambda i: data.segments[i].analogsignalarrays[0].channel_index

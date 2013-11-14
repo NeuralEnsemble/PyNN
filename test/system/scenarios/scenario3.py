@@ -94,7 +94,7 @@ def scenario3(sim):
     t,p = scipy.stats.ttest_ind(final_weights[:50,:].flat, final_weights[50:,:].flat)
     assert p < 0.01, p
     assert final_weights[:50,:].mean() < final_weights[50:,:].mean()
-
+    sim.end()
     return initial_weights, final_weights, pre, post, connections
     
 
