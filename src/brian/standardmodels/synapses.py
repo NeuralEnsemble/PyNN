@@ -160,5 +160,5 @@ class SpikePairRule(synapses.SpikePairRule):
         ('A_plus',    'A_plus'),
         ('A_minus',   'A_minus'),
         ('tau_plus',  'tau_plus', ms),
-        ('tau_minus', 'tau_plus', ms),
+        ('tau_minus', 'tau_minus', ms),
     )
