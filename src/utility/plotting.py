@@ -66,7 +66,10 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
     for i in signal_array.channel_index.argsort():
         channel = signal_array.channel_index[i]
         signal = signal_array[:, i]
-        label = "%s (Neuron %d)" % (label_prefix, channel)
+        if label_prefix:
+            label = "%s (Neuron %d)" % (label_prefix, channel)
+        else:
+            label = "Neuron %d" % channel
         ax.plot(signal.times.rescale(ms), signal, label=label, **options)
     plt.legend()
 
@@ -147,7 +150,7 @@ class Figure(object):
         Save the figure to file. The format is taken from the file extension.
         """
         dirname = path.dirname(filename)
-        if not path.exists(dirname):
+        if dirname and not path.exists(dirname):
             makedirs(dirname)
         self.fig.savefig(filename)
 
