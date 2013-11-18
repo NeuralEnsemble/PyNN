@@ -24,6 +24,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     assert abs(diff).max() < 0.01, abs(diff).max() 
     sim.end()
     return data
+test_EIF_cond_alpha_isfa_ista.__test__ = False
 
 
 @register(exclude=['pcsim', 'nemo', 'brian'])
@@ -52,6 +53,7 @@ def test_HH_cond_exp(sim, plot_figure=False):
     sim.end()
     first_spike = v.times[numpy.where(v>0)[0][0]]
     assert first_spike/pq.ms - 2.95 < 0.01
+test_HH_cond_exp.__test__ = False
 
 
 if __name__ == '__main__':

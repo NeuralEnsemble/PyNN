@@ -37,6 +37,7 @@ def test_reset_recording(sim):
     assert vi(0).shape == vi(1).shape == (101, 1)
     assert vi(0)[0, 0] == vi(1)[0, 0] == p.initial_values['v'].evaluate(simplify=True)*pq.mV # the first value should be the same
     assert not (vi(0)[1:, 0] == vi(1)[1:, 0]).any()            # none of the others should be, because of different i_offset
+test_reset_recording.__test__ = False
 
 
 @register(exclude=['pcsim', 'moose', 'nemo'])
@@ -86,6 +87,7 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     assert_arrays_equal(gsyn_all.channel_index, numpy.arange(2, 9))
 
     sim.end()
+test_record_vm_and_gsyn_from_assembly.__test__ = False
 
 
 @register()
