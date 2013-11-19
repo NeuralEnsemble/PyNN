@@ -115,10 +115,12 @@ class Figure(object):
       ).save("figure3.png")
     
     Valid options are:
-    
-        `settings` - for figure settings, e.g. {'font.size': 9}
-        `annotations` - a (multi-line) string to be printed at the bottom of the figure.
-        `title` - a string to be printed at the top of the figure.
+        `settings`:
+            for figure settings, e.g. {'font.size': 9}
+        `annotations`:
+            a (multi-line) string to be printed at the bottom of the figure.
+        `title`:
+            a string to be printed at the top of the figure.
     """
     
     def __init__(self, *panels, **options):
@@ -164,15 +166,14 @@ class Panel(object):
     automatically choose an appropriate representation. Multiple data items may
     be plotted in the same panel.
     
-    Valid options any valid Matplotlib formatting options that should be applied
-    to the Axes/Subplot, plus in addition:
-    
-        `data_labels`: a list of strings of the same length as the number of
-                       data items.
-        `line_properties`: a list of dicts containing Matplotlib formatting
-                           options, of the same length as the number of data
-                           items.
-        
+    Valid options are any valid Matplotlib formatting options that should be
+    applied to the Axes/Subplot, plus in addition:
+        `data_labels`:
+            a list of strings of the same length as the number of data items.
+        `line_properties`:
+            a list of dicts containing Matplotlib formatting options, of the
+            same length as the number of data items.
+
     """
         
     def __init__(self, *data, **options):
