@@ -1,3 +1,4 @@
+import os
 from nose.plugins.skip import SkipTest
 from scenarios.registry import registry
 from nose.tools import assert_equal, assert_almost_equal
@@ -13,6 +14,10 @@ try:
     have_neuron = True
 except ImportError:
     have_neuron = False
+
+skip_ci = False
+if "JENKINS_SKIP_TESTS" in os.environ:
+    skip_ci = os.environ["JENKINS_SKIP_TESTS"] == "1"
 
 
 def test_scenarios():
@@ -107,6 +112,8 @@ class SimpleNeuronType(NativeCellType):
 
 
 def test_electrical_synapse():
+    if skip_ci:
+        raise SkipTest("Skipping test on CI server as it produces a segmentation fault")
     p1 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
     p2 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
     syn = pyNN.neuron.ElectricalSynapse(weight=1.0)

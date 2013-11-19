@@ -123,7 +123,7 @@ class Projection(object):
         """
         Set connection attributes for all connections on the local MPI node.
 
-        Attribute names may be 'weights', 'delays', or the name of any parameter
+        Attribute names may be 'weight', 'delay', or the name of any parameter
         of a synapse dynamics model (e.g. 'U' for TsodyksMarkramSynapse).
 
         Each attribute value may be:
@@ -187,7 +187,7 @@ class Projection(object):
         indices of the pre- and post-synaptic cell followed by the attribute
         values in the order given in `attribute_names`. Example::
 
-            >>> prj.get(["weights", "delays"], format="list")[:5]
+            >>> prj.get(["weight", "delay"], format="list")[:5]
             [(TODO)]
 
         With array format, returns a tuple of 2D NumPy arrays, one for each
@@ -199,7 +199,7 @@ class Projection(object):
         value will be given, which makes some sense for weights, but is
         pretty meaningless for delays. Example::
 
-            >>> weights, delays = prj.get(["weights", "delays"], format="array")
+            >>> weights, delays = prj.get(["weight", "delay"], format="array")
             >>> weights.shape
             TODO
 

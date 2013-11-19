@@ -225,12 +225,14 @@ class Connection(object):
     weight = property(_get_weight, _set_weight)
     delay  = property(_get_delay, _set_delay)
 
+
 def generate_synapse_property(name):
     def _get(self):
         return nest.GetStatus([self.id()], name)[0]
     def _set(self, val):
         nest.SetStatus([self.id()], name, val)
     return property(_get, _set)
+
 setattr(Connection, 'U', generate_synapse_property('U'))
 setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))
 setattr(Connection, 'tau_facil', generate_synapse_property('tau_fac'))

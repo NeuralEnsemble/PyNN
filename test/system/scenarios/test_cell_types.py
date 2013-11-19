@@ -5,7 +5,7 @@ from registry import register
 
 
 @register(exclude=['pcsim', 'moose', 'nemo'])
-def test_EIF_cond_alpha_isfa_ista(sim):
+def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
     ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista(
                             i_offset=1.0, tau_refrac=2.0, v_spike=-40))
@@ -14,14 +14,21 @@ def test_EIF_cond_alpha_isfa_ista(sim):
     sim.run(200.0)
     data = ifcell.get_data().segments[0]
     expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67,  113.13, 142.69, 174.79]) * pq.ms
+    if plot_figure:
+        import matplotlib.pyplot as plt
+        vm = data.analogsignalarrays[0] 
+        plt.plot(vm.times, vm)
+        plt.plot(expected_spike_times, -40*numpy.ones_like(expected_spike_times), "ro")
+        plt.savefig("test_EIF_cond_alpha_isfa_ista_%s.png" % sim.__name__)
     diff = (data.spiketrains[0] - expected_spike_times)/expected_spike_times
-    assert abs(diff).max() < 0.001
+    assert abs(diff).max() < 0.01, abs(diff).max() 
     sim.end()
     return data
+test_EIF_cond_alpha_isfa_ista.__test__ = False
 
 
-@register(exclude=['pcsim', 'nemo'])
-def test_HH_cond_exp(sim):
+@register(exclude=['pcsim', 'nemo', 'brian'])
+def test_HH_cond_exp(sim, plot_figure=False):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
         'gbar_Na'   : 20.0,
@@ -43,12 +50,16 @@ def test_HH_cond_exp(sim):
     hhcell.record('v')
     sim.run(20.0)
     v = hhcell.get_data().segments[0].filter(name='v')[0]
+    sim.end()
     first_spike = v.times[numpy.where(v>0)[0][0]]
     assert first_spike/pq.ms - 2.95 < 0.01
+test_HH_cond_exp.__test__ = False
 
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
-    sim, args = get_simulator()
-    test_EIF_cond_alpha_isfa_ista(sim)
-    test_HH_cond_exp(sim)
+    sim, args = get_simulator(("--plot-figure",
+                               {"help": "generate a figure",
+                                "action": "store_true"}))
+    test_EIF_cond_alpha_isfa_ista(sim, plot_figure=args.plot_figure)
+    test_HH_cond_exp(sim, plot_figure=args.plot_figure)

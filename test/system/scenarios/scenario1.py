@@ -24,7 +24,7 @@ def scenario1(sim):
     n_threads = 1
     pconn_recurr = 0.02
     pconn_input = 0.01
-    tstop = 1000.0
+    tstop = 900.0
     delay = 0.2
     dt    = 0.1
     weights = {
@@ -74,7 +74,7 @@ def scenario1(sim):
 
 
 
-@register(exclude=["nemo"])
+@register(exclude=["brian", "nemo"])
 def scenario1a(sim):
     """
     Balanced network of integrate-and-fire neurons, built with the "low-level"
@@ -94,7 +94,7 @@ def scenario1a(sim):
     n_threads = 1
     pconn_recurr = 0.03
     pconn_input = 0.01
-    tstop = 1000.0
+    tstop = 1100.0
     delay = 1
     w_exc = 3.0e-3
     w_inh = 45.0e-3

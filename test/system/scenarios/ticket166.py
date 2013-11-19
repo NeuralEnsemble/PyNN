@@ -4,7 +4,7 @@ from registry import register
 
 
 @register(exclude=["nemo"])
-def ticket166(sim, interactive=False):
+def ticket166(sim, plot_figure=False):
     """
     Check that changing the spike_times of a SpikeSourceArray mid-simulation
     works (see http://neuralensemble.org/trac/PyNN/ticket/166)
@@ -12,10 +12,6 @@ def ticket166(sim, interactive=False):
     dt = 0.1 # ms
     t_step = 100.0 # ms
     lag = 3.0 # ms
-
-    if interactive:
-        import matplotlib.pyplot as plt
-        plt.ion()
 
     sim.setup(timestep=dt, min_delay=dt)
 
@@ -43,7 +39,8 @@ def ticket166(sim, interactive=False):
 
     sim.end()
 
-    if interactive:
+    if plot_figure:
+        import matplotlib.pyplot as plt
         plt.plot(vm.times, vm[:, 0])
         plt.plot(vm.times, vm[:, 1])
         plt.savefig("ticket166_%s.png" % sim.__name__)
@@ -54,5 +51,7 @@ def ticket166(sim, interactive=False):
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
-    sim, args = get_simulator()
-    ticket166(sim)
+    sim, args = get_simulator(("--plot-figure",
+                               {"help": "generate a figure",
+                                "action": "store_true"}))
+    ticket166(sim, plot_figure=args.plot_figure)
