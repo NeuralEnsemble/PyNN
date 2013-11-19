@@ -10,7 +10,7 @@ August 2006, November 2009
 import socket, os
 from importlib import import_module
 import numpy
-from pyNN.utility import get_script_args, init_logging, normalized_filename, connection_plot
+from pyNN.utility import get_script_args, init_logging, normalized_filename
 
 simulator_name = get_script_args(1)[0]
 sim = import_module("pyNN.%s" % simulator_name)
@@ -53,7 +53,6 @@ projection = sim.Projection(input_population, output_population, connector, syn)
 filename = normalized_filename("Results", "simpleRandomNetwork", "conn",
                                simulator_name, sim.num_processes())
 projection.save('connections', filename)
-print connection_plot(projection.get('weight', format='array'))
 
 input_population.record('spikes')
 output_population.record('spikes')

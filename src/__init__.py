@@ -13,6 +13,7 @@ independent of simulator.
 Functions for simulation set-up and control:
     setup()
     run()
+    run_until()
     reset()
     end()
     get_time_step()
@@ -29,8 +30,7 @@ Functions for creating, connecting, modifying and recording from neurons
     connect()
     set()
     record()
-    record_v()
-    record_gsyn()
+    initialize()
     
 Classes for creating, connecting, modifying and recording from neurons
 (high-level interface):
@@ -41,7 +41,7 @@ Classes for creating, connecting, modifying and recording from neurons
     Connectors: AllToAllConnector, OneToOneConnector, FixedProbabilityConnector,
                 DistanceDependentProbabilityConnector, FixedNumberPreConnector,
                 FixedNumberPostConnector, FromListConnector, FromFileConnector,
-                CSAConnector
+                CSAConnector, ArrayConnector, IndexBasedConnector
     Standard cell types: IF_curr_exp, IF_curr_alpha, IF_cond_exp, IF_cond_alpha,
                 IF_cond_exp_gsfa_grr, IF_facets_hardware1, HH_cond_exp,
                 EIF_cond_alpha_isfa_ista, EIF_cond_exp_isfa_ista,
@@ -58,16 +58,18 @@ Classes for creating, connecting, modifying and recording from neurons
 Available simulator modules:
     nest
     neuron
-    pcsim
     brian
 
 Other modules:
     utility
     random
+    space
 
 :copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-__version__ = '0.8dev'
-__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "nemo", "moose", "nineml", "recording", "errors", "space", "descriptions", "standardmodels", "parameters", "core"]
+__version__ = '0.8beta1'
+__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "nemo",
+           "moose", "nineml", "recording", "errors", "space", "descriptions",
+           "standardmodels", "parameters", "core"]
