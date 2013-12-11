@@ -18,6 +18,7 @@ import csv
 import argparse
 from pprint import pprint
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from collections import defaultdict
 from parameters import ParameterSet
 
@@ -37,7 +38,7 @@ with open(args.data_store, "rb") as csvfile:
 
 # Filter and re-format data for plotting
 independent_variable = "num_processes"
-dependent_variables = ["import", "setup", "build", "connect", "record", "run"]
+dependent_variables = ["import", "setup", "build", "connect", "record", "run", "get_data"]
 conditions = parameters.flatten()
 
 abscissae = []
@@ -53,13 +54,38 @@ for record in records:
 print abscissae
 pprint(ordinates)
 
-# Generate figure
+settings = {
+    'lines.linewidth': 0.5,
+    'axes.linewidth': 0.5,
+    'axes.labelsize': 'small',
+    'legend.fontsize': 'small',
+    'font.size': 8,
+    'savefig.dpi': 150,
+}
+plt.rcParams.update(settings)
+
+width, height = 6, 10
+fig = plt.figure(1, figsize=(width, height))
+gs = gridspec.GridSpec(1, 1)
+gs.update(bottom=0.6)  # leave space for annotations
+gs.update(top=1 - 0.8/height, hspace=0.1)
+ax = plt.subplot(gs[0, 0])
 for var in dependent_variables:
-    plt.plot(abscissae, ordinates[var], "o", label=var)
-plt.legend()
-plt.xlabel(independent_variable)
-plt.ylabel("Time (s)")
-plt.loglog()
-plt.xlim(xmin=min(abscissae)/2.0)
-plt.title(conditions["simulator"])
-plt.savefig(args.o)
+    zipped = zip(abscissae, ordinates[var])
+    zipped_sorted = sorted(zipped, key=lambda x: x[0])
+    x, y = map(list, zip(*zipped_sorted))
+    ax.plot(x, y, "o-", label=var)
+    ax.set_xlabel(independent_variable)
+    ax.set_xlim([x[0]/1.4, x[-1]*1.4])
+    ax.set_ylabel("Time (s)")
+    ax.set_xscale("log", basex=2)
+    ax.set_yscale("log", basex=2)
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
+          ncol=3, fancybox=True, shadow=True)
+title = args.parameter_file
+fig.text(0.5, 1 - 0.5/height, title,
+              ha="center", va="top", fontsize="large")
+annotations = parameters.pretty()
+plt.figtext(0.01, 0.01, annotations, fontsize=6, verticalalignment='bottom')
+fig.savefig(args.o)
+

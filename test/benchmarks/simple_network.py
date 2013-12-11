@@ -24,7 +24,7 @@ def main_pyNN(parameters):
     sim = import_module(parameters.simulator)
     timer.mark("import")
 
-    sim.setup()
+    sim.setup(threads=parameters.threads)
     timer.mark("setup")
 
     populations = {}
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     
     parameters = ParameterSet(args.parameter_file)
     
-    print parameters.pretty()
+    #print parameters.pretty()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if parameters.simulator == "pynest":
         main = main_pynest
