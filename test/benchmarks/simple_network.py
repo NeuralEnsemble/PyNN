@@ -54,9 +54,11 @@ def main_pyNN(parameters):
     sim.run(parameters.sim_time)
     timer.mark("run")
 
+    spike_counts = {}
     if parameters.recording:
         for pop_name in parameters.recording.names():
             block = populations[pop_name].get_data()  # perhaps include some summary statistics in the data returned?
+            spike_counts["spikes_%s" % pop_name] = populations[pop_name].mean_spike_count()
         timer.mark("get_data")
 
     mpi_rank = sim.rank()
@@ -65,6 +67,7 @@ def main_pyNN(parameters):
     
     data = dict(timer.marks)
     data.update(num_processes=num_processes)
+    data.update(spike_counts)
     return mpi_rank, data
 
 

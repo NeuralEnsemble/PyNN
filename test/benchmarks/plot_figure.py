@@ -17,6 +17,7 @@ optional arguments:
 import csv
 import argparse
 from pprint import pprint
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from collections import defaultdict
@@ -40,20 +41,32 @@ with open(args.data_store, "rb") as csvfile:
 independent_variable = "num_processes"
 dependent_variables = ["import", "setup", "build", "connect", "record", "run", "get_data"]
 conditions = parameters.flatten()
+results = dict((var, defaultdict(list)) for var in dependent_variables)
+stats = dict((var, {}) for var in dependent_variables)
 
-abscissae = []
-ordinates = defaultdict(list)
+def matches_conditions(record, conditions):
+    return all((record[condition] == value) for condition, value in conditions.items())
+
+# ... for each record that matches the conditions, add the timing data to the filtered results
 for record in records:
-    if all((record[condition] == value)
-           for condition, value in conditions.items()):
-        pprint(record)
-        abscissae.append(record[independent_variable])
+    if matches_conditions(record, conditions):
+        x = record[independent_variable]
         for var in dependent_variables:
-            ordinates[var].append(record[var])
+            results[var][x].append(record[var])
 
-print abscissae
-pprint(ordinates)
+# ... then calculate the statistics across repetitions
+for var in dependent_variables:
+    for x, values in results[var].items():
+        stats[var][x] = np.mean(values), np.std(values, ddof=1)
 
+
+# Plot the results
+
+def sort_by_first(*y):
+    zipped = zip(*y)
+    zipped_sorted = sorted(zipped, key=lambda x: x[0])
+    return map(list, zip(*zipped_sorted))
+    
 settings = {
     'lines.linewidth': 0.5,
     'axes.linewidth': 0.5,
@@ -70,11 +83,11 @@ gs = gridspec.GridSpec(1, 1)
 gs.update(bottom=0.6)  # leave space for annotations
 gs.update(top=1 - 0.8/height, hspace=0.1)
 ax = plt.subplot(gs[0, 0])
-for var in dependent_variables:
-    zipped = zip(abscissae, ordinates[var])
-    zipped_sorted = sorted(zipped, key=lambda x: x[0])
-    x, y = map(list, zip(*zipped_sorted))
-    ax.plot(x, y, "o-", label=var)
+for var in dependent_variables:   
+    x = stats[var].keys()
+    y, yerr = map(list, zip(*stats[var].values()))
+    x, y, yerr = sort_by_first(x, y, yerr)
+    ax.errorbar(x, y, yerr=yerr, fmt='o-', label=var)
     ax.set_xlabel(independent_variable)
     ax.set_xlim([x[0]/1.4, x[-1]*1.4])
     ax.set_ylabel("Time (s)")
