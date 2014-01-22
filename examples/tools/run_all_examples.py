@@ -2,7 +2,7 @@
 
 import subprocess, glob, os, sys
 
-default_simulators = ['PCSIM', 'NEST', 'NEURON', 'Brian']
+default_simulators = ['mock', 'nest', 'neuron', 'brian']
 simulator_names = sys.argv[1:]
 if len(simulator_names) > 0:
     for name in simulator_names:
@@ -22,17 +22,17 @@ for simulator in simulator_names:
         pass
 
 exclude = {
-    'PCSIM': ("brunel.py", "HH_cond_exp.py", "EIF_cond_alpha_isfa_ista.py", "VAbenchmarks2-csa.py", "nineml_neuron.py"),
-    'NEURON': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
-    'NEST': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
-    'Brian': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
+    'mock': ["nineml_neuron.py"],
+    'neuron': ["nineml_neuron.py"],
+    'nest': ["nineml_neuron.py"],
+    'brian': ["nineml_neuron.py", "HH_cond_exp2.py", "HH_cond_exp.py", "simpleRandomNetwork_csa.py", "simpleRandomNetwork.py", "simple_STDP2.py", "simple_STDP.py"],
 }
 
 extra_args = {
-    "VAbenchmarks.py": "CUBA",
-    "VAbenchmarks2.py": "CUBA",
-    "VAbenchmarks2-csa.py": "CUBA",
-    "VAbenchmarks3.py": "CUBA",
+    "VAbenchmarks.py": "COBA",
+    "VAbenchmarks2.py": "COBA",
+    "VAbenchmarks2-csa.py": "COBA",
+    "VAbenchmarks3.py": "COBA",
 }
 
 if not os.path.exists("Results"):
