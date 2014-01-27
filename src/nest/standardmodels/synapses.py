@@ -35,7 +35,7 @@ class SynapseDynamics(SynapseDynamics):
             
         synapse_defaults = nest.GetDefaults(base_model)
         for ignore in ('synapsemodel', 'num_connections', 'num_connectors',
-                       'type', 'property_object'):
+                       'type', 'property_object', 'node_type'):
             synapse_defaults.pop(ignore, None)
         if self.fast:
             synapse_defaults.update(self.fast.parameters)
