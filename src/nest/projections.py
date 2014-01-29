@@ -146,9 +146,10 @@ class Projection(common.Projection):
             connections = nest.GetConnections(source=numpy.unique(self._sources).tolist(),
                                               target=[postsynaptic_cell],
                                               synapse_model=self.nest_synapse_model)
-            source_mask = numpy.array([numpy.where(x[0]==self._sources)[0][0] for x in connections])
-            for name, value in connection_parameters.items():
-                nest.SetStatus(connections, name, value[source_mask])
+            if connections:
+                source_mask = self.pre.id_to_index([x[0] for x in connections])
+                for name, value in connection_parameters.items():
+                    nest.SetStatus(connections, name, value[source_mask])
 
     #def saveConnections(self, file, gather=True, compatible_output=True):
     #    """
