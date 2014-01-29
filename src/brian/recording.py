@@ -69,10 +69,6 @@ class Recorder(recording.Recorder):
         for device in self._devices.values():
             device.reinit()
 
-    @staticmethod
-    def find_units(variable):
-        return recording.UNITS_MAP.get(variable, "units unknown")
-
     def _get_spiketimes(self, id):
         i = id - self.population.first_id
         return self._devices['spikes'].spiketimes[i]/ms

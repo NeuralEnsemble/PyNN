@@ -8,6 +8,11 @@ Definition of NativeCellType class for NEST.
 import nest
 from pyNN.models import BaseCellType
 
+UNITS_MAP = {
+    'spikes': 'ms',
+    'V_m': 'mV',
+}
+
 def get_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
     variables = defaults.get('recordables', [])
@@ -46,6 +51,7 @@ def native_cell_type(model_name):
                  'receptor_types': receptor_types,
                  'injectable': ("V_m" in default_initial_values),
                  'recordable': recordable,
+                 'units': dict(((var, UNITS_MAP.get(var, 'unknown')) for var in recordable)),
                  'standard_receptor_type': (receptor_types == ('excitatory', 'inhibitory')),
                  'nest_name': {"on_grid": model_name, "off_grid": model_name},
                  'conductance_based': ("g" in (s[0] for s in recordable)),

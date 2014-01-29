@@ -2,6 +2,7 @@ import numpy
 from pyNN import recording
 from . import simulator
 
+
 class Recorder(recording.Recorder):
     _simulator = simulator
 
@@ -15,13 +16,6 @@ class Recorder(recording.Recorder):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
         n_samples = int(round(self._simulator.state.t/self._simulator.state.dt)) + 1
         return numpy.vstack((numpy.random.uniform(size=n_samples) for id in ids)).T
-
-    @staticmethod
-    def find_units(variable):
-        if variable in recording.UNITS_MAP:
-            return recording.UNITS_MAP[variable]
-        else:
-            raise Exception("units unknown")
 
     def _local_count(self, variable, filter_ids=None):
         N = {}

@@ -407,10 +407,6 @@ class Recorder(recording.Recorder):
         self._multimeter = Multimeter()
         self._spike_detector = SpikeDetector()
 
-    @staticmethod
-    def find_units(variable):
-        return recording.UNITS_MAP.get(variable, "dimensionless")
-
     def _get_spiketimes(self, id):
         return self._spike_detector.get_spiketimes([id])[id] # hugely inefficient - to be optimized later
 
