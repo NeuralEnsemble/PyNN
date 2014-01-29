@@ -123,14 +123,14 @@ def get_io(filename):
         os.makedirs(dir)
     extension = os.path.splitext(filename)[1]
     if extension in ('.txt', '.ras', '.v', '.gsyn'):
-        return neo.io.PyNNTextIO(filename=filename)
+        raise IOError("ASCII-based formats are not currently supported for output data. Try using the file extension '.pkl' or '.h5'")
     elif extension in ('.h5',):
         return neo.io.NeoHdf5IO(filename=filename)
     elif extension in ('.pkl', '.pickle'):
         return neo.io.PickleIO(filename=filename)
     elif extension == '.mat':
         return neo.io.NeoMatlabIO(filename=filename)
-    else: # function to be improved later
+    else:  # function to be improved later
         raise Exception("file extension %s not supported" % extension)
 
 
