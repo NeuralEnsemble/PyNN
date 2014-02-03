@@ -50,7 +50,7 @@ for simulator in simulator_names:
                 print cmd,
                 sys.stdout.flush()
                 logfile = open("Results/%s_%s.log" % (os.path.basename(script), simulator), 'w')
-                p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
+                p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=logfile, close_fds=True)
                 retval = p.wait()
                 print retval == 0 and " - ok" or " - fail"
     else:
