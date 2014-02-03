@@ -41,7 +41,8 @@ from pyNN.nest.populations import Population, PopulationView, Assembly
 from pyNN.nest.projections import Projection
 
 logger = logging.getLogger("PyNN")
-
+if logger.level == logging.UNSET:
+    logger.setLevel(logging.ERROR)
 
 # ==============================================================================
 #   Utility functions
