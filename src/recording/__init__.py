@@ -24,14 +24,6 @@ logger = logging.getLogger("PyNN")
 
 MPI_ROOT = 0
 
-UNITS_MAP = {
-    'spikes': 'ms',
-    'v': 'mV',
-    'gsyn_exc': 'uS',
-    'gsyn_inh': 'uS',
-    'w': 'nA',
-}
-
 
 def get_mpi_comm():
     try:
@@ -241,7 +233,7 @@ class Recorder(object):
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     channel_indices = numpy.array([self.population.id_to_index(id) for id in ids])
-                    units = self.find_units(variable)
+                    units = self.population.find_units(variable)
                     source_ids = numpy.fromiter(ids, dtype=int)
                     segment.analogsignalarrays.append(
                         neo.AnalogSignalArray(

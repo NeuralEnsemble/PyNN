@@ -35,8 +35,15 @@ def _new_property(obj_hierarchy, attr_name):
     return property(fset=set, fget=get)
 
 
+def guess_units(variable):
+    # works with NEURON 7.3, not with 7.1, 7.2 not tested
+    nrn_units = h.units(variable.split('.')[-1])
+    pq_units = nrn_units.replace("2", "**2").replace("3", "**3")
+    return pq_units
+
+
 class NativeCellType(BaseCellType):
-    
+
     def can_record(self, variable):
         # crude check, could be improved
         return bool(recordable_pattern.match(variable))
