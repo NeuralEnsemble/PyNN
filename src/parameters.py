@@ -112,6 +112,9 @@ class Sequence(object):
     def __init__(self, value):
         if isinstance(value, Sequence):
             self.value = value.value
+        elif isinstance(value, numpy.ndarray):
+            # dont overwrite dtype of int arrays
+            self.value = value
         else:
             self.value = numpy.array(value, float)
 

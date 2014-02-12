@@ -16,6 +16,7 @@ from pyNN.random import RandomDistribution
 from pyNN.space import Space
 from . import simulator
 from .standardmodels.synapses import StaticSynapse
+from .conversion import make_sli_compatible
 
 logger = logging.getLogger("PyNN")
 
@@ -137,6 +138,7 @@ class Projection(common.Projection):
                                               target=[int(postsynaptic_cell)],
                                               synapse_model=self.nest_synapse_model)
             for name, value in connection_parameters.items():
+                value = make_sli_compatible(value)
                 nest.SetStatus(connections, name, value)
 
     def _set_attributes(self, parameter_space):
