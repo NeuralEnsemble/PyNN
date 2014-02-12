@@ -137,9 +137,15 @@ class Projection(common.Projection):
             connections = nest.GetConnections(source=presynaptic_cells.astype(int).tolist(),
                                               target=[int(postsynaptic_cell)],
                                               synapse_model=self.nest_synapse_model)
+            # We need to distinguish between common synapse parameters from local ones
+            # We just get the parameters of the first connection (is there an easier way?)
+            local_parameters = nest.GetStatus(connections[:1])[0].keys()
             for name, value in connection_parameters.items():
                 value = make_sli_compatible(value)
-                nest.SetStatus(connections, name, value)
+                if name in local_parameters:
+                    nest.SetStatus(connections, name, value)
+                else:
+                    nest.SetDefaults(self.nest_synapse_model, name, value)
 
     def _set_attributes(self, parameter_space):
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
