@@ -8,9 +8,25 @@ from pyNN.parameters import Sequence
 
 def make_sli_compatible_single(value):
     if isinstance(value, Sequence):
-        return value.value
+        return_value = value.value
+    elif isinstance(value, numpy.ndarray):
+        if value.dtype == object and isinstance(value[0], Sequence):
+            # check if the shape of the array is something other than (1,)
+            # to my knowledge nest cannot handle that
+            assert value.shape == (1,), "NEST expects 1 dimensional arrays"
+            return_value = value[0].value
+        elif value.shape == (1,):
+            # for nest.SetDefaults, there is a difference between an (1,)-array
+            # and a scalar value
+            return_value = value[0]
     else:
-        return value
+        return_value = value
+
+    # nest does not understand numpy boolean values
+    if isinstance(return_value, numpy.bool_):
+        return_value = bool(return_value)
+
+    return return_value
 
 
 def make_sli_compatible(container):

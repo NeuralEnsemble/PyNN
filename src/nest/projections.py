@@ -46,6 +46,10 @@ class Projection(common.Projection):
         self.synapse_type._set_tau_minus(self.post.local_cells)
         self._sources = []
         self._connections = None
+        # This is used to keep track of common synapse properties (to my
+        # knowledge they only become apparent once connections are created
+        # within nest --obreitwi, 13-02-14)
+        self._nest_common_synapse_properties = {}
 
         # Create connections
         connector.connect(self)
@@ -145,6 +149,17 @@ class Projection(common.Projection):
                 if name in local_parameters:
                     nest.SetStatus(connections, name, value)
                 else:
+                    if name in self._nest_common_synapse_properties:
+                        unequal = self._nest_common_synapse_properties[name] != value
+                        # handle both scalars and numpy ndarray
+                        if isinstance(unequal, numpy.ndarray):
+                            raise_error = unequal.any()
+                        else:
+                            raise_error = unequal
+                        if raise_error:
+                            raise ValueError("{} cannot be heterogeneous "
+                                    "within a single Projection.".format(name))
+                    self._nest_common_synapse_properties[name] = value
                     nest.SetDefaults(self.nest_synapse_model, name, value)
 
     def _set_attributes(self, parameter_space):
