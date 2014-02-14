@@ -158,7 +158,10 @@ class Projection(common.Projection):
                             raise_error = unequal
                         if raise_error:
                             raise ValueError("{} cannot be heterogeneous "
-                                    "within a single Projection.".format(name))
+                                    "within a single Projection. Warning: "
+                                    "Projection was only partially initialized."
+                                    " Please call sim.nest.reset() to reset "
+                                    "your network and start over!".format(name))
                     self._nest_common_synapse_properties[name] = value
                     nest.SetDefaults(self.nest_synapse_model, name, value)
 
