@@ -19,6 +19,8 @@ def make_sli_compatible_single(value):
             # for nest.SetDefaults, there is a difference between an (1,)-array
             # and a scalar value
             return_value = value[0]
+        else:
+            return_value = value
     else:
         return_value = value
 
