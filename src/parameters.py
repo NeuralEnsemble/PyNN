@@ -10,7 +10,7 @@ import collections
 from pyNN.core import is_listlike
 from pyNN import errors
 from pyNN.random import RandomDistribution
-from lazyarray import larray, partial_shape
+from lazyarray import larray, full_address
 
 
 class LazyArray(larray):
@@ -389,3 +389,24 @@ def simplify(value):
     #    return arr
     #else:
     #    return arr[0]
+
+def partial_shape(addr, full_shape):
+    """
+    Calculate the size of the sub-array represented by `addr`
+
+    Same function as in lazyarray but without the reduction part.
+    """
+    def size(x, max):
+        if isinstance(x, (int, long)):
+            return 1
+        elif isinstance(x, slice):
+            return 1 + ((x.stop or max) - (x.start or 0) - 1) // (x.step or 1)
+        elif isinstance(x, collections.Sized):
+            if hasattr(x, 'dtype') and x.dtype == bool:
+                return x.sum()
+            else:
+                return len(x)
+    addr = full_address(addr, full_shape)
+    shape = [size(x, max) for (x, max) in zip(addr, full_shape)]
+    return shape
+
