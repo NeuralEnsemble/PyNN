@@ -186,7 +186,7 @@ class Projection(common.Projection):
     def _set_common_synapse_property(self, name, value):
         """
             Sets the common synapse property while making sure its value stays
-            unique (i.e.) it can only be set once.
+            unique (i.e. it can only be set once).
         """
         if name in self._common_synapse_properties:
             unequal = self._common_synapse_properties[name] != value
