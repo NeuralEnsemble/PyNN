@@ -6,8 +6,12 @@ Definition of NativeSynapseType class for NEST
 """
 
 import nest
+import numpy
+
 from pyNN.models import BaseModelType, BaseSynapseType
+from pyNN.parameters import Sequence
 from .simulator import state
+from .conversion import make_pynn_compatible, make_sli_compatible
 
 DEFAULT_TAU_MINUS = 20.0
 
@@ -33,6 +37,9 @@ class NESTSynapseMixin(object):
             if value.is_homogeneous:
                 value.shape = (1,)
                 synapse_defaults[name] = value.evaluate(simplify=True)
+
+        synapse_defaults = make_sli_compatible(synapse_defaults)
+
         synapse_defaults.pop("tau_minus", None)
         label = "%s_%s" % (self.nest_name, suffix)
         nest.CopyModel(self.nest_name, label, synapse_defaults)
@@ -67,6 +74,9 @@ def native_synapse_type(model_name):
     """
     assert isinstance(model_name, str)
     default_parameters = get_synapse_defaults(model_name)
+
+    default_parameters = make_pynn_compatible(default_parameters)
+
     return type(model_name,
                 (NativeSynapseType,),
                 {

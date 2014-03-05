@@ -7,6 +7,7 @@ Definition of NativeCellType class for NEST.
 
 import nest
 from pyNN.models import BaseCellType
+from . import conversion
 
 UNITS_MAP = {
     'spikes': 'ms',
@@ -27,7 +28,7 @@ def get_defaults(model_name):
         if name in variables:
             default_initial_values[name] = value
         elif name not in ignore:
-            default_params[name] = value
+            default_params[name] = conversion.make_pynn_compatible(value)
     return default_params, default_initial_values
 
 def get_receptor_types(model_name):

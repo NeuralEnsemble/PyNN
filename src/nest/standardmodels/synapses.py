@@ -11,6 +11,8 @@ from pyNN.standardmodels import synapses, build_translations
 from pyNN.nest.synapses import get_synapse_defaults, NESTSynapseMixin
 import logging
 
+from ..conversion import make_sli_compatible
+
 logger = logging.getLogger("PyNN")
 
 
@@ -65,6 +67,9 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
         synapse_defaults.pop("w_min_always_zero_in_NEST")
         # Tau_minus is a parameter of the post-synaptic cell, not of the connection
         synapse_defaults.pop("tau_minus")
+
+        synapse_defaults = make_sli_compatible(synapse_defaults)
+
         label = "%s_%s" % (base_model, suffix)
         nest.CopyModel(base_model, label, synapse_defaults)
         return label

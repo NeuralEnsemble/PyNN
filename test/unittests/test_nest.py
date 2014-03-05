@@ -80,6 +80,8 @@ class TestProjection(unittest.TestCase):
         self.syn_a2a = sim.StaticSynapse(weight=0.456, delay=0.4)
         self.random_connect = sim.FixedNumberPostConnector(n=2)
         self.all2all = sim.AllToAllConnector()
+        self.native_synapse_type = sim.native_synapse_type(
+                "stdp_facetshw_synapse_hom")
 
     def test_create_simple(self):
         prj = sim.Projection(self.p1, self.p2, self.all2all, synapse_type=self.syn_a2a)
@@ -87,6 +89,22 @@ class TestProjection(unittest.TestCase):
     def test_create_with_synapse_dynamics(self):
         prj = sim.Projection(self.p1, self.p2, self.all2all,
                              synapse_type=sim.TsodyksMarkramSynapse())
+
+    def test_create_with_native_synapse(self):
+        """
+        Native synapse with array-like parameters and CommonProperties.
+        """
+        prj = sim.Projection(self.p1, self.p2, self.all2all,
+                     synapse_type=self.native_synapse_type())
+
+    def test_create_with_homogeneous_common_properties(self):
+        with self.assertRaises(ValueError):
+            # create synapse type with heterogeneous common parameters
+            fromlist = sim.FromListConnector(conn_list=[
+                (0, 0, 10., 100.), (1, 1, 10., 200.)],
+                column_names=["weight", "Wmax"])
+            prj = sim.Projection(self.p1, self.p2, fromlist,
+                     synapse_type=self.native_synapse_type())
 
 
 if __name__ == '__main__':

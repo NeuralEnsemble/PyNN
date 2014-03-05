@@ -16,6 +16,7 @@ from pyNN.random import RandomDistribution
 from pyNN.space import Space
 from . import simulator
 from .standardmodels.synapses import StaticSynapse
+from .conversion import make_sli_compatible
 
 logger = logging.getLogger("PyNN")
 
@@ -45,6 +46,11 @@ class Projection(common.Projection):
         self.synapse_type._set_tau_minus(self.post.local_cells)
         self._sources = []
         self._connections = None
+        # This is used to keep track of common synapse properties (to my
+        # knowledge they only become apparent once connections are created
+        # within nest --obreitwi, 13-02-14)
+        self._common_synapse_properties = {}
+        self._common_synapse_property_names = None
 
         # Create connections
         connector.connect(self)
@@ -131,13 +137,35 @@ class Projection(common.Projection):
         connection_parameters.pop('tau_minus', None)  # TODO: set tau_minus on the post-synaptic cells
         connection_parameters.pop('dendritic_delay_fraction', None)
         connection_parameters.pop('w_min_always_zero_in_NEST', None)
+        # We need to distinguish between common synapse parameters from local ones
+        # We just get the parameters of the first connection (is there an easier way?)
+        if self._common_synapse_property_names is None:
+            self._identify_common_synapse_properties(
+                    int(self.pre[presynaptic_indices[0]]),
+                    int(postsynaptic_cell))
         if connection_parameters:
             #logger.debug(connection_parameters)
             connections = nest.GetConnections(source=presynaptic_cells.astype(int).tolist(),
                                               target=[int(postsynaptic_cell)],
                                               synapse_model=self.nest_synapse_model)
             for name, value in connection_parameters.items():
-                nest.SetStatus(connections, name, value)
+                value = make_sli_compatible(value)
+                if name not in self._common_synapse_property_names:
+                    nest.SetStatus(connections, name, value)
+                else:
+                    self._set_common_synapse_property(name, value)
+
+    def _identify_common_synapse_properties(self, sample_pre_idx, sample_post_idx):
+        """
+            Use the connection between the sample indices to distinguish
+            between local and common synapse properties.
+        """
+        connections = nest.GetConnections(source=[int(sample_pre_idx)],
+                                          target=[int(sample_post_idx)],
+                                          synapse_model=self.nest_synapse_model)
+        local_parameters = nest.GetStatus(connections)[0].keys()
+        all_parameters = nest.GetDefaults(self.nest_synapse_model).keys()
+        self._common_synapse_property_names = [name for name in all_parameters if name not in local_parameters]
 
     def _set_attributes(self, parameter_space):
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
@@ -149,7 +177,32 @@ class Projection(common.Projection):
             if connections:
                 source_mask = self.pre.id_to_index([x[0] for x in connections])
                 for name, value in connection_parameters.items():
-                    nest.SetStatus(connections, name, value[source_mask])
+                    value = make_sli_compatible(value)
+                    if name not in self._common_synapse_property_names:
+                        nest.SetStatus(connections, name, value[source_mask])
+                    else:
+                        self._set_common_synapse_property(name, value)
+
+    def _set_common_synapse_property(self, name, value):
+        """
+            Sets the common synapse property while making sure its value stays
+            unique (i.e. it can only be set once).
+        """
+        if name in self._common_synapse_properties:
+            unequal = self._common_synapse_properties[name] != value
+            # handle both scalars and numpy ndarray
+            if isinstance(unequal, numpy.ndarray):
+                raise_error = unequal.any()
+            else:
+                raise_error = unequal
+            if raise_error:
+                raise ValueError("{} cannot be heterogeneous "
+                        "within a single Projection. Warning: "
+                        "Projection was only partially initialized."
+                        " Please call sim.nest.reset() to reset "
+                        "your network and start over!".format(name))
+        self._common_synapse_properties[name] = value
+        nest.SetDefaults(self.nest_synapse_model, name, value)
 
     #def saveConnections(self, file, gather=True, compatible_output=True):
     #    """
