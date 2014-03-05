@@ -67,7 +67,7 @@ class RecordingDevice(object):
                     self._initial_values[variable] = {}
                 initial_value = self._initial_values[variable].get(id,
                                                                    id.get_initial_value(variable))
-                data[id] = numpy.concatenate(([initial_value], data[id]))
+                data[id] = numpy.concatenate((numpy.hstack([initial_value]), data[id]))
                 # if `get_data()` is called in the middle of a simulation, the
                 # value at the last time point will become the initial value for
                 # the next time `get_data()` is called
