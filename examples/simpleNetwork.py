@@ -10,8 +10,7 @@ import numpy
 from pyNN.utility import get_script_args, normalized_filename
 
 simulator_name = get_script_args(1)[0]
-#exec("from pyNN.%s import *" % simulator_name)
-from pyNN.nest import *
+exec("from pyNN.%s import *" % simulator_name)
 
 tstop = 1000.0
 rate = 100.0

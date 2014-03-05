@@ -24,7 +24,7 @@ plt.ion() #.rcParams['interactive'] = True
 example = sys.argv[1]
 
 blocks = {}
-for simulator in 'mock', 'nest', 'neuron', 'brian', 'moose', 'nemo':
+for simulator in 'MOCK', 'NEST', 'NEURON', 'Brian', 'MOOSE', 'Nemo':
     pattern = "Results/%s_*%s.*" % (example, simulator.lower())
     datafiles = glob.glob(pattern)
     if datafiles:

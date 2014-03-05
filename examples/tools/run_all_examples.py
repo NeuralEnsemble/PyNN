@@ -2,7 +2,7 @@
 
 import subprocess, glob, os, sys
 
-default_simulators = ['mock', 'nest', 'neuron', 'brian']
+default_simulators = ['MOCK', 'NEST', 'NEURON', 'Brian']
 simulator_names = sys.argv[1:]
 if len(simulator_names) > 0:
     for name in simulator_names:
@@ -22,17 +22,17 @@ for simulator in simulator_names:
         pass
 
 exclude = {
-    'mock': ["nineml_neuron.py"],
-    'neuron': ["nineml_neuron.py"],
-    'nest': ["nineml_neuron.py"],
-    'brian': ["nineml_neuron.py", "HH_cond_exp2.py", "HH_cond_exp.py", "simpleRandomNetwork_csa.py", "simpleRandomNetwork.py", "simple_STDP2.py", "simple_STDP.py"],
+    'MOCK': ["nineml_neuron.py"],
+    'NEURON': ["nineml_neuron.py"],
+    'NEST': ["nineml_neuron.py"],
+    'Brian': ["nineml_neuron.py", "HH_cond_exp2.py", "HH_cond_exp.py", "simpleRandomNetwork_csa.py", "simpleRandomNetwork.py", "simple_STDP2.py", "simple_STDP.py"],
 }
 
 extra_args = {
-    "VAbenchmarks.py": "COBA",
-    "VAbenchmarks2.py": "COBA",
-    "VAbenchmarks2-csa.py": "COBA",
-    "VAbenchmarks3.py": "COBA",
+    "VAbenchmarks.py": "CUBA",
+    "VAbenchmarks2.py": "CUBA",
+    "VAbenchmarks2-csa.py": "CUBA",
+    "VAbenchmarks3.py": "CUBA",
 }
 
 if not os.path.exists("Results"):
@@ -50,7 +50,7 @@ for simulator in simulator_names:
                 print cmd,
                 sys.stdout.flush()
                 logfile = open("Results/%s_%s.log" % (os.path.basename(script), simulator), 'w')
-                p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=logfile, close_fds=True)
+                p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
                 retval = p.wait()
                 print retval == 0 and " - ok" or " - fail"
     else:
