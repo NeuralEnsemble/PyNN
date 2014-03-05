@@ -15,10 +15,8 @@ May 2006
 
 from pyNN.utility import get_script_args, normalized_filename
 
-# simulator_name = get_script_args(1)[0]  
-# exec("from pyNN.%s import *" % simulator_name)
-simulator_name='nest'
-from pyNN.nest import *
+simulator_name = get_script_args(1)[0]  
+exec("from pyNN.%s import *" % simulator_name)
 
 setup(timestep=0.1, min_delay=0.1, max_delay=4.0)
 
