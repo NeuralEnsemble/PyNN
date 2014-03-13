@@ -87,7 +87,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
         max_index = max(max_index, spiketrain.annotations['source_index'])
     ax.set_ylabel("Neuron index")
     plt.xlim(0, spiketrain.t_stop/ms)
-    plt.ylim(-0.5, max_index - 0.5)
+    plt.ylim(-0.5, max_index + 0.5)
     if label:
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
