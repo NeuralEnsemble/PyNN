@@ -51,7 +51,7 @@ def plot_signal(ax, signal, index=None, label='', **options):
         signal = signal[:, index]
     ax.plot(signal.times.rescale(ms), signal, label=label, **options)
     ax.set_ylabel("%s (%s)" % (signal.name, signal.units._dimensionality.string))
-    plt.legend()
+    ax.legend()
 
 
 def plot_signals(ax, signal_array, label_prefix='', **options):
@@ -71,7 +71,7 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
         else:
             label = "Neuron %d" % channel
         ax.plot(signal.times.rescale(ms), signal, label=label, **options)
-    plt.legend()
+    ax.legend()
 
 
 def plot_spiketrains(ax, spiketrains, label='', **options):
@@ -86,8 +86,8 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
                  'k.')
         max_index = max(max_index, spiketrain.annotations['source_index'])
     ax.set_ylabel("Neuron index")
-    plt.xlim(0, spiketrain.t_stop/ms)
-    plt.ylim(-0.5, max_index + 0.5)
+    ax.set_xlim(0, spiketrain.t_stop/ms)
+    ax.set_ylim(-0.5, max_index + 0.5)
     if label:
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
