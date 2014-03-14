@@ -81,7 +81,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     handle_options(ax, options)
     max_index = 0
     for spiketrain in spiketrains:
-        plt.plot(spiketrain,
+        ax.plot(spiketrain,
                  np.ones_like(spiketrain) * spiketrain.annotations['source_index'],
                  'k.')
         max_index = max(max_index, spiketrain.annotations['source_index'])
