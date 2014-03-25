@@ -10,7 +10,7 @@ import collections
 from pyNN.core import is_listlike
 from pyNN import errors
 from pyNN.random import RandomDistribution
-from lazyarray import larray, full_address
+from lazyarray import larray, full_address, requires_shape
 
 
 class LazyArray(larray):
@@ -91,6 +91,47 @@ class LazyArray(larray):
         else:
             for j in column_indices:
                 yield self._partially_evaluate((slice(None), j), simplify=True)
+
+    @requires_shape
+    def check_bounds(self, addr):
+        """
+        Check whether the given address is within the array bounds.
+
+        Also handles boolean arrays correctly.
+        """
+        def check_axis(x, size):
+            if isinstance(x, (int, long)):
+                lower = upper = x
+            elif isinstance(x, slice):
+                lower = x.start or 0
+                upper = x.stop or size-1
+            elif isinstance(x, collections.Sized):
+                if len(x) == 0:
+                    raise ValueError("Empty address component (address was %s)" % str(addr))
+                if hasattr(x, "min"):
+                    lower = x.min()
+                else:
+                    lower = min(x)
+                if hasattr(x, "max"):
+                    upper = x.max()
+                else:
+                    upper = max(x)
+            else:
+                raise TypeError("Invalid array address: %s" % addr)
+            if isinstance(x, numpy.ndarray) and x.dtype == numpy.bool_:
+                if x.size > size:
+                    raise IndexError("Index out of bounds")
+            elif (lower < -size) or (upper >= size):
+                raise IndexError("Index out of bounds")
+        full_addr = self._full_address(addr)
+        for i, size in zip(full_addr, self._shape):
+            check_axis(i, size)
+
+    def _partial_shape(self, addr):
+        """
+        Calculate the size of the sub-array represented by `addr`
+        """
+        return partial_shape(addr, self._shape)
 
 
 class Sequence(object):
