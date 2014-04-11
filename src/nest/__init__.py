@@ -13,6 +13,7 @@ try:
 except ImportError:
     pass
 import nest
+NEST_SYNAPSE_TYPES = nest.Models(mtype='synapses')
 from . import simulator
 from pyNN import common, recording, errors, space, __doc__
 
