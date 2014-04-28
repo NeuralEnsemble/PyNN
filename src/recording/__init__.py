@@ -180,13 +180,13 @@ class Recorder(object):
         self._simulator.state.recorders.add(self)
         self.clear_flag = False
         self._recording_start_time = self._simulator.state.t * pq.ms
+        
 
     def record(self, variables, ids, sampling_interval=None):
         """
         Add the cells in `ids` to the sets of recorded cells for the given variables.
         """
         logger.debug('Recorder.record(<%d cells>)' % len(ids))
-        print len(self.recorded)
         if sampling_interval != self.sampling_interval and len(self.recorded) > 0:
             raise Exception("All neurons in a population must be recorded with the same sampling interval.")
             
