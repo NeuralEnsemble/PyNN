@@ -177,10 +177,11 @@ class Projection(common.Projection):
             if connections:
                 source_mask = self.pre.id_to_index([x[0] for x in connections])
                 for name, value in connection_parameters.items():
-                    value = make_sli_compatible(value)
                     if name not in self._common_synapse_property_names:
+                        value = make_sli_compatible(value, preserve_scalar_arrays=True)
                         nest.SetStatus(connections, name, value[source_mask])
                     else:
+                        value = make_sli_compatible(value)
                         self._set_common_synapse_property(name, value)
 
     def _set_common_synapse_property(self, name, value):

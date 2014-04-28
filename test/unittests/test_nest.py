@@ -76,6 +76,8 @@ class TestProjection(unittest.TestCase):
         self.p1 = sim.Population(7, sim.IF_cond_exp())
         self.p2 = sim.Population(4, sim.IF_cond_exp())
         self.p3 = sim.Population(5, sim.IF_curr_alpha())
+        self.p4 = sim.Population(1, sim.IF_cond_exp())
+        self.p5 = sim.Population(1, sim.IF_cond_exp())
         self.syn_rnd = sim.StaticSynapse(weight=0.123, delay=0.5)
         self.syn_a2a = sim.StaticSynapse(weight=0.456, delay=0.4)
         self.random_connect = sim.FixedNumberPostConnector(n=2)
@@ -105,6 +107,15 @@ class TestProjection(unittest.TestCase):
                 column_names=["weight", "Wmax"])
             prj = sim.Projection(self.p1, self.p2, fromlist,
                      synapse_type=self.native_synapse_type())
+
+    def test_single_connection(self):
+        prj = sim.Projection(self.p4, self.p5, sim.AllToAllConnector(),
+                synapse_type=sim.StaticSynapse(weight=0.123))
+
+        weight = 0.456
+        prj.set(weight=weight)
+        self.assertEqual(prj.get("weight", format="array")[0], weight)
+
 
 
 if __name__ == '__main__':
