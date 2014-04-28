@@ -399,7 +399,8 @@ class Recorder(recording.Recorder):
             self._multimeter.add_ids(new_ids)
 
     def _get_sampling_interval(self):
-        return nest.GetStatus(self._multimeter.device, "interval")
+        return nest.GetStatus(self._multimeter.device, "interval")[0]
+        
     def _set_sampling_interval(self, value):
         if value is not None:
             nest.SetStatus(self._multimeter.device, {"interval": value})
