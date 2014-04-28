@@ -108,7 +108,9 @@ cell_params = {'tau_m'      : tauMem,
 extra = {}
 
 rank = setup(timestep=dt, max_delay=delay, **extra)
+print "rank =", rank
 np = num_processes()
+print "np =", np
 import socket
 host_name = socket.gethostname()
 print "Host #%d is on %s" % (rank+1, host_name)

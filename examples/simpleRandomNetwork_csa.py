@@ -44,9 +44,9 @@ print "[%d] output_population cells: %s" % (node, output_population.local_cells)
 
 print "[%d] Connecting populations" % node
 timer.start()
-connector = CSAConnector(csa.random(0.5), weights=0.1)
-#connector = CSAConnector(csa.cset(csa.random(0.5), 0.123, 1.6))
-projection = Projection(input_population, output_population, connector, StaticSynapse())
+connector = CSAConnector(csa.random(0.5))
+syn = StaticSynapse(weight=0.1)
+projection = Projection(input_population, output_population, connector, syn)
 print connector.describe(), timer.elapsedTime()
 
 file_stem = "Results/simpleRandomNetwork_csa_np%d_%s" % (num_processes(), simulator_name)
