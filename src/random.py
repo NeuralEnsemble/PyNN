@@ -2,9 +2,6 @@
 Provides wrappers for several random number generators (RNGs), giving them all a
 common interface so that they can be used interchangeably in PyNN.
 
-Note however that we have so far made no effort to implement parameter
-translation, and parameter names/order may be different for the different RNGs.
-
 Classes:
     NumpyRNG           - uses the numpy.random.RandomState RNG
     GSLRNG             - uses the RNGs from the Gnu Scientific Library
@@ -13,7 +10,7 @@ Classes:
     RandomDistribution - produces random numbers from a specific distribution
 
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2014 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -63,7 +60,7 @@ class AbstractRNG(object):
     def __repr__(self):
         return "%s(seed=%r)" % (self.__class__.__name__, self.seed)
 
-    def next(self, n=None, distribution='uniform', parameters=[], mask_local=None):
+    def next(self, n=None, distribution='uniform', parameters={}, mask_local=None):
         """Return `n` random numbers from the specified distribution.
 
         If:
@@ -72,7 +69,6 @@ class AbstractRNG(object):
             * `n` < 0, raise an Exception,
             * `n` is 0, return an empty array.
             """
-        # arguably, rng.next() should return a float, rng.next(1) an array of length 1
         raise NotImplementedError
 
 
@@ -83,13 +79,13 @@ class WrappedRNG(AbstractRNG):
         self.parallel_safe = parallel_safe
         self.mpi_rank, self.num_processes = get_mpi_config()
         if self.seed is not None and not parallel_safe:
-            self.seed += self.mpi_rank # ensure different nodes get different sequences
+            self.seed += self.mpi_rank  # ensure different nodes get different sequences
             if self.mpi_rank != 0:
                 logger.warning("Changing the seed to %s on node %d" % (self.seed, self.mpi_rank))
 
-    def next(self, n=None, distribution='uniform', parameters=[], mask_local=None):
+    def next(self, n=None, distribution=None, parameters=None, mask_local=None):
         if n == 0:
-            rarr = numpy.random.rand(0) # We return an empty array
+            rarr = numpy.random.rand(0)  # We return an empty array
         elif n > 0:
             if self.num_processes > 1 and not self.parallel_safe:
                 # n is the number for the whole model, so if we do not care about
@@ -104,7 +100,7 @@ class WrappedRNG(AbstractRNG):
         elif n is None:
             rarr = self._next(distribution, 1, parameters)
         else:
-            raise ValueError, "The sample number must be positive"
+            raise ValueError("The sample number must be positive")
         if not isinstance(rarr, numpy.ndarray):
             rarr = numpy.array(rarr)
         if self.parallel_safe and self.num_processes > 1:
@@ -131,6 +127,20 @@ class WrappedRNG(AbstractRNG):
 
 class NumpyRNG(WrappedRNG):
     """Wrapper for the :class:`numpy.random.RandomState` class (Mersenne Twister PRNG)."""
+    translations = {
+        'binomial':       ('binomial',     {'n': 'n', 'p': 'p'}),
+        'gamma':          ('gamma',        {'k': 'shape', 'theta': 'scale'}),
+        'exponential':    ('exponential',  {'beta': 'scale'}),
+        'lognormal':      ('lognormal',    {'mu': 'mean', 'sigma': 'sigma'}),
+        'normal':         ('normal',       {'mu': 'loc', 'sigma': 'scale'}),
+        'normal_clipped': ('normal_clipped', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
+        'normal_clipped_to_boundary':
+                          ('normal_clipped_to_boundary', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
+        'poisson':        ('poisson',      {'lambda': 'lam'}),
+        'uniform':        ('uniform',      {'low': 'low', 'high': 'high'}),
+        'uniform_int':    ('randint',      {'low': 'low', 'high': 'high'}),
+        'vonmises':       ('vonmises',     {'mu': 'mu', 'kappa': 'kappa'}),
+    }
 
     def __init__(self, seed=None, parallel_safe=True):
         WrappedRNG.__init__(self, seed, parallel_safe)
@@ -141,22 +151,65 @@ class NumpyRNG(WrappedRNG):
             self.rng.seed()
 
     def _next(self, distribution, n, parameters):
-        return getattr(self.rng, distribution)(size=n, *parameters)
+        # TODO: allow non-standardized distributions to pass through without translation
+        distribution_np, parameter_map = self.translations[distribution]
+        if parameters.keys() != parameter_map.keys():
+            # all parameters must be provided. We do not provide default values (this can be discussed).
+            errmsg = "Incorrect parameterization of random distribution. Expected %s, got %s."
+            raise KeyError(errmsg % (parameter_map.keys(), parameters.keys()))
+        parameters_np = dict((parameter_map[k], v) for k, v in parameters.items())
+        if hasattr(self, distribution_np):
+            f_distr = getattr(self, distribution_np)
+        else:
+            f_distr = getattr(self.rng, distribution_np)
+        return f_distr(size=n, **parameters_np)
 
     def __deepcopy__(self, memo):
         obj = NumpyRNG.__new__(NumpyRNG)
         WrappedRNG.__init__(obj, seed=deepcopy(self.seed, memo),
-                             parallel_safe=deepcopy(self.parallel_safe, memo))
+                            parallel_safe=deepcopy(self.parallel_safe, memo))
         obj.rng = deepcopy(self.rng)
         return obj
+
+    def normal_clipped(self, mu=0.0, sigma=1.0, low=-numpy.inf, high=numpy.inf, size=None):
+        """ """
+        # not sure how well this works with parallel_safe, mask_local
+        res = self.rng.normal(loc=mu, scale=sigma, size=size)
+        if size is None:
+            while res < low or res > high:
+                res = self.rng.normal(loc=mu, scale=sigma, size=size)
+        else:
+            idx = numpy.where((res > high) | (res < low))[0]
+            while idx.size > 0:
+                redrawn = self.rng.normal(loc=mu, scale=sigma, size=idx.size)
+                res[idx] = redrawn
+                idx = idx[numpy.where((redrawn > high) | (redrawn < low))[0]]
+        return res
+
+    def normal_clipped_to_boundary(self, mu=0.0, sigma=1.0, low=-numpy.inf, high=numpy.inf, size=None):
+        # Not recommended, used `normal_clipped` instead.
+        # Provided because some models in the literature use this.
+        res = self.rng.normal(loc=mu, scale=sigma, size=size)
+        return numpy.maximum(numpy.minimum(res, high), low)
 
 
 class GSLRNG(WrappedRNG):
     """Wrapper for the GSL random number generators."""
+    translations = {
+        'binomial':       ('binomial',       {'n': 'n', 'p': 'p'}),
+        'gamma':          ('gamma',          {'k': 'k', 'theta': 'theta'}),
+        'exponential':    ('exponential',    {'beta': 'mu'}),
+        'lognormal':      ('lognormal',      {'mu': 'zeta', 'sigma': 'sigma'}),
+        'normal':         ('normal',         {'mu': 'mu', 'sigma': 'sigma'}),
+        'normal_clipped': ('normal_clipped', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
+        'poisson':        ('poisson',        {'lambda': 'mu'}),
+        'uniform':        ('flat',           {'low': 'a', 'high': 'b'}),
+        'uniform_int':    ('uniform_int',    {'low': 'low', 'high': 'high'}),
+    }
 
     def __init__(self, seed=None, type='mt19937', parallel_safe=True):
         if not have_gsl:
-            raise ImportError, "GSLRNG: Cannot import pygsl"
+            raise ImportError("GSLRNG: Cannot import pygsl")
         WrappedRNG.__init__(self, seed, parallel_safe)
         self.rng = getattr(pygsl.rng, type)()
         if self.seed is not None:
@@ -170,12 +223,45 @@ class GSLRNG(WrappedRNG):
         return getattr(self.rng, name)
 
     def _next(self, distribution, n, parameters):
-        p = parameters + [n]
-        values = getattr(self.rng, distribution)(*p)
+        distribution_gsl, parameter_map = self.translations[distribution]
+        if parameters.keys() != parameter_map.keys():
+            # all parameters must be provided. We do not provide default values (this can be discussed).
+            errmsg = "Incorrect parameterization of random distribution. Expected %s, got %s."
+            raise KeyError(errmsg % (parameter_map.keys(), parameters.keys()))
+        parameters_gsl = dict((parameter_map[k], v) for k, v in parameters.items())
+        if hasattr(self, distribution_gsl):
+            f_distr = getattr(self, distribution_gsl)
+        else:
+            f_distr = getattr(self.rng, distribution_gsl)
+        values = f_distr(size=n, **parameters_gsl)
         if n == 1:
             values = [values]  # to be consistent with NumpyRNG
         return values
 
+    def uniform_int(self, low, high, size=None):
+        return low + self.rng.uniform_int(high-low, size)
+
+    def gamma(self, k, theta, size=None):
+        """ """
+        return self.rng.gamma(k, 1/theta, size)
+
+    def normal(self, mu=0.0, sigma=1.0, size=None):
+        """ """
+        return mu + self.rng.gaussian(sigma, size)
+
+    def normal_clipped(self, mu=0.0, sigma=1.0, low=-numpy.inf, high=numpy.inf, size=None):
+        """ """
+        res = self.normal(mu, sigma, size)
+        if size is None:
+            while res < low or res > high:
+                res = self.normal(mu, sigma, size)
+        else:
+            idx = numpy.where((res > high) | (res < low))[0]
+            while idx.size > 0:
+                redrawn = self.normal(mu, sigma, size)
+                res[idx] = redrawn
+                idx = idx[numpy.where((redrawn > high) | (redrawn < low))[0]]
+        return res
 
 # should add a wrapper for the built-in Python random module.
 
@@ -198,46 +284,28 @@ class RandomDistribution(VectorizedIterable):
 
     Arguments:
         `rng`:
-            if present, should be a :class:`NumpyRNG` or :class:`GSLRNG` object.
+            if present, should be a :class:`NumpyRNG`, :class:`GSLRNG` or
+            :class:`NativeRNG` object.
         `distribution`:
-            the name of a method supported by the underlying random number
-            generator object.
+            the name of a random number distribution, one of: %s
         `parameters`:
-            a list or tuple containing the arguments expected by the underlying
-            method in the correct order. Named arguments are not yet supported.
-        `boundaries`:
-            a tuple ``(min, max)`` used to specify explicitly, for distributions
-            like Gaussian, gamma or others, hard boundaries for the parameters.
-            If parameters are drawn outside those boundaries, the policy applied
-            will depend on the `constrain` parameter.
-        `constrain`:
-            controls the policy for weights out of the specified boundaries.
-            If "clip", random numbers are clipped to the boundaries.
-            If "redraw", random numbers are drawn till they fall within the boundaries.
+            a dictionary containing the names and values of the parameters
+            of the distribution. All parameters must be provided, there are
+            no default values.
 
-    Note that NumpyRNG and GSLRNG distributions may not have the same names,
-    e.g., 'normal' for NumpyRNG and 'gaussian' for GSLRNG, and the arguments
-    may also differ.
-    """
+    """ % ", ".join(NumpyRNG.translations.keys())
 
-    def __init__(self, distribution='uniform', parameters=[], rng=None,
-                 boundaries=None, constrain="clip"):
+    def __init__(self, distribution='uniform', parameters={}, rng=None):
         """
         Create a new RandomDistribution.
         """
         self.name = distribution
-        assert isinstance(parameters, (list, tuple, dict)), "The parameters argument must be a list or tuple or dict"
         self.parameters = parameters
-        self.boundaries = boundaries
-        if self.boundaries:
-            self.min_bound = min(self.boundaries)
-            self.max_bound = max(self.boundaries)
-        self.constrain  = constrain
         if rng:
             assert isinstance(rng, AbstractRNG), "rng must be a pyNN.random RNG object"
             self.rng = rng
-        else: # use numpy.random.RandomState() by default
-            self.rng = NumpyRNG()
+        else:  # use numpy.random.RandomState() by default
+            self.rng = NumpyRNG()  # should we provide a seed?
 
     def next(self, n=None, mask_local=None):
         """Return `n` random numbers from the distribution."""
@@ -245,24 +313,6 @@ class RandomDistribution(VectorizedIterable):
                             distribution=self.name,
                             parameters=self.parameters,
                             mask_local=mask_local)
-        if self.boundaries:
-            if isinstance(res, numpy.float): 
-                res = numpy.array([res])
-            if self.constrain == "clip":
-                return numpy.maximum(numpy.minimum(res, self.max_bound), self.min_bound)
-            elif self.constrain == "redraw": # not sure how well this works with parallel_safe, mask_local
-                if len(res) == 1:
-                    while not ((res > self.min_bound) and (res < self.max_bound)):
-                        res = self.rng.next(n=n, distribution=self.name, parameters=self.parameters, mask_local=mask_local)
-                    return res
-                else:
-                    idx = numpy.where((res > self.max_bound) | (res < self.min_bound))[0]
-                    while len(idx) > 0:
-                        res[idx] = self.rng.next(n=n, distribution=self.name, parameters=self.parameters, mask_local=mask_local)[idx]
-                        idx = numpy.where((res > self.max_bound) | (res < self.min_bound))[0]
-                    return res
-            else:
-                raise Exception("This constrain method (%s) does not exist" %self.constrain)
         return res
 
     def __str__(self):

@@ -27,7 +27,7 @@ cell_params = {'tau_refrac': 2.0,  # ms
                'v_thresh':  -50.0, # mV
                'tau_syn_E':  2.0,  # ms
                'tau_syn_I':  2.0,  # ms
-               'tau_m': RandomDistribution('uniform', [18.0, 22.0], rng=rng)
+               'tau_m': RandomDistribution('uniform', {'low': 18.0, 'high': 22.0}, rng=rng)
 }
 n_record = 3
 
@@ -37,7 +37,7 @@ print "Process with rank %d running on %s" % (node, socket.gethostname())
 print "[%d] Creating populations" % node
 n_spikes = int(2*tstop*input_rate/1000.0)
 spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential',
-                                            [1000.0/input_rate], mask_local=False))
+                                            {'beta': 1000.0/input_rate}, mask_local=False))
 
 input_population  = sim.Population(10, sim.SpikeSourceArray(spike_times=spike_times), label="input")
 output_population = sim.Population(20, sim.IF_curr_exp(**cell_params), label="output")

@@ -9,6 +9,7 @@ August 2006, November 2009
 
 import socket, os
 import csa
+import numpy
 from pyNN.utility import get_script_args, Timer
 
 simulator_name = get_script_args(1)[0]
@@ -35,7 +36,7 @@ rng = NumpyRNG(seed=seed, parallel_safe=True)
 print "[%d] Creating populations" % node
 n_spikes = int(2*tstop*input_rate/1000.0)
 spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential',
-                                            [1000.0/input_rate], mask_local=False))
+                                            {'beta': 1000.0/input_rate}, mask_local=False))
 
 input_population  = Population(100, SpikeSourceArray(spike_times=spike_times), label="input")
 output_population = Population(10, IF_curr_exp(**cell_params), label="output")

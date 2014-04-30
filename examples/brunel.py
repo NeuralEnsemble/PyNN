@@ -138,7 +138,7 @@ print "%d Creating inhibitory population with %d neurons." % (rank, NI)
 I_net = Population(NI, celltype, label="I_net")
 
 print "%d Initialising membrane potential to random values between %g mV and %g mV." % (rank, U0, theta)
-uniformDistr = RandomDistribution('uniform', [U0, theta], rng)
+uniformDistr = RandomDistribution('uniform', {'low': U0, 'high': theta}, rng)
 E_net.initialize(v=uniformDistr)
 I_net.initialize(v=uniformDistr)
 
