@@ -27,7 +27,7 @@ cell_params = {'tau_refrac': 2.0,  # ms
                'v_thresh':  -50.0, # mV
                'tau_syn_E':  2.0,  # ms
                'tau_syn_I':  2.0,  # ms
-               'tau_m': RandomDistribution('uniform', {'low': 18.0, 'high': 22.0}, rng=rng)
+               'tau_m': RandomDistribution('uniform', low=18.0, high=22.0, rng=rng)
 }
 n_record = 3
 

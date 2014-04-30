@@ -336,7 +336,7 @@ class PopulationTest(unittest.TestCase):
     def test_rset(self):
         p = sim.Population(17, sim.IF_cond_alpha())
         p.set = Mock()
-        v_rest = random.RandomDistribution('uniform', {'low': -70.0, 'high': -60.0})
+        v_rest = random.RandomDistribution('uniform', low=-70.0, high=-60.0)
         p.rset("v_rest", v_rest)
         p.set.assert_called_with(v_rest=v_rest)
 

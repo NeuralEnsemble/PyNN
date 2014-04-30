@@ -261,7 +261,7 @@ class FixedProbabilityConnector(MapConnector):
         self.rng = _get_rng(rng)
 
     def connect(self, projection):
-        random_map = LazyArray(RandomDistribution('uniform', {'low': 0, 'high': 1}, rng=self.rng),
+        random_map = LazyArray(RandomDistribution('uniform', low=0, high=1, rng=self.rng),
                                projection.shape)
         connection_map = random_map < self.p_connect
         if projection.pre == projection.post:
@@ -313,7 +313,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
     def connect(self, projection):
         distance_map = self._generate_distance_map(projection)
         probability_map = self.distance_function(distance_map)
-        random_map = LazyArray(RandomDistribution('uniform', {'low': 0, 'high': 1}, rng=self.rng),
+        random_map = LazyArray(RandomDistribution('uniform', low=0, high=1, rng=self.rng),
                                projection.shape)
         connection_map = random_map < probability_map
         if projection.pre == projection.post:
@@ -363,7 +363,7 @@ class IndexBasedProbabilityConnector(MapConnector):
         index_expression = copy(self.index_expression)
         index_expression.projection = projection
         probability_map = LazyArray(index_expression, projection.shape)
-        random_map = LazyArray(RandomDistribution('uniform', {'low': 0, 'high': 1}, rng=self.rng),
+        random_map = LazyArray(RandomDistribution('uniform', low=0, high=1, rng=self.rng),
                                projection.shape)
         connection_map = random_map < probability_map
         if projection.pre == projection.post:

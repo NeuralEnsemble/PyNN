@@ -60,7 +60,7 @@ class AbstractRNG(object):
     def __repr__(self):
         return "%s(seed=%r)" % (self.__class__.__name__, self.seed)
 
-    def next(self, n=None, distribution='uniform', parameters={}, mask_local=None):
+    def next(self, n=None, distribution='uniform', parameters=None, mask_local=None):
         """Return `n` random numbers from the specified distribution.
 
         If:
@@ -83,7 +83,7 @@ class WrappedRNG(AbstractRNG):
             if self.mpi_rank != 0:
                 logger.warning("Changing the seed to %s on node %d" % (self.seed, self.mpi_rank))
 
-    def next(self, n=None, distribution=None, parameters=None, mask_local=None):
+    def next(self, n=None, distribution='uniform', parameters=None, mask_local=None):
         if n == 0:
             rarr = numpy.random.rand(0)  # We return an empty array
         elif n > 0:
@@ -153,7 +153,7 @@ class NumpyRNG(WrappedRNG):
     def _next(self, distribution, n, parameters):
         # TODO: allow non-standardized distributions to pass through without translation
         distribution_np, parameter_map = self.translations[distribution]
-        if parameters.keys() != parameter_map.keys():
+        if set(parameters.keys()) != set(parameter_map.keys()):
             # all parameters must be provided. We do not provide default values (this can be discussed).
             errmsg = "Incorrect parameterization of random distribution. Expected %s, got %s."
             raise KeyError(errmsg % (parameter_map.keys(), parameters.keys()))
@@ -283,11 +283,11 @@ class RandomDistribution(VectorizedIterable):
     numbers from a given distribution.
 
     Arguments:
+        `distribution`:
+            the name of a random number distribution, one of: %s
         `rng`:
             if present, should be a :class:`NumpyRNG`, :class:`GSLRNG` or
             :class:`NativeRNG` object.
-        `distribution`:
-            the name of a random number distribution, one of: %s
         `parameters`:
             a dictionary containing the names and values of the parameters
             of the distribution. All parameters must be provided, there are
@@ -295,7 +295,7 @@ class RandomDistribution(VectorizedIterable):
 
     """ % ", ".join(NumpyRNG.translations.keys())
 
-    def __init__(self, distribution='uniform', parameters={}, rng=None):
+    def __init__(self, distribution, rng=None, **parameters):
         """
         Create a new RandomDistribution.
         """

@@ -134,7 +134,7 @@ class RandomDistributionTests(unittest.TestCase):
             self.rnglist.append(random.GSLRNG(seed=654))
 
     def test_uniform(self):
-        rd = random.RandomDistribution(distribution='uniform', parameters={'low': -1.0, 'high': 3.0}, rng=self.rnglist[0])
+        rd = random.RandomDistribution(distribution='uniform', low=-1.0, high=3.0, rng=self.rnglist[0])
         vals = rd.next(100)
         assert vals.min() >= -1.0
         assert vals.max() < 3.0
@@ -143,7 +143,7 @@ class RandomDistributionTests(unittest.TestCase):
     def test_gaussian(self):
         mean = 1.0
         std = 1.0
-        rd1 = random.RandomDistribution(distribution='normal', parameters={'mu': mean, 'sigma': std}, rng=self.rnglist[0])
+        rd1 = random.RandomDistribution('normal', mu=mean, sigma=std, rng=self.rnglist[0])
         vals_list = [rd1.next(100)]
         for vals in vals_list:
             assert vals.min() > mean-4*std
@@ -154,21 +154,21 @@ class RandomDistributionTests(unittest.TestCase):
         a = 0.5
         b = 0.5
         for rng in self.rnglist:
-            rd = random.RandomDistribution(distribution='gamma', parameters={'k': a, 'theta': 1/b}, rng=rng)
+            rd = random.RandomDistribution('gamma', k=a, theta=1/b, rng=rng)
             vals = rd.next(100)
             # need to check vals are as expected
             str(rd)  # should be in a separate test
 
     def test_boundaries(self):
-        rd = random.RandomDistribution(distribution='normal_clipped_to_boundary',
-                                       parameters={'mu': 0, 'sigma': 1, 'low': -0.5, 'high': 0.5},
+        rd = random.RandomDistribution('normal_clipped_to_boundary',
+                                       mu=0, sigma=1, low=-0.5, high=0.5,
                                        rng=self.rnglist[0])
         vals = rd.next(1000)
         assert vals.min() == -0.5
         assert vals.max() == 0.5
         assert abs(vals.mean()) < 0.05, vals.mean()
         rd = random.RandomDistribution(distribution='normal_clipped',
-                                       parameters={'mu': 0, 'sigma': 1, 'low': 0, 'high': 1},
+                                       mu=0, sigma=1, low=0, high=1,
                                        rng=self.rnglist[0])
         vals = rd.next(1000)
         assert vals.min() >= 0

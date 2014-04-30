@@ -322,7 +322,7 @@ class PopulationViewTest(unittest.TestCase):
         p = sim.Population(17, sim.IF_cond_alpha())
         pv = p[::4]
         pv.set = Mock()
-        v_rest = random.RandomDistribution('uniform', {'low': -70.0, 'high': -60.0})
+        v_rest = random.RandomDistribution('uniform', low=-70.0, high=-60.0)
         pv.rset("v_rest", v_rest)
         pv.set.assert_called_with(v_rest=v_rest)
 
