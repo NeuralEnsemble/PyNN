@@ -97,6 +97,25 @@ class TestProjection(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, self.all2all,
                      synapse_type=self.native_synapse_type())
 
+    def test_inhibitory_weight(self):
+        prj = sim.Projection(self.p1, self.p2, self.all2all,
+                synapse_type=self.syn_rnd,
+                receptor_type="inhibitory")
+
+        weights_list = prj.get("weight", format="list")
+        for pre, post, weight in weights_list:
+            self.assertTrue(weight > 0.)
+        weights_array = prj.get("weight", format="array")
+        self.assertTrue((weights_array > 0.).all())
+
+        prj.set(weight=0.456)
+
+        weights_list = prj.get("weight", format="list")
+        for pre, post, weight in weights_list:
+            self.assertTrue(weight > 0.)
+        weights_array = prj.get("weight", format="array")
+        self.assertTrue((weights_array > 0.).all())
+
     def test_create_with_homogeneous_common_properties(self):
         with self.assertRaises(ValueError):
             # create synapse type with heterogeneous common parameters
