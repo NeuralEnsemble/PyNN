@@ -177,6 +177,8 @@ class Projection(common.Projection):
             if connections:
                 source_mask = self.pre.id_to_index([x[0] for x in connections])
                 for name, value in connection_parameters.items():
+                    if name == "weight" and self.receptor_type == 'inhibitory' and self.post.conductance_based:
+                        value *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
                     value = make_sli_compatible(value)
                     if name not in self._common_synapse_property_names:
                         nest.SetStatus(connections, name, value[source_mask])
@@ -247,6 +249,8 @@ class Projection(common.Projection):
             values = numpy.array(values) # ought to preserve int type for source, target
             scale_factors = numpy.ones(len(names))
             scale_factors[names.index('weight')] = 0.001
+            if self.receptor_type == 'inhibitory' and self.post.conductance_based:
+                scale_factors[names.index('weight')] *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
             values *= scale_factors
             values = values.tolist()
         if 'presynaptic_index' in names:
@@ -276,7 +280,7 @@ class Projection(common.Projection):
                     value_arr[addr] += value
             if attribute_name == 'weight':
                 value_arr *= 0.001
-                if self.synapse_type == 'inhibitory' and self.post.conductance_based:
+                if self.receptor_type == 'inhibitory' and self.post.conductance_based:
                     value_arr *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
             all_values.append(value_arr)
         return all_values
