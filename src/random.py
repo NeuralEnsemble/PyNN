@@ -31,6 +31,24 @@ import time
 logger = logging.getLogger("PyNN")
 
 
+available_distributions = {
+    'binomial':       ('n', 'p'),
+    'gamma':          ('k', 'theta'),
+    'exponential':    ('beta',),
+    'lognormal':      ('mu', 'sigma'),
+    'normal':         ('mu', 'sigma'),
+    'normal_clipped': ('mu', 'sigma', 'low', 'high'),
+    'normal_clipped_to_boundary':
+                      ('mu', 'sigma', 'low', 'high'),
+    'poisson':        ('lambda',),
+    'uniform':        ('low', 'high'),
+    'uniform_int':    ('low', 'high'),
+    'vonmises':       ('mu', 'kappa'),
+}
+
+MAX_REDRAWS = 1000  # for clipped distributions
+
+
 def get_mpi_config():
     try:
         from mpi4py import MPI
@@ -60,7 +78,7 @@ class AbstractRNG(object):
     def __repr__(self):
         return "%s(seed=%r)" % (self.__class__.__name__, self.seed)
 
-    def next(self, n=None, distribution='uniform', parameters=None, mask_local=None):
+    def next(self, n=None, distribution=None, parameters=None, mask_local=None):
         """Return `n` random numbers from the specified distribution.
 
         If:
@@ -68,7 +86,9 @@ class AbstractRNG(object):
             * `n` >= 1, return a Numpy array,
             * `n` < 0, raise an Exception,
             * `n` is 0, return an empty array.
-            """
+
+        If called with distribution=None, returns uniformly distributed floats in the range [0, 1)
+        """
         raise NotImplementedError
 
 
@@ -83,7 +103,11 @@ class WrappedRNG(AbstractRNG):
             if self.mpi_rank != 0:
                 logger.warning("Changing the seed to %s on node %d" % (self.seed, self.mpi_rank))
 
-    def next(self, n=None, distribution='uniform', parameters=None, mask_local=None):
+    def next(self, n=None, distribution=None, parameters=None, mask_local=None):
+        if distribution is None:
+            distribution = 'uniform'
+            if parameters is None:
+                parameters = (0.0, 1.0)
         if n == 0:
             rarr = numpy.random.rand(0)  # We return an empty array
         elif n > 0:
@@ -119,6 +143,29 @@ class WrappedRNG(AbstractRNG):
         (:class:`numpy.random.RandomState` or the GSL RNGs.)
         """
         return getattr(self.rng, name)
+
+    def _clipped(self, gen, low=-numpy.inf, high=numpy.inf, size=None):
+        """ """
+        res = gen(size)
+        iterations = 0
+        errmsg = "Maximum number of redraws exceeded. Check the parameterization of your distribution."
+        if size is None:
+            while res < low or res > high:
+                # limit the number of iterations. Possibility of infinite loop, depending on parameters
+                if iterations > MAX_REDRAWS:
+                    raise Exception(errmsg)
+                res = gen(size)
+                iterations += 1
+        else:
+            idx = numpy.where((res > high) | (res < low))[0]
+            while idx.size > 0:
+                if iterations > MAX_REDRAWS:
+                    raise Exception(errmsg)
+                redrawn = gen(idx.size)
+                res[idx] = redrawn
+                idx = idx[numpy.where((redrawn > high) | (redrawn < low))[0]]
+                iterations += 1
+        return res
 
     def describe(self):
         return "%s() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
@@ -174,17 +221,8 @@ class NumpyRNG(WrappedRNG):
     def normal_clipped(self, mu=0.0, sigma=1.0, low=-numpy.inf, high=numpy.inf, size=None):
         """ """
         # not sure how well this works with parallel_safe, mask_local
-        res = self.rng.normal(loc=mu, scale=sigma, size=size)
-        if size is None:
-            while res < low or res > high:
-                res = self.rng.normal(loc=mu, scale=sigma, size=size)
-        else:
-            idx = numpy.where((res > high) | (res < low))[0]
-            while idx.size > 0:
-                redrawn = self.rng.normal(loc=mu, scale=sigma, size=idx.size)
-                res[idx] = redrawn
-                idx = idx[numpy.where((redrawn > high) | (redrawn < low))[0]]
-        return res
+        gen = lambda n: self.rng.normal(loc=mu, scale=sigma, size=n)
+        return self._clipped(gen, low=low, high=high, size=size)
 
     def normal_clipped_to_boundary(self, mu=0.0, sigma=1.0, low=-numpy.inf, high=numpy.inf, size=None):
         # Not recommended, used `normal_clipped` instead.
@@ -251,17 +289,8 @@ class GSLRNG(WrappedRNG):
 
     def normal_clipped(self, mu=0.0, sigma=1.0, low=-numpy.inf, high=numpy.inf, size=None):
         """ """
-        res = self.normal(mu, sigma, size)
-        if size is None:
-            while res < low or res > high:
-                res = self.normal(mu, sigma, size)
-        else:
-            idx = numpy.where((res > high) | (res < low))[0]
-            while idx.size > 0:
-                redrawn = self.normal(mu, sigma, size)
-                res[idx] = redrawn
-                idx = idx[numpy.where((redrawn > high) | (redrawn < low))[0]]
-        return res
+        gen = lambda n: self.normal(mu, sigma, n)
+        return self._clipped(gen, low=low, high=high, size=size)
 
 # should add a wrapper for the built-in Python random module.
 
@@ -284,23 +313,52 @@ class RandomDistribution(VectorizedIterable):
 
     Arguments:
         `distribution`:
-            the name of a random number distribution, one of: %s
+            the name of a random number distribution.
+        `parameters_pos`:
+            parameters of the distribution, provided as a tuple. For the correct
+            ordering, see `random.available_distributions`.
         `rng`:
             if present, should be a :class:`NumpyRNG`, :class:`GSLRNG` or
             :class:`NativeRNG` object.
-        `parameters`:
-            a dictionary containing the names and values of the parameters
-            of the distribution. All parameters must be provided, there are
-            no default values.
+        `parameters_named`:
+            parameters of the distribution, provided as keyword arguments.
 
-    """ % ", ".join(NumpyRNG.translations.keys())
+    Parameters may be provided either through `parameters_pos` or through
+    `parameters_named`, but not both. All parameters must be provided, there
+    are no default values. Parameter names are, in general, as used in Wikipedia.
 
-    def __init__(self, distribution, rng=None, **parameters):
+    Examples:
+
+    >>> rd = RandomDistribution('uniform', (-70, -50))
+    >>> rd = RandomDistribution('normal' mu=0.5, sigma=0.1)
+    >>> rng = NumpyRNG(seed=8658764)
+    >>> rd = RandomDistribution('gamma', k=2.0, theta=5.0, rng=rng)
+
+    Available distributions:
+
+    ==========================  ====================  ===============================================
+    Name                        Parameters            Comments
+    --------------------------  --------------------  -----------------------------------------------
+    binomial                    n, p
+    gamma                       k, theta
+    exponential                 beta
+    lognormal                   mu, sigma
+    normal                      mu, sigma
+    normal_clipped              mu, sigma, low, high  Values outside (low, high) are redrawn
+    normal_clipped_to_boundary  mu, sigma, low, high  Values below/above low/high are set to low/high
+    poisson                     lambda
+    uniform                     low, high
+    uniform_int                 low, high
+    vonmises                    mu, kappa
+    ==========================  ====================  ===============================================
+    """
+
+    def __init__(self, distribution, parameters_pos=None, rng=None, **parameters_named):
         """
         Create a new RandomDistribution.
         """
         self.name = distribution
-        self.parameters = parameters
+        self.parameters = self._resolve_parameters(parameters_pos, parameters_named)
         if rng:
             assert isinstance(rng, AbstractRNG), "rng must be a pyNN.random RNG object"
             self.rng = rng
@@ -317,3 +375,16 @@ class RandomDistribution(VectorizedIterable):
 
     def __str__(self):
         return "RandomDistribution('%(name)s', %(parameters)s, %(rng)s)" % self.__dict__
+
+    def _resolve_parameters(self, positional, named):
+        if positional is None:
+            return named
+        elif len(named) == 0:
+            expected_parameter_names = available_distributions[self.name]
+            if len(positional) != len(expected_parameter_names):
+                errmsg = "Incorrect number of parameters for random distribution. For %s received %s"
+                raise ValueError(errmsg % (expected_parameter_names, positional))
+            else:
+                return dict((name, value) for name, value in zip(expected_parameter_names, positional))
+        else:
+            raise ValueError("Mixed positional and named parameters")

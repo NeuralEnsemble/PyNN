@@ -174,6 +174,21 @@ class RandomDistributionTests(unittest.TestCase):
         assert vals.min() >= 0
         assert vals.max() < 1.0
 
+    def test_positional_args(self):
+        for rng in self.rnglist:
+            rd1 = random.RandomDistribution('normal', (0.5, 0.2), rng)
+            self.assertEqual(rd1.parameters, {'mu': 0.5, 'sigma': 0.2})
+            self.assertEqual(rd1.rng, rng)
+        self.assertRaises(ValueError, random.RandomDistribution, 'normal', (0.5,))
+        self.assertRaises(ValueError, random.RandomDistribution, 'normal', (0.5, 0.2), mu=0.5, sigma=0.2)
+
+    def test_max_redraws(self):
+        # for certain parameterizations, clipped distributions can require a very large, possibly infinite
+        # number of redraws. This should be caught.
+        for rng in self.rnglist:
+            rd1 = random.RandomDistribution('normal_clipped', mu=0, sigma=1, low=5, high=numpy.inf, rng=rng)
+            self.assertRaises(Exception, rd1.next, 1000)
+
 
 # ==============================================================================
 if __name__ == "__main__":
