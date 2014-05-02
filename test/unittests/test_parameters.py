@@ -264,6 +264,14 @@ class ParameterSpaceTest(unittest.TestCase):
         assert_array_equal(ps2d['a'], np.array([[3, 8, 13], [34, 89, 144]]))
         assert_array_equal(ps2d['c'], np.array([[-2, -6, -8], [1, -3, -5]]))
 
+    def test_evaluate_with_mask_2D(self):
+        ps2d = ParameterSpace({'a': [[2, 3, 5, 8, 13], [21, 34, 55, 89, 144]],
+                               'b': 7,
+                               'c': lambda i, j: 3*i-2*j}, shape=(2, 5))
+        ps2d.evaluate(mask=(slice(None), [1, 3, 4]))
+        assert_array_equal(ps2d['a'], np.array([[3, 8, 13], [34, 89, 144]]))
+        assert_array_equal(ps2d['c'], np.array([[-2, -6, -8], [1, -3, -5]]))
+
     def test_iteration(self):
         ps = ParameterSpace({'a': [2, 3, 5, 8, 13], 'b': 7, 'c': lambda i: 3*i+2}, shape=(5,))
         ps.evaluate(mask=[1, 3, 4])
@@ -290,6 +298,17 @@ class ParameterSpaceTest(unittest.TestCase):
                     {'a': np.array([8, 89]), 'b': np.array([7, 7]), 'c': np.array([-6, -3])},
                     {'a': np.array([13, 144]), 'b': np.array([7, 7]), 'c': np.array([-8, -5])}]
         for x, y in zip(ps2d.columns(), expected):
+            for key in y:
+                assert_array_equal(x[key], y[key])
+
+    def test_columnwise_iteration_single_column(self):
+        ps2d = ParameterSpace({'a': [[2, 3, 5, 8, 13], [21, 34, 55, 89, 144]],
+                               'b': 7,
+                               'c': lambda i, j: 3*i-2*j}, shape=(2, 5))
+        ps2d.evaluate(mask=(slice(None), 3))
+        expected = [{'a': np.array([8, 89]), 'b': np.array([7, 7]), 'c': np.array([-6, -3])}]
+        actual = list(ps2d.columns())
+        for x, y in zip(actual, expected):
             for key in y:
                 assert_array_equal(x[key], y[key])
 

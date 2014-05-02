@@ -76,6 +76,7 @@ class TestProjection(unittest.TestCase):
         self.p1 = sim.Population(7, sim.IF_cond_exp())
         self.p2 = sim.Population(4, sim.IF_cond_exp())
         self.p3 = sim.Population(5, sim.IF_curr_alpha())
+        self.p4 = sim.Population(1, sim.IF_cond_exp())
         self.syn_rnd = sim.StaticSynapse(weight=0.123, delay=0.5)
         self.syn_a2a = sim.StaticSynapse(weight=0.456, delay=0.4)
         self.random_connect = sim.FixedNumberPostConnector(n=2)
@@ -123,7 +124,31 @@ class TestProjection(unittest.TestCase):
                 (0, 0, 10., 100.), (1, 1, 10., 200.)],
                 column_names=["weight", "Wmax"])
             prj = sim.Projection(self.p1, self.p2, fromlist,
-                     synapse_type=self.native_synapse_type())
+                                 synapse_type=self.native_synapse_type())
+
+    def test_single_postsynaptic_neuron(self):
+        prj = sim.Projection(self.p1, self.p4, sim.AllToAllConnector(),
+                             synapse_type=sim.StaticSynapse(weight=0.123))
+        assert prj.shape == (7, 1)
+        weight = 0.456
+        prj.set(weight=weight)
+        self.assertEqual(prj.get("weight", format="array")[0], weight)
+
+    def test_single_presynaptic_neuron(self):
+        prj = sim.Projection(self.p4, self.p1, sim.AllToAllConnector(),
+                             synapse_type=sim.StaticSynapse(weight=0.123))
+        assert prj.shape == (1, 7)
+        weight = 0.456
+        prj.set(weight=weight)
+        self.assertEqual(prj.get("weight", format="array")[0][0], weight)
+
+    def test_single_presynaptic_and_single_postsynaptic_neuron(self):
+        prj = sim.Projection(self.p4, self.p4, sim.AllToAllConnector(),
+                             synapse_type=sim.StaticSynapse(weight=0.123))
+        assert prj.shape == (1, 1)
+        weight = 0.456
+        prj.set(weight=weight)
+        self.assertEqual(prj.get("weight", format="array")[0][0], weight)
 
 
 if __name__ == '__main__':

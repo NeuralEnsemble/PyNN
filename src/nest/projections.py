@@ -181,7 +181,12 @@ class Projection(common.Projection):
                         value *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
                     value = make_sli_compatible(value)
                     if name not in self._common_synapse_property_names:
-                        nest.SetStatus(connections, name, value[source_mask])
+                        if len(source_mask) > 1:
+                            nest.SetStatus(connections, name, value[source_mask])
+                        elif isinstance(value, numpy.ndarray):  # OneToOneConnector
+                            nest.SetStatus(connections, name, value[source_mask])
+                        else:
+                            nest.SetStatus(connections, name, value)
                     else:
                         self._set_common_synapse_property(name, value)
 
