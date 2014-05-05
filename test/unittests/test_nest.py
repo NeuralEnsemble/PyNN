@@ -126,6 +126,13 @@ class TestProjection(unittest.TestCase):
             prj = sim.Projection(self.p1, self.p2, fromlist,
                                  synapse_type=self.native_synapse_type())
 
+    def test_set_array(self):
+        weight = 0.123
+        prj = sim.Projection(self.p1, self.p2, sim.AllToAllConnector())
+        weight_array = numpy.ones(prj.shape) * weight
+        prj.set(weight=weight_array)
+        self.assertTrue((weight_array == prj.get("weight", format="array")).all())
+
     def test_single_postsynaptic_neuron(self):
         prj = sim.Projection(self.p1, self.p4, sim.AllToAllConnector(),
                              synapse_type=sim.StaticSynapse(weight=0.123))
@@ -133,6 +140,10 @@ class TestProjection(unittest.TestCase):
         weight = 0.456
         prj.set(weight=weight)
         self.assertEqual(prj.get("weight", format="array")[0], weight)
+
+        weight_array = numpy.ones(prj.shape) * weight
+        prj.set(weight=weight_array)
+        self.assertTrue((weight_array == prj.get("weight", format="array")).all())
 
     def test_single_presynaptic_neuron(self):
         prj = sim.Projection(self.p4, self.p1, sim.AllToAllConnector(),
@@ -142,6 +153,10 @@ class TestProjection(unittest.TestCase):
         prj.set(weight=weight)
         self.assertEqual(prj.get("weight", format="array")[0][0], weight)
 
+        weight_array = numpy.ones(prj.shape) * weight
+        prj.set(weight=weight_array)
+        self.assertTrue((weight_array == prj.get("weight", format="array")).all())
+
     def test_single_presynaptic_and_single_postsynaptic_neuron(self):
         prj = sim.Projection(self.p4, self.p4, sim.AllToAllConnector(),
                              synapse_type=sim.StaticSynapse(weight=0.123))
@@ -150,6 +165,9 @@ class TestProjection(unittest.TestCase):
         prj.set(weight=weight)
         self.assertEqual(prj.get("weight", format="array")[0][0], weight)
 
+        weight_array = numpy.ones(prj.shape) * weight
+        prj.set(weight=weight_array)
+        self.assertTrue((weight_array == prj.get("weight", format="array")).all())
 
 if __name__ == '__main__':
     unittest.main()
