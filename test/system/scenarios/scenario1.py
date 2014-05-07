@@ -42,10 +42,9 @@ def scenario1(sim):
     }
 
     rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
-    uniform_distr = RandomDistribution(
-                        'uniform',
-                        [cell_params['v_reset'], cell_params['v_thresh']],
-                        rng=rng)
+    uniform_distr = RandomDistribution('uniform',
+                                       low=cell_params['v_reset'],
+                                       high=cell_params['v_thresh'], rng=rng)
     all_cells.initialize(v=uniform_distr)
 
     connections = {}
