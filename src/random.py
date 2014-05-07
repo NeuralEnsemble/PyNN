@@ -262,7 +262,7 @@ class GSLRNG(WrappedRNG):
 
     def _next(self, distribution, n, parameters):
         distribution_gsl, parameter_map = self.translations[distribution]
-        if parameters.keys() != parameter_map.keys():
+        if set(parameters.keys()) != set(parameter_map.keys()):
             # all parameters must be provided. We do not provide default values (this can be discussed).
             errmsg = "Incorrect parameterization of random distribution. Expected %s, got %s."
             raise KeyError(errmsg % (parameter_map.keys(), parameters.keys()))
@@ -378,6 +378,9 @@ class RandomDistribution(VectorizedIterable):
 
     def _resolve_parameters(self, positional, named):
         if positional is None:
+            if set(named.keys()) != set(available_distributions[self.name]):
+                errmsg = "Incorrect parameterization of random distribution. Expected %s, got %s."
+                raise KeyError(errmsg % (available_distributions[self.name], tuple(named.keys())))
             return named
         elif len(named) == 0:
             expected_parameter_names = available_distributions[self.name]
