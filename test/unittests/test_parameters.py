@@ -80,8 +80,8 @@ def test_columnwise_iteration_with_structured_array():
 def test_columnwise_iteration_with_random_array_parallel_safe_no_mask():
     orig_get_mpi_config = random.get_mpi_config
     random.get_mpi_config = lambda: (0, 2)
-    input = random.RandomDistribution('dummy', rng=MockRNG(parallel_safe=True))
-    copy_input = random.RandomDistribution('dummy', rng=MockRNG(parallel_safe=True))
+    input = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(parallel_safe=True))
+    copy_input = random.RandomDistribution('normal', (0, 1), rng=MockRNG(parallel_safe=True))
     m = LazyArray(input, shape=(4,3))
     cols = [col for col in m.by_column()]
     assert_array_equal(cols[0], copy_input.next(4, mask_local=False))
@@ -114,8 +114,8 @@ def test_columnwise_iteration_with_structured_array_and_mask():
 def test_columnwise_iteration_with_random_array_parallel_safe_with_mask():
     orig_get_mpi_config = random.get_mpi_config
     random.get_mpi_config = lambda: (0, 2)
-    input = random.RandomDistribution('dummy', rng=MockRNG(parallel_safe=True))
-    copy_input = random.RandomDistribution('dummy', rng=MockRNG(parallel_safe=True))
+    input = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(parallel_safe=True))
+    copy_input = random.RandomDistribution('gamma', (2, 3), rng=MockRNG(parallel_safe=True))
     m = LazyArray(input, shape=(4,3))
     mask = np.array([False, False, True])
     cols = [col for col in m.by_column(mask=mask)]

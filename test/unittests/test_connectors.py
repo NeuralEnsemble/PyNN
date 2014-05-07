@@ -44,7 +44,7 @@ class TestOneToOneConnector(unittest.TestCase):
                           (3, 3, 5.0, 0.5)])
 
     def test_connect_with_random_weights(self):
-        rd = random.RandomDistribution('dummy', rng=MockRNG(delta=1.0))
+        rd = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(delta=1.0))
         syn = sim.StaticSynapse(weight=rd, delay=0.5)
         C = connectors.OneToOneConnector(safe=False)
         prj = sim.Projection(self.p1, self.p2, C, syn)
@@ -105,7 +105,7 @@ class TestAllToAllConnector(unittest.TestCase):
                                   9)
 
     def test_connect_with_random_weights_parallel_safe(self):
-        rd = random.RandomDistribution('dummy', rng=MockRNG(delta=1.0, parallel_safe=True))
+        rd = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(delta=1.0, parallel_safe=True))
         syn = sim.StaticSynapse(weight=rd, delay=0.5)
         C = connectors.AllToAllConnector(safe=False)
         prj = sim.Projection(self.p1, self.p2, C, syn)
@@ -459,8 +459,8 @@ class TestArrayConnector(unittest.TestCase):
                           (2, 2, 5.0, 0.5)])
 
     def test_connect_with_random_weights_parallel_safe(self):
-        rd_w = random.RandomDistribution('dummy', rng=MockRNG(delta=1.0, parallel_safe=True))
-        rd_d = random.RandomDistribution('dummy', rng=MockRNG(start=1.0, delta=0.1, parallel_safe=True))
+        rd_w = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(delta=1.0, parallel_safe=True))
+        rd_d = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(start=1.0, delta=0.1, parallel_safe=True))
         syn = sim.StaticSynapse(weight=rd_w, delay=rd_d)
         connections = numpy.array([
                 [0, 1, 1, 0],
