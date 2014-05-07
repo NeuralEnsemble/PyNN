@@ -149,7 +149,7 @@ class ProjectionTest(unittest.TestCase):
         assert_array_equal(weights, target)
 
     def test_get_plasticity_attribute_as_list(self):
-        U_distr = random.RandomDistribution('uniform', [0.4, 0.6], rng=MockRNG(start=0.5, delta=0.001))
+        U_distr = random.RandomDistribution('uniform', low=0.4, high=0.6, rng=MockRNG(start=0.5, delta=0.001))
         depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 800.0+d, tau_facil=0.0)
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=depressing)

@@ -34,7 +34,7 @@ from pyNN.nest.connectors import *
 from pyNN.nest.standardmodels.synapses import *
 from pyNN.nest.standardmodels.electrodes import *
 from pyNN.nest.recording import *
-from pyNN.random import NumpyRNG
+from pyNN.random import NumpyRNG, GSLRNG, NativeRNG
 from pyNN.space import Space
 from pyNN.standardmodels import StandardCellType
 from pyNN.nest.populations import Population, PopulationView, Assembly
@@ -113,7 +113,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     else:
         rng = NumpyRNG(extra_params.get('rng_seeds_seed', 42))
         n = simulator.state.num_processes * simulator.state.threads
-        simulator.state.rng_seeds = rng.next(n, 'randint', (100000,)).tolist()
+        simulator.state.rng_seeds = rng.next(n, 'uniform_int', {'low': 0, 'high': 100000}).tolist()
     # set resolution
     simulator.state.dt = timestep
     # Set min_delay and max_delay for all synapse models

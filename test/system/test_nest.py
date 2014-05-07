@@ -36,7 +36,7 @@ def test_record_native_model():
     #assert_arrays_equal(p1.get('Theta_eq'), -51.5*numpy.ones((10,)))
     assert_equal(p1.get('Theta_eq'), -51.5)
     print p1.get('Tau_m')
-    p1.set(Tau_m=RandomDistribution('uniform', [15.0, 20.0]))
+    p1.set(Tau_m=RandomDistribution('uniform', low=15.0, high=20.0))
     print p1.get('Tau_m')
 
     current_source = nest.StepCurrentSource(times=[50.0, 110.0, 150.0, 210.0],
