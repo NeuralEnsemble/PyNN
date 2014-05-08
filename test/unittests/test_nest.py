@@ -67,6 +67,16 @@ class TestPopulation(unittest.TestCase):
                                   decimal=12)
         self.assertEqual(ps['E_ex'], 0.0)
 
+    def test_set_parameters(self):
+        self.p.set(tau_m=[15.] * self.p.size)
+
+    def test_set_parameters_singular(self):
+        self.p[0:1].set(tau_m=[20.])
+
+    def test_set_parameters_scalar(self):
+        self.p[0:1].set(tau_m=20.)
+
+
 
 @unittest.skipUnless(nest, "Requires NEST")
 class TestProjection(unittest.TestCase):
