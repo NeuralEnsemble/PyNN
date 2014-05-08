@@ -17,6 +17,20 @@ def issue241(sim):
     assert_equal(spike_train3.get(['rate', 'start', 'duration']), [5, 1000, 1234])
     sim.end()
 
+
+@register()
+def issue302(sim):
+    sim.setup()
+    p1 = sim.Population(1, sim.IF_cond_exp())
+    p5 = sim.Population(5, sim.IF_cond_exp())
+    prj15 = sim.Projection(p1, p5, sim.AllToAllConnector())
+    prj51 = sim.Projection(p5, p1, sim.AllToAllConnector())
+    prj55 = sim.Projection(p5, p5, sim.AllToAllConnector())
+    prj15.set(weight=0.123)
+    prj51.set(weight=0.123)
+    prj55.set(weight=0.123)
+    sim.end()
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
