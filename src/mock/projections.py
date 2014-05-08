@@ -43,7 +43,8 @@ class Projection(common.Projection):
         return len(self.connections)
 
     def set(self, **attributes):
-        parameter_space = ParameterSpace
+        #parameter_space = ParameterSpace
+        raise NotImplementedError
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):

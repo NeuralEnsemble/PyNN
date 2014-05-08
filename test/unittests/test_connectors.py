@@ -13,15 +13,16 @@ except ImportError:
 from pyNN import connectors, random, errors, space, recording
 import numpy
 import os
-from mock import Mock
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from .mocks import MockRNG, MockRNG2
 import pyNN.mock as sim
 
-
 orig_mpi_get_config = random.get_mpi_config
+
+
 def setUp():
     random.get_mpi_config = lambda: (0, 2)
+
 
 def tearDown():
     random.get_mpi_config = orig_mpi_get_config
@@ -239,10 +240,10 @@ class TestFixedProbabilityConnector(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, C, syn)
         nan = numpy.nan
         assert_array_almost_equal(prj.get('delay', format='array', gather=False),
-                                  numpy.array([[nan, nan, nan, 2.0,   nan],
-                                               [nan, nan, nan, nan,   nan],
+                                  numpy.array([[nan, nan, nan, 2.0, nan],
+                                               [nan, nan, nan, nan, nan],
                                                [nan, nan, nan, 2.2, nan],
-                                               [nan, 1.4, nan, nan,   nan]]),
+                                               [nan, 1.4, nan, nan, nan]]),
                                   9)
 
     #def test_connect_with_random_delays_parallel_unsafe(self):
@@ -258,10 +259,10 @@ class TestFixedProbabilityConnector(unittest.TestCase):
     #    prj = sim.Projection(self.p1, self.p2, C, syn)
     #    nan = numpy.nan
     #    assert_array_almost_equal(prj.get('delay', format='array', gather=False),
-    #                              numpy.array([[nan, nan, nan, 1.2,   nan],
-    #                                           [nan, nan, nan, nan,   nan],
+    #                              numpy.array([[nan, nan, nan, 1.2, nan],
+    #                                           [nan, nan, nan, nan, nan],
     #                                           [nan, nan, nan, 1.4, nan],
-    #                                           [nan, 1.0, nan, nan,   nan]]),
+    #                                           [nan, 1.0, nan, nan, nan]]),
     #                              9)
 
 
@@ -425,15 +426,147 @@ class TestFixedNumberPreConnector(unittest.TestCase):
 
     def test_with_n_smaller_than_population_size(self):
         C = connectors.FixedNumberPreConnector(n=3, rng=MockRNG(delta=1))
+        syn = sim.StaticSynapse(weight="0.1*d")
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(3, 1, 0.2, 0.123),
+                          (2, 1, 0.1, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123),
+                          (2, 3, 0.1, 0.123),
+                          (1, 3, 0.2, 0.123),])
+
+    def test_with_n_larger_than_population_size(self):
+        C = connectors.FixedNumberPreConnector(n=7, rng=MockRNG(delta=1))
         syn = sim.StaticSynapse()
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
-                         [(1, 1, 0.0, 0.123),
+                         [(0, 1, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
                           (2, 1, 0.0, 0.123),
                           (3, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),])
+
+    def test_with_n_larger_than_population_size_no_self_connections(self):
+        C = connectors.FixedNumberPreConnector(n=7, allow_self_connections=False, rng=MockRNG(delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p2, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (4, 1, 0.0, 0.123),
+                          (4, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (4, 3, 0.0, 0.123),
+                          (4, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),])
+
+    def test_with_replacement(self):
+        C = connectors.FixedNumberPreConnector(n=3, with_replacement=True, rng=MockRNG(delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [#(0, 0, 0.0, 0.123),
+                          #(1, 0, 0.0, 0.123),
+                          #(2, 0, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (0, 1, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          #(2, 2, 0.0, 0.123),
+                          #(3, 2, 0.0, 0.123),
+                          #(0, 2, 0.0, 0.123),
                           (1, 3, 0.0, 0.123),
                           (2, 3, 0.0, 0.123),
                           (3, 3, 0.0, 0.123),])
+
+    def test_with_replacement_with_variable_n(self):
+        n = random.RandomDistribution('binomial', (5, 0.5), rng=MockRNG(start=1, delta=2))
+            # should give (1, 3, 0, 2, 4)
+        C = connectors.FixedNumberPreConnector(n=n, with_replacement=True, rng=MockRNG(delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [#(0, 0, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123)])
+
+    def test_with_replacement_no_self_connections(self):
+        C = connectors.FixedNumberPreConnector(n=3, with_replacement=True,
+                                               allow_self_connections=False, rng=MockRNG(start=2, delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p2, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [#(2, 0, 0.0, 0.123),  # [2, 3, 4] --> [2, 3, 4]
+                          #(3, 0, 0.0, 0.123),
+                          #(4, 0, 0.0, 0.123),
+                          (0, 1, 0.0, 0.123),   # [0, 1, 2] --> [0, 3, 2]
+                          #(1, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          #(4, 2, 0.0, 0.123),  # [4, 0, 1] --> [4, 0, 1]
+                          #(0, 2, 0.0, 0.123),
+                          #(1, 2, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),   # [2, 3, 4] --> [2, 0, 4]
+                          #(3, 3, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (4, 3, 0.0, 0.123),
+                          ])
+
+    def test_no_replacement_no_self_connections(self):
+        C = connectors.FixedNumberPreConnector(n=3, with_replacement=False,
+                                               allow_self_connections=False, rng=MockRNG(start=2, delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p2, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(4, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (4, 3, 0.0, 0.123),
+                          #(3, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),])
+
+    def test_with_replacement_parallel_unsafe(self):
+        C = connectors.FixedNumberPreConnector(n=3, with_replacement=True, rng=MockRNG(delta=1, parallel_safe=False))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),])
+
+    def test_no_replacement_parallel_unsafe(self):
+        C = connectors.FixedNumberPreConnector(n=3, with_replacement=False, rng=MockRNG(delta=1, parallel_safe=False))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(3, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),])
 
 
 class TestArrayConnector(unittest.TestCase):
@@ -449,7 +582,7 @@ class TestArrayConnector(unittest.TestCase):
                 [0, 1, 1, 0],
                 [1, 1, 0, 1],
                 [0, 0, 1, 0],
-            ])
+            ], dtype=bool)
         C = connectors.ArrayConnector(connections, safe=False)
         syn = sim.StaticSynapse(weight=5.0, delay=0.5)
         prj = sim.Projection(self.p1, self.p2, C, syn)
@@ -466,14 +599,14 @@ class TestArrayConnector(unittest.TestCase):
                 [0, 1, 1, 0],
                 [1, 1, 0, 1],
                 [0, 0, 1, 0],
-            ])
+            ], dtype=bool)
         C = connectors.ArrayConnector(connections, safe=False)
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(1, 0, 0.0, 1.0),
                           (0, 2, 3.0, 1.3),
                           (2, 2, 4.0, 1.4000000000000001)])  # better to do an "almost-equal" check
-  
+
 
 
 class TestCloneConnector(unittest.TestCase):
@@ -499,11 +632,11 @@ class TestCloneConnector(unittest.TestCase):
         # the rank in pyNN.mock by hand to > 1
         def mock_gather_dict(D, all=False):
             return D
-        recording.gather_dict = mock_gather_dict  
-        
+        recording.gather_dict = mock_gather_dict
+
     def tearDown(self):
         # restore original gather_dict function
-        recording.gather_dict = self.orig_gather_dict  
+        recording.gather_dict = self.orig_gather_dict
 
     def test_connect(self):
         syn = sim.StaticSynapse(weight=5.0, delay=0.5)
@@ -518,8 +651,8 @@ class TestCloneConnector(unittest.TestCase):
         C = connectors.CloneConnector(self.ref_prj)
         p3 = sim.Population(5, sim.IF_cond_exp(), structure=space.Line())
         self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, p3, C, syn)
-        
-        
+
+
 class TestIndexBasedProbabilityConnector(unittest.TestCase):
 
     class IndexBasedProbability(connectors.IndexBasedExpression):
@@ -529,7 +662,7 @@ class TestIndexBasedProbabilityConnector(unittest.TestCase):
     class IndexBasedWeights(connectors.IndexBasedExpression):
         def __call__(self, i, j):
             return numpy.array(i * j + 1, dtype=float)
-        
+
     class IndexBasedDelays(connectors.IndexBasedExpression):
         def __call__(self, i, j):
             return numpy.array(i + j + 1, dtype=float)
@@ -561,7 +694,7 @@ class TestIndexBasedProbabilityConnector(unittest.TestCase):
                           (1, 2, 3, 2),
                           (4, 2, 9, 2),
                           (2, 4, 9, 2)])
-        
+
     def test_connect_with_index_based_delays(self):
         syn = sim.StaticSynapse(weight=1.0, delay=self.IndexBasedDelays())
         C = connectors.IndexBasedProbabilityConnector(self.IndexBasedProbability())
@@ -578,9 +711,9 @@ class TestDisplacementDependentProbabilityConnector(unittest.TestCase):
 
     def setUp(self):
         sim.setup(num_processes=2, rank=1, min_delay=0.123)
-        self.p1 = sim.Population(9, sim.IF_cond_exp(), 
+        self.p1 = sim.Population(9, sim.IF_cond_exp(),
                                  structure=space.Grid2D(aspect_ratio=1.0, dx=1.0, dy=1.0))
-        self.p2 = sim.Population(9, sim.HH_cond_exp(), 
+        self.p2 = sim.Population(9, sim.HH_cond_exp(),
                                  structure=space.Grid2D(aspect_ratio=1.0, dx=1.0, dy=1.0))
         assert_array_equal(self.p2._mask_local, numpy.array([1,0,1,0,1,0,1,0,1], dtype=bool))
 
@@ -592,32 +725,32 @@ class TestDisplacementDependentProbabilityConnector(unittest.TestCase):
                                                                  rng=MockRNG(delta=0.01))
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
-                         [(0, 0, 1.0, 2.0), 
-                          (1, 0, 1.0, 2.0), 
-                          (2, 0, 1.0, 2.0), 
-                          (3, 0, 1.0, 2.0), 
-                          (4, 0, 1.0, 2.0), 
-                          (5, 0, 1.0, 2.0), 
-                          (6, 0, 1.0, 2.0), 
-                          (0, 2, 1.0, 2.0), 
-                          (1, 2, 1.0, 2.0), 
-                          (2, 2, 1.0, 2.0), 
-                          (3, 2, 1.0, 2.0), 
-                          (4, 2, 1.0, 2.0), 
-                          (5, 2, 1.0, 2.0), 
-                          (0, 4, 1.0, 2.0), 
-                          (1, 4, 1.0, 2.0), 
-                          (2, 4, 1.0, 2.0), 
-                          (3, 4, 1.0, 2.0), 
-                          (4, 4, 1.0, 2.0), 
-                          (5, 4, 1.0, 2.0), 
-                          (6, 4, 1.0, 2.0), 
-                          (7, 4, 1.0, 2.0), 
-                          (8, 4, 1.0, 2.0), 
-                          (0, 6, 1.0, 2.0), 
-                          (3, 6, 1.0, 2.0), 
-                          (6, 6, 1.0, 2.0), 
-                          (1, 8, 1.0, 2.0), 
+                         [(0, 0, 1.0, 2.0),
+                          (1, 0, 1.0, 2.0),
+                          (2, 0, 1.0, 2.0),
+                          (3, 0, 1.0, 2.0),
+                          (4, 0, 1.0, 2.0),
+                          (5, 0, 1.0, 2.0),
+                          (6, 0, 1.0, 2.0),
+                          (0, 2, 1.0, 2.0),
+                          (1, 2, 1.0, 2.0),
+                          (2, 2, 1.0, 2.0),
+                          (3, 2, 1.0, 2.0),
+                          (4, 2, 1.0, 2.0),
+                          (5, 2, 1.0, 2.0),
+                          (0, 4, 1.0, 2.0),
+                          (1, 4, 1.0, 2.0),
+                          (2, 4, 1.0, 2.0),
+                          (3, 4, 1.0, 2.0),
+                          (4, 4, 1.0, 2.0),
+                          (5, 4, 1.0, 2.0),
+                          (6, 4, 1.0, 2.0),
+                          (7, 4, 1.0, 2.0),
+                          (8, 4, 1.0, 2.0),
+                          (0, 6, 1.0, 2.0),
+                          (3, 6, 1.0, 2.0),
+                          (6, 6, 1.0, 2.0),
+                          (1, 8, 1.0, 2.0),
                           (2, 8, 1.0, 2.0)])
 
 

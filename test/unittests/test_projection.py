@@ -70,15 +70,14 @@ class ProjectionTest(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         self.assertEqual(prj.size(gather=True), self.p1.size * self.p2.size)
 
+# Need to extend the mock backend before setting synaptic parameters can be properly tested
+
     #def test_set_weights(self):
-    #    p1 = sim.Population(7, sim.IF_cond_exp)
-    #    p2 = sim.Population(7, sim.IF_cond_exp)
-    #    prj = sim.Projection(p1, p2, connector=Mock())
-    #    prj.synapse_type = "foo"
-    #    prj.post.local_cells = [0]
-    #    prj.set = Mock()
-    #    prj.setWeights(0.5)
-    #    prj.set.assert_called_with('weight', 0.5)
+    #    prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
+    #    prj.set(weight=0.789)
+    #    weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
+    #    target = 0.789*numpy.ones((self.p1.size, self.p2.size))
+    #    assert_array_equal(weights, target)
 
     #def test_randomize_weights(self):
     #    orig_len = sim.Projection.__len__
@@ -146,6 +145,19 @@ class ProjectionTest(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
         target = 0.456*numpy.ones((self.p1.size, self.p2.size))
+        assert_array_equal(weights, target)
+
+    def test_get_weights_as_array_with_multapses(self):
+        C = sim.FixedNumberPreConnector(n=7, rng=MockRNG(delta=1))
+        prj = sim.Projection(self.p2, self.p3, C, synapse_type=self.syn1)
+        # because we use a fake RNG, it is always the last three presynaptic cells which receive the double connection
+        target = numpy.array([
+            [0.123, 0.123, 0.123, 0.123, 0.123],
+            [0.246, 0.246, 0.246, 0.246, 0.246],
+            [0.246, 0.246, 0.246, 0.246, 0.246],
+            [0.246, 0.246, 0.246, 0.246, 0.246],
+            ])
+        weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
         assert_array_equal(weights, target)
 
     def test_get_plasticity_attribute_as_list(self):
