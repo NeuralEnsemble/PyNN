@@ -133,7 +133,7 @@ class Projection(common.Projection):
                 nest.Connect([pre], [postsynaptic_cell], 
                              {'weight': w, 'delay': d, 'receptor_type': receptor_type},
                              model=self.nest_synapse_model)
-        self._connections = None # reset the caching of the connection list, since this will have to be recalculated
+        self._connections = None  # reset the caching of the connection list, since this will have to be recalculated
         self._sources.extend(presynaptic_cells)
         connection_parameters.pop('tau_minus', None)  # TODO: set tau_minus on the post-synaptic cells
         connection_parameters.pop('dendritic_delay_fraction', None)
@@ -149,6 +149,14 @@ class Projection(common.Projection):
             connections = nest.GetConnections(source=presynaptic_cells.astype(int).tolist(),
                                               target=[int(postsynaptic_cell)],
                                               synapse_model=self.nest_synapse_model)
+            if len(connections) != presynaptic_cells.size:
+                # multiple connections to a given presynaptic neuron
+                # we assume here it doesn't matter which of the duplicate connections is changed
+                # but this should be checked.
+                # If it does matter, one solution might be to cache the result of GetConnections
+                # and calculate the difference, to see which connections were created in this
+                # iteration.
+                connections = [list(cc) for cc in set([tuple(c) for c in connections])]
             for name, value in connection_parameters.items():
                 value = make_sli_compatible(value)
                 if name not in self._common_synapse_property_names:
