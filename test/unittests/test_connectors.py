@@ -397,23 +397,23 @@ class TestFromFileConnector(unittest.TestCase):
                           (2, 3, 0.3, 0.12, 120.0, 98.0, 88.8)])
 
 
-class TestFixedNumberPostConnector(unittest.TestCase):
-
-    def setUp(self):
-        sim.setup(num_processes=2, rank=1, min_delay=0.123)
-        self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
-        self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
-        assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-
-    def test_with_n_smaller_than_population_size(self):
-        C = connectors.FixedNumberPostConnector(n=3, rng=MockRNG(delta=1))
-        syn = sim.StaticSynapse()
-        prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
-                         [(0, 3, 0.0, 0.123),
-                          (1, 3, 0.0, 0.123),
-                          (2, 3, 0.0, 0.123),
-                          (3, 3, 0.0, 0.123),])
+#class TestFixedNumberPostConnector(unittest.TestCase):
+#
+#    def setUp(self):
+#        sim.setup(num_processes=2, rank=1, min_delay=0.123)
+#        self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
+#        self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
+#        assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
+#
+#    def test_with_n_smaller_than_population_size(self):
+#        C = connectors.FixedNumberPostConnector(n=3, rng=MockRNG(delta=1))
+#        syn = sim.StaticSynapse()
+#        prj = sim.Projection(self.p1, self.p2, C, syn)
+#        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+#                         [(0, 3, 0.0, 0.123),
+#                          (1, 3, 0.0, 0.123),
+#                          (2, 3, 0.0, 0.123),
+#                          (3, 3, 0.0, 0.123),])
 
 
 class TestFixedNumberPreConnector(unittest.TestCase):

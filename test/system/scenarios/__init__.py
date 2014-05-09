@@ -12,3 +12,4 @@ import scenario4
 import test_parameter_handling
 import test_procedural_api
 import issue274
+import test_connectors

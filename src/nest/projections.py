@@ -103,8 +103,9 @@ class Projection(common.Projection):
         TO UPDATE
         """
         #logger.debug("Connecting to index %s from %s with %s" % (postsynaptic_index, presynaptic_indices, connection_parameters))
-        presynaptic_cells = self.pre[presynaptic_indices].all_cells
+        presynaptic_cells = self.pre.all_cells[presynaptic_indices]
         postsynaptic_cell = self.post[postsynaptic_index]
+        assert presynaptic_cells.size == presynaptic_indices.size
         assert len(presynaptic_cells) > 0, presynaptic_cells
         weights = connection_parameters.pop('weight')
         if self.receptor_type == 'inhibitory' and self.post.conductance_based:
