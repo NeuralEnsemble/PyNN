@@ -95,6 +95,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
         number of decimal places (OR SIGNIFICANT FIGURES?) in recorded data
     `threads`:
         number of threads to use
+    `grng_seed`:
+        one seed for the global random number generator of NEST
     `rng_seeds`:
         a list of seeds, one for each thread on each MPI process
     `rng_seeds_seed`:
@@ -108,6 +110,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
             setattr(simulator.state, key, extra_params[key])
     # set kernel RNG seeds
     simulator.state.num_threads = extra_params.get('threads') or 1
+    if 'grng_seed' in extra_params:
+        simulator.state.grng_seed = extra_params['grng_seed']
     if 'rng_seeds' in extra_params:
         simulator.state.rng_seeds = extra_params['rng_seeds']
     else:
