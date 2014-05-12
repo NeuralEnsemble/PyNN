@@ -47,7 +47,7 @@ def test_distance():
 
 
 class SpaceTest(unittest.TestCase):
-    
+
     def setUp(self):
         N = numpy.array
         self.A = N([0.0, 0.0, 0.0])
@@ -57,11 +57,11 @@ class SpaceTest(unittest.TestCase):
         self.ABCD = N([[0.0, 0.0, 0.0],
                        [1.0, 1.0, 1.0],
                        [-1.0, -1.0, -1.0],
-                       [2.0, 3.0, 4.0]]).T
+                       [2.0, 3.0, 4.0]])
 
     def assertArraysEqual(self, A, B):
         self.assert_((A==B).all(), "%s != %s" % (A,B))
-    
+
     def test_infinite_space_with_3D_distances(self):
         s = space.Space()
         self.assertEqual(s.distances(self.A, self.B), sqrt(3))
@@ -71,28 +71,25 @@ class SpaceTest(unittest.TestCase):
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
                                s.distances(self.ABCD, self.A).T)
         assert_arrays_equal(s.distances(self.ABCD, self.ABCD),
-                            numpy.array([(0.0, sqrt(3), sqrt(3), sqrt(29)),
-                                         (sqrt(3), 0.0, sqrt(12), sqrt(14)),
-                                         (sqrt(3), sqrt(12), 0.0, sqrt(50.0)),
-                                         (sqrt(29), sqrt(14), sqrt(50.0), 0.0)]))
-
-    def test_infinite_space_with_3D_distances(self):
-        s = space.Space()
-        self.assertArraysEqual(s.distances3D(self.ABCD.T, self.A),
+                            numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29),
+                                         sqrt(3), 0.0, sqrt(12), sqrt(14),
+                                         sqrt(3), sqrt(12), 0.0, sqrt(50.0),
+                                         sqrt(29), sqrt(14), sqrt(50.0), 0.0]))
+        self.assertArraysEqual(s.distances(self.ABCD, self.A),
                                numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
 
     def test_generator_for_infinite_space_with_3D_distances(self):
         s = space.Space()
-        f = lambda i: self.ABCD[:,i]
-        g = lambda j: self.ABCD[:,j]
+        f = lambda i: self.ABCD[i]
+        g = lambda j: self.ABCD[j]
         self.assertArraysEqual(s.distance_generator(f, g)(0, numpy.arange(4)),
                                numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
         assert_arrays_equal(s.distance_generator(f, g)(numpy.arange(4), numpy.arange(4)),
-                            numpy.array([(0.0, sqrt(3), sqrt(3), sqrt(29)),
-                                         (sqrt(3), 0.0, sqrt(12), sqrt(14)),
-                                         (sqrt(3), sqrt(12), 0.0, sqrt(50.0)),
-                                         (sqrt(29), sqrt(14), sqrt(50.0), 0.0)]))
-    
+                            numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29),
+                                         sqrt(3), 0.0, sqrt(12), sqrt(14),
+                                         sqrt(3), sqrt(12), 0.0, sqrt(50.0),
+                                         sqrt(29), sqrt(14), sqrt(50.0), 0.0]))
+
     def test_infinite_space_with_collapsed_axes(self):
         s_x = space.Space(axes='x')
         s_xy = space.Space(axes='xy')
@@ -104,7 +101,7 @@ class SpaceTest(unittest.TestCase):
         self.assertEqual(s_yz.distances(self.A, self.D), sqrt(25))
         self.assertArraysEqual(s_yz.distances(self.D, self.ABCD),
                                numpy.array([sqrt(25), sqrt(13), sqrt(41), sqrt(0)]))
-    
+
     def test_infinite_space_with_scale_and_offset(self):
         s = space.Space(scale_factor=2.0, offset=1.0)
         self.assertEqual(s.distances(self.A, self.B), sqrt(48))
@@ -113,7 +110,7 @@ class SpaceTest(unittest.TestCase):
         self.assertEqual(s.distances(self.B, self.C), sqrt(3))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
                                numpy.array([sqrt(12), sqrt(48), sqrt(0), sqrt(200)]))
-    
+
     def test_cylindrical_space(self):
         s = space.Space(periodic_boundaries=((-1.0, 4.0), (-1.0, 4.0), (-1.0, 4.0)))
         self.assertEqual(s.distances(self.A, self.B), sqrt(3))
@@ -128,7 +125,7 @@ class SpaceTest(unittest.TestCase):
 
 
 class LineTest(unittest.TestCase):
-    
+
     def test_generate_positions_default_parameters(self):
         line = space.Line()
         n = 4
@@ -139,7 +136,7 @@ class LineTest(unittest.TestCase):
             numpy.array([[0,0,0], [1,0,0], [2,0,0], [3,0,0]], float).T,
             threshold=1e-15
         )
-    
+
     def test_generate_positions(self):
         line = space.Line(dx=100.0, x0=-100.0, y=444.0, z=987.0)
         n = 2
@@ -157,7 +154,7 @@ class LineTest(unittest.TestCase):
         line3 = space.Line(dx=2.0)
         assert_equal(line1, line2)
         assert line1 != line3
-        
+
     def test_get_parameters(self):
         params = dict(dx=100.0, x0=-100.0, y=444.0, z=987.0)
         line = space.Line(**params)
@@ -165,11 +162,11 @@ class LineTest(unittest.TestCase):
 
 
 class Grid2D_Test(object):
-    
+
     def setup(self):
         self.grid1 = space.Grid2D()
         self.grid2 = space.Grid2D(aspect_ratio=3.0, dx=11.1, dy=9.9, x0=123, y0=456, z=789)
-    
+
     def test_calculate_size(self):
         assert_equal(self.grid1.calculate_size(n=1), (1,1))
         assert_equal(self.grid1.calculate_size(n=4), (2,2))
@@ -179,7 +176,7 @@ class Grid2D_Test(object):
         assert_equal(self.grid2.calculate_size(n=12), (6,2))
         assert_equal(self.grid2.calculate_size(n=27), (9,3))
         assert_raises(Exception, self.grid2.calculate_size, n=4)
-        
+
     def test_generate_positions(self):
         n = 4
         positions = self.grid1.generate_positions(n)
@@ -205,14 +202,14 @@ class Grid2D_Test(object):
 
 
 class Grid3D_Test(object):
-    
+
     def setup(self):
         self.grid1 = space.Grid3D()
         self.grid2 = space.Grid3D(aspect_ratioXY=3.0,
                                   aspect_ratioXZ=2.0,
                                   dx=11, dy=9, dz=7,
                                   x0=123, y0=456, z0=789)
-    
+
     def test_calculate_size(self):
         assert_equal(self.grid1.calculate_size(n=1), (1,1,1))
         assert_equal(self.grid1.calculate_size(n=8), (2,2,2))
@@ -236,11 +233,11 @@ class Grid3D_Test(object):
 
 
 class TestSphere(object):
-    
+
     def test__create(self):
         s = space.Sphere(2.5)
         assert_equal(s.radius, 2.5)
-        
+
     def test_sample(self):
         n = 1000
         s = space.Sphere(2.5)
@@ -254,7 +251,7 @@ class TestSphere(object):
 
 
 class TestCuboid(object):
-    
+
     def test_sample(self):
         n = 1000
         c = space.Cuboid(3, 4, 5)
@@ -267,7 +264,7 @@ class TestCuboid(object):
 
 
 class TestRandomStructure(object):
-    
+
     def test_generate_positions(self):
         n = 1000
         s = space.Sphere(2.5)
@@ -277,5 +274,5 @@ class TestRandomStructure(object):
         for axis in range(2):
             assert 3 < max(positions[axis,:]) < 3.5
             assert -1 > min(positions[axis,:]) > -1.5
-        
-    
+
+

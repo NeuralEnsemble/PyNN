@@ -98,7 +98,7 @@ class Connector(object):
     def _generate_distance_map(self, projection):
         position_generators = (projection.pre.position_generator,
                                projection.post.position_generator)
-        return LazyArray(projection.space.distance_generator3D(*position_generators),
+        return LazyArray(projection.space.distance_generator(*position_generators),
                          shape=projection.shape)
 
     def _parameters_from_synapse_type(self, projection, distance_map=None):
