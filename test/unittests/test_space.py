@@ -84,11 +84,11 @@ class SpaceTest(unittest.TestCase):
         g = lambda j: self.ABCD[j]
         self.assertArraysEqual(s.distance_generator(f, g)(0, numpy.arange(4)),
                                numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
-        assert_arrays_equal(s.distance_generator(f, g)(numpy.arange(4), numpy.arange(4)),
-                            numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29),
-                                         sqrt(3), 0.0, sqrt(12), sqrt(14),
-                                         sqrt(3), sqrt(12), 0.0, sqrt(50.0),
-                                         sqrt(29), sqrt(14), sqrt(50.0), 0.0]))
+        assert_arrays_equal(numpy.fromfunction(s.distance_generator(f, g), shape=(4, 4), dtype=int),
+                            numpy.array([(0.0, sqrt(3), sqrt(3), sqrt(29)),
+                                         (sqrt(3), 0.0, sqrt(12), sqrt(14)),
+                                         (sqrt(3), sqrt(12), 0.0, sqrt(50.0)),
+                                         (sqrt(29), sqrt(14), sqrt(50.0), 0.0)]))
 
     def test_infinite_space_with_collapsed_axes(self):
         s_x = space.Space(axes='x')

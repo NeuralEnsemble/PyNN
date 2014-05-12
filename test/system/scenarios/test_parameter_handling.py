@@ -7,6 +7,7 @@ from registry import register
 
 @register()
 def issue241(sim):
+    # "Nest SpikeSourcePoisson populations require all parameters to be passed to constructor"
     sim.setup()
     spike_train1 = sim.Population(1, sim.SpikeSourcePoisson, {'rate' : [5], 'start' : [1000], 'duration': [1234]})
     spike_train2 = sim.Population(2, sim.SpikeSourcePoisson, {'rate' : [5, 6], 'start' : [1000, 1001], 'duration': [1234, 2345]})
@@ -20,6 +21,7 @@ def issue241(sim):
 
 @register()
 def issue302(sim):
+    # "Setting attributes fails for Projections where either the pre- or post-synaptic Population has size 1"
     sim.setup()
     p1 = sim.Population(1, sim.IF_cond_exp())
     p5 = sim.Population(5, sim.IF_cond_exp())
@@ -31,7 +33,72 @@ def issue302(sim):
     prj55.set(weight=0.123)
     sim.end()
 
+
+@register()
+def test_set_synaptic_parameters(sim):
+    sim.setup()
+    mpi_rank = sim.rank()
+    p1 = sim.Population(4, sim.IF_cond_exp())
+    p2 = sim.Population(2, sim.IF_cond_exp())
+    syn = sim.TsodyksMarkramSynapse(U=0.5, weight=0.123, delay=0.1)
+    prj = sim.Projection(p1, p2, sim.AllToAllConnector(), syn)
+
+    expected = numpy.array([
+        (0.0, 0.0, 0.123, 0.1, 0.5),
+        (0.0, 1.0, 0.123, 0.1, 0.5),
+        (1.0, 0.0, 0.123, 0.1, 0.5),
+        (1.0, 1.0, 0.123, 0.1, 0.5),
+        (2.0, 0.0, 0.123, 0.1, 0.5),
+        (2.0, 1.0, 0.123, 0.1, 0.5),
+        (3.0, 0.0, 0.123, 0.1, 0.5),
+        (3.0, 1.0, 0.123, 0.1, 0.5),
+    ])
+    actual = numpy.array(prj.get(['weight', 'delay', 'U'], format='list'))
+    if mpi_rank == 0:
+        ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
+        assert_arrays_equal(actual[ind], expected)
+
+    positional_weights = numpy.array([[0, 1], [2, 3], [4, 5], [6, 7]], dtype=float)
+    prj.set(weight=positional_weights)
+    expected = positional_weights
+    actual = prj.get('weight', format='array')
+    if mpi_rank == 0:
+        assert_arrays_equal(actual, expected)
+
+    u_list = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2]
+    prj.set(U=u_list)
+    expected = numpy.array([[0.9, 0.8], [0.7, 0.6], [0.5, 0.4], [0.3, 0.2]])
+    actual = prj.get('U', format='array')
+    if mpi_rank == 0:
+        assert_arrays_equal(actual, expected)
+
+    f_delay = lambda d: 0.5+d
+    prj.set(delay=f_delay)
+    expected = numpy.array([[0.5, 1.5], [1.5, 0.5], [2.5, 1.5], [3.5, 2.5]])
+    actual = prj.get('delay', format='array')
+    if mpi_rank == 0:
+        assert_arrays_equal(actual, expected)
+
+    # final sanity check
+    expected = numpy.array([
+        (0.0, 0.0, 0.0, 0.5, 0.9),
+        (0.0, 1.0, 1.0, 1.5, 0.8),
+        (1.0, 0.0, 2.0, 1.5, 0.7),
+        (1.0, 1.0, 3.0, 0.5, 0.6),
+        (2.0, 0.0, 4.0, 2.5, 0.5),
+        (2.0, 1.0, 5.0, 1.5, 0.4),
+        (3.0, 0.0, 6.0, 3.5, 0.3),
+        (3.0, 1.0, 7.0, 2.5, 0.2),
+    ])
+    actual = numpy.array(prj.get(['weight', 'delay', 'U'], format='list'))
+    if mpi_rank == 0:
+        ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
+        assert_arrays_equal(actual[ind], expected)
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    issue241(sim)
+    #issue241(sim)
+    #issue302(sim)
+    test_set_synaptic_parameters(sim)
+

@@ -115,7 +115,7 @@ class Space(object):
                 boundaries = self.periodic_boundaries[axis]
                 if boundaries is not None:
                     range = boundaries[1] - boundaries[0]
-                    ad2   = abs(diff2)
+                    ad2 = abs(diff2)
                     diff2 = numpy.minimum(ad2, range-ad2)
             diff2 **= 2
             d[i] = diff2
@@ -126,7 +126,18 @@ class Space(object):
 
     def distance_generator(self, f, g):
         def distance_map(i, j):
-            return self.distances(f(i), g(j))
+            shape = []
+            if isinstance(i, numpy.ndarray) and i.ndim == 2:
+                i = i[:, 0]
+                shape.append(i.size)
+            if isinstance(j, numpy.ndarray) and j.ndim == 2:
+                j = j[0, :]
+                shape.append(j.size)
+            d = self.distances(f(i), g(j))
+            if shape:
+                return d.reshape(shape)
+            else:
+                return d
         return distance_map
 
 
