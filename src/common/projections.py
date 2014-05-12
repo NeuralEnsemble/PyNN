@@ -10,7 +10,7 @@ backend-specific Projection classes.
 import numpy
 import logging
 import operator
-from pyNN import random, recording, errors, models, core, descriptions
+from pyNN import recording, errors, models, core, descriptions
 from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
 from pyNN.standardmodels import StandardSynapseType
@@ -69,11 +69,12 @@ class Projection(object):
         self.pre    = presynaptic_neurons  #  } these really
         self.source = source               #  } should be
         self.post   = postsynaptic_neurons #  } read-only
-        self.receptor_type = receptor_type or 'excitatory' # TO FIX: if weights are negative, default should be 'inhibitory'
+        self.receptor_type = receptor_type or 'excitatory'  # TO FIX: if weights are negative, default should be 'inhibitory'
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
             assert len(valid_types) > 0
-            raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: '%s'" % (self.receptor_type, "', '".join(valid_types)))
+            errmsg = "User gave synapse_type=%s, synapse_type must be one of: '%s'"
+            raise errors.ConnectionError(errmsg % (self.receptor_type, "', '".join(valid_types)))
         self.label = label
         self.space = space
         self._connector = connector
@@ -204,7 +205,7 @@ class Projection(object):
             TODO
 
         TODO: document "with_address"
-        
+
         Values will be expressed in the standard PyNN units (i.e. millivolts,
         nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
@@ -268,7 +269,9 @@ class Projection(object):
                 if numpy.isnan(values[addr]):
                     values[addr] = value
                 else:
-                    values[addr] += value
+                    values[addr] += value   # addition is only appropriate for certain variables
+                                            # e.g. weight. Not appropriate for delays.
+                                            # What about synaptic parameters, e.g. wmax?
             all_values.append(values)
         return all_values
 
@@ -288,7 +291,7 @@ class Projection(object):
         """
         Print synaptic attributes (weights, delays, etc.) to file. In the array
         format, zeros are printed for non-existent connections.
-        
+
         Values will be expressed in the standard PyNN units (i.e. millivolts,
         nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """

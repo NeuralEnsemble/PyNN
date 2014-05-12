@@ -143,6 +143,20 @@ class TestAllToAllConnector(unittest.TestCase):
                           (2, 3, 101.0, 0.5),
                           (3, 3, 100.0, 0.5)])
 
+    def test_connect_with_distance_dependent_weights_and_delays(self):
+        syn = sim.StaticSynapse(weight="d+100", delay="0.2+2*d")
+        C = connectors.AllToAllConnector(safe=False)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 101.0, 2.2),
+                          (1, 1, 100.0, 0.2),
+                          (2, 1, 101.0, 2.2),
+                          (3, 1, 102.0, 4.2),
+                          (0, 3, 103.0, 6.2),
+                          (1, 3, 102.0, 4.2),
+                          (2, 3, 101.0, 2.2),
+                          (3, 3, 100.0, 0.2)])
+
     def test_connect_with_delays_None(self):
         syn = sim.StaticSynapse(weight=0.1, delay=None)
         C = connectors.AllToAllConnector()
