@@ -14,7 +14,8 @@ sim, options = get_simulator()
 
 sim.setup(quit_on_end=False)
 
-spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
+source=sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10))
+spike_source = sim.Population(1, source)
 
 connector = sim.AllToAllConnector()
 
@@ -45,6 +46,6 @@ for label,p in populations.items():
                                    "pkl", options.simulator)
     p.write_data(filename, annotations={'script_name': __file__})
 
-print spike_source.get_data('spikes')
+print "spike source = ", spike_source.get_data().segments[0].spiketrains
 
 sim.end()

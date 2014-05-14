@@ -14,6 +14,7 @@ from pyNN import common, errors
 from pyNN.parameters import Sequence, ParameterSpace, simplify
 from pyNN.random import RandomDistribution
 from pyNN.standardmodels import StandardCellType
+from pyNN.standardmodels.cells import SpikeSourceArray
 from . import simulator
 from .recording import Recorder, VARIABLE_MAP
 from .conversion import make_sli_compatible
@@ -119,6 +120,8 @@ class Population(common.Population, PopulationMixin):
                                    None,
                                    size=self.size)
         try:
+	    if params and hasattr(params, '__iter__') and 'spike_times' in params and params['spike_times'].dtype == int:
+		params['spike_times'] = params['spike_times'].astype(float)
             self.all_cells = nest.Create(nest_model, self.size, params=params)
         except nest.NESTError, err:
             if "UnknownModelName" in err.message and "cond" in err.message:
