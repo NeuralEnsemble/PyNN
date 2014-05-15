@@ -98,7 +98,7 @@ class Projection(common.Projection):
         parameter_space = self.synapse_type.native_parameters
         for ii,jj in parameter_space.items() :
             if isinstance(jj.base_value,RandomDistribution) :                # Random Distribution specified
-                if jj.base_value.name in NEST_RDEV_TYPES  :                          # Currently nest.NewConnect takes only normal distributions
+                if jj.base_value.name in NEST_RDEV_TYPES  :                          
                     logger.warning("Random values will be created inside NEST with NEST's own RNGs")
                     params[ii] = NativeRNG(jj.base_value).parameters 
                 else :
@@ -118,7 +118,7 @@ class Projection(common.Projection):
         Create connections by calling nest.NewConnect on the presynaptic and postsynaptic population 
         with the parameters provided by params.
         """
-        nest.NewConnect(list(self.pre.all_cells), list(self.post.all_cells), rule_params, syn_params)
+        nest.Connect(list(self.pre.all_cells), list(self.post.all_cells), rule_params, syn_params)
         
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):
