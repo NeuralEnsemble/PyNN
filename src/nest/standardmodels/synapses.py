@@ -9,7 +9,6 @@ Synapse Dynamics classes for nest
 import nest
 from pyNN.standardmodels import synapses, build_translations
 from pyNN.nest.synapses import get_synapse_defaults, NESTSynapseMixin
-from pyNN.nest import NEST_SYNAPSE_TYPES
 import logging
 
 from ..conversion import make_sli_compatible
@@ -51,9 +50,10 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
             logger.warning(", ".join(model for model in base_model))
             base_model = list(base_model)[0]
             logger.warning("By default, %s is used" % base_model)
-        if base_model not in NEST_SYNAPSE_TYPES:
+        available_models = nest.Models(mtype='synapses')
+        if base_model not in available_models :
             raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
-                             "Possible models in your NEST build are: %s" % (base_model, NEST_SYNAPSE_TYPES))
+                             "Possible models in your NEST build are: %s" % (base_model, available_models))
 
         # CopyModel defaults must be simple floats, so we use the NEST defaults
         # for any inhomogeneous parameters, and set the inhomogeneous values
