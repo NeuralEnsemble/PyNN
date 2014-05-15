@@ -115,7 +115,7 @@ class Projection(common.Projection):
 
     def _connect(self, rule_params, syn_params) :
         """
-        Create connections by calling nest.NewConnect on the presynaptic and postsynaptic population 
+        Create connections by calling nest.Connect on the presynaptic and postsynaptic population 
         with the parameters provided by params.
         """
         nest.Connect(list(self.pre.all_cells), list(self.post.all_cells), rule_params, syn_params)
