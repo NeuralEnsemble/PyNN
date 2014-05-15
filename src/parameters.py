@@ -112,6 +112,9 @@ class Sequence(object):
     def __init__(self, value):
         if isinstance(value, Sequence):
             self.value = value.value
+        elif isinstance(value, numpy.ndarray):
+            # dont overwrite dtype of int arrays
+            self.value = value
         else:
             self.value = numpy.array(value, float)
 
@@ -322,7 +325,7 @@ class ParameterSpace(object):
         parameter space.
 
         Example:
-        
+
         >>> ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3*i+2}, shape=(4,))
         >>> ps.evaluate()
         >>> for D in ps:
@@ -351,15 +354,19 @@ class ParameterSpace(object):
         """
         if not self._evaluated:
             raise Exception("Must call evaluate() method before iterating over a ParameterSpace")
-        for j in range(self._evaluated_shape[1]):
-            D = {}
-            for name, value in self._parameters.items():
-                if is_listlike(value):
-                    D[name] = value[:, j]
-                else:
-                    D[name] = value
-                assert not isinstance(D[name], LazyArray) # should all have been evaluated by now
-            yield D
+        assert len(self.shape) == 2
+        if len(self._evaluated_shape) == 1:  # values will be one-dimensional
+            yield self._parameters
+        else:
+            for j in range(self._evaluated_shape[1]):
+                D = {}
+                for name, value in self._parameters.items():
+                    if is_listlike(value):
+                        D[name] = value[:, j]
+                    else:
+                        D[name] = value
+                    assert not isinstance(D[name], LazyArray) # should all have been evaluated by now
+                yield D
 
     def __eq__(self, other):
         return (all(a==b for a,b in zip(self._parameters.items(), other._parameters.items()))

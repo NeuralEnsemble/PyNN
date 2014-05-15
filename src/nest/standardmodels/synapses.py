@@ -11,6 +11,8 @@ from pyNN.standardmodels import synapses, build_translations
 from pyNN.nest.synapses import get_synapse_defaults, NESTSynapseMixin
 import logging
 
+from ..conversion import make_sli_compatible
+
 logger = logging.getLogger("PyNN")
 
 
@@ -27,16 +29,16 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
     """Specification of STDP models."""
     
     base_translations = build_translations(
-        ('weight', 'weight', 1000.0),  # nA->pA, uS->nS
+        ('weight', 'weight', 1000.0), # nA->pA, uS->nS
         ('delay', 'delay')
-    )  # will be extended by translations from timing_dependence, etc.
+    ) # will be extended by translations from timing_dependence, etc.
     
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0,
                  weight=0.0, delay=None):
         assert dendritic_delay_fraction == 1, """NEST does not currently support axonal delays:
-                                                 for the purpose of STDP calculations all delays
-                                                 are assumed to be dendritic."""
+for the purpose of STDP calculations all delays
+are assumed to be dendritic."""
         super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
                                             voltage_dependence, dendritic_delay_fraction,
                                             weight, delay)
@@ -65,6 +67,9 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
         synapse_defaults.pop("w_min_always_zero_in_NEST")
         # Tau_minus is a parameter of the post-synaptic cell, not of the connection
         synapse_defaults.pop("tau_minus")
+
+        synapse_defaults = make_sli_compatible(synapse_defaults)
+
         label = "%s_%s" % (base_model, suffix)
         nest.CopyModel(base_model, label, synapse_defaults)
         return label
@@ -87,8 +92,8 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'Wmax',  1000.0), # unit conversion
-        ('w_min',     'w_min_always_zero_in_NEST'),
+        ('w_max', 'Wmax', 1000.0), # unit conversion
+        ('w_min', 'w_min_always_zero_in_NEST'),
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
     extra_parameters = {
@@ -106,8 +111,8 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     __doc__ = synapses.MultiplicativeWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'Wmax',  1000.0), # unit conversion
-        ('w_min',     'w_min_always_zero_in_NEST'),
+        ('w_max', 'Wmax', 1000.0), # unit conversion
+        ('w_min', 'w_min_always_zero_in_NEST'),
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
     extra_parameters = {
@@ -124,8 +129,8 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
     __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
 
     translations = build_translations(
-        ('w_max',     'Wmax',  1000.0), # unit conversion
-        ('w_min',     'w_min_always_zero_in_NEST'),
+        ('w_max', 'Wmax', 1000.0), # unit conversion
+        ('w_min', 'w_min_always_zero_in_NEST'),
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
     extra_parameters = {
@@ -143,10 +148,10 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
     __doc__ = synapses.GutigWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'Wmax',  1000.0), # unit conversion
-        ('w_min',     'w_min_always_zero_in_NEST'),
-        ('mu_plus',   'mu_plus'),
-        ('mu_minus',  'mu_minus'),
+        ('w_max', 'Wmax', 1000.0), # unit conversion
+        ('w_min', 'w_min_always_zero_in_NEST'),
+        ('mu_plus', 'mu_plus'),
+        ('mu_minus', 'mu_minus'),
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
 
@@ -160,10 +165,10 @@ class SpikePairRule(synapses.SpikePairRule):
     __doc__ = synapses.SpikePairRule.__doc__
 
     translations = build_translations(
-        ('tau_plus',  'tau_plus'),
+        ('tau_plus', 'tau_plus'),
         ('tau_minus', 'tau_minus'), # defined in post-synaptic neuron
-        ('A_plus',    'lambda'),
-        ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
+        ('A_plus', 'lambda'),
+        ('A_minus', 'alpha', 'A_minus/A_plus', 'alpha*lambda'),
 
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])

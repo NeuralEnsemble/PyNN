@@ -88,16 +88,6 @@ class Recorder(recording.Recorder):
             else:
                 id._cell.clear_past_spikes()
 
-    @staticmethod
-    def find_units(variable):
-        if variable in recording.UNITS_MAP:
-            return recording.UNITS_MAP[variable]
-        else:
-            # works with NEURON 7.3, not with 7.1, 7.2 not tested
-            nrn_units = h.units(variable.split('.')[-1])
-            pq_units = nrn_units.replace("2", "**2").replace("3", "**3")
-            return pq_units
-
     def _get_spiketimes(self, id):
         spikes = numpy.array(id._cell.spike_times)
         return spikes[spikes <= simulator.state.t + 1e-9]

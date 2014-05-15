@@ -50,3 +50,24 @@ def reraise(exception, message):
 def ezip(*args):
     for items in zip(*args):
         yield items[0], items[1:]
+
+
+class IndexBasedExpression(object):
+    """
+    Abstract base class for general expressions that use the cell indices and projection class to
+    determine their value instead of just the the distance between the cells
+    """
+
+    @property
+    def projection(self):
+        try:
+            return self._projection
+        except AttributeError:
+            return None
+
+    @projection.setter
+    def projection(self, projection):
+        self._projection = projection
+
+    def __call__(self, i, j):
+        raise NotImplementedError

@@ -13,6 +13,9 @@ try:
 except ImportError:
     pass
 import nest
+NEST_RDEV_TYPES = ['binomial','binomial_clipped','binomial_clipped_to_boundary','exponential','exponential_clipped','exponential_clipped_to_boundary','gamma','gamma_clipped','gamma_clipped_to_boundary','gsl_binomial','lognormal','lognormal_clipped','lognormal_clipped_to_boundary','normal','normal_clipped','normal_clipped_to_boundary','poisson','poisson_clipped','poisson_clipped_to_boundary','uniform','uniform_int']
+
+
 from . import simulator
 from pyNN import common, recording, errors, space, __doc__
 
@@ -34,14 +37,15 @@ from pyNN.nest.connectors import *
 from pyNN.nest.standardmodels.synapses import *
 from pyNN.nest.standardmodels.electrodes import *
 from pyNN.nest.recording import *
-from pyNN.random import NumpyRNG
+from pyNN.random import NumpyRNG, GSLRNG, NativeRNG
 from pyNN.space import Space
 from pyNN.standardmodels import StandardCellType
 from pyNN.nest.populations import Population, PopulationView, Assembly
 from pyNN.nest.projections import Projection
 
 logger = logging.getLogger("PyNN")
-
+if logger.level == logging.NOTSET:
+    logger.setLevel(logging.ERROR)
 
 # ==============================================================================
 #   Utility functions
@@ -94,6 +98,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
         number of decimal places (OR SIGNIFICANT FIGURES?) in recorded data
     `threads`:
         number of threads to use
+    `grng_seed`:
+        one seed for the global random number generator of NEST
     `rng_seeds`:
         a list of seeds, one for each thread on each MPI process
     `rng_seeds_seed`:
@@ -107,12 +113,14 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
             setattr(simulator.state, key, extra_params[key])
     # set kernel RNG seeds
     simulator.state.num_threads = extra_params.get('threads') or 1
+    if 'grng_seed' in extra_params:
+        simulator.state.grng_seed = extra_params['grng_seed']
     if 'rng_seeds' in extra_params:
         simulator.state.rng_seeds = extra_params['rng_seeds']
     else:
         rng = NumpyRNG(extra_params.get('rng_seeds_seed', 42))
         n = simulator.state.num_processes * simulator.state.threads
-        simulator.state.rng_seeds = rng.next(n, 'randint', (100000,)).tolist()
+        simulator.state.rng_seeds = rng.next(n, 'uniform_int', {'low': 0, 'high': 100000}).tolist()
     # set resolution
     simulator.state.dt = timestep
     # Set min_delay and max_delay for all synapse models

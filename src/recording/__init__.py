@@ -24,14 +24,6 @@ logger = logging.getLogger("PyNN")
 
 MPI_ROOT = 0
 
-UNITS_MAP = {
-    'spikes': 'ms',
-    'v': 'mV',
-    'gsyn_exc': 'uS',
-    'gsyn_inh': 'uS',
-    'w': 'nA',
-}
-
 
 def get_mpi_comm():
     try:
@@ -123,14 +115,14 @@ def get_io(filename):
         os.makedirs(dir)
     extension = os.path.splitext(filename)[1]
     if extension in ('.txt', '.ras', '.v', '.gsyn'):
-        return neo.io.PyNNTextIO(filename=filename)
+        raise IOError("ASCII-based formats are not currently supported for output data. Try using the file extension '.pkl' or '.h5'")
     elif extension in ('.h5',):
         return neo.io.NeoHdf5IO(filename=filename)
     elif extension in ('.pkl', '.pickle'):
         return neo.io.PickleIO(filename=filename)
     elif extension == '.mat':
         return neo.io.NeoMatlabIO(filename=filename)
-    else: # function to be improved later
+    else:  # function to be improved later
         raise Exception("file extension %s not supported" % extension)
 
 
@@ -241,7 +233,7 @@ class Recorder(object):
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     channel_indices = numpy.array([self.population.id_to_index(id) for id in ids])
-                    units = self.find_units(variable)
+                    units = self.population.find_units(variable)
                     source_ids = numpy.fromiter(ids, dtype=int)
                     segment.analogsignalarrays.append(
                         neo.AnalogSignalArray(
