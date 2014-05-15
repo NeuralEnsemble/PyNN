@@ -76,13 +76,30 @@ requested distribution:
     >>> rng = NumpyRNG(seed=824756)
     >>> rng.next(5, 'normal', [1.0, 0.2])
     array([ 0.65866423,  0.87500017,  0.90755753,  0.93793779,  0.94839735])
-    >>> rng = GSLRNG(seed=824756, type='ranlxd2') # RANLUX algorithm of Lüscher
-    >>> rng.next(5, 'gaussian', [0.2]) + 1.0
+    >>> rng = GSLRNG(seed=824756, type='ranlxd2')  # RANLUX algorithm of Lüscher
+    >>> rng.next(5, 'normal', [1.0, 0.2])
     array([ 0.61104097,  0.83086026,  0.87072741,  0.7513628 ,  1.12875371])
 
-Note that we have not so far made any effort to harmonise distribution names
-and parameters across generators. If someone would like to work on this, please
-get in touch!
+In versions of PyNN prior to 0.8, distribution names and parameterisations were
+not standardized: e.g. :class:`GSLRNG` needed 'gaussian' rather than 'normal'.
+As of PyNN 0.8, the following standardized names are used:
+
+==========================  ====================  ===============================================
+Name                        Parameters            Comments
+--------------------------  --------------------  -----------------------------------------------
+binomial                    n, p
+gamma                       k, theta
+exponential                 beta
+lognormal                   mu, sigma
+normal                      mu, sigma
+normal_clipped              mu, sigma, low, high  Values outside (low, high) are redrawn
+normal_clipped_to_boundary  mu, sigma, low, high  Values below/above low/high are set to low/high
+poisson                     lambda
+uniform                     low, high
+uniform_int                 low, high
+vonmises                    mu, kappa
+==========================  ====================  ===============================================
+
 
 The :class:`~pyNN.random.RandomDistribution` class
 ==================================================
@@ -93,9 +110,15 @@ method requires only the number of values required as argument:
 
 .. doctest::
 
-    >>> gamma = RandomDistribution('gamma', [2.0, 0.3], rng=NumpyRNG(seed=72386))
+    >>> gamma = RandomDistribution('gamma', (2.0, 0.3), rng=NumpyRNG(seed=72386))
     >>> gamma.next(5)
     array([ 0.4325809 ,  0.12952503,  1.58510406,  0.81182457,  0.07577787])
+
+You can alternatively provide parameter names as keyword arguments, e.g.:
+
+.. doctest::
+
+    >>> gamma = RandomDistribution('gamma', k=2.0, theta=0.3, rng=NumpyRNG(seed=72386))
 
 Note that :meth:`~pyNN.random.RandomDistribution.next` called without any
 arguments returns a single number, not an array:

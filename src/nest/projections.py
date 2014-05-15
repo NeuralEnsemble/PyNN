@@ -20,7 +20,6 @@ from pyNN.nest.random import NativeRNG
 from .standardmodels.synapses import StaticSynapse
 from .conversion import make_sli_compatible
 
-
 logger = logging.getLogger("PyNN")
 
 

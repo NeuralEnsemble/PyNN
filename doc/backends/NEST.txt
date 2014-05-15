@@ -137,3 +137,18 @@ function:
     >>> from pyNN.nest import native_synapse_type
     >>> stdp = native_synapse_type("stdp_synapse")(Wmax=50.0, lambda=0.015)
     >>> prj_plastic = Projection(p1, p1, connector, receptor_type='AMPA', synapse_type=stdp)
+
+Common synapse properties
+-------------------------
+
+Some NEST synapse models (e.g. ``stdp_facetshw_synapse_hom``) make use of
+common synapse properties to conserve memory. This has the following
+implications for their usage in PyNN:
+
+* Common properties can only have one homogeneous value per projection. Trying
+  to assign heterogeneous values will result in a ``ValueError``.
+
+* Common properties can currently not be retrieved using ``Projection.get``.
+  However, they will only deviate from the default when changed manually.
+
+

@@ -270,7 +270,7 @@ class PopulationViewTest(unittest.TestCase):
         p = sim.Population(4, sim.IF_cond_exp, {'tau_m': 12.3, 'cm': 0.987, 'i_offset': -0.21})
         pv = p[:3]
         rng = MockRNG(start=1.21, delta=0.01, parallel_safe=True)
-        pv.set(cm=random.RandomDistribution('uniform', rng=rng), tau_m=9.87)
+        pv.set(cm=random.RandomDistribution('uniform', (0.8, 1.2), rng=rng), tau_m=9.87)
         tau_m, cm, i_offset = p.get(('tau_m', 'cm', 'i_offset'), gather=True)
         assert_array_equal(cm, numpy.array([1.21, 1.22, 1.23, 0.987]))
         assert_array_equal(tau_m, numpy.array([9.87, 9.87, 9.87, 12.3]))
@@ -322,7 +322,7 @@ class PopulationViewTest(unittest.TestCase):
         p = sim.Population(17, sim.IF_cond_alpha())
         pv = p[::4]
         pv.set = Mock()
-        v_rest = random.RandomDistribution('uniform', [-70.0, -60.0])
+        v_rest = random.RandomDistribution('uniform', low=-70.0, high=-60.0)
         pv.rset("v_rest", v_rest)
         pv.set.assert_called_with(v_rest=v_rest)
 

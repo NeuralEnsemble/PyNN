@@ -61,6 +61,28 @@ class TestSimulationControl(unittest.TestCase):
     def test_max_delay(self):
         sim.setup(max_delay=9.87)
         self.assertEqual(sim.get_max_delay(), 9.87)
+
+    def test_callbacks(self):
+        total_time = 100.
+        callback_steps = [10., 10., 20., 25.]
+
+        # callbacks are called at 0. and after every step
+        expected_callcount = [11, 11, 6, 5]
+        num_callbacks = len(callback_steps)
+        callback_callcount = [0] * num_callbacks
+
+        def make_callback(idx):
+            def callback(time):
+                callback_callcount[idx] += 1
+                return time + callback_steps[idx]
+            return callback
+
+        callbacks = [make_callback(i) for i in range(num_callbacks)]
+        sim.setup(timestep=0.1, min_delay=0.1)
+        sim.run_until(total_time, callbacks=callbacks)
+
+        self.assertTrue(all(callback_callcount[i] == expected_callcount[i]
+            for i in range(num_callbacks)))
     
     @unittest.skipUnless(MPI, "test requires mpi4py")
     def test_num_processes(self):
@@ -69,3 +91,7 @@ class TestSimulationControl(unittest.TestCase):
     @unittest.skipUnless(MPI, "test requires mpi4py")
     def test_rank(self):
         self.assertEqual(sim.rank(), mpi_comm.rank)
+
+
+if __name__ == '__main__':
+    unittest.main()

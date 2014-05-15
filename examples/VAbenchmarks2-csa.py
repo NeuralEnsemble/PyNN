@@ -126,24 +126,27 @@ inh_cells = all_cells[n_exc:]
 if benchmark == "COBA":
     ext_stim = Population(20, SpikeSourcePoisson(rate=rate, duration=stim_dur), label="expoisson")
     rconn = 0.01
-    ext_conn = FixedProbabilityConnector(rconn, weights=0.1)
+    ext_conn = FixedProbabilityConnector(rconn)
+    syn = StaticSynapse(weight=0.1)
 
 print "%s Initialising membrane potential to random values..." % node_id
 rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
-uniformDistr = RandomDistribution('uniform', [v_reset,v_thresh], rng=rng)
+uniformDistr = RandomDistribution('uniform', low=v_reset, high=v_thresh, rng=rng)
 all_cells.initialize(v=uniformDistr)
 
 print "%s Connecting populations..." % node_id
 #exc_conn = FixedProbabilityConnector(pconn, weights=w_exc, delays=delay)
 #inh_conn = FixedProbabilityConnector(pconn, weights=w_inh, delays=delay)
-exc_conn = CSAConnector(csa.cset (csa.random (pconn), w_exc, delay))
-inh_conn = CSAConnector(csa.cset (csa.random (pconn), w_inh, delay))
+exc_syn = StaticSynapse(weight=w_exc, delay=delay)
+inh_syn = StaticSynapse(weight=w_inh, delay=delay)
+exc_conn = CSAConnector(csa.cset (csa.random (pconn)))
+inh_conn = CSAConnector(csa.cset (csa.random (pconn)))
 
 connections={}
-connections['exc'] = Projection(exc_cells, all_cells, exc_conn, receptor_type='excitatory')
-connections['inh'] = Projection(inh_cells, all_cells, inh_conn, receptor_type='inhibitory')
+connections['exc'] = Projection(exc_cells, all_cells, exc_conn, exc_syn, receptor_type='excitatory')
+connections['inh'] = Projection(inh_cells, all_cells, inh_conn, inh_syn, receptor_type='inhibitory')
 if (benchmark == "COBA"):
-    connections['ext'] = Projection(ext_stim, all_cells, ext_conn, receptor_type='excitatory')
+    connections['ext'] = Projection(ext_stim, all_cells, ext_conn, syn, receptor_type='excitatory')
 
 # === Setup recording ==========================================================
 print "%s Setting up recording..." % node_id
@@ -176,7 +179,7 @@ print "%d Writing data to file..." % node_id
 if not(os.path.isdir('Results')):
     os.mkdir('Results')
 
-all_cells.write_data("Results/VAbenchmarks2-csa_%s_np%d_%s.ras" % (benchmark, np, simulator_name))
+all_cells.write_data("Results/VAbenchmarks2-csa_%s_np%d_%s.pkl" % (benchmark, np, simulator_name))
 writeCPUTime = timer.diff()
 
 connections = "%d e→e,i  %d i→e,i" % (connections['exc'].size(),
