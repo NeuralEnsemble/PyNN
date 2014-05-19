@@ -90,7 +90,7 @@ class SpikeDetector(RecordingDevice):
 
     def connect_to_cells(self):
         assert not self._connected
-        nest.NewConnect(list(self._all_ids), list(self.device),{'rule':'all_to_all'},{'model':'static_synapse'})
+        nest.Connect(list(self._all_ids), list(self.device),{'rule':'all_to_all'},{'model':'static_synapse'})
         self._connected = True
 
     def get_spiketimes(self, desired_ids):
@@ -125,7 +125,7 @@ class Multimeter(RecordingDevice):
 
     def connect_to_cells(self):
         assert not self._connected
-        nest.NewConnect(list(self.device), list(self._all_ids),{'rule':'all_to_all'},{'model':'static_synapse'})
+        nest.Connect(list(self.device), list(self._all_ids),{'rule':'all_to_all'},{'model':'static_synapse'})
         self._connected = True
 
     @property
