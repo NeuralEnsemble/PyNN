@@ -147,7 +147,6 @@ class Projection(common.Projection):
             connections = nest.GetConnections(source=numpy.unique(presynaptic_cells.astype(int)).tolist(),
                                               target=[int(postsynaptic_cell)],
                                               synapse_model=self.nest_synapse_model)
-            assert len(connections) == presynaptic_cells.size
             for name, value in connection_parameters.items():
                 value = make_sli_compatible(value)
                 if name not in self._common_synapse_property_names:
