@@ -15,6 +15,7 @@ from pyNN.connectors import Connector, \
                             IndexBasedProbabilityConnector, \
                             FixedNumberPreConnector, \
                             FixedNumberPostConnector, \
+                            FixedTotalNumberConnector, \
                             OneToOneConnector, \
                             SmallWorldConnector, \
                             FromListConnector, \
