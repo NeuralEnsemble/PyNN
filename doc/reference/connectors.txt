@@ -20,15 +20,19 @@ Built-in connectors
 
 .. autoclass:: FixedProbabilityConnector
 
+.. autoclass:: FromListConnector
+
+.. autoclass:: FromFileConnector
+
+.. autoclass:: ArrayConnector
+
 .. autoclass:: FixedNumberPreConnector
 
 .. autoclass:: FixedNumberPostConnector
 
 .. autoclass:: DistanceDependentProbabilityConnector
 
-.. autoclass:: FromListConnector
-
-.. autoclass:: FromFileConnector
+.. autoclass:: IndexBasedProbabilityConnector
 
 .. autoclass:: SmallWorldConnector
 

@@ -385,6 +385,9 @@ class BasePopulation(object):
             self._set_initial_value_array(variable, initial_value)
             self.initial_values[variable] = initial_value
 
+    def find_units(self, variable):
+        return self.celltype.units[variable]
+
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
         return self.celltype.can_record(variable)
@@ -499,8 +502,11 @@ class BasePopulation(object):
 
     def get_spike_counts(self, gather=True):
         """
-        Returns the number of spikes for each neuron.
+        Returns a dict containing the number of spikes for each neuron.
+        
+        The dict keys are neuron IDs, not indices.
         """
+        # arguably, we should use indices
         return self.recorder.count('spikes', gather, self._record_filter)
 
     @deprecated("mean_spike_count()")
@@ -978,6 +984,12 @@ class Assembly(object):
             for p in self.populations[1:]:
                 rts = rts.intersection(set(p.celltype.receptor_types))
         return rts
+
+    def find_units(self, variable):
+        units = set(p.find_units(variable) for p in self.populations)
+        if len(units) > 1:
+            raise ValueError("Inconsistent units")
+        return units
 
     @property
     def _mask_local(self):

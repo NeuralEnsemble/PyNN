@@ -6,20 +6,30 @@ December 2007
 
 """
 
-from pyNN.utility import get_script_args, normalized_filename
+from pyNN.utility import get_simulator, normalized_filename
 
-simulator_name = get_script_args(1)[0]
-exec("from pyNN.%s import *" % simulator_name)
+sim, options = get_simulator(("--plot-figure",
+                              "Plot the simulation results to a file."))
 
+sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
 
-setup(timestep=0.01,min_delay=0.1,max_delay=4.0,debug=True)
-
-ifcell = create(EIF_cond_alpha_isfa_ista(i_offset=1.0, tau_refrac=2.0, v_spike=-40))
+cell_type = sim.EIF_cond_alpha_isfa_ista(i_offset=1.0, tau_refrac=2.0, v_spike=-40)
+ifcell = sim.create(cell_type)
 print ifcell[0].get_parameters()
 
 filename = normalized_filename("Results", "EIF_cond_alpha_isfa_ista", "pkl",
-                               simulator_name)
-record('v', ifcell, filename, annotations={'script_name': __file__})
-run(200.0)
+                               options.simulator)
+sim.record('v', ifcell, filename, annotations={'script_name': __file__})
+sim.run(200.0)
 
-end()
+if options.plot_figure:
+    from pyNN.utility.plotting import Figure, Panel
+    data = ifcell.get_data().segments[0]
+    vm = data.filter(name="v")[0]
+    Figure(
+        Panel(vm, ylabel="Membrane potential (mV)", xlabel="Time (ms)",
+              xticks=True),
+        title=__file__,
+    ).save(options.plot_figure)
+
+sim.end()

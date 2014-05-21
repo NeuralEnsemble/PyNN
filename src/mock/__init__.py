@@ -11,6 +11,7 @@ really running simulations.
 import logging
 from pyNN import common
 from pyNN.connectors import *
+from pyNN.recording import *
 from . import simulator
 from .standardmodels import *
 from .populations import Population, PopulationView, Assembly

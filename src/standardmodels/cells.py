@@ -31,6 +31,7 @@ Spike sources (input neurons)
 from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import Sequence
 
+
 class IF_curr_alpha(StandardCellType):
     """
     Leaky integrate and fire model with fixed threshold and alpha-function-
@@ -51,8 +52,16 @@ class IF_curr_alpha(StandardCellType):
     recordable = ['spikes', 'v']
     conductance_based = False
     default_initial_values = {
-        'v': -65.0, #'v_rest',
+        'v': -65.0,  # 'v_rest',
+        'isyn_exc': 0.0,
+        'isyn_inh': 0.0,
     }
+    units = {
+        'v': 'mV',
+        'isyn_exc': 'nA',
+        'isyn_inh': 'nA',
+    }
+
 
 class IF_curr_exp(StandardCellType):
     """
@@ -75,8 +84,16 @@ class IF_curr_exp(StandardCellType):
     recordable = ['spikes', 'v']
     conductance_based = False
     default_initial_values = {
-        'v': -65.0, #'v_rest',
+        'v': -65.0,  # 'v_rest',
+        'isyn_exc': 0.0,
+        'isyn_inh': 0.0,
     }
+    units = {
+        'v': 'mV',
+        'isyn_exc': 'nA',
+        'isyn_inh': 'nA',
+    }
+
 
 class IF_cond_alpha(StandardCellType):
     """
@@ -99,11 +116,17 @@ class IF_cond_alpha(StandardCellType):
     }
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
-        'v': -65.0, #'v_rest',
+        'v': -65.0,  # 'v_rest',
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
     }
-    
+    units = {
+        'v': 'mV',
+        'gsyn_exc': 'uS',
+        'gsyn_inh': 'uS',
+    }
+
+
 class IF_cond_exp(StandardCellType):
     """
     Leaky integrate and fire model with fixed threshold and 
@@ -125,10 +148,16 @@ class IF_cond_exp(StandardCellType):
     }
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
-        'v': -65.0, #'v_rest',
+        'v': -65.0,  # 'v_rest',
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
     }
+    units = {
+        'v': 'mV',
+        'gsyn_exc': 'uS',
+        'gsyn_inh': 'uS',
+    }
+
 
 class IF_cond_exp_gsfa_grr(StandardCellType):
     """
@@ -164,11 +193,17 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
     }
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
-        'v': -65.0, #'v_rest',
+        'v': -65.0,  # 'v_rest',
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
     }
-    
+    units = {
+        'v': 'mV',
+        'gsyn_exc': 'uS',
+        'gsyn_inh': 'uS',
+    }
+
+
 class IF_facets_hardware1(StandardCellType):
     """
     Leaky integrate and fire model with conductance-based synapses and fixed 
@@ -191,10 +226,16 @@ class IF_facets_hardware1(StandardCellType):
     }
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
-        'v': -65.0, #'v_rest',
+        'v': -65.0,  # 'v_rest',
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
     }
+    units = {
+        'v': 'mV',
+        'gsyn_exc': 'uS',
+        'gsyn_inh': 'uS',
+    }
+
 
 class HH_cond_exp(StandardCellType):
     """Single-compartment Hodgkin-Huxley model.
@@ -220,10 +261,16 @@ class HH_cond_exp(StandardCellType):
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     receptor_types = ('excitatory', 'inhibitory', 'source_section.gap')
     default_initial_values = {
-        'v': -65.0, #'v_rest',
+        'v': -65.0,  # 'v_rest',
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
     }
+    units = {
+        'v': 'mV',
+        'gsyn_exc': 'uS',
+        'gsyn_inh': 'uS',
+    }
+
 
 class EIF_cond_alpha_isfa_ista(StandardCellType):
     """
@@ -256,11 +303,18 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
     }
     recordable = ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
-        'v': -70.6, #'v_rest',
+        'v': -70.6,  # 'v_rest',
         'w': 0.0,
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
     }
+    units = {
+        'v': 'mV',
+        'w': 'nA',
+        'gsyn_exc': 'uS',
+        'gsyn_inh': 'uS',
+    }
+
 
 class EIF_cond_exp_isfa_ista(StandardCellType):
     """
@@ -293,10 +347,16 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
     }
     recordable = ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
-        'v': -70.6, #'v_rest',
+        'v': -70.6,  # 'v_rest',
         'w': 0.0,
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
+    }
+    units = {
+        'v': 'mV',
+        'w': 'nA',
+        'gsyn_exc': 'uS',
+        'gsyn_inh': 'uS',
     }
 
 
@@ -328,7 +388,11 @@ class Izhikevich(StandardCellType):
     default_initial_values = {
         'v': -70.0,   # mV
         'u': -14.0      # mV/ms
-    }  
+    }
+    units = {
+        'v': 'mV',
+        'w': 'mV/ms',
+    }
 
 
 class SpikeSourcePoisson(StandardCellType):

@@ -10,7 +10,7 @@ August 2006, November 2009
 import socket, os
 from importlib import import_module
 import numpy
-from pyNN.utility import get_script_args, init_logging, normalized_filename, connection_plot
+from pyNN.utility import get_script_args, init_logging, normalized_filename
 
 simulator_name = get_script_args(1)[0]
 sim = import_module("pyNN.%s" % simulator_name)
@@ -27,7 +27,7 @@ cell_params = {'tau_refrac': 2.0,  # ms
                'v_thresh':  -50.0, # mV
                'tau_syn_E':  2.0,  # ms
                'tau_syn_I':  2.0,  # ms
-               'tau_m': RandomDistribution('uniform', [18.0, 22.0], rng=rng)
+               'tau_m': RandomDistribution('uniform', low=18.0, high=22.0, rng=rng)
 }
 n_record = 3
 
@@ -37,7 +37,7 @@ print "Process with rank %d running on %s" % (node, socket.gethostname())
 print "[%d] Creating populations" % node
 n_spikes = int(2*tstop*input_rate/1000.0)
 spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential',
-                                            [1000.0/input_rate], mask_local=False))
+                                            {'beta': 1000.0/input_rate}, mask_local=False))
 
 input_population  = sim.Population(10, sim.SpikeSourceArray(spike_times=spike_times), label="input")
 output_population = sim.Population(20, sim.IF_curr_exp(**cell_params), label="output")
@@ -53,7 +53,6 @@ projection = sim.Projection(input_population, output_population, connector, syn)
 filename = normalized_filename("Results", "simpleRandomNetwork", "conn",
                                simulator_name, sim.num_processes())
 projection.save('connections', filename)
-print connection_plot(projection.get('weight', format='array'))
 
 input_population.record('spikes')
 output_population.record('spikes')

@@ -1,5 +1,7 @@
 from nose.plugins.skip import SkipTest
-from scenarios import scenarios
+from nose.tools import assert_equal
+import numpy
+from scenarios.registry import registry
 
 try:
     import pyNN.brian
@@ -8,7 +10,7 @@ except ImportError:
     have_brian = False
 
 def test_scenarios():
-    for scenario in scenarios:
+    for scenario in registry:
         if "brian" not in scenario.exclude:
             scenario.description = scenario.__name__
             if have_brian:
@@ -24,8 +26,8 @@ def test_ticket235():
     pynnn.setup()
     p1 = pynnn.Population(9, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
     p2 = pynnn.Population(9, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
-    p1.record(to_file=False)
-    p2.record(to_file=False)
+    p1.record('spikes', to_file=False)
+    p2.record('spikes', to_file=False)
     prj1_2 = pynnn.Projection(p1, p2, pynnn.OneToOneConnector(), pynnn.StaticSynapse(weight=10.0), receptor_type='excitatory')
     # we note that the connectivity is as expected: a uniform diagonal
     prj1_2.get('weight', format='array')
@@ -36,17 +38,20 @@ def test_ticket235():
     # We see that both populations have fired uniformly as expected:
     n_spikes_p2 = p2.get_spike_counts()
     for n in n_spikes_p1.values():
-        assert n == n_spikes_p1[p1[1]]
+        assert_equal(n, n_spikes_p1[p1[1]])
     for n in n_spikes_p2.values():
-        assert n == n_spikes_p2[p2[1]]
+        assert_equal(n, n_spikes_p2[p2[1]])
     # With this new setup, only the second p2 unit should fire:
-    prj1_2.set('weight', [0, 20, 0, 0, 0, 0, 0, 0, 0])
+    #prj1_2.set(weight=[0, 20, 0, 0, 0, 0, 0, 0, 0])
+    new_weights = numpy.where(numpy.eye(9), 0, numpy.nan)
+    new_weights[1, 1] = 20.0
+    prj1_2.set(weight=new_weights)
     # This looks good:
     prj1_2.get('weight', format='array')
     pynnn.run(50)
     n_spikes_p1 = p1.get_spike_counts()
     for n in n_spikes_p1.values():
-        assert n == n_spikes_p1[p1[1]]
+        assert_equal(n, n_spikes_p1[p1[1]])
     # p2[1] should be ahead in spikes count, and others should not have
     # fired more. It is not what I observe:
     n_spikes_p2 = p2.get_spike_counts()

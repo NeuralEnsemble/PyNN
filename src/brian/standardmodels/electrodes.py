@@ -12,13 +12,12 @@ Classes:
 
 """
 
-from brian import ms, nA, Hz, network_operation, amp as ampere
+import logging
 import numpy
-from pyNN.brian import simulator
+from brian import ms, nA, Hz, network_operation, amp as ampere
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
-from pyNN.core import larray
-import logging
+from .. import simulator
 
 logger = logging.getLogger("PyNN")
 
@@ -35,8 +34,8 @@ def update_currents():
 class BrianCurrentSource(StandardCurrentSource):
     """Base class for a source of current to be injected into a neuron."""
 
-    def __init__(self, parameters):
-        super(StandardCurrentSource, self).__init__(parameters)
+    def __init__(self, **parameters):
+        super(StandardCurrentSource, self).__init__(**parameters)
         global current_sources
         self.cell_list = []
         self.indices   = []
@@ -75,9 +74,9 @@ class BrianCurrentSource(StandardCurrentSource):
         if self.running and simulator.state.t >= self.times[self.i]*1e3:
             for cell, idx in zip(self.cell_list, self.indices):
                 if not self._is_playable:
-                    cell.parent_group.i_inj[idx] = self.amplitudes[self.i] * ampere
+                    cell.parent.brian_group.i_inj[idx] = self.amplitudes[self.i] * ampere
                 else:
-                    cell.parent_group.i_inj[idx] = self._compute(self.times[self.i]) * ampere
+                    cell.parent.brian_group.i_inj[idx] = self._compute(self.times[self.i]) * ampere
             self.i += 1
             if self.i >= len(self.times):
                 self.running = False
@@ -108,8 +107,8 @@ class ACSource(BrianCurrentSource, electrodes.ACSource):
     _is_computed = True
     _is_playable = True
 
-    def __init__(self, parameters):
-        BrianCurrentSource.__init__(self, parameters)
+    def __init__(self, **parameters):
+        BrianCurrentSource.__init__(self, **parameters)
         self._generate()
 
     def _generate(self):
@@ -130,8 +129,8 @@ class DCSource(BrianCurrentSource, electrodes.DCSource):
     _is_computed = True
     _is_playable = False
 
-    def __init__(self, parameters):
-        BrianCurrentSource.__init__(self, parameters)
+    def __init__(self, **parameters):
+        BrianCurrentSource.__init__(self, **parameters)
         self._generate()
 
     def _generate(self):
@@ -152,8 +151,8 @@ class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
     _is_computed = True
     _is_playable = True
 
-    def __init__(self, parameters):
-        BrianCurrentSource.__init__(self, parameters)
+    def __init__(self, **parameters):
+        BrianCurrentSource.__init__(self, **parameters)
         self._generate()
 
     def _generate(self):

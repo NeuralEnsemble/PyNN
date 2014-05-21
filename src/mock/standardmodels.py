@@ -166,7 +166,19 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         ('tau_syn_I',  'TAU_SYN_I'),
     )
 
-
+class Izhikevich(cells.Izhikevich):
+    __doc__ = cells.Izhikevich.__doc__
+    
+    translations = build_translations(
+        ('a',        'a'),
+        ('b',        'b'),
+        ('c',        'c'),
+        ('d',        'd'),
+        ('i_offset', 'I_e'),
+    )
+    standard_receptor_type = True
+    receptor_scale = 1e-3  # synaptic weight is in mV, so need to undo usual weight scaling
+    
 class MockCurrentSource(object):
     def inject_into(self, cells):
         __doc__ = StandardCurrentSource.inject_into.__doc__
@@ -309,4 +321,6 @@ class SpikePairRule(synapses.SpikePairRule):
     translations = build_translations(
         ('tau_plus',  'tauLTP'),
         ('tau_minus', 'tauLTD'),
+        ('A_plus',    'aLTP'),
+        ('A_minus',   'aLTD'),
     )

@@ -231,7 +231,7 @@ class _State(common.control.BaseState):
     def run_until(self, tstop):
         self._pre_run()
         self.tstop = tstop
-        logger.info("Running the simulation until %g ms" % tstop)
+        #logger.info("Running the simulation until %g ms" % tstop)
         if self.tstop > self.t:
             self.parallel_context.psolve(self.tstop)
 

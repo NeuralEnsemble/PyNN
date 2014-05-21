@@ -1,23 +1,24 @@
 {
     "simulator": "pyNN.nest",
+    "threads": 1,
     "populations": {
         "A": {
-            "n": 1000,
+            "n": 10000,
             "celltype": "IF_cond_exp",
             "params": {
                 "i_offset": 1.0 }},
         "B": {
-            "n": 1000,
+            "n": 10000,
             "celltype": "IF_cond_exp",
             "params": {
                 "i_offset": 0.5 }}},
     "sim_time": 100.0,
     "recording": {
         "A": {
-            "v": 100,
+            "v": 10,
             "spikes": 1000},
         "B": {
-            "v": 100,
+            "v": 10,
             "spikes": 1000}},
     "projections": {
         "AB": {
@@ -29,7 +30,7 @@
             "synapse_type": {
                 "type": "StaticSynapse",
                 "params": {
-                    "weight": 0.001,
+                    "weight": 0.000001,
                     "delay": 1.5}},
             "receptor_type": "excitatory"}}
 }

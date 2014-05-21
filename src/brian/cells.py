@@ -6,6 +6,7 @@ Definition of cell classes for the brian module.
 
 """
 
+
 import numpy
 import brian
 mV = brian.mV
@@ -14,10 +15,10 @@ nA = brian.nA
 uS = brian.uS
 Hz = brian.Hz
 ampere = brian.amp
+second = brian.second
+from pyNN.parameters import Sequence, simplify
+from . import simulator
 
-from pyNN import core
-from pyNN.parameters import Sequence
-from pyNN.brian import simulator
 
 def _new_property(obj_hierarchy, attr_name, units):
     """
@@ -43,37 +44,10 @@ def _new_property(obj_hierarchy, attr_name, units):
     return property(fset=set, fget=get)
 
 
-class AdaptiveReset(object):
-
-    def __init__(self, Vr=-70.6*mV, b=0.0805*nA):
-        self.Vr = Vr
-        self.b  = b
-
-    def __call__(self, P, spikes):
-        P.v[spikes] = self.Vr[spikes]
-        P.w[spikes] += self.b[spikes]
-
-
-class IzhikevichReset(object):
-
-    def __init__(self, Vr= -65 * mV, d=0.2 * mV/ms):
-        self.Vr = Vr
-        self.d  = d
-
-    def __call__(self, P, spikes):
-        P.v[spikes]  = self.Vr[spikes]
-        P.u[spikes] += self.d[spikes]
-
-
 class BaseNeuronGroup(brian.NeuronGroup):
 
-    def __init__(self, n, equations, threshold, reset, refractory,
-                 implicit=False, **parameters):
-        try:
-            clock = simulator.state.simclock
-            max_delay = simulator.state.max_delay*ms
-        except AttributeError:
-            raise Exception("Simulation timestep not yet set. Need to call setup()")
+    def __init__(self, n, equations, threshold, reset=brian.NoReset(),
+                 refractory=0*ms, implicit=False, **parameters):
         if "tau_refrac" in parameters:
             max_refractory = parameters["tau_refrac"].max() * ms
         else:
@@ -83,19 +57,41 @@ class BaseNeuronGroup(brian.NeuronGroup):
                                    threshold=threshold,
                                    reset=reset,
                                    refractory=refractory,
-                                   max_refractory = max_refractory,
+                                   max_refractory=max_refractory,
                                    compile=True,
-                                   clock=simulator.state.simclock,
+                                   clock=simulator.state.network.clock,
                                    max_delay=simulator.state.max_delay*ms,
                                    implicit=implicit,
                                    freeze=False)
         for name, value in parameters.items():
             setattr(self, name, value)
+        self._S0 = self._S[:,0]  # store parameter values in case of reset.
+                                 # TODO: update this when parameters are modified
         self.initial_values = {}
 
     def initialize(self):
+        #print("INITIALIZE: %s" % self.initial_values)
         for variable, values in self.initial_values.items():
             setattr(self, variable, values)
+
+
+class ThresholdNeuronGroup(BaseNeuronGroup):
+
+    def __init__(self, n, equations, **parameters):
+        threshold = brian.SimpleFunThreshold(self.check_threshold)
+        reset = brian.Reset(parameters.pop('v_reset'))
+        refractory = parameters.pop('tau_refrac')
+        BaseNeuronGroup.__init__(self, n, equations,
+                                 threshold, reset,
+                                 refractory, **parameters)
+        #self._variable_refractory_time = True
+        #self._S0 = self._S[:, 0]
+
+    tau_refrac = _new_property('', '_refractory_array', ms)
+    v_reset    = _new_property('_resetfun', 'resetvalue', mV)
+
+    def check_threshold(self, v):
+        return v >= self.v_thresh
 
 
 class BiophysicalNeuronGroup(BaseNeuronGroup):
@@ -108,42 +104,36 @@ class BiophysicalNeuronGroup(BaseNeuronGroup):
                                  threshold, reset, refractory,
                                  implicit=True,
                                  **parameters)
-        self._S0 = self._S[:, 0]
 
 
-class ThresholdNeuronGroup(BaseNeuronGroup):
+class AdaptiveReset(object):
 
-    def __init__(self, n, equations, **parameters):
-        threshold = brian.SimpleFunThreshold(self.check_threshold)
-        reset = brian.Reset(parameters['v_reset']*mV)
-        refractory = parameters['tau_refrac']*ms
-        BaseNeuronGroup.__init__(self, n, equations,
-                                 threshold, reset, refractory,
-                                 **parameters)
-        self._variable_refractory_time = True
-        self._S0 = self._S[:, 0]
+    def __init__(self, Vr=-70.6*mV, b=0.0805*nA):
+        self.Vr = Vr
+        self.b  = b
 
-    tau_refrac = _new_property('', '_refractory_array', ms)
-    v_reset    = _new_property('_resetfun', 'resetvalue', mV)
-
-    def check_threshold(self, v):
-        return v >= self.v_thresh*mV
+    def __call__(self, P, spikes):
+        P.v[spikes] = self.Vr[spikes]
+        P.w[spikes] += self.b[spikes]
 
 
 class AdaptiveNeuronGroup(BaseNeuronGroup):
+    
     def __init__(self, n, equations, **parameters):
         threshold = brian.SimpleFunThreshold(self.check_threshold)
+        period = simplify(parameters['tau_refrac'])
+        assert not hasattr(period, "__len__"), "Brian does not support heterogenerous refractory periods with CustomRefractoriness"
         reset = brian.SimpleCustomRefractoriness(
-                    AdaptiveReset(parameters['v_reset']* mV,
-                                  parameters['b']*ampere),
-                    period=parameters['tau_refrac'].max()*ms)
+                    AdaptiveReset(parameters.pop('v_reset'),
+                                  parameters.pop('b')),
+                    period=period*second)
         refractory = None
         BaseNeuronGroup.__init__(self, n, equations,
                                  threshold, reset, refractory,
                                  **parameters)
-        self._variable_refractory_time = True
-        self._refractory_variable = None
-        self._S0 = self._S[:, 0]
+        #self._variable_refractory_time = True
+        #self._refractory_variable = None
+        #self._S0 = self._S[:, 0]
 
     tau_refrac = _new_property('', '_refractory_array', ms)
     v_reset    = _new_property('_resetfun.resetfun', 'Vr', mV)
@@ -153,86 +143,88 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
         return v >= self.v_spike*mV
 
 
+class IzhikevichReset(object):
+
+    def __init__(self, Vr=-65*mV, d=0.2*mV/ms):
+        self.Vr = Vr
+        self.d  = d
+
+    def __call__(self, P, spikes):
+        P.v[spikes]  = self.Vr[spikes]
+        P.u[spikes] += self.d[spikes]
+
+
 class IzhikevichNeuronGroup(BaseNeuronGroup):
+    
     def __init__(self, n, equations, **parameters):
         threshold = brian.SimpleFunThreshold(self.check_threshold)
         reset = brian.SimpleCustomRefractoriness(
-                    IzhikevichReset(parameters['v_reset']* mV,
-                                  parameters['d']),
-                    period=parameters['tau_refrac'].max()*ms)
-        refractory = None
+                    IzhikevichReset(parameters['v_reset'],
+                                    parameters['d']),
+                    period=0*ms)
+        refractory = 0*ms
         BaseNeuronGroup.__init__(self, n, equations,
                                  threshold, reset, refractory,
                                  **parameters)
-        self._variable_refractory_time = True
-        self._refractory_variable = None
-        self._S0 = self._S[:, 0]
+        #self._variable_refractory_time = True
+        #self._refractory_variable = None
+        #self._S0 = self._S[:, 0]
 
-    tau_refrac = _new_property('', '_refractory_array', ms)
     v_reset    = _new_property('_resetfun.resetfun', 'Vr', mV)
     b = _new_property('_resetfun.resetfun', 'b', nA)
 
     def check_threshold(self, v):
         return v >= 30*mV
+    
 
-
-class PoissonGroupWithDelays(BaseNeuronGroup):
-
+class PoissonGroup(brian.PoissonGroup):
+    
     def __init__(self, n, equations, **parameters):
-        threshold = brian.PoissonThreshold()
-        reset = brian.NoReset()
-        refractory = 0*ms
-        BaseNeuronGroup.__init__(self, n,
-                                 brian.LazyStateUpdater(),
-                                 threshold, reset, refractory,
-                                 **parameters)
-        self.initialize()
+        for name, value in parameters.items():
+            setattr(self, name, value)
+        brian.PoissonGroup.__init__(self, n,
+                                    rates=self.update_rates,
+                                    clock=simulator.state.network.clock)
 
     def update_rates(self, t):
-        """
-        Acts as a function of time for the PoissonGroup, while storing the
-        parameters for later retrieval.
-        """
+        #print t, self.rate
         idx = (self.start <= t) & (t <= self.start + self.duration)
-        return numpy.where(idx, self.rate, 0)
-
-    def update(self):
-        self._S[0, :] = self.update_rates(self.clock.t)
-        brian.NeuronGroup.update(self)
-
-    def initialize(self):
-        self._S0[0] = self.update_rates(self.clock.t)
-
-
-class MultipleSpikeGeneratorGroupWithDelays(BaseNeuronGroup):
-
-    def __init__(self, n, equations, spiketimes=None):
-        threshold = brian.directcontrol.MultipleSpikeGeneratorThreshold(
-                                               [st.value for st in spiketimes])
-        reset = brian.NoReset()
-        refractory = 0*ms
-        BaseNeuronGroup.__init__(self, n,
-                                 brian.LazyStateUpdater(),
-                                 threshold, reset, refractory,
-                                 spiketimes=spiketimes)
-
-    def _get_spiketimes(self):
-        return self._threshold.spiketimes
-    def _set_spiketimes(self, spiketimes):
-        if core.is_listlike(spiketimes):
-            assert len(spiketimes) == len(self), "spiketimes (length %d) must contain as many iterables as there are cells in the group (%d)." % (len(spiketimes), len(self))
-            assert isinstance(spiketimes[0], Sequence)
-            self._threshold.set_spike_times([st.value for st in spiketimes])
-        elif isinstance(spiketimes, Sequence):
-            self._threshold.set_spike_times([spiketimes.value for i in range(len(self))])
-        else:
-            raise Exception()
-    spiketimes = property(fget=_get_spiketimes, fset=_set_spiketimes)
-
-    def reinit(self):
-        brian.NeuroGroup.reinit(self)
-        self._threshold.reinit()
+        return numpy.where(idx, self.firing_rate, 0)
 
     def initialize(self):
         pass
 
+    def _get_rate(self):
+        return self.firing_rate
+    def _set_rate(self, value):
+        self.firing_rate = value
+    rate = property(fset=_set_rate, fget=_get_rate)
+
+
+class SpikeGeneratorGroup(brian.SpikeGeneratorGroup):
+    
+    def __init__(self, n, equations, spike_times=None):
+        """
+        Note that `equations` is not used: it is simply for compatibility with
+        other NeuronGroup subclasses.
+        """
+        spiketimes = [(i, t) for i, seq in enumerate(spike_times) for t in seq.value]
+        brian.SpikeGeneratorGroup.__init__(self, n, spiketimes,
+                                           clock=simulator.state.network.clock)
+
+    def _get_spike_times(self):
+        values = [list() for i in range(self.N)]
+        for i, t in self.spiketimes:
+            values[i].append(t)
+        return numpy.array([Sequence(times) for times in values], dtype=Sequence)
+    def _set_spike_times(self, spike_times, mask=None):
+        if mask is not None:
+            existing_times = self._get_spike_times()
+            existing_times[mask] = spike_times
+            spike_times = existing_times
+        values = [(i, t) for i, seq in enumerate(spike_times) for t in seq.value]
+        brian.SpikeGeneratorGroup.__init__(self, self.N, values, period=self.period)
+    spike_times = property(fget=_get_spike_times, fset=_set_spike_times)
+
+    def initialize(self):
+        pass

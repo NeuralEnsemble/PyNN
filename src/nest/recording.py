@@ -67,7 +67,7 @@ class RecordingDevice(object):
                     self._initial_values[variable] = {}
                 initial_value = self._initial_values[variable].get(id,
                                                                    id.get_initial_value(variable))
-                data[id] = numpy.concatenate(([initial_value], data[id]))
+                data[id] = numpy.concatenate((numpy.hstack([initial_value]), data[id]))
                 # if `get_data()` is called in the middle of a simulation, the
                 # value at the last time point will become the initial value for
                 # the next time `get_data()` is called
@@ -406,10 +406,6 @@ class Recorder(recording.Recorder):
         # Maybe we can reset them, rather than create new ones?
         self._multimeter = Multimeter()
         self._spike_detector = SpikeDetector()
-
-    @staticmethod
-    def find_units(variable):
-        return recording.UNITS_MAP.get(variable, "dimensionless")
 
     def _get_spiketimes(self, id):
         return self._spike_detector.get_spiketimes([id])[id] # hugely inefficient - to be optimized later

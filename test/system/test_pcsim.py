@@ -1,5 +1,5 @@
 from nose.plugins.skip import SkipTest
-from scenarios import scenarios
+from scenarios.registry import registry
 
 try:
     import pyNN.pcsim
@@ -8,7 +8,7 @@ except ImportError:
     have_pcsim = False
 
 def test_all():
-    for scenario in scenarios:
+    for scenario in registry:
         if "pcsim" not in scenario.exclude:
             scenario.description = scenario.__name__
             if have_pcsim:
