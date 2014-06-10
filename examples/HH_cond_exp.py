@@ -22,7 +22,9 @@ exec("from pyNN.%s import *" % simulator_name)
 
 setup(timestep=0.01, min_delay=0.1, max_delay=4.0, quit_on_end=False)
 
-hhcell = create(HH_cond_exp())
+hhcell = create(HH_cond_exp, {'tau_syn_E' : 2.0,
+                              'tau_syn_I': 5.0,   
+                              'e_rev_E'  : 0.,    'e_rev_I'   : -80.})
 
 spike_sourceE = create(SpikeSourceArray(spike_times=[float(i) for i in range(1,100,1)]))
 spike_sourceI = create(SpikeSourceArray(spike_times=[float(i) for i in range(100,200,11)]))

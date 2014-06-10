@@ -31,6 +31,14 @@ class StaticSynapse(StandardSynapseType):
         'delay': None
     }
 
+class ElectricalSynapse(StandardSynapseType):
+    """
+    A bidirectional electrical synapse (gap junction) with fixed conductance
+    """
+       
+    default_parameters = {
+        'weight': 0.0 # the (bidirectional) conductance of the gap junction (uS) 
+    }
 
 class TsodyksMarkramSynapse(StandardSynapseType):
     """
@@ -50,8 +58,6 @@ class TsodyksMarkramSynapse(StandardSynapseType):
             depression time constant (ms).
         `tau_facil`:
             facilitation time constant (ms).
-        `u0`, `x0`, `y0`:
-            initial conditions.
     
     .. _`Tsodyks, Uziel and Markram (2000)`: http://www.jneurosci.org/content/20/1/RC50.long
     """
@@ -61,9 +67,6 @@ class TsodyksMarkramSynapse(StandardSynapseType):
         'U': 0.5,   # use parameter
         'tau_rec': 100.0, # depression time constant (ms)
         'tau_facil': 0.0,   # facilitation time constant (ms)
-        'u0': 0.0,  # }
-        'x0': 1.0,  # } initial values
-        'y0': 0.0   # }
     }
 
 

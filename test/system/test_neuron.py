@@ -1,9 +1,11 @@
+import os
 from nose.plugins.skip import SkipTest
-from scenarios import scenarios
+from scenarios.registry import registry
 from nose.tools import assert_equal, assert_almost_equal
 from pyNN.random import RandomDistribution
 from pyNN.utility import init_logging
 import quantities as pq
+import numpy
 
 try:
     import pyNN.neuron
@@ -13,16 +15,20 @@ try:
 except ImportError:
     have_neuron = False
 
+skip_ci = False
+if "JENKINS_SKIP_TESTS" in os.environ:
+    skip_ci = os.environ["JENKINS_SKIP_TESTS"] == "1"
 
 
 def test_scenarios():
-    for scenario in scenarios:
+    for scenario in registry:
         if "neuron" not in scenario.exclude:
             scenario.description = scenario.__name__
             if have_neuron:
                 yield scenario, pyNN.neuron
             else:
                 raise SkipTest
+
 
 def test_ticket168():
     """
@@ -97,7 +103,6 @@ class SimpleNeuron(object):
             for seg in sec:
                 seg.v = self.v_init
 
-
 class SimpleNeuronType(NativeCellType):
     default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}
     default_initial_values = {'v': -65.0}
@@ -105,6 +110,36 @@ class SimpleNeuronType(NativeCellType):
     receptor_types = ['apical.ampa']
     model = SimpleNeuron
 
+
+def test_electrical_synapse():
+    if skip_ci:
+        raise SkipTest("Skipping test on CI server as it produces a segmentation fault")
+    p1 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
+    p2 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
+    syn = pyNN.neuron.ElectricalSynapse(weight=1.0)
+    C = pyNN.connectors.FromListConnector(numpy.array([[0, 0, 1.0],
+                                                       [0, 1, 1.0],
+                                                       [2, 2, 1.0],
+                                                       [3, 2, 1.0]]),
+                                          column_names=['weight'])
+    prj = pyNN.neuron.Projection(p1, p2, C, syn,
+                                 source='source_section.gap', receptor_type='source_section.gap') 
+    current_source = pyNN.neuron.StepCurrentSource(amplitudes=[1.0], times=[100])
+    p1[0:1].inject(current_source)
+    p2[2:3].inject(current_source)
+    p1.record('v')
+    p2.record('v')
+    pyNN.neuron.run(200)
+    p1_trace = p1.get_data(('v',)).segments[0].analogsignalarrays[0]
+    p2_trace = p2.get_data(('v',)).segments[0].analogsignalarrays[0]
+    # Check the local forward connection
+    assert p2_trace[:,0].max() - p2_trace[:,0].min() > 50 
+    # Check the remote forward connection
+    assert p2_trace[:,1].max() - p2_trace[:,1].min() > 50 
+    # Check the local backward connection
+    assert p1_trace[:,2].max() - p2_trace[:,2].min() > 50 
+    # Check the remote backward connection
+    assert p1_trace[:,3].max() - p2_trace[:,3].min() > 50
 
 def test_record_native_model():
     nrn = pyNN.neuron
@@ -115,7 +150,7 @@ def test_record_native_model():
     parameters = {'g_leak': 0.0003}
     p1 = nrn.Population(10, SimpleNeuronType(**parameters))
     print p1.get('g_leak')
-    p1.rset('gnabar', RandomDistribution('uniform', [0.10, 0.14]))
+    p1.rset('gnabar', RandomDistribution('uniform', low=0.10, high=0.14))
     print p1.get('gnabar')
     p1.initialize(v=-63.0)
 

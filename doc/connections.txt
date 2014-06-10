@@ -178,10 +178,14 @@ probability ``p_connect``:
     connector = FixedProbabilityConnector(p_connect=0.2)
 
 
-Connecting neurons with a distance-dependent probability
+Connecting neurons with a position-dependent probability
 --------------------------------------------------------
 
-For each pair of pre-post cells, the connection probability depends on distance.
+The connection probability can also depend on the positions of the pre- and
+post-synaptic neurons.
+
+With the :class:`DistanceDependentProbabilityConnector`, the connection
+probability depends on the distance between the two neurons.
 
 The constructor requires a string ``d_expression``, which should be a distance
 expression, as described above for delays, but returning a probability (a value
@@ -201,6 +205,11 @@ numerical values ``1.0`` and ``0.0``.
 
 Calculation of distance may be controlled by specifying a :class:`Space` object,
 passed to the :class:`Projection` constructor (see below).
+
+For a more general dependence of connection probability on position, use the
+:class:`IndexBasedProbabilityConnector`, which expects a function of the indices,
+``i`` and ``j``, of the pre- and post-synaptic neurons. The function should
+return the probability of creating that connection.
 
 
 Divergent/fan-out connections
@@ -279,8 +288,9 @@ Specifying a list of connections
 --------------------------------
 
 Specific connection patterns not covered by the methods above can be obtained by
-specifying an explicit list of pre-synaptic and post-synaptic neuron indices,
-with weights and delays. Example:
+specifying an explicit list of pre-synaptic and post-synaptic neuron indices.
+Optionally, the list can contain synaptic properties such as weights, delays,
+or the parameters for plasticity rules. Example:
 
 .. testcode::
 
@@ -290,26 +300,44 @@ with weights and delays. Example:
       (0, 2, 0.0, 0.1),
       (1, 5, 0.0, 0.1)
     ]
-    connector = FromListConnector(connections)
+    connector = FromListConnector(connections, column_names=["weight", "delay"])
 
-.. todo:: comment on the point that in this case weights, delays, other
-          parameters are determined by the connector rather than by the synapse type
+Any synaptic parameters not given in the list are determined from the synapse
+type. Parameters given in the list always override the values from the synapse
+type.
+
 
 Reading connection patterns to/from a file
 ------------------------------------------
 
 Connection patterns can be read in from a text file. The file should contain
-four columns separated by spaces, containing:
+a header specifying which parameter is in which column, e.g.::
+ 
+    # columns = ["i", "j", "weight", "delay", "U", "tau_rec"]   
 
-    ``pre-synaptic-index   post-synaptic-index   weight   delay``
-
-and can be read using:
+and then the connection data should be in columns separated by spaces. The
+connections are read using:
 
 .. testcode::
 
     connector = FromFileConnector("connections.txt")
 
-.. todo:: should extend this to other parameters, allow column headers
+
+Specifying an explicit connection matrix
+----------------------------------------
+
+The connectivity can be specified as a boolean array, where each row represents
+the existence of connections from a given pre-synaptic neuron to the
+post-synaptic neurons. For example:
+
+.. testcode::
+
+    connections = numpy.array([
+                [0, 1, 1, 0],
+                [1, 1, 0, 1],
+                [0, 0, 1, 0],
+            ])
+    connector = ArrayConnector(connections)
 
 
 User-defined connection algorithms
@@ -318,7 +346,8 @@ User-defined connection algorithms
 If you wish to use a specific connection/wiring algorithm not covered by the
 PyNN built-in ones, the options include:
 
-    * constructing a list of connections and use the :class:`FromListConnector` class;
+    * constructing a list or array of connections and using the
+      :class:`FromListConnector` or :class:`ArrayConnector` class;
     * using the Connection Set Algebra and the :class:`CSAConnector` class;
     * writing your own :class:`Connector` class - see the
       :doc:`developers_guide` for guidance on this.

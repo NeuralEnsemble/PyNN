@@ -7,10 +7,17 @@ Synapse Dynamics classes for the neuron module.
 """
 
 from pyNN.standardmodels import synapses, build_translations
-from pyNN.neuron.simulator import state
+from pyNN.neuron.simulator import state, Connection, GapJunction, GapJunctionPresynaptic
+
+class BaseSynapse(object):
+    """
+    Base synapse type for all NEURON standard synapses (sets a default 'connection_type')
+    """
+    connection_type = Connection
+    presynaptic_type = None
 
 
-class StaticSynapse(synapses.StaticSynapse):
+class StaticSynapse(BaseSynapse, synapses.StaticSynapse):
     __doc__ = synapses.StaticSynapse.__doc__
 
     translations = build_translations(
@@ -23,7 +30,22 @@ class StaticSynapse(synapses.StaticSynapse):
         return state.min_delay
 
 
-class STDPMechanism(synapses.STDPMechanism):
+class ElectricalSynapse(BaseSynapse, synapses.ElectricalSynapse):
+    __doc__ = synapses.ElectricalSynapse.__doc__
+
+    connection_type = GapJunction
+    presynaptic_type = GapJunctionPresynaptic
+
+    translations = build_translations(
+        ('weight', 'weight'),
+    )
+    model = 'Gap'
+
+    def _get_minimum_delay(self):
+        return state.min_delay    
+
+
+class STDPMechanism(BaseSynapse, synapses.STDPMechanism):
     __doc__ = synapses.STDPMechanism.__doc__
     postsynaptic_variable = 'spikes'
 
@@ -52,7 +74,7 @@ class STDPMechanism(synapses.STDPMechanism):
         return state.min_delay
 
 
-class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
+class TsodyksMarkramSynapse(BaseSynapse, synapses.TsodyksMarkramSynapse):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
     translations = build_translations(
@@ -61,25 +83,15 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         ('U', 'U'),
         ('tau_rec', 'tau_rec'),
         ('tau_facil', 'tau_facil'),
-        ('u0', 'u0'),
-        ('x0', 'x' ), # } note that these two values
-        ('y0', 'y')   # } are not used
     )
     model = 'TsodyksMarkramWA'
     postsynaptic_variable = None
-
-    def __init__(self, weight=0.0, delay=None, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0):
-        assert (x0 == 1 and y0 == 0), "It is not currently possible to set x0 and y0"
-        synapses.TsodyksMarkramSynapse.__init__(self, weight=weight, delay=delay,
-                                                U=U, tau_rec=tau_rec,
-                                                tau_facil=tau_facil, u0=u0,
-                                                x0=x0, y0=y0)
 
     def _get_minimum_delay(self):
         return state.min_delay
     
     
-class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
+class AdditiveWeightDependence(BaseSynapse, synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
 
     translations = build_translations(
@@ -89,7 +101,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     possible_models = set(['StdwaSA', 'StdwaVogels2011'])
 
 
-class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
+class MultiplicativeWeightDependence(BaseSynapse, synapses.MultiplicativeWeightDependence):
     __doc__ = synapses.MultiplicativeWeightDependence.__doc__
 
     translations = build_translations(
@@ -99,7 +111,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     possible_models = set(['StdwaSoft',])
 
 
-class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
+class AdditivePotentiationMultiplicativeDepression(BaseSynapse, synapses.AdditivePotentiationMultiplicativeDepression):
     __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
 
     translations = build_translations(
@@ -113,7 +125,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
     }
 
 
-class GutigWeightDependence(synapses.GutigWeightDependence):
+class GutigWeightDependence(BaseSynapse, synapses.GutigWeightDependence):
     __doc__ = synapses.GutigWeightDependence.__doc__
 
     translations = build_translations(
@@ -125,7 +137,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
     possible_models = set(['StdwaGuetig'])
 
 
-class SpikePairRule(synapses.SpikePairRule):
+class SpikePairRule(BaseSynapse, synapses.SpikePairRule):
     __doc__ = synapses.SpikePairRule.__doc__
 
     translations = build_translations(

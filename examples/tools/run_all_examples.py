@@ -2,7 +2,7 @@
 
 import subprocess, glob, os, sys
 
-default_simulators = ['PCSIM', 'NEST', 'NEURON', 'Brian']
+default_simulators = ['MOCK', 'NEST', 'NEURON', 'Brian']
 simulator_names = sys.argv[1:]
 if len(simulator_names) > 0:
     for name in simulator_names:
@@ -22,10 +22,10 @@ for simulator in simulator_names:
         pass
 
 exclude = {
-    'PCSIM': ("brunel.py", "HH_cond_exp.py", "EIF_cond_alpha_isfa_ista.py", "VAbenchmarks2-csa.py", "nineml_neuron.py"),
-    'NEURON': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
-    'NEST': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
-    'Brian': ["VAbenchmarks2-csa.py", "nineml_neuron.py"],
+    'MOCK': ["nineml_neuron.py"],
+    'NEURON': ["nineml_neuron.py"],
+    'NEST': ["nineml_neuron.py"],
+    'Brian': ["nineml_neuron.py", "HH_cond_exp2.py", "HH_cond_exp.py", "simpleRandomNetwork_csa.py", "simpleRandomNetwork.py", "simple_STDP2.py", "simple_STDP.py"],
 }
 
 extra_args = {

@@ -12,6 +12,7 @@ from pyNN import common, core, space, __doc__
 from pyNN.standardmodels import StandardCellType
 from pyNN.recording import get_io
 from pyNN.space import Space
+from pyNN.random import NumpyRNG, GSLRNG, AbstractRNG
 from pyNN.neuron import simulator
 from pyNN.neuron.standardmodels.cells import *
 from pyNN.neuron.connectors import *
@@ -36,7 +37,9 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
+    return [obj.__name__ for obj in globals().values() if (isinstance(obj, type) and 
+                                                           issubclass(obj, StandardCellType) and
+                                                           obj is not StandardCellType)]
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -88,7 +91,8 @@ def end(compatible_output=True):
     simulator.state.write_on_end = []
     #simulator.state.finalize()
 
-run = common.build_run(simulator)
+run, run_until = common.build_run(simulator)
+run_for = run
 
 reset = common.build_reset(simulator)
 

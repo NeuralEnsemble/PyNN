@@ -66,7 +66,7 @@ NET_RECEIVE (w) {
                 wsyn = wmax
             }
             if (wsyn < wmin) {
-                wsyn = 0
+                wsyn = wmin
             }
             deltaw = 0.0
         }

@@ -9,8 +9,9 @@
 *.orig
 .project
 .pydevproject
-*.tmp*
 .settings
+*.tmp*
+*.swp
 
 # Compiled source
 *.py[ocd]
@@ -41,3 +42,4 @@ cover
 
 # files from running examples
 examples/Results
+examples/tools/Results

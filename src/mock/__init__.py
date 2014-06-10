@@ -11,6 +11,7 @@ really running simulations.
 import logging
 from pyNN import common
 from pyNN.connectors import *
+from pyNN.recording import *
 from . import simulator
 from .standardmodels import *
 from .populations import Population, PopulationView, Assembly
@@ -42,7 +43,8 @@ def end(compatible_output=True):
     simulator.state.write_on_end = []
     # should have common implementation of end()
 
-run = common.build_run(simulator)
+run, run_until = common.build_run(simulator)
+run_for = run
 
 reset = common.build_reset(simulator)
 

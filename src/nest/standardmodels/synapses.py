@@ -11,6 +11,8 @@ from pyNN.standardmodels import synapses, build_translations
 from pyNN.nest.synapses import get_synapse_defaults, NESTSynapseMixin
 import logging
 
+from ..conversion import make_sli_compatible
+
 logger = logging.getLogger("PyNN")
 
 
@@ -65,6 +67,9 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
         synapse_defaults.pop("w_min_always_zero_in_NEST")
         # Tau_minus is a parameter of the post-synaptic cell, not of the connection
         synapse_defaults.pop("tau_minus")
+
+        synapse_defaults = make_sli_compatible(synapse_defaults)
+
         label = "%s_%s" % (base_model, suffix)
         nest.CopyModel(base_model, label, synapse_defaults)
         return label
@@ -78,10 +83,7 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse, NESTSynapseMixin):
         ('delay', 'delay'),
         ('U', 'U'),
         ('tau_rec', 'tau_rec'),
-        ('tau_facil', 'tau_fac'),
-        ('u0', 'u'),  # this could cause problems for reverse translation
-        ('x0', 'x' ), # (as for V_m) in cell models, since the initial value
-        ('y0', 'y')   # is not stored, only set.
+        ('tau_facil', 'tau_fac')
     )
     nest_name = 'tsodyks_synapse'
 

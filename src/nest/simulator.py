@@ -63,11 +63,13 @@ class _State(common.control.BaseState):
 
     @property
     def t(self):
-        return nest.GetKernelStatus('time')
+        return max(nest.GetKernelStatus('time') - self.dt, 0.0)  # note that we always simulate one time step past the requested time
 
     dt = nest_property('resolution', float)
 
     threads = nest_property('local_num_threads', int)
+
+    grng_seed = nest_property('grng_seed', int)
 
     rng_seeds = nest_property('rng_seeds', list)
 
@@ -125,6 +127,9 @@ class _State(common.control.BaseState):
             simtime += self.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
             self.running = True
         nest.Simulate(simtime)
+
+    def run_until(self, tstop):
+        self.run(tstop - self.t)
 
     def reset(self):
         nest.ResetNetwork()
@@ -222,12 +227,14 @@ class Connection(object):
     weight = property(_get_weight, _set_weight)
     delay  = property(_get_delay, _set_delay)
 
+
 def generate_synapse_property(name):
     def _get(self):
         return nest.GetStatus([self.id()], name)[0]
     def _set(self, val):
         nest.SetStatus([self.id()], name, val)
     return property(_get, _set)
+
 setattr(Connection, 'U', generate_synapse_property('U'))
 setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))
 setattr(Connection, 'tau_facil', generate_synapse_property('tau_fac'))

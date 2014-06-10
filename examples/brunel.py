@@ -108,7 +108,9 @@ cell_params = {'tau_m'      : tauMem,
 extra = {}
 
 rank = setup(timestep=dt, max_delay=delay, **extra)
+print "rank =", rank
 np = num_processes()
+print "np =", np
 import socket
 host_name = socket.gethostname()
 print "Host #%d is on %s" % (rank+1, host_name)
@@ -136,7 +138,7 @@ print "%d Creating inhibitory population with %d neurons." % (rank, NI)
 I_net = Population(NI, celltype, label="I_net")
 
 print "%d Initialising membrane potential to random values between %g mV and %g mV." % (rank, U0, theta)
-uniformDistr = RandomDistribution('uniform', [U0, theta], rng)
+uniformDistr = RandomDistribution('uniform', low=U0, high=theta, rng=rng)
 E_net.initialize(v=uniformDistr)
 I_net.initialize(v=uniformDistr)
 

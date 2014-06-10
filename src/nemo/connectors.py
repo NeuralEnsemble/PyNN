@@ -14,9 +14,12 @@ from pyNN.connectors import AllToAllConnector, \
                             OneToOneConnector, \
                             FixedProbabilityConnector, \
                             DistanceDependentProbabilityConnector, \
+                            DisplacementDependentProbabilityConnector, \
+                            IndexBasedProbabilityConnector, \
                             FromListConnector, \
                             FromFileConnector, \
                             FixedNumberPreConnector, \
                             FixedNumberPostConnector, \
                             SmallWorldConnector, \
-                            CSAConnector
+                            CSAConnector, \
+                            CloneConnector

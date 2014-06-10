@@ -229,9 +229,11 @@ def normalized_filename(root, basename, extension, simulator, num_processes=None
                                            timestamp.strftime("%Y%m%d-%H%M%S"),
                                            extension))
 
-def connection_plot(connection_array):
+def connection_plot(projection):
+    connection_array = projection.get('weight', format='array')
     image = numpy.zeros_like(connection_array, dtype=str)
     image[connection_array > 0] = 'O'
+    image[connection_array == 0] = '.'
     image[numpy.isnan(connection_array)] = ' '
     return u'\n'.join([u''.join(row) for row in image])
 
@@ -245,6 +247,7 @@ class Timer(object):
 
     def __init__(self):
         self.start()
+        self.marks = []
 
     def start(self):
         """Start/restart timing."""
@@ -317,6 +320,14 @@ class Timer(object):
         return ', '.join([add_units(T[part], part)
                           for part in ('year', 'day', 'hour', 'minute', 'second')
                           if T[part]>0])
+
+    def mark(self, label):
+        """
+        Store the time since the last time since the last time
+        :meth:`elapsed_time()`, :meth:`diff()` or :meth:`mark()` was called,
+        together with the provided label, in the attribute 'marks'.
+        """
+        self.marks.append((label, self.diff()))
 
 
 class ProgressBar(object):

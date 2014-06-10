@@ -1,5 +1,5 @@
 from nose.plugins.skip import SkipTest
-from scenarios import scenarios
+from scenarios.registry import registry
 from nose.tools import assert_equal, assert_almost_equal
 from pyNN.random import RandomDistribution
 from pyNN.utility import init_logging
@@ -12,7 +12,7 @@ except ImportError:
 
 
 def test_scenarios():
-    for scenario in scenarios:
+    for scenario in registry:
         if "moose" not in scenario.exclude:
             scenario.description = scenario.__name__
             if have_moose:

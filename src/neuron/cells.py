@@ -17,6 +17,7 @@ from .recording import recordable_pattern
 
 logger = logging.getLogger("PyNN")
 
+
 def _new_property(obj_hierarchy, attr_name):
     """
     Returns a new property, mapping attr_name to obj_hierarchy.attr_name.
@@ -35,40 +36,32 @@ def _new_property(obj_hierarchy, attr_name):
     return property(fset=set, fget=get)
 
 
+def guess_units(variable):
+    # works with NEURON 7.3, not with 7.1, 7.2 not tested
+    nrn_units = h.units(variable.split('.')[-1])
+    pq_units = nrn_units.replace("2", "**2").replace("3", "**3")
+    return pq_units
+
+
 class NativeCellType(BaseCellType):
-    
+
     def can_record(self, variable):
         # crude check, could be improved
         return bool(recordable_pattern.match(variable))
 
 
-class SingleCompartmentNeuron(nrn.Section):
+class BaseSingleCompartmentNeuron(nrn.Section):
     """docstring"""
 
-    synapse_models = {
-        'current':      { 'exp': h.ExpISyn, 'alpha': h.AlphaISyn },
-        'conductance' : { 'exp': h.ExpSyn,  'alpha': h.AlphaSyn },
-    }
-
-    def __init__(self, syn_type, syn_shape, c_m, i_offset,
-                 tau_e, tau_i, e_e, e_i):
+    def __init__(self, c_m, i_offset):
 
         # initialise Section object with 'pas' mechanism
         nrn.Section.__init__(self)
         self.seg = self(0.5)
         self.L = 100
-        self.seg.diam = 1000/pi # gives area = 1e-3 cm2
+        self.seg.diam = 1000/pi  # gives area = 1e-3 cm2
 
         self.source_section = self
-        self.syn_type = syn_type
-        self.syn_shape = syn_shape
-
-        # insert synapses
-        assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
-        assert syn_shape in ('alpha', 'exp'), "syn_type must be either 'alpha' or 'exp'"
-        synapse_model = self.synapse_models[syn_type][syn_shape]
-        self.esyn = synapse_model(0.5, sec=self)
-        self.isyn = synapse_model(0.5, sec=self)
 
         # insert current source
         self.stim = h.IClamp(0.5, sec=self)
@@ -83,6 +76,46 @@ class SingleCompartmentNeuron(nrn.Section):
 
         self.v_init = None
 
+    def area(self):
+        """Membrane area in µm²"""
+        return pi*self.L*self.seg.diam
+
+    c_m      = _new_property('seg', 'cm')
+    i_offset = _new_property('stim', 'amp')
+
+    def memb_init(self):
+        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
+        for seg in self:
+            seg.v = self.v_init
+        #self.seg.v = self.v_init
+
+    def set_parameters(self, param_dict):
+        for name in self.parameter_names:
+            setattr(self, name, param_dict[name])
+
+
+class SingleCompartmentNeuron(BaseSingleCompartmentNeuron):
+    """Single compartment with excitatory and inhibitory synapses"""
+
+    synapse_models = {
+        'current':     { 'exp': h.ExpISyn, 'alpha': h.AlphaISyn },
+        'conductance': { 'exp': h.ExpSyn,  'alpha': h.AlphaSyn },
+    }
+
+    def __init__(self, syn_type, syn_shape, c_m, i_offset,
+                 tau_e, tau_i, e_e, e_i):
+        BaseSingleCompartmentNeuron.__init__(self, c_m, i_offset)
+
+        self.syn_type = syn_type
+        self.syn_shape = syn_shape
+
+        # insert synapses
+        assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
+        assert syn_shape in ('alpha', 'exp'), "syn_type must be either 'alpha' or 'exp'"
+        synapse_model = self.synapse_models[syn_type][syn_shape]
+        self.esyn = synapse_model(0.5, sec=self)
+        self.isyn = synapse_model(0.5, sec=self)
+
     @property
     def excitatory(self):
         return self.esyn
@@ -90,13 +123,6 @@ class SingleCompartmentNeuron(nrn.Section):
     @property
     def inhibitory(self):
         return self.isyn
-
-    def area(self):
-        """Membrane area in µm²"""
-        return pi*self.L*self.seg.diam
-
-    c_m      = _new_property('seg', 'cm')
-    i_offset = _new_property('stim', 'amp')
 
     def _get_tau_e(self):
         return self.esyn.tau
@@ -121,16 +147,6 @@ class SingleCompartmentNeuron(nrn.Section):
     def _set_e_i(self, value):
         self.isyn.e = value
     e_i = property(fget=_get_e_i, fset=_set_e_i)
-
-    def memb_init(self):
-        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
-        for seg in self:
-            seg.v = self.v_init
-        #self.seg.v = self.v_init
-
-    def set_parameters(self, param_dict):
-        for name in self.parameter_names:
-            setattr(self, name, param_dict[name])
 
 
 class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
@@ -270,36 +286,46 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
             seg.w = self.w_init
 
 
-class Izhikevich_(object):
-    
-    def __init__(self, a=0.02, b=0.2, c=-65.0, d=2.0, i_inj=0.0):
-        self.source_section = nrn.Section()
-        self.source = h.Izhikevich(0.5, sec=self.source_section)
-        self.a = a
-        self.b = b
-        self.c = c
-        self.d = d
-        self.i_inj = i_inj
-        self.excitatory = self.inhibitory = self.source
-        self.spike_times = h.Vector(0)
-        self.traces = {}
-        self.recording_time = 0
-        self.v_init = None
-        self.u_init = None
-        self.recordable = {'v': self.source._ref_vm,
-                           'u': self.source._ref_u}
+class Izhikevich_(BaseSingleCompartmentNeuron):
+    """docstring"""
 
-    a = _new_property('source', 'a')
-    b = _new_property('source', 'b')
-    c = _new_property('source', 'c')
-    d = _new_property('source', 'd')
-    i_inj = _new_property('source', 'i_inj')
-    
+    def __init__(self, a_=0.02, b=0.2, c=-65.0, d=2.0, i_offset=0.0):
+        BaseSingleCompartmentNeuron.__init__(self, 1.0, i_offset)
+
+        # insert Izhikevich mechanism
+        self.izh = h.Izhikevich(0.5, sec=self)
+        self.source = self.izh
+        self.rec = h.NetCon(self.seg._ref_v, None,
+                            self.get_threshold(), 0.0, 0.0,
+                            sec=self)
+        self.excitatory = self.inhibitory = self.source
+
+        self.parameter_names = ['a_', 'b', 'c', 'd', 'i_offset']
+        self.set_parameters(locals())
+        self.u_init = None
+
+    a_ = _new_property('izh', 'a')
+    b = _new_property('izh', 'b')
+    c = _new_property('izh', 'c')
+    d = _new_property('izh', 'd')
+    ## using 'a_' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"
+
+    def record(self, active):
+        if active:
+            self.rec = h.NetCon(self.seg._ref_v, None,
+                                self.get_threshold(), 0.0, 0.0,
+                                sec=self)
+            self.rec.record(self.spike_times)
+
+    def get_threshold(self):
+        return self.izh.vthresh
+
     def memb_init(self):
-        assert self.v_init is not None
+        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
         assert self.u_init is not None
-        self.source.vm = self.v_init
-        self.source.u = self.u_init
+        for seg in self:
+            seg.v = self.v_init
+            seg.uinit = self.u_init
 
 
 class GsfaGrrIF(StandardIF):
@@ -359,6 +385,7 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
                                          tau_e, tau_i, e_e, e_i)
         self.source = self.seg._ref_v
+        self.source_section = self
         self.rec = h.NetCon(self.source, None, sec=self)
         self.insert('k_ion')
         self.insert('na_ion')
@@ -434,3 +461,11 @@ class VectorSpikeSource(hclass(h.VecStim)):
 
     spike_times = property(fget=_get_spike_times,
                            fset=_set_spike_times)
+
+    def clear_past_spikes(self):
+        """If previous recordings are cleared, need to remove spikes from before the current time."""
+        end = self._spike_times.indwhere(">", h.t)
+        if end > 0:
+            self._spike_times.remove(0, end-1)  # range is inclusive
+
+    

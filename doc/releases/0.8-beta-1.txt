@@ -1,0 +1,141 @@
+==============================
+PyNN 0.8 beta 1 release notes
+==============================
+
+November 15th 2013
+
+Welcome to the first beta release of PyNN 0.8!
+
+For full information about what's new in PyNN 0.8, see the :doc:`0.8-alpha-1`.
+
+Brian backend
+-------------
+
+The main new feature in this beta release is the reappearance of the Brian_
+backend, updated to work with the 0.8 API. You will need version 1.4 of Brian.
+There are still some rough edges, but we encourage anyone who has used Brian
+with PyNN 0.7 to try updating your scripts now, and give it a try.
+
+New and improved connectors
+---------------------------
+
+The library of :class:`Connector` classes has been extended. The
+:class:`DistanceDependentProbabilityConnector` (DDPC) has been generalized, resulting
+in the :class:`IndexBasedProbabilityConnector`, with which the connection
+probability can be specified as any function of the indices *i* and *j* of the
+pre- and post-synaptic neurons within their populations. In addition, the
+distance expression for the DDPC can now be a callable object (such as a
+function) as well as a string expression.
+
+The :class:`ArrayConnector` allows connections to be specified as an explicit
+boolean matrix, with shape (*m*, *n*) where *m* is the size of the presynaptic
+population and *n* that of the postsynaptic population.
+
+The :class:`CSAConnector` has been updated to work with the 0.8 API.
+
+The :class:`FromListConnector` and :class:`FromFileConnector` now support
+specifying any synaptic parameter (e.g. parameters of the synaptic plasticity
+rule), not just weight and delay.
+
+API changes
+-----------
+
+The :func:`set()` function now matches the :meth:`Population.set()` method,
+i.e. it takes one or more parameter name/value pairs as keyword arguments.
+
+Two new functions for advancing a simulation have been added: :func:`run_for()`
+and :func:`run_until()`. :func:`run_for()` is just an alias for :func:`run()`.
+:func:`run_until()` allows you to specify the absolute time at which a
+simulation should stop, rather than the increment of time. In addition, it is
+now possible to specify a call-back function that should be called at
+intervals during a run, e.g.::
+
+    >>> def report_time(t):
+    ...     print "The time is %g" % t
+    ...     return t + 100.0
+    >>> run_until(300.0, callbacks=[report_time])
+    The time is 0
+    The time is 100
+    The time is 200
+    The time is 300
+
+One potential use of this feature is to record synaptic weights during a
+simulation with synaptic plasticity.
+
+We have changed the parameterization of STDP models. The `A_plus` and `A_minus`
+parameters have been moved from the weight-dependence components to the
+timing-dependence components, since effectively they describe the shape of the
+STDP curve independently of how the weight change depends on the current weight.
+
+Simple plotting
+---------------
+
+We have added a small library to make it simple to produce simple plots of
+data recorded from a PyNN simulation. This is not intended for
+publication-quality or highly-customized plots, but for basic visualization.
+
+For example::
+
+    from pyNN.utility.plotting import Figure, Panel  
+    
+    ...
+    
+    population.record('spikes')
+    population[0:2].record(('v', 'gsyn_exc'))
+    
+    ...
+    
+    data = population.get_data().segments[0]
+    
+    vm = data.filter(name="v")[0]
+    gsyn = data.filter(name="gsyn_exc")[0]
+    
+    Figure(
+        Panel(vm, ylabel="Membrane potential (mV)"),
+        Panel(gsyn, ylabel="Synaptic conductance (uS)"),
+        Panel(data.spiketrains, xlabel="Time (ms)", xticks=True)
+    ).save("simulation_results.png")
+
+
+.. image:: ../images/release_0.8b1_example.png
+   :width: 600px
+   :align: center
+   :alt: Image generated using the Figure and Panel classes from pyNN.utility.plotting
+
+
+Gap junctions
+-------------
+
+The NEURON backend now supports gap junctions. This is not yet an official
+part of the PyNN API, since any official feature must be supported by at least
+two backends, but could be very useful to modellers using NEURON.
+
+Other changes
+-------------
+
+The default precision for the NEST_ backend has been changed to "off_grid".
+This reflects the PyNN philosophy that defaults should prioritize accuracy and
+compatibility over performance. (We think performance is very important, it's
+just that any decision to risk compromising accurary or interoperability should
+be made deliberately by the end user.)
+
+The Izhikevich neuron model is now available for the NEURON, NEST and Brian
+backends, although there are still some problems with injecting current when
+using the NEURON backend.
+
+A whole bunch of bugs have been fixed: see the `issue tracker`_.
+
+For developers
+--------------
+
+We are now taking advantage of the integration of GitHub with TravisCI_, to
+automatically run the suite of unit tests whenever changes are pushed to
+GitHub. Note that this does not run the system tests or any other tests that
+require installation of a simulator backend.
+
+
+
+.. _Brian: http://http://briansimulator.org
+.. _NEST: http://www.nest-initiative.org/
+.. _TravisCI: https://travis-ci.org/NeuralEnsemble/PyNN
+.. _`issue tracker`: https://github.com/NeuralEnsemble/PyNN/issues?state=closed

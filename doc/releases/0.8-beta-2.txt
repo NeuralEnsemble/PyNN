@@ -1,0 +1,16 @@
+=============================
+PyNN 0.8 beta 2 release notes
+=============================
+
+DATE
+
+Welcome to the second beta release of PyNN 0.8!
+
+For full information about what's new in PyNN 0.8, see the :doc:`0.8-alpha-1` and :doc:`0.8-beta-1`.
+
+
+TODO
+
+* new standardization of random distributions: names and parameters names are now independent of the random number
+ generation library used (NumPy, Gnu Scientific Library or simulator-native).
+ 

@@ -47,17 +47,14 @@ class IDMixin(object):
     # (e.g., int or long) and from IDMixin.
 
     def __getattr__(self, name):
+        if name == "parent":
+            raise Exception("parent is not set")
         try:
-            val = self.__getattribute__(name)
-        except AttributeError:
-            if name == "parent":
-                raise Exception("parent is not set")
-            try:
-                val = self.get_parameters()[name]
-            except KeyError:
-                raise errors.NonExistentParameterError(name,
-                                                       self.celltype.__class__.__name__,
-                                                       self.celltype.get_parameter_names())
+            val = self.get_parameters()[name]
+        except KeyError:
+            raise errors.NonExistentParameterError(name,
+                                                   self.celltype.__class__.__name__,
+                                                   self.celltype.get_parameter_names())
         return val
 
     def __setattr__(self, name, value):
@@ -388,6 +385,9 @@ class BasePopulation(object):
             self._set_initial_value_array(variable, initial_value)
             self.initial_values[variable] = initial_value
 
+    def find_units(self, variable):
+        return self.celltype.units[variable]
+
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
         return self.celltype.can_record(variable)
@@ -455,7 +455,8 @@ class BasePopulation(object):
         file as metadata.
         """
         logger.debug("Population %s is writing %s to %s [gather=%s, clear=%s]" % (self.label, variables, io, gather, clear))
-        self.recorder.write(variables, io, gather, self._record_filter, annotations=annotations)
+        self.recorder.write(variables, io, gather, self._record_filter, clear=clear, 
+                            annotations=annotations)
 
     def get_data(self, variables='all', gather=True, clear=False):
         """
@@ -501,8 +502,11 @@ class BasePopulation(object):
 
     def get_spike_counts(self, gather=True):
         """
-        Returns the number of spikes for each neuron.
+        Returns a dict containing the number of spikes for each neuron.
+        
+        The dict keys are neuron IDs, not indices.
         """
+        # arguably, we should use indices
         return self.recorder.count('spikes', gather, self._record_filter)
 
     @deprecated("mean_spike_count()")
@@ -618,6 +622,7 @@ class Population(BasePopulation):
         else:
             raise TypeError("cellclass must be an instance or subclass of BaseCellType, not a %s" % type(cellclass))
         self.annotations = {}
+        self.recorder = self._recorder_class(self)
         # Build the arrays of cell ids
         # Cells on the local node are represented as ID objects, other cells by integers
         # All are stored in a single numpy array for easy lookup by address
@@ -629,7 +634,6 @@ class Population(BasePopulation):
         all_initial_values = self.celltype.default_initial_values.copy()
         all_initial_values.update(initial_values)
         self.initialize(**all_initial_values)
-        self.recorder = self._recorder_class(self)
         Population._nPop += 1
 
     def __repr__(self):
@@ -980,6 +984,12 @@ class Assembly(object):
             for p in self.populations[1:]:
                 rts = rts.intersection(set(p.celltype.receptor_types))
         return rts
+
+    def find_units(self, variable):
+        units = set(p.find_units(variable) for p in self.populations)
+        if len(units) > 1:
+            raise ValueError("Inconsistent units")
+        return units
 
     @property
     def _mask_local(self):

@@ -80,22 +80,13 @@ class Recorder(recording.Recorder):
         free up the memory.
         """
         for id in set.union(*self.recorded.values()):
-            for variable in id._cell.traces:
-                id._cell.traces[variable].resize(0)
-            id._cell.spike_times.resize(0)
-
-    @staticmethod
-    def find_units(variable):
-        if variable in recording.UNITS_MAP:
-            return recording.UNITS_MAP[variable]
-        else:
-            # works with NEURON 7.3, not with 7.1, 7.2 not tested
-            try:
-                nrn_units = h.units(variable.split('.')[-1])
-            except RuntimeError:
-                nrn_units = "dimensionless"
-            pq_units = nrn_units.replace("2", "**2").replace("3", "**3")
-            return pq_units
+            if hasattr(id._cell, "traces"):
+                for variable in id._cell.traces:
+                    id._cell.traces[variable].resize(0)
+            if id._cell.rec is not None:
+                id._cell.spike_times.resize(0)
+            else:
+                id._cell.clear_past_spikes()
 
     def _get_spiketimes(self, id):
         spikes = numpy.array(id._cell.spike_times)

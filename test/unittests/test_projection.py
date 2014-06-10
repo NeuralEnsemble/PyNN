@@ -41,6 +41,7 @@ class ProjectionTest(unittest.TestCase):
         self.random_connect = sim.FixedNumberPostConnector(n=2)
         self.syn2 = sim.StaticSynapse(weight=0.456, delay=0.4)
         self.all2all = sim.AllToAllConnector()
+        self.syn3 = sim.TsodyksMarkramSynapse(weight=0.789, delay=0.6, U=100.0, tau_rec=500)
 
     def test_create_simple(self):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
@@ -69,15 +70,14 @@ class ProjectionTest(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         self.assertEqual(prj.size(gather=True), self.p1.size * self.p2.size)
 
+# Need to extend the mock backend before setting synaptic parameters can be properly tested
+
     #def test_set_weights(self):
-    #    p1 = sim.Population(7, sim.IF_cond_exp)
-    #    p2 = sim.Population(7, sim.IF_cond_exp)
-    #    prj = sim.Projection(p1, p2, connector=Mock())
-    #    prj.synapse_type = "foo"
-    #    prj.post.local_cells = [0]
-    #    prj.set = Mock()
-    #    prj.setWeights(0.5)
-    #    prj.set.assert_called_with('weight', 0.5)
+    #    prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
+    #    prj.set(weight=0.789)
+    #    weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
+    #    target = 0.789*numpy.ones((self.p1.size, self.p2.size))
+    #    assert_array_equal(weights, target)
 
     #def test_randomize_weights(self):
     #    orig_len = sim.Projection.__len__
@@ -147,8 +147,21 @@ class ProjectionTest(unittest.TestCase):
         target = 0.456*numpy.ones((self.p1.size, self.p2.size))
         assert_array_equal(weights, target)
 
+    def test_get_weights_as_array_with_multapses(self):
+        C = sim.FixedNumberPreConnector(n=7, rng=MockRNG(delta=1))
+        prj = sim.Projection(self.p2, self.p3, C, synapse_type=self.syn1)
+        # because we use a fake RNG, it is always the last three presynaptic cells which receive the double connection
+        target = numpy.array([
+            [0.123, 0.123, 0.123, 0.123, 0.123],
+            [0.246, 0.246, 0.246, 0.246, 0.246],
+            [0.246, 0.246, 0.246, 0.246, 0.246],
+            [0.246, 0.246, 0.246, 0.246, 0.246],
+            ])
+        weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
+        assert_array_equal(weights, target)
+
     def test_get_plasticity_attribute_as_list(self):
-        U_distr = random.RandomDistribution('uniform', [0.4, 0.6], rng=MockRNG(start=0.5, delta=0.001))
+        U_distr = random.RandomDistribution('uniform', low=0.4, high=0.6, rng=MockRNG(start=0.5, delta=0.001))
         depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 800.0+d, tau_facil=0.0)
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=depressing)
@@ -183,7 +196,7 @@ class ProjectionTest(unittest.TestCase):
         filename = "test.connections"
         if os.path.exists(filename):
             os.remove(filename)
-        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
+        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn3)
         prj.save('connections', filename, gather=True)
         assert os.path.exists(filename)
         os.remove(filename)

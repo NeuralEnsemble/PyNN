@@ -10,8 +10,9 @@ backend-specific Projection classes.
 import numpy
 import logging
 import operator
-from pyNN import random, recording, errors, models, core, descriptions
-from pyNN.parameters import ParameterSpace
+from copy import copy
+from pyNN import recording, errors, models, core, descriptions
+from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.space import Space
 from pyNN.standardmodels import StandardSynapseType
 from populations import BasePopulation, Assembly
@@ -69,11 +70,12 @@ class Projection(object):
         self.pre    = presynaptic_neurons  #  } these really
         self.source = source               #  } should be
         self.post   = postsynaptic_neurons #  } read-only
-        self.receptor_type = receptor_type or 'excitatory' # TO FIX: if weights are negative, default should be 'inhibitory'
+        self.receptor_type = receptor_type or 'excitatory'  # TO FIX: if weights are negative, default should be 'inhibitory'
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
             assert len(valid_types) > 0
-            raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: '%s'" % (self.receptor_type, "', '".join(valid_types)))
+            errmsg = "User gave synapse_type=%s, synapse_type must be one of: '%s'"
+            raise errors.ConnectionError(errmsg % (self.receptor_type, "', '".join(valid_types)))
         self.label = label
         self.space = space
         self._connector = connector
@@ -123,7 +125,7 @@ class Projection(object):
         """
         Set connection attributes for all connections on the local MPI node.
 
-        Attribute names may be 'weights', 'delays', or the name of any parameter
+        Attribute names may be 'weight', 'delay', or the name of any parameter
         of a synapse dynamics model (e.g. 'U' for TsodyksMarkramSynapse).
 
         Each attribute value may be:
@@ -139,12 +141,40 @@ class Projection(object):
         synapses. Delays should be in milliseconds.
         """
         # should perhaps add a "distribute" argument, for symmetry with "gather" in get()
+        attributes = self._value_list_to_array(attributes)
         parameter_space = ParameterSpace(attributes,
                                          self.synapse_type.get_schema(),
                                          (self.pre.size, self.post.size))
+        parameter_space = self._handle_distance_expressions(parameter_space)
         if isinstance(self.synapse_type, StandardSynapseType):
             parameter_space = self.synapse_type.translate(parameter_space)
         self._set_attributes(parameter_space)
+
+    def _value_list_to_array(self, attributes):
+        """Convert a list of connection parameters/attributes to a 2D array."""
+        connection_mask = ~numpy.isnan(self.get('weight', format='array', gather='all'))
+        for name, value in attributes.items():
+            if isinstance(value, list) or (isinstance(value, numpy.ndarray) and value.ndim == 1):
+                array_value = numpy.nan * numpy.ones(self.shape)
+                array_value[connection_mask] = value
+                attributes[name] = array_value
+        return attributes
+
+    def _handle_distance_expressions(self, parameter_space):
+        # also index-based expressions
+        for name, map in parameter_space.items():
+            if callable(map.base_value):
+                if isinstance(map.base_value, core.IndexBasedExpression):
+                    map.base_value.projection = self
+                    parameter_space[name] = map
+                else:
+                    # Assumes map is a function of distance
+                    position_generators = (self.pre.position_generator,
+                                           self.post.position_generator)
+                    distance_map = LazyArray(self.space.distance_generator(*position_generators),
+                                             shape=self.shape)
+                    parameter_space[name] = map(distance_map)
+        return parameter_space
 
     @deprecated("set(weight=w)")
     def setWeights(self, w):
@@ -187,7 +217,7 @@ class Projection(object):
         indices of the pre- and post-synaptic cell followed by the attribute
         values in the order given in `attribute_names`. Example::
 
-            >>> prj.get(["weights", "delays"], format="list")[:5]
+            >>> prj.get(["weight", "delay"], format="list")[:5]
             [(TODO)]
 
         With array format, returns a tuple of 2D NumPy arrays, one for each
@@ -199,12 +229,12 @@ class Projection(object):
         value will be given, which makes some sense for weights, but is
         pretty meaningless for delays. Example::
 
-            >>> weights, delays = prj.get(["weights", "delays"], format="array")
+            >>> weights, delays = prj.get(["weight", "delay"], format="array")
             >>> weights.shape
             TODO
 
         TODO: document "with_address"
-        
+
         Values will be expressed in the standard PyNN units (i.e. millivolts,
         nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
@@ -222,8 +252,8 @@ class Projection(object):
             values = self._get_attributes_as_list(*names)
             if gather and self._simulator.state.num_processes > 1:
                 all_values = { self._simulator.state.mpi_rank: values }
-                all_values = recording.gather_dict(all_values)
-                if self._simulator.state.mpi_rank == 0:
+                all_values = recording.gather_dict(all_values, all=(gather=='all'))
+                if gather == 'all' or self._simulator.state.mpi_rank == 0:
                     values = reduce(operator.add, all_values.values())
             if not with_address and return_single:
                 values = [val[0] for val in values]
@@ -236,8 +266,8 @@ class Projection(object):
                 names      = ["presynaptic_index", "postsynaptic_index"] + names
                 values     = self._get_attributes_as_list(*names)
                 all_values = { self._simulator.state.mpi_rank: values }
-                all_values = recording.gather_dict(all_values)
-                if self._simulator.state.mpi_rank == 0:
+                all_values = recording.gather_dict(all_values, all=(gather=='all'))
+                if gather == 'all' or self._simulator.state.mpi_rank == 0:
                     tmp_values = reduce(operator.add, all_values.values())
                     values     = self._get_attributes_as_arrays(*attribute_names)
                     tmp_values = numpy.array(tmp_values)
@@ -246,7 +276,8 @@ class Projection(object):
             else:
                 values = self._get_attributes_as_arrays(*attribute_names)
             if return_single:
-                assert len(values) == 1
+                if gather == 'all' or self._simulator.state.mpi_rank == 0:
+                    assert len(values) == 1, values
                 return values[0]
             else:
                 return values
@@ -268,7 +299,9 @@ class Projection(object):
                 if numpy.isnan(values[addr]):
                     values[addr] = value
                 else:
-                    values[addr] += value
+                    values[addr] += value   # addition is only appropriate for certain variables
+                                            # e.g. weight. Not appropriate for delays.
+                                            # What about synaptic parameters, e.g. wmax?
             all_values.append(values)
         return all_values
 
@@ -284,24 +317,27 @@ class Projection(object):
     def getSynapseDynamics(self, parameter_name, format='list', gather=True):
         return self.get(parameter_name, format, gather, with_address=False)
 
-    def save(self, attribute_names, file, format='list', gather=True):
+    def save(self, attribute_names, file, format='list', gather=True, with_address=True):
         """
         Print synaptic attributes (weights, delays, etc.) to file. In the array
         format, zeros are printed for non-existent connections.
-        
+
         Values will be expressed in the standard PyNN units (i.e. millivolts,
         nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
         if attribute_names in ('all', 'connections'):
-            attribute_names = ['weight', 'delay'] # need to add synapse dynamics parameter names, if applicable
+            attribute_names = self.synapse_type.get_parameter_names()
         if isinstance(file, basestring):
             file = recording.files.StandardTextFile(file, mode='w')
-        all_values = self.get(attribute_names, format=format, gather=gather)
+        all_values = self.get(attribute_names, format=format, gather=gather, with_address=with_address)
         if format == 'array':
             all_values = [numpy.where(numpy.isnan(values), 0.0, values)
                           for values in all_values]
         if self._simulator.state.mpi_rank == 0:
-            file.write(all_values, {})
+            metadata = {"columns": attribute_names}
+            if with_address:
+                metadata["columns"] = ["i", "j"] + metadata["columns"]
+            file.write(all_values, metadata)
             file.close()
 
     @deprecated("save('all', file, format='list', gather=gather)")
