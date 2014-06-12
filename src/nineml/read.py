@@ -183,11 +183,12 @@ class Network(object):
             else:
                 assert isinstance(projection.target, nineml.Population)
                 target_populations = [projection.target]
+            psr = (projection.synaptic_response, projection.synaptic_response_ports, projection.connection_ports)
             for target_population in target_populations:
                 if target_population.name in self.psr_map:
-                    self.psr_map[target_population.name].add(projection.synaptic_response)
+                    self.psr_map[target_population.name].add(psr)
                 else:
-                    self.psr_map[target_population.name] = set([projection.synaptic_response])
+                    self.psr_map[target_population.name] = set([psr])
 
         # create populations
         for population in group.populations.values():
@@ -206,30 +207,35 @@ class Network(object):
         neuron_model = nineml_population.prototype.definition.component
         neuron_namespace = _generate_variable_name(nineml_population.prototype.name)
         synapse_models = {}
+        connections = []
+        weight_vars = {}
         if nineml_population.name in self.psr_map:
-            for psr_component in self.psr_map[nineml_population.name]:
-                synapse_models[_generate_variable_name(psr_component.name)] = psr_component.definition.component
+            for psr_component, psr_port_map, connection_port_map in self.psr_map[nineml_population.name]:
+                synapse_name = _generate_variable_name(psr_component.name)
+                synapse_models[synapse_name] = psr_component.definition.component
+                assert len(connection_port_map) == 1  # assume only a single connection port pair for now
+                weight_vars[synapse_name] = "%s_%s" % (synapse_name, connection_port_map[0][1])
+                for port_connection in psr_port_map:
+                    psr_port, nrn_port = port_connection
+                    if synapse_models[synapse_name].query.analog_ports_map[psr_port].mode == 'send':
+                        assert neuron_model.query.analog_ports_map[nrn_port].mode in ('recv', 'reduce')
+                        connections.append(("%s.%s" % (synapse_name, psr_port), "%s.%s" % (neuron_namespace, nrn_port)))
+                    else:
+                        assert neuron_model.query.analog_ports_map[nrn_port].mode == 'send'
+                        connections.append(("%s.%s" % (neuron_namespace, nrn_port), "%s.%s" % (synapse_name, psr_port)))
         subnodes = {neuron_namespace: neuron_model}
         subnodes.update(synapse_models)
         combined_model = al.ComponentClass(name=_generate_variable_name(nineml_population.name),
                                            subnodes=subnodes)
         # now connect ports
-        connections = []
-        for source in [port for port in neuron_model.analog_ports if port.mode == 'send']:
-            for synapse_name, syn_model in synapse_models.items():
-                for target in [port for port in syn_model.analog_ports if port.mode == 'recv']:
-                    connections.append(("%s.%s" % (neuron_namespace, source.name), "%s.%s" % (synapse_name, target.name)))
-        for synapse_name, syn_model in synapse_models.items():
-            for source in [port for port in syn_model.analog_ports if port.mode == 'send']:
-                for target in [port for port in neuron_model.analog_ports if port.mode in ('recv, reduce')]:
-                    connections.append(("%s.%s" % (synapse_name, source.name), "%s.%s" % (neuron_namespace, target.name)))
         for connection in connections:
             combined_model.connect_ports(*connection)
-        ### HACK ###
-        synapse_components = [self._nineml_module.CoBaSyn(namespace=name,  weight_connector='q') for name in synapse_models.keys()]
+
         celltype_cls = self._nineml_module.nineml_cell_type(
-            combined_model.name, combined_model, synapse_components)
+            combined_model.name, combined_model, weight_vars)
         cell_params = resolve_parameters(nineml_population.prototype, self.random_distributions)
+
+        #import pdb; pdb.set_trace()
         return celltype_cls, cell_params
 
     #    iaf_2coba_model = al.ComponentClass(
@@ -245,29 +251,29 @@ class Network(object):
     #iaf_2coba_model.connect_ports( "cobaInhib.I", "iaf.ISyn" )
 
     def _build_population(self, nineml_population, assembly):
-            if isinstance(nineml_population.prototype, nineml.SpikingNodeType):
-                n = nineml_population.number
-                if nineml_population.positions is not None:
-                    pyNN_structure = _build_structure(nineml_population.positions.structure)
-                else:
-                    pyNN_structure = None
-                # TODO: handle explicit list of positions
-                cell_class, cell_params = self._generate_cell_type_and_parameters(nineml_population)
-
-                p_obj = self.sim.Population(n, cell_class,
-                                            cell_params,
-                                            structure=pyNN_structure,
-                                            initial_values=resolve_parameters(nineml_population.prototype,
-                                                                              self.random_distributions,
-                                                                              resolve="initial_values"),
-                                            label=nineml_population.name)
-
-            elif isinstance(nineml_population.prototype, nineml.Group):
-                raise NotImplementedError
+        if isinstance(nineml_population.prototype, nineml.SpikingNodeType):
+            n = nineml_population.number
+            if nineml_population.positions is not None:
+                pyNN_structure = _build_structure(nineml_population.positions.structure)
             else:
-                raise Exception()
+                pyNN_structure = None
+            # TODO: handle explicit list of positions
+            cell_class, cell_params = self._generate_cell_type_and_parameters(nineml_population)
 
-            assembly.populations.append(p_obj)
+            p_obj = self.sim.Population(n, cell_class,
+                                        cell_params,
+                                        structure=pyNN_structure,
+                                        initial_values=resolve_parameters(nineml_population.prototype,
+                                                                          self.random_distributions,
+                                                                          resolve="initial_values"),
+                                        label=nineml_population.name)
+
+        elif isinstance(nineml_population.prototype, nineml.Group):
+            raise NotImplementedError
+        else:
+            raise Exception()
+
+        assembly.populations.append(p_obj)
 
     def _evaluate_selection(self, nineml_selection, assembly):
         assert nineml_selection.evaluated

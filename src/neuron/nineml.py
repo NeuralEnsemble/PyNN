@@ -22,13 +22,12 @@ from __future__ import absolute_import
 import subprocess
 import neuron
 from pyNN.models import BaseCellType
-from pyNN.nineml.cells import CoBaSyn
 import logging
 import os
 from itertools import chain
 import neuron
 from pyNN.models import BaseCellType
-from pyNN.nineml.cells import build_nineml_celltype, CoBaSyn
+from pyNN.nineml.cells import build_nineml_celltype
 from pyNN.neuron import simulator
 from pyNN import common, recording
 from nineml2nmodl import write_nmodl, write_nmodldirect, call_nrnivmodl
@@ -105,12 +104,12 @@ def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): 
     neuron.load_mechanisms(wdir)
 
 
-def nineml_cell_type(name, neuron_model, synapse_models):
+def nineml_cell_type(name, combined_model, weight_vars):
     """
     Return a new NineMLCellType subclass.
     """
     return build_nineml_celltype(name, (NineMLCellType,),
-                                     {'neuron_model': neuron_model,
-                                      'synapse_models': synapse_models,
-                                      'builder': _compile_nmodl})
+                                 {'combined_model': combined_model,
+                                  'weight_variables': weight_vars,
+                                  'builder': _compile_nmodl})
 
