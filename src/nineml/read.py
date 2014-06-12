@@ -44,23 +44,17 @@ def scale(quantity):
     return quantity.value * factors[quantity.unit]
 
 
-def parameter_dimension(name, parameters):
-    # parameters is a list of AL Parameter objects
-    for p in parameters:
-        if p.name == name:
-            return p.dimension
-    errmsg = "The parameter list does not contain a parameter called '%s'. Valid names are %s"
-    raise KeyError(errmsg % (name, ", ".join([p.name for p in parameters])))
-
-
-def resolve_parameters(nineml_component, random_distributions, resolve="parameters"):
+def resolve_parameters(nineml_component, random_distributions, resolve="parameters", qualified_names=True):
     """
     Turn a 9ML ParameterSet or InitialValueSet into a Python dict, including turning 9ML
     RandomDistribution objects into PyNN RandomDistribution objects.
     """
     P = {}
     for name, p in getattr(nineml_component, resolve).items():
-        qname = "%s_%s" % (nineml_component.name, name)
+        if qualified_names:
+            qname = "%s_%s" % (nineml_component.name, name)
+        else:
+            qname = name
         if isinstance(p.value, nineml.RandomDistribution):
             rd = p.value
             if rd.name in random_distributions:
@@ -238,18 +232,6 @@ class Network(object):
         #import pdb; pdb.set_trace()
         return celltype_cls, cell_params
 
-    #    iaf_2coba_model = al.ComponentClass(
-    #        name="iaf_2coba",
-    #        subnodes = {"iaf" : iaf.get_component(),
-    #                    "cobaExcit" : coba_synapse.get_component(),
-    #                    "cobaInhib" : coba_synapse.get_component()} )
-    #
-    ## Connections have to be setup as strings, because we are deep-copying objects.
-    #iaf_2coba_model.connect_ports( "iaf.V", "cobaExcit.V" )
-    #iaf_2coba_model.connect_ports( "iaf.V", "cobaInhib.V" )
-    #iaf_2coba_model.connect_ports( "cobaExcit.I", "iaf.ISyn" )
-    #iaf_2coba_model.connect_ports( "cobaInhib.I", "iaf.ISyn" )
-
     def _build_population(self, nineml_population, assembly):
         if isinstance(nineml_population.prototype, nineml.SpikingNodeType):
             n = nineml_population.number
@@ -290,21 +272,17 @@ class Network(object):
         assembly += new_assembly  # add the contents of the selection assembly to the top-level assembly
 
     def _build_connector(self, nineml_projection):
-        #connector_cls = generate_connector_map()[nineml_projection.rule.definition.url]
         connector_params = resolve_parameters(nineml_projection.rule, self.random_distributions)
-        #synapse_parameters = nineml_projection.connection_type.parameters
-        #connector_params['weights'] = synapse_parameters['weight'].value
-        #connector_params['delays'] = synapse_parameters['delay'].value*scale('delay', synapse_parameters['delay'].unit)
         inline_csa = nineml_projection.rule.definition.component._connection_rule[0]
         cset = inline_csa(*connector_params.values()).cset  # TODO: csa should handle named parameters; handle random params
         return self.sim.CSAConnector(cset)
 
     def _build_synapse_dynamics(self, nineml_projection):
-        #if nineml_projection.connection_type.definition.url != pyNN.nineml.utility.catalog_url + "/connectiontypes/static_synapse.xml":
-        #    raise Exception("Dynamic synapses not yet supported by the 9ML-->PyNN converter.")
         # for now, just use static synapse
-        ### HACK ###
-        return self.sim.StaticSynapse()  # weights, delays?
+        ### HACK  - only works if parameters are called "weight" and "delay" ###
+        parameters = resolve_parameters(nineml_projection.connection_type, self.random_distributions, "parameters", qualified_names=False)
+        parameters.update(resolve_parameters(nineml_projection.connection_type, self.random_distributions, "initial_values", qualified_names=False))
+        return self.sim.StaticSynapse(**parameters)
 
     def _build_projection(self, nineml_projection, assembly):
         populations = {}
