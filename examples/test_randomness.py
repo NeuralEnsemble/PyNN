@@ -9,12 +9,15 @@ The IF network is based on the CUBA and COBA models of Vogels & Abbott
 inhibitory neurons, connected via current-based "exponential"
 synapses (instantaneous rise, exponential decay).
 
-Usage: python VAbenchmarks.py <simulator> <benchmark>
+The code is based on VAbenchmarks.py from PyNN/examples, and is modified 
+to test and plot the connection matrix of the network.
+
+Usage: python test_randomness.py <simulator> <benchmark> --plot-figure=name_figure
 
     <simulator> is either neuron, nest, brian or pcsim
     <benchmark> is either CUBA or COBA.
 
-Andrew Davison, UNIC, CNRS
+Andrew Davison, Joel Chavas, UNIC, CNRS
 August 2006
 
 """
