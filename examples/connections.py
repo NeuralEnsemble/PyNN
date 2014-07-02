@@ -74,7 +74,7 @@ def initialize():
     if options.simulator == "neuroml":
         extra["file"] = "connections.xml"
         
-def build_connections(connector_type,connector_parameters):
+def build_connections(connector_type, connector_parameters):
 
     # === Setup ==============================================================
 
@@ -159,13 +159,13 @@ def build_connections(connector_type,connector_parameters):
         array_weights_inh = nan_to_num(
             connections['stim2i'].get('delay', format="array"))
         conn_weights_exc = nan_to_num(
-            connections['e2e'].get('delay', format="array"))[0:20, :]
+            connections['e2e'].get('delay', format="array"))[0:20,:]
         conn_weights_inh = nan_to_num(
-            connections['e2i'].get('delay', format="array"))[0:20, :]
+            connections['e2i'].get('delay', format="array"))[0:20,:]
         inh_weights_exc = nan_to_num(
-            connections['i2e'].get('delay', format="array"))[0:20, :]
+            connections['i2e'].get('delay', format="array"))[0:20,:]
         inh_weights_inh = nan_to_num(
-            connections['i2i'].get('delay', format="array"))[0:20, :]
+            connections['i2i'].get('delay', format="array"))[0:20,:]
 
         Figure(
             Panel(array_weights_exc, data_labels=["stim->exc"], line_properties=[
@@ -193,5 +193,5 @@ if __name__ == "__main__":
         [ sim.AllToAllConnector, {'allow_self_connections': False} ]
         ]
     for conn in connector_type:
-        build_connections(conn[0],conn[1])
+        build_connections(conn[0], conn[1])
     
