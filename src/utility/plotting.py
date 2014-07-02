@@ -99,12 +99,12 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
                  transform=ax.transAxes, ha='right', va='top',
                  bbox=dict(facecolor='white', alpha=1.0))
 	
-def plot_matrix(ax, matrix, label='', **options):
+def plot_array(ax, arr, label='', **options):
     """
     Plots a numpy array as an image.
     """
     handle_options(ax, options)
-    plt.pcolormesh(matrix, **options)
+    plt.pcolormesh(arr, **options)
     if label:
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
@@ -211,8 +211,8 @@ class Panel(object):
                 plot_signals(axes, datum, label_prefix=label, **properties)
             elif isinstance(datum, list) and len(datum) > 0 and isinstance(datum[0], SpikeTrain):
                 plot_spiketrains(axes, datum, label=label, **properties)
-	    elif isinstance(datum,np.ndarray):
-		plot_matrix(axes, datum, label=label, **properties)
+	    elif isinstance(datum, np.ndarray):
+		plot_array(axes, datum, label=label, **properties)
             else:
                 raise Exception("Can't handle type %s" % type(datum))
     
