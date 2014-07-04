@@ -24,5 +24,20 @@ def test_scenarios():
             else:
                 raise SkipTest
 
+def test_restart_loop():
+    sim = pyNN.hardware.brainscales
+    extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+    sim.setup(**extra)
+    sim.end()
+    sim.setup(**extra)
+    sim.end()
+
+def test_sim_without_clearing():
+    sim = pyNN.hardware.brainscales
+    extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+    sim.setup(**extra)    
+  
 if __name__ == '__main__':
     data = test_scenarios()
+    test_restart_loop()
+    test_sim_without_clearing()
