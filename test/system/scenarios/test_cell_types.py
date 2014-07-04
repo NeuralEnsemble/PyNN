@@ -2,7 +2,24 @@
 import numpy
 import quantities as pq
 from registry import register
-
+    
+@register(include_only=['hardware.brainscales'])
+def test_IF_cond_exp(sim, plot_figure=False):
+    extra = {'loglevel':0, 'useSystemSim': True}
+    if sim.__name__ == "pyNN.hardware.brainscales":
+        extra['hardware'] = sim.hardwareSetup['small']
+    sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0, **extra)
+    ifcell  = sim.IF_cond_exp(cm=0.2, i_offset=0.0, tau_refrac=3.0, v_thresh=-51.0, tau_syn_E=5.0, tau_syn_I=5.0, v_reset=-70.0, e_rev_E=0., e_rev_I=-100., v_rest=-50., tau_m=20.)
+    sim.end()
+    
+@register(include_only=['hardware.brainscales'])
+def test_IF_cond_exp_default_values(sim, plot_figure=False):
+    extra = {'loglevel':0, 'useSystemSim': True}
+    if sim.__name__ == "pyNN.hardware.brainscales":
+        extra['hardware'] = sim.hardwareSetup['small']
+    sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0, **extra)
+    ifcell  = sim.IF_cond_exp()
+    sim.end()
 
 @register(exclude=['pcsim', 'moose', 'nemo'])
 def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
@@ -61,5 +78,6 @@ if __name__ == '__main__':
     sim, args = get_simulator(("--plot-figure",
                                {"help": "generate a figure",
                                 "action": "store_true"}))
+    test_IF_cond_exp(sim, plot_figure=args.plot_figure)
     test_EIF_cond_alpha_isfa_ista(sim, plot_figure=args.plot_figure)
     test_HH_cond_exp(sim, plot_figure=args.plot_figure)
