@@ -8,8 +8,9 @@ def test_IF_cond_exp(sim, plot_figure=False):
     extra = {'loglevel':0, 'useSystemSim': True}
     if sim.__name__ == "pyNN.hardware.brainscales":
         extra['hardware'] = sim.hardwareSetup['small']
-    sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0, **extra)
+    sim.setup(**extra)
     ifcell  = sim.IF_cond_exp(cm=0.2, i_offset=0.0, tau_refrac=3.0, v_thresh=-51.0, tau_syn_E=5.0, tau_syn_I=5.0, v_reset=-70.0, e_rev_E=0., e_rev_I=-100., v_rest=-50., tau_m=20.)
+    sim.run(10.0)
     sim.end()
     
 @register(include_only=['hardware.brainscales'])
@@ -17,9 +18,29 @@ def test_IF_cond_exp_default_values(sim, plot_figure=False):
     extra = {'loglevel':0, 'useSystemSim': True}
     if sim.__name__ == "pyNN.hardware.brainscales":
         extra['hardware'] = sim.hardwareSetup['small']
-    sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0, **extra)
+    sim.setup(**extra)
     ifcell  = sim.IF_cond_exp()
+    sim.run(10.0)
     sim.end()
+    
+@register(include_only=['hardware.brainscales'])
+def test_EIF_cond_exp_isfa_ista_default_values(sim, plot_figure=False):
+    ifcell  = sim.EIF_cond_exp_isfa_ista()
+    sim.run(10.0)
+
+@register(include_only=['hardware.brainscales'])
+def test_SpikeSourceArray(sim, plot_figure=False):
+    ifcell1  = sim.SpikeSourceArray(spike_times = [float(i) for i in range(5,105,10)])
+    ifcell2  = sim.SpikeSourceArray(spike_times = numpy.arange(3.0, 103, 10.0))
+    sim.run(110.0)
+    
+@register(include_only=['hardware.brainscales'])
+def test_SpikeSourceArray_default_values(sim, plot_figure=False):
+    ifcell  = sim.SpikeSourceArray()
+    
+@register(include_only=['hardware.brainscales'])
+def test_SpikeSourcePoisson_default_values(sim, plot_figure=False):
+    ifcell  = sim.SpikeSourcePoisson()
 
 @register(exclude=['pcsim', 'moose', 'nemo'])
 def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
